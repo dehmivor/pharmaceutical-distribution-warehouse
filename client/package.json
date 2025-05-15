@@ -1,0 +1,34 @@
+{
+  "name": "client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.9",
+    "@radix-ui/react-dialog": "^1.1.13",
+    "@reduxjs/toolkit": "^2.8.1",
+    "autoprefixer": "^10.4.21",
+    "next": "15.3.2",
+    "postcss": "^8.5.3",
+    "prettier": "^3.5.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-redux": "^9.2.0",
+    "react-hook-form": "^7.51.3",
+    "zod": "^3.22.4",
+    "@tanstack/react-table": "^8.10.0",
+    "recharts": "^2.7.2"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.2",
+    "tailwindcss": "^4.1.5"
+  }
+}
