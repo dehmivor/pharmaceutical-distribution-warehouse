@@ -97,17 +97,6 @@ export default function AuthRegister({ inputSx }) {
           />
           {errors.email?.message && <FormHelperText error>{errors.email?.message}</FormHelperText>}
         </Grid>
-        <Grid size={12}>
-          <InputLabel>Contact</InputLabel>
-          <Contact
-            fullWidth
-            dialCode={watch('dialcode')}
-            onCountryChange={(data) => setValue('dialcode', data.dialCode)}
-            control={control}
-            isError={Boolean(errors.contact)}
-          />
-          {errors.contact?.message && <FormHelperText error>{errors.contact?.message}</FormHelperText>}
-        </Grid>
 
         <Grid size={12}>
           <InputLabel>Password</InputLabel>
