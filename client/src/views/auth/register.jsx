@@ -27,7 +27,6 @@ export default function Register() {
           </Typography>
         </Stack>
 
-        {/* Login form */}
         <AuthRegister />
 
         <Typography variant="body2" color="text.secondary" sx={{ mt: { xs: 2, sm: 3 } }}>
@@ -38,7 +37,6 @@ export default function Register() {
         </Typography>
       </Box>
 
-      {/* Copyright section*/}
       <Copyright />
     </Stack>
   );
