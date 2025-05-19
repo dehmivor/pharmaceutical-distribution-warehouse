@@ -1,111 +1,179 @@
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const User = require('../models/user.model');
+// @project
+// services/authService.js
 
-class AuthService {
-  /**
-   * Đăng ký người dùng mới
-   * @param {Object} userData - Thông tin người dùng
-   * @returns {Promise<Object>} - Thông tin người dùng đã đăng ký
-   */
-  async register(userData) {
-    try {
-      // Kiểm tra xem email đã tồn tại chưa
-      const existingUser = await User.findOne({ email: userData.email });
-      if (existingUser) {
-        throw new Error('Email đã được sử dụng');
-      }
+/**
+ * Service xử lý các chức năng liên quan đến authentication
+ */
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-      // Mã hóa mật khẩu
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(userData.password, salt);
-
-      // Tạo người dùng mới
-      const newUser = new User({
-        fullName: userData.fullName,
-        email: userData.email,
-        password: hashedPassword,
-        role: userData.role || 'user',
-      });
-
-      // Lưu người dùng vào database
-      const savedUser = await newUser.save();
-
-      // Tạo JWT token
-      const token = this.generateToken(savedUser);
-
-      // Trả về thông tin người dùng (không bao gồm mật khẩu) và token
-      const userResponse = savedUser.toObject();
-      delete userResponse.password;
-
-      return {
-        user: userResponse,
-        token,
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * Đăng nhập người dùng
-   * @param {string} email - Email người dùng
-   * @param {string} password - Mật khẩu người dùng
-   * @returns {Promise<Object>} - Thông tin người dùng đã đăng nhập và token
-   */
-  async login(email, password) {
-    try {
-      // Tìm người dùng theo email
-      const user = await User.findOne({ email });
-      if (!user) {
-        throw new Error('Email hoặc mật khẩu không chính xác');
-      }
-
-      // Kiểm tra mật khẩu
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
-        throw new Error('Email hoặc mật khẩu không chính xác');
-      }
-
-      // Tạo JWT token
-      const token = this.generateToken(user);
-
-      // Trả về thông tin người dùng (không bao gồm mật khẩu) và token
-      const userResponse = user.toObject();
-      delete userResponse.password;
-
-      return {
-        user: userResponse,
-        token,
-      };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  /**
-   * Tạo JWT token
-   * @param {Object} user - Thông tin người dùng
-   * @returns {string} - JWT token
-   */
-  generateToken(user) {
-    return jwt.sign({ id: user._id, email: user.email, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: '1d',
+/**
+ * Đăng ký người dùng mới
+ * @param {Object} userData - Thông tin người dùng đăng ký
+ * @returns {Promise<Object>} Kết quả từ API
+ */
+export const register = async (userData) => {
+  try {
+    const response = await fetch(`${API_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
     });
-  }
 
-  /**
-   * Xác thực token
-   * @param {string} token - JWT token
-   * @returns {Object} - Thông tin người dùng được giải mã từ token
-   */
-  verifyToken(token) {
-    try {
-      return jwt.verify(token, process.env.JWT_SECRET);
-    } catch (error) {
-      throw new Error('Token không hợp lệ');
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.message || 'Đăng ký thất bại');
     }
-  }
-}
 
-module.exports = new AuthService();
+    // Nếu API trả về token và thông tin người dùng, lưu vào localStorage
+    if (data.data?.token) {
+      localStorage.setItem('token', data.data.token);
+      localStorage.setItem('user', JSON.stringify(data.data.user));
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Register service error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Đăng nhập
+ * @param {string} email - Email đăng nhập
+ * @param {string} password - Mật khẩu đăng nhập
+ * @returns {Promise<Object>} Kết quả từ API bao gồm token và thông tin người dùng
+ */
+export const login = async (email, password) => {
+  try {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.message || 'Đăng nhập thất bại');
+    }
+
+    // Lưu token vào localStorage nếu login thành công
+    if (data.data?.token) {
+      localStorage.setItem('token', data.data.token);
+      localStorage.setItem('user', JSON.stringify(data.data.user));
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Login service error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Kiểm tra người dùng đã đăng nhập hay chưa
+ * @returns {boolean} Trạng thái đăng nhập
+ */
+export const isAuthenticated = () => {
+  if (typeof window === 'undefined') return false;
+
+  const token = localStorage.getItem('token');
+  return !!token;
+};
+
+/**
+ * Kiểm tra token có hợp lệ không
+ * @returns {Promise<boolean>} Kết quả xác thực token
+ */
+export const verifyToken = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+
+    const response = await fetch(`${API_URL}/auth/verify`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    return data.success;
+  } catch (error) {
+    console.error('Token verification error:', error);
+    return false;
+  }
+};
+
+/**
+ * Lấy thông tin người dùng hiện tại
+ * @returns {Object|null} Thông tin người dùng
+ */
+export const getCurrentUser = () => {
+  if (typeof window === 'undefined') return null;
+
+  const userStr = localStorage.getItem('user');
+  return userStr ? JSON.parse(userStr) : null;
+};
+
+/**
+ * Lấy token hiện tại
+ * @returns {string|null} JWT token
+ */
+export const getToken = () => {
+  if (typeof window === 'undefined') return null;
+
+  return localStorage.getItem('token');
+};
+
+/**
+ * Đăng xuất
+ */
+export const logout = () => {
+  if (typeof window === 'undefined') return;
+
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+};
+
+/**
+ * Lấy header Authorization
+ * @returns {Object} Header object chứa Authorization
+ */
+export const authHeader = () => {
+  const token = getToken();
+
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  } else {
+    return {};
+  }
+};
+
+/**
+ * Kiểm tra có phải admin không
+ * @returns {boolean} Kết quả kiểm tra
+ */
+export const isAdmin = () => {
+  const user = getCurrentUser();
+  return user?.role === 'admin';
+};
+
+const authService = {
+  register,
+  login,
+  isAuthenticated,
+  verifyToken,
+  getCurrentUser,
+  getToken,
+  logout,
+  authHeader,
+  isAdmin,
+};
+
+export default authService;

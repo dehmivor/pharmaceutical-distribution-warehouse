@@ -1,13 +1,10 @@
 'use client';
 import PropTypes from 'prop-types';
 
-import { useState, useRef } from 'react';
+import { useRef, useState } from 'react';
 
-// @next
 import { useRouter } from 'next/navigation';
 
-// @mui
-import { useTheme } from '@mui/material/styles';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -16,18 +13,13 @@ import Grid from '@mui/material/Grid';
 import InputAdornment from '@mui/material/InputAdornment';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
+import { useTheme } from '@mui/material/styles';
 
-// @third-party
 import { useForm } from 'react-hook-form';
 
-// @project
-import Contact from '@/components/Contact';
-import { emailSchema, passwordSchema, firstNameSchema, lastNameSchema } from '@/utils/validationSchema';
+import { emailSchema, firstNameSchema, lastNameSchema, passwordSchema } from '@/utils/validationSchema';
 
-// @icons
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
-
-/***************************  AUTH - REGISTER  ***************************/
 
 export default function AuthRegister({ inputSx }) {
   const router = useRouter();
@@ -38,25 +30,55 @@ export default function AuthRegister({ inputSx }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [registerError, setRegisterError] = useState('');
 
-  // Initialize react-hook-form
   const {
     register,
     handleSubmit,
     watch,
-    control,
-    setValue,
     formState: { errors }
   } = useForm({ defaultValues: { dialcode: '+1' } });
 
   const password = useRef({});
   password.current = watch('password', '');
 
-  // Handle form submission
-  const onSubmit = (formData) => {
-    setIsProcessing(true);
-    setRegisterError('');
+  const onSubmit = async (formData) => {
+    try {
+      setIsProcessing(true);
+      setRegisterError('');
 
-    router.push('/auth/login');
+      const userData = {
+        fullName: `${formData.firstname} ${formData.lastname}`,
+        email: formData.email,
+        password: formData.password,
+        role: 'user'
+      };
+
+      // Call the API endpoint instead of authService
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        router.push('/auth/login');
+      } else {
+        setRegisterError(result.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+
+      if (error.message?.includes('Email đã được sử dụng')) {
+        setRegisterError('Email đã được sử dụng.');
+      } else {
+        setRegisterError('Đăng ký thất bại. Vui lòng thử lại.');
+      }
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const commonIconProps = { size: 16, color: theme.palette.grey[700] };
