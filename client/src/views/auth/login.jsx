@@ -2,18 +2,13 @@
 import NextLink from 'next/link';
 
 // @mui
-import Divider from '@mui/material/Divider';
+import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
 
-// @project
 import AuthLogin from '@/sections/auth/AuthLogin';
-import AuthSocial from '@/sections/auth/AuthSocial';
 import Copyright from '@/sections/auth/Copyright';
-
-/***************************  AUTH - LOGIN  ***************************/
 
 export default function Login() {
   return (
@@ -26,16 +21,6 @@ export default function Login() {
           </Typography>
         </Stack>
 
-        {/* Social login buttons */}
-        <AuthSocial />
-
-        <Divider sx={{ my: { xs: 4, sm: 5 } }}>
-          <Typography variant="body2" color="text.secondary">
-            or continue with email
-          </Typography>
-        </Divider>
-
-        {/* Login form */}
         <AuthLogin />
 
         <Typography variant="body2" color="text.secondary" sx={{ mt: { xs: 2, sm: 3 } }}>
@@ -46,7 +31,6 @@ export default function Login() {
         </Typography>
       </Box>
 
-      {/* Copyright section*/}
       <Copyright />
     </Stack>
   );
