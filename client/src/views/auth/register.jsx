@@ -27,16 +27,6 @@ export default function Register() {
           </Typography>
         </Stack>
 
-        {/* Social login buttons */}
-        <AuthSocial type={SocialTypes.HORIZONTAL} />
-
-        <Divider sx={{ my: { xs: 4, sm: 5 } }}>
-          <Typography variant="body2" color="text.secondary">
-            or continue with email
-          </Typography>
-        </Divider>
-
-        {/* Login form */}
         <AuthRegister />
 
         <Typography variant="body2" color="text.secondary" sx={{ mt: { xs: 2, sm: 3 } }}>
@@ -47,7 +37,6 @@ export default function Register() {
         </Typography>
       </Box>
 
-      {/* Copyright section*/}
       <Copyright />
     </Stack>
   );
