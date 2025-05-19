@@ -3,10 +3,8 @@ import PropTypes from 'prop-types';
 
 import { useState } from 'react';
 
-// @next
 import { useRouter } from 'next/navigation';
 
-// @mui
 import { useTheme } from '@mui/material/styles';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -17,16 +15,11 @@ import InputAdornment from '@mui/material/InputAdornment';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 
-// @third-party
 import { useForm } from 'react-hook-form';
 
-// @project
 import { emailSchema, passwordSchema } from '@/utils/validationSchema';
 
-// @icons
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
-
-/***************************  AUTH - LOGIN  ***************************/
 
 export default function AuthLogin({ inputSx }) {
   const router = useRouter();
