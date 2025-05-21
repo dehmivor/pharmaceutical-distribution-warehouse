@@ -650,6 +650,19 @@
     reselect "^5.1.1"
     use-sync-external-store "^1.5.0"
 
+"@mui/x-data-grid@^8.3.1":
+  version "8.3.1"
+  resolved "https://registry.yarnpkg.com/@mui/x-data-grid/-/x-data-grid-8.3.1.tgz#4bb4d8ce794b073cd140a8877ede2069afbd4c08"
+  integrity sha512-mSo2g0ZZzasDQ4kKrFdJVk7dJgz77jF/e8udvGqnnTgnQXlqLMpKne/veL3gRdi3TJxxTv2vqXtX7IZfWGJecQ==
+  dependencies:
+    "@babel/runtime" "^7.27.1"
+    "@mui/utils" "^7.0.2"
+    "@mui/x-internals" "8.3.1"
+    clsx "^2.1.1"
+    prop-types "^15.8.1"
+    reselect "^5.1.1"
+    use-sync-external-store "^1.5.0"
+
 "@mui/x-internals@8.3.1":
   version "8.3.1"
   resolved "https://registry.yarnpkg.com/@mui/x-internals/-/x-internals-8.3.1.tgz#1d83b984eee7e847594348513a6356df0be8b457"
@@ -3229,6 +3242,11 @@ https-proxy-agent@^7.0.1:
     agent-base "^7.1.2"
     debug "4"
 
+icons-material@^0.0.1-security:
+  version "0.0.1-security"
+  resolved "https://registry.yarnpkg.com/icons-material/-/icons-material-0.0.1-security.tgz#fe4aefc3d26a3643d5f5624811e0732d2a33fff2"
+  integrity sha512-qC86C+cW1ikSByd726UElBmyRuX6fjVGm6Jsoj4NHuovvcpQZtLKd+o9qVT32BeaDuLR9wdJeG3M1yE8Uh/S4A==
+
 iconv-lite@0.6.3, iconv-lite@^0.6.2, iconv-lite@^0.6.3:
   version "0.6.3"
   resolved "https://registry.yarnpkg.com/iconv-lite/-/iconv-lite-0.6.3.tgz#a52f80bf38da1952eb5c681790719871a1a72501"
@@ -4813,7 +4831,7 @@ recharts-scale@^0.4.4:
   dependencies:
     decimal.js-light "^2.4.1"
 
-recharts@^2.7.2:
+recharts@^2.15.3:
   version "2.15.3"
   resolved "https://registry.yarnpkg.com/recharts/-/recharts-2.15.3.tgz#b94d05e91e3a5df1b02368ef64400dec9e9a77d4"
   integrity sha512-EdOPzTwcFSuqtvkDoaM5ws/Km1+WTAO2eizL7rqiG0V2UVhTnz0m7J2i0CjVPUCdEkZImaWvXLbZDS2H5t6GFQ==
