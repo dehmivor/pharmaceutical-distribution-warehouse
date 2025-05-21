@@ -8,7 +8,8 @@ require('dotenv').config();
 
 const errorHandler = require('./middlewares/error.middleware.js');
 const authRoutes = require('./routes/auth.route.js');
-const quantityRoutes = require('./routes/prototype/quantity.route.js');
+const { inventoryRoutes } = require('./routes/prototype/inventory.route.js');
+const { drugRoutes } = require('./routes/prototype/drug.route.js');
 
 const app = express();
 
@@ -24,7 +25,8 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/quantity', quantityRoutes);
+app.use('/api/drug', drugRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 app.get('/', (req, res) => {
   res.send('API đang hoạt động!');
