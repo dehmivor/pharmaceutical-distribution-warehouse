@@ -49,14 +49,18 @@ const InventoryManagementPage = () => {
   const [selectedDrug, setSelectedDrug] = useState('');
   const [quantity, setQuantity] = useState('');
   const [reason, setReason] = useState('');
+  const [batchNumber, setBatchNumber] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [importPrice, setImportPrice] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [historyDialog, setHistoryDialog] = useState({ open: false, drugCode: null, data: [] });
   const [searchDrugCode, setSearchDrugCode] = useState('');
   const [stockInfo, setStockInfo] = useState(null);
+  const [actualQuantity, setActualQuantity] = useState('');
 
   // Load initial data
   useEffect(() => {
-    // Assume we have an API to get all drugs
+    // Fetch drugs and low stock drugs
     fetchDrugs();
     fetchLowStockDrugs();
   }, []);
@@ -65,8 +69,8 @@ const InventoryManagementPage = () => {
   const fetchDrugs = async () => {
     try {
       // Replace with your actual API endpoint
-      const response = await axios.get('/api/drugs');
-      setDrugs(response.data);
+      const response = await axios.get('/api/drug');
+      setDrugs(response.data.data || []);
     } catch (error) {
       showSnackbar('Không thể tải danh sách thuốc', 'error');
     }
@@ -76,7 +80,7 @@ const InventoryManagementPage = () => {
   const fetchLowStockDrugs = async () => {
     try {
       const response = await axios.get('/api/inventory/low-stock');
-      setLowStockDrugs(response.data);
+      setLowStockDrugs(response.data.data?.drugs || []);
     } catch (error) {
       showSnackbar('Không thể tải danh sách thuốc sắp hết', 'error');
     }
@@ -91,7 +95,7 @@ const InventoryManagementPage = () => {
 
     try {
       const response = await axios.get(`/api/inventory/check/${searchDrugCode}`);
-      setStockInfo(response.data);
+      setStockInfo(response.data.data);
     } catch (error) {
       showSnackbar('Không tìm thấy thông tin thuốc', 'error');
       setStockInfo(null);
@@ -105,48 +109,64 @@ const InventoryManagementPage = () => {
       setHistoryDialog({
         open: true,
         drugCode: drugCode,
-        data: response.data
+        data: response.data.data?.inventory_history || []
       });
     } catch (error) {
       showSnackbar('Không thể tải lịch sử kiểm kê', 'error');
     }
   };
 
-  // Function to handle stock operations (import, export, adjust)
-  const handleStockOperation = async (operation) => {
+  // Function to handle import stock operation
+  const handleImportStock = async () => {
     if (!selectedDrug || !quantity) {
       showSnackbar('Vui lòng chọn thuốc và nhập số lượng', 'warning');
       return;
     }
 
     try {
-      let endpoint = '';
-      let operationName = '';
-
-      switch (operation) {
-        case 'import':
-          endpoint = '/api/inventory/import';
-          operationName = 'nhập kho';
-          break;
-        case 'export':
-          endpoint = '/api/inventory/export';
-          operationName = 'xuất kho';
-          break;
-        case 'adjust':
-          endpoint = '/api/inventory/adjust';
-          operationName = 'điều chỉnh';
-          break;
-        default:
-          return;
-      }
-
-      await axios.post(endpoint, {
+      await axios.post('/api/inventory/import', {
         drugCode: selectedDrug,
         quantity: parseInt(quantity),
-        reason: reason
+        batchNumber,
+        expiryDate: expiryDate || undefined,
+        importPrice: importPrice || undefined,
+        note: reason
       });
 
-      showSnackbar(`Thao tác ${operationName} thành công`, 'success');
+      showSnackbar('Nhập kho thành công', 'success');
+      setSelectedDrug('');
+      setQuantity('');
+      setBatchNumber('');
+      setExpiryDate('');
+      setImportPrice('');
+      setReason('');
+
+      // Refresh data
+      fetchDrugs();
+      fetchLowStockDrugs();
+      if (searchDrugCode === selectedDrug) {
+        checkDrugStock();
+      }
+    } catch (error) {
+      showSnackbar(`Lỗi khi nhập kho: ${error.response?.data?.message || error.message}`, 'error');
+    }
+  };
+
+  // Function to handle export stock operation
+  const handleExportStock = async () => {
+    if (!selectedDrug || !quantity) {
+      showSnackbar('Vui lòng chọn thuốc và nhập số lượng', 'warning');
+      return;
+    }
+
+    try {
+      await axios.post('/api/inventory/export', {
+        drugCode: selectedDrug,
+        quantity: parseInt(quantity),
+        reason
+      });
+
+      showSnackbar('Xuất kho thành công', 'success');
       setSelectedDrug('');
       setQuantity('');
       setReason('');
@@ -158,13 +178,51 @@ const InventoryManagementPage = () => {
         checkDrugStock();
       }
     } catch (error) {
-      showSnackbar(`Lỗi khi thực hiện thao tác: ${error.response?.data?.message || error.message}`, 'error');
+      showSnackbar(`Lỗi khi xuất kho: ${error.response?.data?.message || error.message}`, 'error');
+    }
+  };
+
+  // Function to handle adjust stock operation
+  const handleAdjustStock = async () => {
+    if (!selectedDrug || actualQuantity === '') {
+      showSnackbar('Vui lòng chọn thuốc và nhập số lượng thực tế', 'warning');
+      return;
+    }
+
+    try {
+      await axios.post('/api/inventory/adjust', {
+        drugCode: selectedDrug,
+        actualQuantity: parseInt(actualQuantity),
+        note: reason
+      });
+
+      showSnackbar('Điều chỉnh số lượng thành công', 'success');
+      setSelectedDrug('');
+      setActualQuantity('');
+      setReason('');
+
+      // Refresh data
+      fetchDrugs();
+      fetchLowStockDrugs();
+      if (searchDrugCode === selectedDrug) {
+        checkDrugStock();
+      }
+    } catch (error) {
+      showSnackbar(`Lỗi khi điều chỉnh số lượng: ${error.response?.data?.message || error.message}`, 'error');
     }
   };
 
   // Handle tab change
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
+    // Reset form fields when changing tabs
+    setSelectedDrug('');
+    setQuantity('');
+    setActualQuantity('');
+    setBatchNumber('');
+    setExpiryDate('');
+    setImportPrice('');
+    setReason('');
   };
 
   // Function to show snackbar
@@ -180,6 +238,46 @@ const InventoryManagementPage = () => {
   // Function to close history dialog
   const handleCloseHistoryDialog = () => {
     setHistoryDialog({ ...historyDialog, open: false });
+  };
+
+  // Function to format date
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Function to translate action
+  const translateAction = (action) => {
+    switch (action) {
+      case 'import':
+        return 'Nhập kho';
+      case 'export':
+        return 'Xuất kho';
+      case 'adjustment':
+        return 'Điều chỉnh';
+      default:
+        return action;
+    }
+  };
+
+  // Function to get action color
+  const getActionColor = (action) => {
+    switch (action) {
+      case 'import':
+        return 'success';
+      case 'export':
+        return 'secondary';
+      case 'adjustment':
+        return 'info';
+      default:
+        return 'default';
+    }
   };
 
   return (
@@ -228,11 +326,34 @@ const InventoryManagementPage = () => {
                   InputProps={{ inputProps: { min: 1 } }}
                 />
               </Grid>
-              <Grid item xs={12}>
-                <TextField fullWidth label="Lý Do" value={reason} onChange={(e) => setReason(e.target.value)} multiline rows={2} />
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Số Lô" value={batchNumber} onChange={(e) => setBatchNumber(e.target.value)} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Hạn Sử Dụng"
+                  type="date"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Giá Nhập"
+                  type="number"
+                  value={importPrice}
+                  onChange={(e) => setImportPrice(e.target.value)}
+                  InputProps={{ inputProps: { min: 0 } }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Ghi Chú" value={reason} onChange={(e) => setReason(e.target.value)} />
               </Grid>
               <Grid item xs={12}>
-                <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => handleStockOperation('import')}>
+                <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleImportStock}>
                   Nhập Kho
                 </Button>
               </Grid>
@@ -273,7 +394,7 @@ const InventoryManagementPage = () => {
                 <TextField fullWidth label="Lý Do" value={reason} onChange={(e) => setReason(e.target.value)} multiline rows={2} />
               </Grid>
               <Grid item xs={12}>
-                <Button variant="contained" color="secondary" startIcon={<RemoveIcon />} onClick={() => handleStockOperation('export')}>
+                <Button variant="contained" color="secondary" startIcon={<RemoveIcon />} onClick={handleExportStock}>
                   Xuất Kho
                 </Button>
               </Grid>
@@ -303,11 +424,12 @@ const InventoryManagementPage = () => {
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Số Lượng Điều Chỉnh"
+                  label="Số Lượng Thực Tế"
                   type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  helperText="Nhập số dương để tăng, số âm để giảm"
+                  value={actualQuantity}
+                  onChange={(e) => setActualQuantity(e.target.value)}
+                  InputProps={{ inputProps: { min: 0 } }}
+                  helperText="Nhập số lượng thực tế đếm được khi kiểm kê"
                 />
               </Grid>
               <Grid item xs={12}>
@@ -322,7 +444,7 @@ const InventoryManagementPage = () => {
                 />
               </Grid>
               <Grid item xs={12}>
-                <Button variant="contained" color="info" startIcon={<RefreshIcon />} onClick={() => handleStockOperation('adjust')}>
+                <Button variant="contained" color="info" startIcon={<RefreshIcon />} onClick={handleAdjustStock}>
                   Điều Chỉnh Số Lượng
                 </Button>
               </Grid>
@@ -357,9 +479,8 @@ const InventoryManagementPage = () => {
                     <Typography>Mã thuốc: {stockInfo.code}</Typography>
                     <Typography>Số lượng hiện có: {stockInfo.quantity}</Typography>
                     <Typography>Đơn vị: {stockInfo.unit}</Typography>
-                    {stockInfo.expiryDate && (
-                      <Typography>Hạn sử dụng: {new Date(stockInfo.expiryDate).toLocaleDateString('vi-VN')}</Typography>
-                    )}
+                    <Typography>Giá nhập: {stockInfo.price_import?.toLocaleString('vi-VN')} VNĐ</Typography>
+                    <Typography>Giá bán: {stockInfo.price_sell?.toLocaleString('vi-VN')} VNĐ</Typography>
                     <Box sx={{ mt: 2 }}>
                       <Button variant="outlined" startIcon={<HistoryIcon />} onClick={() => showInventoryHistory(stockInfo.code)}>
                         Xem Lịch Sử
@@ -385,7 +506,8 @@ const InventoryManagementPage = () => {
                         <TableCell>Mã Thuốc</TableCell>
                         <TableCell>Tên Thuốc</TableCell>
                         <TableCell>Số Lượng</TableCell>
-                        <TableCell>Ngưỡng Cảnh Báo</TableCell>
+                        <TableCell>Giá Nhập</TableCell>
+                        <TableCell>Giá Bán</TableCell>
                         <TableCell>Trạng Thái</TableCell>
                         <TableCell>Thao Tác</TableCell>
                       </TableRow>
@@ -396,7 +518,8 @@ const InventoryManagementPage = () => {
                           <TableCell>{drug.code}</TableCell>
                           <TableCell>{drug.name}</TableCell>
                           <TableCell>{drug.quantity}</TableCell>
-                          <TableCell>{drug.threshold}</TableCell>
+                          <TableCell>{drug.price_import?.toLocaleString('vi-VN')} VNĐ</TableCell>
+                          <TableCell>{drug.price_sell?.toLocaleString('vi-VN')} VNĐ</TableCell>
                           <TableCell>
                             <Chip
                               label={drug.quantity === 0 ? 'Hết hàng' : 'Sắp hết'}
@@ -436,37 +559,29 @@ const InventoryManagementPage = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Ngày</TableCell>
+                    <TableCell>Thời Gian</TableCell>
                     <TableCell>Loại Thao Tác</TableCell>
-                    <TableCell>Số Lượng</TableCell>
-                    <TableCell>Lý Do</TableCell>
-                    <TableCell>Số Lượng Sau</TableCell>
-                    <TableCell>Người Thực Hiện</TableCell>
+                    <TableCell>Thay Đổi</TableCell>
+                    <TableCell>SL Trước</TableCell>
+                    <TableCell>SL Sau</TableCell>
+                    <TableCell>Số Lô</TableCell>
+                    <TableCell>Hạn Dùng</TableCell>
+                    <TableCell>Ghi Chú</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {historyDialog.data.map((record, index) => (
                     <TableRow key={index}>
+                      <TableCell>{formatDate(record.created_at)}</TableCell>
                       <TableCell>
-                        {new Date(record.date).toLocaleDateString('vi-VN', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        <Chip label={translateAction(record.action)} color={getActionColor(record.action)} size="small" />
                       </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={record.type === 'import' ? 'Nhập kho' : record.type === 'export' ? 'Xuất kho' : 'Điều chỉnh'}
-                          color={record.type === 'import' ? 'success' : record.type === 'export' ? 'secondary' : 'info'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{record.quantity > 0 ? `+${record.quantity}` : record.quantity}</TableCell>
-                      <TableCell>{record.reason}</TableCell>
-                      <TableCell>{record.newQuantity}</TableCell>
-                      <TableCell>{record.performedBy}</TableCell>
+                      <TableCell>{record.quantity_change > 0 ? `+${record.quantity_change}` : record.quantity_change}</TableCell>
+                      <TableCell>{record.quantity_before}</TableCell>
+                      <TableCell>{record.quantity_after}</TableCell>
+                      <TableCell>{record.batch_number || '-'}</TableCell>
+                      <TableCell>{record.expiry_date ? formatDate(record.expiry_date).split(' ')[0] : '-'}</TableCell>
+                      <TableCell>{record.note || '-'}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
