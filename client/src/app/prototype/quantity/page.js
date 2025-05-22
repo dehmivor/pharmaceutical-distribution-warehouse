@@ -70,7 +70,8 @@ const InventoryManagementPage = () => {
     try {
       // Replace with your actual API endpoint
       const response = await axios.get('/api/drug');
-      setDrugs(response.data.data || []);
+      setDrugs(response.data);
+      console.log(response.data);
     } catch (error) {
       showSnackbar('Không thể tải danh sách thuốc', 'error');
     }
@@ -301,15 +302,10 @@ const InventoryManagementPage = () => {
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
-                  <InputLabel id="drug-select-label">Chọn Thuốc</InputLabel>
-                  <Select
-                    labelId="drug-select-label"
-                    value={selectedDrug}
-                    label="Chọn Thuốc"
-                    onChange={(e) => setSelectedDrug(e.target.value)}
-                  >
-                    {drugs.map((drug) => (
-                      <MenuItem key={drug.code} value={drug.code}>
+                  <InputLabel>Chọn Thuốc</InputLabel>
+                  <Select labelId="drug-select-label" label="Chọn Thuốc">
+                    {drugs?.map((drug) => (
+                      <MenuItem key={drug._id} value={drug.code}>
                         {drug.name} ({drug.code})
                       </MenuItem>
                     ))}
@@ -544,7 +540,6 @@ const InventoryManagementPage = () => {
           )}
         </Box>
       </Paper>
-
       {/* History Dialog */}
       <Dialog open={historyDialog.open} onClose={handleCloseHistoryDialog} aria-labelledby="history-dialog-title" maxWidth="md" fullWidth>
         <DialogTitle id="history-dialog-title">
