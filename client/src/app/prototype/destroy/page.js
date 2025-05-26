@@ -1,7 +1,8 @@
 import React from 'react';
+import DestroyReportPage from './DestroyReportPage';
 
 function page() {
-  return <div>page</div>;
+  return <DestroyReportPage />;
 }
 
 export default page;
