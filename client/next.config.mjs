@@ -10,7 +10,7 @@ const cspHeader = `
     base-uri 'self';
     form-action 'self';
     frame-ancestors 'self';
-    connect-src 'self' https://cdn.jsdelivr.net;
+    connect-src 'self' http://localhost:5000 https://cdn.jsdelivr.net;
 `;
 
 const nextConfig = {
