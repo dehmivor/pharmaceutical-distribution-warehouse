@@ -29,6 +29,14 @@ const cycleCountFormSchema = new mongoose.Schema(
       ref: 'Employee',
       required: [true, 'approvedBy không được để trống'],
     },
+    startTime: {
+      type: Date,
+      required: [true, 'thời gian bắt đầu kiểm kê không được để trống'],
+    },
+    endTime: {
+      type: Date,
+      required: [true, 'thời gian kết thúc kiểm kê không được để trống'],
+    },
   },
   {
     timestamps: true,
