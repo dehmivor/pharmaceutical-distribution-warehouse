@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const Destroy = require('../../models/destroy.model');
+const Notification = require('../../models/notification.model'); // Thêm model Notification
 
 const router = express.Router();
 
@@ -35,6 +36,9 @@ router.post('/destroy', async (req, res) => {
     });
     await newDestroy.save();
     console.log('Dữ liệu đã lưu:', newDestroy);
+
+    // Xóa thông báo liên quan (nếu có) sau khi tạo phiếu hủy thành công
+    await Notification.deleteOne({ drugName, lotNumber, reason });
 
     res.status(201).json({ message: 'Phiếu báo hủy được tạo thành công', data: newDestroy });
   } catch (error) {
@@ -96,6 +100,31 @@ router.delete('/destroy/:id', validateId, async (req, res) => {
     res.status(200).json({ message: 'Phiếu báo hủy đã bị xóa' });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi server khi xóa phiếu báo hủy', error: error.message });
+  }
+});
+
+// Lấy danh sách thông báo lô thuốc không đạt chất lượng
+router.get('/notifications', async (req, res) => {
+  try {
+    const notifications = await Notification.find({ status: 'Pending' }).sort({ notifiedAt: -1 });
+    res.status(200).json(notifications);
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server khi lấy danh sách thông báo', error: error.message });
+  }
+});
+
+// Xóa thông báo theo ID
+router.delete('/notifications/:id', validateId, async (req, res) => {
+  try {
+    const notification = await Notification.findById(req.params.id);
+    if (!notification) {
+      return res.status(404).json({ message: 'Thông báo không tồn tại' });
+    }
+
+    await Notification.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: 'Thông báo đã bị xóa' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server khi xóa thông báo', error: error.message });
   }
 });
 
