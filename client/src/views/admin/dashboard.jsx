@@ -1,12 +1,8 @@
-// @mui
 import Grid from '@mui/material/Grid';
 
-// @project
 import AnalyticsOverviewCard from '@/sections/dashboard/AnalyticsOverviewCard';
 import AnalyticsOverviewChart from '@/sections/dashboard/AnalyticsOverviewChart';
 import AnalyticsTopRef from '@/sections/dashboard/AnalyticsTopRef';
-
-/***************************  ANALYTICS - OVERVIEW  ***************************/
 
 export default function AnalyticsOverview() {
   return (

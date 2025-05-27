@@ -1,5 +1,3 @@
-import PropTypes from 'prop-types';
-
 // @style
 import './globals.css';
 
@@ -10,19 +8,14 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import branding from '@/branding.json';
 import ProviderWrapper from './ProviderWrapper';
 
-/***************************  METADATA - MAIN  ***************************/
-
-// Configures the viewport settings for the application.
 export const viewport = {
   userScalable: false // Disables user scaling of the viewport.
 };
 
 export const metadata = {
-  title: `${branding.brandName}`,
+  title: branding.brandName,
   description: `${branding.brandName} Pharmaceutical Distribution Warehouse`
 };
-
-/***************************  LAYOUT - ROOT  ***************************/
 
 export default function RootLayout({ children }) {
   return (
@@ -35,5 +28,3 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
-
-RootLayout.propTypes = { children: PropTypes.any };
