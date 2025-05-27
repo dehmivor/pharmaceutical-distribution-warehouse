@@ -7,6 +7,14 @@ const cycleCountFormSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Employee',
         required: [true, 'Manager không được để trống'],
+        validate: {
+          validator: async function(managerId) {
+            const Employee = mongoose.model('Employee');
+            const manager = await Employee.findById(managerId);
+            return manager && manager.role === 'warehouse';
+          },
+          message: 'Trưởng nhóm phải là nhân viên kho'
+        }
       },
       members: [
         {
@@ -36,13 +44,19 @@ const cycleCountFormSchema = new mongoose.Schema(
     endTime: {
       type: Date,
       required: [true, 'thời gian kết thúc kiểm kê không được để trống'],
+      validate: {
+        validator: function(endTime) {
+          return endTime > this.startTime;
+        },
+        message: 'Thời gian kết thúc phải sau thời gian bắt đầu'
+      }
     },
     content: [
       {
         location: {
           type: mongoose.Schema.Types.ObjectId,
           ref: 'Location',
-          required: [true, 'Manager không được để trống'],
+          required: [true, 'Location không được để trống'],
         },
         verified: {
           type: Boolean,
@@ -79,3 +93,4 @@ const cycleCountFormSchema = new mongoose.Schema(
 const CycleCountForm = mongoose.model('CycleCountForm', cycleCountFormSchema);
 
 module.exports = CycleCountForm;
+
