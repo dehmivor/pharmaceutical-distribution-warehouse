@@ -1,7 +1,7 @@
 import React from 'react';
-
+import QualityCheckPage from './components/QualityCheckPage';
 function page() {
-  return <div>page</div>;
+  return <QualityCheckPage />;
 }
 
 export default page;
