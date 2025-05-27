@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {
   Box,
   Container,
@@ -42,9 +41,122 @@ import {
 } from '@mui/icons-material';
 
 const InventoryManagementPage = () => {
+  // Static data
+  const staticDrugs = [
+    {
+      _id: '1',
+      code: 'PAR001',
+      name: 'Paracetamol 500mg',
+      quantity: 150,
+      unit: 'viên',
+      price_import: 500,
+      price_sell: 800,
+      minStock: 50
+    },
+    {
+      _id: '2',
+      code: 'AMO002',
+      name: 'Amoxicillin 250mg',
+      quantity: 75,
+      unit: 'viên',
+      price_import: 1200,
+      price_sell: 2000,
+      minStock: 100
+    },
+    {
+      _id: '3',
+      code: 'VIT003',
+      name: 'Vitamin C 1000mg',
+      quantity: 200,
+      unit: 'viên',
+      price_import: 300,
+      price_sell: 500,
+      minStock: 80
+    },
+    {
+      _id: '4',
+      code: 'ASP004',
+      name: 'Aspirin 100mg',
+      quantity: 25,
+      unit: 'viên',
+      price_import: 400,
+      price_sell: 700,
+      minStock: 50
+    },
+    {
+      _id: '5',
+      code: 'IBU005',
+      name: 'Ibuprofen 400mg',
+      quantity: 0,
+      unit: 'viên',
+      price_import: 800,
+      price_sell: 1300,
+      minStock: 60
+    }
+  ];
+
+  const staticInventoryHistory = {
+    PAR001: [
+      {
+        created_at: '2024-01-15T10:30:00',
+        action: 'import',
+        quantity_change: 100,
+        quantity_before: 50,
+        quantity_after: 150,
+        batch_number: 'PAR2024001',
+        expiry_date: '2025-12-31',
+        note: 'Nhập hàng từ nhà cung cấp ABC'
+      },
+      {
+        created_at: '2024-01-10T14:20:00',
+        action: 'export',
+        quantity_change: -20,
+        quantity_before: 70,
+        quantity_after: 50,
+        batch_number: null,
+        expiry_date: null,
+        note: 'Bán lẻ cho khách hàng'
+      }
+    ],
+    AMO002: [
+      {
+        created_at: '2024-01-12T09:15:00',
+        action: 'import',
+        quantity_change: 75,
+        quantity_before: 0,
+        quantity_after: 75,
+        batch_number: 'AMO2024001',
+        expiry_date: '2026-06-30',
+        note: 'Nhập hàng mới'
+      }
+    ],
+    ASP004: [
+      {
+        created_at: '2024-01-14T16:45:00',
+        action: 'export',
+        quantity_change: -25,
+        quantity_before: 50,
+        quantity_after: 25,
+        batch_number: null,
+        expiry_date: null,
+        note: 'Xuất cho đơn thuốc'
+      },
+      {
+        created_at: '2024-01-08T11:30:00',
+        action: 'adjustment',
+        quantity_change: -5,
+        quantity_before: 55,
+        quantity_after: 50,
+        batch_number: null,
+        expiry_date: null,
+        note: 'Điều chỉnh do kiểm kê'
+      }
+    ]
+  };
+
   // State management
   const [tabValue, setTabValue] = useState(0);
-  const [drugs, setDrugs] = useState([]);
+  const [drugs, setDrugs] = useState(staticDrugs);
   const [lowStockDrugs, setLowStockDrugs] = useState([]);
   const [selectedDrug, setSelectedDrug] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -60,156 +172,143 @@ const InventoryManagementPage = () => {
 
   // Load initial data
   useEffect(() => {
-    // Fetch drugs and low stock drugs
-    fetchDrugs();
-    fetchLowStockDrugs();
-  }, []);
-
-  // Function to fetch all drugs
-  const fetchDrugs = async () => {
-    try {
-      // Replace with your actual API endpoint
-      const response = await axios.get('/api/drug');
-      setDrugs(response.data);
-      console.log(response.data);
-    } catch (error) {
-      showSnackbar('Không thể tải danh sách thuốc', 'error');
-    }
-  };
-
-  // Function to fetch low stock drugs
-  const fetchLowStockDrugs = async () => {
-    try {
-      const response = await axios.get('/api/inventory/low-stock');
-      setLowStockDrugs(response.data.data?.drugs || []);
-    } catch (error) {
-      showSnackbar('Không thể tải danh sách thuốc sắp hết', 'error');
-    }
-  };
+    // Calculate low stock drugs
+    const lowStock = drugs.filter((drug) => drug.quantity <= drug.minStock);
+    setLowStockDrugs(lowStock);
+  }, [drugs]);
 
   // Function to check drug stock
-  const checkDrugStock = async () => {
+  const checkDrugStock = () => {
     if (!searchDrugCode) {
       showSnackbar('Vui lòng nhập mã thuốc', 'warning');
       return;
     }
 
-    try {
-      const response = await axios.get(`/api/inventory/check/${searchDrugCode}`);
-      setStockInfo(response.data.data);
-    } catch (error) {
+    const drug = drugs.find((d) => d.code.toLowerCase() === searchDrugCode.toLowerCase());
+    if (drug) {
+      setStockInfo(drug);
+    } else {
       showSnackbar('Không tìm thấy thông tin thuốc', 'error');
       setStockInfo(null);
     }
   };
 
   // Function to show inventory history
-  const showInventoryHistory = async (drugCode) => {
-    try {
-      const response = await axios.get(`/api/inventory/history/${drugCode}`);
-      setHistoryDialog({
-        open: true,
-        drugCode: drugCode,
-        data: response.data.data?.inventory_history || []
-      });
-    } catch (error) {
-      showSnackbar('Không thể tải lịch sử kiểm kê', 'error');
-    }
+  const showInventoryHistory = (drugCode) => {
+    const history = staticInventoryHistory[drugCode] || [];
+    setHistoryDialog({
+      open: true,
+      drugCode: drugCode,
+      data: history
+    });
   };
 
   // Function to handle import stock operation
-  const handleImportStock = async () => {
+  const handleImportStock = () => {
     if (!selectedDrug || !quantity) {
       showSnackbar('Vui lòng chọn thuốc và nhập số lượng', 'warning');
       return;
     }
 
-    try {
-      await axios.post('/api/inventory/import', {
-        drugCode: selectedDrug,
-        quantity: parseInt(quantity),
-        batchNumber,
-        expiryDate: expiryDate || undefined,
-        importPrice: importPrice || undefined,
-        note: reason
-      });
-
-      showSnackbar('Nhập kho thành công', 'success');
-      setSelectedDrug('');
-      setQuantity('');
-      setBatchNumber('');
-      setExpiryDate('');
-      setImportPrice('');
-      setReason('');
-
-      // Refresh data
-      fetchDrugs();
-      fetchLowStockDrugs();
-      if (searchDrugCode === selectedDrug) {
-        checkDrugStock();
+    // Update drug quantity
+    const updatedDrugs = drugs.map((drug) => {
+      if (drug.code === selectedDrug) {
+        return {
+          ...drug,
+          quantity: drug.quantity + parseInt(quantity)
+        };
       }
-    } catch (error) {
-      showSnackbar(`Lỗi khi nhập kho: ${error.response?.data?.message || error.message}`, 'error');
+      return drug;
+    });
+
+    setDrugs(updatedDrugs);
+    showSnackbar('Nhập kho thành công', 'success');
+
+    // Reset form
+    setSelectedDrug('');
+    setQuantity('');
+    setBatchNumber('');
+    setExpiryDate('');
+    setImportPrice('');
+    setReason('');
+
+    // Update stock info if currently viewing this drug
+    if (searchDrugCode === selectedDrug) {
+      const updatedDrug = updatedDrugs.find((d) => d.code === selectedDrug);
+      setStockInfo(updatedDrug);
     }
   };
 
   // Function to handle export stock operation
-  const handleExportStock = async () => {
+  const handleExportStock = () => {
     if (!selectedDrug || !quantity) {
       showSnackbar('Vui lòng chọn thuốc và nhập số lượng', 'warning');
       return;
     }
 
-    try {
-      await axios.post('/api/inventory/export', {
-        drugCode: selectedDrug,
-        quantity: parseInt(quantity),
-        reason
-      });
+    // Check if enough stock
+    const drug = drugs.find((d) => d.code === selectedDrug);
+    if (drug.quantity < parseInt(quantity)) {
+      showSnackbar('Số lượng xuất vượt quá số lượng tồn kho', 'error');
+      return;
+    }
 
-      showSnackbar('Xuất kho thành công', 'success');
-      setSelectedDrug('');
-      setQuantity('');
-      setReason('');
-
-      // Refresh data
-      fetchDrugs();
-      fetchLowStockDrugs();
-      if (searchDrugCode === selectedDrug) {
-        checkDrugStock();
+    // Update drug quantity
+    const updatedDrugs = drugs.map((drug) => {
+      if (drug.code === selectedDrug) {
+        return {
+          ...drug,
+          quantity: drug.quantity - parseInt(quantity)
+        };
       }
-    } catch (error) {
-      showSnackbar(`Lỗi khi xuất kho: ${error.response?.data?.message || error.message}`, 'error');
+      return drug;
+    });
+
+    setDrugs(updatedDrugs);
+    showSnackbar('Xuất kho thành công', 'success');
+
+    // Reset form
+    setSelectedDrug('');
+    setQuantity('');
+    setReason('');
+
+    // Update stock info if currently viewing this drug
+    if (searchDrugCode === selectedDrug) {
+      const updatedDrug = updatedDrugs.find((d) => d.code === selectedDrug);
+      setStockInfo(updatedDrug);
     }
   };
 
   // Function to handle adjust stock operation
-  const handleAdjustStock = async () => {
+  const handleAdjustStock = () => {
     if (!selectedDrug || actualQuantity === '') {
       showSnackbar('Vui lòng chọn thuốc và nhập số lượng thực tế', 'warning');
       return;
     }
 
-    try {
-      await axios.post('/api/inventory/adjust', {
-        drugCode: selectedDrug,
-        actualQuantity: parseInt(actualQuantity),
-        note: reason
-      });
-
-      showSnackbar('Điều chỉnh số lượng thành công', 'success');
-      setSelectedDrug('');
-      setActualQuantity('');
-      setReason('');
-
-      // Refresh data
-      fetchDrugs();
-      fetchLowStockDrugs();
-      if (searchDrugCode === selectedDrug) {
-        checkDrugStock();
+    // Update drug quantity
+    const updatedDrugs = drugs.map((drug) => {
+      if (drug.code === selectedDrug) {
+        return {
+          ...drug,
+          quantity: parseInt(actualQuantity)
+        };
       }
-    } catch (error) {
-      showSnackbar(`Lỗi khi điều chỉnh số lượng: ${error.response?.data?.message || error.message}`, 'error');
+      return drug;
+    });
+
+    setDrugs(updatedDrugs);
+    showSnackbar('Điều chỉnh số lượng thành công', 'success');
+
+    // Reset form
+    setSelectedDrug('');
+    setActualQuantity('');
+    setReason('');
+
+    // Update stock info if currently viewing this drug
+    if (searchDrugCode === selectedDrug) {
+      const updatedDrug = updatedDrugs.find((d) => d.code === selectedDrug);
+      setStockInfo(updatedDrug);
     }
   };
 
@@ -303,7 +402,7 @@ const InventoryManagementPage = () => {
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
                   <InputLabel>Chọn Thuốc</InputLabel>
-                  <Select labelId="drug-select-label" label="Chọn Thuốc">
+                  <Select value={selectedDrug} label="Chọn Thuốc" onChange={(e) => setSelectedDrug(e.target.value)}>
                     {drugs?.map((drug) => (
                       <MenuItem key={drug._id} value={drug.code}>
                         {drug.name} ({drug.code})
@@ -540,6 +639,7 @@ const InventoryManagementPage = () => {
           )}
         </Box>
       </Paper>
+
       {/* History Dialog */}
       <Dialog open={historyDialog.open} onClose={handleCloseHistoryDialog} aria-labelledby="history-dialog-title" maxWidth="md" fullWidth>
         <DialogTitle id="history-dialog-title">
