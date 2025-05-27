@@ -25,10 +25,12 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'admin'],
       default: 'user',
     },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
+    username: String,
+    dob: Date,
+    status: String,
+    tags: [Number],
+    created_at: { type: Date, default: Date.now },
+    updated_at: Date,
   },
   {
     timestamps: true,
