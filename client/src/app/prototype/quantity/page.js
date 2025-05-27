@@ -1,7 +1,11 @@
-import React from 'react';
+import InventoryTable from './components/InventoryTable';
 
 function page() {
-  return <div>page</div>;
+  return (
+    <div>
+      <InventoryTable />
+    </div>
+  );
 }
 
 export default page;
