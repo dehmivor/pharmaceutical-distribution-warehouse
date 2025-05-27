@@ -11,6 +11,7 @@ const authRoutes = require('./routes/auth.route.js');
 const { inventoryRoutes } = require('./routes/prototype/inventory.route.js');
 const { drugRoutes } = require('./routes/prototype/drug.route.js');
 
+const { parameterRoutes } = require('./routes/prototype/constant.route.js');
 const app = express();
 
 app.use(helmet());
@@ -25,6 +26,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/parameters', parameterRoutes);
 app.use('/api/drug', drugRoutes);
 app.use('/api/inventory', inventoryRoutes);
 
