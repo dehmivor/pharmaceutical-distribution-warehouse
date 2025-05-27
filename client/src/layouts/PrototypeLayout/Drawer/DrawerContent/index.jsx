@@ -1,14 +1,13 @@
 'use client';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import Stack from '@mui/material/Stack';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 // @project
-import NavCard from './NavCard';
 import ResponsiveDrawer from './ResponsiveDrawer';
 
-import { useGetMenuMaster } from '@/states/menu';
-import { MINI_DRAWER_WIDTH } from '@/config';
 import SimpleBar from '@/components/third-party/SimpleBar';
+import { MINI_DRAWER_WIDTH } from '@/config';
+import { useGetMenuMaster } from '@/states/menu';
 
 /***************************  DRAWER - CONTENT  ***************************/
 
