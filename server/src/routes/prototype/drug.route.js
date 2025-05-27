@@ -22,6 +22,7 @@ router.get('/', async (req, res) => {
   try {
     const drugs = await Drug.find();
     res.json(drugs);
+    console.log(drugs);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -73,21 +74,21 @@ router.put('/:id', validateDrugData, async (req, res) => {
       return res.status(404).json({ message: 'Drug not found' });
     }
 
-    // Update fields
-    drug.code = req.body.code || drug.code;
-    drug.name = req.body.name || drug.name;
-    drug.ingredient = req.body.ingredient || drug.ingredient;
-    drug.unit = req.body.unit || drug.unit;
-    drug.manufacturer = req.body.manufacturer || drug.manufacturer;
-    drug.category = req.body.category || drug.category;
-    drug.price_import =
-      req.body.price_import !== undefined ? req.body.price_import : drug.price_import;
-    drug.price_sell = req.body.price_sell !== undefined ? req.body.price_sell : drug.price_sell;
-    drug.prescription_required =
-      req.body.prescription_required !== undefined
-        ? req.body.prescription_required
-        : drug.prescription_required;
-    drug.quantity = req.body.quantity !== undefined ? req.body.quantity : drug.quantity;
+    // Cập nhật các trường nếu có trong body
+    if (req.body.code !== undefined) drug.code = req.body.code;
+    if (req.body.name !== undefined) drug.name = req.body.name;
+    if (req.body.ingredient !== undefined) drug.ingredient = req.body.ingredient;
+    if (req.body.unit !== undefined) drug.unit = req.body.unit;
+    if (req.body.manufacturer !== undefined) drug.manufacturer = req.body.manufacturer;
+    if (req.body.category !== undefined) drug.category = req.body.category;
+    if (req.body.price_import !== undefined) drug.price_import = req.body.price_import;
+    if (req.body.price_sell !== undefined) drug.price_sell = req.body.price_sell;
+    if (req.body.prescription_required !== undefined)
+      drug.prescription_required = req.body.prescription_required;
+    if (req.body.quantity !== undefined) drug.quantity = req.body.quantity;
+    if (req.body.location !== undefined) drug.location = req.body.location;
+    if (req.body.locationVerified !== undefined) drug.locationVerified = req.body.locationVerified;
+
     drug.updated_at = new Date();
 
     const updatedDrug = await drug.save();
