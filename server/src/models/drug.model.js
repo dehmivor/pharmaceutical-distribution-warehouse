@@ -10,6 +10,8 @@ const drugSchema = new mongoose.Schema({
   price_sell: Number,
   prescription_required: Boolean,
   quantity: Number,
+  location: String,
+  locationVerified: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },
   updated_at: Date,
 });

@@ -44,7 +44,6 @@ export default function NavItem({ item, level = 0 }) {
       id={`${item.id}-btn`}
       component={Link}
       href={item.url}
-      {...(item?.target && { target: '_blank' })}
       selected={openItem === item.id}
       disabled={item.disabled}
       onClick={itemHandler}

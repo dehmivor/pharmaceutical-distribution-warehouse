@@ -9,7 +9,6 @@ const prototype = {
       title: 'inventory',
       type: 'item',
       url: '/prototype/quantity',
-      target: true,
       icon: 'IconHistory'
     },
     {
@@ -17,7 +16,6 @@ const prototype = {
       title: 'constants',
       type: 'item',
       url: '/prototype/constants',
-      target: true,
       icon: 'IconNotes'
     },
     {
@@ -25,13 +23,12 @@ const prototype = {
       title: 'destroy',
       type: 'item',
       url: '/prototype/destroy',
-      target: true,
       icon: 'IconLifebuoy'
     },
 
     {
-      id: 'report',
-      title: 'report',
+      id: 'recycle',
+      title: 'recycle',
       type: 'collapse',
       icon: 'IconMenu2',
       children: [
@@ -39,7 +36,7 @@ const prototype = {
           id: 'report to supervisor',
           title: 'report to supervisor',
           type: 'item',
-          url: '/prototype/report'
+          url: '/prototype/destroy'
         },
         {
           id: 'report to warehouse manager',
