@@ -1,12 +1,7 @@
 import React from 'react';
-import DrawerQuantity from '@/app/prototype/quantity/components/DrawerQuantity';
 
 function page() {
-  return (
-    <div>
-      <DrawerQuantity />
-    </div>
-  );
+  return <div>page</div>;
 }
 
 export default page;
