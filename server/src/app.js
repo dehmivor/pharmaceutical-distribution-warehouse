@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const config = require('./config');
+const route = require("./routes")
 require('dotenv').config();
 
 const errorHandler = require('./middlewares/error.middleware.js');
@@ -44,5 +45,7 @@ app.use((err, req, res, next) => {
 });
 
 app.use(errorHandler);
+
+route(app)
 
 module.exports = app;
