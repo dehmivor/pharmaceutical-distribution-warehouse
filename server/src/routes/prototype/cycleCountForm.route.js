@@ -13,16 +13,41 @@ const Employee = require('../../models/Employee.model');
 router.get('/medicines-locations', async (req, res) => {
   try {
     const forms = await CycleCountForm.find()
-      .populate('team.manager')
-      .populate('team.members')
-      .populate('approvedBy')
-      .populate('content.location')
-      .populate('content.result.Package');
-    res.json(forms);
+      .populate('team.manager', 'name email') // Populate manager với các trường cần thiết
+      .populate('team.members', 'name email') // Populate thành viên
+      .populate('approvedBy', 'name email') // Populate người duyệt
+      .populate({
+        path: 'content.location',
+        select: 'name code row bay level area',
+        populate: {
+          path: 'area',
+          model: 'Area', // Nếu location có trường area là ObjectId
+          select: 'name type', // Các trường bạn muốn lấy của Area
+        },
+      })
+      .populate('content.verifiedBy', 'name email') // Populate người xác nhận location
+      .populate('content.result.package') // Populate package
+      .populate({
+        path: 'content.result.package',
+        populate: {
+          path: 'content',
+          model: 'Medicine', // Populate nội dung của package (thuốc)
+        },
+      });
+
+    res.status(200).json({
+      success: true,
+      data: forms,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách cycle count forms',
+      error: error.message,
+    });
   }
 });
+
 // POST /api/cycle-count-form/
 router.post(
   '/',
@@ -76,6 +101,43 @@ router.patch('/:id/result', async (req, res) => {
     res.json({ success: true, data: form });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.get('/cycle-count-forms/:id', async (req, res) => {
+  try {
+    const form = await CycleCountForm.findById(req.params.id)
+      .populate('team.manager', 'name email')
+      .populate('team.members', 'name email')
+      .populate('approvedBy', 'name email')
+      .populate('content.location', 'name code')
+      .populate('content.verifiedBy', 'name email')
+      .populate('content.result.package')
+      .populate({
+        path: 'content.result.package',
+        populate: {
+          path: 'content',
+          model: 'Medicine',
+        },
+      });
+
+    if (!form) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy cycle count form',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: form,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy chi tiết cycle count form',
+      error: error.message,
+    });
   }
 });
 
