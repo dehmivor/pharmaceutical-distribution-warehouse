@@ -24,7 +24,7 @@ import axios from 'axios';
 import { useEffect, useState } from 'react';
 
 function InventoryTable() {
-  const [drugs, setDrugs] = useState([]);
+  const [inventories, setInventories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editData, setEditData] = useState(null);
   const [tempLocation, setTempLocation] = useState('');
@@ -32,9 +32,9 @@ function InventoryTable() {
 
   useEffect(() => {
     axios
-      .get('/api/drug')
+      .get('/api/cycle-count-form/medicines-locations')
       .then((response) => {
-        setDrugs(response.data);
+        setInventories(response.data);
         setLoading(false);
       })
       .catch((error) => {
@@ -97,12 +97,7 @@ function InventoryTable() {
             <Table stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell>Mã Thuốc</TableCell>
-                  <TableCell>Tên Thuốc</TableCell>
-                  <TableCell>Hoạt Chất</TableCell>
-                  <TableCell>Đơn Vị</TableCell>
-                  <TableCell>Nhà Sản Xuất</TableCell>
-                  <TableCell>Phân Loại</TableCell>
+                  <TableCell>Mã Phiếu</TableCell>
                   <TableCell>Số Lượng</TableCell>
                   <TableCell>Vị Trí</TableCell>
                   <TableCell>Xác Nhận Vị Trí</TableCell>
@@ -112,34 +107,41 @@ function InventoryTable() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {drugs.map((drug) => (
-                  <TableRow key={drug._id}>
-                    <TableCell>{drug.code}</TableCell>
-                    <TableCell>{drug.name}</TableCell>
-                    <TableCell>{drug.ingredient}</TableCell>
-                    <TableCell>{drug.unit}</TableCell>
-                    <TableCell>{drug.manufacturer}</TableCell>
-                    <TableCell>{drug.category}</TableCell>
-                    <TableCell>{drug.quantity}</TableCell>
-                    <TableCell>{drug.location || 'Chưa cập nhật'}</TableCell>
-                    <TableCell>
-                      <Checkbox checked={drug.locationVerified || false} color="primary" disabled />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={drug.quantity === 0 ? 'Hết hàng' : 'Còn hàng'}
-                        color={drug.quantity === 0 ? 'error' : 'success'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>{drug.created_at ? new Date(drug.created_at).toLocaleString() : ''}</TableCell>
-                    <TableCell>
-                      <IconButton onClick={() => handleEditClick(drug)} title="Chỉnh sửa vị trí">
-                        <EditIcon color="action" />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {inventories.map((inv) => {
+                  const content = inv.content && inv.content[0] ? inv.content[0] : {};
+                  const result = content.result && content.result[0] ? content.result[0] : {};
+                  const quantity = result.Status === 'lost' || result.Status === 'damaged' ? 0 : 1;
+
+                  // Map trạng thái sang nhãn và màu
+                  const statusLabelMap = {
+                    in_progress: { label: 'Đang kiểm kê', color: 'primary' },
+                    pending: { label: 'Chờ kiểm kê', color: 'warning' },
+                    waiting_approval: { label: 'Chờ duyệt', color: 'info' },
+                    completed: { label: 'Hoàn thành', color: 'success' },
+                    rejected: { label: 'Từ chối', color: 'error' }
+                  };
+                  const statusObj = statusLabelMap[inv.status] || { label: inv.status, color: 'default' };
+
+                  return (
+                    <TableRow key={inv._id || Math.random()}>
+                      <TableCell>{inv._id ? inv._id.slice(0, 8) : 'N/A'}</TableCell>
+                      <TableCell>{quantity}</TableCell>
+                      <TableCell>{content.location ?? 'Chưa cập nhật'}</TableCell>
+                      <TableCell>
+                        <Checkbox checked={!!content.verified} color="primary" disabled />
+                      </TableCell>
+                      <TableCell>
+                        <Chip label={statusObj.label} color={statusObj.color} size="small" />
+                      </TableCell>
+                      <TableCell>{inv.createdAt ? new Date(inv.createdAt).toLocaleString() : ''}</TableCell>
+                      <TableCell>
+                        <IconButton onClick={() => handleEditClick(inv)} title="Chỉnh sửa vị trí">
+                          <EditIcon color="action" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
