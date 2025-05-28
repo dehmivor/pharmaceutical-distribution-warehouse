@@ -33,14 +33,14 @@ const prototype = {
       icon: 'IconMenu2',
       children: [
         {
-          id: 'report to supervisor',
-          title: 'report to supervisor',
-          type: 'item',
-          url: '/prototype/destroy'
-        },
-        {
           id: 'report to warehouse manager',
           title: 'report to warehouse manager',
+          type: 'item',
+          url: '/prototype/destroy/68361ce3134e5fde59c1fada'
+        },
+        {
+          id: 'report to ?',
+          title: 'report to ?',
           type: 'item',
           url: '/prototype/check'
         }
