@@ -15,7 +15,14 @@ const { inventoryRoutes } = require('./routes/prototype/inventory.route.js');
 const { drugRoutes } = require('./routes/prototype/drug.route.js');
 const { CycleCountFormRoutes } = require('./routes/prototype/cycleCountForm.route.js');
 const destroyRoutes = require('./routes/prototype/destroy.route.js');
+const { parameterRoutes } = require('./routes/prototype/constant.route.js');
+const checkRoutes = require('./routes/prototype/check.route.js');
+const areaRoutes = require('./routes/prototype/area.route.js');
+const locationRoutes = require('./routes/prototype/location.route.js');
+const medicineRoutes = require('./routes/prototype/medicien.route.js');
+const packageRoutes = require('./routes/prototype/package.route.js');
 
+const fakeSupervisor = require('./middlewares/FakeSupervisor');
 const app = express();
 
 // Middlewares
@@ -33,10 +40,16 @@ app.get('/api/health', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/parameters', parameterRoutes);
 app.use('/api/drug', drugRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/cycle-count-form', CycleCountFormRoutes);
 app.use('/api/', destroyRoutes);
+app.use('/api/check', fakeSupervisor, checkRoutes);
+app.use('/api/areas', areaRoutes);
+app.use('/api/locations', locationRoutes);
+app.use('/api/medicines', medicineRoutes);
+app.use('/api/packages', packageRoutes);
 
 // Gọi routes chung (nếu cần)
 route(app);
