@@ -34,6 +34,9 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/cycle-count-form', CycleCountFormRoutes);
 app.use('/api/', destroyRoutes);
 
+const isProduction = process.env.NODE_ENV === 'production';
+const __dirname = path.resolve();
+
 app.get('/', (req, res) => {
   res.send('API đang hoạt động!');
 });
@@ -47,6 +50,14 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Serve static files in production
+if (isProduction) {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+
+  app.get('*', (req, res) => {
+    return res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
+}
 app.use(errorHandler);
 
 route(app);
