@@ -4,7 +4,7 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const config = require('./config');
-const route = require("./routes")
+const route = require('./routes');
 require('dotenv').config();
 require('./models');
 
@@ -12,6 +12,7 @@ const errorHandler = require('./middlewares/error.middleware.js');
 const authRoutes = require('./routes/auth.route.js');
 const { inventoryRoutes } = require('./routes/prototype/inventory.route.js');
 const { drugRoutes } = require('./routes/prototype/drug.route.js');
+const { CycleCountFormRoutes } = require('./routes/prototype/cycleCountForm.route.js');
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/drug', drugRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/cycle-count-form', CycleCountFormRoutes);
 
 app.get('/', (req, res) => {
   res.send('API đang hoạt động!');
@@ -45,6 +47,6 @@ app.use((err, req, res, next) => {
 
 app.use(errorHandler);
 
-route(app)
+route(app);
 
 module.exports = app;
