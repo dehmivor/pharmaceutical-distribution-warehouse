@@ -13,6 +13,7 @@ const authRoutes = require('./routes/auth.route.js');
 const { inventoryRoutes } = require('./routes/prototype/inventory.route.js');
 const { drugRoutes } = require('./routes/prototype/drug.route.js');
 const { CycleCountFormRoutes } = require('./routes/prototype/cycleCountForm.route.js');
+const destroyRoutes = require('./routes/prototype/destroy.route.js');
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/drug', drugRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/cycle-count-form', CycleCountFormRoutes);
+app.use('/api/', destroyRoutes);
 
 app.get('/', (req, res) => {
   res.send('API đang hoạt động!');
