@@ -42,7 +42,7 @@ const cycleCountFormSchema = new mongoose.Schema(
         location: {
           type: mongoose.Schema.Types.ObjectId,
           ref: 'Location',
-          required: [true, 'Manager không được để trống'],
+          required: [true, 'Location không được để trống'],
         },
         verified: {
           type: Boolean,
@@ -50,25 +50,24 @@ const cycleCountFormSchema = new mongoose.Schema(
         },
         verifiedBy: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: 'Employee'
+          ref: 'Employee',
         },
         result: [
           {
-            Package: {
+            package: {
               type: mongoose.Schema.Types.ObjectId,
               ref: 'Package',
-              required: [true, 'content của cycle count form không được để trống'],
+              required: [true, 'Package không được để trống'],
             },
-            Status: {
+            status: {
               type: String,
               enum: ['lost', 'in_place', 'damaged', 'pending'],
               default: 'pending',
-            }
+            },
           },
-
-        ]
-      }
-    ]
+        ],
+      },
+    ],
   },
   {
     timestamps: true,

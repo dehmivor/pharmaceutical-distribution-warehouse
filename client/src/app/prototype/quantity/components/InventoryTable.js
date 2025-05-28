@@ -34,7 +34,7 @@ function InventoryTable() {
     axios
       .get('/api/cycle-count-form/medicines-locations')
       .then((response) => {
-        setInventories(response.data);
+        setInventories(response.data.data || []);
         setLoading(false);
       })
       .catch((error) => {
@@ -98,50 +98,106 @@ function InventoryTable() {
               <TableHead>
                 <TableRow>
                   <TableCell>Mã Phiếu</TableCell>
-                  <TableCell>Số Lượng</TableCell>
+                  <TableCell>Tên Thuốc</TableCell>
+                  <TableCell>Số Lượng Package</TableCell>
                   <TableCell>Vị Trí</TableCell>
                   <TableCell>Xác Nhận Vị Trí</TableCell>
-                  <TableCell>Trạng Thái</TableCell>
+                  <TableCell>Trạng Thái Package</TableCell>
+                  <TableCell>Trạng Thái Form</TableCell>
                   <TableCell>Ngày Cập Nhật</TableCell>
                   <TableCell>Thao Tác</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {inventories.map((inv) => {
-                  const content = inv.content && inv.content[0] ? inv.content[0] : {};
-                  const result = content.result && content.result[0] ? content.result[0] : {};
-                  const quantity = result.Status === 'lost' || result.Status === 'damaged' ? 0 : 1;
+                {inventories.flatMap((form) =>
+                  form.content.flatMap((contentItem) =>
+                    contentItem.result.map((resultItem) => {
+                      // Map trạng thái package
+                      const packageStatusMap = {
+                        lost: { label: 'Mất', color: 'error' },
+                        in_place: { label: 'Đúng vị trí', color: 'success' },
+                        damaged: { label: 'Hư hỏng', color: 'warning' },
+                        pending: { label: 'Chờ kiểm tra', color: 'info' }
+                      };
 
-                  // Map trạng thái sang nhãn và màu
-                  const statusLabelMap = {
-                    in_progress: { label: 'Đang kiểm kê', color: 'primary' },
-                    pending: { label: 'Chờ kiểm kê', color: 'warning' },
-                    waiting_approval: { label: 'Chờ duyệt', color: 'info' },
-                    completed: { label: 'Hoàn thành', color: 'success' },
-                    rejected: { label: 'Từ chối', color: 'error' }
-                  };
-                  const statusObj = statusLabelMap[inv.status] || { label: inv.status, color: 'default' };
+                      // Map trạng thái form
+                      const formStatusMap = {
+                        in_progress: { label: 'Đang kiểm kê', color: 'primary' },
+                        pending: { label: 'Chờ kiểm kê', color: 'warning' },
+                        waiting_approval: { label: 'Chờ duyệt', color: 'info' },
+                        completed: { label: 'Hoàn thành', color: 'success' },
+                        rejected: { label: 'Từ chối', color: 'error' }
+                      };
 
-                  return (
-                    <TableRow key={inv._id || Math.random()}>
-                      <TableCell>{inv._id ? inv._id.slice(0, 8) : 'N/A'}</TableCell>
-                      <TableCell>{quantity}</TableCell>
-                      <TableCell>{content.location ?? 'Chưa cập nhật'}</TableCell>
-                      <TableCell>
-                        <Checkbox checked={!!content.verified} color="primary" disabled />
-                      </TableCell>
-                      <TableCell>
-                        <Chip label={statusObj.label} color={statusObj.color} size="small" />
-                      </TableCell>
-                      <TableCell>{inv.createdAt ? new Date(inv.createdAt).toLocaleString() : ''}</TableCell>
-                      <TableCell>
-                        <IconButton onClick={() => handleEditClick(inv)} title="Chỉnh sửa vị trí">
-                          <EditIcon color="action" />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                      const packageStatus = packageStatusMap[resultItem.status] || {
+                        label: resultItem.status,
+                        color: 'default'
+                      };
+
+                      const formStatus = formStatusMap[form.status] || {
+                        label: form.status,
+                        color: 'default'
+                      };
+
+                      // Tạo unique key cho mỗi row
+                      const uniqueKey = `${form._id}-${contentItem._id}-${resultItem._id}`;
+
+                      // Format location string
+                      const locationString = contentItem.location
+                        ? `${contentItem.location.row}-${contentItem.location.bay}-${contentItem.location.level} (${contentItem.location.area?.name})`
+                        : 'Chưa cập nhật';
+
+                      return (
+                        <TableRow key={uniqueKey}>
+                          <TableCell>{form._id ? form._id.slice(-8) : 'N/A'}</TableCell>
+
+                          <TableCell>{resultItem.package?.content?.name || 'N/A'}</TableCell>
+
+                          <TableCell>{resultItem.package?.quantity || 0}</TableCell>
+
+                          <TableCell>{locationString}</TableCell>
+
+                          <TableCell>
+                            <Checkbox checked={!!contentItem.verified} color="primary" disabled />
+                            {contentItem.verifiedBy && (
+                              <Typography variant="caption" display="block">
+                                {contentItem.verifiedBy.name}
+                              </Typography>
+                            )}
+                          </TableCell>
+
+                          <TableCell>
+                            <Chip label={packageStatus.label} color={packageStatus.color} size="small" />
+                          </TableCell>
+
+                          <TableCell>
+                            <Chip label={formStatus.label} color={formStatus.color} size="small" variant="outlined" />
+                          </TableCell>
+
+                          <TableCell>{form.updatedAt ? new Date(form.updatedAt).toLocaleString('vi-VN') : ''}</TableCell>
+
+                          <TableCell>
+                            <IconButton
+                              onClick={() =>
+                                handleEditClick({
+                                  formId: form._id,
+                                  contentId: contentItem._id,
+                                  resultId: resultItem._id,
+                                  packageId: resultItem.package?._id,
+                                  locationId: contentItem.location?._id,
+                                  currentStatus: resultItem.status
+                                })
+                              }
+                              title="Chỉnh sửa"
+                            >
+                              <EditIcon color="action" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )
+                )}
               </TableBody>
             </Table>
           </TableContainer>
