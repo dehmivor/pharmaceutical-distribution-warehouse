@@ -171,8 +171,7 @@ router.post('/:id/verify-location', async (req, res) => {
     currentItem.verified = true;
     currentItem.verifiedBy = req.user ? req.user._id : null;
 
-    await form.save();
-
+    await form.save({ validateBeforeSave: false });
     res.json({
       success: true,
       message: 'Vị trí được xác nhận và cập nhật thành công',
