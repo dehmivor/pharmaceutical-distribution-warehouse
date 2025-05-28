@@ -6,6 +6,7 @@ const morgan = require('morgan');
 const config = require('./config');
 const route = require("./routes")
 require('dotenv').config();
+require('./models');
 
 const errorHandler = require('./middlewares/error.middleware.js');
 const authRoutes = require('./routes/auth.route.js');
