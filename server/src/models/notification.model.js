@@ -1,9 +1,28 @@
 const mongoose = require('mongoose');
+
 const notificationSchema = new mongoose.Schema({
-  message: String,
-  target_user_id: mongoose.Schema.Types.ObjectId,
-  created_at: { type: Date, default: Date.now },
-  updated_at: Date,
+  drugName: {
+    type: String,
+    required: true,
+  },
+  lotNumber: {
+    type: String,
+    required: true,
+  },
+  reason: {
+    type: String,
+    required: true,
+  },
+  notifiedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  status: {
+    type: String,
+    enum: ['Pending', 'Processed'],
+    default: 'Pending',
+  },
 });
 
-module.exports = mongoose.model('Notification', notificationSchema);
+const Notification = mongoose.model('Notification', notificationSchema);
+module.exports = Notification;

@@ -2,11 +2,6 @@ const mongoose = require('mongoose');
 
 const packageSchema = new mongoose.Schema(
     {
-        area: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Area',
-            required: [true, 'Area không được để trống'],
-        },
         location: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Location',
