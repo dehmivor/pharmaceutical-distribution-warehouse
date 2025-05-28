@@ -22,7 +22,6 @@ router.get('/', async (req, res) => {
   try {
     const drugs = await Drug.find();
     res.json(drugs);
-    console.log(drugs);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
