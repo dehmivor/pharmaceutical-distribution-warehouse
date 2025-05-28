@@ -1,0 +1,7 @@
+{
+  "name": "Pharmaceutical-Distribution-Warehouse-AnyF",
+  "scripts": {
+    "build": "npm install --prefix server && npm install --prefix client && npm run build --prefix client",
+    "start": "npm run start --prefix server"
+  }
+}
