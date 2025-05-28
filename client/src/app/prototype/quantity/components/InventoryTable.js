@@ -93,7 +93,7 @@ function InventoryTable() {
 
       if (result.success) {
         setDecodedLocation(result.decodedLocation);
-        setTempVerified(true); // Tự động check verified
+        setTempVerified(true);
 
         // API đã tự động cập nhật status, chỉ cần refresh data
         setTimeout(() => {
@@ -142,6 +142,38 @@ function InventoryTable() {
     return 'N/A';
   };
 
+  // Hàm kiểm tra trạng thái form dựa trên việc verified của các content items
+  const getFormStatus = (form) => {
+    const allItemsVerified = form.content.every((item) => item.verified);
+    const hasVerifiedItems = form.content.some((item) => item.verified);
+
+    if (allItemsVerified) {
+      return { label: 'Chờ duyệt', color: 'info' };
+    } else if (hasVerifiedItems) {
+      return { label: 'Đang kiểm kê', color: 'primary' };
+    } else {
+      // Fallback về status gốc nếu chưa có item nào verified
+      const formStatusMap = {
+        in_progress: { label: 'Đang kiểm kê', color: 'primary' },
+        pending: { label: 'Chờ kiểm kê', color: 'warning' },
+        waiting_approval: { label: 'Chờ duyệt', color: 'info' },
+        completed: { label: 'Hoàn thành', color: 'success' },
+        rejected: { label: 'Từ chối', color: 'error' }
+      };
+
+      return formStatusMap[form.status] || { label: form.status || 'Chờ kiểm kê', color: 'warning' };
+    }
+  };
+
+  // Hàm xác định trạng thái package dựa trên verified của content item
+  const getPackageStatus = (contentItem) => {
+    if (contentItem.verified) {
+      return { label: 'Đã kiểm tra', color: 'success' };
+    } else {
+      return { label: 'Chờ kiểm tra', color: 'warning' };
+    }
+  };
+
   return (
     <div>
       <Box>
@@ -178,24 +210,11 @@ function InventoryTable() {
                 {inventories.flatMap((form, formIndex) =>
                   form.content.flatMap((contentItem, contentIndex) =>
                     contentItem.result.map((resultItem, resultIndex) => {
-                      // Map trạng thái package dựa trên Status boolean
-                      const packageStatus = resultItem.Status
-                        ? { label: 'Đã kiểm tra', color: 'success' }
-                        : { label: 'Chờ kiểm tra', color: 'warning' };
+                      // Trạng thái package dựa trên verified của content item
+                      const packageStatus = getPackageStatus(contentItem);
 
-                      // Map trạng thái form
-                      const formStatusMap = {
-                        in_progress: { label: 'Đang kiểm kê', color: 'primary' },
-                        pending: { label: 'Chờ kiểm kê', color: 'warning' },
-                        waiting_approval: { label: 'Chờ duyệt', color: 'info' },
-                        completed: { label: 'Hoàn thành', color: 'success' },
-                        rejected: { label: 'Từ chối', color: 'error' }
-                      };
-
-                      const formStatus = formStatusMap[form.status] || {
-                        label: form.status || 'N/A',
-                        color: 'default'
-                      };
+                      // Trạng thái form dựa trên tất cả content items
+                      const formStatus = getFormStatus(form);
 
                       // Tạo unique key cho mỗi row
                       const uniqueKey = `${form._id}-${contentIndex}-${resultIndex}`;
@@ -299,7 +318,7 @@ function InventoryTable() {
             <Alert severity="success" style={{ marginTop: '10px' }}>
               ✅ Vị trí xác nhận: {decodedLocation}
               <br />
-              <small>Đã tự động cập nhật trạng thái tất cả package thành "Đã kiểm tra"</small>
+              <small>Đã tự động cập nhật trạng thái package thành "Đã kiểm tra"</small>
             </Alert>
           )}
 
