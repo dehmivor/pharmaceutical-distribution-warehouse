@@ -11,8 +11,14 @@ const errorHandler = require('./middlewares/error.middleware.js');
 const authRoutes = require('./routes/auth.route.js');
 const { inventoryRoutes } = require('./routes/prototype/inventory.route.js');
 const { drugRoutes } = require('./routes/prototype/drug.route.js');
-
 const { parameterRoutes } = require('./routes/prototype/constant.route.js');
+const checkRoutes = require('./routes/prototype/check.route.js');
+const areaRoutes = require('./routes/prototype/area.route.js');
+const locationRoutes = require('./routes/prototype/location.route.js');
+const medicineRoutes = require('./routes/prototype/medicien.route.js');
+const packageRoutes = require('./routes/prototype/package.route.js');
+
+const fakeSupervisor = require('./middlewares/FakeSupervisor');
 const app = express();
 
 app.use(helmet());
@@ -30,6 +36,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/parameters', parameterRoutes);
 app.use('/api/drug', drugRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/check', fakeSupervisor, checkRoutes);
+app.use('/api/areas', areaRoutes);
+app.use('/api/locations', locationRoutes);
+app.use('/api/medicines', medicineRoutes);
+app.use('/api/packages', packageRoutes);
 
 app.get('/', (req, res) => {
   res.send('API đang hoạt động!');
