@@ -36,7 +36,7 @@ const prototype = {
           id: 'report to supervisor',
           title: 'report to supervisor',
           type: 'item',
-          url: '/prototype/destroy'
+          url: '/prototype/destroy/68361ce3134e5fde59c1fada'
         },
         {
           id: 'report to warehouse manager',
