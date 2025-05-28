@@ -9,7 +9,7 @@ function page() {
       <p>This is the prototype page.</p>
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6} md={4} lg={3}>
-          <Link href="/prototype/constants">
+          <Link href="/prototype/check">
             <Button variant="contained" fullWidth>
               màn quản lí tham số: ngày kiểm tra định kỳ
             </Button>
