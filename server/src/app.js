@@ -54,6 +54,9 @@ app.use('/api/packages', packageRoutes);
 // Gọi routes chung (nếu cần)
 route(app);
 
+const startAllCrons = require('./cron');
+startAllCrons();
+
 // Serve static files in production
 const isProduction = process.env.NODE_ENV === 'production';
 if (isProduction) {
@@ -69,7 +72,6 @@ if (isProduction) {
   });
 }
 
-// ✅ Error handler phải đặt cuối cùng
 app.use(errorHandler);
 
 module.exports = app;
