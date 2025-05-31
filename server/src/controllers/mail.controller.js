@@ -5,3 +5,5 @@ sendEmail({
   subject: 'Test Mailtrap SDK',
   text: 'Đây là email test gửi từ Mailtrap SDK!',
 });
+
+module.exports = {};
