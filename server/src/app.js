@@ -9,6 +9,10 @@ const route = require('./routes');
 require('dotenv').config();
 require('./models');
 
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Not Found' });
+});
+
 const errorHandler = require('./middlewares/error.middleware.js');
 const authRoutes = require('./routes/auth.route.js');
 const { inventoryRoutes } = require('./routes/prototype/inventory.route.js');
@@ -54,22 +58,9 @@ app.use('/api/packages', packageRoutes);
 // Gọi routes chung (nếu cần)
 route(app);
 
-// Serve static files in production
-const isProduction = process.env.NODE_ENV === 'production';
-if (isProduction) {
-  const __dirname = path.resolve();
-  app.use(express.static(path.join(__dirname, '../client/dist')));
+const startAllCrons = require('./cron');
+startAllCrons();
 
-  app.get('*', (req, res) => {
-    return res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-  });
-} else {
-  app.get('/', (req, res) => {
-    res.send('API đang hoạt động!');
-  });
-}
-
-// ✅ Error handler phải đặt cuối cùng
 app.use(errorHandler);
 
 module.exports = app;
