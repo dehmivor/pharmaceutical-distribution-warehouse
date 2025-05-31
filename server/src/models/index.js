@@ -1,14 +1,3 @@
-const mongoose = require("mongoose");
-require('./Area.model');
-require('./Batch.model');
-require('./CycleCountForm.model');
-require('./Employee.model');
-require('./Location.model');
-require('./Medicine.model');
-require('./Package.model');
-require('./Supplier.model');
-
-
 const Area = require('./Area.model');
 const Batch = require('./Batch.model');
 const CycleCountForm = require('./CycleCountForm.model');
