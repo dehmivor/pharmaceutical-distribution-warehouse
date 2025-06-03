@@ -25,10 +25,12 @@
     "start": "node src/server.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:server": "jest --config server/jest.config.js"
   },
   "devDependencies": {
     "eslint": "^9.26.0",
+    "jest": "^29.7.0",
     "nodemon": "^3.1.10",
     "prettier": "^3.5.3"
   }
