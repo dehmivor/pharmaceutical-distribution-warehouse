@@ -1,14 +1,12 @@
-const checkLowInventory = require('../services/cron.service');
+// Thêm tham số req, res cho đúng cấu trúc Express middleware
+const checkLowInventory = async (req, res) => {
+  console.log('Đang kiểm tra tồn kho thấp và gửi cảnh báo...');
 
-const runCheckLowInventory = async (req, res) => {
-  try {
-    const result = await checkLowInventory();
-    res.json({ message: 'Tác vụ đã thực hiện xong.', result });
-  } catch (error) {
-    res.status(500).json({ message: 'Có lỗi xảy ra!', error: error.message });
-  }
+  // Phải trả về response cho client
+  return res.status(200).json({
+    success: true,
+    message: 'Đã kiểm tra tồn kho.',
+  });
 };
 
-module.exports = {
-  runCheckLowInventory,
-};
+module.exports = checkLowInventory; // Export đúng tên

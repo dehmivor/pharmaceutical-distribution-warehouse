@@ -1,4 +1,4 @@
 module.exports = {
-  authRoutes,
-  cronRoutes,
+  authRoutes: require('./auth.route'),
+  cronRoutes: require('./cron.route'),
 };
