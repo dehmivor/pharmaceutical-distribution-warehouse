@@ -3,14 +3,16 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
+const path = require('path');
 const config = require('./config');
+const route = require('./routes');
 require('dotenv').config();
-
-const errorHandler = require('./middlewares/error.middleware.js');
-const authRoutes = require('./routes/auth.route.js');
-
+require('./models');
 const app = express();
 
+const errorHandler = require('./middlewares/error.middleware.js');
+const { authRoutes, cronRoutes } = require('./routes');
+// Middlewares
 app.use(helmet());
 app.use(cors({ origin: config.clientUrl, credentials: true }));
 app.use(express.json());
@@ -18,25 +20,21 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan('dev'));
 
+// Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({ message: 'OK ✅ Server running' });
 });
 
+// API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/cron', cronRoutes);
 
-app.get('/', (req, res) => {
-  res.send('API đang hoạt động!');
+const startAllCrons = require('./cron');
+startAllCrons();
+
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Not Found' });
 });
-
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: 'Lỗi server',
-    error: process.env.NODE_ENV === 'development' ? err.message : {},
-  });
-});
-
 app.use(errorHandler);
 
 module.exports = app;
