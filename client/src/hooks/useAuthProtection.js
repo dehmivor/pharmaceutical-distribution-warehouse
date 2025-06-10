@@ -25,9 +25,9 @@ export const useAuthProtection = (requireAuth = true) => {
         router.push(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
       }
       // Nếu đã đăng nhập nhưng đang ở trang login/register
-      else if (isLoggedIn && (pathname.includes('/auth/login') || pathname.includes('/auth/register'))) {
+      else if (isLoggedIn && (pathname.includes('/auth/login') || pathname.includes('/not-found'))) {
         // Chuyển hướng về dashboard
-        router.push('/dashboard');
+        router.push('/(admin)');
       }
 
       setIsLoading(false);
