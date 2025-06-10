@@ -1,7 +1,84 @@
 // controllers/authController.js
-const authService = require('../services/auth.service');
+const authService = require('../services/authService');
 
 const authController = {
+  register: async (req, res) => {
+    try {
+      const { email, password, fullName, role } = req.body;
+
+      // Validate input
+      if (!email || !password || !fullName) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email, password và fullName là bắt buộc',
+        });
+      }
+
+      const result = await authService.register({
+        email,
+        password,
+        fullName,
+        role: 'supervisor', // default role
+      });
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'Đăng ký thành công',
+        data: {
+          user: result.data.user,
+          // Không trả về token cho register, user cần login
+        },
+      });
+    } catch (error) {
+      console.error('Register error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi đăng ký',
+      });
+    }
+  },
+
+  refreshToken: async (req, res) => {
+    try {
+      const { refreshToken } = req.body;
+
+      if (!refreshToken) {
+        return res.status(400).json({
+          success: false,
+          message: 'Refresh token is required',
+        });
+      }
+
+      const result = await authService.refreshToken(refreshToken);
+
+      if (!result.success) {
+        return res.status(401).json(result);
+      }
+
+      const { user, token, refreshToken: newRefreshToken } = result.data;
+
+      res.json({
+        success: true,
+        message: 'Token refreshed successfully',
+        data: {
+          user,
+          token,
+          refreshToken: newRefreshToken,
+          redirectUrl: getRedirectByRole(user.role),
+        },
+      });
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      res.status(401).json({
+        success: false,
+        message: 'Invalid refresh token',
+      });
+    }
+  },
   // Login với thông tin điều hướng
   login: async (req, res) => {
     try {
@@ -106,7 +183,7 @@ const authController = {
       res.json({
         success: true,
         message: 'Logout successful',
-        redirectUrl: '/auth/login',
+        redirectUrl: '/auth/login', // Redirect đến trang login
       });
     } catch (error) {
       res.status(500).json({
@@ -120,11 +197,7 @@ const authController = {
 // Helper functions
 function getRedirectByRole(role) {
   const roleRoutes = {
-    admin: '/admin/dashboard',
-    warehouse_manager: '/warehouse/dashboard',
-    pharmacist: '/pharmacy/dashboard',
-    distributor: '/distributor/dashboard',
-    viewer: '/dashboard',
+    supervisor: '/dashboard',
   };
 
   return roleRoutes[role] || '/dashboard';
@@ -134,9 +207,6 @@ function getRolePermissions(role) {
   const permissions = {
     admin: ['read', 'write', 'delete', 'manage_users'],
     warehouse_manager: ['read', 'write', 'manage_inventory'],
-    pharmacist: ['read', 'write', 'process_orders'],
-    distributor: ['read', 'view_orders'],
-    viewer: ['read'],
   };
 
   return permissions[role] || ['read'];

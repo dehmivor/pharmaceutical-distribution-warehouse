@@ -17,6 +17,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import Loader from '@/components/Loader';
 
 import { DRAWER_WIDTH } from '@/config';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 /***************************  ADMIN LAYOUT  ***************************/
 
