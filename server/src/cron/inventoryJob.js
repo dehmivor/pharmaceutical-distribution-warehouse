@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const inventoryService = require('../services/cron.service');
+const inventoryService = require('../services/cronService');
 
 function startInventoryJob() {
   cron.schedule('0 7 * * *', async () => {
