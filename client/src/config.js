@@ -3,7 +3,7 @@ import { Archivo } from 'next/font/google';
 
 /***************************  THEME CONSTANT  ***************************/
 
-export const APP_DEFAULT_PATH = '/dashboard';
+export const APP_DEFAULT_PATH = '/auth/login';
 
 export const DRAWER_WIDTH = 254;
 export const MINI_DRAWER_WIDTH = 76 + 1; // 1px - for right-side border
