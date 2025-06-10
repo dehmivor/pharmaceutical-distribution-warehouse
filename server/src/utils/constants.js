@@ -59,6 +59,33 @@ const AREA_TYPES = {
   HAZARDOUS: 'hazardous',
 };
 
+const CONTRACT_STATUSES = {
+  DRAFT: 'draft',
+  ACTIVE: 'active',
+  EXPIRED: 'expired',
+  CANCELLED: 'cancelled',
+};
+
+const IMPORT_ORDER_STATUSES = {
+  PENDING: 'pending',
+  PROCESSING: 'processing',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+};
+
+const INSPECTION_QUALITY_STATUSES = {
+  PASS: 'pass',
+  FAILED: 'failed',
+  PARTIAL: 'partial',
+};
+
+const INSPECTION_STATUSES = {
+  PENDING: 'pending',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  REJECTED: 'rejected',
+};
+
 module.exports = {
   USER_ROLES,
   USER_STATUSES,
@@ -68,5 +95,9 @@ module.exports = {
   BATCH_QUALITY_STATUSES,
   PACKAGE_STATUSES,
   PACKAGE_QUALITY_STATUSES,
-  AREA_TYPES
+  AREA_TYPES,
+  CONTRACT_STATUSES,
+  IMPORT_ORDER_STATUSES,
+  INSPECTION_QUALITY_STATUSES,
+  INSPECTION_STATUSES,
 };
