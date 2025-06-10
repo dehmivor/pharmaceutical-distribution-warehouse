@@ -25,9 +25,26 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ message: 'OK ✅ Server running' });
 });
 
-// API Routes
+// Public routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cron', cronRoutes);
+
+// Protected routes với role-based access
+// app.use('/api/supervisor', authenticate, authorize('supervisor'), routes.supervisorRoutes);
+
+// app.use(
+//   '/api/warehouse',
+//   authenticate,
+//   authorize(['supervisor', 'warehouse_manager']),
+//   routes.warehouseRoutes,
+// );
+
+// app.use(
+//   '/api/presentative',
+//   authenticate,
+//   authorize(['supervisor', 'presentative']),
+//   routes.pharmacyRoutes,
+// );
 
 const startAllCrons = require('./cron');
 startAllCrons();

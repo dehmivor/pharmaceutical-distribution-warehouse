@@ -1,95 +1,215 @@
+// controllers/authController.js
 const authService = require('../services/authService');
 
-/**
- * Xử lý yêu cầu đăng ký
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
-const register = async (req, res) => {
-  try {
-    const { fullName, email, password, role } = req.body;
+const authController = {
+  register: async (req, res) => {
+    try {
+      const { email, password, fullName, role } = req.body;
 
-    // Kiểm tra dữ liệu đầu vào
-    if (!fullName || !email || !password) {
-      return res.status(400).json({
+      // Validate input
+      if (!email || !password || !fullName) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email, password và fullName là bắt buộc',
+        });
+      }
+
+      const result = await authService.register({
+        email,
+        password,
+        fullName,
+        role: 'supervisor', // default role
+      });
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'Đăng ký thành công',
+        data: {
+          user: result.data.user,
+          // Không trả về token cho register, user cần login
+        },
+      });
+    } catch (error) {
+      console.error('Register error:', error);
+      res.status(500).json({
         success: false,
-        message: 'Vui lòng cung cấp đầy đủ thông tin đăng ký',
+        message: 'Lỗi server khi đăng ký',
       });
     }
+  },
 
-    // Đăng ký người dùng thông qua service
-    const result = await authService.register({
-      fullName,
-      email,
-      password,
-      role,
-    });
+  refreshToken: async (req, res) => {
+    try {
+      const { refreshToken } = req.body;
 
-    return res.status(201).json({
-      success: true,
-      message: 'Đăng ký thành công',
-      data: result,
-    });
-  } catch (error) {
-    console.error('Register error:', error.message);
+      if (!refreshToken) {
+        return res.status(400).json({
+          success: false,
+          message: 'Refresh token is required',
+        });
+      }
 
-    // Xử lý các lỗi phổ biến
-    if (error.message.includes('Email đã được sử dụng')) {
-      return res.status(409).json({
+      const result = await authService.refreshToken(refreshToken);
+
+      if (!result.success) {
+        return res.status(401).json(result);
+      }
+
+      const { user, token, refreshToken: newRefreshToken } = result.data;
+
+      res.json({
+        success: true,
+        message: 'Token refreshed successfully',
+        data: {
+          user,
+          token,
+          refreshToken: newRefreshToken,
+          redirectUrl: getRedirectByRole(user.role),
+        },
+      });
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      res.status(401).json({
         success: false,
-        message: 'Email đã được sử dụng',
+        message: 'Invalid refresh token',
       });
     }
+  },
+  // Login với thông tin điều hướng
+  login: async (req, res) => {
+    try {
+      const { email, password } = req.body;
 
-    return res.status(500).json({
-      success: false,
-      message: 'Đã xảy ra lỗi khi đăng ký',
-      error: error.message,
-    });
-  }
-};
+      const result = await authService.login(email, password);
 
-/**
- * Xử lý yêu cầu đăng nhập
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
-const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+      if (!result.success) {
+        return res.status(401).json(result);
+      }
 
-    if (!email || !password) {
-      return res.status(400).json({
+      const { user, token, refreshToken } = result.data;
+
+      // Xác định redirect URL dựa theo role
+      const redirectUrl = getRedirectByRole(user.role);
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          user,
+          token,
+          refreshToken,
+          redirectUrl, // ← Frontend sẽ dùng này để điều hướng
+        },
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({
         success: false,
-        message: 'Vui lòng nhập email và mật khẩu',
+        message: 'Internal server error',
       });
     }
+  },
 
-    const result = await authService.login({ email, password });
+  // Validate session cho middleware check
+  validateSession: (req, res) => {
+    try {
+      const user = req.user; // Từ authenticate middleware
 
-    return res.json({
-      success: true,
-      message: 'Đăng nhập thành công',
-      data: result,
-    });
-  } catch (error) {
-    console.error('Login error:', error.message);
+      res.json({
+        success: true,
+        data: {
+          user,
+          isAuthenticated: true,
+          redirectUrl: getRedirectByRole(user.role),
+        },
+      });
+    } catch (error) {
+      res.status(401).json({
+        success: false,
+        message: 'Invalid session',
+      });
+    }
+  },
 
-    // Xử lý các lỗi cụ thể
-    const errorMessages = {
-      'Email không tồn tại': 404,
-      'Mật khẩu không chính xác': 401,
-    };
+  // Get current user info
+  getCurrentUser: (req, res) => {
+    try {
+      const user = req.user;
 
-    const statusCode = errorMessages[error.message] || 500;
+      res.json({
+        success: true,
+        data: {
+          ...user,
+          permissions: getRolePermissions(user.role),
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Could not fetch user data',
+      });
+    }
+  },
 
-    return res.status(statusCode).json({
-      success: false,
-      message: error.message || 'Lỗi đăng nhập',
-    });
-  }
+  // Role-based redirect endpoint
+  getRoleBasedRedirect: (req, res) => {
+    try {
+      const user = req.user;
+      const redirectUrl = getRedirectByRole(user.role);
+
+      res.json({
+        success: true,
+        data: { redirectUrl },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Could not determine redirect',
+      });
+    }
+  },
+
+  logout: async (req, res) => {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+
+      // Blacklist token hoặc remove từ database
+      await authService.logout(token);
+
+      res.json({
+        success: true,
+        message: 'Logout successful',
+        redirectUrl: '/auth/login', // Redirect đến trang login
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Logout failed',
+      });
+    }
+  },
 };
-module.exports = {
-  register,
-  login,
-};
+
+// Helper functions
+function getRedirectByRole(role) {
+  const roleRoutes = {
+    supervisor: '/manage-user',
+  };
+
+  return roleRoutes[role] || '/dashboard';
+}
+
+function getRolePermissions(role) {
+  const permissions = {
+    admin: ['read', 'write', 'delete', 'manage_users'],
+    warehouse_manager: ['read', 'write', 'manage_inventory'],
+  };
+
+  return permissions[role] || ['read'];
+}
+
+module.exports = authController;
