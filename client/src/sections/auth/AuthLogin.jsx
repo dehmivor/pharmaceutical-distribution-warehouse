@@ -1,10 +1,7 @@
 'use client';
 import PropTypes from 'prop-types';
-
 import { useState } from 'react';
-
 import { useRouter } from 'next/navigation';
-
 import { useTheme } from '@mui/material/styles';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -14,36 +11,37 @@ import Grid from '@mui/material/Grid';
 import InputAdornment from '@mui/material/InputAdornment';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
-
 import { useForm } from 'react-hook-form';
-
 import { emailSchema, passwordSchema } from '@/utils/validationSchema';
-
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
+
+// Import context nếu có
+// import { useAuth } from '@/contexts/AuthContext';
 
 export default function AuthLogin({ inputSx }) {
   const router = useRouter();
-
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  // Initialize react-hook-form
+  // const { login } = useAuth(); // Nếu dùng context
+
   const {
     register,
     handleSubmit,
     formState: { errors }
   } = useForm();
 
-  // Handle form submission
+  // Trong AuthLogin component, sửa onSubmit:
   const onSubmit = async (formData) => {
     try {
       setIsProcessing(true);
       setLoginError('');
 
-      // Call the login API endpoint
-      const response = await fetch('/api/auth/login', {
+      // ✅ Sử dụng backend URL
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${backendUrl}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -56,26 +54,20 @@ export default function AuthLogin({ inputSx }) {
 
       const result = await response.json();
 
-      // Handle successful login
-      if (response.ok) {
-        // Get redirect URL from query params if available
-        const urlParams = new URLSearchParams(window.location.search);
-        const redirectUrl = urlParams.get('redirect') || '/dashboard';
+      if (result.success) {
+        // Store token
+        localStorage.setItem('auth-token', result.data.token);
+        localStorage.setItem('user', JSON.stringify(result.data.user));
 
-        // Redirect to dashboard or requested page
+        // Use redirectUrl from backend
+        const redirectUrl = result.data.redirectUrl || '/dashboard';
         router.push(redirectUrl);
       } else {
         setLoginError(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
       }
     } catch (error) {
       console.error('Login error:', error);
-
-      // Handle specific errors
-      if (error.message?.includes('Email hoặc mật khẩu không chính xác')) {
-        setLoginError('Email hoặc mật khẩu không chính xác.');
-      } else {
-        setLoginError('Đăng nhập thất bại. Vui lòng thử lại.');
-      }
+      setLoginError('Không thể kết nối đến server. Vui lòng thử lại.');
     } finally {
       setIsProcessing(false);
     }
@@ -120,6 +112,7 @@ export default function AuthLogin({ inputSx }) {
           {errors.password?.message && <FormHelperText error>{errors.password?.message}</FormHelperText>}
         </Grid>
       </Grid>
+
       <Button
         type="submit"
         color="primary"
@@ -130,6 +123,7 @@ export default function AuthLogin({ inputSx }) {
       >
         Đăng nhập
       </Button>
+
       {loginError && (
         <Alert sx={{ mt: 2 }} severity="error" variant="filled" icon={false}>
           {loginError}
