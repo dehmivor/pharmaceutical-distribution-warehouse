@@ -19,14 +19,9 @@ export const useAuthProtection = (requireAuth = true) => {
     const checkAuth = async () => {
       const isLoggedIn = authService.isAuthenticated();
 
-      // Nếu route yêu cầu auth và người dùng chưa đăng nhập
       if (requireAuth && !isLoggedIn) {
-        // Chuyển hướng đến trang đăng nhập và lưu URL hiện tại để quay lại sau
         router.push(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
-      }
-      // Nếu đã đăng nhập nhưng đang ở trang login/register
-      else if (isLoggedIn && (pathname.includes('/auth/login') || pathname.includes('/auth/register'))) {
-        // Chuyển hướng về dashboard
+      } else if (isLoggedIn && (pathname.includes('/auth/login') || pathname.includes('/not-found'))) {
         router.push('/dashboard');
       }
 

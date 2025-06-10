@@ -3,25 +3,24 @@ import PropTypes from 'prop-types';
 
 import { useEffect } from 'react';
 
-import useMediaQuery from '@mui/material/useMediaQuery';
-import Container from '@mui/material/Container';
-import Toolbar from '@mui/material/Toolbar';
-import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
+import Stack from '@mui/material/Stack';
+import Toolbar from '@mui/material/Toolbar';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 // @project
-import Drawer from './Drawer';
-import Header from './Header';
-import { handlerDrawerOpen, useGetMenuMaster } from '@/states/menu';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import Loader from '@/components/Loader';
+import { handlerDrawerOpen, useGetMenuMaster } from '@/states/menu';
+import Drawer from './Drawer';
+import Header from './Header';
 
 import { DRAWER_WIDTH } from '@/config';
-import { AuthProvider } from '@/contexts/AuthContext';
 
 /***************************  ADMIN LAYOUT  ***************************/
 
-export default function DashboardLayout({ children }) {
+export default function SupervisorLayout({ children }) {
   const { menuMasterLoading } = useGetMenuMaster();
 
   const downXL = useMediaQuery((theme) => theme.breakpoints.down('xl'));
@@ -60,4 +59,4 @@ export default function DashboardLayout({ children }) {
   );
 }
 
-DashboardLayout.propTypes = { children: PropTypes.any };
+SupervisorLayout.propTypes = { children: PropTypes.any };
