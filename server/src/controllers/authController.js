@@ -197,7 +197,7 @@ const authController = {
 // Helper functions
 function getRedirectByRole(role) {
   const roleRoutes = {
-    supervisor: '/(admin)',
+    supervisor: '/(supervisor)',
   };
 
   return roleRoutes[role] || '/dashboard';

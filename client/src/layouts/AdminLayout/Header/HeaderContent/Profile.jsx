@@ -49,7 +49,6 @@ const languageList = [
 ];
 
 /***************************  HEADER - PROFILE  ***************************/
-
 export default function ProfileSection() {
   const theme = useTheme();
   const { i18n } = useConfig();
@@ -71,8 +70,19 @@ export default function ProfileSection() {
     setInnerAnchorEl(innerAnchorEl ? null : event.currentTarget);
   };
 
-  const logoutAccount = () => {
+  const logoutAccount = async () => {
     setAnchorEl(null);
+
+    try {
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('user');
+      enqueueSnackbar('Logout successful', { variant: 'success' });
+      window.location.href = '/auth/login';
+    } catch (error) {
+      console.error('Logout error:', error);
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('user');
+    }
   };
 
   const i18nHandler = (event, key) => {

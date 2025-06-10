@@ -60,7 +60,7 @@ export default function AuthLogin({ inputSx }) {
         localStorage.setItem('user', JSON.stringify(result.data.user));
 
         // Use redirectUrl from backend
-        const redirectUrl = result.data.redirectUrl || '/(admin)';
+        const redirectUrl = result.data.redirectUrl || '/(supervisor)';
         router.push(redirectUrl);
       } else {
         setLoginError(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
