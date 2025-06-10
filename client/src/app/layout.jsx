@@ -1,28 +1,21 @@
-import PropTypes from "prop-types";
-
 // @style
-import "./globals.css";
+import './globals.css';
 
 // @mui
-import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 
 // @project
-import branding from "@/branding.json";
-import ProviderWrapper from "./ProviderWrapper";
+import branding from '@/branding.json';
+import ProviderWrapper from './ProviderWrapper';
 
-/***************************  METADATA - MAIN  ***************************/
-
-// Configures the viewport settings for the application.
 export const viewport = {
-  userScalable: false, // Disables user scaling of the viewport.
+  userScalable: false // Disables user scaling of the viewport.
 };
 
 export const metadata = {
-  title: `${branding.brandName} React MUI Dashboard Template`,
-  description: `${branding.brandName} React MUI Dashboard Template`,
+  title: branding.brandName,
+  description: `${branding.brandName} Pharmaceutical Distribution Warehouse`
 };
-
-/***************************  LAYOUT - ROOT  ***************************/
 
 export default function RootLayout({ children }) {
   return (
@@ -35,5 +28,3 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
-
-RootLayout.propTypes = { children: PropTypes.any };

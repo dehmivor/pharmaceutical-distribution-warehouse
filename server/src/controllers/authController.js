@@ -1,4 +1,4 @@
-const authService = require('../services/auth.service');
+const authService = require('../services/authService');
 
 /**
  * Xử lý yêu cầu đăng ký
@@ -58,18 +58,16 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Kiểm tra dữ liệu đầu vào
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng cung cấp email và mật khẩu',
+        message: 'Vui lòng nhập email và mật khẩu',
       });
     }
 
-    // Đăng nhập người dùng thông qua service
-    const result = await authService.login(email, password);
+    const result = await authService.login({ email, password });
 
-    return res.status(200).json({
+    return res.json({
       success: true,
       message: 'Đăng nhập thành công',
       data: result,
@@ -77,22 +75,20 @@ const login = async (req, res) => {
   } catch (error) {
     console.error('Login error:', error.message);
 
-    // Xử lý các lỗi phổ biến
-    if (error.message.includes('Email hoặc mật khẩu không chính xác')) {
-      return res.status(401).json({
-        success: false,
-        message: 'Email hoặc mật khẩu không chính xác',
-      });
-    }
+    // Xử lý các lỗi cụ thể
+    const errorMessages = {
+      'Email không tồn tại': 404,
+      'Mật khẩu không chính xác': 401,
+    };
 
-    return res.status(500).json({
+    const statusCode = errorMessages[error.message] || 500;
+
+    return res.status(statusCode).json({
       success: false,
-      message: 'Đã xảy ra lỗi khi đăng nhập',
-      error: error.message,
+      message: error.message || 'Lỗi đăng nhập',
     });
   }
 };
-
 module.exports = {
   register,
   login,
