@@ -25,8 +25,8 @@ export default function Login() {
 
         <Typography variant="body2" color="text.secondary" sx={{ mt: { xs: 2, sm: 3 } }}>
           Don’t have an account?{' '}
-          <Link component={NextLink} underline="hover" variant="subtitle2" href="register" sx={{ '&:hover': { color: 'primary.dark' } }}>
-            Sign Up
+          <Link component={NextLink} underline="hover" variant="subtitle2" href="not-found" sx={{ '&:hover': { color: 'primary.dark' } }}>
+            Contact support
           </Link>
         </Typography>
       </Box>
