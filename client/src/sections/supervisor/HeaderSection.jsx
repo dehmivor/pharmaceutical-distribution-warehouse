@@ -1,11 +1,21 @@
 'use client';
-import React from 'react';
-import { Paper, Container, Stack, Box, Typography, Button } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import React, { useState } from 'react';
+import { Paper, Container, Stack, Box, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import AddUserButton from './AddUserButton'; // Import component
 
 function HeaderSection() {
   const theme = useTheme();
+
+  // Thêm các state bị thiếu
+  const [selectedUserType, setSelectedUserType] = useState(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  // Thêm function bị thiếu
+  const handleCreateUser = (userType) => {
+    setSelectedUserType(userType);
+    setShowCreateForm(true);
+  };
 
   return (
     <div>
@@ -45,28 +55,20 @@ function HeaderSection() {
                 Administer and oversee user accounts and privileges within the platform
               </Typography>
             </Box>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              sx={{
-                px: 3,
-                py: 1.5,
-                borderRadius: 3,
-                textTransform: 'none',
-                fontWeight: 600,
-                boxShadow: theme.shadows[4],
-                '&:hover': {
-                  boxShadow: theme.shadows[8],
-                  transform: 'translateY(-1px)'
-                },
-                transition: 'all 0.2s ease-in-out'
-              }}
-            >
-              Add User
-            </Button>
+            <AddUserButton onCreateUser={handleCreateUser} />
           </Stack>
         </Container>
       </Paper>
+
+      {/* Hiển thị form tương ứng - Di chuyển ra ngoài Paper */}
+      {showCreateForm && (
+        <Container maxWidth={false} sx={{ mt: 3 }}>
+          {selectedUserType === 'warehouse' && <div>Warehouse Form</div>}
+          {selectedUserType === 'representative' && <div>Representative Form</div>}
+          {selectedUserType === 'delivery' && <div>Delivery Form</div>}
+          {selectedUserType === 'supplier' && <div>Supplier Form</div>}
+        </Container>
+      )}
     </div>
   );
 }
