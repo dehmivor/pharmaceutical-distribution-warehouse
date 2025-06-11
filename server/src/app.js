@@ -7,7 +7,7 @@ const path = require('path');
 const config = require('./config');
 const route = require('./routes');
 require('dotenv').config();
-require('./models');
+const models = require('./models');
 const app = express();
 
 const errorHandler = require('./middlewares/error.middleware.js');
