@@ -1,0 +1,37 @@
+{
+  "batches": [
+    {
+      "_id": "65f1a2b3c4d5e6f7g8h9i0m1",
+      "batch_code": "BAT001",
+      "medicine_id": "65f1a2b3c4d5e6f7g8h9i0l1",
+      "manufacturing_date": "2024-01-01T00:00:00.000Z",
+      "expiry_date": "2026-01-01T00:00:00.000Z",
+      "quantity": 10000,
+      "quality_status": "pass",
+      "created_at": "2024-03-10T00:00:00.000Z",
+      "updated_at": "2024-03-10T00:00:00.000Z"
+    },
+    {
+      "_id": "65f1a2b3c4d5e6f7g8h9i0m2",
+      "batch_code": "BAT002",
+      "medicine_id": "65f1a2b3c4d5e6f7g8h9i0l2",
+      "manufacturing_date": "2024-02-01T00:00:00.000Z",
+      "expiry_date": "2026-02-01T00:00:00.000Z",
+      "quantity": 5000,
+      "quality_status": "pass",
+      "created_at": "2024-03-10T00:00:00.000Z",
+      "updated_at": "2024-03-10T00:00:00.000Z"
+    },
+    {
+      "_id": "65f1a2b3c4d5e6f7g8h9i0m3",
+      "batch_code": "BAT003",
+      "medicine_id": "65f1a2b3c4d5e6f7g8h9i0l3",
+      "manufacturing_date": "2024-03-01T00:00:00.000Z",
+      "expiry_date": "2025-03-01T00:00:00.000Z",
+      "quantity": 1000,
+      "quality_status": "pass",
+      "created_at": "2024-03-10T00:00:00.000Z",
+      "updated_at": "2024-03-10T00:00:00.000Z"
+    }
+  ]
+} 
