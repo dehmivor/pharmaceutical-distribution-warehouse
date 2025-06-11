@@ -8,7 +8,6 @@ const Medicine = require('../../models/Medicine.model');
 const CycleCountForm = require('../../models/CycleCountForm.model');
 const Batch = require('../../models/Batch.model');
 const Employee = require('../../models/Employee.model');
-const cycleCountFormController = require('../../controllers/CycleCountForm.controller');
 
 // Hàm helper để decode mã vị trí base64
 function decodeLocationCode(code) {
@@ -19,9 +18,6 @@ function decodeLocationCode(code) {
     return null;
   }
 }
-
-// GET /api/cycle-count-form
-router.get('/', cycleCountFormController.getCycleCounts);
 
 // GET /api/cycle-count-form/medicines-locations
 router.get('/medicines-locations', async (req, res) => {
@@ -40,15 +36,13 @@ router.get('/medicines-locations', async (req, res) => {
         },
       })
       .populate('content.verifiedBy', 'name email')
+      .populate('content.result.package')
       .populate({
         path: 'content.result.package',
-        model: 'Package',
-        select: 'name code content'
-      })
-      .populate({
-        path: 'content.result.package.content',
-        model: 'Medicine',
-        select: 'name code'
+        populate: {
+          path: 'content',
+          model: 'Medicine',
+        },
       });
 
     res.status(200).json({
@@ -234,4 +228,8 @@ function encodeLocationCode(locationString) {
   return Buffer.from(locationString, 'utf-8').toString('base64');
 }
 
-module.exports = router;
+module.exports = {
+  CycleCountFormRoutes: router,
+  decodeLocationCode,
+  encodeLocationCode,
+};
