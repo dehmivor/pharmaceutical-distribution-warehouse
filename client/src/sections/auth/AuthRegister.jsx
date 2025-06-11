@@ -1,10 +1,7 @@
 'use client';
 import PropTypes from 'prop-types';
-
 import { useRef, useState } from 'react';
-
 import { useRouter } from 'next/navigation';
-
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -14,16 +11,12 @@ import InputAdornment from '@mui/material/InputAdornment';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import { useTheme } from '@mui/material/styles';
-
 import { useForm } from 'react-hook-form';
-
 import { emailSchema, firstNameSchema, lastNameSchema, passwordSchema } from '@/utils/validationSchema';
-
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
 
 export default function AuthRegister({ inputSx }) {
   const router = useRouter();
-
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -49,11 +42,12 @@ export default function AuthRegister({ inputSx }) {
         fullName: `${formData.firstname} ${formData.lastname}`,
         email: formData.email,
         password: formData.password,
-        role: 'user'
+        role: 'viewer' // Default role
       };
 
-      // Call the API endpoint instead of authService
-      const response = await fetch('/api/auth/register', {
+      // ✅ Sửa URL để gọi đến backend server
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${backendUrl}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -63,16 +57,18 @@ export default function AuthRegister({ inputSx }) {
 
       const result = await response.json();
 
-      if (response.ok) {
-        router.push('/auth/login');
+      if (result.success) {
+        // ✅ Redirect đúng cách
+        router.push('/auth/login?message=Đăng ký thành công! Vui lòng đăng nhập.');
       } else {
         setRegisterError(result.message || 'Đăng ký thất bại. Vui lòng thử lại.');
       }
     } catch (error) {
       console.error('Registration error:', error);
 
-      if (error.message?.includes('Email đã được sử dụng')) {
-        setRegisterError('Email đã được sử dụng.');
+      // ✅ Handle network errors
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        setRegisterError('Không thể kết nối đến server. Vui lòng thử lại.');
       } else {
         setRegisterError('Đăng ký thất bại. Vui lòng thử lại.');
       }
@@ -97,6 +93,7 @@ export default function AuthRegister({ inputSx }) {
           />
           {errors.firstname?.message && <FormHelperText error>{errors.firstname?.message}</FormHelperText>}
         </Grid>
+
         <Grid size={{ xs: 12, sm: 6 }}>
           <InputLabel>Last Name</InputLabel>
           <OutlinedInput
@@ -108,6 +105,7 @@ export default function AuthRegister({ inputSx }) {
           />
           {errors.lastname?.message && <FormHelperText error>{errors.lastname?.message}</FormHelperText>}
         </Grid>
+
         <Grid size={12}>
           <InputLabel>Email</InputLabel>
           <OutlinedInput
@@ -142,10 +140,13 @@ export default function AuthRegister({ inputSx }) {
           />
           {errors.password?.message && <FormHelperText error>{errors.password?.message}</FormHelperText>}
         </Grid>
+
         <Grid size={12}>
           <InputLabel>Confirm Password</InputLabel>
           <OutlinedInput
-            {...register('confirmPassword', { validate: (value) => value === password.current || 'The passwords do not match' })}
+            {...register('confirmPassword', {
+              validate: (value) => value === password.current || 'The passwords do not match'
+            })}
             type={isConfirmOpen ? 'text' : 'password'}
             placeholder="Enter confirm password"
             fullWidth
@@ -164,6 +165,7 @@ export default function AuthRegister({ inputSx }) {
           {errors.confirmPassword?.message && <FormHelperText error>{errors.confirmPassword?.message}</FormHelperText>}
         </Grid>
       </Grid>
+
       <Button
         type="submit"
         color="primary"
@@ -174,6 +176,7 @@ export default function AuthRegister({ inputSx }) {
       >
         Sign Up
       </Button>
+
       {registerError && (
         <Alert sx={{ mt: 2 }} severity="error" variant="filled" icon={false}>
           {registerError}

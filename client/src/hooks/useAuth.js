@@ -26,11 +26,10 @@ export const useAuth = () => {
           const currentUser = authService.getCurrentUser();
           setUser(currentUser);
 
-          // Tùy chọn: Xác minh token có hợp lệ không bằng cách gọi API
-          // const validToken = await authService.verifyToken();
-          // if (!validToken) {
-          //   logout();
-          // }
+          const validToken = await authService.verifyToken();
+          if (!validToken) {
+            logout();
+          }
         }
       } catch (error) {
         console.error('Auth check error:', error);
