@@ -1,0 +1,48 @@
+{
+  "packages": [
+    {
+      "_id": "65f1a2b3c4d5e6f7g8h9i0n1",
+      "package_code": "PKG001",
+      "batch_id": "65f1a2b3c4d5e6f7g8h9i0m1",
+      "quantity": 1000,
+      "status": "normal",
+      "quality_status": "pass",
+      "storage_location": "A-01-01",
+      "created_at": "2024-03-10T00:00:00.000Z",
+      "updated_at": "2024-03-10T00:00:00.000Z"
+    },
+    {
+      "_id": "65f1a2b3c4d5e6f7g8h9i0n2",
+      "package_code": "PKG002",
+      "batch_id": "65f1a2b3c4d5e6f7g8h9i0m1",
+      "quantity": 1000,
+      "status": "normal",
+      "quality_status": "pass",
+      "storage_location": "A-01-02",
+      "created_at": "2024-03-10T00:00:00.000Z",
+      "updated_at": "2024-03-10T00:00:00.000Z"
+    },
+    {
+      "_id": "65f1a2b3c4d5e6f7g8h9i0n3",
+      "package_code": "PKG003",
+      "batch_id": "65f1a2b3c4d5e6f7g8h9i0m2",
+      "quantity": 500,
+      "status": "normal",
+      "quality_status": "pass",
+      "storage_location": "B-01-01",
+      "created_at": "2024-03-10T00:00:00.000Z",
+      "updated_at": "2024-03-10T00:00:00.000Z"
+    },
+    {
+      "_id": "65f1a2b3c4d5e6f7g8h9i0n4",
+      "package_code": "PKG004",
+      "batch_id": "65f1a2b3c4d5e6f7g8h9i0m3",
+      "quantity": 100,
+      "status": "normal",
+      "quality_status": "pass",
+      "storage_location": "C-01-01",
+      "created_at": "2024-03-10T00:00:00.000Z",
+      "updated_at": "2024-03-10T00:00:00.000Z"
+    }
+  ]
+} 
