@@ -3,6 +3,7 @@ const router = express.Router();
 
 const cycleCountFormController = require('../controllers/CycleCountForm.controller')
 
-router.get('/test', cycleCountFormController.getDetailForManager)
+router.get('/cyclecountform/:id', cycleCountFormController.getDetailForManager)
+router.patch('/cyclecountform/:id/status', cycleCountFormController.updateFormStatus)
 
 module.exports = router

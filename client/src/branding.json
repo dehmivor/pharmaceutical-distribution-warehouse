@@ -5,7 +5,7 @@
     "url": "https://phoenixcoded.authordesk.app/"
   },
   "logo": {
-    "main": "",
-    "logoIcon": ""
+    "main": "/assets/images/logos/remove-bg-logo.png",
+    "logoIcon": "/assets/images/logos/logo.png"
   }
 }
