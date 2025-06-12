@@ -7,11 +7,13 @@ const path = require('path');
 const config = require('./config');
 const route = require('./routes');
 require('dotenv').config();
-require('./models');
+const models = require('./models');
 const app = express();
 
 const errorHandler = require('./middlewares/error.middleware.js');
 const { authRoutes, cronRoutes } = require('./routes');
+const importOrderRoutes = require('./routes/importOrderRoutes');
+
 // Middlewares
 app.use(helmet());
 app.use(cors({ origin: config.clientUrl, credentials: true }));
@@ -28,6 +30,9 @@ app.get('/api/health', (req, res) => {
 // Public routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cron', cronRoutes);
+
+// Import Order routes
+app.use('/api/import-orders', importOrderRoutes);
 
 // Protected routes với role-based access
 // app.use('/api/supervisor', authenticate, authorize('supervisor'), routes.supervisorRoutes);
