@@ -1,20 +1,43 @@
 'use client';
 import React, { useState } from 'react';
-import { Paper, Container, Stack, Box, Typography } from '@mui/material';
+import { Paper, Container, Stack, Box, Typography, Dialog, DialogTitle, DialogContent, IconButton } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import AddUserButton from './AddUserButton'; // Import component
+import CloseIcon from '@mui/icons-material/Close';
+import AddUserButton from './AddUserButton';
+import NewRepresentativeForm from './NewRepresentativeForm';
+import NewWarehouseForm from './NewWarehouseForm';
+import NewSupplierForm from './NewSupplierForm';
+import NewDeliveryForm from './NewDeliveryForm';
 
 function HeaderSection() {
   const theme = useTheme();
 
-  // Thêm các state bị thiếu
   const [selectedUserType, setSelectedUserType] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
-  // Thêm function bị thiếu
   const handleCreateUser = (userType) => {
     setSelectedUserType(userType);
     setShowCreateForm(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowCreateForm(false);
+    setSelectedUserType(null);
+  };
+
+  const getModalTitle = () => {
+    switch (selectedUserType) {
+      case 'warehouse':
+        return 'Create Warehouse User';
+      case 'representative':
+        return 'Create Representative User';
+      case 'delivery':
+        return 'Create Delivery User';
+      case 'supplier':
+        return 'Create Supplier User';
+      default:
+        return 'Create User';
+    }
   };
 
   return (
@@ -60,15 +83,66 @@ function HeaderSection() {
         </Container>
       </Paper>
 
-      {/* Hiển thị form tương ứng - Di chuyển ra ngoài Paper */}
-      {showCreateForm && (
-        <Container maxWidth={false} sx={{ mt: 3 }}>
-          {selectedUserType === 'warehouse' && <div>Warehouse Form</div>}
-          {selectedUserType === 'representative' && <div>Representative Form</div>}
-          {selectedUserType === 'delivery' && <div>Delivery Form</div>}
-          {selectedUserType === 'supplier' && <div>Supplier Form</div>}
-        </Container>
-      )}
+      {/* Modal hiển thị form */}
+      <Dialog
+        open={showCreateForm}
+        onClose={handleCloseModal}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            minHeight: '400px'
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            pb: 2,
+            fontWeight: 600,
+            fontSize: '1.25rem'
+          }}
+        >
+          {getModalTitle()}
+          <IconButton
+            aria-label="close"
+            onClick={handleCloseModal}
+            sx={{
+              color: (theme) => theme.palette.grey[500]
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ px: 3, pb: 3 }}>
+          {selectedUserType === 'warehouse' && (
+            <div>
+              <Typography variant="body1">
+                <NewWarehouseForm onClose={handleCloseModal} />
+              </Typography>
+            </div>
+          )}
+          {selectedUserType === 'representative' && <NewRepresentativeForm onClose={handleCloseModal} />}
+          {selectedUserType === 'delivery' && (
+            <div>
+              <Typography variant="body1">
+                <NewDeliveryForm onClose={handleCloseModal} />
+              </Typography>
+            </div>
+          )}
+          {selectedUserType === 'supplier' && (
+            <div>
+              <Typography variant="body1">
+                <NewSupplierForm onClose={handleCloseModal} />
+              </Typography>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
