@@ -14,11 +14,6 @@ const medicineSchema = new mongoose.Schema({
     trim: true,
   },
   category: {
-    required: [true, 'Medicine code is required'],
-    unique: true,
-    trim: true,
-  },
-  category: {
     type: String,
     required: [true, 'Category is required'],
     trim: true,
