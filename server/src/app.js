@@ -11,7 +11,7 @@ const models = require('./models');
 const app = express();
 
 const errorHandler = require('./middlewares/error.middleware.js');
-const { authRoutes, cronRoutes } = require('./routes');
+const { authRoutes, cronRoutes, medicineRoutes } = require('./routes');
 const importOrderRoutes = require('./routes/importOrderRoutes');
 
 // Middlewares
@@ -30,6 +30,7 @@ app.get('/api/health', (req, res) => {
 // Public routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cron', cronRoutes);
+app.use('/api/medicine', medicineRoutes);
 
 // Import Order routes
 app.use('/api/import-orders', importOrderRoutes);
