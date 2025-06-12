@@ -26,6 +26,13 @@ const supervisor = {
       type: 'item',
       url: '/manage-stock',
       icon: 'IconBoxMultiple'
+    },
+    {
+      id: 'manage-medicines',
+      title: 'Manage Medicines',
+      type: 'item',
+      url: '/manage-medicine',
+      icon: 'IconPill'
     }
   ]
 };
