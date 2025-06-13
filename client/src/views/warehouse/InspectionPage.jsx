@@ -1,6 +1,24 @@
 'use client';
 
 import React, { useState } from 'react';
+import {
+  Grid,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Chip,
+  Box,
+  Card,
+  CardContent,
+  IconButton,
+  Divider
+} from '@mui/material';
+import { Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
 
 function InspectionPage() {
   const [inspectionData, setInspectionData] = useState({
@@ -39,168 +57,229 @@ function InspectionPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Dữ liệu phiếu kiểm tra:', inspectionData);
-    // Xử lý submit form ở đây
+  };
+
+  const getConditionColor = (condition) => {
+    switch (condition) {
+      case 'good':
+        return 'success';
+      case 'fair':
+        return 'warning';
+      case 'poor':
+        return 'error';
+      case 'damaged':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const getConditionText = (condition) => {
+    switch (condition) {
+      case 'good':
+        return 'Tốt';
+      case 'fair':
+        return 'Khá';
+      case 'poor':
+        return 'Kém';
+      case 'damaged':
+        return 'Hỏng';
+      default:
+        return condition;
+    }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
-      <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">PHIẾU KIỂM TRA</h1>
+    <Box sx={{ flexGrow: 1, p: 3 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Typography variant="h4" component="h1" align="center" gutterBottom>
+          PHIẾU KIỂM TRA
+        </Typography>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Thông tin chung */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Mã phiếu kiểm tra</label>
-            <input
-              type="text"
-              value={inspectionData.inspectionId}
-              onChange={(e) => setInspectionData((prev) => ({ ...prev, inspectionId: e.target.value }))}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Nhập mã phiếu"
-            />
-          </div>
+        <Box component="form" onSubmit={handleSubmit}>
+          {/* Thông tin chung */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Mã phiếu kiểm tra"
+                value={inspectionData.inspectionId}
+                onChange={(e) => setInspectionData((prev) => ({ ...prev, inspectionId: e.target.value }))}
+                variant="outlined"
+              />
+            </Grid>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Ngày kiểm tra</label>
-            <input
-              type="date"
-              value={inspectionData.date}
-              onChange={(e) => setInspectionData((prev) => ({ ...prev, date: e.target.value }))}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Ngày kiểm tra"
+                type="date"
+                value={inspectionData.date}
+                onChange={(e) => setInspectionData((prev) => ({ ...prev, date: e.target.value }))}
+                variant="outlined"
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Người kiểm tra</label>
-            <input
-              type="text"
-              value={inspectionData.inspector}
-              onChange={(e) => setInspectionData((prev) => ({ ...prev, inspector: e.target.value }))}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Tên người kiểm tra"
-            />
-          </div>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Người kiểm tra"
+                value={inspectionData.inspector}
+                onChange={(e) => setInspectionData((prev) => ({ ...prev, inspector: e.target.value }))}
+                variant="outlined"
+              />
+            </Grid>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Địa điểm</label>
-            <input
-              type="text"
-              value={inspectionData.location}
-              onChange={(e) => setInspectionData((prev) => ({ ...prev, location: e.target.value }))}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Địa điểm kiểm tra"
-            />
-          </div>
-        </div>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Địa điểm"
+                value={inspectionData.location}
+                onChange={(e) => setInspectionData((prev) => ({ ...prev, location: e.target.value }))}
+                variant="outlined"
+              />
+            </Grid>
+          </Grid>
 
-        {/* Thêm mục kiểm tra */}
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold mb-4">Thêm mục kiểm tra</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input
-              type="text"
-              value={currentItem.name}
-              onChange={(e) => setCurrentItem((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="Tên mục kiểm tra"
-              className="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+          <Divider sx={{ my: 3 }} />
 
-            <select
-              value={currentItem.condition}
-              onChange={(e) => setCurrentItem((prev) => ({ ...prev, condition: e.target.value }))}
-              className="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="good">Tốt</option>
-              <option value="fair">Khá</option>
-              <option value="poor">Kém</option>
-              <option value="damaged">Hỏng</option>
-            </select>
+          {/* Thêm mục kiểm tra */}
+          <Typography variant="h6" gutterBottom>
+            Thêm mục kiểm tra
+          </Typography>
 
-            <button
-              type="button"
-              onClick={handleAddItem}
-              className="bg-blue-500 text-white px-4 py-3 rounded-md hover:bg-blue-600 transition-colors"
-            >
-              Thêm mục
-            </button>
-          </div>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="Tên mục kiểm tra"
+                value={currentItem.name}
+                onChange={(e) => setCurrentItem((prev) => ({ ...prev, name: e.target.value }))}
+                variant="outlined"
+              />
+            </Grid>
 
-          <input
-            type="text"
-            value={currentItem.notes}
-            onChange={(e) => setCurrentItem((prev) => ({ ...prev, notes: e.target.value }))}
-            placeholder="Ghi chú cho mục này"
-            className="w-full mt-3 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel>Tình trạng</InputLabel>
+                <Select
+                  value={currentItem.condition}
+                  onChange={(e) => setCurrentItem((prev) => ({ ...prev, condition: e.target.value }))}
+                  label="Tình trạng"
+                >
+                  <MenuItem value="good">Tốt</MenuItem>
+                  <MenuItem value="fair">Khá</MenuItem>
+                  <MenuItem value="poor">Kém</MenuItem>
+                  <MenuItem value="damaged">Hỏng</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
 
-        {/* Danh sách mục đã thêm */}
-        {inspectionData.items.length > 0 && (
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4">Danh sách kiểm tra</h3>
-            <div className="space-y-3">
-              {inspectionData.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-md">
-                  <div className="flex-1">
-                    <span className="font-medium">{item.name}</span>
-                    <span
-                      className={`ml-3 px-2 py-1 rounded text-sm ${
-                        item.condition === 'good'
-                          ? 'bg-green-100 text-green-800'
-                          : item.condition === 'fair'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : item.condition === 'poor'
-                              ? 'bg-orange-100 text-orange-800'
-                              : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {item.condition === 'good' ? 'Tốt' : item.condition === 'fair' ? 'Khá' : item.condition === 'poor' ? 'Kém' : 'Hỏng'}
-                    </span>
-                    {item.notes && <p className="text-sm text-gray-600 mt-1">{item.notes}</p>}
-                  </div>
-                  <button type="button" onClick={() => handleRemoveItem(item.id)} className="text-red-500 hover:text-red-700 ml-4">
-                    Xóa
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+            <Grid item xs={12} md={3}>
+              <TextField
+                fullWidth
+                label="Ghi chú"
+                value={currentItem.notes}
+                onChange={(e) => setCurrentItem((prev) => ({ ...prev, notes: e.target.value }))}
+                variant="outlined"
+              />
+            </Grid>
 
-        {/* Ghi chú chung */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Ghi chú chung</label>
-          <textarea
-            value={inspectionData.notes}
-            onChange={(e) => setInspectionData((prev) => ({ ...prev, notes: e.target.value }))}
-            rows={4}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Nhập ghi chú chung về quá trình kiểm tra..."
-          />
-        </div>
+            <Grid item xs={12} md={2}>
+              <Button fullWidth variant="contained" startIcon={<AddIcon />} onClick={handleAddItem} sx={{ height: '56px' }}>
+                Thêm
+              </Button>
+            </Grid>
+          </Grid>
 
-        {/* Trạng thái */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Trạng thái</label>
-          <select
-            value={inspectionData.status}
-            onChange={(e) => setInspectionData((prev) => ({ ...prev, status: e.target.value }))}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="pending">Đang kiểm tra</option>
-            <option value="completed">Hoàn thành</option>
-            <option value="requires_action">Cần xử lý</option>
-          </select>
-        </div>
+          {/* Danh sách mục đã thêm */}
+          {inspectionData.items.length > 0 && (
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h6" gutterBottom>
+                Danh sách kiểm tra
+              </Typography>
+              <Grid container spacing={2}>
+                {inspectionData.items.map((item) => (
+                  <Grid item xs={12} key={item.id}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Grid container spacing={2} alignItems="center">
+                          <Grid item xs={12} sm={4}>
+                            <Typography variant="subtitle1" fontWeight="bold">
+                              {item.name}
+                            </Typography>
+                          </Grid>
 
-        {/* Nút submit */}
-        <div className="flex justify-center pt-6">
-          <button type="submit" className="bg-green-500 text-white px-8 py-3 rounded-md hover:bg-green-600 transition-colors font-semibold">
-            Lưu phiếu kiểm tra
-          </button>
-        </div>
-      </form>
-    </div>
+                          <Grid item xs={12} sm={2}>
+                            <Chip label={getConditionText(item.condition)} color={getConditionColor(item.condition)} size="small" />
+                          </Grid>
+
+                          <Grid item xs={12} sm={4}>
+                            {item.notes && (
+                              <Typography variant="body2" color="text.secondary">
+                                {item.notes}
+                              </Typography>
+                            )}
+                          </Grid>
+
+                          <Grid item xs={12} sm={2}>
+                            <IconButton color="error" onClick={() => handleRemoveItem(item.id)} size="small">
+                              <DeleteIcon />
+                            </IconButton>
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+
+          <Divider sx={{ my: 3 }} />
+
+          {/* Ghi chú chung và trạng thái */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} md={8}>
+              <TextField
+                fullWidth
+                label="Ghi chú chung"
+                multiline
+                rows={4}
+                value={inspectionData.notes}
+                onChange={(e) => setInspectionData((prev) => ({ ...prev, notes: e.target.value }))}
+                variant="outlined"
+              />
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth variant="outlined">
+                <InputLabel>Trạng thái</InputLabel>
+                <Select
+                  value={inspectionData.status}
+                  onChange={(e) => setInspectionData((prev) => ({ ...prev, status: e.target.value }))}
+                  label="Trạng thái"
+                >
+                  <MenuItem value="pending">Đang kiểm tra</MenuItem>
+                  <MenuItem value="completed">Hoàn thành</MenuItem>
+                  <MenuItem value="requires_action">Cần xử lý</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+
+          {/* Nút submit */}
+          <Grid container justifyContent="center">
+            <Grid item>
+              <Button type="submit" variant="contained" color="primary" size="large" sx={{ px: 4, py: 1.5 }}>
+                Lưu phiếu kiểm tra
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+      </Paper>
+    </Box>
   );
 }
 
