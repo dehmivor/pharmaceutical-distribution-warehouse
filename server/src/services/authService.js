@@ -88,8 +88,6 @@ const authService = {
   // ✅ Login method
   login: async (email, password) => {
     try {
-      console.log('🔍 AuthService.login called with email:', email);
-
       if (!process.env.JWT_SECRET) {
         console.error('❌ JWT_SECRET not configured');
         throw new Error('JWT configuration missing');
