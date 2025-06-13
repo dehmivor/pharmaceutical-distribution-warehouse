@@ -20,7 +20,7 @@ import { DRAWER_WIDTH } from '@/config';
 
 /***************************  ADMIN LAYOUT  ***************************/
 
-export default function SupervisorLayout({ children }) {
+export default function RepresentativeLayout({ children }) {
   const { menuMasterLoading } = useGetMenuMaster();
 
   const downXL = useMediaQuery((theme) => theme.breakpoints.down('xl'));
@@ -59,4 +59,4 @@ export default function SupervisorLayout({ children }) {
   );
 }
 
-SupervisorLayout.propTypes = { children: PropTypes.any };
+RepresentativeLayout.propTypes = { children: PropTypes.any };

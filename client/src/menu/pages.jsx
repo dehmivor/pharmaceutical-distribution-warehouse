@@ -2,38 +2,38 @@
 
 const pages = {
   id: 'group-pages',
-  title: 'Data & Reports', // Đổi tên nhóm cho phù hợp
-  icon: 'IconChartBar', // Icon phù hợp với data/report
+  title: 'Data & Reports',
+  icon: 'IconChartBar',
   type: 'group',
   children: [
     {
       id: 'dashboard',
-      title: 'Tổng quan',
+      title: 'Overview',
       type: 'item',
       url: '/dashboard',
       icon: 'IconLayoutDashboard'
     },
     {
       id: 'reports',
-      title: 'Báo cáo',
+      title: 'Reports',
       type: 'collapse',
       icon: 'IconFileAnalytics',
       children: [
         {
           id: 'report-summary',
-          title: 'Theo tuần',
+          title: 'Weekly',
           type: 'item',
           url: '/reports/summary'
         },
         {
           id: 'report-detail',
-          title: 'Theo tháng',
+          title: 'Monthly',
           type: 'item',
           url: '/reports/detail'
         },
         {
           id: 'report-custom',
-          title: 'Theo năm',
+          title: 'Yearly',
           type: 'item',
           url: '/reports/custom'
         }
@@ -41,25 +41,25 @@ const pages = {
     },
     {
       id: 'data-tracking',
-      title: 'Theo dõi số liệu',
+      title: 'Data Tracking',
       type: 'collapse',
       icon: 'IconTrendingUp',
       children: [
         {
           id: 'tracking-overview',
-          title: 'Tổng quan',
+          title: 'Overview',
           type: 'item',
           url: '/data-tracking/overview'
         },
         {
           id: 'tracking-trends',
-          title: 'Xu hướng',
+          title: 'Trends',
           type: 'item',
           url: '/data-tracking/trends'
         },
         {
           id: 'tracking-alerts',
-          title: 'Cảnh báo',
+          title: 'Alerts',
           type: 'item',
           url: '/data-tracking/alerts'
         }
