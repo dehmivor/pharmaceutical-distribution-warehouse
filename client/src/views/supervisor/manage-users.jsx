@@ -6,7 +6,7 @@ import { Box, Container } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useState } from 'react';
 
-function ManageUser() {
+function ManageUsers() {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
 
@@ -31,4 +31,4 @@ function ManageUser() {
   );
 }
 
-export default ManageUser;
+export default ManageUsers;
