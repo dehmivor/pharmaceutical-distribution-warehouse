@@ -1,39 +1,69 @@
 /***************************  MENU ITEMS - PAGES  ***************************/
 
 const pages = {
-  id: 'group-page',
-  title: 'Page',
-  icon: 'IconDotsVertical',
+  id: 'group-pages',
+  title: 'Data & Reports', // Đổi tên nhóm cho phù hợp
+  icon: 'IconChartBar', // Icon phù hợp với data/report
   type: 'group',
   children: [
     {
-      id: 'authentication',
-      title: 'Authentication',
+      id: 'dashboard',
+      title: 'Tổng quan',
+      type: 'item',
+      url: '/dashboard',
+      icon: 'IconLayoutDashboard'
+    },
+    {
+      id: 'reports',
+      title: 'Báo cáo',
       type: 'collapse',
-      icon: 'IconLogin2',
+      icon: 'IconFileAnalytics',
       children: [
         {
-          id: 'login',
-          title: 'Login',
+          id: 'report-summary',
+          title: 'Theo tuần',
           type: 'item',
-          url: '/auth/login',
-          target: true
+          url: '/reports/summary'
         },
         {
-          id: 'register',
-          title: 'Register',
+          id: 'report-detail',
+          title: 'Theo tháng',
           type: 'item',
-          url: '/auth/register',
-          target: true
+          url: '/reports/detail'
+        },
+        {
+          id: 'report-custom',
+          title: 'Theo năm',
+          type: 'item',
+          url: '/reports/custom'
         }
       ]
     },
     {
-      id: 'sample-page',
-      title: 'Sample Page',
-      type: 'item',
-      url: '/sample-page',
-      icon: 'IconBrandChrome'
+      id: 'data-tracking',
+      title: 'Theo dõi số liệu',
+      type: 'collapse',
+      icon: 'IconTrendingUp',
+      children: [
+        {
+          id: 'tracking-overview',
+          title: 'Tổng quan',
+          type: 'item',
+          url: '/data-tracking/overview'
+        },
+        {
+          id: 'tracking-trends',
+          title: 'Xu hướng',
+          type: 'item',
+          url: '/data-tracking/trends'
+        },
+        {
+          id: 'tracking-alerts',
+          title: 'Cảnh báo',
+          type: 'item',
+          url: '/data-tracking/alerts'
+        }
+      ]
     }
   ]
 };
