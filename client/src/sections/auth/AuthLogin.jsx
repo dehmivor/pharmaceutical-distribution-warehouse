@@ -11,12 +11,10 @@ import Grid from '@mui/material/Grid';
 import InputAdornment from '@mui/material/InputAdornment';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
+import Typography from '@mui/material/Typography';
 import { useForm } from 'react-hook-form';
 import { emailSchema, passwordSchema } from '@/utils/validationSchema';
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
-
-// Import context nếu có
-// import { useAuth } from '@/contexts/AuthContext';
 
 export default function AuthLogin({ inputSx }) {
   const router = useRouter();
@@ -25,23 +23,27 @@ export default function AuthLogin({ inputSx }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  // const { login } = useAuth(); // Nếu dùng context
+  // Thêm state cho 2-step login
+  const [loginStep, setLoginStep] = useState('credentials'); // 'credentials' | 'otp'
+  const [tempToken, setTempToken] = useState('');
+  const [userEmail, setUserEmail] = useState('');
 
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors },
+    reset
   } = useForm();
 
-  // Trong AuthLogin component, sửa onSubmit:
-  const onSubmit = async (formData) => {
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+  // Bước 1: Xác thực email/password
+  const handleStep1 = async (formData) => {
     try {
       setIsProcessing(true);
       setLoginError('');
 
-      // ✅ Sử dụng backend URL
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${backendUrl}/api/auth/login`, {
+      const response = await fetch(`${backendUrl}/api/auth/login/step1`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -55,74 +57,166 @@ export default function AuthLogin({ inputSx }) {
       const result = await response.json();
 
       if (result.success) {
-        // Store token
-        localStorage.setItem('auth-token', result.data.token);
-        localStorage.setItem('user', JSON.stringify(result.data.user));
-
-        // Use redirectUrl from backend
-        const redirectUrl = result.data.redirectUrl || '/manage-user';
-        router.push(redirectUrl);
+        setTempToken(result.data.tempToken);
+        setUserEmail(result.data.email);
+        setLoginStep('otp');
+        reset(); // Clear form
       } else {
         setLoginError(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Login step 1 error:', error);
       setLoginError('Không thể kết nối đến server. Vui lòng thử lại.');
     } finally {
       setIsProcessing(false);
     }
   };
 
+  // Bước 2: Xác thực OTP
+  const handleStep2 = async (formData) => {
+    try {
+      setIsProcessing(true);
+      setLoginError('');
+
+      const response = await fetch(`${backendUrl}/api/auth/login/step2`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          tempToken: tempToken,
+          otp: formData.otp
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Store token
+        localStorage.setItem('auth-token', result.data.token);
+        localStorage.setItem('user', JSON.stringify(result.data.user));
+
+        // Redirect
+        const redirectUrl = result.data.redirectUrl || '/manage-inspections';
+        router.push(redirectUrl);
+      } else {
+        setLoginError(result.message || 'OTP không hợp lệ. Vui lòng thử lại.');
+      }
+    } catch (error) {
+      console.error('Login step 2 error:', error);
+      setLoginError('Không thể kết nối đến server. Vui lòng thử lại.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const onSubmit = loginStep === 'credentials' ? handleStep1 : handleStep2;
+
   const commonIconProps = { size: 16, color: theme.palette.grey[700] };
+
+  // Nút quay lại bước 1
+  const handleBackToStep1 = () => {
+    setLoginStep('credentials');
+    setTempToken('');
+    setUserEmail('');
+    setLoginError('');
+    reset();
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} autoComplete="off">
       <Grid container rowSpacing={2.5} columnSpacing={1.5}>
-        <Grid size={12}>
-          <InputLabel>Email</InputLabel>
-          <OutlinedInput
-            {...register('email', emailSchema)}
-            placeholder="example@saasable.io"
-            fullWidth
-            error={Boolean(errors.email)}
-            sx={{ ...inputSx }}
-          />
-          {errors.email?.message && <FormHelperText error>{errors.email?.message}</FormHelperText>}
-        </Grid>
+        {loginStep === 'credentials' ? (
+          <>
+            <Grid size={12}>
+              <InputLabel>Email</InputLabel>
+              <OutlinedInput
+                {...register('email', emailSchema)}
+                placeholder="example@saasable.io"
+                fullWidth
+                error={Boolean(errors.email)}
+                sx={{ ...inputSx }}
+              />
+              {errors.email?.message && <FormHelperText error>{errors.email?.message}</FormHelperText>}
+            </Grid>
 
-        <Grid size={12}>
-          <InputLabel>Password</InputLabel>
-          <OutlinedInput
-            {...register('password', passwordSchema)}
-            type={isOpen ? 'text' : 'password'}
-            placeholder="Enter password"
-            fullWidth
-            error={Boolean(errors.password)}
-            endAdornment={
-              <InputAdornment
-                position="end"
-                sx={{ cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
-                onClick={() => setIsOpen(!isOpen)}
-              >
-                {isOpen ? <IconEye {...commonIconProps} /> : <IconEyeOff {...commonIconProps} />}
-              </InputAdornment>
-            }
-            sx={inputSx}
-          />
-          {errors.password?.message && <FormHelperText error>{errors.password?.message}</FormHelperText>}
-        </Grid>
+            <Grid size={12}>
+              <InputLabel>Password</InputLabel>
+              <OutlinedInput
+                {...register('password', passwordSchema)}
+                type={isOpen ? 'text' : 'password'}
+                placeholder="Enter password"
+                fullWidth
+                error={Boolean(errors.password)}
+                endAdornment={
+                  <InputAdornment
+                    position="end"
+                    sx={{ cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+                    onClick={() => setIsOpen(!isOpen)}
+                  >
+                    {isOpen ? <IconEye {...commonIconProps} /> : <IconEyeOff {...commonIconProps} />}
+                  </InputAdornment>
+                }
+                sx={inputSx}
+              />
+              {errors.password?.message && <FormHelperText error>{errors.password?.message}</FormHelperText>}
+            </Grid>
+          </>
+        ) : (
+          <>
+            <Grid size={12}>
+              <Typography variant="body2" sx={{ mb: 2, color: theme.palette.text.secondary }}>
+                OTP code has been sent to email: <strong>{userEmail}</strong>
+              </Typography>
+              <InputLabel>Mã OTP</InputLabel>
+              <OutlinedInput
+                {...register('otp', {
+                  required: 'Vui lòng nhập mã OTP',
+                  pattern: {
+                    value: /^\d{6}$/,
+                    message: 'OTP phải là 6 chữ số'
+                  }
+                })}
+                placeholder="Nhập 6 chữ số"
+                fullWidth
+                error={Boolean(errors.otp)}
+                sx={{ ...inputSx, mt: 2, width: '80%' }}
+                inputProps={{ maxLength: 6 }}
+              />
+              {errors.otp?.message && <FormHelperText error>{errors.otp?.message}</FormHelperText>}
+            </Grid>
+          </>
+        )}
       </Grid>
 
-      <Button
-        type="submit"
-        color="primary"
-        variant="contained"
-        disabled={isProcessing}
-        endIcon={isProcessing && <CircularProgress color="secondary" size={16} />}
-        sx={{ minWidth: 120, mt: { xs: 2, sm: 4 }, '& .MuiButton-endIcon': { ml: 1 } }}
-      >
-        Đăng nhập
-      </Button>
+      <Grid container spacing={2} sx={{ mt: 3 }}>
+        {loginStep === 'otp' && (
+          <Grid size={5}>
+            <Button variant="outlined" onClick={handleBackToStep1} disabled={isProcessing} fullWidth>
+              Back to login
+            </Button>
+          </Grid>
+        )}
+        <Grid size={loginStep === 'otp' ? 3 : 5}>
+          <Button
+            type="submit"
+            color="primary"
+            variant="contained"
+            disabled={isProcessing}
+            endIcon={isProcessing && <CircularProgress color="secondary" size={16} />}
+            fullWidth
+            sx={{ minWidth: 100 }}
+          >
+            {isProcessing
+              ? loginStep === 'credentials'
+                ? 'Sending OTP...'
+                : 'Authenitcating...'
+              : loginStep === 'credentials'
+                ? 'Send OTP'
+                : 'Verify OTP'}
+          </Button>
+        </Grid>
+      </Grid>
 
       {loginError && (
         <Alert sx={{ mt: 2 }} severity="error" variant="filled" icon={false}>
