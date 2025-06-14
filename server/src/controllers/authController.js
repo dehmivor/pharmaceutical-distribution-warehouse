@@ -79,7 +79,47 @@ const authController = {
       });
     }
   },
-  // Login với thông tin điều hướng
+
+  loginStep1: async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      const result = await authService.loginStep1(email, password);
+
+      if (!result.success) {
+        return res.status(401).json(result);
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error('Login step 1 error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+      });
+    }
+  },
+
+  // Bước 2 đăng nhập
+  loginStep2: async (req, res) => {
+    try {
+      const { tempToken, otp } = req.body;
+
+      const result = await authService.loginStep2(tempToken, otp);
+
+      if (!result.success) {
+        return res.status(401).json(result);
+      }
+
+      res.json(result);
+    } catch (error) {
+      console.error('Login step 2 error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+      });
+    }
+  },
   login: async (req, res) => {
     try {
       const { email, password } = req.body;
