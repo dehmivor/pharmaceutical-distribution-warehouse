@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const constants = require('../utils/constants');
-const { sendOTPEmail } = require('../utils/emailService');
+const { sendOTPEmail } = require('./emailService');
 
 const authService = {
   register: async (userData) => {
@@ -254,115 +254,6 @@ const authService = {
     }
   },
 
-  sendOTPEmail: async (email, otp) => {
-    try {
-      const transporter = nodemailer.createTransporter({
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
-
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: 'Mã xác thực đăng nhập - Pharmaceutical Distribution Warehouse',
-        html: `
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mã xác thực đăng nhập</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
-    <table role="presentation" style="width: 100%; border-collapse: collapse;">
-        <tr>
-            <td style="padding: 40px 0; text-align: center;">
-                <table role="presentation" style="width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-collapse: collapse;">
-                    <!-- Header -->
-                    <tr>
-                        <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 1px solid #e1e1e1;">
-                            <h1 style="margin: 0; color: #323130; font-size: 24px; font-weight: 600;">
-                                Pharmaceutical Distribution Warehouse
-                            </h1>
-                        </td>
-                    </tr>
-                    
-                    <!-- Content -->
-                    <tr>
-                        <td style="padding: 40px;">
-                            <h2 style="margin: 0 0 20px 0; color: #323130; font-size: 20px; font-weight: 600;">
-                                Mã xác thực đăng nhập
-                            </h2>
-                            
-                            <p style="margin: 0 0 30px 0; color: #605e5c; font-size: 16px; line-height: 1.5;">
-                                Chúng tôi đã nhận được yêu cầu đăng nhập vào tài khoản của bạn. Vui lòng sử dụng mã xác thực bên dưới để hoàn tất quá trình đăng nhập.
-                            </p>
-                            
-                            <!-- OTP Code -->
-                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
-                                <tr>
-                                    <td style="text-align: center; padding: 20px; background-color: #f8f9fa; border-radius: 6px; border: 1px solid #e1e1e1;">
-                                        <p style="margin: 0 0 10px 0; color: #605e5c; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
-                                            MÃ XÁC THỰC
-                                        </p>
-                                        <p style="margin: 0; color: #0078d4; font-size: 32px; font-weight: 700; letter-spacing: 4px; font-family: 'Courier New', monospace;">
-                                            ${otp}
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
-                            
-                            <!-- Warning Box -->
-                            <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 30px 0;">
-                                <tr>
-                                    <td style="padding: 20px; background-color: #fff4ce; border-left: 4px solid #ffb900; border-radius: 4px;">
-                                        <p style="margin: 0 0 10px 0; color: #323130; font-size: 14px; font-weight: 600;">
-                                            ⚠️ Lưu ý quan trọng:
-                                        </p>
-                                        <ul style="margin: 0; padding-left: 20px; color: #605e5c; font-size: 14px; line-height: 1.5;">
-                                            <li>Mã này sẽ hết hạn sau <strong>5 phút</strong></li>
-                                            <li>Không chia sẻ mã này với bất kỳ ai</li>
-                                            <li>Nếu bạn không thực hiện đăng nhập, vui lòng bỏ qua email này</li>
-                                        </ul>
-                                    </td>
-                                </tr>
-                            </table>
-                            
-                            <p style="margin: 30px 0 0 0; color: #605e5c; font-size: 14px; line-height: 1.5;">
-                                Nếu bạn gặp khó khăn trong việc đăng nhập, vui lòng liên hệ với bộ phận hỗ trợ kỹ thuật.
-                            </p>
-                        </td>
-                    </tr>
-                    
-                    <!-- Footer -->
-                    <tr>
-                        <td style="padding: 30px 40px; background-color: #f8f9fa; border-top: 1px solid #e1e1e1; border-radius: 0 0 8px 8px;">
-                            <p style="margin: 0 0 10px 0; color: #605e5c; font-size: 12px; text-align: center;">
-                                © 2025 Pharmaceutical Distribution Warehouse. Tất cả quyền được bảo lưu.
-                            </p>
-                            <p style="margin: 0; color: #a19f9d; font-size: 11px; text-align: center;">
-                                Email này được gửi tự động, vui lòng không trả lời trực tiếp.
-                            </p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</body>
-</html>
-`,
-      };
-
-      await transporter.sendMail(mailOptions);
-    } catch (error) {
-      console.error('❌ Error sending OTP email:', error);
-      throw error;
-    }
-  },
   login: async (email, password) => {
     try {
       if (!process.env.JWT_SECRET) {

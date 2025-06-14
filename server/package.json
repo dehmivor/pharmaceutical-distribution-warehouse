@@ -27,7 +27,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "test:server": "jest --config server/jest.config.js"
+    "test:server": "jest --config jest.config.js"
   },
   "devDependencies": {
     "eslint": "^9.26.0",
