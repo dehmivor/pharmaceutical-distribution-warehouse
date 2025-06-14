@@ -3,6 +3,6 @@ const router = express.Router();
 const locationController = require('../controllers/locationController');
 
 router.get('/locations-with-batches', locationController.getLocationsWithBatches);
-router.get('/locations', locationController.getAvailableLocations);
+router.get('/', locationController.getAvailableLocations);
 
 module.exports = router;
