@@ -1,5 +1,3 @@
-/***************************  MENU ITEMS - APPLICATIONS  ***************************/
-
 const other = {
   id: 'group-other',
   title: 'Other',
@@ -7,73 +5,49 @@ const other = {
   type: 'group',
   children: [
     {
-      id: 'changelog',
-      title: 'Changelog',
-      type: 'item',
-      url: 'https://phoenixcoded.gitbook.io/saasable/changelog',
-      target: true,
-      icon: 'IconHistory'
-    },
-    {
-      id: 'documentation',
-      title: 'Documentation',
-      type: 'item',
-      url: 'https://phoenixcoded.gitbook.io/saasable',
-      target: true,
-      icon: 'IconNotes'
-    },
-    {
-      id: 'support',
-      title: 'Support',
-      type: 'item',
-      url: 'https://support.phoenixcoded.net',
-      target: true,
-      icon: 'IconLifebuoy'
-    },
-
-    {
-      id: 'menu-levels',
-      title: 'Menu Levels',
+      id: 'help-group',
+      title: 'Help',
       type: 'collapse',
-      icon: 'IconMenu2',
+      icon: 'IconHelp',
       children: [
         {
-          id: 'menu-level-1.1',
-          title: 'Level 1',
+          id: 'documentation',
+          title: 'Documentation',
           type: 'item',
-          url: '#'
+          url: 'https://phoenixcoded.gitbook.io/saasable',
+          target: true,
+          icon: 'IconNotes'
         },
         {
-          id: 'menu-level-1.2',
-          title: 'Level 1',
-          type: 'collapse',
-          children: [
-            {
-              id: 'menu-level-2.1',
-              title: 'Level 2',
-              type: 'item',
-              url: '#'
-            },
-            {
-              id: 'menu-level-2.2',
-              title: 'Level 2',
-              type: 'collapse',
-              children: [
-                {
-                  id: 'menu-level-3.1',
-                  title: 'Level 3',
-                  type: 'item',
-                  url: '#'
-                },
-                {
-                  id: 'menu-level-3.2',
-                  title: 'Level 3',
-                  type: 'item',
-                  url: '#'
-                }
-              ]
-            }
-          ]
+          id: 'support',
+          title: 'Support',
+          type: 'item',
+          url: 'https://support.phoenixcoded.net',
+          target: true,
+          icon: 'IconLifebuoy'
+        }
+      ]
+    },
+    {
+      id: 'updates-group',
+      title: 'Updates',
+      type: 'collapse',
+      icon: 'IconRefresh',
+      children: [
+        {
+          id: 'changelog',
+          title: 'Changelog',
+          type: 'item',
+          url: 'https://phoenixcoded.gitbook.io/saasable/changelog',
+          target: true,
+          icon: 'IconHistory'
+        },
+        {
+          id: 'timetable',
+          title: 'Timetable',
+          type: 'item',
+          url: '/timetable',
+          icon: 'IconClock'
         }
       ]
     }
