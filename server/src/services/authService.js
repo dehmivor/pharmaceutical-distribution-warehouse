@@ -196,7 +196,6 @@ const authService = {
         };
       }
 
-      // Verify OTP
       if (
         !user.otp_login ||
         user.otp_login.code !== otp ||
