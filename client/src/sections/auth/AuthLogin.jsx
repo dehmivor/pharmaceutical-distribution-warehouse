@@ -115,7 +115,6 @@ export default function AuthLogin({ inputSx }) {
       setLoginError('Không thể kết nối đến server. Vui lòng thử lại.');
     } finally {
       setIsProcessing(false);
-      setIsVerifying(false);
     }
   };
 
