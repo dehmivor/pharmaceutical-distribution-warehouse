@@ -22,6 +22,7 @@ export default function AuthLogin({ inputSx }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // Thêm state cho 2-step login
   const [loginStep, setLoginStep] = useState('credentials'); // 'credentials' | 'otp'
@@ -69,12 +70,14 @@ export default function AuthLogin({ inputSx }) {
       setLoginError('Không thể kết nối đến server. Vui lòng thử lại.');
     } finally {
       setIsProcessing(false);
+      setIsVerifying(false);
     }
   };
 
   // Bước 2: Xác thực OTP
   const handleStep2 = async (formData) => {
     try {
+      setIsVerifying(true);
       setIsProcessing(true);
       setLoginError('');
 
@@ -120,6 +123,7 @@ export default function AuthLogin({ inputSx }) {
     setTempToken('');
     setUserEmail('');
     setLoginError('');
+    setIsVerifying(false);
     reset();
   };
 
@@ -202,18 +206,20 @@ export default function AuthLogin({ inputSx }) {
             type="submit"
             color="primary"
             variant="contained"
-            disabled={isProcessing}
-            endIcon={isProcessing && <CircularProgress color="secondary" size={16} />}
+            disabled={isProcessing || isVerifying}
+            endIcon={(isProcessing || isVerifying) && <CircularProgress color="secondary" size={16} />}
             fullWidth
             sx={{ minWidth: 100 }}
           >
-            {isProcessing
-              ? loginStep === 'credentials'
-                ? 'Sending OTP...'
-                : 'Authenitcating...'
-              : loginStep === 'credentials'
-                ? 'Send OTP'
-                : 'Verify OTP'}
+            {isVerifying
+              ? 'Verifying...'
+              : isProcessing
+                ? loginStep === 'credentials'
+                  ? 'Sending OTP...'
+                  : 'Authenitcating...'
+                : loginStep === 'credentials'
+                  ? 'Send OTP'
+                  : 'Verify OTP'}
           </Button>
         </Grid>
       </Grid>
