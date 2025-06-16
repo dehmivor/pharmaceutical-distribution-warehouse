@@ -38,16 +38,16 @@ app.use('/api/medicine', medicineRoutes);
 app.use('/api/import-orders', importOrderRoutes);
 
 // Protected routes với role-based access
-app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRoutes);
+// app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRoutes);
 
-app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
+// app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 
-app.use(
-  '/api/representative',
-  authenticate,
-  authorize(['supervisor', 'representative']),
-  representativeRoutes,
-);
+// app.use(
+//   '/api/representative',
+//   authenticate,
+//   authorize(['supervisor', 'representative']),
+//   representativeRoutes,
+// );
 
 // Shared routes cho multiple roles
 app.use(
@@ -65,6 +65,15 @@ app.use(
 
 const startAllCrons = require('./cron');
 startAllCrons();
+
+app.use(
+  cors({
+    origin: config.clientUrl,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }),
+);
 
 app.use((req, res, next) => {
   res.status(404).json({ message: 'Not Found' });
