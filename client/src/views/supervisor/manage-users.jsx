@@ -1,7 +1,9 @@
 'use client';
+import Loader from '@/components/Loader';
+import { useRouteProtection } from '@/hooks/useRouteProtection';
+import ContentSection from '@/sections/supervisor/ContentSection';
 import HeaderSection from '@/sections/supervisor/HeaderSection';
 import TableSection from '@/sections/supervisor/TableSection';
-import ContentSection from '@/sections/supervisor/ContentSection';
 import { Box, Container } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useState } from 'react';
@@ -9,10 +11,19 @@ import { useState } from 'react';
 function ManageUsers() {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
+  const { isLoading, hasAccess } = useRouteProtection(['supervisor']);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!hasAccess) {
+    return <Loader />;
+  }
 
   return (
     <Box

@@ -1,4 +1,5 @@
 'use client';
+import { useRole } from '@/contexts/RoleContext';
 import { emailSchema, passwordSchema } from '@/utils/validationSchema';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -23,6 +24,7 @@ export default function AuthLogin({ inputSx }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
+  const { updateUserRole } = useRole();
 
   // Thêm state cho 2-step login
   const [loginStep, setLoginStep] = useState('credentials'); // 'credentials' | 'otp'
@@ -99,6 +101,9 @@ export default function AuthLogin({ inputSx }) {
         localStorage.setItem('auth-token', result.data.token);
         localStorage.setItem('user', JSON.stringify(result.data.user));
 
+        // Update role context
+        updateUserRole(result.data.user);
+
         // Redirect
         const redirectUrl = result.data.redirectUrl || '/dashboard';
         router.push(redirectUrl);
@@ -110,6 +115,7 @@ export default function AuthLogin({ inputSx }) {
       setLoginError('Không thể kết nối đến server. Vui lòng thử lại.');
     } finally {
       setIsProcessing(false);
+      setIsVerifying(false);
     }
   };
 
