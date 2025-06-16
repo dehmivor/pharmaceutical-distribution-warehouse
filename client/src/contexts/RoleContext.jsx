@@ -9,14 +9,39 @@ export const RoleProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Lấy user data từ localStorage
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      setUserRole(parsedUser.role || '');
-    }
-    setIsLoading(false);
+    const fetchUserData = async () => {
+      try {
+        const token = localStorage.getItem('auth-token');
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
+
+        const response = await fetch('/api/auth/me', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setUser(result.data);
+          setUserRole(result.data.role);
+        } else {
+          // Token invalid, clear localStorage
+          localStorage.removeItem('auth-token');
+          localStorage.removeItem('user');
+        }
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
   }, []);
 
   const updateUserRole = (newUser) => {
