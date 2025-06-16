@@ -1,8 +1,5 @@
 'use client';
-import PropTypes from 'prop-types';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useTheme } from '@mui/material/styles';
+import { emailSchema, passwordSchema } from '@/utils/validationSchema';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -11,10 +8,13 @@ import Grid from '@mui/material/Grid';
 import InputAdornment from '@mui/material/InputAdornment';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
+import { useTheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import { useForm } from 'react-hook-form';
-import { emailSchema, passwordSchema } from '@/utils/validationSchema';
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
+import { useRouter } from 'next/navigation';
+import PropTypes from 'prop-types';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 
 export default function AuthLogin({ inputSx }) {
   const router = useRouter();
@@ -97,7 +97,7 @@ export default function AuthLogin({ inputSx }) {
         localStorage.setItem('user', JSON.stringify(result.data.user));
 
         // Redirect
-        const redirectUrl = result.data.redirectUrl || '/manage-inspections';
+        const redirectUrl = result.data.redirectUrl || '/dashboard';
         router.push(redirectUrl);
       } else {
         setLoginError(result.message || 'OTP không hợp lệ. Vui lòng thử lại.');
