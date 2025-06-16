@@ -1,36 +1,29 @@
+// middlewares/authMiddleware.js
 const authService = require('../services/authService');
 
 const authenticate = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    let token = null;
 
-    // Kiểm tra header Authorization
-    if (!authHeader) {
+    // Lấy token từ Authorization header hoặc cookies
+    const authHeader = req.headers.authorization;
+    const cookieToken = req.cookies['auth-token'];
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (cookieToken) {
+      token = cookieToken;
+    }
+
+    // Kiểm tra token có tồn tại không
+    if (!token || token.trim() === '') {
       return res.status(401).json({
         success: false,
         message: 'Access denied: No token provided',
       });
     }
 
-    // Kiểm tra format Bearer token
-    if (!authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid token format. Expected: Bearer <token>',
-      });
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    // Kiểm tra token có tồn tại không
-    if (!token || token.trim() === '') {
-      return res.status(401).json({
-        success: false,
-        message: 'Token is required',
-      });
-    }
-
-    // Verify token (có thể là async function)
+    // Verify token
     const decoded = await authService.verifyToken(token);
 
     // Kiểm tra decoded data
@@ -41,14 +34,18 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    // Attach user data to request
-    req.user = decoded;
+    // Attach user data to request (bao gồm role)
+    req.user = {
+      userId: decoded.userId,
+      email: decoded.email,
+      role: decoded.role, // ✅ Đảm bảo role được include
+      ...decoded,
+    };
+
     next();
   } catch (error) {
-    // Log error for debugging (không expose ra client)
     console.error('Authentication error:', error.message);
 
-    // Xử lý các loại error khác nhau
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({
         success: false,
@@ -63,7 +60,6 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    // Generic error response (không expose chi tiết)
     return res.status(401).json({
       success: false,
       message: 'Authentication failed',
