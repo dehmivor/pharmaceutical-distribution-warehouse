@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 
 // @project
 
-const ManageMedicine = dynamic(() => import('@/views/supervisor/manage-mediciness'));
+const ManageMedicine = dynamic(() => import('@/views/supervisor/manage-medicines'));
 
 /***************************  AUTH - LOGIN  ***************************/
 
