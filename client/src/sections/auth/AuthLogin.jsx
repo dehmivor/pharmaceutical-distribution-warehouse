@@ -1,8 +1,6 @@
 'use client';
-import PropTypes from 'prop-types';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useTheme } from '@mui/material/styles';
+import { useRole } from '@/contexts/RoleContext';
+import { emailSchema, passwordSchema } from '@/utils/validationSchema';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -11,10 +9,13 @@ import Grid from '@mui/material/Grid';
 import InputAdornment from '@mui/material/InputAdornment';
 import InputLabel from '@mui/material/InputLabel';
 import OutlinedInput from '@mui/material/OutlinedInput';
+import { useTheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import { useForm } from 'react-hook-form';
-import { emailSchema, passwordSchema } from '@/utils/validationSchema';
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
+import { useRouter } from 'next/navigation';
+import PropTypes from 'prop-types';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 
 export default function AuthLogin({ inputSx }) {
   const router = useRouter();
@@ -22,6 +23,8 @@ export default function AuthLogin({ inputSx }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const { updateUserRole } = useRole();
 
   // Thêm state cho 2-step login
   const [loginStep, setLoginStep] = useState('credentials'); // 'credentials' | 'otp'
@@ -69,12 +72,14 @@ export default function AuthLogin({ inputSx }) {
       setLoginError('Không thể kết nối đến server. Vui lòng thử lại.');
     } finally {
       setIsProcessing(false);
+      setIsVerifying(false);
     }
   };
 
   // Bước 2: Xác thực OTP
   const handleStep2 = async (formData) => {
     try {
+      setIsVerifying(true);
       setIsProcessing(true);
       setLoginError('');
 
@@ -96,8 +101,11 @@ export default function AuthLogin({ inputSx }) {
         localStorage.setItem('auth-token', result.data.token);
         localStorage.setItem('user', JSON.stringify(result.data.user));
 
+        // Update role context
+        updateUserRole(result.data.user);
+
         // Redirect
-        const redirectUrl = result.data.redirectUrl || '/manage-inspections';
+        const redirectUrl = result.data.redirectUrl || '/dashboard';
         router.push(redirectUrl);
       } else {
         setLoginError(result.message || 'OTP không hợp lệ. Vui lòng thử lại.');
@@ -107,6 +115,7 @@ export default function AuthLogin({ inputSx }) {
       setLoginError('Không thể kết nối đến server. Vui lòng thử lại.');
     } finally {
       setIsProcessing(false);
+      setIsVerifying(false);
     }
   };
 
@@ -120,6 +129,7 @@ export default function AuthLogin({ inputSx }) {
     setTempToken('');
     setUserEmail('');
     setLoginError('');
+    setIsVerifying(false);
     reset();
   };
 
@@ -202,18 +212,20 @@ export default function AuthLogin({ inputSx }) {
             type="submit"
             color="primary"
             variant="contained"
-            disabled={isProcessing}
-            endIcon={isProcessing && <CircularProgress color="secondary" size={16} />}
+            disabled={isProcessing || isVerifying}
+            endIcon={(isProcessing || isVerifying) && <CircularProgress color="secondary" size={16} />}
             fullWidth
             sx={{ minWidth: 100 }}
           >
-            {isProcessing
-              ? loginStep === 'credentials'
-                ? 'Sending OTP...'
-                : 'Authenitcating...'
-              : loginStep === 'credentials'
-                ? 'Send OTP'
-                : 'Verify OTP'}
+            {isVerifying
+              ? 'Verifying...'
+              : isProcessing
+                ? loginStep === 'credentials'
+                  ? 'Sending OTP...'
+                  : 'Authenitcating...'
+                : loginStep === 'credentials'
+                  ? 'Send OTP'
+                  : 'Verify OTP'}
           </Button>
         </Grid>
       </Grid>
