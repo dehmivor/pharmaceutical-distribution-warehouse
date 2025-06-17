@@ -21,7 +21,7 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 
 // Components
 import ImportOrderForm from './components/ImportOrderForm';
@@ -208,6 +208,12 @@ const ManageImportOrder = () => {
                 <TableCell>{order.total_value.toLocaleString()} VND</TableCell>
                 <TableCell>{order.status}</TableCell>
                 <TableCell>
+                  <IconButton
+                    color="primary"
+                    onClick={() => handleOpenDetails(order)}
+                  >
+                    <VisibilityIcon />
+                  </IconButton>
                   <IconButton
                     color="primary"
                     onClick={() => handleOpenForm(order)}
