@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const medicineController = require('../controllers/medicineController');
-const authenticate = require('../middlewares/authMiddleware'); // Giả sử bạn có middleware này
+const authenticate = require('../middlewares/authenticate'); // Giả sử bạn có middleware này
 
 // === MEDICINE ROUTES ===
 

@@ -11,7 +11,9 @@ const models = require('./models');
 const app = express();
 
 const errorHandler = require('./middlewares/error.middleware.js');
-const { authRoutes, cronRoutes, medicineRoutes } = require('./routes');
+const authenticate = require('./middlewares/authenticate');
+const authorize = require('./middlewares/authorize');
+const { authRoutes, cronRoutes, medicineRoutes, supervisorRoutes } = require('./routes');
 const importOrderRoutes = require('./routes/importOrderRoutes');
 
 // Middlewares
@@ -36,24 +38,42 @@ app.use('/api/medicine', medicineRoutes);
 app.use('/api/import-orders', importOrderRoutes);
 
 // Protected routes với role-based access
-// app.use('/api/supervisor', authenticate, authorize('supervisor'), routes.supervisorRoutes);
+app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRoutes);
+
+// app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 
 // app.use(
-//   '/api/warehouse',
+//   '/api/representative',
 //   authenticate,
-//   authorize(['supervisor', 'warehouse_manager']),
-//   routes.warehouseRoutes,
+//   authorize(['supervisor', 'representative']),
+//   representativeRoutes,
 // );
 
-// app.use(
-//   '/api/presentative',
-//   authenticate,
-//   authorize(['supervisor', 'presentative']),
-//   routes.pharmacyRoutes,
-// );
+// Shared routes cho multiple roles
+app.use(
+  '/api/shared',
+  authenticate,
+  authorize(['supervisor', 'representative', 'warehouse']),
+  (req, res) => {
+    res.json({
+      success: true,
+      data: 'Shared data accessible by multiple roles',
+      userRole: req.user.role,
+    });
+  },
+);
 
 const startAllCrons = require('./cron');
 startAllCrons();
+
+app.use(
+  cors({
+    origin: config.clientUrl,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }),
+);
 
 app.use((req, res, next) => {
   res.status(404).json({ message: 'Not Found' });
