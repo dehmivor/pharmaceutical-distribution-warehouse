@@ -20,37 +20,68 @@ import {
   Typography,
   Alert,
   Snackbar,
+  CircularProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Visibility as VisibilityIcon } from '@mui/icons-material';
 
 // Components
-import ImportOrderForm from './components/ImportOrderForm';
-import ImportOrderDetails from './components/ImportOrderDetails';
+import ImportOrderDetails from '@/components/import-orders/ImportOrderDetails';
 
-const ManageImportOrder = () => {
+// Helper function to format date
+const formatDate = (dateString) => {
+  if (!dateString) return '-';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+  } catch (error) {
+    return '-';
+  }
+};
+
+// Helper function to format currency
+const formatCurrency = (value) => {
+  if (!value) return '-';
+  try {
+    return `${Number(value).toLocaleString('en-US')} VND`;
+  } catch (error) {
+    return '-';
+  }
+};
+
+const SupervisorImportOrders = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-  const [openForm, setOpenForm] = useState(false);
   const [openDetails, setOpenDetails] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Fetch orders
   const fetchOrders = async () => {
     try {
+      setLoading(true);
       const response = await fetch('/api/import-orders');
       if (!response.ok) {
-        throw new Error('Failed to fetch orders');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch orders');
       }
       const data = await response.json();
-      setOrders(data.data);
+      setOrders(data.data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
-      setError('Failed to load orders');
+      setError(error.message || 'Failed to load orders');
     } finally {
       setLoading(false);
     }
@@ -61,47 +92,30 @@ const ManageImportOrder = () => {
     fetchOrders();
   }, []);
 
-  // Delete order
-  const handleDelete = async (id) => {
-    try {
-      const response = await fetch(`/api/import-orders/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete order');
-      }
-
-      setSuccess('Order deleted successfully');
-      fetchOrders();
-    } catch (error) {
-      console.error('Error deleting order:', error);
-      setError(error.message);
-    }
-  };
-
   // Update order status
-  const handleStatusChange = async (id, status) => {
+  const handleStatusChange = async (id, newStatus) => {
     try {
+      setActionLoading(true);
       const response = await fetch(`/api/import-orders/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: newStatus }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to update order status');
+        throw new Error(error.message || 'Failed to update status');
       }
 
-      setSuccess('Order status updated successfully');
+      setSuccess('Status updated successfully');
       fetchOrders();
     } catch (error) {
-      console.error('Error updating order status:', error);
-      setError(error.message);
+      console.error('Error updating status:', error);
+      setError(error.message || 'Failed to update status');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -117,17 +131,6 @@ const ManageImportOrder = () => {
   const handleSearch = (event) => {
     setSearchTerm(event.target.value);
     setPage(0);
-  };
-
-  const handleOpenForm = (order = null) => {
-    setSelectedOrder(order);
-    setOpenForm(true);
-  };
-
-  const handleCloseForm = () => {
-    setSelectedOrder(null);
-    setOpenForm(false);
-    fetchOrders();
   };
 
   const handleOpenDetails = (order) => {
@@ -150,7 +153,7 @@ const ManageImportOrder = () => {
 
   // Filter orders based on search term
   const filteredOrders = orders.filter((order) =>
-    order.import_order_code.toLowerCase().includes(searchTerm.toLowerCase())
+    order?.import_order_code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Paginate orders
@@ -159,17 +162,18 @@ const ManageImportOrder = () => {
     page * rowsPerPage + rowsPerPage
   );
 
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Manage Import Orders</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenForm()}
-        >
-          New Order
-        </Button>
+        <Typography variant="h4">Import Orders</Typography>
       </Box>
 
       <TextField
@@ -197,78 +201,52 @@ const ManageImportOrder = () => {
           </TableHead>
           <TableBody>
             {paginatedOrders.map((order) => (
-              <TableRow key={order._id}>
-                <TableCell>{order.import_order_code}</TableCell>
-                <TableCell>{order.contract_id.contract_code}</TableCell>
-                <TableCell>{order.supplier_id.full_name}</TableCell>
-                <TableCell>{order.warehouse_id.full_name}</TableCell>
+              <TableRow key={order?._id}>
+                <TableCell>{order?.import_order_code || '-'}</TableCell>
+                <TableCell>{order?.contract_id?.contract_code || '-'}</TableCell>
+                <TableCell>{order?.supplier_id?.full_name || '-'}</TableCell>
+                <TableCell>{order?.warehouse_id?.full_name || '-'}</TableCell>
+                <TableCell>{formatDate(order?.import_date)}</TableCell>
+                <TableCell>{formatCurrency(order?.total_value)}</TableCell>
                 <TableCell>
-                  {new Date(order.import_date).toLocaleDateString()}
+                  <FormControl fullWidth size="small">
+                    <Select
+                      value={order?.status || ''}
+                      onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                      disabled={actionLoading}
+                    >
+                      <MenuItem value="pending">Pending</MenuItem>
+                      <MenuItem value="approved">Approved</MenuItem>
+                      <MenuItem value="rejected">Rejected</MenuItem>
+                      <MenuItem value="completed">Completed</MenuItem>
+                    </Select>
+                  </FormControl>
                 </TableCell>
-                <TableCell>{order.total_value.toLocaleString()} VND</TableCell>
-                <TableCell>{order.status}</TableCell>
                 <TableCell>
-                  <IconButton
-                    color="primary"
-                    onClick={() => handleOpenForm(order)}
-                    disabled={order.status === 'completed'}
-                  >
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton
-                    color="error"
-                    onClick={() => handleDelete(order._id)}
-                    disabled={order.status === 'completed'}
-                  >
-                    <DeleteIcon />
+                  <IconButton onClick={() => handleOpenDetails(order)} disabled={actionLoading}>
+                    <VisibilityIcon />
                   </IconButton>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={filteredOrders.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
       </TableContainer>
 
-      {/* Form Dialog */}
-      <Dialog
-        open={openForm}
-        onClose={handleCloseForm}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {selectedOrder ? 'Edit Import Order' : 'New Import Order'}
-        </DialogTitle>
-        <DialogContent>
-          <ImportOrderForm
-            order={selectedOrder}
-            onClose={handleCloseForm}
-          />
-        </DialogContent>
-      </Dialog>
+      <TablePagination
+        component="div"
+        count={filteredOrders.length}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+      />
 
       {/* Details Dialog */}
-      <Dialog
-        open={openDetails}
-        onClose={handleCloseDetails}
-        maxWidth="md"
-        fullWidth
-      >
+      <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="md" fullWidth>
         <DialogTitle>Import Order Details</DialogTitle>
         <DialogContent>
-          <ImportOrderDetails
-            order={selectedOrder}
-            onClose={handleCloseDetails}
-          />
+          {selectedOrder && <ImportOrderDetails order={selectedOrder} onClose={handleCloseDetails} />}
         </DialogContent>
       </Dialog>
 
@@ -299,4 +277,4 @@ const ManageImportOrder = () => {
   );
 };
 
-export default ManageImportOrder; 
+export default SupervisorImportOrders; 
