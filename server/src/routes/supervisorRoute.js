@@ -1,14 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { User } = require('../models');
+const userController = require('../controllers/userController');
+const authenticate = require('../middlewares/authenticate');
 
-router.get('/api/users', async (req, res) => {
-  try {
-    const users = await User.find();
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+router.get('/users', authenticate, userController.getAllUsers);
 
 module.exports = router;

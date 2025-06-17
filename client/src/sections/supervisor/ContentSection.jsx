@@ -30,32 +30,51 @@ function ContentSection({ activeTab }) {
   const theme = useTheme();
   const { users, loading, error, refetch } = useUsers();
 
-  // ✅ Sử dụng useMemo để tối ưu và safe filtering
-  const { fundOrgUsers, consultantsUsers } = useMemo(() => {
+  // ✅ Sử dụng useMemo để tối ưu và filter theo role thay vì organization
+  const { supervisorUsers, representativeUsers, warehouseUsers } = useMemo(() => {
     // Đảm bảo users là array trước khi filter
     const safeUsers = Array.isArray(users) ? users : [];
 
+    // Debug để kiểm tra dữ liệu
+    console.log('All users:', safeUsers);
+    console.log('Sample user structure:', safeUsers[0]);
+
     return {
-      fundOrgUsers: safeUsers.filter((user) => user?.organization === 'Fund.Org'),
-      consultantsUsers: safeUsers.filter((user) => user?.organization === 'Consultants')
+      supervisorUsers: safeUsers.filter((user) => user?.role === 'supervisor'),
+      representativeUsers: safeUsers.filter((user) => user?.role === 'representative'),
+      warehouseUsers: safeUsers.filter((user) => user?.role === 'warehouse')
     };
   }, [users]);
 
-  const getLevelColor = (level) => {
-    switch (level) {
-      case 'Super Admin':
+  // ✅ Cập nhật getLevelColor để phù hợp với role
+  const getLevelColor = (role) => {
+    switch (role) {
+      case 'supervisor':
         return 'error';
-      case 'Admin':
+      case 'representative':
         return 'warning';
-      case 'Manager':
+      case 'warehouse':
         return 'info';
       default:
         return 'default';
     }
   };
 
+  // ✅ Helper function để format role display name
+  const getRoleDisplayName = (role) => {
+    switch (role) {
+      case 'supervisor':
+        return 'Supervisor';
+      case 'representative':
+        return 'Representative';
+      case 'warehouse':
+        return 'Warehouse';
+      default:
+        return role || 'Unknown';
+    }
+  };
+
   const UserTable = ({ users, sectionName }) => {
-    // ✅ Kiểm tra loading state trước
     if (loading) {
       return (
         <Box display="flex" justifyContent="center" p={4}>
@@ -65,7 +84,6 @@ function ContentSection({ activeTab }) {
       );
     }
 
-    // ✅ Kiểm tra error state
     if (error) {
       return (
         <Alert severity="error" sx={{ m: 2 }}>
@@ -77,7 +95,6 @@ function ContentSection({ activeTab }) {
       );
     }
 
-    // ✅ Kiểm tra empty state
     if (!Array.isArray(users) || users.length === 0) {
       return (
         <Box display="flex" justifyContent="center" p={4}>
@@ -92,12 +109,12 @@ function ContentSection({ activeTab }) {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Level</TableCell>
-                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>
-                  Account Created Date
-                </TableCell>
-                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Role Created Date</TableCell>
+                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Role</TableCell>
+                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Manager</TableCell>
+                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Created Date</TableCell>
+                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Updated Date</TableCell>
                 <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}`, textAlign: 'center' }}>
                   Actions
                 </TableCell>
@@ -112,14 +129,32 @@ function ContentSection({ activeTab }) {
                         <PersonIcon fontSize="small" />
                       </Avatar>
                       <Typography variant="body2" fontWeight={500}>
-                        {user.name || 'N/A'}
+                        {user.email || 'N/A'}
                       </Typography>
                     </Stack>
                   </TableCell>
                   <TableCell>
                     <Chip
-                      label={user.level || 'Unknown'}
-                      color={getLevelColor(user.level)}
+                      label={getRoleDisplayName(user.role)}
+                      color={getLevelColor(user.role)}
+                      size="small"
+                      variant="outlined"
+                      sx={{ fontWeight: 500, borderRadius: 2 }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={user.status === 'active' ? 'Active' : 'Inactive'}
+                      color={user.status === 'active' ? 'success' : 'default'}
+                      size="small"
+                      variant="filled"
+                      sx={{ fontWeight: 500, borderRadius: 2 }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={user.is_manager ? 'Yes' : 'No'}
+                      color={user.is_manager ? 'primary' : 'default'}
                       size="small"
                       variant="outlined"
                       sx={{ fontWeight: 500, borderRadius: 2 }}
@@ -127,12 +162,12 @@ function ContentSection({ activeTab }) {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {user.accountCreated ? new Date(user.accountCreated).toLocaleDateString('vi-VN') : 'N/A'}
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
                     </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {user.roleCreated ? new Date(user.roleCreated).toLocaleDateString('vi-VN') : 'N/A'}
+                      {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('vi-VN') : 'N/A'}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -168,31 +203,48 @@ function ContentSection({ activeTab }) {
     <div>
       {activeTab === 0 && (
         <Box>
+          {/* Supervisor Users Section */}
           <Accordion
             defaultExpanded
             sx={{ mb: 2, '&:before': { display: 'none' }, borderRadius: 3, overflow: 'hidden', boxShadow: theme.shadows[2] }}
           >
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6" fontWeight={600} color="primary">
-                Fund.Org ({fundOrgUsers.length})
+                Supervisors ({supervisorUsers.length})
               </Typography>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 0 }}>
-              <UserTable users={fundOrgUsers} sectionName="Fund.Org" />
+              <UserTable users={supervisorUsers} sectionName="Supervisors" />
             </AccordionDetails>
           </Accordion>
 
+          {/* Representative Users Section */}
           <Accordion
             defaultExpanded
             sx={{ mb: 2, '&:before': { display: 'none' }, borderRadius: 3, overflow: 'hidden', boxShadow: theme.shadows[2] }}
           >
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6" fontWeight={600} color="secondary">
-                Consultants ({consultantsUsers.length})
+                Representatives ({representativeUsers.length})
               </Typography>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 0 }}>
-              <UserTable users={consultantsUsers} sectionName="Consultants" />
+              <UserTable users={representativeUsers} sectionName="Representatives" />
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Warehouse Users Section */}
+          <Accordion
+            defaultExpanded
+            sx={{ mb: 2, '&:before': { display: 'none' }, borderRadius: 3, overflow: 'hidden', boxShadow: theme.shadows[2] }}
+          >
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="h6" fontWeight={600} color="info">
+                Warehouse ({warehouseUsers.length})
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: 0 }}>
+              <UserTable users={warehouseUsers} sectionName="Warehouse" />
             </AccordionDetails>
           </Accordion>
         </Box>
