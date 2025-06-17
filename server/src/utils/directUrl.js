@@ -9,4 +9,4 @@ function getRedirectByRole(role) {
   return roleRoutes[role] || '/dashboard';
 }
 
-export default getRedirectByRole;
+module.exports = getRedirectByRole;
