@@ -1,39 +1,69 @@
 /***************************  MENU ITEMS - PAGES  ***************************/
 
 const pages = {
-  id: 'group-page',
-  title: 'Page',
-  icon: 'IconDotsVertical',
+  id: 'group-pages',
+  title: 'Data & Reports',
+  icon: 'IconChartBar',
   type: 'group',
   children: [
     {
-      id: 'authentication',
-      title: 'Authentication',
+      id: 'dashboard',
+      title: 'Overview',
+      type: 'item',
+      url: '/dashboard',
+      icon: 'IconLayoutDashboard'
+    },
+    {
+      id: 'reports',
+      title: 'Reports',
       type: 'collapse',
-      icon: 'IconLogin2',
+      icon: 'IconFileAnalytics',
       children: [
         {
-          id: 'login',
-          title: 'Login',
+          id: 'report-summary',
+          title: 'Weekly',
           type: 'item',
-          url: '/auth/login',
-          target: true
+          url: '/reports/summary'
         },
         {
-          id: 'register',
-          title: 'Register',
+          id: 'report-detail',
+          title: 'Monthly',
           type: 'item',
-          url: '/auth/register',
-          target: true
+          url: '/reports/detail'
+        },
+        {
+          id: 'report-custom',
+          title: 'Yearly',
+          type: 'item',
+          url: '/reports/custom'
         }
       ]
     },
     {
-      id: 'sample-page',
-      title: 'Sample Page',
-      type: 'item',
-      url: '/sample-page',
-      icon: 'IconBrandChrome'
+      id: 'data-tracking',
+      title: 'Data Tracking',
+      type: 'collapse',
+      icon: 'IconTrendingUp',
+      children: [
+        {
+          id: 'tracking-overview',
+          title: 'Overview',
+          type: 'item',
+          url: '/data-tracking/overview'
+        },
+        {
+          id: 'tracking-trends',
+          title: 'Trends',
+          type: 'item',
+          url: '/data-tracking/trends'
+        },
+        {
+          id: 'tracking-alerts',
+          title: 'Alerts',
+          type: 'item',
+          url: '/data-tracking/alerts'
+        }
+      ]
     }
   ]
 };
