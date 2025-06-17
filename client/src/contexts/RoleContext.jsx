@@ -29,13 +29,18 @@ export const RoleProvider = ({ children }) => {
           const result = await response.json();
           setUser(result.data);
           setUserRole(result.data.role);
+          localStorage.setItem('user', JSON.stringify(result.data));
         } else {
-          // Token invalid, clear localStorage
+          console.log('Auth failed:', response.status);
           localStorage.removeItem('auth-token');
           localStorage.removeItem('user');
+          setUser(null);
+          setUserRole('');
         }
       } catch (error) {
         console.error('Failed to fetch user data:', error);
+        setUser(null);
+        setUserRole('');
       } finally {
         setIsLoading(false);
       }
@@ -56,9 +61,8 @@ export const RoleProvider = ({ children }) => {
   };
 
   const hasPermission = (permission) => {
-    // Logic kiểm tra permission dựa trên role
     const rolePermissions = {
-      supervisor: ['manage-users', 'view-reports', 'manage-settings'],
+      supervisor: ['manage-users'],
       representative: ['manage-license', 'view-clients'],
       warehouse: ['manage-inventory', 'view-stock']
     };
