@@ -1,10 +1,7 @@
-import React from 'react';
-import UpdateInventoryLocation from './components/UpdateInventoryLocation';
+import UpdateInventoryLocation from "./components/UpdateInventoryLocation"
 
 function Page() {
-  return (
-    <UpdateInventoryLocation />
-  );
+  return <UpdateInventoryLocation />
 }
 
-export default Page;
+export default Page
