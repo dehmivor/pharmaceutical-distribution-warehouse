@@ -32,12 +32,13 @@ class ImportOrderController {
   // Get all import orders
   async getImportOrders(req, res) {
     try {
-      const { page = 1, limit = 10, status, manager_id } = req.query;
+      const { page = 1, limit = 10, status, manager_id, purchase_order_id } = req.query;
       
       // Build query
       const query = {};
       if (status) query.status = status;
       if (manager_id) query.manager_id = manager_id;
+      if (purchase_order_id) query.purchase_order_id = purchase_order_id;
 
       const result = await importOrderService.getImportOrders(
         query,

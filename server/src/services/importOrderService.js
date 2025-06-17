@@ -1,21 +1,12 @@
 const ImportOrder = require('../models/ImportOrder');
-const ImportOrderDetail = require('../models/ImportOrderDetail');
 const { IMPORT_ORDER_STATUSES } = require('../utils/constants');
 
 class ImportOrderService {
   // Create new import order
-  async createImportOrder(orderData, orderDetails) {
+  async createImportOrder(orderData) {
     try {
       const newOrder = new ImportOrder(orderData);
       const savedOrder = await newOrder.save();
-
-      // Create order details
-      const details = orderDetails.map(detail => ({
-        ...detail,
-        import_order_id: savedOrder._id
-      }));
-      await ImportOrderDetail.insertMany(details);
-
       return savedOrder;
     } catch (error) {
       throw error;
@@ -27,11 +18,9 @@ class ImportOrderService {
     try {
       const skip = (page - 1) * limit;
       const orders = await ImportOrder.find(query)
-        .populate('contract_id')
-        .populate('supplier_id')
-        .populate('warehouse_id')
-        .populate('created_by')
-        .populate('approved_by')
+        .populate('manager_id')
+        .populate('purchase_order_id')
+        .populate('import_content.batch_id')
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 });
@@ -52,29 +41,19 @@ class ImportOrderService {
     }
   }
 
-  // Get import order by ID with details
+  // Get import order by ID
   async getImportOrderById(orderId) {
     try {
       const order = await ImportOrder.findById(orderId)
-        .populate('contract_id')
-        .populate('supplier_id')
-        .populate('warehouse_id')
-        .populate('created_by')
-        .populate('approved_by');
+        .populate('manager_id')
+        .populate('purchase_order_id')
+        .populate('import_content.batch_id');
 
       if (!order) {
         throw new Error('Import order not found');
       }
 
-      const details = await ImportOrderDetail.find({ import_order_id: orderId })
-        .populate('medicine_id')
-        .populate('batch_id')
-        .populate('package_list');
-
-      return {
-        order,
-        details
-      };
+      return order;
     } catch (error) {
       throw error;
     }
@@ -105,35 +84,6 @@ class ImportOrderService {
     }
   }
 
-  // Update import order details
-  async updateImportOrderDetails(orderId, details) {
-    try {
-      const order = await ImportOrder.findById(orderId);
-      if (!order) {
-        throw new Error('Import order not found');
-      }
-
-      // Check if order can be updated
-      if (order.status === IMPORT_ORDER_STATUSES.COMPLETED) {
-        throw new Error('Cannot update completed order');
-      }
-
-      // Delete existing details
-      await ImportOrderDetail.deleteMany({ import_order_id: orderId });
-
-      // Create new details
-      const newDetails = details.map(detail => ({
-        ...detail,
-        import_order_id: orderId
-      }));
-      await ImportOrderDetail.insertMany(newDetails);
-
-      return await ImportOrderDetail.find({ import_order_id: orderId });
-    } catch (error) {
-      throw error;
-    }
-  }
-
   // Delete import order
   async deleteImportOrder(orderId) {
     try {
@@ -146,11 +96,7 @@ class ImportOrderService {
       if (order.status !== IMPORT_ORDER_STATUSES.PENDING) {
         throw new Error('Can only delete pending orders');
       }
-
-      // Delete order details first
-      await ImportOrderDetail.deleteMany({ import_order_id: orderId });
       
-      // Delete order
       await ImportOrder.findByIdAndDelete(orderId);
 
       return { message: 'Import order deleted successfully' };
@@ -160,21 +106,16 @@ class ImportOrderService {
   }
 
   // Update order status
-  async updateOrderStatus(orderId, status, approvedBy = null) {
+  async updateOrderStatus(orderId, status) {
     try {
       const order = await ImportOrder.findById(orderId);
       if (!order) {
         throw new Error('Import order not found');
       }
 
-      const updateData = { status };
-      if (approvedBy) {
-        updateData.approved_by = approvedBy;
-      }
-
       const updatedOrder = await ImportOrder.findByIdAndUpdate(
         orderId,
-        { $set: updateData },
+        { $set: { status } },
         { new: true, runValidators: true }
       );
 
