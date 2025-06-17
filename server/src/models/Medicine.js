@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const constants = require('../utils/constants');
+const {MEDICINE_CATERGORY}  = require('../utils/constants');
 
 const medicineSchema = new mongoose.Schema({
   name: {
@@ -27,6 +27,15 @@ const medicineSchema = new mongoose.Schema({
     },
     default: {},
   },
+
+  catergory: {
+    type: String,
+    enum: {
+      values: Object.values(MEDICINE_CATERGORY),
+      message: `Status must be one of: ${Object.values(MEDICINE_CATERGORY).join(', ')}`,
+    },
+  },
+
   active_ingerdient: [{
     name: {
       type: String,

@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { PACKAGE_STATUSES, PACKAGE_QUALITY_STATUSES } = require('../utils/constants');
+const { PACKAGE_STATUSES } = require('../utils/constants');
 
 const packageSchema = new mongoose.Schema({
   location_id: {
@@ -19,7 +19,6 @@ const packageSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    required: [true, 'Status is required'],
     enum: {
       values: Object.values(PACKAGE_STATUSES),
       message: `Status must be one of: ${Object.values(PACKAGE_STATUSES).join(', ')}`,
