@@ -1,61 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRole } from '@/contexts/RoleContext';
 
 /**
- * Hook quản lý trạng thái và thông tin người dùng hiện tại
- * @returns {Object} Thông tin người dùng và các hàm liên quan
+ * Hook quản lý authentication - tích hợp với RoleContext
  */
 export const useAuth = () => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user, userRole, isLoading, updateUser: updateRoleUser } = useRole();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Kiểm tra xác thực và lấy thông tin người dùng khi component mount
-    const checkAuth = async () => {
-      try {
-        setLoading(true);
-
-        // Kiểm tra xem có token không
-        const authenticated = authService.isAuthenticated();
-        setIsAuthenticated(authenticated);
-
-        // Nếu có token, lấy thông tin người dùng
-        if (authenticated) {
-          const currentUser = authService.getCurrentUser();
-          setUser(currentUser);
-
-          const validToken = await authService.verifyToken();
-          if (!validToken) {
-            logout();
-          }
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-        logout();
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
+    setIsAuthenticated(!!user);
+  }, [user]);
 
   /**
-   * Đăng nhập và cập nhật trạng thái người dùng
-   * @param {string} email - Email đăng nhập
-   * @param {string} password - Mật khẩu đăng nhập
-   * @returns {Promise<Object>} Kết quả đăng nhập
+   * Đăng nhập
    */
   const login = async (email, password) => {
     try {
       const result = await authService.login(email, password);
 
       if (result.success) {
-        // Cập nhật trạng thái người dùng
-        setUser(result.data.user);
-        setIsAuthenticated(true);
+        // RoleContext sẽ tự động cập nhật user
+        return result;
       }
 
       return result;
@@ -65,18 +33,15 @@ export const useAuth = () => {
   };
 
   /**
-   * Đăng ký và cập nhật trạng thái người dùng
-   * @param {Object} userData - Thông tin đăng ký
-   * @returns {Promise<Object>} Kết quả đăng ký
+   * Đăng ký
    */
   const register = async (userData) => {
     try {
       const result = await authService.register(userData);
 
       if (result.success) {
-        // Cập nhật trạng thái người dùng
-        setUser(result.data.user);
-        setIsAuthenticated(true);
+        // RoleContext sẽ tự động cập nhật user
+        return result;
       }
 
       return result;
@@ -86,49 +51,41 @@ export const useAuth = () => {
   };
 
   /**
-   * Đăng xuất và xóa thông tin người dùng
+   * Đăng xuất
    */
   const logout = () => {
     authService.logout();
-    setUser(null);
-    setIsAuthenticated(false);
+    // RoleContext sẽ tự động cập nhật
   };
 
   /**
-   * Kiểm tra người dùng có vai trò admin không
-   * @returns {boolean} Kết quả kiểm tra
+   * Kiểm tra role
    */
-  const isAdmin = () => {
-    return user?.role === 'admin';
-  };
-
-  /**
-   * Cập nhật thông tin người dùng
-   * @param {Object} newUserData - Thông tin người dùng mới
-   */
-  const updateUser = (newUserData) => {
-    setUser((prev) => ({ ...prev, ...newUserData }));
-
-    // Cập nhật thông tin trong localStorage
-    if (typeof window !== 'undefined') {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const currentUser = JSON.parse(userStr);
-        localStorage.setItem('user', JSON.stringify({ ...currentUser, ...newUserData }));
-      }
+  const hasRole = (role) => {
+    if (Array.isArray(role)) {
+      return role.includes(userRole);
     }
+    return userRole === role;
   };
+
+  const isAdmin = () => hasRole('admin');
+  const isSupervisor = () => hasRole('supervisor');
+  const isRepresentative = () => hasRole('representative');
+  const isWarehouse = () => hasRole('warehouse');
 
   return {
     user,
-    loading,
+    userRole,
+    loading: isLoading,
     isAuthenticated,
     login,
     register,
     logout,
+    hasRole,
     isAdmin,
-    updateUser
+    isSupervisor,
+    isRepresentative,
+    isWarehouse,
+    updateUser: updateRoleUser
   };
 };
-
-export default useAuth;
