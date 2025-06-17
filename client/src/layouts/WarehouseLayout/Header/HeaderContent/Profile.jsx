@@ -36,7 +36,7 @@ import { IconChevronRight, IconLanguage, IconLogout, IconSettings, IconSunMoon, 
 /***************************  HEADER - PROFILE DATA  ***************************/
 
 const profileData = {
-  avatar: { src: '/assets/images/users/avatar-1.png', size: AvatarSize.XS },
+  avatar: { src: '/assets/images/users/avatar-4.png', size: AvatarSize.XS },
   title: 'Erika Collins',
   caption: 'Super Admin'
 };
