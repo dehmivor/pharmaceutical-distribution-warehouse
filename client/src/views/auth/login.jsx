@@ -23,12 +23,32 @@ export default function Login() {
 
         <AuthLogin />
 
-        <Typography variant="body2" color="text.secondary" sx={{ mt: { xs: 2, sm: 3 } }}>
-          Don’t have an account?{' '}
-          <Link component={NextLink} underline="hover" variant="subtitle2" href="not-found" sx={{ '&:hover': { color: 'primary.dark' } }}>
+        <Stack direction="row" justifyContent="start" alignItems="center" spacing={1} sx={{ mt: { xs: 2, sm: 3 } }}>
+          <Typography variant="body2" color="text.secondary">
+            Need help?
+          </Typography>
+          <Link
+            component={NextLink}
+            underline="hover"
+            variant="subtitle2"
+            href="/auth/forgot-password"
+            sx={{ '&:hover': { color: 'primary.dark' } }}
+          >
+            Forgot password
+          </Link>
+          <Typography variant="body2" color="text.secondary">
+            |
+          </Typography>
+          <Link
+            component={NextLink}
+            underline="hover"
+            variant="subtitle2"
+            href="/contact-support"
+            sx={{ '&:hover': { color: 'primary.dark' } }}
+          >
             Contact support
           </Link>
-        </Typography>
+        </Stack>
       </Box>
 
       <Copyright />
