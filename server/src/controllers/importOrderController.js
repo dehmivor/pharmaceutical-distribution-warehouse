@@ -5,7 +5,7 @@ class ImportOrderController {
   // Create new import order
   async createImportOrder(req, res) {
     try {
-      const { orderData, orderDetails } = req.body;
+      const orderData = req.body;
       
       // Add created_by from authenticated user if available
       if (req.user && req.user._id) {
@@ -15,7 +15,7 @@ class ImportOrderController {
         orderData.created_by = "22ec4da883aa4736aa000001"; // Default supervisor ID
       }
       
-      const newOrder = await importOrderService.createImportOrder(orderData, orderDetails);
+      const newOrder = await importOrderService.createImportOrder(orderData);
       
       res.status(201).json({
         success: true,
@@ -32,13 +32,12 @@ class ImportOrderController {
   // Get all import orders
   async getImportOrders(req, res) {
     try {
-      const { page = 1, limit = 10, status, supplier_id, warehouse_id } = req.query;
+      const { page = 1, limit = 10, status, manager_id } = req.query;
       
       // Build query
       const query = {};
       if (status) query.status = status;
-      if (supplier_id) query.supplier_id = supplier_id;
-      if (warehouse_id) query.warehouse_id = warehouse_id;
+      if (manager_id) query.manager_id = manager_id;
 
       const result = await importOrderService.getImportOrders(
         query,
@@ -97,26 +96,6 @@ class ImportOrderController {
     }
   }
 
-  // Update import order details
-  async updateImportOrderDetails(req, res) {
-    try {
-      const { id } = req.params;
-      const { details } = req.body;
-
-      const updatedDetails = await importOrderService.updateImportOrderDetails(id, details);
-
-      res.status(200).json({
-        success: true,
-        data: updatedDetails
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        error: error.message
-      });
-    }
-  }
-
   // Delete import order
   async deleteImportOrder(req, res) {
     try {
@@ -146,14 +125,7 @@ class ImportOrderController {
         throw new Error('Invalid status');
       }
 
-      // Get approved_by from authenticated user if available
-      const approvedBy = req.user && req.user._id ? req.user._id : null;
-
-      const updatedOrder = await importOrderService.updateOrderStatus(
-        id,
-        status,
-        approvedBy
-      );
+      const updatedOrder = await importOrderService.updateOrderStatus(id, status);
 
       res.status(200).json({
         success: true,
