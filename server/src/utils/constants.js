@@ -3,8 +3,7 @@ const USER_ROLES = {
     WAREHOUSE: 'warehouse',
     SUPERVISOR: 'supervisor',
     REPRESENTATIVE: 'representative',
-    RETAILER: 'retailer',
-    SUPPLIER: 'supplier',
+    MANAGER: 'manager',
 };
 
 const USER_STATUSES = {
@@ -12,27 +11,11 @@ const USER_STATUSES = {
     INACTIVE: 'inactive',
 };
 
-const MEDICINE_DOSAGE_FORMS = {
-    TABLET: 'tablet',
-    CAPSULE: 'capsule',
-    SYRUP: 'syrup',
-    INJECTION: 'injection',
-};
-
 const MEDICINE_TARGET_CUSTOMERS = {
     ALL: 'all',
     CHILDREN: 'children',
     ADULTS: 'adults',
     SENIORS: 'seniors',
-};
-
-const MEDICINE_UNITS = {
-    G: 'g',
-    ML: 'ml',
-    TABLET: 'tablet',
-    BOTTLE: 'bottle',
-    VIAL: 'vial',
-    PACK: 'pack',
 };
 
 const BATCH_QUALITY_STATUSES = {
@@ -67,9 +50,18 @@ const CONTRACT_STATUSES = {
 };
 
 const IMPORT_ORDER_STATUSES = {
+  WAITING_APPROVAL: 'waiting_approval',
+  APPROVED: 'approved',
+  CARRIER_ARRIVED: 'carrier_arrived',
+  CHECKED_IN : 'checked_in',
+  COMPLETED : 'completed',
+  CANCELLED: 'cancelled',
+};
+
+
+const PURCHASE_ORDER_STATUSES = {
   PENDING: 'pending',
-  PROCESSING: 'processing',
-  COMPLETED: 'completed',
+  ACCEPTED: 'accepted',
   CANCELLED: 'cancelled',
 };
 

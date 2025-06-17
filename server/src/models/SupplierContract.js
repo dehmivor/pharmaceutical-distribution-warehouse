@@ -15,7 +15,6 @@ const itemContractSchema = new mongoose.Schema({
   },
   unit_price: {
     type: Number,
-    required: [true, 'Unit price is required'],
     min: [0, 'Unit price cannot be negative'],
   },
   kpi: {
@@ -44,32 +43,11 @@ const itemContractSchema = new mongoose.Schema({
   },
 });
 
-const contractSchema = new mongoose.Schema({
-  contractId: {
-    type: mongoose.Schema.Types.ObjectId,
-    auto: true,
-  },
+const supplierContractSchema = new mongoose.Schema({
   contract_code: {
     type: String,
-    required: [true, 'Contract code is required'],
     unique: true,
     trim: true,
-  },
-  type: {
-    type: String,
-    required: [true, 'Type is required'],
-    enum: {
-      values: ['supply', 'distribution'], // Giả định, thay đổi nếu có enum cụ thể
-      message: 'Type must be either supply or distribution',
-    },
-  },
-  partner_type: {
-    type: String,
-    required: [true, 'Partner type is required'],
-    enum: {
-      values: ['representative', 'supplier', 'retailer'], // Giả định, thay đổi nếu có enum cụ thể
-      message: 'Partner type must be representative, supplier, or retailer',
-    },
   },
   representative_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -78,11 +56,7 @@ const contractSchema = new mongoose.Schema({
   },
   supplier_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  },
-  retailer_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Supplier',
   },
   start_date: {
     type: Date,
@@ -112,4 +86,4 @@ const contractSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-module.exports = mongoose.model('Contract', contractSchema);
+module.exports = mongoose.model('Contract', supplierContractSchema);
