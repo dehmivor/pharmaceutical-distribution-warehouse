@@ -18,9 +18,6 @@ router.get('/:id', importOrderController.getImportOrderById);
 // Update import order
 router.put('/:id', importOrderController.updateImportOrder);
 
-// Update import order details
-router.put('/:id/details', importOrderController.updateImportOrderDetails);
-
 // Delete import order
 router.delete('/:id', importOrderController.deleteImportOrder);
 

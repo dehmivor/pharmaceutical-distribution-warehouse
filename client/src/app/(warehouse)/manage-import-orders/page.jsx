@@ -21,7 +21,7 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Info as InfoIcon } from '@mui/icons-material';
 
 // Components
 import ImportOrderForm from './components/ImportOrderForm';
@@ -150,7 +150,7 @@ const ManageImportOrder = () => {
 
   // Filter orders based on search term
   const filteredOrders = orders.filter((order) =>
-    order.import_order_code.toLowerCase().includes(searchTerm.toLowerCase())
+    order._id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Paginate orders
@@ -185,12 +185,9 @@ const ManageImportOrder = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Order Code</TableCell>
-              <TableCell>Contract</TableCell>
-              <TableCell>Supplier</TableCell>
-              <TableCell>Warehouse</TableCell>
+              <TableCell>Manager</TableCell>
               <TableCell>Import Date</TableCell>
-              <TableCell>Total Value</TableCell>
+              <TableCell>Purchase Order</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
@@ -198,14 +195,11 @@ const ManageImportOrder = () => {
           <TableBody>
             {paginatedOrders.map((order) => (
               <TableRow key={order._id}>
-                <TableCell>{order.import_order_code}</TableCell>
-                <TableCell>{order.contract_id.contract_code}</TableCell>
-                <TableCell>{order.supplier_id.full_name}</TableCell>
-                <TableCell>{order.warehouse_id.full_name}</TableCell>
+                <TableCell>{order.manager_id?.fullName || 'N/A'}</TableCell>
                 <TableCell>
                   {new Date(order.import_date).toLocaleDateString()}
                 </TableCell>
-                <TableCell>{order.total_value.toLocaleString()} VND</TableCell>
+                <TableCell>{order.purchase_order_id?.code || 'N/A'}</TableCell>
                 <TableCell>{order.status}</TableCell>
                 <TableCell>
                   <IconButton
@@ -221,6 +215,12 @@ const ManageImportOrder = () => {
                     disabled={order.status === 'completed'}
                   >
                     <DeleteIcon />
+                  </IconButton>
+                  <IconButton
+                    color="info"
+                    onClick={() => handleOpenDetails(order)}
+                  >
+                    <InfoIcon />
                   </IconButton>
                 </TableCell>
               </TableRow>
@@ -252,6 +252,10 @@ const ManageImportOrder = () => {
           <ImportOrderForm
             order={selectedOrder}
             onClose={handleCloseForm}
+            onSuccess={() => {
+              handleCloseForm();
+              fetchOrders();
+            }}
           />
         </DialogContent>
       </Dialog>
@@ -277,9 +281,8 @@ const ManageImportOrder = () => {
         open={!!error}
         autoHideDuration={6000}
         onClose={handleCloseError}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
+        <Alert onClose={handleCloseError} severity="error">
           {error}
         </Alert>
       </Snackbar>
@@ -287,11 +290,10 @@ const ManageImportOrder = () => {
       {/* Success Snackbar */}
       <Snackbar
         open={!!success}
-        autoHideDuration={1500}
+        autoHideDuration={6000}
         onClose={handleCloseSuccess}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert onClose={handleCloseSuccess} severity="success" sx={{ width: '100%' }}>
+        <Alert onClose={handleCloseSuccess} severity="success">
           {success}
         </Alert>
       </Snackbar>
