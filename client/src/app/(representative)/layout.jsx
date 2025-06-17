@@ -1,13 +1,15 @@
-'use client';
+import PropTypes from 'prop-types';
 
-import { Box, Container } from '@mui/material';
+// @next
+import dynamic from 'next/dynamic';
 
-export default function Layout({ children }) {
-  return (
-    <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-      <Container maxWidth="lg">
-        {children}
-      </Container>
-    </Box>
-  );
-} 
+// @project
+const RepresentativeLayout = dynamic(() => import('@/layouts/RepresentativeLayout'));
+
+/***************************  LAYOUT - ADMIN  ***************************/
+
+export default function RepresentativePages({ children }) {
+  return <RepresentativeLayout>{children}</RepresentativeLayout>;
+}
+
+RepresentativeLayout.propTypes = { children: PropTypes.any };
