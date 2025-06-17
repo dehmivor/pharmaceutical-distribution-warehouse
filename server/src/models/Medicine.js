@@ -2,20 +2,20 @@ const mongoose = require('mongoose');
 const constants = require('../utils/constants');
 
 const medicineSchema = new mongoose.Schema({
-  medicine_name: {
+  name: {
     type: String,
     required: [true, 'Medicine name is required'],
     trim: true,
   },
-  medicine_code: {
+  license_code: {
     type: String,
     required: [true, 'Medicine code is required'],
     unique: true,
     trim: true,
   },
-  category: {
+  manufacture: {
     type: String,
-    required: [true, 'Category is required'],
+    required: [true, 'Manufacture is required'],
     trim: true,
   },
   storage_conditions: {
@@ -27,22 +27,19 @@ const medicineSchema = new mongoose.Schema({
     },
     default: {},
   },
+  active_ingerdient: [{
+    name: {
+      type: String,
+      required: [true, 'Active ingredient name is required'],
+    },
+    amount: {
+      type: String,
+      required: [true, 'Active ingredient amount is required'],
+    }
+  }],
   dosage_form: {
     type: String,
     required: [true, 'Dosage form is required'],
-    enum: {
-      values: Object.values(constants.MEDICINE_DOSAGE_FORMS),
-      message: `Dosage form must be one of: ${Object.values(constants.MEDICINE_DOSAGE_FORMS).join(', ')}`,
-    },
-  },
-  target_customer: {
-    type: String,
-    required: [true, 'Target customer is required'],
-    enum: {
-      values: Object.values(constants.MEDICINE_TARGET_CUSTOMERS),
-      message: `Target customer must be one of: ${Object.values(constants.MEDICINE_TARGET_CUSTOMERS).join(', ')}`,
-    },
-    default: constants.MEDICINE_TARGET_CUSTOMERS.ALL,
   },
   min_stock_threshold: {
     type: Number,
@@ -63,10 +60,10 @@ const medicineSchema = new mongoose.Schema({
   unit_of_measure: {
     type: String,
     required: [true, 'Unit of measure is required'],
-    enum: {
-      values: Object.values(constants.MEDICINE_UNITS),
-      message: `Unit of measure must be one of: ${Object.values(constants.MEDICINE_UNITS).join(', ')}`,
-    },
+  },
+  unit_per_box: {
+    type: Number,
+    required: [true, 'Unit per box is required'],
   },
   description: {
     type: String,
