@@ -2,29 +2,22 @@ const express = require('express');
 const router = express.Router();
 const importOrderController = require('../controllers/importOrderController');
 const authenticate = require('../middlewares/authenticate');
+const authorize = require('../middlewares/authorize');
 
 // Apply authentication middleware to all routes
 // router.use(authenticate);
 
-// Create new import order
-router.post('/', importOrderController.createImportOrder);
+// Routes for representative
+router.post('/', /*authorize('representative'),*/ importOrderController.createImportOrder);
+router.put('/:id', /*authorize('representative'),*/ importOrderController.updateImportOrder);
+router.put('/:id/details', /*authorize('representative'),*/ importOrderController.updateImportOrderDetails);
+router.delete('/:id', /*authorize('representative'),*/ importOrderController.deleteImportOrder);
 
-// Get all import orders with filters
-router.get('/', importOrderController.getImportOrders);
+// Routes for both supervisor and representative
+router.get('/', /*authorize(['supervisor', 'representative']),*/ importOrderController.getImportOrders);
+router.get('/:id', /*authorize(['supervisor', 'representative']),*/ importOrderController.getImportOrderById);
 
-// Get import order by ID
-router.get('/:id', importOrderController.getImportOrderById);
-
-// Update import order
-router.put('/:id', importOrderController.updateImportOrder);
-
-// Update import order details
-router.put('/:id/details', importOrderController.updateImportOrderDetails);
-
-// Delete import order
-router.delete('/:id', importOrderController.deleteImportOrder);
-
-// Update order status
-router.patch('/:id/status', importOrderController.updateOrderStatus);
+// Routes for supervisor only
+router.patch('/:id/status', /*authorize('supervisor'),*/ importOrderController.updateOrderStatus);
 
 module.exports = router;
