@@ -36,7 +36,7 @@ import { IconChevronRight, IconLanguage, IconLogout, IconSettings, IconSunMoon, 
 /***************************  HEADER - PROFILE DATA  ***************************/
 
 const profileData = {
-  avatar: { src: '/assets/images/users/avatar-1.png', size: AvatarSize.XS },
+  avatar: { src: '/assets/images/users/avatar-2.png', size: AvatarSize.XS },
   title: 'Erika Collins',
   caption: 'Super Admin'
 };
@@ -134,7 +134,7 @@ export default function ProfileSection() {
                       <ListItemIcon>
                         <IconSunMoon size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Dark Theme" />
+                      <ListItemText primary="Chế độ Kho" />
                     </ListItem>
                     <ListItem
                       secondaryAction={<Switch size="small" checked={false} onChange={() => enqueueSnackbar('Upgrade to pro for RTL')} />}
@@ -143,13 +143,13 @@ export default function ProfileSection() {
                       <ListItemIcon>
                         <IconTextDirectionLtr size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="RTL" />
+                      <ListItemText primary="Chế độ quét" />
                     </ListItem>
                     <ListItemButton sx={buttonStyle} onClick={handleInnerActionClick}>
                       <ListItemIcon>
                         <IconLanguage size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Language" />
+                      <ListItemText primary="Đơn vị tính" />
                       <Chip
                         label={languageList.filter((item) => item.key === i18n)[0]?.value.slice(0, 3)}
                         variant="text"
