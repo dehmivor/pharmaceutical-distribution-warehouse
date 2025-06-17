@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const constants = require('../utils/constants');
 const { sendOTPEmail } = require('./emailService');
-const { default: getRedirectByRole } = require('../utils/directUrl');
+const getRedirectByRole = require('../utils/directUrl');
 
 const authService = {
   register: async (userData) => {
