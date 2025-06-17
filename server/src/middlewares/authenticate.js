@@ -1,5 +1,7 @@
 // middlewares/authMiddleware.js
 const authService = require('../services/authService');
+const User = require('../models/User');
+const constants = require('../utils/constants');
 
 const authenticate = async (req, res, next) => {
   try {
@@ -17,6 +19,12 @@ const authenticate = async (req, res, next) => {
 
     // Kiểm tra token có tồn tại không
     if (!token || token.trim() === '') {
+      console.log('Authentication failed: No token provided', {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        path: req.path,
+      });
+
       return res.status(401).json({
         success: false,
         message: 'Access denied: No token provided',
@@ -28,23 +36,62 @@ const authenticate = async (req, res, next) => {
 
     // Kiểm tra decoded data
     if (!decoded || !decoded.userId) {
+      console.log('Authentication failed: Invalid token payload', {
+        hasDecoded: !!decoded,
+        hasUserId: decoded?.userId,
+      });
+
       return res.status(401).json({
         success: false,
         message: 'Invalid token payload',
       });
     }
 
-    // Attach user data to request (bao gồm role)
+    // ✅ THÊM: Kiểm tra user còn tồn tại và active
+    const user = await User.findById(decoded.userId).select('email role status is_manager');
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (user.status !== constants.USER_STATUSES.ACTIVE) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account is inactive',
+      });
+    }
+
+    // Attach user data to request với thông tin mới nhất từ database
     req.user = {
-      userId: decoded.userId,
-      email: decoded.email,
-      role: decoded.role, // ✅ Đảm bảo role được include
-      ...decoded,
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+      is_manager: user.is_manager,
+      status: user.status,
+      // Giữ lại decoded data nếu cần
+      tokenData: decoded,
     };
+
+    // Log successful authentication (optional)
+    console.log('Authentication successful', {
+      userId: user._id,
+      email: user.email,
+      role: user.role,
+      path: req.path,
+    });
 
     next();
   } catch (error) {
-    console.error('Authentication error:', error.message);
+    console.error('Authentication error:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      ip: req.ip,
+      path: req.path,
+    });
 
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({
