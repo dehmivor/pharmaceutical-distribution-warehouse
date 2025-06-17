@@ -11,7 +11,7 @@ const USER_STATUSES = {
   INACTIVE: 'inactive',
 };
 
-const MEDICINE_CATERGORY = {
+const MEDICINE_CATEGORY = {
   THUOC_KHONG_KE_DON: 'thuốc không kê đơn',
   THUOC_GAY_NGHIEN: 'Thuốc gây nghiện',
   THUOC_HUONG_TAM_THAN_VA_TIEN_CHAT_DUNG_LAM_THUOC: 'Thuốc hướng tâm thần và tiền chất dùng làm thuốc',
@@ -115,6 +115,6 @@ module.exports = {
   IMPORT_ORDER_STATUSES,
   INSPECTION_QUALITY_STATUSES,
   INSPECTION_STATUSES,
-  MEDICINE_CATERGORY,
+  MEDICINE_CATEGORY,
   PURCHASE_ORDER_STATUSES
 };

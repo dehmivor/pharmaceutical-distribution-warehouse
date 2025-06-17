@@ -1,6 +1,28 @@
+// const ImportOrder = require('../models/ImportOrder');
+// const ImportOrderDetail = require('../models/ImportOrderDetail');
+// const { IMPORT_ORDER_STATUSES } = require('../utils/constants');
 const ImportOrder = require('../models/ImportOrder');
 const { IMPORT_ORDER_STATUSES } = require('../utils/constants');
 
+// class ImportOrderService {
+//   // Create new import order
+//   async createImportOrder(orderData, orderDetails) {
+//     try {
+//       const newOrder = new ImportOrder(orderData);
+//       const savedOrder = await newOrder.save();
+
+//       // Create order details
+//       const details = orderDetails.map(detail => ({
+//         ...detail,
+//         import_order_id: savedOrder._id
+//       }));
+//       await ImportOrderDetail.insertMany(details);
+
+//       return savedOrder;
+//     } catch (error) {
+//       throw error;
+//     }
+//   }
 class ImportOrderService {
   // Create new import order
   async createImportOrder(orderData) {
@@ -126,4 +148,4 @@ class ImportOrderService {
   }
 }
 
-module.exports = new ImportOrderService(); 
+module.exports = new ImportOrderService();

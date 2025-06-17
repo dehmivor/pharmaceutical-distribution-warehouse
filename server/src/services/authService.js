@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const constants = require('../utils/constants');
 const { sendOTPEmail } = require('./emailService');
-const { default: getRedirectByRole } = require('../utils/directUrl');
+const getRedirectByRole = require('../utils/directUrl');
 
 const authService = {
   register: async (userData) => {
@@ -173,7 +173,9 @@ const authService = {
       let decoded;
       try {
         decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+        console.log('📝 Decoded token:', decoded);
       } catch (error) {
+        console.error('❌ Token verification error:', error);
         return {
           success: false,
           message: 'Token không hợp lệ hoặc đã hết hạn',
@@ -181,6 +183,7 @@ const authService = {
       }
 
       if (decoded.step !== 'otp_verification') {
+        console.error('❌ Invalid token step:', decoded.step);
         return {
           success: false,
           message: 'Token không hợp lệ',
@@ -190,20 +193,47 @@ const authService = {
       // Find user
       const user = await User.findById(decoded.userId);
       if (!user) {
+        console.error('❌ User not found:', decoded.userId);
         return {
           success: false,
           message: 'Người dùng không tồn tại',
         };
       }
 
-      if (
-        !user.otp_login ||
-        user.otp_login.code !== otp ||
-        user.otp_login.expiry_time < new Date()
-      ) {
+      console.log('📝 User OTP data:', {
+        storedOTP: user.otp_login?.code,
+        receivedOTP: otp,
+        expiryTime: user.otp_login?.expiry_time,
+        currentTime: new Date()
+      });
+
+      if (!user.otp_login) {
+        console.error('❌ No OTP data found for user');
         return {
           success: false,
           message: 'OTP không hợp lệ hoặc đã hết hạn',
+        };
+      }
+
+      if (user.otp_login.code !== otp) {
+        console.error('❌ OTP mismatch:', {
+          stored: user.otp_login.code,
+          received: otp
+        });
+        return {
+          success: false,
+          message: 'OTP không chính xác',
+        };
+      }
+
+      if (user.otp_login.expiry_time < new Date()) {
+        console.error('❌ OTP expired:', {
+          expiryTime: user.otp_login.expiry_time,
+          currentTime: new Date()
+        });
+        return {
+          success: false,
+          message: 'OTP đã hết hạn',
         };
       }
 
@@ -230,6 +260,9 @@ const authService = {
         { expiresIn: '7d' },
       );
 
+      const redirectUrl = getRedirectByRole(user.role);
+      console.log('📝 Login successful, redirecting to:', redirectUrl);
+
       return {
         success: true,
         data: {
@@ -243,7 +276,7 @@ const authService = {
           },
           token,
           refreshToken,
-          redirectUrl: getRedirectByRole(user.role),
+          redirectUrl,
         },
       };
     } catch (error) {
