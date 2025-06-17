@@ -8,12 +8,10 @@ const supplierSchema = new mongoose.Schema({
   },
   address: {
     type: String,
-    required: [true, 'Supplier address is required'],
     trim: true,
   },
   phone: {
     type: String,
-    required: [true, 'Supplier phone number is required'],
     trim: true,
   },
   license: {
