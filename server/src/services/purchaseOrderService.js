@@ -1,11 +1,24 @@
 const PurchaseOrder = require('../models/PurchaseOrder');
 const { PURCHASE_ORDER_STATUSES } = require('../utils/constants');
+const Contract = require('../models/SupplierContract');
 
 class PurchaseOrderService {
   // Create new purchase order
   async createPurchaseOrder(orderData) {
     try {
-      const newOrder = new PurchaseOrder(orderData);
+      // Lấy contract
+      const contract = await Contract.findById(orderData.contract_id);
+      if (!contract) throw new Error('Contract not found');
+      if (!contract.items || contract.items.length === 0) throw new Error('No medicines in contract');
+      // Lấy danh sách medicine_id từ contract
+      const medicineIds = contract.items.map(item => item.medicine_id);
+      // Tạo purchase order mới
+      const newOrder = new PurchaseOrder({
+        contract_id: orderData.contract_id,
+        created_by: orderData.created_by,
+        order_list: medicineIds,
+        status: PURCHASE_ORDER_STATUSES.PENDING,
+      });
       const savedOrder = await newOrder.save();
       return savedOrder;
     } catch (error) {

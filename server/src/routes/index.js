@@ -8,4 +8,5 @@ module.exports = {
   // presentativeRoutes: require('./presentativeRoute'),
   // retailerRoutes: require('./retailerRoute'),
   // supplierRoutes: require('./supplierRoute'),
+  purchaseOrderRoutes: require('./purchaseOrderRoutes'),
 };
