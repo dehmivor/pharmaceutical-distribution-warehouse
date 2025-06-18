@@ -36,10 +36,6 @@ const userSchema = new mongoose.Schema({
       message: `Role must be one of: ${Object.values(constants.USER_ROLES).join(', ')}`,
     },
   },
-  is_manager: {
-    type: Boolean,
-    default: false,
-  },
   status: {
     type: String,
     enum: {
