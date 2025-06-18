@@ -13,7 +13,7 @@ const app = express();
 const errorHandler = require('./middlewares/error.middleware.js');
 const authenticate = require('./middlewares/authenticate');
 const authorize = require('./middlewares/authorize');
-const { authRoutes, cronRoutes, medicineRoutes, supervisorRoutes } = require('./routes');
+const { authRoutes, cronRoutes, medicineRoutes, supervisorRoutes, purchaseOrderRoutes } = require('./routes');
 const importOrderRoutes = require('./routes/importOrderRoutes');
 
 // Middlewares
@@ -39,6 +39,9 @@ app.use('/api/import-orders', importOrderRoutes);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRoutes);
+
+// Purchase Order routes
+app.use('/api/purchase-orders', purchaseOrderRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 
