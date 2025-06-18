@@ -8,6 +8,7 @@ const Inventory = require('./Inventory');
 const Location = require('./Location');
 const SupplierContract = require('./SupplierContract');
 const Supplier = require('./Supplier');
+const Contract = require('./Contract');
 
 module.exports = {
   User,
@@ -20,4 +21,5 @@ module.exports = {
   Location,
   Supplier,
   SupplierContract,
+  Contract,
 };
