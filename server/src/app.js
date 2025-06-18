@@ -13,7 +13,21 @@ const app = express();
 const errorHandler = require('./middlewares/error.middleware.js');
 const authenticate = require('./middlewares/authenticate');
 const authorize = require('./middlewares/authorize');
-const { authRoutes, cronRoutes, medicineRoutes, supervisorRoutes, contractRoutes } = require('./routes');
+const {
+  authRoutes,
+  cronRoutes,
+  medicineRoutes,
+  supervisorRoutes,
+  packageRoutes,
+} = require('./routes');
+const importOrderRoutes = require('./routes/importOrderRoutes');
+const {
+  authRoutes,
+  cronRoutes,
+  medicineRoutes,
+  supervisorRoutes,
+  contractRoutes,
+} = require('./routes');
 
 // Middlewares
 app.use(helmet());
@@ -32,6 +46,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/medicine', medicineRoutes);
+app.use('/api/', packageRoutes);
 
 app.use('/api/import-orders', route.importOrderRoutes);
 app.use('/api/notifications', route.notificationRoutes);
