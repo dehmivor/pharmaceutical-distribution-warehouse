@@ -15,8 +15,10 @@ export default function PurchaseOrderForm({ order, onClose }) {
       try {
         const res = await fetch('/api/contracts');
         const data = await res.json();
+        console.log('Contracts response:', data); // Debug log
         setContracts(data.data || []);
       } catch (err) {
+        console.error('Error fetching contracts:', err); // Debug log
         setContracts([]);
       }
     };
