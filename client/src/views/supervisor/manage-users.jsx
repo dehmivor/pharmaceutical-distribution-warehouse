@@ -1,5 +1,4 @@
 'use client';
-import Loader from '@/components/Loader';
 import ContentSection from '@/sections/supervisor/ContentSection';
 import HeaderSection from '@/sections/supervisor/HeaderSection';
 import TableSection from '@/sections/supervisor/TableSection';
