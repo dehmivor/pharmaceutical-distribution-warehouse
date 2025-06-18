@@ -64,7 +64,6 @@ const fetcher = async (url) => {
 };
 
 const useUsers = () => {
-  // ✅ Kiểm tra token trước khi tạo SWR hook
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   console.log(`Token exists: ${!!token}`, token ? `Token preview: ${token.substring(0, 20)}...` : 'No token found');
   const shouldFetch = token && isValidJWT(token);
@@ -82,13 +81,11 @@ const useUsers = () => {
       refreshInterval: 30000,
       revalidateOnFocus: true,
       fallbackData: [],
-      errorRetryCount: 2, // Giảm retry count
+      errorRetryCount: 2,
       errorRetryInterval: 2000,
-      // ✅ Thêm error handling
       onError: (error) => {
         console.error('SWR Error:', error.message);
         if (error.message.includes('login')) {
-          // Redirect to login page
           window.location.href = '/auth/login';
         }
       }
@@ -103,7 +100,6 @@ const useUsers = () => {
     loading: isLoading,
     error: error?.message || error,
     refetch: mutate,
-    // ✅ Thêm helper functions
     hasValidToken: shouldFetch,
     tokenExists: !!token
   };
