@@ -74,6 +74,11 @@ function WarehouseBreadcrumbs({ currentPath, onNavigate }) {
       icon: <IconList size={16} />,
       path: 'list'
     },
+    list_import: {
+      label: 'Danh sách phiếu nhập',
+      icon: <IconList size={16} />,
+      path: 'list'
+    },
     create: {
       label: 'Tạo phiếu nhập',
       icon: <IconPackage size={16} />,
@@ -84,7 +89,8 @@ function WarehouseBreadcrumbs({ currentPath, onNavigate }) {
   const pathHierarchy = {
     warehouse: ['dashboard', 'warehouse'],
     list: ['dashboard', 'warehouse', 'list'],
-    create: ['dashboard', 'warehouse', 'create']
+    create: ['dashboard', 'warehouse', 'create'],
+    list_import: ['dashboard', 'warehouse', 'list_import']
   };
 
   const currentHierarchy = pathHierarchy[currentPath] || ['dashboard', 'warehouse'];
@@ -174,8 +180,10 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
     // Cập nhật breadcrumb path
     if (newValue === 0) {
       setCurrentBreadcrumbPath('create');
-    } else {
+    } else if (newValue === 2) {
       setCurrentBreadcrumbPath('list');
+    } else if (newValue === 1) {
+      setCurrentBreadcrumbPath('list_import');
     }
   };
 
@@ -195,6 +203,10 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
       case 'create':
         setActiveTab(0);
         setCurrentBreadcrumbPath('create');
+        break;
+      case 'list_import':
+        setActiveTab(2);
+        setCurrentBreadcrumbPath('list_import');
         break;
       default:
         break;

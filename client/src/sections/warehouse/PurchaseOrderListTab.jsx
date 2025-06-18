@@ -299,7 +299,7 @@ export default function PurchaseOrderListTab() {
               </TableRow>
             ) : (
               purchaseOrders.map((order) => (
-                <TableRow key={order.id} hover>
+                <TableRow key={order._id} hover>
                   <TableCell>
                     <Typography variant="body2" fontWeight="medium">
                       {order._id}
