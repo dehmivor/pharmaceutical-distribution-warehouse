@@ -8,8 +8,8 @@ const RepresentativeLayout = dynamic(() => import('@/layouts/RepresentativeLayou
 
 /***************************  LAYOUT - ADMIN  ***************************/
 
-export default function Layout({ children }) {
+export default function RepresentativePages({ children }) {
   return <RepresentativeLayout>{children}</RepresentativeLayout>;
 }
 
-Layout.propTypes = { children: PropTypes.any };
+RepresentativeLayout.propTypes = { children: PropTypes.any };

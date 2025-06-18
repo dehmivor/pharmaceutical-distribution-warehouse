@@ -27,16 +27,6 @@ const batchSchema = new mongoose.Schema({
       message: 'Expiry date must be after production date',
     },
   },
-  quantity: {
-    type: Number,
-    required: [true, 'Quantity is required'],
-    min: [1, 'Quantity must be at least 1'],
-  },
-  supplier_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'Supplier ID is required'],
-  },
   quality_status: {
     type: String,
     required: [true, 'Quality status is required'],
