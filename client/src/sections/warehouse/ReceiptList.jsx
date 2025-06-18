@@ -26,7 +26,7 @@ import {
   IconButton,
   Tooltip
 } from '@mui/material';
-import { Visibility, Edit, Delete, CheckCircle, Cancel, LocalShipping, Inventory } from '@mui/icons-material';
+import { Visibility, Edit, Delete, CheckCircle, LabelImportantOutlineSharp, LocalShipping, Inventory } from '@mui/icons-material';
 import { useImportOrders, useImportOrder, useImportOrderActions } from '@/hooks/useImportOrders';
 
 function ImportOrderList({ onOrderSelect, onSendForApproval }) {
@@ -398,7 +398,7 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
                       {order.status === 'pending' && (
                         <Tooltip title="Chỉnh sửa">
                           <IconButton size="small" onClick={() => handleEditOrder(order)}>
-                            <Edit />
+                            <LabelImportantOutlineSharp />
                           </IconButton>
                         </Tooltip>
                       )}

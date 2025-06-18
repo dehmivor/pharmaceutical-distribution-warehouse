@@ -9,13 +9,21 @@ router.use(authenticate);
 
 // Routes for representative
 router.post('/', authorize('representative'), importOrderController.createImportOrder);
-router.put('/:id', authorize('representative'), importOrderController.updateImportOrder);
+router.put(
+  '/:id',
+  authorize('warehouse', 'representative', 'supervisor'),
+  importOrderController.updateImportOrder,
+);
 router.put(
   '/:id/details',
-  authorize('representative'),
+  authorize('representative', 'warehouse', 'supervisor'),
   importOrderController.updateImportOrderDetails,
 );
-router.delete('/:id', authorize('representative'), importOrderController.deleteImportOrder);
+router.delete(
+  '/:id',
+  authorize('representative', 'supervisor', 'warehouse'),
+  importOrderController.deleteImportOrder,
+);
 
 // Routes for supervisor, representative, and warehouse
 router.get(
