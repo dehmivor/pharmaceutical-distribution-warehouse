@@ -34,6 +34,7 @@ app.use('/api/cron', cronRoutes);
 app.use('/api/medicine', medicineRoutes);
 
 app.use('/api/import-orders', route.importOrderRoutes);
+app.use('/api/notifications', route.notificationRoutes);
 app.use(
   '/api/purchase-orders',
   authenticate,

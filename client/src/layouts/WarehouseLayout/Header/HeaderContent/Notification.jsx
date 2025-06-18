@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 
 // @mui
 import { keyframes, useTheme } from '@mui/material/styles';
@@ -20,15 +20,18 @@ import ListSubheader from '@mui/material/ListSubheader';
 import Popper from '@mui/material/Popper';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
 
 // @project
 import EmptyNotification from '@/components/header/empty-state/EmptyNotification';
 import MainCard from '@/components/MainCard';
 import NotificationItem from '@/components/NotificationItem';
 import SimpleBar from '@/components/third-party/SimpleBar';
+import useNotifications from '@/hooks/useNotification';
 
 // @assets
-import { IconBell, IconCode, IconChevronDown, IconGitBranch, IconNote, IconGps } from '@tabler/icons-react';
+import { IconBell, IconCode, IconChevronDown, IconGitBranch, IconNote, IconGps, IconShield } from '@tabler/icons-react';
 
 const swing = keyframes`
   20% {
@@ -48,16 +51,77 @@ const swing = keyframes`
 }
 `;
 
+// Icon mapping cho các loại notification
+const getTypeIcon = (type, theme) => {
+  const iconProps = { size: 14, color: theme.palette.text.primary };
+
+  switch (type) {
+    case 'code':
+      return <IconCode {...iconProps} />;
+    case 'git':
+      return <IconGitBranch {...iconProps} />;
+    case 'document':
+      return <IconNote {...iconProps} />;
+    case 'location':
+      return <IconGps {...iconProps} />;
+    case 'security':
+      return <IconShield {...iconProps} />;
+    default:
+      return <IconBell {...iconProps} />;
+  }
+};
+
+// Format thời gian
+const formatDateTime = (dateString) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+
+  if (diffInHours < 24) {
+    return `${diffInHours}h ago`;
+  } else if (diffInHours < 168) {
+    // 7 days
+    return `${Math.floor(diffInHours / 24)}d ago`;
+  } else {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+};
+
+// Phân loại notifications theo thời gian
+const categorizeNotifications = (notifications) => {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  const recent = notifications.filter((notif) => new Date(notif.createdAt) > sevenDaysAgo);
+  const older = notifications.filter((notif) => new Date(notif.createdAt) <= sevenDaysAgo);
+
+  return { recent, older };
+};
+
 /***************************  HEADER - NOTIFICATION  ***************************/
 
-export default function Notification() {
+export default function Notification({ userId }) {
   const theme = useTheme();
   const downSM = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [innerAnchorEl, setInnerAnchorEl] = useState(null);
-  const [allRead, setAllRead] = useState(false);
-  const [showEmpty, setShowEmpty] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState('All notification');
+
+  // Sử dụng hook useNotifications
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    error,
+    isValidating,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearAllNotifications,
+    getNotificationsByRecipient,
+    filterNotifications
+  } = useNotifications(userId);
 
   const open = Boolean(anchorEl);
   const innerOpen = Boolean(innerAnchorEl);
@@ -65,83 +129,18 @@ export default function Notification() {
   const innerId = innerOpen ? 'notification-inner-popper' : undefined;
   const buttonStyle = { borderRadius: 2, p: 1 };
 
-  const listcontent = ['All notification', 'Users', 'Account', 'Language', 'Role & Permission', 'Setting'];
+  const filterOptions = ['All notification', 'Code', 'Git', 'Document', 'Location', 'Security', 'System'];
 
-  const [notifications, setNotifications] = useState([
-    {
-      avatar: { alt: 'Travis Howard', src: '/assets/images/users/avatar-1.png' },
-      badge: <IconCode size={14} color={theme.palette.text.primary} />,
-      title: 'New Feature Deployed · Code Review Needed',
-      subTitle: 'Brenda Skiles',
-      dateTime: 'Jul 9'
-    },
-    {
-      avatar: <IconGitBranch />,
-      title: 'New Branch Created - "feature-user-auth"',
-      subTitle: 'Michael Carter',
-      dateTime: 'Jul 10',
-      isSeen: true
-    },
-    {
-      avatar: <IconGitBranch />,
-      title: 'Pull Request Opened "fix-dashboard-bug"',
-      subTitle: 'Sophia Green',
-      dateTime: 'Jul 11'
-    },
-    {
-      avatar: { alt: 'Travis Howard', src: '/assets/images/users/avatar-4.png' },
-      badge: <IconNote size={14} color={theme.palette.text.primary} />,
-      title: 'Admin Approval · Document Submission Accepted',
-      subTitle: 'Salvatore Bogan',
-      dateTime: 'Jul 15',
-      isSeen: true
-    },
-    {
-      avatar: <IconGps />,
-      title: 'Location Access Request, Pending Your Approval',
-      subTitle: 'System Notification',
-      dateTime: 'Jul 24',
-      isSeen: true
+  // Lọc notifications theo filter được chọn
+  const getFilteredNotifications = () => {
+    if (selectedFilter === 'All notification') {
+      return notifications;
     }
-  ]);
+    return filterNotifications({ type: selectedFilter.toLowerCase() });
+  };
 
-  const [notifications2, setNotifications2] = useState([
-    {
-      avatar: { alt: 'Travis Howard', src: '/assets/images/users/avatar-1.png' },
-      badge: <IconCode size={14} color={theme.palette.text.primary} />,
-      title: 'Code Review Requested · Feature Deployment',
-      subTitle: 'Brenda Skiles',
-      dateTime: 'Jul 9'
-    },
-    {
-      avatar: <IconGps />,
-      title: 'Location Access Granted [Security Update]',
-      subTitle: 'System Notification',
-      dateTime: 'Jul 24',
-      isSeen: true
-    },
-    {
-      avatar: { alt: 'Alice Smith', src: '/assets/images/users/avatar-5.png' },
-      badge: <IconNote size={14} color={theme.palette.text.primary} />,
-      title: 'Document Submission Approval Received',
-      subTitle: 'Salvatore Bogan',
-      dateTime: 'Aug 12',
-      isSeen: true
-    },
-    {
-      avatar: { alt: 'Travis Howard', src: '/assets/images/users/avatar-1.png' },
-      badge: <IconCode size={14} color={theme.palette.text.primary} />,
-      title: 'New Commit Pushed · Review Changes',
-      subTitle: 'Brenda Skiles',
-      dateTime: 'Jul 9'
-    },
-    {
-      avatar: <IconGps />,
-      title: 'Unusual Login Attempt [Verify Activity]',
-      subTitle: 'Security Alert',
-      dateTime: 'Jul 24'
-    }
-  ]);
+  // Phân loại notifications
+  const { recent, older } = categorizeNotifications(getFilteredNotifications());
 
   const handleActionClick = (event) => {
     setAnchorEl(anchorEl ? null : event.currentTarget);
@@ -151,18 +150,61 @@ export default function Notification() {
     setInnerAnchorEl(innerAnchorEl ? null : event.currentTarget);
   };
 
-  // Function to mark all notifications as read
-  const handleMarkAllAsRead = () => {
-    setNotifications((prevNotifications) => prevNotifications.map((notification) => ({ ...notification, isSeen: true })));
-    setNotifications2((prevNotifications2) => prevNotifications2.map((notification) => ({ ...notification, isSeen: true })));
-    setAllRead(true);
+  const handleFilterSelect = (filter) => {
+    setSelectedFilter(filter);
+    setInnerAnchorEl(null);
+
+    // Gọi API với filter nếu cần
+    if (filter !== 'All notification') {
+      getNotificationsByRecipient({ type: filter.toLowerCase() });
+    } else {
+      getNotificationsByRecipient();
+    }
   };
 
-  const handleClearAll = () => {
-    setNotifications([]);
-    setNotifications2([]);
-    setShowEmpty(true); // Set empty state to true when cleared
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsRead();
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
   };
+
+  const handleClearAll = async () => {
+    try {
+      await clearAllNotifications();
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+    }
+  };
+
+  const handleNotificationClick = async (notificationId, actionUrl) => {
+    try {
+      await markAsRead(notificationId);
+
+      // Chuyển hướng nếu có action_url
+      if (actionUrl) {
+        window.location.href = actionUrl;
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  // Transform notification data để phù hợp với NotificationItem component
+  const transformNotification = (notification) => ({
+    avatar: notification.avatar_url
+      ? { alt: notification.sender_id?.name || 'User', src: notification.avatar_url }
+      : getTypeIcon(notification.type, theme),
+    badge: getTypeIcon(notification.type, theme),
+    title: notification.title,
+    subTitle: notification.sender_id?.name || notification.message,
+    dateTime: formatDateTime(notification.createdAt),
+    isSeen: notification.status === 'read'
+  });
+
+  const showEmpty = notifications.length === 0 && !loading;
+  const allRead = unreadCount === 0;
 
   return (
     <>
@@ -172,19 +214,26 @@ export default function Notification() {
         size="small"
         onClick={handleActionClick}
         aria-label="show notifications"
-        {...(notifications.length !== 0 && !allRead && { sx: { '& svg': { animation: `${swing} 1s ease infinite` } } })}
+        {...(unreadCount > 0 && { sx: { '& svg': { animation: `${swing} 1s ease infinite` } } })}
       >
         <Badge
           color="error"
           variant="dot"
-          invisible={allRead || notifications.length === 0}
+          invisible={allRead}
           sx={{
-            '& .MuiBadge-badge': { height: 6, minWidth: 6, top: 4, right: 4, border: `1px solid ${theme.palette.background.default}` }
+            '& .MuiBadge-badge': {
+              height: 6,
+              minWidth: 6,
+              top: 4,
+              right: 4,
+              border: `1px solid ${theme.palette.background.default}`
+            }
           }}
         >
           <IconBell size={16} />
         </Badge>
       </IconButton>
+
       <Popper
         placement="bottom-end"
         id={id}
@@ -220,23 +269,31 @@ export default function Notification() {
                           endIcon={<IconChevronDown size={16} />}
                           onClick={handleInnerActionClick}
                         >
-                          All Notification
+                          {selectedFilter} {isValidating && <CircularProgress size={12} sx={{ ml: 1 }} />}
                         </Button>
+
                         <Popper
                           placement="bottom-start"
                           id={innerId}
                           open={innerOpen}
                           anchorEl={innerAnchorEl}
                           transition
-                          popperOptions={{ modifiers: [{ name: 'preventOverflow', options: { boundary: 'clippingParents' } }] }}
+                          popperOptions={{
+                            modifiers: [{ name: 'preventOverflow', options: { boundary: 'clippingParents' } }]
+                          }}
                         >
                           {({ TransitionProps }) => (
                             <Fade in={innerOpen} {...TransitionProps}>
                               <MainCard sx={{ borderRadius: 2, boxShadow: theme.customShadows.tooltip, minWidth: 156, p: 0.5 }}>
                                 <ClickAwayListener onClickAway={() => setInnerAnchorEl(null)}>
                                   <List disablePadding>
-                                    {listcontent.map((item, index) => (
-                                      <ListItemButton key={index} sx={buttonStyle} onClick={handleInnerActionClick}>
+                                    {filterOptions.map((item, index) => (
+                                      <ListItemButton
+                                        key={index}
+                                        sx={buttonStyle}
+                                        onClick={() => handleFilterSelect(item)}
+                                        selected={selectedFilter === item}
+                                      >
                                         <ListItemText>{item}</ListItemText>
                                       </ListItemButton>
                                     ))}
@@ -246,59 +303,105 @@ export default function Notification() {
                             </Fade>
                           )}
                         </Popper>
+
                         {!showEmpty && (
-                          <Button color="primary" size="small" onClick={handleMarkAllAsRead} disabled={allRead}>
+                          <Button color="primary" size="small" onClick={handleMarkAllAsRead} disabled={allRead || loading}>
                             Mark All as Read
                           </Button>
                         )}
                       </Stack>
                     }
                   />
-                  {showEmpty ? (
+
+                  {error && (
+                    <Alert severity="error" sx={{ m: 1 }}>
+                      {error}
+                    </Alert>
+                  )}
+
+                  {loading && notifications.length === 0 ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                      <CircularProgress />
+                    </Box>
+                  ) : showEmpty ? (
                     <EmptyNotification />
                   ) : (
                     <Fragment>
                       <CardContent sx={{ px: 0.5, py: 2, '&:last-child': { pb: 2 } }}>
                         <SimpleBar sx={{ maxHeight: 405, height: 1 }}>
                           <List disablePadding>
-                            <ListSubheader disableSticky sx={{ color: 'text.disabled', typography: 'caption', py: 0.5, px: 1, mb: 0.5 }}>
-                              Last 7 Days
-                            </ListSubheader>
-                            {notifications.map((notification, index) => (
-                              <ListItemButton key={index} sx={buttonStyle}>
-                                <NotificationItem
-                                  avatar={notification.avatar}
-                                  {...(notification.badge && { badgeAvatar: { children: notification.badge } })}
-                                  title={notification.title}
-                                  subTitle={notification.subTitle}
-                                  dateTime={notification.dateTime}
-                                  isSeen={notification.isSeen}
-                                />
-                              </ListItemButton>
-                            ))}
-                            <ListSubheader
-                              disableSticky
-                              sx={{ color: 'text.disabled', typography: 'caption', py: 0.5, px: 1, mb: 0.5, mt: 1.5 }}
-                            >
-                              Older
-                            </ListSubheader>
-                            {notifications2.map((notification, index) => (
-                              <ListItemButton key={index} sx={buttonStyle}>
-                                <NotificationItem
-                                  avatar={notification.avatar}
-                                  {...(notification.badge && { badgeAvatar: { children: notification.badge } })}
-                                  title={notification.title}
-                                  subTitle={notification.subTitle}
-                                  dateTime={notification.dateTime}
-                                  isSeen={notification.isSeen}
-                                />
-                              </ListItemButton>
-                            ))}
+                            {recent.length > 0 && (
+                              <>
+                                <ListSubheader
+                                  disableSticky
+                                  sx={{ color: 'text.disabled', typography: 'caption', py: 0.5, px: 1, mb: 0.5 }}
+                                >
+                                  Last 7 Days ({recent.length})
+                                </ListSubheader>
+                                {recent.map((notification, index) => {
+                                  const transformedNotif = transformNotification(notification);
+                                  return (
+                                    <ListItemButton
+                                      key={notification.id}
+                                      sx={buttonStyle}
+                                      onClick={() => handleNotificationClick(notification.id, notification.action_url)}
+                                    >
+                                      <NotificationItem
+                                        avatar={transformedNotif.avatar}
+                                        badgeAvatar={{ children: transformedNotif.badge }}
+                                        title={transformedNotif.title}
+                                        subTitle={transformedNotif.subTitle}
+                                        dateTime={transformedNotif.dateTime}
+                                        isSeen={transformedNotif.isSeen}
+                                      />
+                                    </ListItemButton>
+                                  );
+                                })}
+                              </>
+                            )}
+
+                            {older.length > 0 && (
+                              <>
+                                <ListSubheader
+                                  disableSticky
+                                  sx={{
+                                    color: 'text.disabled',
+                                    typography: 'caption',
+                                    py: 0.5,
+                                    px: 1,
+                                    mb: 0.5,
+                                    mt: recent.length > 0 ? 1.5 : 0
+                                  }}
+                                >
+                                  Older ({older.length})
+                                </ListSubheader>
+                                {older.map((notification, index) => {
+                                  const transformedNotif = transformNotification(notification);
+                                  return (
+                                    <ListItemButton
+                                      key={notification.id}
+                                      sx={buttonStyle}
+                                      onClick={() => handleNotificationClick(notification.id, notification.action_url)}
+                                    >
+                                      <NotificationItem
+                                        avatar={transformedNotif.avatar}
+                                        badgeAvatar={{ children: transformedNotif.badge }}
+                                        title={transformedNotif.title}
+                                        subTitle={transformedNotif.subTitle}
+                                        dateTime={transformedNotif.dateTime}
+                                        isSeen={transformedNotif.isSeen}
+                                      />
+                                    </ListItemButton>
+                                  );
+                                })}
+                              </>
+                            )}
                           </List>
                         </SimpleBar>
                       </CardContent>
+
                       <CardActions sx={{ p: 1 }}>
-                        <Button fullWidth color="error" onClick={handleClearAll}>
+                        <Button fullWidth color="error" onClick={handleClearAll} disabled={loading}>
                           Clear all
                         </Button>
                       </CardActions>
