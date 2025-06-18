@@ -20,6 +20,7 @@ import ReceiptList from '@/sections/warehouse/ReceiptList';
 import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
 import { Create } from '@mui/icons-material';
 import CreateReceiptTab from './CreateReceiptTab';
+import PurchaseOrderListTab from './PurchaseOrderListTab';
 
 /***************************  BORDER WITH RADIUS  ***************************/
 
@@ -240,11 +241,7 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
 
             {/* Tab Panel - Danh sách đơn mua */}
             <TabPanel value={activeTab} index={2}>
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Danh sách đơn mua sẽ được hiển thị ở đây
-                </Typography>
-              </Box>
+              <PurchaseOrderListTab />
             </TabPanel>
           </Box>
         </Stack>
