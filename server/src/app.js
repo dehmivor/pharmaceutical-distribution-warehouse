@@ -13,7 +13,7 @@ const app = express();
 const errorHandler = require('./middlewares/error.middleware.js');
 const authenticate = require('./middlewares/authenticate');
 const authorize = require('./middlewares/authorize');
-const { authRoutes, cronRoutes, medicineRoutes, supervisorRoutes } = require('./routes');
+const { authRoutes, cronRoutes, medicineRoutes, supervisorRoutes, contractRoutes } = require('./routes');
 
 // Middlewares
 app.use(helmet());
@@ -43,6 +43,8 @@ app.use(
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRoutes);
+
+app.use('/api/contracts', contractRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 
