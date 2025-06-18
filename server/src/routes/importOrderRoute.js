@@ -5,19 +5,33 @@ const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
 
 // Apply authentication middleware to all routes
-// router.use(authenticate);
+router.use(authenticate);
 
 // Routes for representative
-router.post('/', /*authorize('representative'),*/ importOrderController.createImportOrder);
-router.put('/:id', /*authorize('representative'),*/ importOrderController.updateImportOrder);
-router.put('/:id/details', /*authorize('representative'),*/ importOrderController.updateImportOrderDetails);
-router.delete('/:id', /*authorize('representative'),*/ importOrderController.deleteImportOrder);
+router.post('/', authorize('representative'), importOrderController.createImportOrder);
+router.put('/:id', authorize('representative'), importOrderController.updateImportOrder);
+router.put(
+  '/:id/details',
+  authorize('representative'),
+  importOrderController.updateImportOrderDetails,
+);
+router.delete('/:id', authorize('representative'), importOrderController.deleteImportOrder);
 
-// Routes for both supervisor and representative
-router.get('/', /*authorize(['supervisor', 'representative']),*/ importOrderController.getImportOrders);
-router.get('/:id', /*authorize(['supervisor', 'representative']),*/ importOrderController.getImportOrderById);
+// Routes for supervisor, representative, and warehouse
+router.get(
+  '/',
+  authorize(['supervisor', 'representative', 'warehouse']),
+  importOrderController.getImportOrders,
+);
+router.get(
+  '/:id',
+  authorize(['supervisor', 'representative', 'warehouse']),
+  importOrderController.getImportOrderById,
+);
 
 // Routes for supervisor only
-router.patch('/:id/status', /*authorize('supervisor'),*/ importOrderController.updateOrderStatus);
+router.patch('/:id/status', authorize('supervisor'), importOrderController.updateOrderStatus);
+
+// Routes for warehouse only
 
 module.exports = router;

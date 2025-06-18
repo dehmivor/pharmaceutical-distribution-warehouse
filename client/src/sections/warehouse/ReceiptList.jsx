@@ -1,10 +1,5 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
 import {
-  Card,
-  CardContent,
-  Typography,
   Table,
   TableBody,
   TableCell,
@@ -12,371 +7,593 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Chip,
   Button,
-  Box,
-  TextField,
-  Grid,
-  IconButton,
+  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  CircularProgress,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Pagination,
+  Box,
+  Typography,
   Alert,
-  Snackbar
+  Snackbar,
+  IconButton,
+  Tooltip
 } from '@mui/material';
-import {
-  Visibility as ViewIcon,
-  Send as SendIcon,
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
-  Refresh as RefreshIcon
-} from '@mui/icons-material';
+import { Visibility, Edit, Delete, CheckCircle, Cancel, LocalShipping, Inventory } from '@mui/icons-material';
+import { useImportOrders, useImportOrder, useImportOrderActions } from '@/hooks/useImportOrders';
 
-// Import hooks
-import { usePurchaseOrders, usePurchaseOrderActions, useExportPurchaseOrders } from '@/hooks/usePurchaseOrders';
-
-function ReceiptList({ onReceiptSelect, onSendForApproval }) {
-  // State cho filter và pagination
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [page, setPage] = useState(1);
-  const [limit] = useState(10);
-
-  // State cho dialog và notifications
-  const [selectedReceipt, setSelectedReceipt] = useState(null);
+function ImportOrderList({ onOrderSelect, onSendForApproval }) {
+  // State declarations
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
-
-  // Sử dụng hooks
-  const { purchaseOrders, pagination, isLoading, isError, mutate } = usePurchaseOrders({
-    status: filterStatus,
-    page,
-    limit
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
   });
 
-  const { sendForApproval, approve, reject, updateStatus } = usePurchaseOrderActions();
+  // Filter states
+  const [filters, setFilters] = useState({
+    status: 'all',
+    supplierId: '',
+    page: 1,
+    limit: 10
+  });
 
-  const { exportToExcel, exportToPDF } = useExportPurchaseOrders();
+  // Form states
+  const [statusForm, setStatusForm] = useState({
+    status: '',
+    notes: ''
+  });
 
-  // Hàm helper để hiển thị thông báo
-  const showNotification = (message, severity = 'success') => {
-    setNotification({ open: true, message, severity });
+  // Hooks
+  const { importOrders, pagination, isLoading, isError, mutate } = useImportOrders(filters);
+
+  const { importOrder: selectedOrderDetails, isLoading: isLoadingDetails, mutate: mutateDetails } = useImportOrder(selectedOrder?.id);
+
+  const {
+    updateStatus,
+    createImportOrder,
+    updateImportOrder,
+    updateImportOrderDetails,
+    deleteImportOrder,
+    receiveImportOrder,
+    verifyImportOrder,
+    completeImportOrder,
+    updateInventory,
+    performQualityCheck
+  } = useImportOrderActions();
+
+  // Cleanup cho component lifecycle
+  useEffect(() => {
+    let isMounted = true;
+
+    return () => {
+      isMounted = false;
+      setSelectedOrder(null);
+      setViewDialogOpen(false);
+      setEditDialogOpen(false);
+      setStatusDialogOpen(false);
+      setNotification({ open: false, message: '', severity: 'success' });
+    };
+  }, []);
+
+  // Cleanup cho notification timeout
+  useEffect(() => {
+    let timeoutId;
+
+    if (notification.open) {
+      timeoutId = setTimeout(() => {
+        setNotification((prev) => ({ ...prev, open: false }));
+      }, 6000);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [notification.open]);
+
+  // Cleanup cho keyboard events
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      if (event.key === 'Escape') {
+        if (viewDialogOpen) {
+          setViewDialogOpen(false);
+        }
+        if (editDialogOpen) {
+          setEditDialogOpen(false);
+        }
+        if (statusDialogOpen) {
+          setStatusDialogOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [viewDialogOpen, editDialogOpen, statusDialogOpen]);
+
+  // Event handlers
+  const handleViewOrder = (order) => {
+    setSelectedOrder(order);
+    setViewDialogOpen(true);
+    if (onOrderSelect) {
+      onOrderSelect(order);
+    }
+  };
+
+  const handleEditOrder = (order) => {
+    setSelectedOrder(order);
+    setEditDialogOpen(true);
+  };
+
+  const handleStatusChange = (order) => {
+    setSelectedOrder(order);
+    setStatusForm({
+      status: order.status,
+      notes: ''
+    });
+    setStatusDialogOpen(true);
+  };
+
+  const handleDeleteOrder = async (orderId) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
+      try {
+        await deleteImportOrder(orderId);
+        setNotification({
+          open: true,
+          message: 'Xóa đơn hàng thành công!',
+          severity: 'success'
+        });
+        mutate();
+      } catch (error) {
+        setNotification({
+          open: true,
+          message: `Lỗi khi xóa đơn hàng: ${error.message}`,
+          severity: 'error'
+        });
+      }
+    }
+  };
+
+  const handleReceiveOrder = async (orderId) => {
+    try {
+      await receiveImportOrder(orderId, {
+        receivedAt: new Date().toISOString(),
+        receivedBy: 'current_user' // Replace with actual user
+      });
+      setNotification({
+        open: true,
+        message: 'Xác nhận nhận hàng thành công!',
+        severity: 'success'
+      });
+      mutate();
+    } catch (error) {
+      setNotification({
+        open: true,
+        message: `Lỗi khi nhận hàng: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleVerifyOrder = async (orderId) => {
+    try {
+      await verifyImportOrder(orderId, {
+        verifiedAt: new Date().toISOString(),
+        verifiedBy: 'current_user' // Replace with actual user
+      });
+      setNotification({
+        open: true,
+        message: 'Xác minh hàng hóa thành công!',
+        severity: 'success'
+      });
+      mutate();
+    } catch (error) {
+      setNotification({
+        open: true,
+        message: `Lỗi khi xác minh: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleCompleteOrder = async (orderId) => {
+    try {
+      await completeImportOrder(orderId, {
+        completedAt: new Date().toISOString(),
+        completedBy: 'current_user' // Replace with actual user
+      });
+      setNotification({
+        open: true,
+        message: 'Hoàn thành đơn hàng thành công!',
+        severity: 'success'
+      });
+      mutate();
+    } catch (error) {
+      setNotification({
+        open: true,
+        message: `Lỗi khi hoàn thành: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleQualityCheck = async (orderId) => {
+    try {
+      await performQualityCheck(orderId, {
+        checkedAt: new Date().toISOString(),
+        checkedBy: 'current_user', // Replace with actual user
+        status: 'passed'
+      });
+      setNotification({
+        open: true,
+        message: 'Kiểm tra chất lượng thành công!',
+        severity: 'success'
+      });
+      mutate();
+    } catch (error) {
+      setNotification({
+        open: true,
+        message: `Lỗi khi kiểm tra chất lượng: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleStatusUpdate = async () => {
+    try {
+      await updateStatus(selectedOrder.id, statusForm.status, statusForm.notes);
+      setNotification({
+        open: true,
+        message: 'Cập nhật trạng thái thành công!',
+        severity: 'success'
+      });
+      setStatusDialogOpen(false);
+      mutate();
+    } catch (error) {
+      setNotification({
+        open: true,
+        message: `Lỗi khi cập nhật trạng thái: ${error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleFilterChange = (field, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [field]: value,
+      page: 1 // Reset page when filter changes
+    }));
+  };
+
+  const handlePageChange = (event, newPage) => {
+    setFilters((prev) => ({
+      ...prev,
+      page: newPage
+    }));
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'draft':
-        return 'default';
-      case 'pending':
-        return 'warning';
-      case 'accepted':
-        return 'success';
-      case 'cancelled':
-        return 'error';
-      default:
-        return 'default';
-    }
+    const statusColors = {
+      pending: 'warning',
+      approved: 'info',
+      shipped: 'primary',
+      received: 'secondary',
+      verified: 'success',
+      completed: 'success',
+      cancelled: 'error'
+    };
+    return statusColors[status] || 'default';
   };
 
   const getStatusText = (status) => {
-    switch (status) {
-      case 'draft':
-        return 'Nháp';
-      case 'pending':
-        return 'Chờ duyệt';
-      case 'accepted':
-        return 'Đã duyệt';
-      case 'cancelled':
-        return 'Từ chối';
-      default:
-        return status;
-    }
+    const statusTexts = {
+      pending: 'Chờ duyệt',
+      approved: 'Đã duyệt',
+      shipped: 'Đang vận chuyển',
+      received: 'Đã nhận',
+      verified: 'Đã xác minh',
+      completed: 'Hoàn thành',
+      cancelled: 'Đã hủy'
+    };
+    return statusTexts[status] || status;
   };
 
-  // Xử lý xem chi tiết
-  const handleViewReceipt = (receipt) => {
-    setSelectedReceipt(receipt);
-    setViewDialogOpen(true);
-    onReceiptSelect && onReceiptSelect(receipt);
-  };
-
-  // Xử lý gửi duyệt
-  const handleSendForApproval = async (receiptId) => {
-    try {
-      await sendForApproval(receiptId);
-      await mutate(); // Refresh data
-      showNotification('Đã gửi phiếu nhập để duyệt thành công!');
-      onSendForApproval && onSendForApproval(receiptId);
-    } catch (error) {
-      showNotification(error.message || 'Có lỗi xảy ra khi gửi duyệt phiếu nhập', 'error');
-    }
-  };
-
-  // Xử lý duyệt phiếu
-  const handleApprove = async (receiptId) => {
-    try {
-      await approve(receiptId, 'Phiếu nhập đã được duyệt');
-      await mutate();
-      showNotification('Đã duyệt phiếu nhập thành công!');
-    } catch (error) {
-      showNotification(error.message || 'Có lỗi xảy ra khi duyệt phiếu nhập', 'error');
-    }
-  };
-
-  // Xử lý từ chối phiếu
-  const handleReject = async (receiptId) => {
-    try {
-      await reject(receiptId, 'Phiếu nhập bị từ chối');
-      await mutate();
-      showNotification('Đã từ chối phiếu nhập!', 'warning');
-    } catch (error) {
-      showNotification(error.message || 'Có lỗi xảy ra khi từ chối phiếu nhập', 'error');
-    }
-  };
-
-  // Xử lý refresh data
-  const handleRefresh = async () => {
-    try {
-      await mutate();
-      showNotification('Đã làm mới dữ liệu!');
-    } catch (error) {
-      showNotification('Có lỗi xảy ra khi làm mới dữ liệu', 'error');
-    }
-  };
-
-  // Xử lý export Excel
-  const handleExportExcel = async () => {
-    try {
-      await exportToExcel({ status: filterStatus });
-      showNotification('Đã xuất file Excel thành công!');
-    } catch (error) {
-      showNotification('Có lỗi xảy ra khi xuất file Excel', 'error');
-    }
-  };
-
-  // Xử lý export PDF cho phiếu cụ thể
-  const handleExportPDF = async (receiptId) => {
-    try {
-      await exportToPDF(receiptId);
-      showNotification('Đã xuất file PDF thành công!');
-    } catch (error) {
-      showNotification('Có lỗi xảy ra khi xuất file PDF', 'error');
-    }
-  };
-
-  // Xử lý thay đổi filter
-  const handleFilterChange = (event) => {
-    setFilterStatus(event.target.value);
-    setPage(1); // Reset về trang đầu khi filter
-  };
-
-  // Hiển thị loading state
-  if (isLoading) {
-    return (
-      <Card variant="outlined" sx={{ mb: 3 }}>
-        <CardContent>
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-            <CircularProgress />
-            <Typography variant="body1" sx={{ ml: 2 }}>
-              Đang tải dữ liệu...
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Hiển thị error state
   if (isError) {
-    return (
-      <Card variant="outlined" sx={{ mb: 3 }}>
-        <CardContent>
-          <Alert severity="error" sx={{ mb: 2 }}>
-            Có lỗi xảy ra khi tải dữ liệu: {isError.message}
-          </Alert>
-          <Button variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />}>
-            Thử lại
-          </Button>
-        </CardContent>
-      </Card>
-    );
+    return <Alert severity="error">Có lỗi xảy ra khi tải dữ liệu: {isError.message}</Alert>;
   }
-
-  // Tính tổng số phiếu từ data thực tế
-  const totalReceipts = purchaseOrders?.length || 0;
-  const totalFromPagination = pagination?.total || 0;
-
-  // Sử dụng giá trị chính xác nhất
-  const displayTotal = totalFromPagination > 0 ? totalFromPagination : totalReceipts;
 
   return (
-    <>
-      <Card variant="outlined" sx={{ mb: 3 }}>
-        <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">Danh Sách Phiếu Nhập ({displayTotal})</Typography>
-            <Box>
-              <Button variant="outlined" onClick={handleExportExcel} sx={{ mr: 1 }}>
-                Xuất Excel
-              </Button>
-              <IconButton onClick={handleRefresh} title="Làm mới">
-                <RefreshIcon />
-              </IconButton>
-            </Box>
-          </Box>
+    <Box>
+      {/* Filters */}
+      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Trạng thái</InputLabel>
+          <Select value={filters.status} label="Trạng thái" onChange={(e) => handleFilterChange('status', e.target.value)}>
+            <MenuItem value="all">Tất cả</MenuItem>
+            <MenuItem value="pending">Chờ duyệt</MenuItem>
+            <MenuItem value="approved">Đã duyệt</MenuItem>
+            <MenuItem value="shipped">Đang vận chuyển</MenuItem>
+            <MenuItem value="received">Đã nhận</MenuItem>
+            <MenuItem value="verified">Đã xác minh</MenuItem>
+            <MenuItem value="completed">Hoàn thành</MenuItem>
+            <MenuItem value="cancelled">Đã hủy</MenuItem>
+          </Select>
+        </FormControl>
 
-          {/* Filter */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                fullWidth
-                label="Lọc theo trạng thái"
-                value={filterStatus}
-                onChange={handleFilterChange}
-                SelectProps={{ native: true }}
-              >
-                <option value="all">Tất cả</option>
-                <option value="draft">Nháp</option>
-                <option value="pending">Chờ duyệt</option>
-                <option value="accepted">Đã duyệt</option>
-                <option value="cancelled">Từ chối</option>
-              </TextField>
-            </Grid>
-          </Grid>
+        <TextField
+          size="small"
+          label="Mã nhà cung cấp"
+          value={filters.supplierId}
+          onChange={(e) => handleFilterChange('supplierId', e.target.value)}
+          sx={{ minWidth: 200 }}
+        />
+      </Box>
 
-          {/* Table */}
-          <TableContainer component={Paper} variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Số phiếu</TableCell>
-                  <TableCell>Ngày</TableCell>
-                  <TableCell>Đơn hàng</TableCell>
-                  <TableCell>Nhà cung cấp</TableCell>
-                  <TableCell>Tổng giá trị</TableCell>
-                  <TableCell>Trạng thái</TableCell>
-                  <TableCell>Thống kê</TableCell>
-                  <TableCell>Thao tác</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {purchaseOrders.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} align="center">
-                      <Typography variant="body2" color="textSecondary">
-                        Không có dữ liệu
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  purchaseOrders.map((receipt) => (
-                    <TableRow key={receipt.id}>
-                      <TableCell>{receipt.id}</TableCell>
-                      <TableCell>{new Date(receipt.createdAt).toLocaleDateString('vi-VN')}</TableCell>
-                      <TableCell>{receipt.orderNumber || receipt.id}</TableCell>
-                      <TableCell>{receipt.supplier?.name || receipt.supplierName}</TableCell>
-                      <TableCell>{(receipt.totalValue || receipt.totalAmount || 0).toLocaleString()} VNĐ</TableCell>
-                      <TableCell>
-                        <Chip label={getStatusText(receipt.status)} color={getStatusColor(receipt.status)} size="small" />
-                      </TableCell>
-                      <TableCell>
-                        <Box>
-                          <Typography variant="caption" display="block">
-                            Nhận: {receipt.receivedUnits || 0} | Trả: {receipt.returnedUnits || 0}
-                          </Typography>
-                          <Typography variant="caption" display="block">
-                            Tỷ lệ: {receipt.receivedPercentage || 0}%
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <IconButton size="small" onClick={() => handleViewReceipt(receipt)} title="Xem chi tiết">
-                          <ViewIcon />
+      {/* Table */}
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Mã đơn hàng</TableCell>
+              <TableCell>Nhà cung cấp</TableCell>
+              <TableCell>Ngày tạo</TableCell>
+              <TableCell>Tổng tiền</TableCell>
+              <TableCell>Trạng thái</TableCell>
+              <TableCell align="center">Thao tác</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  <Typography>Đang tải...</Typography>
+                </TableCell>
+              </TableRow>
+            ) : importOrders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  <Typography>Không có dữ liệu</Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              importOrders.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell>{order.orderNumber}</TableCell>
+                  <TableCell>{order.supplier?.name || 'N/A'}</TableCell>
+                  <TableCell>{new Date(order.createdAt).toLocaleDateString('vi-VN')}</TableCell>
+                  <TableCell>
+                    {new Intl.NumberFormat('vi-VN', {
+                      style: 'currency',
+                      currency: 'VND'
+                    }).format(order.totalAmount)}
+                  </TableCell>
+                  <TableCell>
+                    <Chip label={getStatusText(order.status)} color={getStatusColor(order.status)} size="small" />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                      <Tooltip title="Xem chi tiết">
+                        <IconButton size="small" onClick={() => handleViewOrder(order)}>
+                          <Visibility />
                         </IconButton>
+                      </Tooltip>
 
-                        {receipt.status === 'draft' && (
-                          <IconButton size="small" color="primary" onClick={() => handleSendForApproval(receipt.id)} title="Gửi duyệt">
-                            <SendIcon />
+                      {order.status === 'pending' && (
+                        <Tooltip title="Chỉnh sửa">
+                          <IconButton size="small" onClick={() => handleEditOrder(order)}>
+                            <Edit />
                           </IconButton>
-                        )}
+                        </Tooltip>
+                      )}
 
-                        {/* {receipt.status === 'pending' && (
-                          <>
-                            <IconButton size="small" color="success" onClick={() => handleApprove(receipt.id)} title="Duyệt">
-                              <ApproveIcon />
-                            </IconButton>
-                            <IconButton size="small" color="error" onClick={() => handleReject(receipt.id)} title="Từ chối">
-                              <RejectIcon />
-                            </IconButton>
-                          </>
-                        )} */}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                      {order.status === 'shipped' && (
+                        <Tooltip title="Nhận hàng">
+                          <IconButton size="small" color="primary" onClick={() => handleReceiveOrder(order.id)}>
+                            <LocalShipping />
+                          </IconButton>
+                        </Tooltip>
+                      )}
 
-          {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <Box display="flex" justifyContent="center" mt={2}>
-              <Button disabled={page === 1} onClick={() => setPage(page - 1)}>
-                Trang trước
-              </Button>
-              <Typography variant="body2" sx={{ mx: 2, alignSelf: 'center' }}>
-                Trang {page} / {pagination.totalPages}
-              </Typography>
-              <Button disabled={page === pagination.totalPages} onClick={() => setPage(page + 1)}>
-                Trang sau
-              </Button>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
+                      {order.status === 'received' && (
+                        <Tooltip title="Xác minh">
+                          <IconButton size="small" color="secondary" onClick={() => handleVerifyOrder(order.id)}>
+                            <Inventory />
+                          </IconButton>
+                        </Tooltip>
+                      )}
 
-      {/* View Receipt Dialog */}
+                      {(order.status === 'received' || order.status === 'verified') && (
+                        <Tooltip title="Kiểm tra chất lượng">
+                          <IconButton size="small" color="info" onClick={() => handleQualityCheck(order.id)}>
+                            {/* <QualityCheck /> */}
+                          </IconButton>
+                        </Tooltip>
+                      )}
+
+                      {order.status === 'verified' && (
+                        <Tooltip title="Hoàn thành">
+                          <IconButton size="small" color="success" onClick={() => handleCompleteOrder(order.id)}>
+                            <CheckCircle />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+
+                      <Tooltip title="Cập nhật trạng thái">
+                        <IconButton size="small" onClick={() => handleStatusChange(order)}>
+                          <Edit />
+                        </IconButton>
+                      </Tooltip>
+
+                      {order.status === 'pending' && (
+                        <Tooltip title="Xóa">
+                          <IconButton size="small" color="error" onClick={() => handleDeleteOrder(order.id)}>
+                            <Delete />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <Pagination count={pagination.totalPages} page={filters.page} onChange={handlePageChange} color="primary" />
+        </Box>
+      )}
+
+      {/* View Dialog */}
       <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Chi Tiết Phiếu Nhập - {selectedReceipt?.id}</DialogTitle>
+        <DialogTitle>Chi tiết đơn hàng nhập</DialogTitle>
         <DialogContent>
-          {selectedReceipt && (
+          {isLoadingDetails ? (
+            <Typography>Đang tải...</Typography>
+          ) : selectedOrderDetails ? (
             <Box>
-              <Typography variant="body1" gutterBottom>
-                <strong>Nhà cung cấp:</strong> {selectedReceipt.supplier?.name || selectedReceipt.supplierName}
+              <Typography variant="h6" gutterBottom>
+                Thông tin đơn hàng
               </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Tổng giá trị:</strong> {(selectedReceipt.totalValue || 0).toLocaleString()} VNĐ
+              <Typography>
+                <strong>Mã đơn:</strong> {selectedOrderDetails.orderNumber}
               </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Trạng thái:</strong> {getStatusText(selectedReceipt.status)}
+              <Typography>
+                <strong>Nhà cung cấp:</strong> {selectedOrderDetails.supplier?.name}
               </Typography>
-              <Typography variant="body1" gutterBottom>
-                <strong>Người tạo:</strong> {selectedReceipt.createdBy?.name || selectedReceipt.createdBy}
+              <Typography>
+                <strong>Ngày tạo:</strong> {new Date(selectedOrderDetails.createdAt).toLocaleString('vi-VN')}
               </Typography>
-              {/* Thêm các thông tin chi tiết khác */}
+              <Typography>
+                <strong>Trạng thái:</strong> {getStatusText(selectedOrderDetails.status)}
+              </Typography>
+              <Typography>
+                <strong>Tổng tiền:</strong>{' '}
+                {new Intl.NumberFormat('vi-VN', {
+                  style: 'currency',
+                  currency: 'VND'
+                }).format(selectedOrderDetails.totalAmount)}
+              </Typography>
+
+              {selectedOrderDetails.items && selectedOrderDetails.items.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Chi tiết sản phẩm
+                  </Typography>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Sản phẩm</TableCell>
+                        <TableCell>Số lượng</TableCell>
+                        <TableCell>Đơn giá</TableCell>
+                        <TableCell>Thành tiền</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {selectedOrderDetails.items.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.product?.name || 'N/A'}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                          <TableCell>
+                            {new Intl.NumberFormat('vi-VN', {
+                              style: 'currency',
+                              currency: 'VND'
+                            }).format(item.unitPrice)}
+                          </TableCell>
+                          <TableCell>
+                            {new Intl.NumberFormat('vi-VN', {
+                              style: 'currency',
+                              currency: 'VND'
+                            }).format(item.quantity * item.unitPrice)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Box>
+              )}
             </Box>
+          ) : (
+            <Typography>Không có dữ liệu</Typography>
           )}
         </DialogContent>
         <DialogActions>
-          {selectedReceipt && (
-            <Button onClick={() => handleExportPDF(selectedReceipt.id)} variant="outlined">
-              Xuất PDF
-            </Button>
-          )}
           <Button onClick={() => setViewDialogOpen(false)}>Đóng</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Notification Snackbar */}
-      <Snackbar open={notification.open} autoHideDuration={6000} onClose={() => setNotification({ ...notification, open: false })}>
-        <Alert onClose={() => setNotification({ ...notification, open: false })} severity={notification.severity} sx={{ width: '100%' }}>
+      {/* Status Update Dialog */}
+      <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Cập nhật trạng thái</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel>Trạng thái</InputLabel>
+              <Select
+                value={statusForm.status}
+                label="Trạng thái"
+                onChange={(e) => setStatusForm((prev) => ({ ...prev, status: e.target.value }))}
+              >
+                <MenuItem value="pending">Chờ duyệt</MenuItem>
+                <MenuItem value="approved">Đã duyệt</MenuItem>
+                <MenuItem value="shipped">Đang vận chuyển</MenuItem>
+                <MenuItem value="received">Đã nhận</MenuItem>
+                <MenuItem value="verified">Đã xác minh</MenuItem>
+                <MenuItem value="completed">Hoàn thành</MenuItem>
+                <MenuItem value="cancelled">Đã hủy</MenuItem>
+              </Select>
+            </FormControl>
+
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Ghi chú"
+              value={statusForm.notes}
+              onChange={(e) => setStatusForm((prev) => ({ ...prev, notes: e.target.value }))}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setStatusDialogOpen(false)}>Hủy</Button>
+          <Button onClick={handleStatusUpdate} variant="contained">
+            Cập nhật
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Notification */}
+      <Snackbar open={notification.open} autoHideDuration={6000} onClose={() => setNotification((prev) => ({ ...prev, open: false }))}>
+        <Alert
+          onClose={() => setNotification((prev) => ({ ...prev, open: false }))}
+          severity={notification.severity}
+          sx={{ width: '100%' }}
+        >
           {notification.message}
         </Alert>
       </Snackbar>
-    </>
+    </Box>
   );
 }
 
-export default ReceiptList;
+export default ImportOrderList;
