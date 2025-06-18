@@ -18,11 +18,11 @@ function EnhancedWarehousePage() {
     status: 'received'
   });
 
-  const [orderItems] = useState([
-    { name: 'Gạo ST25', unit: 'bao', expectedQuantity: 100, unitPrice: 850000, receivedUnit: 'bao', storageUnit: 'kg' },
-    { name: 'Đường trắng', unit: 'kg', expectedQuantity: 500, unitPrice: 25000, receivedUnit: 'bao', storageUnit: 'kg' },
-    { name: 'Nước mắm', unit: 'chai', expectedQuantity: 200, unitPrice: 45000, receivedUnit: 'thùng', storageUnit: 'chai' }
-  ]);
+  // const [orderItems] = useState([
+  //   { name: 'Gạo ST25', unit: 'bao', expectedQuantity: 100, unitPrice: 850000, receivedUnit: 'bao', storageUnit: 'kg' },
+  //   { name: 'Đường trắng', unit: 'kg', expectedQuantity: 500, unitPrice: 25000, receivedUnit: 'bao', storageUnit: 'kg' },
+  //   { name: 'Nước mắm', unit: 'chai', expectedQuantity: 200, unitPrice: 45000, receivedUnit: 'thùng', storageUnit: 'chai' }
+  // ]);
 
   const [checkedItems, setCheckedItems] = useState([]);
   const [conversions, setConversions] = useState({});
