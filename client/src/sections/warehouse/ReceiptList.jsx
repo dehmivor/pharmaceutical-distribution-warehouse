@@ -353,8 +353,9 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
             <TableRow>
               <TableCell>Mã đơn hàng</TableCell>
               <TableCell>Nhà cung cấp</TableCell>
-              <TableCell>Ngày tạo</TableCell>
-              <TableCell>Tổng tiền</TableCell>
+              <TableCell>Ngày nhập</TableCell>
+              <TableCell>Liên kết với đơn mua</TableCell>
+              <TableCell>Số mặt hàng đã nhập</TableCell>
               <TableCell>Trạng thái</TableCell>
               <TableCell align="center">Thao tác</TableCell>
             </TableRow>
@@ -375,15 +376,11 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
             ) : (
               importOrders.map((order) => (
                 <TableRow key={order.id}>
-                  <TableCell>{order.orderNumber}</TableCell>
-                  <TableCell>{order.supplier?.name || 'N/A'}</TableCell>
+                  <TableCell>{order._id}</TableCell>
+                  <TableCell>{order.contract_id || 'N/A'}</TableCell>
                   <TableCell>{new Date(order.createdAt).toLocaleDateString('vi-VN')}</TableCell>
-                  <TableCell>
-                    {new Intl.NumberFormat('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND'
-                    }).format(order.totalAmount)}
-                  </TableCell>
+                  <TableCell>{order.purchase_order_id || 'N/A'}</TableCell>
+                  <TableCell>{order.import_content.length || 'N/A'}</TableCell>
                   <TableCell>
                     <Chip label={getStatusText(order.status)} color={getStatusColor(order.status)} size="small" />
                   </TableCell>
@@ -479,7 +476,7 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
                 <strong>Mã đơn:</strong> {selectedOrderDetails.orderNumber}
               </Typography>
               <Typography>
-                <strong>Nhà cung cấp:</strong> {selectedOrderDetails.supplier?.name}
+                <strong>Nhà cung cấp:</strong> {selectedOrderDetails.contract_id}
               </Typography>
               <Typography>
                 <strong>Ngày tạo:</strong> {new Date(selectedOrderDetails.createdAt).toLocaleString('vi-VN')}

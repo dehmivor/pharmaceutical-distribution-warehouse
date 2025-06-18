@@ -70,7 +70,7 @@ function WarehouseBreadcrumbs({ currentPath, onNavigate }) {
       path: 'warehouse'
     },
     list: {
-      label: 'Danh sách phiếu nhập',
+      label: 'Danh sách đơn mua',
       icon: <IconList size={16} />,
       path: 'list'
     },
@@ -220,7 +220,7 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
           {/* Breadcrumbs Navigation */}
           <WarehouseBreadcrumbs currentPath={currentBreadcrumbPath} onNavigate={handleBreadcrumbNavigate} />
 
-          <Typography variant="h6">Quản Lý Phiếu Nhập Kho</Typography>
+          <Typography variant="h6">Quản Lý Đơn Mua</Typography>
 
           <Box>
             <Tabs variant="fullWidth" value={activeTab} onChange={handleTabChange} type={TabsType.SEGMENTED}>
