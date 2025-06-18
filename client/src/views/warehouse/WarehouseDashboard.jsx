@@ -32,13 +32,6 @@ export default function WarehouseDashboard() {
         <Box sx={{ flexGrow: 1, p: { xs: 2, md: 3 } }}>
           {/* Header với nút quay lại */}
           <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              variant="outlined"
-              onClick={handleBackToDashboard}
-              startIcon={<IconArrowRight style={{ transform: 'rotate(180deg)' }} />}
-            >
-              Quay lại Dashboard
-            </Button>
             <Box>
               <Typography variant="h4" component="h1">
                 Kiểm Nhập Hàng Hóa

@@ -9,13 +9,13 @@ import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
+import Link from '@mui/material/Link';
 import { TabsType } from '@/enum';
 import { getRadiusStyles } from '@/utils/getRadiusStyles';
+import { IconHome, IconPackage, IconList, IconChevronRight } from '@tabler/icons-react';
 
-// Import các component đã tạo trước đó
-import OrderStatus from '@/sections/warehouse/OrderStatus';
-import InventoryCheck from '@/sections/warehouse/InventoryCheck';
-import UnitConversion from '@/sections/warehouse/UnitConversion';
+// Import các component
 import ReceiptList from '@/sections/warehouse/ReceiptList';
 import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
 
@@ -50,6 +50,105 @@ export function applyBorderWithRadius(radius, theme) {
   };
 }
 
+/***************************  BREADCRUMBS NAVIGATION  ***************************/
+
+function WarehouseBreadcrumbs({ currentPath, onNavigate }) {
+  const theme = useTheme();
+
+  const breadcrumbsConfig = {
+    dashboard: {
+      label: 'Dashboard',
+      icon: <IconHome size={16} />,
+      path: 'dashboard'
+    },
+    warehouse: {
+      label: 'Quản lý nhập kho',
+      icon: <IconPackage size={16} />,
+      path: 'warehouse'
+    },
+    list: {
+      label: 'Danh sách đơn mua',
+      icon: <IconList size={16} />,
+      path: 'list'
+    },
+    create: {
+      label: 'Tạo phiếu nhập',
+      icon: <IconPackage size={16} />,
+      path: 'create'
+    }
+  };
+
+  const pathHierarchy = {
+    warehouse: ['dashboard', 'warehouse'],
+    list: ['dashboard', 'warehouse', 'list'],
+    create: ['dashboard', 'warehouse', 'create']
+  };
+
+  const currentHierarchy = pathHierarchy[currentPath] || ['dashboard', 'warehouse'];
+
+  const handleBreadcrumbClick = (path) => {
+    onNavigate(path);
+  };
+
+  return (
+    <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+      <Breadcrumbs
+        separator={<IconChevronRight size={14} />}
+        aria-label="breadcrumb"
+        sx={{
+          '& .MuiBreadcrumbs-separator': {
+            color: 'text.secondary'
+          }
+        }}
+      >
+        {currentHierarchy.map((pathKey, index) => {
+          const config = breadcrumbsConfig[pathKey];
+          const isLast = index === currentHierarchy.length - 1;
+
+          if (isLast) {
+            return (
+              <Typography
+                key={pathKey}
+                color="text.primary"
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  fontWeight: 600
+                }}
+              >
+                {config.icon}
+                {config.label}
+              </Typography>
+            );
+          }
+
+          return (
+            <Link
+              key={pathKey}
+              underline="hover"
+              color="inherit"
+              onClick={() => handleBreadcrumbClick(config.path)}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                cursor: 'pointer',
+                '&:hover': {
+                  color: 'primary.main'
+                }
+              }}
+            >
+              {config.icon}
+              {config.label}
+            </Link>
+          );
+        })}
+      </Breadcrumbs>
+    </Box>
+  );
+}
+
 /***************************  TAB PANEL  ***************************/
 
 function TabPanel({ children, value, index, ...other }) {
@@ -60,144 +159,51 @@ function TabPanel({ children, value, index, ...other }) {
   );
 }
 
-/***************************  CREATE RECEIPT WORKFLOW  ***************************/
-
-function CreateReceiptWorkflow({ onReceiptCreated }) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [orderData, setOrderData] = useState({
-    orderId: `DH${Date.now()}`,
-    supplier: '',
-    status: 'draft'
-  });
-
-  const [orderItems, setOrderItems] = useState([
-    { name: 'Gạo ST25', unit: 'bao', expectedQuantity: 100, unitPrice: 850000, actualQuantity: '' },
-    { name: 'Đường trắng', unit: 'kg', expectedQuantity: 500, unitPrice: 25000, actualQuantity: '' },
-    { name: 'Nước mắm', unit: 'chai', expectedQuantity: 200, unitPrice: 45000, actualQuantity: '' }
-  ]);
-
-  const [checkedItems, setCheckedItems] = useState([]);
-  const [conversions, setConversions] = useState({});
-
-  const steps = ['Xác nhận đơn hàng', 'Kiểm kê số lượng', 'Quy đổi đơn vị', 'Tạo phiếu nhập'];
-
-  const handleNext = () => {
-    setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
-  };
-
-  const handleBack = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 0));
-  };
-
-  const handleCheckComplete = (items) => {
-    setCheckedItems(items);
-    setOrderData((prev) => ({ ...prev, status: 'checked' }));
-    handleNext();
-  };
-
-  const handleConversionChange = (itemIndex, conversion) => {
-    setConversions((prev) => ({
-      ...prev,
-      [itemIndex]: conversion
-    }));
-  };
-
-  const handleReceiptCreate = (receipt) => {
-    onReceiptCreated && onReceiptCreated(receipt);
-    // Reset workflow
-    setCurrentStep(0);
-    setCheckedItems([]);
-    setConversions({});
-    setOrderData({
-      orderId: `DH${Date.now()}`,
-      supplier: '',
-      status: 'draft'
-    });
-  };
-
-  const canProceedToNext = () => {
-    switch (currentStep) {
-      case 0:
-        return orderData.supplier.trim() !== '';
-      case 1:
-        return checkedItems.length > 0;
-      case 2:
-        return Object.keys(conversions).length >= checkedItems.length;
-      default:
-        return true;
-    }
-  };
-
-  return (
-    <Box>
-      {/* Progress Indicator */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Bước {currentStep + 1} / {steps.length}: {steps[currentStep]}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-          {steps.map((_, index) => (
-            <Box
-              key={index}
-              sx={{
-                flex: 1,
-                height: 4,
-                borderRadius: 2,
-                bgcolor: index <= currentStep ? 'primary.main' : 'grey.300'
-              }}
-            />
-          ))}
-        </Box>
-      </Box>
-
-      {/* Step Content */}
-      {currentStep === 0 && (
-        <OrderStatus orderId={orderData.orderId} status={orderData.status} supplier={orderData.supplier} onOrderDataChange={setOrderData} />
-      )}
-
-      {currentStep === 1 && <InventoryCheck orderItems={orderItems} onCheckComplete={handleCheckComplete} />}
-
-      {currentStep === 2 && (
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Quy Đổi Đơn Vị
-          </Typography>
-          {checkedItems.map((item, index) => (
-            <UnitConversion key={index} item={item} onConversionChange={(conversion) => handleConversionChange(index, conversion)} />
-          ))}
-        </Box>
-      )}
-
-      {currentStep === 3 && (
-        <EnhancedReceiptForm
-          orderData={orderData}
-          checkedItems={checkedItems}
-          conversions={conversions}
-          onReceiptCreate={handleReceiptCreate}
-        />
-      )}
-
-      {/* Navigation Buttons */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-        <Button variant="outlined" onClick={handleBack} disabled={currentStep === 0}>
-          Quay lại
-        </Button>
-
-        {currentStep < steps.length - 1 && (
-          <Button variant="contained" onClick={handleNext} disabled={!canProceedToNext()}>
-            Tiếp theo
-          </Button>
-        )}
-      </Box>
-    </Box>
-  );
-}
-
 /***************************  WAREHOUSE ACTIVITY TABS  ***************************/
 
-export default function WarehouseActivityTabs() {
+export default function WarehouseActivityTabs({ onBackToDashboard }) {
   const theme = useTheme();
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(1); // Mặc định hiển thị tab danh sách
+  const [showReceiptForm, setShowReceiptForm] = useState(false); // State điều khiển hiển thị form
+  const [currentBreadcrumbPath, setCurrentBreadcrumbPath] = useState('list');
+
+  // Sample data cho form
+  const [sampleOrderData] = useState({
+    orderId: `DH${Date.now()}`,
+    supplier: 'Công ty ABC',
+    status: 'received'
+  });
+
+  const [sampleCheckedItems] = useState([
+    {
+      name: 'Gạo ST25',
+      unit: 'bao',
+      expectedQuantity: 100,
+      actualQuantity: 95,
+      unitPrice: 850000,
+      status: 'shortage',
+      notes: 'Thiếu 5 bao'
+    },
+    {
+      name: 'Đường trắng',
+      unit: 'kg',
+      expectedQuantity: 500,
+      actualQuantity: 500,
+      unitPrice: 25000,
+      status: 'match',
+      notes: ''
+    },
+    {
+      name: 'Nước mắm',
+      unit: 'chai',
+      expectedQuantity: 200,
+      actualQuantity: 200,
+      unitPrice: 45000,
+      status: 'match',
+      notes: ''
+    }
+  ]);
+
   const [receipts, setReceipts] = useState([
     {
       id: 'PN001',
@@ -229,11 +235,42 @@ export default function WarehouseActivityTabs() {
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+    // Cập nhật breadcrumb path
+    if (newValue === 0) {
+      setCurrentBreadcrumbPath(showReceiptForm ? 'create' : 'warehouse');
+    } else {
+      setCurrentBreadcrumbPath('list');
+    }
+
+    // Khi chuyển tab, ẩn form nếu đang hiển thị
+    if (showReceiptForm && newValue === 1) {
+      setShowReceiptForm(false);
+    }
   };
 
-  const handleReceiptCreated = (newReceipt) => {
-    setReceipts((prev) => [newReceipt, ...prev]);
-    setActiveTab(1); // Chuyển sang tab danh sách để xem phiếu vừa tạo
+  const handleBreadcrumbNavigate = (path) => {
+    switch (path) {
+      case 'dashboard':
+        onBackToDashboard && onBackToDashboard();
+        break;
+      case 'warehouse':
+        setShowReceiptForm(false);
+        setActiveTab(1);
+        setCurrentBreadcrumbPath('warehouse');
+        break;
+      case 'list':
+        setShowReceiptForm(false);
+        setActiveTab(1);
+        setCurrentBreadcrumbPath('list');
+        break;
+      case 'create':
+        setShowReceiptForm(true);
+        setActiveTab(0);
+        setCurrentBreadcrumbPath('create');
+        break;
+      default:
+        break;
+    }
   };
 
   const handleSendForApproval = (receiptId) => {
@@ -241,7 +278,32 @@ export default function WarehouseActivityTabs() {
   };
 
   const handleCreateNewReceipt = () => {
-    setActiveTab(0); // Chuyển sang tab tạo mới
+    setShowReceiptForm(true);
+    setActiveTab(0);
+    setCurrentBreadcrumbPath('create');
+  };
+
+  const handleCloseReceiptForm = () => {
+    setShowReceiptForm(false);
+    setActiveTab(1);
+    setCurrentBreadcrumbPath('list');
+  };
+
+  const handleReceiptCreate = (newReceipt) => {
+    console.log('Phiếu nhập mới được tạo:', newReceipt);
+
+    // Thêm phiếu nhập mới vào danh sách
+    const receiptWithId = {
+      ...newReceipt,
+      id: `PN${Date.now()}`,
+      createdBy: 'Người dùng hiện tại',
+      status: 'draft'
+    };
+
+    setReceipts((prev) => [receiptWithId, ...prev]);
+    setShowReceiptForm(false);
+    setActiveTab(1);
+    setCurrentBreadcrumbPath('list');
   };
 
   return (
@@ -255,17 +317,48 @@ export default function WarehouseActivityTabs() {
     >
       <Grid size={12}>
         <Stack sx={{ gap: 2.5, p: 3, height: '100%' }}>
+          {/* Breadcrumbs Navigation */}
+          <WarehouseBreadcrumbs currentPath={currentBreadcrumbPath} onNavigate={handleBreadcrumbNavigate} />
+
           <Typography variant="h6">Quản Lý Phiếu Nhập Kho</Typography>
 
           <Box>
             <Tabs variant="fullWidth" value={activeTab} onChange={handleTabChange} type={TabsType.SEGMENTED}>
               <Tab label="Tạo phiếu nhập mới" />
-              <Tab label="Danh sách đơn mua" />
+              <Tab label="Danh sách phiếu nhập" />
             </Tabs>
 
             {/* Tab Panel - Tạo phiếu nhập mới */}
             <TabPanel value={activeTab} index={0}>
-              <CreateReceiptWorkflow onReceiptCreated={handleReceiptCreated} />
+              {showReceiptForm ? (
+                <Box>
+                  {/* Enhanced Receipt Form */}
+                  <EnhancedReceiptForm
+                    orderData={sampleOrderData}
+                    checkedItems={sampleCheckedItems}
+                    onReceiptCreate={handleReceiptCreate}
+                  />
+                </Box>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Tạo Phiếu Nhập Mới
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Nhấn nút bên dưới để bắt đầu tạo phiếu nhập kho mới
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={() => {
+                      setShowReceiptForm(true);
+                      setCurrentBreadcrumbPath('create');
+                    }}
+                  >
+                    Tạo Phiếu Nhập Kho
+                  </Button>
+                </Box>
+              )}
             </TabPanel>
 
             {/* Tab Panel - Danh sách phiếu nhập */}
