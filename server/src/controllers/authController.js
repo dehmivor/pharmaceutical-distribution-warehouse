@@ -100,7 +100,6 @@ const authController = {
     }
   },
 
-  // Bước 2 đăng nhập
   loginStep2: async (req, res) => {
     try {
       const { tempToken, otp } = req.body;
@@ -154,7 +153,6 @@ const authController = {
     }
   },
 
-  // Validate session cho middleware check
   validateSession: (req, res) => {
     try {
       const user = req.user; // Từ authenticate middleware
@@ -174,8 +172,6 @@ const authController = {
       });
     }
   },
-
-  // Get current user info
   getCurrentUser: (req, res) => {
     try {
       const user = req.user;
@@ -194,8 +190,6 @@ const authController = {
       });
     }
   },
-
-  // Role-based redirect endpoint
   getRoleBasedRedirect: (req, res) => {
     try {
       const user = req.user;
@@ -212,7 +206,6 @@ const authController = {
       });
     }
   },
-
   logout: async (req, res) => {
     try {
       const token = req.headers.authorization?.split(' ')[1];
@@ -234,7 +227,6 @@ const authController = {
   },
 };
 
-// Helper functions
 function getRedirectByRole(role) {
   const roleRoutes = {
     supervisor: '/manage-users',
