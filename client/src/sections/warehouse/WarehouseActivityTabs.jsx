@@ -15,9 +15,11 @@ import { TabsType } from '@/enum';
 import { getRadiusStyles } from '@/utils/getRadiusStyles';
 import { IconHome, IconPackage, IconList, IconChevronRight } from '@tabler/icons-react';
 
-// Import các component
+// Import components
 import ReceiptList from '@/sections/warehouse/ReceiptList';
 import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
+import { Create } from '@mui/icons-material';
+import CreateReceiptTab from './CreateReceiptTab';
 
 /***************************  BORDER WITH RADIUS  ***************************/
 
@@ -67,7 +69,7 @@ function WarehouseBreadcrumbs({ currentPath, onNavigate }) {
       path: 'warehouse'
     },
     list: {
-      label: 'Danh sách đơn mua',
+      label: 'Danh sách phiếu nhập',
       icon: <IconList size={16} />,
       path: 'list'
     },
@@ -164,87 +166,15 @@ function TabPanel({ children, value, index, ...other }) {
 export default function WarehouseActivityTabs({ onBackToDashboard }) {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(1); // Mặc định hiển thị tab danh sách
-  const [showReceiptForm, setShowReceiptForm] = useState(false); // State điều khiển hiển thị form
   const [currentBreadcrumbPath, setCurrentBreadcrumbPath] = useState('list');
-
-  // Sample data cho form
-  const [sampleOrderData] = useState({
-    orderId: `DH${Date.now()}`,
-    supplier: 'Công ty ABC',
-    status: 'received'
-  });
-
-  const [sampleCheckedItems] = useState([
-    {
-      name: 'Gạo ST25',
-      unit: 'bao',
-      expectedQuantity: 100,
-      actualQuantity: 95,
-      unitPrice: 850000,
-      status: 'shortage',
-      notes: 'Thiếu 5 bao'
-    },
-    {
-      name: 'Đường trắng',
-      unit: 'kg',
-      expectedQuantity: 500,
-      actualQuantity: 500,
-      unitPrice: 25000,
-      status: 'match',
-      notes: ''
-    },
-    {
-      name: 'Nước mắm',
-      unit: 'chai',
-      expectedQuantity: 200,
-      actualQuantity: 200,
-      unitPrice: 45000,
-      status: 'match',
-      notes: ''
-    }
-  ]);
-
-  const [receipts, setReceipts] = useState([
-    {
-      id: 'PN001',
-      date: '2024-01-15',
-      orderId: 'DH001',
-      supplier: 'Công ty ABC',
-      totalItems: 3,
-      totalValue: 125000000,
-      status: 'draft',
-      receivedUnits: 800,
-      returnedUnits: 0,
-      receivedPercentage: 100,
-      createdBy: 'Nguyễn Văn A'
-    },
-    {
-      id: 'PN002',
-      date: '2024-01-14',
-      orderId: 'DH002',
-      supplier: 'Công ty XYZ',
-      totalItems: 5,
-      totalValue: 85000000,
-      status: 'pending_approval',
-      receivedUnits: 450,
-      returnedUnits: 50,
-      receivedPercentage: 90,
-      createdBy: 'Trần Thị B'
-    }
-  ]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
     // Cập nhật breadcrumb path
     if (newValue === 0) {
-      setCurrentBreadcrumbPath(showReceiptForm ? 'create' : 'warehouse');
+      setCurrentBreadcrumbPath('create');
     } else {
       setCurrentBreadcrumbPath('list');
-    }
-
-    // Khi chuyển tab, ẩn form nếu đang hiển thị
-    if (showReceiptForm && newValue === 1) {
-      setShowReceiptForm(false);
     }
   };
 
@@ -254,17 +184,14 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
         onBackToDashboard && onBackToDashboard();
         break;
       case 'warehouse':
-        setShowReceiptForm(false);
         setActiveTab(1);
         setCurrentBreadcrumbPath('warehouse');
         break;
       case 'list':
-        setShowReceiptForm(false);
         setActiveTab(1);
         setCurrentBreadcrumbPath('list');
         break;
       case 'create':
-        setShowReceiptForm(true);
         setActiveTab(0);
         setCurrentBreadcrumbPath('create');
         break;
@@ -273,37 +200,9 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
     }
   };
 
-  const handleSendForApproval = (receiptId) => {
-    setReceipts((prev) => prev.map((receipt) => (receipt.id === receiptId ? { ...receipt, status: 'pending_approval' } : receipt)));
-  };
-
   const handleCreateNewReceipt = () => {
-    setShowReceiptForm(true);
     setActiveTab(0);
     setCurrentBreadcrumbPath('create');
-  };
-
-  const handleCloseReceiptForm = () => {
-    setShowReceiptForm(false);
-    setActiveTab(1);
-    setCurrentBreadcrumbPath('list');
-  };
-
-  const handleReceiptCreate = (newReceipt) => {
-    console.log('Phiếu nhập mới được tạo:', newReceipt);
-
-    // Thêm phiếu nhập mới vào danh sách
-    const receiptWithId = {
-      ...newReceipt,
-      id: `PN${Date.now()}`,
-      createdBy: 'Người dùng hiện tại',
-      status: 'draft'
-    };
-
-    setReceipts((prev) => [receiptWithId, ...prev]);
-    setShowReceiptForm(false);
-    setActiveTab(1);
-    setCurrentBreadcrumbPath('list');
   };
 
   return (
@@ -326,53 +225,25 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
             <Tabs variant="fullWidth" value={activeTab} onChange={handleTabChange} type={TabsType.SEGMENTED}>
               <Tab label="Tạo phiếu nhập mới" />
               <Tab label="Danh sách phiếu nhập" />
+              <Tab label="Danh sách đơn mua" />
             </Tabs>
 
             {/* Tab Panel - Tạo phiếu nhập mới */}
             <TabPanel value={activeTab} index={0}>
-              {showReceiptForm ? (
-                <Box>
-                  {/* Enhanced Receipt Form */}
-                  <EnhancedReceiptForm
-                    orderData={sampleOrderData}
-                    checkedItems={sampleCheckedItems}
-                    onReceiptCreate={handleReceiptCreate}
-                  />
-                </Box>
-              ) : (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Tạo Phiếu Nhập Mới
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Nhấn nút bên dưới để bắt đầu tạo phiếu nhập kho mới
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    onClick={() => {
-                      setShowReceiptForm(true);
-                      setCurrentBreadcrumbPath('create');
-                    }}
-                  >
-                    Tạo Phiếu Nhập Kho
-                  </Button>
-                </Box>
-              )}
+              <CreateReceiptTab />
             </TabPanel>
 
             {/* Tab Panel - Danh sách phiếu nhập */}
             <TabPanel value={activeTab} index={1}>
-              <Box>
-                {/* Header với nút tạo mới */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="subtitle1">Tổng số phiếu: {receipts.length}</Typography>
-                  <Button variant="contained" onClick={handleCreateNewReceipt} size="small">
-                    + Tạo phiếu mới
-                  </Button>
-                </Box>
+              <ReceiptList />
+            </TabPanel>
 
-                <ReceiptList receipts={receipts} onSendForApproval={handleSendForApproval} />
+            {/* Tab Panel - Danh sách đơn mua */}
+            <TabPanel value={activeTab} index={2}>
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Danh sách đơn mua sẽ được hiển thị ở đây
+                </Typography>
               </Box>
             </TabPanel>
           </Box>
