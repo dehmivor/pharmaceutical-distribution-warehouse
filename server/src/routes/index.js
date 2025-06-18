@@ -4,6 +4,7 @@ module.exports = {
   cronRoutes: require('./cronRoute'),
   medicineRoutes: require('./medicineRoute'),
   supervisorRoutes: require('./supervisorRoute'),
+  packageRoutes: require('./packageRoute'),
   // warehouseRoutes: require('./warehouseRoute'),
   // presentativeRoutes: require('./presentativeRoute'),
   // retailerRoutes: require('./retailerRoute'),
