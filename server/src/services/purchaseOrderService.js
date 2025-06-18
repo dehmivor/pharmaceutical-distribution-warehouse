@@ -1,7 +1,8 @@
 // services/purchaseOrderService.js
 const PurchaseOrder = require('../models/PurchaseOrder');
-const { PURCHASE_ORDER_STATUSES } = require('../utils/constants');
+const { PURCHASE_ORDER_STATUSES, CONTRACT_STATUSES } = require('../utils/constants');
 const mongoose = require('mongoose');
+const Contract = require('../models/SupplierContract');
 
 // Lấy danh sách purchase orders với pagination và filter
 const getPurchaseOrders = async (options = {}) => {
@@ -104,6 +105,14 @@ const createPurchaseOrder = async (data, userId) => {
     // Validate ObjectIds
     if (contract_id && !mongoose.Types.ObjectId.isValid(contract_id)) {
       throw new Error('Invalid contract ID');
+    }
+
+    // Kiểm tra contract phải ở trạng thái active
+    if (contract_id) {
+      const contract = await Contract.findById(contract_id);
+      if (!contract || contract.status !== CONTRACT_STATUSES.ACTIVE) {
+        throw new Error('Contract must be active to create purchase order');
+      }
     }
 
     const purchaseOrderData = {
@@ -362,6 +371,8 @@ class PurchaseOrderService {
       const contract = await Contract.findById(orderData.contract_id);
       if (!contract) throw new Error('Contract not found');
       if (!contract.items || contract.items.length === 0) throw new Error('No medicines in contract');
+      // Kiểm tra contract phải ở trạng thái active
+      if (contract.status !== CONTRACT_STATUSES.ACTIVE) throw new Error('Contract must be active to create purchase order');
       // Lấy danh sách medicine_id từ contract
       const medicineIds = contract.items.map(item => item.medicine_id);
       // Tạo purchase order mới
