@@ -375,31 +375,83 @@ const authService = {
 
   verifyToken: async (token) => {
     try {
-      console.log('🔐 Verifying token...');
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Verify user still exists and is active
-      const user = await User.findById(decoded.userId);
-      if (!user) {
-        throw new Error('User not found');
+      // ✅ Enhanced input validation
+      if (!token) {
+        throw new Error('No token provided');
       }
 
-      if (user.status !== constants.USER_STATUSES.ACTIVE) {
-        throw new Error('User account is inactive');
+      if (typeof token !== 'string') {
+        throw new Error(`Token must be a string, received: ${typeof token}`);
       }
 
-      console.log('✅ Token valid:', decoded.userId);
+      // Clean token
+      token = token.trim();
 
-      return {
+      if (token === '') {
+        throw new Error('Token cannot be empty');
+      }
+
+      // ✅ Enhanced JWT format validation
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.error('❌ JWT Format Error:', {
+          receivedParts: parts.length,
+          expectedParts: 3,
+          tokenPreview: token.substring(0, 50) + '...',
+          fullToken: process.env.NODE_ENV === 'development' ? token : '[HIDDEN]',
+        });
+        throw new Error(`Invalid JWT format: expected 3 parts, got ${parts.length}`);
+      }
+
+      // Validate each part is not empty
+      const emptyPartIndex = parts.findIndex((part) => !part || part.length === 0);
+      if (emptyPartIndex !== -1) {
+        throw new Error(`JWT part ${emptyPartIndex + 1} is empty`);
+      }
+
+      // ✅ Enhanced JWT verification with better error handling
+      let decoded;
+      try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+      } catch (jwtError) {
+        if (jwtError.name === 'TokenExpiredError') {
+          throw new Error('Token has expired');
+        }
+        if (jwtError.name === 'JsonWebTokenError') {
+          throw new Error('Invalid token signature');
+        }
+        throw new Error(`Token verification failed: ${jwtError.message}`);
+      }
+
+      // ✅ Enhanced payload validation
+      const requiredFields = ['userId', 'email'];
+      const missingFields = requiredFields.filter((field) => !decoded[field]);
+
+      if (missingFields.length > 0) {
+        throw new Error(`Invalid token payload: missing fields: ${missingFields.join(', ')}`);
+      }
+
+      // ✅ Additional security checks
+      if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
+        throw new Error('Token has expired');
+      }
+
+      console.log('✅ Token verification successful:', {
         userId: decoded.userId,
         email: decoded.email,
         role: decoded.role,
-        is_manager: decoded.is_manager,
-      };
+        expiresAt: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : 'No expiry',
+      });
+
+      return decoded;
     } catch (error) {
-      console.error('❌ Token verification failed:', error);
-      throw error; // Re-throw để middleware catch
+      console.error('🔐 Token verification failed:', {
+        message: error.message,
+        tokenProvided: !!token,
+        tokenLength: token?.length,
+        tokenType: typeof token,
+      });
+      throw error;
     }
   },
 

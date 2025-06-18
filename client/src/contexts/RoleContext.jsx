@@ -17,7 +17,7 @@ export const RoleProvider = ({ children }) => {
           return;
         }
 
-        const response = await fetch('/api/auth/me', {
+        const response = await fetch('http://localhost:5000/api/auth/me', {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
