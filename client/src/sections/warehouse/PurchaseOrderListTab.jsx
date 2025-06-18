@@ -276,9 +276,7 @@ export default function PurchaseOrderListTab() {
           <TableHead>
             <TableRow>
               <TableCell>Mã đơn</TableCell>
-              <TableCell>Nhà cung cấp</TableCell>
               <TableCell>Ngày tạo</TableCell>
-              <TableCell>Tổng tiền</TableCell>
               <TableCell>Trạng thái</TableCell>
               <TableCell>Người tạo</TableCell>
               <TableCell align="center">Thao tác</TableCell>
@@ -301,19 +299,17 @@ export default function PurchaseOrderListTab() {
               </TableRow>
             ) : (
               purchaseOrders.map((order) => (
-                <TableRow key={order.id} hover>
+                <TableRow key={order._id} hover>
                   <TableCell>
                     <Typography variant="body2" fontWeight="medium">
-                      {order.orderNumber}
+                      {order._id}
                     </Typography>
                   </TableCell>
-                  <TableCell>{order.supplier?.name}</TableCell>
                   <TableCell>{formatDate(order.createdAt)}</TableCell>
-                  <TableCell>{formatCurrency(order.totalAmount)}</TableCell>
                   <TableCell>
                     <Chip label={getStatusLabel(order.status)} color={getStatusColor(order.status)} size="small" />
                   </TableCell>
-                  <TableCell>{order.createdBy?.name}</TableCell>
+                  <TableCell>{order.created_by?.email}</TableCell>
                   <TableCell align="center">
                     <IconButton size="small" onClick={(e) => handleMenuClick(e, order)}>
                       <MoreVertIcon />

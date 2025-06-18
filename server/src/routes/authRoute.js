@@ -11,6 +11,11 @@ router.post('/login/step2', authController.loginStep2);
 router.post('/logout', authenticate, authController.logout);
 router.post('/refresh-token', authController.refreshToken);
 
+// === PASSWORD RESET ROUTES ===
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/verify-reset-token', authController.verifyResetToken);
+router.post('/reset-password', authController.resetPassword);
+
 // === VALIDATION ROUTES ===
 router.get('/validate', authenticate, authController.validateSession);
 router.get('/me', authenticate, authController.getCurrentUser);
