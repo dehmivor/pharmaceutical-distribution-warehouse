@@ -6,6 +6,7 @@ module.exports = {
   supervisorRoutes: require('./supervisorRoute'),
   purchaseOrderRoutes: require('./purchaseOrderRoute'),
   importOrderRoutes: require('./importOrderRoute'),
+  notificationRoutes: require('./notificationRoute'),
   // warehouseRoutes: require('./warehouseRoute'),
   // presentativeRoutes: require('./presentativeRoute'),
   // retailerRoutes: require('./retailerRoute'),
