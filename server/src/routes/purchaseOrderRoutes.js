@@ -9,6 +9,8 @@ const { authenticate } = require('../middlewares/authenticate');
 
 // Routes cho tất cả người dùng đã xác thực
 router.get('/', purchaseOrderController.getPurchaseOrders);
+router.get('/search/:keyword', purchaseOrderController.searchPurchaseOrders);
+router.get('/statistics', purchaseOrderController.getStatistics);
 router.get('/:id', purchaseOrderController.getPurchaseOrderById);
 
 // Routes chỉ cho representative
@@ -32,5 +34,10 @@ router.put('/:id/status',
   // checkRole(['supervisor']), 
   purchaseOrderController.updateOrderStatus
 );
+
+// Additional routes for approval workflow
+router.patch('/:id/submit', purchaseOrderController.submitForApproval);
+router.patch('/:id/approve', purchaseOrderController.approve);
+router.patch('/:id/reject', purchaseOrderController.reject);
 
 module.exports = router; 

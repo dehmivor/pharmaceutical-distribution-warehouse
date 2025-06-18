@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Box, Button, DialogActions, DialogContent, DialogTitle, MenuItem, TextField } from '@mui/material';
+import { Box, Button, DialogActions, DialogContent, DialogTitle, MenuItem, TextField, Alert, CircularProgress } from '@mui/material';
 
 export default function PurchaseOrderForm({ order, onClose }) {
   const [form, setForm] = useState({
@@ -8,17 +8,30 @@ export default function PurchaseOrderForm({ order, onClose }) {
   });
   const [loading, setLoading] = useState(false);
   const [contracts, setContracts] = useState([]);
+  const [error, setError] = useState(null);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('auth-token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` })
+    };
+  };
 
   useEffect(() => {
     // Lấy danh sách contract cho dropdown
     const fetchContracts = async () => {
       try {
-        const res = await fetch('/api/contracts');
+        const res = await fetch('/api/contracts', {
+          headers: getAuthHeaders()
+        });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
         const data = await res.json();
-        console.log('Contracts response:', data); // Debug log
         setContracts(data.data || []);
       } catch (err) {
-        console.error('Error fetching contracts:', err); // Debug log
+        setError('Không thể tải danh sách contracts: ' + err.message);
         setContracts([]);
       }
     };
@@ -32,17 +45,24 @@ export default function PurchaseOrderForm({ order, onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
       const method = order ? 'PUT' : 'POST';
       const url = order ? `/api/purchase-orders/${order._id}` : '/api/purchase-orders';
-      await fetch(url, {
+      const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ contract_id: form.contract_id }),
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
+      }
+      
       onClose(true);
     } catch (err) {
-      alert('Có lỗi xảy ra!');
+      setError(err.message);
     }
     setLoading(false);
   };
@@ -51,6 +71,12 @@ export default function PurchaseOrderForm({ order, onClose }) {
     <form onSubmit={handleSubmit}>
       <DialogTitle>{order ? 'Sửa Purchase Order' : 'Tạo Purchase Order'}</DialogTitle>
       <DialogContent>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+        
         <Box display="flex" flexDirection="column" gap={2} mt={1}>
           <TextField
             select
@@ -60,7 +86,7 @@ export default function PurchaseOrderForm({ order, onClose }) {
             onChange={handleChange}
             required
             fullWidth
-            disabled={!!order}
+            disabled={!!order || loading}
           >
             {contracts.map((c) => (
               <MenuItem key={c._id} value={c._id}>
@@ -72,7 +98,14 @@ export default function PurchaseOrderForm({ order, onClose }) {
       </DialogContent>
       <DialogActions>
         <Button onClick={() => onClose(false)} disabled={loading}>Hủy</Button>
-        <Button type="submit" variant="contained" disabled={loading || !form.contract_id}>{order ? 'Lưu' : 'Tạo mới'}</Button>
+        <Button 
+          type="submit" 
+          variant="contained" 
+          disabled={loading || !form.contract_id}
+          startIcon={loading ? <CircularProgress size={16} /> : null}
+        >
+          {order ? 'Lưu' : 'Tạo mới'}
+        </Button>
       </DialogActions>
     </form>
   );
