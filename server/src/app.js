@@ -34,7 +34,6 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/medicine', medicineRoutes);
-app.use('/api/', packageRoutes);
 
 app.use('/api/import-orders', route.importOrderRoutes);
 
