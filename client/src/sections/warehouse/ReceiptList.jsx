@@ -352,10 +352,10 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
           <TableHead>
             <TableRow>
               <TableCell>Mã đơn hàng</TableCell>
-              <TableCell>Nhà cung cấp</TableCell>
+              {/* <TableCell>Nhà cung cấp</TableCell> */}
               <TableCell>Ngày nhập</TableCell>
-              <TableCell>Liên kết với đơn mua</TableCell>
-              <TableCell>Số mặt hàng đã nhập</TableCell>
+              {/* <TableCell>Liên kết với đơn mua</TableCell> */}
+              {/* <TableCell>Số mặt hàng đã nhập</TableCell> */}
               <TableCell>Trạng thái</TableCell>
               <TableCell align="center">Thao tác</TableCell>
             </TableRow>
@@ -375,12 +375,12 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
               </TableRow>
             ) : (
               importOrders.map((order) => (
-                <TableRow key={order.id}>
+                <TableRow key={order._id}>
                   <TableCell>{order._id}</TableCell>
-                  <TableCell>{order.contract_id || 'N/A'}</TableCell>
+                  {/* <TableCell>{order.contract_id || 'N/A'}</TableCell> */}
                   <TableCell>{new Date(order.createdAt).toLocaleDateString('vi-VN')}</TableCell>
-                  <TableCell>{order.purchase_order_id || 'N/A'}</TableCell>
-                  <TableCell>{order.import_content.length || 'N/A'}</TableCell>
+                  {/* <TableCell>{order.purchase_order_id || 'N/A'}</TableCell> */}
+                  {/* <TableCell>{order.import_content.length || 'N/A'}</TableCell> */}
                   <TableCell>
                     <Chip label={getStatusText(order.status)} color={getStatusColor(order.status)} size="small" />
                   </TableCell>
