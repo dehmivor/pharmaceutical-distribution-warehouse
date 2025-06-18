@@ -13,7 +13,7 @@ const app = express();
 const errorHandler = require('./middlewares/error.middleware.js');
 const authenticate = require('./middlewares/authenticate');
 const authorize = require('./middlewares/authorize');
-const { authRoutes, cronRoutes, medicineRoutes, supervisorRoutes } = require('./routes');
+const { authRoutes, cronRoutes, medicineRoutes, supervisorRoutes, packageRoutes } = require('./routes');
 const importOrderRoutes = require('./routes/importOrderRoutes');
 
 // Middlewares
@@ -33,6 +33,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/medicine', medicineRoutes);
+app.use('/api/', packageRoutes);
 
 // Import Order routes
 app.use('/api/import-orders', importOrderRoutes);
