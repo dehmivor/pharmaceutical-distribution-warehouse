@@ -2,6 +2,135 @@
 const purchaseOrderService = require('../services/purchaseOrderService');
 const { validationResult } = require('express-validator');
 
+const purchaseOrderController = {
+  // Create new purchase order
+  async createPurchaseOrder(req, res) {
+    try {
+      const orderData = {
+        ...req.body,
+        created_by: req.user?.userId || req.user?.id,
+      };
+
+      const order = await purchaseOrderService.createPurchaseOrder(orderData);
+      res.status(201).json({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
+
+  // Get all purchase orders
+  async getPurchaseOrders(req, res) {
+    try {
+      const { page = 1, limit = 10, status, contract_id } = req.query;
+      const query = {};
+
+      if (status) query.status = status;
+      if (contract_id) query.contract_id = contract_id;
+
+      const result = await purchaseOrderService.getPurchaseOrders(
+        query,
+        parseInt(page),
+        parseInt(limit)
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result.orders,
+        pagination: result.pagination,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
+
+  // Get purchase order by ID
+  async getPurchaseOrderById(req, res) {
+    try {
+      const order = await purchaseOrderService.getPurchaseOrderById(req.params.id);
+      res.status(200).json({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
+
+  // Update purchase order
+  async updatePurchaseOrder(req, res) {
+    try {
+      const order = await purchaseOrderService.updatePurchaseOrder(
+        req.params.id,
+        req.body,
+        req.user?.role
+      );
+      res.status(200).json({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
+
+  // Delete purchase order
+  async deletePurchaseOrder(req, res) {
+    try {
+      const result = await purchaseOrderService.deletePurchaseOrder(
+        req.params.id,
+        req.user?.role
+      );
+      res.status(200).json({
+        success: true,
+        message: result.message,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
+
+  // Update order status
+  async updateOrderStatus(req, res) {
+    try {
+      const { status } = req.body;
+      const order = await purchaseOrderService.updateOrderStatus(
+        req.params.id,
+        status,
+        req.user?.role
+      );
+      res.status(200).json({
+        success: true,
+        data: order,
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
+};
+
+module.exports = purchaseOrderController;
+
 // GET /api/purchase-orders
 const getPurchaseOrders = async (req, res) => {
   try {
@@ -30,83 +159,45 @@ const getPurchaseOrders = async (req, res) => {
   }
 };
 
-// GET /api/purchase-orders/:id
-const getPurchaseOrderById = async (req, res) => {
+// GET /api/purchase-orders/search/:keyword
+const searchPurchaseOrders = async (req, res) => {
   try {
-    const { id } = req.params;
-    const purchaseOrder = await purchaseOrderService.getPurchaseOrderById(id);
+    const { keyword } = req.params;
+    const options = {
+      page: parseInt(req.query.page) || 1,
+      limit: parseInt(req.query.limit) || 10,
+      sortBy: req.query.sortBy || 'createdAt',
+      sortOrder: req.query.sortOrder || 'desc',
+    };
+
+    const result = await purchaseOrderService.searchPurchaseOrders(keyword, options);
 
     res.status(200).json({
       success: true,
-      message: 'Purchase order retrieved successfully',
-      data: purchaseOrder,
+      message: 'Search completed successfully',
+      ...result,
     });
   } catch (error) {
-    const statusCode = error.message.includes('not found') ? 404 : 500;
-    res.status(statusCode).json({
+    res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-// POST /api/purchase-orders
-const createPurchaseOrder = async (req, res) => {
+// GET /api/purchase-orders/statistics
+const getStatistics = async (req, res) => {
   try {
-    // Kiểm tra validation errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
-    }
-
-    const userId = req.user.id; // Từ auth middleware
-    const purchaseOrder = await purchaseOrderService.createPurchaseOrder(req.body, userId);
-
-    res.status(201).json({
-      success: true,
-      message: 'Purchase order created successfully',
-      data: purchaseOrder,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// PUT /api/purchase-orders/:id
-const updatePurchaseOrder = async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: errors.array(),
-      });
-    }
-
-    const { id } = req.params;
-    const userId = req.user.id;
-    const purchaseOrder = await purchaseOrderService.updatePurchaseOrder(id, req.body, userId);
+    const userId = req.query.user_id || null;
+    const stats = await purchaseOrderService.getStatistics(userId);
 
     res.status(200).json({
       success: true,
-      message: 'Purchase order updated successfully',
-      data: purchaseOrder,
+      message: 'Statistics retrieved successfully',
+      data: stats,
     });
   } catch (error) {
-    const statusCode = error.message.includes('not found')
-      ? 404
-      : error.message.includes('permission')
-        ? 403
-        : 400;
-    res.status(statusCode).json({
+    res.status(500).json({
       success: false,
       message: error.message,
     });
@@ -202,219 +293,4 @@ const reject = async (req, res) => {
       message: error.message,
     });
   }
-};
-
-// DELETE /api/purchase-orders/:id
-const deletePurchaseOrder = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-
-    const result = await purchaseOrderService.deletePurchaseOrder(id, userId);
-
-    res.status(200).json({
-      success: true,
-      ...result,
-    });
-  } catch (error) {
-    const statusCode = error.message.includes('not found')
-      ? 404
-      : error.message.includes('permission')
-        ? 403
-        : 400;
-    res.status(statusCode).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// GET /api/purchase-orders/search/:keyword
-const searchPurchaseOrders = async (req, res) => {
-  try {
-    const { keyword } = req.params;
-    const options = {
-      page: parseInt(req.query.page) || 1,
-      limit: parseInt(req.query.limit) || 10,
-      sortBy: req.query.sortBy || 'createdAt',
-      sortOrder: req.query.sortOrder || 'desc',
-    };
-
-    const result = await purchaseOrderService.searchPurchaseOrders(keyword, options);
-
-    res.status(200).json({
-      success: true,
-      message: 'Search completed successfully',
-      ...result,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// GET /api/purchase-orders/statistics
-const getStatistics = async (req, res) => {
-  try {
-    const userId = req.query.user_id || null;
-    const stats = await purchaseOrderService.getStatistics(userId);
-
-    res.status(200).json({
-      success: true,
-      message: 'Statistics retrieved successfully',
-      data: stats,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-module.exports = {
-  getPurchaseOrders,
-  getPurchaseOrderById,
-  createPurchaseOrder,
-  updatePurchaseOrder,
-  updateStatus,
-  submitForApproval,
-  approve,
-  reject,
-  deletePurchaseOrder,
-  searchPurchaseOrders,
-  getStatistics,
-};
-
-const purchaseOrderService = require('../services/purchaseOrderService');
-
-const purchaseOrderController = {
-  // Create new purchase order
-  async createPurchaseOrder(req, res) {
-    try {
-      const orderData = {
-        ...req.body,
-        created_by: req.user.userId,
-      };
-
-      const order = await purchaseOrderService.createPurchaseOrder(orderData);
-      res.status(201).json({
-        success: true,
-        data: order,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  },
-
-  // Get all purchase orders
-  async getPurchaseOrders(req, res) {
-    try {
-      const { page = 1, limit = 10, status, contract_id } = req.query;
-      const query = {};
-
-      if (status) query.status = status;
-      if (contract_id) query.contract_id = contract_id;
-
-      const result = await purchaseOrderService.getPurchaseOrders(
-        query,
-        parseInt(page),
-        parseInt(limit)
-      );
-
-      res.status(200).json({
-        success: true,
-        data: result.orders,
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  },
-
-  // Get purchase order by ID
-  async getPurchaseOrderById(req, res) {
-    try {
-      const order = await purchaseOrderService.getPurchaseOrderById(req.params.id);
-      res.status(200).json({
-        success: true,
-        data: order,
-      });
-    } catch (error) {
-      res.status(404).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  },
-
-  // Update purchase order
-  async updatePurchaseOrder(req, res) {
-    try {
-      const order = await purchaseOrderService.updatePurchaseOrder(
-        req.params.id,
-        req.body,
-        req.user.role
-      );
-      res.status(200).json({
-        success: true,
-        data: order,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  },
-
-  // Delete purchase order
-  async deletePurchaseOrder(req, res) {
-    try {
-      const result = await purchaseOrderService.deletePurchaseOrder(
-        req.params.id,
-        req.user.role
-      );
-      res.status(200).json({
-        success: true,
-        message: result.message,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  },
-
-  // Update order status
-  async updateOrderStatus(req, res) {
-    try {
-      const { status } = req.body;
-      const order = await purchaseOrderService.updateOrderStatus(
-        req.params.id,
-        status,
-        req.user.role
-      );
-      res.status(200).json({
-        success: true,
-        data: order,
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: error.message,
-      });
-    }
-  },
-};
-
-module.exports = purchaseOrderController; 
+}; 

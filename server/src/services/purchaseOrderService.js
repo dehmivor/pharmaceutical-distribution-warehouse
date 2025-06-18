@@ -345,25 +345,7 @@ const getStatistics = async (userId = null) => {
   }
 };
 
-module.exports = {
-  getPurchaseOrders,
-  getPurchaseOrderById,
-  createPurchaseOrder,
-  updatePurchaseOrder,
-  updateStatus,
-  submitForApproval,
-  approve,
-  reject,
-  deletePurchaseOrder,
-  searchPurchaseOrders,
-  getStatistics,
-};
-
-const PurchaseOrder = require('../models/PurchaseOrder');
-const { PURCHASE_ORDER_STATUSES } = require('../utils/constants');
-const Contract = require('../models/SupplierContract');
-
-class PurchaseOrderService {
+const PurchaseOrderService = {
   // Create new purchase order
   async createPurchaseOrder(orderData) {
     try {
@@ -387,7 +369,7 @@ class PurchaseOrderService {
     } catch (error) {
       throw error;
     }
-  }
+  },
 
   // Get all purchase orders with pagination and filters
   async getPurchaseOrders(query = {}, page = 1, limit = 10) {
@@ -416,7 +398,7 @@ class PurchaseOrderService {
     } catch (error) {
       throw error;
     }
-  }
+  },
 
   // Get purchase order by ID
   async getPurchaseOrderById(orderId) {
@@ -435,7 +417,7 @@ class PurchaseOrderService {
     } catch (error) {
       throw error;
     }
-  }
+  },
 
   // Update purchase order
   async updatePurchaseOrder(orderId, updateData, userRole) {
@@ -465,7 +447,7 @@ class PurchaseOrderService {
     } catch (error) {
       throw error;
     }
-  }
+  },
 
   // Delete purchase order
   async deletePurchaseOrder(orderId, userRole) {
@@ -490,7 +472,7 @@ class PurchaseOrderService {
     } catch (error) {
       throw error;
     }
-  }
+  },
 
   // Update order status
   async updateOrderStatus(orderId, status, userRole) {
@@ -520,7 +502,7 @@ class PurchaseOrderService {
     } catch (error) {
       throw error;
     }
-  }
-}
+  },
+};
 
-module.exports = new PurchaseOrderService(); 
+module.exports = PurchaseOrderService; 
