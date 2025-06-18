@@ -225,6 +225,130 @@ const authController = {
       });
     }
   },
+  forgotPassword: async (req, res) => {
+    try {
+      // Validate input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { email } = req.body;
+
+      // Check if email exists
+      const user = await authService.findUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists or not for security
+        return res.status(200).json({
+          success: true,
+          message: 'If the email exists, a reset link has been sent.',
+        });
+      }
+
+      // Generate reset token
+      const resetToken = await authService.generateResetToken(user.id);
+
+      // Send reset email
+      await emailService.sendPasswordResetEmail(email, resetToken, user.name);
+
+      res.status(200).json({
+        success: true,
+        message: 'Password reset link has been sent to your email.',
+      });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+      });
+    }
+  },
+
+  // Verify Reset Token - Kiểm tra tính hợp lệ của token
+  verifyResetToken: async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({
+          success: false,
+          message: 'Reset token is required',
+        });
+      }
+
+      const isValid = await authService.verifyResetToken(token);
+
+      if (!isValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or expired reset token',
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Reset token is valid',
+      });
+    } catch (error) {
+      console.error('Verify reset token error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+      });
+    }
+  },
+
+  // Reset Password - Đặt lại mật khẩu mới
+  resetPassword: async (req, res) => {
+    try {
+      // Validate input
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Token and new password are required',
+        });
+      }
+
+      // Reset password
+      const result = await authService.resetPassword(token, newPassword);
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          message: result.message,
+        });
+      }
+
+      // Send confirmation email
+      await emailService.sendPasswordResetConfirmation(result.user.email, result.user.name);
+
+      res.status(200).json({
+        success: true,
+        message: 'Password has been reset successfully',
+      });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+      });
+    }
+  },
 };
 
 function getRedirectByRole(role) {

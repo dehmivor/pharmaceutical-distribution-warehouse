@@ -53,7 +53,7 @@ const getImportOrderById = async (orderId) => {
     const order = await ImportOrder.findById(orderId)
       .populate('manager_id', 'name email role')
       .populate('purchase_order_id')
-      .populate('import_content.batch_id', 'name medicine_code batch_number expiry_date')
+      .populate('import_content.batch_id', 'name medicine_code')
       .populate('import_content.created_by', 'name email');
 
     if (!order) {
@@ -137,6 +137,18 @@ const addImportContentItem = async (orderId, contentItem) => {
       throw new Error('Cannot update completed order');
     }
 
+    // Validate required fields for content item
+    if (!contentItem.batch_id || !contentItem.arrival_number || !contentItem.created_by) {
+      throw new Error(
+        'batch_id, arrival_number, and created_by are required for import content item',
+      );
+    }
+
+    // Set default values if not provided
+    if (contentItem.rejected_number === undefined) {
+      contentItem.rejected_number = 0;
+    }
+
     const updatedOrder = await ImportOrder.findByIdAndUpdate(
       orderId,
       { $push: { import_content: contentItem } },
@@ -166,9 +178,21 @@ const updateImportContentItem = async (orderId, contentItemId, updateData) => {
       throw new Error('Cannot update completed order');
     }
 
+    // Validate that the content item exists
+    const contentItem = order.import_content.id(contentItemId);
+    if (!contentItem) {
+      throw new Error('Import content item not found');
+    }
+
+    // Prepare update data with proper field mapping
+    const updateFields = {};
+    Object.keys(updateData).forEach((key) => {
+      updateFields[`import_content.$.${key}`] = updateData[key];
+    });
+
     const updatedOrder = await ImportOrder.findOneAndUpdate(
       { _id: orderId, 'import_content._id': contentItemId },
-      { $set: { 'import_content.$': updateData } },
+      { $set: updateFields },
       { new: true, runValidators: true },
     )
       .populate('manager_id', 'name email role')

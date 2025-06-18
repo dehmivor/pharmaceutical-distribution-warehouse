@@ -1,16 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useTheme } from '@mui/material/styles';
-import { LineChart } from '@mui/x-charts/LineChart';
-import { BarChart } from '@mui/x-charts/BarChart';
-import Stack from '@mui/material/Stack';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
-import Typography from '@mui/material/Typography';
 import MainCard from '@/components/MainCard';
 import Legend from '@/components/third-party/chart/Legend';
 import { TabsType } from '@/enum';
+import Stack from '@mui/material/Stack';
+import { useTheme } from '@mui/material/styles';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
+import Typography from '@mui/material/Typography';
+import { BarChart } from '@mui/x-charts/BarChart';
+import { useState } from 'react';
 
 /***************************  CHART - DATA  ***************************/
 
@@ -88,8 +87,6 @@ export default function WarehouseProcessChart() {
 
   const visibleSeries = seriesData.filter((s) => s.visible);
   const legendItems = seriesData.map((series) => ({
-    label: series.label,
-    color: series.color,
     visible: series.visible,
     id: series.id
   }));
