@@ -68,6 +68,16 @@ const AREA_TYPES = {
   HAZARDOUS: 'hazardous',
 };
 
+const CONTRACT_TYPE = {
+  SUPPLY: 'supply',
+  KPI: 'kpi',
+};
+
+const CONTRACT_PARTNER_TYPE = {
+  SUPPLIER: 'supplier',
+  RETAILER: 'retailer',
+};
+
 const CONTRACT_STATUSES = {
   DRAFT: 'draft',
   ACTIVE: 'active',
@@ -111,6 +121,8 @@ module.exports = {
   PACKAGE_STATUSES,
   PACKAGE_QUALITY_STATUSES,
   AREA_TYPES,
+  CONTRACT_TYPE,
+  CONTRACT_PARTNER_TYPE,
   CONTRACT_STATUSES,
   IMPORT_ORDER_STATUSES,
   INSPECTION_QUALITY_STATUSES,
