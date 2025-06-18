@@ -22,7 +22,7 @@ const authService = {
       }
 
       // Check if user already exists
-      const existingUser = await User.findOne({
+      const existingUser = User.findOne({
         email: email.toLowerCase().trim(),
       });
 
@@ -35,7 +35,7 @@ const authService = {
 
       // Hash password
       const saltRounds = 12;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      const hashedPassword = bcrypt.hash(password, saltRounds);
 
       // Create new user
       const newUser = new User({
@@ -45,7 +45,7 @@ const authService = {
         status: constants.USER_STATUSES.ACTIVE,
       });
 
-      const savedUser = await newUser.save();
+      const savedUser = newUser.save();
 
       return {
         success: true,
@@ -342,31 +342,83 @@ const authService = {
 
   verifyToken: async (token) => {
     try {
-      console.log('🔐 Verifying token...');
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Verify user still exists and is active
-      const user = await User.findById(decoded.userId);
-      if (!user) {
-        throw new Error('User not found');
+      // ✅ Enhanced input validation
+      if (!token) {
+        throw new Error('No token provided');
       }
 
-      if (user.status !== constants.USER_STATUSES.ACTIVE) {
-        throw new Error('User account is inactive');
+      if (typeof token !== 'string') {
+        throw new Error(`Token must be a string, received: ${typeof token}`);
       }
 
-      console.log('✅ Token valid:', decoded.userId);
+      // Clean token
+      token = token.trim();
 
-      return {
+      if (token === '') {
+        throw new Error('Token cannot be empty');
+      }
+
+      // ✅ Enhanced JWT format validation
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.error('❌ JWT Format Error:', {
+          receivedParts: parts.length,
+          expectedParts: 3,
+          tokenPreview: token.substring(0, 50) + '...',
+          fullToken: process.env.NODE_ENV === 'development' ? token : '[HIDDEN]',
+        });
+        throw new Error(`Invalid JWT format: expected 3 parts, got ${parts.length}`);
+      }
+
+      // Validate each part is not empty
+      const emptyPartIndex = parts.findIndex((part) => !part || part.length === 0);
+      if (emptyPartIndex !== -1) {
+        throw new Error(`JWT part ${emptyPartIndex + 1} is empty`);
+      }
+
+      // ✅ Enhanced JWT verification with better error handling
+      let decoded;
+      try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+      } catch (jwtError) {
+        if (jwtError.name === 'TokenExpiredError') {
+          throw new Error('Token has expired');
+        }
+        if (jwtError.name === 'JsonWebTokenError') {
+          throw new Error('Invalid token signature');
+        }
+        throw new Error(`Token verification failed: ${jwtError.message}`);
+      }
+
+      // ✅ Enhanced payload validation
+      const requiredFields = ['userId', 'email'];
+      const missingFields = requiredFields.filter((field) => !decoded[field]);
+
+      if (missingFields.length > 0) {
+        throw new Error(`Invalid token payload: missing fields: ${missingFields.join(', ')}`);
+      }
+
+      // ✅ Additional security checks
+      if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
+        throw new Error('Token has expired');
+      }
+
+      console.log('✅ Token verification successful:', {
         userId: decoded.userId,
         email: decoded.email,
         role: decoded.role,
-        is_manager: decoded.is_manager,
-      };
+        expiresAt: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : 'No expiry',
+      });
+
+      return decoded;
     } catch (error) {
-      console.error('❌ Token verification failed:', error);
-      throw error; // Re-throw để middleware catch
+      console.error('🔐 Token verification failed:', {
+        message: error.message,
+        tokenProvided: !!token,
+        tokenLength: token?.length,
+        tokenType: typeof token,
+      });
+      throw error;
     }
   },
 
@@ -541,6 +593,210 @@ const authService = {
         success: false,
         message: 'Error updating user',
       };
+    }
+  },
+
+  // Tìm user theo email
+  // Kiểm tra tính hợp lệ của reset token
+  verifyResetToken: async (token) => {
+    try {
+      console.log('🔍 Verifying reset token...');
+
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+      const resetToken = await ResetToken.findOne({
+        token: hashedToken,
+        expiresAt: { $gt: new Date() },
+      });
+
+      if (resetToken) {
+        console.log('✅ Reset token is valid');
+        return true;
+      } else {
+        console.log('❌ Reset token is invalid or expired');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Verify reset token error:', error);
+      throw new Error('Failed to verify reset token');
+    }
+  },
+
+  // Đặt lại mật khẩu
+  resetPassword: async (token, newPassword) => {
+    try {
+      console.log('🔄 Resetting password...');
+
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+      // Tìm reset token
+      const resetToken = await ResetToken.findOne({
+        token: hashedToken,
+        expiresAt: { $gt: new Date() },
+      });
+
+      if (!resetToken) {
+        console.log('❌ Invalid or expired reset token');
+        return {
+          success: false,
+          message: 'Invalid or expired reset token',
+        };
+      }
+
+      // Tìm user
+      const user = await User.findById(resetToken.userId);
+      if (!user) {
+        console.log('❌ User not found');
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+
+      // Hash password mới
+      const saltRounds = 12;
+      const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+      // Cập nhật password
+      await User.findByIdAndUpdate(user._id, {
+        password: hashedPassword,
+        passwordChangedAt: new Date(),
+      });
+
+      // Xóa reset token đã sử dụng
+      await ResetToken.deleteOne({ _id: resetToken._id });
+
+      // Xóa tất cả refresh tokens của user (buộc đăng nhập lại)
+      await this.revokeAllUserTokens(user._id);
+
+      console.log(`✅ Password reset successful for user ${user.email}`);
+      return {
+        success: true,
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name || user.email.split('@')[0],
+        },
+      };
+    } catch (error) {
+      console.error('❌ Reset password error:', error);
+      return {
+        success: false,
+        message: 'Failed to reset password',
+      };
+    }
+  },
+
+  // Tạo reset token
+  generateResetToken: async (userId) => {
+    try {
+      // Xóa các token cũ của user này
+      await ResetToken.deleteMany({ userId });
+
+      // Tạo token mới
+      const token = crypto.randomBytes(32).toString('hex');
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+      // Lưu token vào database với thời gian hết hạn (1 giờ)
+      const resetToken = new ResetToken({
+        userId,
+        token: hashedToken,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+      });
+
+      await resetToken.save();
+
+      return token; // Trả về token gốc (chưa hash)
+    } catch (error) {
+      throw new Error('Failed to generate reset token');
+    }
+  },
+
+  // Kiểm tra tính hợp lệ của reset token
+  verifyResetToken: (token) => {
+    try {
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+      const resetToken = ResetToken.findOne({
+        token: hashedToken,
+        expiresAt: { $gt: new Date() },
+      });
+
+      return !!resetToken;
+    } catch (error) {
+      throw new Error('Failed to verify reset token');
+    }
+  },
+
+  // Đặt lại mật khẩu
+  resetPassword: (token, newPassword) => {
+    try {
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+      // Tìm reset token
+      const resetToken = ResetToken.findOne({
+        token: hashedToken,
+        expiresAt: { $gt: new Date() },
+      });
+
+      if (!resetToken) {
+        return {
+          success: false,
+          message: 'Invalid or expired reset token',
+        };
+      }
+
+      // Tìm user
+      const user = User.findById(resetToken.userId);
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+
+      // Hash password mới
+      const saltRounds = 12;
+      const hashedPassword = bcrypt.hash(newPassword, saltRounds);
+
+      // Cập nhật password
+      User.findByIdAndUpdate(user._id, {
+        password: hashedPassword,
+        passwordChangedAt: new Date(),
+      });
+
+      // Xóa reset token đã sử dụng
+      ResetToken.deleteOne({ _id: resetToken._id });
+
+      // Xóa tất cả refresh tokens của user (buộc đăng nhập lại)
+      this.revokeAllUserTokens(user._id);
+
+      return {
+        success: true,
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+        },
+      };
+    } catch (error) {
+      throw new Error('Failed to reset password');
+    }
+  },
+
+  // Hủy tất cả tokens của user
+  revokeAllUserTokens: async (userId) => {
+    try {
+      // Nếu bạn lưu refresh tokens trong database
+      //  RefreshToken.deleteMany({ userId });
+
+      // Hoặc thêm user vào blacklist
+      //  TokenBlacklist.create({ userId, revokedAt: new Date() });
+
+      return true;
+    } catch (error) {
+      console.error('Failed to revoke user tokens:', error);
+      return false;
     }
   },
 };

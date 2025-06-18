@@ -20,11 +20,12 @@ const medicineSchema = new mongoose.Schema(
       trim: true,
     },
     storage_conditions: {
-      type: Map,
-      of: {
-        type: String,
-        required: [true, 'Storage requirement is required'],
-        trim: true,
+      type: Object,
+      validate: {
+        validator: function (obj) {
+          return obj && Object.values(obj).every((v) => typeof v === 'string' && v.trim() !== '');
+        },
+        message: 'Each storage condition must be a non-empty string',
       },
       default: {},
     },
