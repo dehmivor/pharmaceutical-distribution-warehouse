@@ -14,7 +14,7 @@ const errorHandler = require('./middlewares/error.middleware.js');
 const authenticate = require('./middlewares/authenticate');
 const authorize = require('./middlewares/authorize');
 
-const { authRoutes, cronRoutes, medicineRoutes, supervisorRoutes, purchaseOrderRoutes ,contractRoutes} = require('./routes');
+const { authRoutes, cronRoutes, medicineRoutes, supervisorRoutes, purchaseOrderRoutes, contractRoutes } = require('./routes');
 const importOrderRoutes = require('./routes/importOrderRoutes');
 
 // Middlewares

@@ -68,15 +68,14 @@ function EnhancedWarehousePage() {
     // Có thể gọi API để gửi thông báo cho supervisor
   };
 
-  const handleApprovalSubmit = (approvalResult) => {
-    console.log('Kết quả duyệt:', approvalResult);
-    // Cập nhật trạng thái phiếu nhập
-    setReceipts((prev) =>
-      prev.map((receipt) =>
-        receipt.id === approvalResult.receiptId ? { ...receipt, status: approvalResult.decision, approvalData: approvalResult } : receipt
-      )
-    );
-    setSelectedReceiptForApproval(null);
+  const handleApproveReceipt = async (receiptId) => {
+    try {
+      const approvalResult = await approveReceipt(receiptId);
+      // Refresh data after approval
+      mutate();
+    } catch (error) {
+      console.error('Error approving receipt:', error);
+    }
   };
 
   const getStepContent = (step) => {
@@ -156,7 +155,7 @@ function EnhancedWarehousePage() {
         {tabValue === 2 && (
           <Box>
             {selectedReceiptForApproval ? (
-              <SupervisorApproval receipt={selectedReceiptForApproval} onApprovalSubmit={handleApprovalSubmit} userRole="supervisor" />
+              <SupervisorApproval receipt={selectedReceiptForApproval} onApprovalSubmit={handleApproveReceipt} userRole="supervisor" />
             ) : (
               <Alert severity="info">Chọn một phiếu nhập từ danh sách để tiến hành duyệt.</Alert>
             )}

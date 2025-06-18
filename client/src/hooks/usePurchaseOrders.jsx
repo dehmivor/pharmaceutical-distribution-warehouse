@@ -26,8 +26,6 @@ const fetcher = async (url) => {
     const fullUrl = buildUrl(url);
     const token = getAuthToken();
 
-    console.log('Fetching:', fullUrl); // Debug log
-
     const response = await fetch(fullUrl, {
       method: 'GET',
       headers: {
@@ -82,7 +80,6 @@ const fetcher = async (url) => {
     }
 
     const data = await response.json();
-    console.log('API Response:', data); // Debug log
     return data;
   } catch (error) {
     console.error('Fetch error:', error);
@@ -155,8 +152,6 @@ export function usePurchaseOrderActions() {
     try {
       const fullUrl = buildUrl(endpoint);
       const token = getAuthToken();
-
-      console.log(`${method} request to:`, fullUrl); // Debug log
 
       const response = await fetch(fullUrl, {
         method,
