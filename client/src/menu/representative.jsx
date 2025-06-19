@@ -17,6 +17,13 @@ const representative = {
       type: 'item',
       url: '/manage-licenses',
       icon: 'IconCertificate'
+    },
+    {
+      id: 'manage-purchase-orders',
+      title: 'Manage Purchase Orders',
+      type: 'item',
+      url: '/manage-purchase-orders',
+      icon: 'IconShoppingCart'
     }
   ]
 };
