@@ -218,7 +218,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       case 'shortage':
         return 'Thiếu hàng';
       default:
-        return 'Chờ nhận';
+        return 'Đang chờ';
     }
   };
 
@@ -323,8 +323,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                   <TableCell>Tên sản phẩm</TableCell>
                   <TableCell>SL dự kiến</TableCell>
                   <TableCell>SL thực nhận</TableCell>
-                  <TableCell>Đơn giá</TableCell>
-                  <TableCell>Số lô</TableCell>
                   <TableCell>HSD</TableCell>
                   <TableCell>Trạng thái</TableCell>
                   <TableCell>Thao tác</TableCell>
@@ -390,23 +388,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                           </Select>
                         </FormControl>
                       </Box>
-                    </TableCell>
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        type="number"
-                        value={item.unitPrice}
-                        onChange={(e) => updateReceiptItem(item.id, 'unitPrice', e.target.value)}
-                        sx={{ width: 100 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        value={item.lotNumber}
-                        onChange={(e) => updateReceiptItem(item.id, 'lotNumber', e.target.value)}
-                        sx={{ width: 100 }}
-                      />
                     </TableCell>
                     <TableCell>
                       <TextField

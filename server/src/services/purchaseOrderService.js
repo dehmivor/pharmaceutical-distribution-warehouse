@@ -32,13 +32,49 @@ const getPurchaseOrders = async (options = {}) => {
     const skip = (page - 1) * limit;
     const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
-    // Thực hiện query với populate
+    // Thực hiện query với populate mở rộng
     const [purchaseOrders, total] = await Promise.all([
       PurchaseOrder.find(filter)
-        .populate('contract_id', 'contract_number supplier_id terms')
-        .populate('created_by', 'name email')
-        .populate('approved_by', 'name email')
-        .populate('order_list', 'name code price unit')
+        // Populate contract với thông tin supplier và retailer
+        .populate({
+          path: 'contract_id',
+          select:
+            'contract_code type partner_type supplier_id retailer_id start_date end_date status items',
+          populate: [
+            {
+              path: 'supplier_id',
+              model: 'User',
+              select: 'email role status',
+            },
+            {
+              path: 'retailer_id',
+              model: 'User',
+              select: 'email role status',
+            },
+            {
+              path: 'created_by',
+              model: 'User',
+              select: 'email role',
+            },
+          ],
+        })
+        // Populate thông tin người tạo
+        .populate({
+          path: 'created_by',
+          model: 'User',
+          select: 'email role status',
+        })
+        // Populate thông tin người phê duyệt
+        .populate({
+          path: 'approved_by',
+          model: 'User',
+          select: 'email role status',
+        })
+        // Populate danh sách order (nếu có reference đến Medicine hoặc Product)
+        .populate({
+          path: 'order_list',
+          select: 'name code price unit category description',
+        })
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit))
