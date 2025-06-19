@@ -5,6 +5,7 @@ const User = require('../models/User');
 const constants = require('../utils/constants');
 const { sendOTPEmail } = require('./emailService');
 const getRedirectByRole = require('../utils/directUrl');
+const crypto = require('crypto');
 
 const authService = {
   register: async (userData) => {
@@ -629,57 +630,131 @@ const authService = {
     }
   },
 
-  // Tìm user theo email
-  // Kiểm tra tính hợp lệ của reset token
+  // Hủy tất cả tokens của user
+  getUserByEmail: async (email) => {
+    try {
+      const user = await User.findOne({
+        email: email.toLowerCase().trim(),
+      });
+
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          user: {
+            id: user._id,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+          },
+        },
+      };
+    } catch (error) {
+      console.error('❌ Get user by email error:', error);
+      return {
+        success: false,
+        message: 'Error fetching user data',
+      };
+    }
+  },
+
+  generateResetToken: async (userId) => {
+    try {
+      console.log('🔄 Generating reset token for user:', userId);
+
+      // Tạo token ngẫu nhiên
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+      // Thời gian hết hạn 10 phút
+      const tokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+      // Cập nhật user với token reset (lưu token đã hash)
+      await User.findByIdAndUpdate(userId, {
+        otp_reset: {
+          code: hashedToken,
+          expiry_time: tokenExpiry,
+        },
+      });
+
+      console.log('✅ Reset token generated successfully');
+      return resetToken; // Trả về token gốc để gửi email
+    } catch (error) {
+      console.error('❌ Generate reset token error:', error);
+      throw new Error('Failed to generate reset token');
+    }
+  },
+
+  // Sửa lại hàm verifyResetToken để verify token thay vì OTP
   verifyResetToken: async (token) => {
     try {
       console.log('🔍 Verifying reset token...');
 
-      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
-      const resetToken = await ResetToken.findOne({
-        token: hashedToken,
-        expiresAt: { $gt: new Date() },
-      });
-
-      if (resetToken) {
-        console.log('✅ Reset token is valid');
-        return true;
-      } else {
-        console.log('❌ Reset token is invalid or expired');
-        return false;
-      }
-    } catch (error) {
-      console.error('❌ Verify reset token error:', error);
-      throw new Error('Failed to verify reset token');
-    }
-  },
-
-  // Đặt lại mật khẩu
-  resetPassword: async (token, newPassword) => {
-    try {
-      console.log('🔄 Resetting password...');
-
-      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
-      // Tìm reset token
-      const resetToken = await ResetToken.findOne({
-        token: hashedToken,
-        expiresAt: { $gt: new Date() },
-      });
-
-      if (!resetToken) {
-        console.log('❌ Invalid or expired reset token');
+      if (!token) {
         return {
           success: false,
-          message: 'Invalid or expired reset token',
+          message: 'Token không được cung cấp',
         };
       }
 
-      // Tìm user
-      const user = await User.findById(resetToken.userId);
+      // Hash token để so sánh với database
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+      const user = await User.findOne({
+        'otp_reset.code': hashedToken,
+        'otp_reset.expiry_time': { $gt: new Date() },
+      });
+
       if (!user) {
-        console.log('❌ User not found');
+        return {
+          success: false,
+          message: 'Token không hợp lệ hoặc đã hết hạn',
+        };
+      }
+
+      console.log('✅ Reset token is valid');
+      return {
+        success: true,
+        data: {
+          userId: user._id,
+          email: user.email,
+        },
+      };
+    } catch (error) {
+      console.error('❌ Verify reset token error:', error);
+      return {
+        success: false,
+        message: 'Failed to verify reset token',
+      };
+    }
+  },
+
+  // Sửa lại hàm resetPassword để nhận token thay vì email + OTP
+  resetPassword: async (token, newPassword) => {
+    try {
+      console.log('🔄 Resetting password with token...');
+
+      if (!token || !newPassword) {
+        return {
+          success: false,
+          message: 'Token và mật khẩu mới là bắt buộc',
+        };
+      }
+
+      // Verify token trước
+      const verifyResult = await authService.verifyResetToken(token);
+      if (!verifyResult.success) {
+        return verifyResult;
+      }
+
+      const user = await User.findById(verifyResult.data.userId);
+      if (!user) {
         return {
           success: false,
           message: 'User not found',
@@ -690,146 +765,31 @@ const authService = {
       const saltRounds = 12;
       const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-      // Cập nhật password
+      // Cập nhật password và xóa token reset
       await User.findByIdAndUpdate(user._id, {
         password: hashedPassword,
-        passwordChangedAt: new Date(),
+        $unset: {
+          otp_reset: 1,
+        },
       });
-
-      // Xóa reset token đã sử dụng
-      await ResetToken.deleteOne({ _id: resetToken._id });
-
-      // Xóa tất cả refresh tokens của user (buộc đăng nhập lại)
-      await this.revokeAllUserTokens(user._id);
 
       console.log(`✅ Password reset successful for user ${user.email}`);
       return {
         success: true,
-        user: {
-          id: user._id,
-          email: user.email,
-          name: user.name || user.email.split('@')[0],
+        data: {
+          user: {
+            id: user._id,
+            email: user.email,
+            role: user.role,
+          },
         },
       };
     } catch (error) {
       console.error('❌ Reset password error:', error);
       return {
         success: false,
-        message: 'Failed to reset password',
+        message: 'Lỗi khi reset password',
       };
-    }
-  },
-
-  // Tạo reset token
-  generateResetToken: async (userId) => {
-    try {
-      // Xóa các token cũ của user này
-      await ResetToken.deleteMany({ userId });
-
-      // Tạo token mới
-      const token = crypto.randomBytes(32).toString('hex');
-      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
-      // Lưu token vào database với thời gian hết hạn (1 giờ)
-      const resetToken = new ResetToken({
-        userId,
-        token: hashedToken,
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
-      });
-
-      await resetToken.save();
-
-      return token; // Trả về token gốc (chưa hash)
-    } catch (error) {
-      throw new Error('Failed to generate reset token');
-    }
-  },
-
-  // Kiểm tra tính hợp lệ của reset token
-  verifyResetToken: (token) => {
-    try {
-      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
-      const resetToken = ResetToken.findOne({
-        token: hashedToken,
-        expiresAt: { $gt: new Date() },
-      });
-
-      return !!resetToken;
-    } catch (error) {
-      throw new Error('Failed to verify reset token');
-    }
-  },
-
-  // Đặt lại mật khẩu
-  resetPassword: (token, newPassword) => {
-    try {
-      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-
-      // Tìm reset token
-      const resetToken = ResetToken.findOne({
-        token: hashedToken,
-        expiresAt: { $gt: new Date() },
-      });
-
-      if (!resetToken) {
-        return {
-          success: false,
-          message: 'Invalid or expired reset token',
-        };
-      }
-
-      // Tìm user
-      const user = User.findById(resetToken.userId);
-      if (!user) {
-        return {
-          success: false,
-          message: 'User not found',
-        };
-      }
-
-      // Hash password mới
-      const saltRounds = 12;
-      const hashedPassword = bcrypt.hash(newPassword, saltRounds);
-
-      // Cập nhật password
-      User.findByIdAndUpdate(user._id, {
-        password: hashedPassword,
-        passwordChangedAt: new Date(),
-      });
-
-      // Xóa reset token đã sử dụng
-      ResetToken.deleteOne({ _id: resetToken._id });
-
-      // Xóa tất cả refresh tokens của user (buộc đăng nhập lại)
-      this.revokeAllUserTokens(user._id);
-
-      return {
-        success: true,
-        user: {
-          id: user._id,
-          email: user.email,
-          name: user.name,
-        },
-      };
-    } catch (error) {
-      throw new Error('Failed to reset password');
-    }
-  },
-
-  // Hủy tất cả tokens của user
-  revokeAllUserTokens: async (userId) => {
-    try {
-      // Nếu bạn lưu refresh tokens trong database
-      //  RefreshToken.deleteMany({ userId });
-
-      // Hoặc thêm user vào blacklist
-      //  TokenBlacklist.create({ userId, revokedAt: new Date() });
-
-      return true;
-    } catch (error) {
-      console.error('Failed to revoke user tokens:', error);
-      return false;
     }
   },
 };

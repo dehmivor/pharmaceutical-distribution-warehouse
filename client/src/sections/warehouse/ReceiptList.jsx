@@ -416,14 +416,6 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
                         </Tooltip>
                       )}
 
-                      {(order.status === 'received' || order.status === 'verified') && (
-                        <Tooltip title="Kiểm tra chất lượng">
-                          <IconButton size="small" color="info" onClick={() => handleQualityCheck(order.id)}>
-                            {/* <QualityCheck /> */}
-                          </IconButton>
-                        </Tooltip>
-                      )}
-
                       {order.status === 'verified' && (
                         <Tooltip title="Hoàn thành">
                           <IconButton size="small" color="success" onClick={() => handleCompleteOrder(order.id)}>

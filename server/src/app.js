@@ -20,6 +20,7 @@ const {
   medicineRoutes,
   supervisorRoutes,
   purchaseOrderRoutes,
+  packageRoutes,
   contractRoutes,
 } = require('./routes');
 const importOrderRoutes = require('./routes/importOrderRoutes');
