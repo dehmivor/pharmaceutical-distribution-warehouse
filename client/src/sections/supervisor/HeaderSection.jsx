@@ -78,12 +78,12 @@ function HeaderSection() {
                 Administer and oversee user accounts and privileges within the platform
               </Typography>
             </Box>
-            <AddUserButton onCreateUser={handleCreateUser} />
+            {/* <AddUserButton onCreateUser={handleCreateUser} /> */}
           </Stack>
         </Container>
       </Paper>
 
-      {/* Modal hiển thị form */}
+      {/* Modal hiển thị form
       <Dialog
         open={showCreateForm}
         onClose={handleCloseModal}
@@ -142,7 +142,7 @@ function HeaderSection() {
             </div>
           )}
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 }
