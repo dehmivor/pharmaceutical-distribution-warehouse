@@ -16,6 +16,8 @@ import {
 } from '@mui/material';
 import { Security as SecurityIcon } from '@mui/icons-material';
 import { useState } from 'react';
+import ComponentsWrapper from '@/components/ComponentsWrapper';
+import PresentationCard from '@/components/cards/PresentationCard';
 import UserManagement from './UserManagementTab';
 import PermissionManagement from './PermissionManagementTab';
 
@@ -59,13 +61,33 @@ function ContentSection({ activeTab }) {
     }
   };
 
-  return (
-    <div>
-      {/* Tab 0: User Management */}
-      {activeTab === 0 && <UserManagement onOpenPermissionDialog={handleOpenPermissionDialog} />}
+  // Get tab title and content
+  const getTabContent = () => {
+    switch (activeTab) {
+      case 0:
+        return {
+          component: <UserManagement onOpenPermissionDialog={handleOpenPermissionDialog} />
+        };
+      case 1:
+        return {
+          title: 'Permission Management',
+          component: <PermissionManagement onOpenPermissionDialog={handleOpenPermissionDialog} />
+        };
+      default:
+        return {
+          title: '',
+          component: <UserManagement onOpenPermissionDialog={handleOpenPermissionDialog} />
+        };
+    }
+  };
 
-      {/* Tab 1: Permission Management */}
-      {activeTab === 1 && <PermissionManagement onOpenPermissionDialog={handleOpenPermissionDialog} />}
+  const { title, component } = getTabContent();
+
+  return (
+    <>
+      <ComponentsWrapper title="System Administration">
+        <PresentationCard title={title}>{component}</PresentationCard>
+      </ComponentsWrapper>
 
       {/* Permission Dialog */}
       <Dialog open={permissionDialog} onClose={handleClosePermissionDialog} maxWidth="sm" fullWidth>
@@ -103,7 +125,7 @@ function ContentSection({ activeTab }) {
           </Button>
         </DialogActions>
       </Dialog>
-    </div>
+    </>
   );
 }
 
