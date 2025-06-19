@@ -1,30 +1,27 @@
-const mongoose = require("mongoose");
-require('./Area.model');
-require('./Batch.model');
-require('./CycleCountForm.model');
-require('./Employee.model');
-require('./Location.model');
-require('./Medicine.model');
-require('./Package.model');
-require('./Supplier.model');
-
-
-const Area = require('./Area.model');
-const Batch = require('./Batch.model');
-const CycleCountForm = require('./CycleCountForm.model');
-const Employee = require('./Employee.model');
-const Location = require('./Location.model');
-const Medicine = require('./Medicine.model');
-const Package = require('./Package.model');
-const Supplier = require('./Supplier.model');
+const User = require('./User');
+const Medicine = require('./Medicine');
+const Batch = require('./Batch');
+const Package = require('./Package');
+const ImportOrder = require('./ImportOrder');
+const Area = require('./Area');
+const Inventory = require('./Inventory');
+const Location = require('./Location');
+const SupplierContract = require('./SupplierContract');
+const Supplier = require('./Supplier');
+const Notification = require('./Notification');
+const Contract = require('./Contract');
 
 module.exports = {
-  Area,
-  Batch,
-  CycleCountForm,
-  Employee,
-  Location,
+  User,
   Medicine,
+  Batch,
   Package,
+  ImportOrder,
+  Area,
+  Inventory,
+  Location,
   Supplier,
+  SupplierContract,
+  Notification,
+  Contract,
 };

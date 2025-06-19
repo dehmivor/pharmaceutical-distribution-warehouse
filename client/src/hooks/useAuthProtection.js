@@ -1,8 +1,8 @@
 'use client';
 
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { isAuthenticated } from '@/services/auth.service.js';
+import { useRole } from '@/contexts/RoleContext';
 
 /**
  * Hook bảo vệ route, chỉ cho phép truy cập nếu người dùng đã đăng nhập
@@ -12,31 +12,34 @@ import { isAuthenticated } from '@/services/auth.service.js';
 export const useAuthProtection = (requireAuth = true) => {
   const router = useRouter();
   const pathname = usePathname();
+  const { user, userRole, isLoading: roleLoading } = useRole(); // ✅ Sử dụng RoleContext
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Kiểm tra xác thực
-    const checkAuth = async () => {
-      const isLoggedIn = authService.isAuthenticated();
+    // Chờ RoleContext load xong
+    if (roleLoading) return;
 
-      // Nếu route yêu cầu auth và người dùng chưa đăng nhập
+    const checkAuth = () => {
+      const isLoggedIn = !!user;
+
       if (requireAuth && !isLoggedIn) {
-        // Chuyển hướng đến trang đăng nhập và lưu URL hiện tại để quay lại sau
         router.push(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
-      }
-      // Nếu đã đăng nhập nhưng đang ở trang login/register
-      else if (isLoggedIn && (pathname.includes('/auth/login') || pathname.includes('/auth/register'))) {
-        // Chuyển hướng về dashboard
-        router.push('/dashboard');
+      } else if (isLoggedIn && pathname.includes('/auth/login')) {
+        const defaultRoutes = {
+          supervisor: '/manage-users',
+          representative: '/manage-licenses',
+          warehouse: '/manage-inspections'
+        };
+        router.push(defaultRoutes[userRole] || '/dashboard');
       }
 
       setIsLoading(false);
     };
 
     checkAuth();
-  }, [pathname, requireAuth, router]);
+  }, [pathname, requireAuth, router, user, userRole, roleLoading]);
 
-  return { isLoading };
+  return { isLoading: isLoading || roleLoading };
 };
 
 /**

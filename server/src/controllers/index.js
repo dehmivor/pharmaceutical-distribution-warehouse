@@ -1,0 +1,11 @@
+module.exports = {
+  authController: require('./authController'),
+  cronController: require('./cronController'),
+  mailController: require('./mailController'),
+  userController: require('./userController'),
+  medicineController: require('./medicineController'),
+  batchController: require('./batchController'),
+  importOrderController: require('./importOrderController'),
+  locationController: require('./locationController'),
+  notificationController: require('./notificationController'),
+};
