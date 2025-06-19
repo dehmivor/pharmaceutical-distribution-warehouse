@@ -19,13 +19,6 @@ const {
   medicineRoutes,
   supervisorRoutes,
   packageRoutes,
-} = require('./routes');
-const importOrderRoutes = require('./routes/importOrderRoutes');
-const {
-  authRoutes,
-  cronRoutes,
-  medicineRoutes,
-  supervisorRoutes,
   contractRoutes,
 } = require('./routes');
 
