@@ -74,13 +74,49 @@ const PurchaseOrderService = {
       const skip = (page - 1) * limit;
       const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
 
-      // Thực hiện query với populate
+      // Thực hiện query với populate mở rộng
       const [purchaseOrders, total] = await Promise.all([
         PurchaseOrder.find(filter)
-          .populate('contract_id', 'contract_number supplier_id terms')
-          .populate('created_by', 'name email')
-          .populate('approved_by', 'name email')
-          .populate('order_list', 'name code price unit')
+          // Populate contract với thông tin supplier và retailer
+          .populate({
+            path: 'contract_id',
+            select:
+              'contract_code type partner_type supplier_id retailer_id start_date end_date status items',
+            populate: [
+              {
+                path: 'supplier_id',
+                model: 'User',
+                select: 'email role status',
+              },
+              {
+                path: 'retailer_id',
+                model: 'User',
+                select: 'email role status',
+              },
+              {
+                path: 'created_by',
+                model: 'User',
+                select: 'email role',
+              },
+            ],
+          })
+          // Populate thông tin người tạo
+          .populate({
+            path: 'created_by',
+            model: 'User',
+            select: 'email role status',
+          })
+          // Populate thông tin người phê duyệt
+          .populate({
+            path: 'approved_by',
+            model: 'User',
+            select: 'email role status',
+          })
+          // Populate danh sách order (nếu có reference đến Medicine hoặc Product)
+          .populate({
+            path: 'order_list',
+            select: 'name code price unit category description',
+          })
           .sort(sort)
           .skip(skip)
           .limit(parseInt(limit))
@@ -134,7 +170,7 @@ const PurchaseOrderService = {
   },
 
   // Update purchase order
-  async updatePurchaseOrder(orderId, updateData, userRole) {
+  async updatePurchaseOrder(orderId, updateData, userId) {
     try {
       if (!mongoose.Types.ObjectId.isValid(orderId)) {
         throw new Error('Invalid purchase order ID');
@@ -151,7 +187,7 @@ const PurchaseOrderService = {
       }
 
       // Chỉ cho phép creator hoặc admin chỉnh sửa
-      if (purchaseOrder.created_by.toString() !== updateData.userId?.toString()) {
+      if (purchaseOrder.created_by.toString() !== userId.toString()) {
         throw new Error('You do not have permission to update this purchase order');
       }
 
@@ -229,7 +265,7 @@ const PurchaseOrderService = {
 
       // Nếu status là approved, set approved_by
       if (status === PURCHASE_ORDER_STATUSES.APPROVED) {
-        updateData.approved_by = purchaseOrder.created_by; // Tạm thời set created_by, sau này sẽ set từ req.user
+        updateData.approved_by = purchaseOrder.created_by;
       }
 
       const updatedPurchaseOrder = await PurchaseOrder.findByIdAndUpdate(orderId, updateData, {
@@ -262,7 +298,7 @@ const PurchaseOrderService = {
       const updatedPurchaseOrder = await PurchaseOrder.findByIdAndUpdate(
         id,
         { status: PURCHASE_ORDER_STATUSES.SUBMITTED },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       );
 
       return await this.getPurchaseOrderById(updatedPurchaseOrder._id);
@@ -289,12 +325,12 @@ const PurchaseOrderService = {
 
       const updatedPurchaseOrder = await PurchaseOrder.findByIdAndUpdate(
         id,
-        { 
+        {
           status: PURCHASE_ORDER_STATUSES.APPROVED,
           approved_by: userId,
-          notes: notes || purchaseOrder.notes
+          notes: notes || purchaseOrder.notes,
         },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       );
 
       return await this.getPurchaseOrderById(updatedPurchaseOrder._id);
@@ -321,11 +357,11 @@ const PurchaseOrderService = {
 
       const updatedPurchaseOrder = await PurchaseOrder.findByIdAndUpdate(
         id,
-        { 
+        {
           status: PURCHASE_ORDER_STATUSES.REJECTED,
-          notes: notes || purchaseOrder.notes
+          notes: notes || purchaseOrder.notes,
         },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       );
 
       return await this.getPurchaseOrderById(updatedPurchaseOrder._id);
@@ -337,12 +373,7 @@ const PurchaseOrderService = {
   // Search purchase orders
   async searchPurchaseOrders(keyword, options = {}) {
     try {
-      const {
-        page = 1,
-        limit = 10,
-        sortBy = 'createdAt',
-        sortOrder = 'desc',
-      } = options;
+      const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = options;
 
       const filter = {
         $or: [
@@ -426,4 +457,4 @@ const PurchaseOrderService = {
   },
 };
 
-module.exports = PurchaseOrderService; 
+module.exports = PurchaseOrderService;

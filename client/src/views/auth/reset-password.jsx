@@ -233,12 +233,6 @@ export default function ResetPassword() {
             {message}
           </Alert>
         )}
-
-        <Stack direction="row" justifyContent="center" sx={{ mt: 3 }}>
-          <Link component={NextLink} href="/auth/login" underline="hover" variant="subtitle2">
-            Back to Sign In
-          </Link>
-        </Stack>
       </Box>
 
       <Copyright />
