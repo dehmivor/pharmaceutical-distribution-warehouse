@@ -35,7 +35,6 @@ import {
   Refresh as RefreshIcon,
   Receipt as ReceiptIcon
 } from '@mui/icons-material';
-import { usePurchaseOrders, usePurchaseOrderActions, useExportPurchaseOrders } from '@/hooks/usePurchaseOrders';
 
 export default function PurchaseOrderListTab() {
   const [page, setPage] = useState(1);
@@ -47,16 +46,133 @@ export default function PurchaseOrderListTab() {
   const [notes, setNotes] = useState('');
   const [createReceiptDialog, setCreateReceiptDialog] = useState({ open: false, order: null });
 
-  // Hooks
-  const { purchaseOrders, pagination, isLoading, isError, mutate } = usePurchaseOrders({
-    status: statusFilter,
-    page,
-    limit: 10
+  // Khởi tạo trực tiếp với mock data thay vì gọi API
+  const [purchaseOrders, setPurchaseOrders] = useState([
+    {
+      _id: 'PO001',
+      orderNumber: 'PO001',
+      status: 'draft',
+      createdAt: '2024-06-15T10:30:00Z',
+      created_by: {
+        email: 'user1@example.com'
+      },
+      totalAmount: 5000000,
+      supplier: 'Nhà cung cấp A'
+    },
+    {
+      _id: 'PO002',
+      orderNumber: 'PO002',
+      status: 'pending',
+      createdAt: '2024-06-14T14:20:00Z',
+      created_by: {
+        email: 'user2@example.com'
+      },
+      totalAmount: 3500000,
+      supplier: 'Nhà cung cấp B'
+    },
+    {
+      _id: 'PO003',
+      orderNumber: 'PO003',
+      status: 'approved',
+      createdAt: '2024-06-13T09:15:00Z',
+      created_by: {
+        email: 'user3@example.com'
+      },
+      totalAmount: 7200000,
+      supplier: 'Nhà cung cấp C'
+    },
+    {
+      _id: 'PO004',
+      orderNumber: 'PO004',
+      status: 'completed',
+      createdAt: '2024-06-12T16:45:00Z',
+      created_by: {
+        email: 'user4@example.com'
+      },
+      totalAmount: 2800000,
+      supplier: 'Nhà cung cấp D'
+    },
+    {
+      _id: 'PO005',
+      orderNumber: 'PO005',
+      status: 'rejected',
+      createdAt: '2024-06-11T11:30:00Z',
+      created_by: {
+        email: 'user5@example.com'
+      },
+      totalAmount: 4100000,
+      supplier: 'Nhà cung cấp E'
+    }
+  ]);
+
+  // Thêm state cho loading và error để tương thích với UI hiện tại
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(null);
+
+  // Mock pagination data
+  const pagination = {
+    totalPages: 1
+  };
+
+  const mutate = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+      // Simulate API call delay
+      setPurchaseOrders(mockPurchaseOrders);
+      setIsLoading(false);
+    }, 500);
+  };
+
+  // Filter data dựa trên status và search keyword
+  const filteredOrders = purchaseOrders.filter((order) => {
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    const matchesSearch =
+      !searchKeyword ||
+      order._id.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+      order.created_by.email.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+      order.supplier.toLowerCase().includes(searchKeyword.toLowerCase());
+
+    return matchesStatus && matchesSearch;
   });
 
-  const { updateStatus, sendForApproval, approve, reject } = usePurchaseOrderActions();
+  // Mock functions cho actions
+  const updateStatus = async (orderId, status) => {
+    console.log(`Updating order ${orderId} to status ${status}`);
+    // Simulate API call
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+  };
 
-  const { exportToExcel, exportToPDF } = useExportPurchaseOrders();
+  const sendForApproval = async (orderId) => {
+    console.log(`Sending order ${orderId} for approval`);
+    setPurchaseOrders((prev) => prev.map((order) => (order._id === orderId ? { ...order, status: 'pending' } : order)));
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+  };
+
+  const approve = async (orderId, notes) => {
+    console.log(`Approving order ${orderId} with notes: ${notes}`);
+    setPurchaseOrders((prev) => prev.map((order) => (order._id === orderId ? { ...order, status: 'approved' } : order)));
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+  };
+
+  const reject = async (orderId, notes) => {
+    console.log(`Rejecting order ${orderId} with notes: ${notes}`);
+    setPurchaseOrders((prev) => prev.map((order) => (order._id === orderId ? { ...order, status: 'rejected' } : order)));
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+  };
+
+  // Mock export functions
+  const exportToExcel = async (params) => {
+    console.log('Exporting to Excel with params:', params);
+    console.log('Mock data exported:', filteredOrders);
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+  };
+
+  const exportToPDF = async (orderId) => {
+    console.log(`Exporting order ${orderId} to PDF`);
+    const order = purchaseOrders.find((o) => o._id === orderId);
+    console.log('Order data:', order);
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+  };
 
   // Status color mapping
   const getStatusColor = (status) => {
@@ -277,6 +393,8 @@ export default function PurchaseOrderListTab() {
             <TableRow>
               <TableCell>Mã đơn</TableCell>
               <TableCell>Ngày tạo</TableCell>
+              <TableCell>Nhà cung cấp</TableCell>
+              <TableCell>Tổng tiền</TableCell>
               <TableCell>Trạng thái</TableCell>
               <TableCell>Người tạo</TableCell>
               <TableCell align="center">Thao tác</TableCell>
@@ -289,7 +407,7 @@ export default function PurchaseOrderListTab() {
                   <CircularProgress />
                 </TableCell>
               </TableRow>
-            ) : purchaseOrders.length === 0 ? (
+            ) : filteredOrders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
@@ -298,7 +416,7 @@ export default function PurchaseOrderListTab() {
                 </TableCell>
               </TableRow>
             ) : (
-              purchaseOrders.map((order) => (
+              filteredOrders.map((order) => (
                 <TableRow key={order._id} hover>
                   <TableCell>
                     <Typography variant="body2" fontWeight="medium">
@@ -306,6 +424,8 @@ export default function PurchaseOrderListTab() {
                     </Typography>
                   </TableCell>
                   <TableCell>{formatDate(order.createdAt)}</TableCell>
+                  <TableCell>{order.supplier}</TableCell>
+                  <TableCell>{formatCurrency(order.totalAmount)}</TableCell>
                   <TableCell>
                     <Chip label={getStatusLabel(order.status)} color={getStatusColor(order.status)} size="small" />
                   </TableCell>
