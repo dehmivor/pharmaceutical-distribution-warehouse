@@ -3,32 +3,28 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
-const path = require('path'); // Missing import
+const path = require('path');
 const config = require('./config');
 const route = require('./routes');
 require('dotenv').config();
-require('./models');
-
-// Middleware imports
-const errorHandler = require('./middlewares/error.middleware.js');
-const fakeSupervisor = require('./middlewares/FakeSupervisor');
-
-// Route imports
-const authRoutes = require('./routes/auth.route.js');
-const { inventoryRoutes } = require('./routes/prototype/inventory.route.js');
-const { drugRoutes } = require('./routes/prototype/drug.route.js');
-const { parameterRoutes } = require('./routes/prototype/constant.route.js');
-const checkRoutes = require('./routes/prototype/check.route.js');
-const areaRoutes = require('./routes/prototype/area.route.js');
-const locationRoutes = require('./routes/prototype/location.route.js');
-const medicineRoutes = require('./routes/prototype/medicien.route.js');
-const packageRoutes = require('./routes/prototype/package.route.js');
-const { CycleCountFormRoutes } = require('./routes/prototype/cycleCountForm.route.js');
-const destroyRoutes = require('./routes/prototype/destroy.route.js');
-
+const models = require('./models');
 const app = express();
 
-// Global middlewares
+const errorHandler = require('./middlewares/error.middleware.js');
+const authenticate = require('./middlewares/authenticate');
+const authorize = require('./middlewares/authorize');
+
+const {
+  authRoutes,
+  cronRoutes,
+  medicineRoutes,
+  supervisorRoutes,
+  purchaseOrderRoutes,
+  contractRoutes,
+} = require('./routes');
+const importOrderRoutes = require('./routes/importOrderRoutes');
+
+// Middlewares
 app.use(helmet());
 app.use(cors({ origin: config.clientUrl, credentials: true }));
 app.use(express.json());
@@ -36,57 +32,69 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan('dev'));
 
-// Environment check
-const isProduction = process.env.NODE_ENV === 'production';
-const __dirname = path.resolve();
-
-// Health check route
+// Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({ message: 'OK ✅ Server running' });
 });
 
-// Home route
-app.get('/', (req, res) => {
-  res.send('API đang hoạt động!');
-});
-
-// API routes
+// Public routes
 app.use('/api/auth', authRoutes);
-app.use('/api/parameters', parameterRoutes);
-app.use('/api/drug', drugRoutes);
-app.use('/api/inventory', inventoryRoutes);
-app.use('/api/check', fakeSupervisor, checkRoutes);
-app.use('/api/areas', areaRoutes);
-app.use('/api/locations', locationRoutes);
-app.use('/api/medicines', medicineRoutes);
-app.use('/api/packages', packageRoutes);
-app.use('/api/cycle-count-form', CycleCountFormRoutes);
-app.use('/api/', destroyRoutes);
+app.use('/api/cron', cronRoutes);
+app.use('/api/medicine', medicineRoutes);
 
-// General routes (if any additional routes are defined in route function)
-route(app);
+app.use('/api/import-orders', route.importOrderRoutes);
 
-// Serve static files in production
-if (isProduction) {
-  app.use(express.static(path.join(__dirname, '../client/dist')));
+// Protected routes với role-based access
+app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRoutes);
 
-  // Catch-all handler for client-side routing
-  app.get('*', (req, res) => {
-    return res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-  });
-}
+app.use('/api/contracts', contractRoutes);
 
-// Global error handler (must be last)
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: 'Lỗi server',
-    error: process.env.NODE_ENV === 'development' ? err.message : {},
-  });
+// Purchase Order routes
+app.use(
+  '/api/purchase-orders',
+  // authenticate,
+  // authorize(['supervisor', 'warehouse','representative']),
+  route.purchaseOrderRoutes,
+);
+
+// app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
+
+// app.use(
+//   '/api/representative',
+//   authenticate,
+//   authorize(['supervisor', 'representative']),
+//   representativeRoutes,
+// );
+
+// Shared routes cho multiple roles
+app.use(
+  '/api/shared',
+  authenticate,
+  authorize(['supervisor', 'representative', 'warehouse']),
+  (req, res) => {
+    res.json({
+      success: true,
+      data: 'Shared data accessible by multiple roles',
+      userRole: req.user.role,
+    });
+  },
+);
+
+const startAllCrons = require('./cron');
+startAllCrons();
+
+app.use(
+  cors({
+    origin: config.clientUrl,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }),
+);
+
+app.use((req, res, next) => {
+  res.status(404).json({ message: 'Not Found' });
 });
-
-// Custom error handler middleware
 app.use(errorHandler);
 
 module.exports = app;

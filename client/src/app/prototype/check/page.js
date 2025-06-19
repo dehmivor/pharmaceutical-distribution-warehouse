@@ -31,6 +31,7 @@ import { format } from 'date-fns';
 
 const API_BASE = '/api/check/cycle-count';
 const AREA_API = '/api/areas';
+const LOCATION_API = '/api/locations';
 
 export default function CycleCountPage() {
   const [cycleCounts, setCycleCounts] = useState([]);
@@ -38,9 +39,11 @@ export default function CycleCountPage() {
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [selectedCycleCount, setSelectedCycleCount] = useState(null);
   const [areas, setAreas] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [newCycleCount, setNewCycleCount] = useState({
     area: '',
+    location: '',
     startTime: '',
     endTime: '',
   });
@@ -68,6 +71,32 @@ export default function CycleCountPage() {
     }
   };
 
+  // Load danh sách vị trí theo khu vực
+  const loadLocations = async (areaId) => {
+    if (!areaId) {
+      setLocations([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await axios.get(`${LOCATION_API}/area/${areaId}`);
+      if (response.data.status === 'success') {
+        setLocations(response.data.data.locations);
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách vị trí:', error);
+      setLocations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Xử lý khi chọn khu vực
+  const handleAreaChange = (areaId) => {
+    setNewCycleCount({ ...newCycleCount, area: areaId, location: '' });
+    loadLocations(areaId);
+  };
+
   // Load danh sách đợt kiểm kê
   const loadCycleCounts = async () => {
     try {
@@ -89,7 +118,7 @@ export default function CycleCountPage() {
   const handleCreate = async () => {
     try {
       // Kiểm tra dữ liệu đầu vào
-      if (!newCycleCount.area || !newCycleCount.startTime || !newCycleCount.endTime) {
+      if (!newCycleCount.area || !newCycleCount.location || !newCycleCount.startTime || !newCycleCount.endTime) {
         console.error('Vui lòng điền đầy đủ thông tin');
         return;
       }
@@ -101,18 +130,27 @@ export default function CycleCountPage() {
         return;
       }
 
+      // Kiểm tra location có tồn tại trong danh sách không
+      const selectedLocation = locations.find(l => l._id === newCycleCount.location);
+      if (!selectedLocation) {
+        console.error('Vị trí không hợp lệ');
+        return;
+      }
+
       // Format thời gian
       const startTime = new Date(newCycleCount.startTime).toISOString();
       const endTime = new Date(newCycleCount.endTime).toISOString();
 
       console.log('Creating cycle count with data:', {
         area: newCycleCount.area,
+        location: newCycleCount.location,
         startTime,
         endTime
       });
 
       const response = await axios.post(API_BASE, {
         area: newCycleCount.area,
+        location: newCycleCount.location,
         startTime,
         endTime
       });
@@ -121,6 +159,7 @@ export default function CycleCountPage() {
         setOpenCreateDialog(false);
         setNewCycleCount({
           area: '',
+          location: '',
           startTime: '',
           endTime: '',
         });
@@ -243,7 +282,7 @@ export default function CycleCountPage() {
                   labelId="area-select-label"
                   value={newCycleCount.area}
                   label="Khu vực"
-                  onChange={(e) => setNewCycleCount({ ...newCycleCount, area: e.target.value })}
+                  onChange={(e) => handleAreaChange(e.target.value)}
                   disabled={loading}
                 >
                   {loading ? (
@@ -256,6 +295,32 @@ export default function CycleCountPage() {
                     ))
                   ) : (
                     <MenuItem disabled>Không có dữ liệu khu vực</MenuItem>
+                  )}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel id="location-select-label">Vị trí</InputLabel>
+                <Select
+                  labelId="location-select-label"
+                  value={newCycleCount.location}
+                  label="Vị trí"
+                  onChange={(e) => setNewCycleCount({ ...newCycleCount, location: e.target.value })}
+                  disabled={loading || !newCycleCount.area}
+                >
+                  {loading ? (
+                    <MenuItem disabled>Đang tải...</MenuItem>
+                  ) : locations.length > 0 ? (
+                    locations.map((location) => (
+                      <MenuItem key={location._id} value={location._id}>
+                        {`${location.row}-${location.bay}-${location.level}`}
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled>
+                      {newCycleCount.area ? 'Không có vị trí trong khu vực này' : 'Vui lòng chọn khu vực trước'}
+                    </MenuItem>
                   )}
                 </Select>
               </FormControl>
@@ -287,7 +352,7 @@ export default function CycleCountPage() {
           <Button 
             onClick={handleCreate} 
             variant="contained"
-            disabled={loading || !newCycleCount.area}
+            disabled={loading || !newCycleCount.area || !newCycleCount.location}
           >
             Tạo
           </Button>

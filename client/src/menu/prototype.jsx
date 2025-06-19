@@ -39,8 +39,8 @@ const prototype = {
           url: '/prototype/destroy/68361ce3134e5fde59c1fada'
         },
         {
-          id: 'report to ?',
-          title: 'report to ?',
+          id: 'report to admin',
+          title: 'report to admin',
           type: 'item',
           url: '/prototype/check'
         }
