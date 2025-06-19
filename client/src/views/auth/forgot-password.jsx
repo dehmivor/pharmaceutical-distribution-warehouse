@@ -111,9 +111,6 @@ export default function ForgotPassword() {
             <Alert severity="success" sx={{ mb: 3 }}>
               {message}
             </Alert>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Please check your email and click the link to reset your password.
-            </Typography>
             <Button variant="outlined" onClick={() => router.push('/auth/login')}>
               Back to Sign In
             </Button>
@@ -125,12 +122,6 @@ export default function ForgotPassword() {
             {message}
           </Alert>
         )}
-
-        <Stack direction="row" justifyContent="center" sx={{ mt: 3 }}>
-          <Link component={NextLink} href="/auth/login" underline="hover" variant="subtitle2">
-            Back to Sign In
-          </Link>
-        </Stack>
       </Box>
 
       <Copyright />

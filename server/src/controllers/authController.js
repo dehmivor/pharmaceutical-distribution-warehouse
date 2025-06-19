@@ -1,5 +1,10 @@
 // controllers/authController.js
 const authService = require('../services/authService');
+const { validationResult } = require('express-validator');
+const {
+  sendResetPasswordEmail,
+  sendPasswordResetConfirmation,
+} = require('../services/emailService');
 
 const authController = {
   register: async (req, res) => {
@@ -227,48 +232,48 @@ const authController = {
   },
   forgotPassword: async (req, res) => {
     try {
-      // Validate input
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: errors.array(),
-        });
-      }
-
       const { email } = req.body;
 
-      // Check if email exists
-      const user = await authService.findUserByEmail(email);
-      if (!user) {
-        // Don't reveal if email exists or not for security
-        return res.status(200).json({
-          success: true,
-          message: 'If the email exists, a reset link has been sent.',
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email là bắt buộc',
         });
       }
 
-      // Generate reset token
+      const userResult = await authService.getUserByEmail(email);
+      if (!userResult.success) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy user với email này',
+        });
+      }
+
+      const user = userResult.data.user;
+
+      // Tạo reset token
       const resetToken = await authService.generateResetToken(user.id);
 
-      // Send reset email
-      await emailService.sendPasswordResetEmail(email, resetToken, user.name);
+      // Gửi email với reset link
+      await sendResetPasswordEmail(email, resetToken);
 
       res.status(200).json({
         success: true,
-        message: 'Password reset link has been sent to your email.',
+        message: 'Link đặt lại mật khẩu đã được gửi đến email của bạn',
+        data: {
+          email: email,
+        },
       });
     } catch (error) {
       console.error('Forgot password error:', error);
       res.status(500).json({
         success: false,
-        message: 'Internal server error',
+        message: 'Lỗi server khi gửi link reset password',
       });
     }
   },
 
-  // Verify Reset Token - Kiểm tra tính hợp lệ của token
+  // Thêm hàm verify reset token (để frontend gọi khi load component)
   verifyResetToken: async (req, res) => {
     try {
       const { token } = req.body;
@@ -276,22 +281,22 @@ const authController = {
       if (!token) {
         return res.status(400).json({
           success: false,
-          message: 'Reset token is required',
+          message: 'Token là bắt buộc',
         });
       }
 
-      const isValid = await authService.verifyResetToken(token);
+      const result = await authService.verifyResetToken(token);
 
-      if (!isValid) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid or expired reset token',
-        });
+      if (!result.success) {
+        return res.status(400).json(result);
       }
 
       res.status(200).json({
         success: true,
-        message: 'Reset token is valid',
+        message: 'Token hợp lệ',
+        data: {
+          email: result.data.email,
+        },
       });
     } catch (error) {
       console.error('Verify reset token error:', error);
@@ -302,10 +307,9 @@ const authController = {
     }
   },
 
-  // Reset Password - Đặt lại mật khẩu mới
+  // Sửa lại hàm resetPassword
   resetPassword: async (req, res) => {
     try {
-      // Validate input
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({
@@ -320,7 +324,7 @@ const authController = {
       if (!token || !newPassword) {
         return res.status(400).json({
           success: false,
-          message: 'Token and new password are required',
+          message: 'Token và mật khẩu mới là bắt buộc',
         });
       }
 
@@ -328,18 +332,18 @@ const authController = {
       const result = await authService.resetPassword(token, newPassword);
 
       if (!result.success) {
-        return res.status(400).json({
-          success: false,
-          message: result.message,
-        });
+        return res.status(400).json(result);
       }
 
       // Send confirmation email
-      await emailService.sendPasswordResetConfirmation(result.user.email, result.user.name);
+      await sendPasswordResetConfirmation(
+        result.data.user.email,
+        result.data.user.email.split('@')[0],
+      );
 
       res.status(200).json({
         success: true,
-        message: 'Password has been reset successfully',
+        message: 'Mật khẩu đã được đặt lại thành công',
       });
     } catch (error) {
       console.error('Reset password error:', error);
