@@ -342,21 +342,6 @@ export default function CreateReceiptTab() {
           {notification.message}
         </Alert>
       </Snackbar>
-
-      {/* Debug info - có thể xóa trong production */}
-      {process.env.NODE_ENV === 'development' && createdReceipts.length > 0 && (
-        <Box sx={{ mt: 4, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Debug: Phiếu nhập đã tạo ({createdReceipts.length})
-          </Typography>
-          {createdReceipts.map((receipt, index) => (
-            <Typography key={index} variant="body2" sx={{ fontFamily: 'monospace' }}>
-              {receipt.receiptId} - {receipt.statistics?.totalReceived || 0} sản phẩm -{' '}
-              {new Date(receipt.createdAt).toLocaleString('vi-VN')}
-            </Typography>
-          ))}
-        </Box>
-      )}
     </Box>
   );
 }
