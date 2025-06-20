@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
-import { useTheme } from '@mui/material/styles'; // Thêm import này
+import { useTheme } from '@mui/material/styles';
 import {
   Add as AddIcon,
   Warehouse as WarehouseIcon,
@@ -10,7 +10,7 @@ import {
 } from '@mui/icons-material';
 
 function AddUserButton({ onCreateUser }) {
-  const theme = useTheme(); // Thêm dòng này
+  const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
