@@ -50,14 +50,6 @@ app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRout
 
 app.use('/api/contracts', contractRoutes);
 
-// Purchase Order routes
-app.use(
-  '/api/purchase-orders',
-  // authenticate,
-  // authorize(['supervisor', 'warehouse','representative']),
-  route.purchaseOrderRoutes,
-);
-
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 
 // app.use(
