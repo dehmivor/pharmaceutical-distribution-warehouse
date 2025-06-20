@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { AREA_TYPES } = require('../utils/constants');
+const { storageConditionsSchema } = require('./subSchemas');
 
 const areaSchema = new mongoose.Schema({
   name: {
@@ -7,23 +7,9 @@ const areaSchema = new mongoose.Schema({
     required: [true, 'Area name is required'],
     trim: true,
   },
-  type: {
-    type: String,
-    required: [true, 'Area type is required'],
-    enum: {
-      values: Object.values(AREA_TYPES),
-      message: `Area type must be one of: ${Object.values(AREA_TYPES).join(', ')}`,
-    },
-    default: AREA_TYPES.DRY_STORAGE,
-  },
   storage_conditions: {
-    type: Map,
-    of: {
-      type: String,
-      required: [true, 'Storage requirement is required'],
-      trim: true,
-    },
-    default: {},
+    type: storageConditionsSchema,
+    required: [true, 'Storage conditions are required'],
   },
   description: {
     type: String,
@@ -31,7 +17,9 @@ const areaSchema = new mongoose.Schema({
     default: '',
   },
 }, {
-  timestamps: true,
 });
+
+// Thêm index để tối ưu truy vấn
+areaSchema.index({ name: 1 }, { unique: true });
 
 module.exports = mongoose.model('Area', areaSchema);
