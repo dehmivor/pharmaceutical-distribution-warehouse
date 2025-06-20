@@ -1,0 +1,17 @@
+{
+  "name": "pharmaceutical-distribution-warehouse",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "client"
+  ],
+  "scripts": {
+    "dev": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "cd client && npm run start",
+    "lint": "cd client && npm run lint"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 

@@ -26,7 +26,9 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:5000/api/:path*'
+        destination: process.env.NODE_ENV === 'production' 
+          ? `${process.env.NEXT_PUBLIC_API_URL || 'https://your-backend-url.com'}/api/:path*`
+          : 'http://localhost:5000/api/:path*'
       }
     ];
   },
@@ -51,7 +53,11 @@ const nextConfig = {
         ]
       }
     ];
-  }
+  },
+  experimental: {
+    esmExternals: 'loose'
+  },
+  output: 'standalone'
 };
 
 export default nextConfig;
