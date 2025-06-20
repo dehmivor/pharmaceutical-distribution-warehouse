@@ -4,7 +4,7 @@ const contractController = require('../controllers/contractController');
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
 
-// router.use(authenticate);
+router.use(authenticate);
 
 router.post('/', authorize(['representative','supervisor']), contractController.createContract);
 router.get('/', authorize(['representative','supervisor']), contractController.getContractsByStatus);
