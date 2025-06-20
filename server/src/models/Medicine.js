@@ -97,7 +97,6 @@ const medicineSchema = new mongoose.Schema(
 );
 
 // Thêm index cho các field thường được query
-medicineSchema.index({ license_code: 1 });
 medicineSchema.index({ name: 1 });
 medicineSchema.index({ category: 1 });
 
