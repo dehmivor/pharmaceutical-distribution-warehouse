@@ -3,10 +3,10 @@ const USER_ROLES = {
   WAREHOUSE: 'warehouse',
   SUPERVISOR: 'supervisor',
   REPRESENTATIVE: 'representative',
-  MANAGER: 'manager',
+  WAREHOUSEMANAGER: 'warehouse_manager',
 };
 
-const USER_STATUSES = {
+const BASIC_STATUSES = {
   ACTIVE: 'active',
   INACTIVE: 'inactive',
 };
@@ -62,12 +62,6 @@ const PACKAGE_QUALITY_STATUSES = {
   FAILED: 'failed',
 };
 
-const AREA_TYPES = {
-  COLD_STORAGE: 'cold_storage',
-  DRY_STORAGE: 'dry_storage',
-  HAZARDOUS: 'hazardous',
-};
-
 const CONTRACT_TYPE = {
   SUPPLY: 'supply',
   KPI: 'kpi',
@@ -86,10 +80,11 @@ const CONTRACT_STATUSES = {
 };
 
 const IMPORT_ORDER_STATUSES = {
-  WAITING_APPROVAL: 'waiting_approval',
+  DRAFT: 'draft',
   APPROVED: 'approved',
-  CARRIER_ARRIVED: 'carrier_arrived',
-  CHECKED_IN: 'checked_in',
+  DELIVERED: 'delivered',
+  CHECKED: 'checked',
+  ARRANGED: 'arranged',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
 };
@@ -116,11 +111,10 @@ const INSPECTION_STATUSES = {
 
 module.exports = {
   USER_ROLES,
-  USER_STATUSES,
+  BASIC_STATUSES,
   BATCH_QUALITY_STATUSES,
   PACKAGE_STATUSES,
   PACKAGE_QUALITY_STATUSES,
-  AREA_TYPES,
   CONTRACT_TYPE,
   CONTRACT_PARTNER_TYPE,
   CONTRACT_STATUSES,

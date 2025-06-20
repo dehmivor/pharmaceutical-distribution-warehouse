@@ -1,17 +1,6 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const { otpSchema } = require('./subSchemas'); // Import sub-schema cho OTP
 const constants = require('../utils/constants'); // Import các hằng số nếu cần thiết
-// Schema con cho OTP
-const otpSchema = new mongoose.Schema({
-  code: {
-    type: String,
-    required: true,
-  },
-  expiry_time: {
-    type: Date,
-    required: true,
-  },
-});
 
 // Schema chính cho User
 const userSchema = new mongoose.Schema({
@@ -39,10 +28,10 @@ const userSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: {
-      values: Object.values(constants.USER_STATUSES),
-      message: `Status must be one of: ${Object.values(constants.USER_STATUSES).join(', ')}`,
+      values: Object.values(constants.BASIC_STATUSES),
+      message: `Status must be one of: ${Object.values(constants.BASIC_STATUSES).join(', ')}`,
     },
-    default: constants.USER_STATUSES.ACTIVE,
+    default: constants.BASIC_STATUSES.ACTIVE,
   },
   otp_login: {
     type: otpSchema,
@@ -52,8 +41,6 @@ const userSchema = new mongoose.Schema({
     type: otpSchema,
     default: null,
   },
-}, {
-  timestamps: true, // Tự động thêm createdAt và updatedAt
 });
 
 module.exports = mongoose.model('User', userSchema);
