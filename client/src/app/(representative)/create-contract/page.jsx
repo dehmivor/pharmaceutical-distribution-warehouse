@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Form, Button, Modal, Row, Col } from 'react-bootstrap';

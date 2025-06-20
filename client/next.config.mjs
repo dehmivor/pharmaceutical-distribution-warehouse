@@ -54,9 +54,6 @@ const nextConfig = {
       }
     ];
   },
-  experimental: {
-    esmExternals: 'loose'
-  },
   output: 'standalone'
 };
 
