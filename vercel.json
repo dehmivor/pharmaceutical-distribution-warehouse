@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "buildCommand": "cd client && npm run build",
+  "outputDirectory": "client/.next",
+  "installCommand": "cd client && npm install",
+  "framework": "nextjs",
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/client/$1"
+    }
+  ]
+} 
