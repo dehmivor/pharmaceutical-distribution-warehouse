@@ -29,7 +29,7 @@ import {
 import { Visibility as VisibilityIcon } from '@mui/icons-material';
 
 // Components
-import ImportOrderDetails from '@/components/import-orders/ImportOrderDetails';
+import ImportOrderDetails from '@/sections/warehouse/ImportOrderDetails';
 
 // Helper function to format date
 const formatDate = (dateString) => {
