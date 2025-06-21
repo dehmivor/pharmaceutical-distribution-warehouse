@@ -297,11 +297,7 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
                       startAdornment={<CategoryIcon sx={{ mr: 1, color: 'text.secondary' }} />}
                       MenuProps={{ variant: 'menu' }}
                       sx={{
-                        '& .MuiSelect-select': {
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }
+                        width: 220
                       }}
                     >
                       {categoryOptions?.map((opt) => (
