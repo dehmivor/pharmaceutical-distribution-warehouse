@@ -16,24 +16,9 @@ const storageConditionsSchema = new mongoose.Schema({
     type: String,
     enum: ['none', 'low', 'medium', 'high'],
     required: [true, 'Light condition is required'],
-  },
-  vacuum: {
-    type: Boolean,
-    default: false,
-  },
-  gas_environment: {
-    type: String,
-    enum: ['ISO5', 'ISO7', 'normal'],
-    default: 'normal',
-  },
-  vibration: {
-    type: Boolean,
-    default: false,
-    type: String,
-    enum: ['normal', 'nitrogen', 'argon'],
-    default: 'normal',
-  },
-  cleanliness: {},
+  }
+}, {
+  _id: false, // Không tạo ID riêng cho sub-schema
 });
 
 // Sub-schema cho OTP
