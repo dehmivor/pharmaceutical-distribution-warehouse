@@ -4,18 +4,18 @@ const mongoose = require('mongoose');
 const storageConditionsSchema = new mongoose.Schema({
   temperature: {
     type: String,
-    required: [true, 'Temperature is required'],
-    match: [/^\d+-\d+°C$|^-\d+°C$/, 'Temperature must be in format "X-Y°C" or "-X°C"'],
+    required: false,
+    match: [/^\d+-\d+°C$|^-\d+°C$|^\d+°C$/, 'Temperature must be in format "X-Y°C", "-X°C", or "X°C"'],
   },
   humidity: {
     type: String,
-    required: [true, 'Humidity is required'],
+    required: false,
     match: [/^\d+%$|^\d+-\d+%$/, 'Humidity must be in format "X%" or "X-Y%"'],
   },
   light: {
     type: String,
-    enum: ['none', 'low', 'medium', 'high'],
-    required: [true, 'Light condition is required'],
+    enum: ['none', 'low', 'medium', 'high', ''],
+    required: false,
   }
 }, {
   _id: false, // Không tạo ID riêng cho sub-schema
