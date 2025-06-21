@@ -5,6 +5,10 @@ const USER_ROLES = {
   REPRESENTATIVE: 'representative',
   WAREHOUSEMANAGER: 'warehouse_manager',
 };
+const USER_STATUSES = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+};
 
 const BASIC_STATUSES = {
   ACTIVE: 'active',
@@ -112,6 +116,7 @@ const INSPECTION_STATUSES = {
 module.exports = {
   USER_ROLES,
   BASIC_STATUSES,
+  USER_STATUSES,
   BATCH_QUALITY_STATUSES,
   PACKAGE_STATUSES,
   PACKAGE_QUALITY_STATUSES,
