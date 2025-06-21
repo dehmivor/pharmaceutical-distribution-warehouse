@@ -114,7 +114,7 @@ const medicineService = {
       if (!medicine_name || !license_code || !category || !unit_of_measure) {
         return {
           success: false,
-          message: 'Tên thuốc, mã thuốc, danh mục, dạng bào chế và đơn vị đo là bắt buộc',
+          message: 'Tên thuốc, mã thuốc, danh mục và đơn vị đo là bắt buộc',
         };
       }
 
