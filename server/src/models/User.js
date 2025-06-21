@@ -28,10 +28,10 @@ const userSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: {
-      values: Object.values(constants.BASIC_STATUSES),
-      message: `Status must be one of: ${Object.values(constants.BASIC_STATUSES).join(', ')}`,
+      values: Object.values(constants.USER_STATUSES),
+      message: `Status must be one of: ${Object.values(constants.USER_STATUSES).join(', ')}`,
     },
-    default: constants.BASIC_STATUSES.ACTIVE,
+    default: constants.USER_STATUSES.ACTIVE,
   },
   otp_login: {
     type: otpSchema,
