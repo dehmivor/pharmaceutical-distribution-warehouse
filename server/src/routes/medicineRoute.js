@@ -28,13 +28,6 @@ router.get('/', medicineController.getAllMedicines);
 router.get('/filter-options', medicineController.getFilterOptions);
 
 /**
- * @route GET /api/medicines/stats
- * @desc Get medicine statistics
- * @access Private
- */
-router.get('/stats', medicineController.getMedicineStats);
-
-/**
  * @route GET /api/medicines/:id
  * @desc Get medicine by ID
  * @access Private

@@ -32,15 +32,16 @@ import {
 } from '@mui/material';
 import {
   Visibility as ViewIcon,
+  Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
   FilterList as FilterIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import MedicineDetailDialog from './MedicineDetailDialog'; // Import the detail dialog component
+import MedicineEditDialog from './MedicineEditDialog'; // Import the edit dialog component
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
 
 const MedicineManagement = () => {
   const [medicines, setMedicines] = useState([]);
@@ -48,28 +49,24 @@ const MedicineManagement = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
-  
+
   // Filter states
   const [filters, setFilters] = useState({
-    medicine_name: '',
-    category: '',
-    dosage_form: '',
-    target_customer: '',
-    unit_of_measure: ''
+    license_code: '',
+    category: ''
   });
-  
+
   // Filter options
   const [filterOptions, setFilterOptions] = useState({
-    dosage_forms: [],
-    target_customers: [],
-    units_of_measure: []
+    category: []
   });
-  
+
   // Dialog states
   const [openViewDialog, setOpenViewDialog] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState(null);
-  
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -80,13 +77,11 @@ const MedicineManagement = () => {
       const params = new URLSearchParams({
         page: page + 1,
         limit: rowsPerPage,
-        ...Object.fromEntries(
-          Object.entries(filters).filter(([_, value]) => value !== '')
-        )
+        ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== ''))
       });
-      
+
       const response = await axios.get(`${API_BASE_URL}/medicine?${params}`);
-      
+
       if (response.data.success) {
         setMedicines(response.data.data.medicines);
         setTotalCount(response.data.data.pagination.total);
@@ -111,11 +106,35 @@ const MedicineManagement = () => {
     }
   };
 
+  const handleUpdateMedicine = async (updatedMedicine) => {
+    if (!updatedMedicine || !updatedMedicine._id) {
+      setError('Không tìm thấy ID thuốc để cập nhật');
+      return;
+    }
+
+    try {
+      const response = await axios.put(`${API_BASE_URL}/medicine/${updatedMedicine._id}`, updatedMedicine);
+
+      if (response.data.success) {
+        setSuccess('Cập nhật thuốc thành công');
+        setOpenEditDialog(false);
+        setSelectedMedicine(null);
+        fetchMedicines();
+      } else {
+        setError(response.data.message || 'Cập nhật thất bại');
+      }
+    } catch (err) {
+      console.error('Update medicine error:', err);
+      const serverMessage = err.response?.data?.message;
+      setError(serverMessage || 'Lỗi khi cập nhật thuốc');
+    }
+  };
+
   // Delete medicine
   const handleDeleteMedicine = async () => {
     try {
       const response = await axios.delete(`${API_BASE_URL}/medicine/${selectedMedicine._id}`);
-      
+
       if (response.data.success) {
         setSuccess('Xóa thuốc thành công');
         setOpenDeleteDialog(false);
@@ -129,7 +148,7 @@ const MedicineManagement = () => {
 
   // Handle filter change
   const handleFilterChange = (field, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       [field]: value
     }));
@@ -146,7 +165,6 @@ const MedicineManagement = () => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
-
 
   useEffect(() => {
     fetchFilterOptions();
@@ -196,73 +214,33 @@ const MedicineManagement = () => {
             <Grid item xs={12} sm={6} md={3}>
               <TextField
                 fullWidth
-                label="Tên thuốc"
-                value={filters.medicine_name}
-                onChange={(e) => handleFilterChange('medicine_name', e.target.value)}
+                label="Số đăng ký"
+                value={filters.license_code}
+                onChange={(e) => handleFilterChange('license_code', e.target.value)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
                       <SearchIcon />
                     </InputAdornment>
-                  ),
+                  )
                 }}
               />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                fullWidth
-                label="Danh mục"
-                value={filters.category}
-                onChange={(e) => handleFilterChange('category', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth>
-                <InputLabel id="dosage-form-label">Dạng bào chế</InputLabel>
+                <InputLabel id="category-label">Danh mục</InputLabel>
                 <Select
-                  labelId="dosage-form-label"
-                  value={filters.dosage_form}
-                  onChange={(e) => handleFilterChange('dosage_form', e.target.value)}
-                  label="Dạng bào chế"
+                  labelId="category-label"
+                  value={filters.category}
+                  onChange={(e) => handleFilterChange('category', e.target.value)}
+                  label="Đanh mục"
                   sx={{ minWidth: 150 }} // Ensure minimum width for label visibility
                 >
                   <MenuItem value="">Tất cả</MenuItem>
-                  {filterOptions.dosage_forms.map((form) => (
-                    <MenuItem key={form} value={form}>{form}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel id="target-customer-label">Đối tượng KH</InputLabel>
-                <Select
-                  labelId="target-customer-label"
-                  value={filters.target_customer}
-                  onChange={(e) => handleFilterChange('target_customer', e.target.value)}
-                  label="Đối tượng KH"
-                  sx={{ minWidth: 150 }} // Ensure minimum width for label visibility
-                >
-                  <MenuItem value="">Tất cả</MenuItem>
-                  {filterOptions.target_customers.map((customer) => (
-                    <MenuItem key={customer} value={customer}>{customer}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel id="unit-of-measure-label">Đơn vị đo</InputLabel>
-                <Select
-                  labelId="unit-of-measure-label"
-                  value={filters.unit_of_measure}
-                  onChange={(e) => handleFilterChange('unit_of_measure', e.target.value)}
-                  label="Đơn vị đo"
-                  sx={{ minWidth: 150 }} // Ensure minimum width for label visibility
-                >
-                  <MenuItem value="">Tất cả</MenuItem>
-                  {filterOptions.units_of_measure.map((unit) => (
-                    <MenuItem key={unit} value={unit}>{unit}</MenuItem>
+                  {filterOptions?.category?.map((cate) => (
+                    <MenuItem key={cate} value={cate}>
+                      {cate}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -274,24 +252,18 @@ const MedicineManagement = () => {
       {/* Table */}
       <Paper sx={{ width: '100%', mb: 2 }}>
         <Toolbar sx={{ pl: { sm: 2 }, pr: { xs: 1, sm: 1 } }}>
-          <Typography
-            sx={{ flex: '1 1 100%' }}
-            variant="h6"
-            component="div"
-          >
+          <Typography sx={{ flex: '1 1 100%' }} variant="h6" component="div">
             Danh sách thuốc
           </Typography>
         </Toolbar>
-        
+
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell>Tên thuốc</TableCell>
-                <TableCell>Mã thuốc</TableCell>
+                <TableCell>Số đăng ký</TableCell>
                 <TableCell>Danh mục</TableCell>
-                <TableCell>Dạng bào chế</TableCell>
-                <TableCell>Đối tượng KH</TableCell>
                 <TableCell>Đơn vị đo</TableCell>
                 <TableCell align="center">Hành động</TableCell>
               </TableRow>
@@ -300,13 +272,12 @@ const MedicineManagement = () => {
               {medicines.map((medicine) => (
                 <TableRow key={medicine._id}>
                   <TableCell>{medicine.medicine_name}</TableCell>
-                  <TableCell>{medicine.medicine_code}</TableCell>
-                  <TableCell>{medicine.category}</TableCell>
-                  <TableCell>
-                    <Chip label={medicine.dosage_form} size="small" />
-                  </TableCell>
-                  <TableCell>
-                    <Chip label={medicine.target_customer} size="small" color="primary" />
+                  <TableCell>{medicine.license_code}</TableCell>
+                  <TableCell
+                    sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                    title={medicine.category}
+                  >
+                    {medicine.category}
                   </TableCell>
                   <TableCell>{medicine.unit_of_measure}</TableCell>
                   <TableCell align="center">
@@ -319,6 +290,17 @@ const MedicineManagement = () => {
                     >
                       <ViewIcon />
                     </IconButton>
+
+                    <IconButton
+                      color="secondary"
+                      onClick={() => {
+                        setSelectedMedicine(medicine);
+                        setOpenEditDialog(true);
+                      }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+
                     <IconButton
                       color="error"
                       onClick={() => {
@@ -334,7 +316,7 @@ const MedicineManagement = () => {
             </TableBody>
           </Table>
         </TableContainer>
-        
+
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
@@ -348,22 +330,21 @@ const MedicineManagement = () => {
         />
       </Paper>
 
-      <MedicineDetailDialog
-        open={openViewDialog}
-        onClose={() => setOpenViewDialog(false)}
+      <MedicineDetailDialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} medicine={selectedMedicine} />
+
+      <MedicineEditDialog
+        open={openEditDialog}
+        onClose={() => setOpenEditDialog(false)}
         medicine={selectedMedicine}
+        onSubmit={handleUpdateMedicine}
+        categoryOptions={filterOptions.category}
       />
 
       {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-      >
+      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Xác nhận xóa</DialogTitle>
         <DialogContent>
-          <Typography>
-            Bạn có chắc chắn muốn xóa thuốc "{selectedMedicine?.medicine_name}" không?
-          </Typography>
+          <Typography>Bạn có chắc chắn muốn xóa thuốc "{selectedMedicine?.medicine_name}" không?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)}>Hủy</Button>
