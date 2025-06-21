@@ -252,7 +252,7 @@ const authService = {
           is_manager: user.is_manager,
         },
         process.env.JWT_SECRET,
-        { expiresIn: '1h' },
+        { expiresIn: '1d' },
       );
 
       const refreshToken = jwt.sign(
@@ -316,7 +316,7 @@ const authService = {
       }
 
       // Check user status
-      if (user.status !== constants.USER_STATUSES.ACTIVE) {
+      if (user.status !== constants.BASIC_STATUSES.ACTIVE) {
         return {
           success: false,
           message: 'Tài khoản đã bị khóa hoặc không hoạt động',
@@ -341,7 +341,7 @@ const authService = {
           is_manager: user.is_manager,
         },
         process.env.JWT_SECRET,
-        { expiresIn: '1h' },
+        { expiresIn: '1d' },
       );
 
       const refreshToken = jwt.sign(
@@ -474,7 +474,7 @@ const authService = {
         };
       }
 
-      if (user.status !== constants.USER_STATUSES.ACTIVE) {
+      if (user.status !== constants.BASIC_STATUSES.ACTIVE) {
         return {
           success: false,
           message: 'User account is inactive',
@@ -490,7 +490,7 @@ const authService = {
           is_manager: user.is_manager,
         },
         process.env.JWT_SECRET,
-        { expiresIn: '1h' },
+        { expiresIn: '1d' },
       );
 
       const newRefreshToken = jwt.sign(
