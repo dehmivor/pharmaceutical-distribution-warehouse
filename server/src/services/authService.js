@@ -42,8 +42,8 @@ const authService = {
       const newUser = new User({
         email: email.toLowerCase().trim(),
         password: hashedPassword,
-        role: role || constants.USER_ROLES.VIEWER,
-        status: constants.USER_STATUSES.ACTIVE,
+        role: role || constants.USER_ROLES.WAREHOUSE,
+        status: constants.BASIC_STATUSES.ACTIVE,
       });
 
       const savedUser = newUser.save();
@@ -109,7 +109,7 @@ const authService = {
       }
 
       // Check user status
-      if (user.status !== constants.USER_STATUSES.ACTIVE) {
+      if (user.status !== constants.BASIC_STATUSES.ACTIVE) {
         return {
           success: false,
           message: 'Tài khoản đã bị khóa hoặc không hoạt động',
@@ -141,7 +141,7 @@ const authService = {
       const tempToken = jwt.sign(
         { userId: user._id, step: 'otp_verification' },
         process.env.JWT_SECRET,
-        { expiresIn: '10m' },
+        { expiresIn: '1d' },
       );
 
       return {
@@ -205,7 +205,7 @@ const authService = {
         storedOTP: user.otp_login?.code,
         receivedOTP: otp,
         expiryTime: user.otp_login?.expiry_time,
-        currentTime: new Date()
+        currentTime: new Date(),
       });
 
       if (!user.otp_login) {
@@ -219,7 +219,7 @@ const authService = {
       if (user.otp_login.code !== otp) {
         console.error('❌ OTP mismatch:', {
           stored: user.otp_login.code,
-          received: otp
+          received: otp,
         });
         return {
           success: false,
@@ -230,7 +230,7 @@ const authService = {
       if (user.otp_login.expiry_time < new Date()) {
         console.error('❌ OTP expired:', {
           expiryTime: user.otp_login.expiry_time,
-          currentTime: new Date()
+          currentTime: new Date(),
         });
         return {
           success: false,
