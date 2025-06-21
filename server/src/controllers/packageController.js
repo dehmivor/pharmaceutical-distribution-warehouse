@@ -28,6 +28,29 @@ const packageController = {
     }
   },
 
+  // ✅ Get all available locations
+  getAllLocations: async (req, res) => {
+    try {
+      const result = await packageService.getAllLocations();
+
+      if (!result.success) {
+        return res.status(500).json(result);
+      }
+
+      res.status(200).json({
+        success: true,
+        data: result.locations,
+      });
+    } catch (error) {
+      console.error('Error getting locations:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error getting locations',
+        error: error.message,
+      });
+    }
+  },
+
   // ✅ Get package by ID
   getPackageById: async (req, res) => {
     try {
