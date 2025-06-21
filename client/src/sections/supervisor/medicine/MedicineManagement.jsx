@@ -135,7 +135,7 @@ const MedicineManagement = () => {
   };
 
   // Handle add medicine success
-  const handleAddMedicineSuccess = (newMedicine) => {
+  const handleAddMedicineSuccess = () => {
     setSuccess('Thêm thuốc mới thành công');
     fetchMedicines(); // Refresh the list
   };
@@ -228,7 +228,7 @@ const MedicineManagement = () => {
               Bộ Lọc Tìm Kiếm
             </Typography>
           </Box>
-          <Grid container spacing={3}>
+          <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
@@ -247,51 +247,58 @@ const MedicineManagement = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth size="medium">
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 300 }}>
                 <InputLabel>Danh mục</InputLabel>
                 <Select
                   value={filters.category}
                   onChange={(e) => handleFilterChange('category', e.target.value)}
                   label="Danh mục"
-                  MenuProps={{ variant: 'menu' }}
+                  renderValue={(selected) => (
+                    <Tooltip title={selected}>
+                      <span
+                        style={{
+                          display: 'block',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {selected || 'Tất cả'}
+                      </span>
+                    </Tooltip>
+                  )}
                   sx={{
-                    '& .MuiSelect-select': {
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }
+                    width: 300
                   }}
                 >
                   <MenuItem value="">Tất cả</MenuItem>
                   {filterOptions?.category?.map((cate) => (
-                    <MenuItem key={cate} value={cate}>
+                    <MenuItem key={cate} value={cate} title={cate}>
                       {cate}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={4}>
-              <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', pt: 1 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => setOpenAddDialog(true)}
-                  sx={{ 
-                    bgcolor: 'success.main',
-                    '&:hover': {
-                      bgcolor: 'success.dark'
-                    },
-                    px: 3,
-                    py: 1.5,
-                    borderRadius: 2,
-                    textTransform: 'none',
-                    fontWeight: 600
-                  }}
-                >
-                  Thêm thuốc mới
-                </Button>
-              </Box>
+            <Grid item xs={12} sm={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end', ml: 'auto' }}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => setOpenAddDialog(true)}
+                sx={{
+                  bgcolor: 'success.main',
+                  '&:hover': {
+                    bgcolor: 'success.dark'
+                  },
+                  px: 3,
+                  py: 1.2,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600
+                }}
+              >
+                Thêm thuốc mới
+              </Button>
             </Grid>
           </Grid>
         </CardContent>
@@ -299,11 +306,13 @@ const MedicineManagement = () => {
 
       {/* Table */}
       <Card sx={{ border: '1px solid #e0e0e0' }}>
-        <Box sx={{ 
-          p: 3, 
-          borderBottom: '1px solid #e0e0e0',
-          bgcolor: 'grey.50'
-        }}>
+        <Box
+          sx={{
+            p: 3,
+            borderBottom: '1px solid #e0e0e0',
+            bgcolor: 'grey.50'
+          }}
+        >
           <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
             Danh Sách Thuốc
           </Typography>
@@ -320,7 +329,9 @@ const MedicineManagement = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Số đăng ký</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Danh mục</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Đơn vị đo</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 600 }}>Hành động</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>
+                  Hành động
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -328,23 +339,13 @@ const MedicineManagement = () => {
                 <TableRow key={medicine._id} hover>
                   <TableCell sx={{ fontWeight: 500 }}>{medicine.medicine_name}</TableCell>
                   <TableCell>
-                    <Chip 
-                      label={medicine.license_code} 
-                      size="small" 
-                      variant="outlined"
-                      color="primary"
-                    />
+                    <Chip label={medicine.license_code} size="small" variant="outlined" color="primary" />
                   </TableCell>
                   <TableCell
                     sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
                     title={medicine.category}
                   >
-                    <Chip 
-                      label={medicine.category} 
-                      size="small" 
-                      color="secondary"
-                      variant="outlined"
-                    />
+                    <Chip label={medicine.category} size="small" color="secondary" variant="outlined" />
                   </TableCell>
                   <TableCell>{medicine.unit_of_measure}</TableCell>
                   <TableCell align="center">
@@ -357,7 +358,7 @@ const MedicineManagement = () => {
                             setSelectedMedicine(medicine);
                             setOpenViewDialog(true);
                           }}
-                          sx={{ 
+                          sx={{
                             bgcolor: 'primary.50',
                             '&:hover': { bgcolor: 'primary.100' }
                           }}
@@ -374,7 +375,7 @@ const MedicineManagement = () => {
                             setSelectedMedicine(medicine);
                             setOpenEditDialog(true);
                           }}
-                          sx={{ 
+                          sx={{
                             bgcolor: 'secondary.50',
                             '&:hover': { bgcolor: 'secondary.100' }
                           }}
@@ -391,7 +392,7 @@ const MedicineManagement = () => {
                             setSelectedMedicine(medicine);
                             setOpenDeleteDialog(true);
                           }}
-                          sx={{ 
+                          sx={{
                             bgcolor: 'error.50',
                             '&:hover': { bgcolor: 'error.100' }
                           }}
@@ -417,7 +418,7 @@ const MedicineManagement = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
           labelRowsPerPage="Số hàng mỗi trang:"
           labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
-          sx={{ 
+          sx={{
             borderTop: '1px solid #e0e0e0',
             bgcolor: 'grey.50'
           }}
@@ -434,32 +435,28 @@ const MedicineManagement = () => {
         categoryOptions={filterOptions.category}
       />
 
-      <MedicineAddDialog
-        open={openAddDialog}
-        onClose={() => setOpenAddDialog(false)}
-        onSuccess={handleAddMedicineSuccess}
-      />
+      <MedicineAddDialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} onSuccess={handleAddMedicineSuccess} />
 
       {/* Delete Confirmation Dialog */}
-      <Dialog 
-        open={openDeleteDialog} 
+      <Dialog
+        open={openDeleteDialog}
         onClose={() => setOpenDeleteDialog(false)}
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-          }
+        sx={{
+          borderRadius: 2,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
         }}
       >
-        <DialogTitle sx={{ 
-          background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 2,
-          py: 2,
-          px: 3
-        }}>
+        <DialogTitle
+          sx={{
+            background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            py: 2,
+            px: 3
+          }}
+        >
           <DeleteIcon sx={{ fontSize: 24 }} />
           <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
             Xác Nhận Xóa
@@ -469,13 +466,15 @@ const MedicineManagement = () => {
           <Typography variant="body1" sx={{ mb: 2 }}>
             Bạn có chắc chắn muốn xóa thuốc này không?
           </Typography>
-          <Box sx={{ 
-            p: 2, 
-            bgcolor: 'error.50', 
-            borderRadius: 1, 
-            border: '1px solid',
-            borderColor: 'error.200'
-          }}>
+          <Box
+            sx={{
+              p: 2,
+              bgcolor: 'error.50',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'error.200'
+            }}
+          >
             <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>
               {selectedMedicine?.medicine_name}
             </Typography>
@@ -484,16 +483,18 @@ const MedicineManagement = () => {
             </Typography>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ 
-          p: 3, 
-          pt: 2,
-          borderTop: '1px solid #e0e0e0',
-          bgcolor: 'grey.50'
-        }}>
-          <Button 
-            onClick={() => setOpenDeleteDialog(false)} 
+        <DialogActions
+          sx={{
+            p: 3,
+            pt: 2,
+            borderTop: '1px solid #e0e0e0',
+            bgcolor: 'grey.50'
+          }}
+        >
+          <Button
+            onClick={() => setOpenDeleteDialog(false)}
             variant="outlined"
-            sx={{ 
+            sx={{
               px: 3,
               py: 1.5,
               borderRadius: 2,
@@ -503,12 +504,12 @@ const MedicineManagement = () => {
           >
             Hủy
           </Button>
-          <Button 
-            onClick={handleDeleteMedicine} 
-            variant="contained" 
+          <Button
+            onClick={handleDeleteMedicine}
+            variant="contained"
             color="error"
             startIcon={<DeleteIcon />}
-            sx={{ 
+            sx={{
               px: 4,
               py: 1.5,
               borderRadius: 2,

@@ -22,7 +22,7 @@ import {
   IconButton,
   Tooltip
 } from '@mui/material';
-import { 
+import {
   Add as AddIcon,
   Close as CloseIcon,
   Medication as MedicationIcon,
@@ -123,7 +123,10 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
     // Storage conditions validation (optional)
     if (formData.storage_conditions.temperature.trim()) {
       if (!/^\d+-\d+°C$|^-\d+°C$|^\d+°C$/.test(formData.storage_conditions.temperature)) {
-        newErrors.storage_conditions = { ...newErrors.storage_conditions, temperature: 'Nhiệt độ phải có định dạng "X-Y°C", "-X°C" hoặc "X°C"' };
+        newErrors.storage_conditions = {
+          ...newErrors.storage_conditions,
+          temperature: 'Nhiệt độ phải có định dạng "X-Y°C", "-X°C" hoặc "X°C"'
+        };
       }
     }
 
@@ -151,8 +154,11 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
       newErrors.max_stock_threshold = 'Ngưỡng tối đa không được âm';
     }
 
-    if (formData.min_stock_threshold !== '' && formData.max_stock_threshold !== '' &&
-        parseFloat(formData.max_stock_threshold) < parseFloat(formData.min_stock_threshold)) {
+    if (
+      formData.min_stock_threshold !== '' &&
+      formData.max_stock_threshold !== '' &&
+      parseFloat(formData.max_stock_threshold) < parseFloat(formData.min_stock_threshold)
+    ) {
       newErrors.max_stock_threshold = 'Ngưỡng tối đa phải lớn hơn hoặc bằng ngưỡng tối thiểu';
     }
 
@@ -211,7 +217,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
     if (field.includes('.')) {
       // Handle nested objects like storage_conditions.temperature
       const [parent, child] = field.split('.');
-      
+
       // Auto-format temperature
       let formattedValue = value;
       if (parent === 'storage_conditions' && child === 'temperature') {
@@ -231,8 +237,8 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
           }
         }
       }
-      
-      setFormData(prev => ({
+
+      setFormData((prev) => ({
         ...prev,
         [parent]: {
           ...prev[parent],
@@ -240,7 +246,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
         }
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [field]: value
       }));
@@ -248,7 +254,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
 
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         [field]: ''
       }));
@@ -256,37 +262,41 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
       fullWidth
       PaperProps={{
         sx: {
           borderRadius: 2,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
         }
       }}
     >
       {/* Header */}
-      <DialogTitle sx={{ 
-        background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        py: 2,
-        px: 3
-      }}>
+      <DialogTitle
+        sx={{
+          background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          py: 2,
+          px: 3
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ 
-            bgcolor: 'rgba(255,255,255,0.2)', 
-            borderRadius: '50%', 
-            p: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
+          <Box
+            sx={{
+              bgcolor: 'rgba(255,255,255,0.2)',
+              borderRadius: '50%',
+              p: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
             <AddIcon sx={{ fontSize: 24 }} />
           </Box>
           <Box>
@@ -299,9 +309,9 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
           </Box>
         </Box>
         <Tooltip title="Đóng">
-          <IconButton 
-            onClick={onClose} 
-            sx={{ 
+          <IconButton
+            onClick={onClose}
+            sx={{
               color: 'white',
               '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
             }}
@@ -328,10 +338,10 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
                   Thông Tin Cơ Bản
                 </Typography>
               </Box>
-              
-              <Grid container spacing={3}>
+
+              <Grid container spacing={2}>
                 {/* Medicine Name */}
-                <Grid item xs={12} md={6}>
+                <Grid item sx={12} md={6}>
                   <TextField
                     fullWidth
                     label="Tên thuốc *"
@@ -347,55 +357,8 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
                   />
                 </Grid>
 
-                {/* License Code */}
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Mã thuốc *"
-                    value={formData.license_code}
-                    onChange={(e) => handleInputChange('license_code', e.target.value)}
-                    error={!!errors.license_code}
-                    helperText={errors.license_code}
-                    variant="outlined"
-                    size="medium"
-                    InputProps={{
-                      startAdornment: <CategoryIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                    }}
-                  />
-                </Grid>
-
-                {/* Category */}
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth error={!!errors.category} size="medium">
-                    <InputLabel>Danh mục *</InputLabel>
-                    <Select
-                      value={formData.category}
-                      onChange={(e) => handleInputChange('category', e.target.value)}
-                      label="Danh mục *"
-                      startAdornment={<CategoryIcon sx={{ mr: 1, color: 'text.secondary' }} />}
-                      MenuProps={{ variant: 'menu' }}
-                      sx={{
-                        '& .MuiSelect-select': {
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }
-                      }}
-                    >
-                      {filterOptions.category.map((category) => (
-                        <MenuItem key={category} value={category}>
-                          {category}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {errors.category && (
-                      <FormHelperText>{errors.category}</FormHelperText>
-                    )}
-                  </FormControl>
-                </Grid>
-
                 {/* Unit of Measure */}
-                <Grid item xs={12} md={6}>
+                <Grid item sx={12} md={6}>
                   <TextField
                     fullWidth
                     label="Đơn vị đo *"
@@ -410,6 +373,48 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
                     }}
                   />
                 </Grid>
+
+                {/* Category */}
+                <Grid item sx={12} md={6}>
+                  <FormControl fullWidth error={!!errors.category} size="medium" sx={{ maxWidth: 220 }}>
+                    <InputLabel>Danh mục *</InputLabel>
+                    <Select
+                      value={formData.category}
+                      onChange={(e) => handleInputChange('category', e.target.value)}
+                      label="Danh mục *"
+                      startAdornment={<CategoryIcon sx={{ mr: 1, color: 'text.secondary' }} />}
+                      MenuProps={{ variant: 'menu' }}
+                      sx={{
+                        width: 220
+                      }}
+                    >
+                      {filterOptions.category.map((category) => (
+                        <MenuItem key={category} value={category}>
+                          {category}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    {errors.category && <FormHelperText>{errors.category}</FormHelperText>}
+                  </FormControl>
+                </Grid>
+
+                                {/* License Code */}
+                <Grid item sx={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Mã thuốc *"
+                    value={formData.license_code}
+                    onChange={(e) => handleInputChange('license_code', e.target.value)}
+                    error={!!errors.license_code}
+                    helperText={errors.license_code}
+                    variant="outlined"
+                    size="medium"
+                    InputProps={{
+                      startAdornment: <CategoryIcon sx={{ mr: 1, color: 'text.secondary' }} />
+                    }}
+                  />
+                </Grid>
+                
               </Grid>
             </CardContent>
           </Card>
@@ -423,7 +428,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
                   Điều Kiện Bảo Quản (Tùy chọn)
                 </Typography>
               </Box>
-              
+
               <Grid container spacing={3}>
                 <Grid item xs={12} md={4}>
                   <TextField
@@ -458,7 +463,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <FormControl fullWidth error={!!errors.storage_conditions?.light} size="medium">
+                  <FormControl fullWidth error={!!errors.storage_conditions?.light} size="medium" sx={{ minWidth: '210px' }}>
                     <InputLabel>Điều kiện ánh sáng</InputLabel>
                     <Select
                       value={formData.storage_conditions.light}
@@ -472,9 +477,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
                       <MenuItem value="medium">Ánh sáng trung bình</MenuItem>
                       <MenuItem value="high">Ánh sáng mạnh</MenuItem>
                     </Select>
-                    {errors.storage_conditions?.light && (
-                      <FormHelperText>{errors.storage_conditions.light}</FormHelperText>
-                    )}
+                    {errors.storage_conditions?.light && <FormHelperText>{errors.storage_conditions.light}</FormHelperText>}
                   </FormControl>
                 </Grid>
               </Grid>
@@ -490,7 +493,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
                   Quản Lý Tồn Kho
                 </Typography>
               </Box>
-              
+
               <Grid container spacing={3}>
                 {/* Min Stock Threshold */}
                 <Grid item xs={12} md={6}>
@@ -533,47 +536,17 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
             </CardContent>
           </Card>
 
-          {/* Additional Information Section */}
-          <Card sx={{ border: '1px solid #e0e0e0' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
-                <DescriptionIcon sx={{ color: 'warning.main', fontSize: 24 }} />
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'warning.main' }}>
-                  Thông Tin Bổ Sung
-                </Typography>
-              </Box>
-              
-              <Grid container spacing={3}>
-                {/* Description */}
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Mô tả"
-                    value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    variant="outlined"
-                    size="medium"
-                    multiline
-                    rows={3}
-                    helperText="Mô tả chi tiết về thuốc (không bắt buộc)"
-                    InputProps={{
-                      startAdornment: <DescriptionIcon sx={{ mr: 1, color: 'text.secondary', alignSelf: 'flex-start', mt: 1 }} />
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-
           {/* Required fields note */}
-          <Box sx={{ 
-            mt: 3, 
-            p: 2, 
-            bgcolor: 'primary.50', 
-            borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'primary.200'
-          }}>
+          <Box
+            sx={{
+              mt: 3,
+              p: 2,
+              bgcolor: 'primary.50',
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'primary.200'
+            }}
+          >
             <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
               <strong>Lưu ý:</strong> Các trường có dấu * là bắt buộc phải nhập.
             </Typography>
@@ -581,17 +554,19 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ 
-        p: 3, 
-        pt: 2,
-        borderTop: '1px solid #e0e0e0',
-        bgcolor: 'grey.50'
-      }}>
-        <Button 
-          onClick={onClose} 
+      <DialogActions
+        sx={{
+          p: 3,
+          pt: 2,
+          borderTop: '1px solid #e0e0e0',
+          bgcolor: 'grey.50'
+        }}
+      >
+        <Button
+          onClick={onClose}
           variant="outlined"
           disabled={loading}
-          sx={{ 
+          sx={{
             px: 3,
             py: 1.5,
             borderRadius: 2,
@@ -601,12 +576,12 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
         >
           Hủy
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
           startIcon={<AddIcon />}
           disabled={loading}
-          sx={{ 
+          sx={{
             px: 4,
             py: 1.5,
             borderRadius: 2,
@@ -625,4 +600,4 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
   );
 };
 
-export default MedicineAddDialog; 
+export default MedicineAddDialog;
