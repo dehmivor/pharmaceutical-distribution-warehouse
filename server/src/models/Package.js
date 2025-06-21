@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const { PACKAGE_STATUSES } = require('../utils/constants');
 
 const packageSchema = new mongoose.Schema({
   location_id: {
@@ -16,21 +15,7 @@ const packageSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Quantity is required'],
     min: [0, 'Quantity cannot be negative'],
-  },
-  status: {
-    type: String,
-    enum: {
-      values: Object.values(PACKAGE_STATUSES),
-      message: `Status must be one of: ${Object.values(PACKAGE_STATUSES).join(', ')}`,
-    },
-    default: PACKAGE_STATUSES.CHECKING,
-  },
-  importOrder_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ImportOrder',
-  },
-}, {
-  timestamps: { createdAt: 'created_at', updatedAt: false },
+  }
 });
 
 module.exports = mongoose.model('Package', packageSchema);
