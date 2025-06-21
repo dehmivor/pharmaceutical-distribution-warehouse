@@ -7,9 +7,15 @@ import {
   DialogActions,
   Button,
   Typography,
-  Chip,
   Box,
 } from '@mui/material';
+
+const STORAGE_LABELS = {
+  temperature: 'Nhiệt độ',
+  humidity: 'Độ ẩm',
+  light: 'Ánh sáng',
+};
+
 
 const InfoField = ({ label, value }) => (
   <Box>
@@ -52,44 +58,36 @@ const MedicineDetailDialog = ({ open, onClose, medicine }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Medicine Detail</DialogTitle>
+      <DialogTitle>Thông tin chi tiết</DialogTitle>
       <DialogContent dividers>
 
-        {/* Row 1 */}
         <RowGrid>
-          <InfoField label="Medicine Name" value={medicine.medicine_name} />
-          <InfoField label="Medicine Code" value={medicine.medicine_code} />
+          <InfoField label="Tên thuốc" value={medicine.medicine_name} />
+          <InfoField label="Số đăng ký" value={medicine.license_code} />
         </RowGrid>
 
-        {/* Row 2 */}
         <RowGrid>
-          <InfoField label="Category" value={medicine.category} />
-          <InfoField label="Dosage form" value={medicine.dosage_form} />
+          <InfoField label="Danh mục" value={medicine.category} />
+          <InfoField label="Đơn vị đo lường" value={medicine.unit_of_measure} />
         </RowGrid>
 
-        {/* Row 3 */}
         <RowGrid>
-          <InfoField label="Target Customer" value={medicine.target_customer} />
-          <InfoField label="Unit of Measure" value={medicine.unit_of_measure} />
+          <InfoField label="Ngưỡng tồn kho tối thiểu" value={medicine.min_stock_threshold} />
+          <InfoField label="Ngưỡng tồn kho tối đa" value={medicine.max_stock_threshold} />
         </RowGrid>
 
-        {/* Row 4 */}
-        <RowGrid>
-          <InfoField label="Min Stock Threshold" value={medicine.min_stock_threshold} />
-          <InfoField label="Max Stock Threshold" value={medicine.max_stock_threshold} />
-        </RowGrid>
-
-        {/* Row 5 */}
         <Box mb={2}>
             <Typography
                 variant="subtitle2"
                 sx={{ fontWeight: 600, color: 'text.secondary', mb: 1 }}
             >
-                Storage Conditions
+                Điều kiện bảo quản
             </Typography>
             <Box display="flex" flexDirection="column" gap={1}>
                 {medicine.storage_conditions
-                    ? Object.entries(medicine.storage_conditions).map(([key, value]) => (
+                    ? Object.entries(medicine.storage_conditions)
+                      .filter(([_, value]) => value !== undefined && value !== '')
+                      .map(([key, value]) => (
                         <Box
                             key={key}
                             sx={{
@@ -100,22 +98,17 @@ const MedicineDetailDialog = ({ open, onClose, medicine }) => {
                             }}
                         >
                             <Typography variant="body2">
-                                <strong>{key}</strong>: {value}
+                                <strong>{STORAGE_LABELS[key]}</strong>: {value}
                             </Typography>
                         </Box>
                     ))
                   : (
                     <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-                      No storage conditions provided.
+                      Không có điều kiện bảo quản
                     </Typography>
                     )
                 }
             </Box>
-        </Box>
-
-        {/* Row 6 */}
-        <Box>
-            <InfoField label="Description" value={medicine.description} />
         </Box>
 
       </DialogContent>
