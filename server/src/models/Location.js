@@ -4,29 +4,30 @@ const locationSchema = new mongoose.Schema({
   area_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Area',
-    required: [true, 'Area ID is required'],
-  },
-  row: {
-    type: String,
-    required: [true, 'Row is required'],
-    trim: true,
+    required: [true, 'Area is required'],
   },
   bay: {
     type: String,
     required: [true, 'Bay is required'],
     trim: true,
   },
-  level: {
+  row: {
     type: String,
-    required: [true, 'Level is required'],
+    required: [true, 'Row is required'],
+    trim: true,
+  },
+  column: {
+    type: String,
+    required: [true, 'Column is required'],
     trim: true,
   },
   available: {
     type: Boolean,
     default: true,
   },
-}, {
-  timestamps: { createdAt: false, updatedAt: 'updated_at' },
 });
+
+// Đảm bảo vị trí duy nhất trong khu vực
+locationSchema.index({ area_id: 1, bay: 1, row: 1, column: 1 }, { unique: true });
 
 module.exports = mongoose.model('Location', locationSchema);
