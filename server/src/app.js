@@ -42,6 +42,7 @@ app.use('/api/cron', cronRoutes);
 app.use('/api/medicine', medicineRoutes);
 
 app.use('/api/import-orders', route.importOrderRoutes);
+app.use('api/thingsboard', route.thingsboardRoutes);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRoutes);
