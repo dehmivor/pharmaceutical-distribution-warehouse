@@ -4,12 +4,10 @@ const mongoose = require('mongoose');
 const storageConditionsSchema = new mongoose.Schema({
   temperature: {
     type: String,
-    required: [true, 'Temperature is required'],
     match: [/^\d+-\d+°C$|^-\d+°C$/, 'Temperature must be in format "X-Y°C" or "-X°C"'],
   },
   humidity: {
     type: String,
-    required: [true, 'Humidity is required'],
     match: [/^\d+%$|^\d+-\d+%$/, 'Humidity must be in format "X%" or "X-Y%"'],
   },
   light: {
