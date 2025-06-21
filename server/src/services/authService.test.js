@@ -86,7 +86,7 @@ describe('AuthService', () => {
       _id: 'user-id',
       email: 'test@example.com',
       password: 'hashed-password',
-      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.BASIC_STATUSES.ACTIVE,
     };
 
     it('should send OTP successfully', async () => {
@@ -114,7 +114,7 @@ describe('AuthService', () => {
     });
 
     it('should return error for inactive user', async () => {
-      const inactiveUser = { ...mockUser, status: constants.USER_STATUSES.INACTIVE };
+      const inactiveUser = { ...mockUser, status: constants.BASIC_STATUSES.INACTIVE };
       User.findOne.mockResolvedValue(inactiveUser);
 
       const result = await authService.loginStep1('test@example.com', 'password123');
