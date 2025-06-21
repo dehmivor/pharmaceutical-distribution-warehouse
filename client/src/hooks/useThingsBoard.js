@@ -2,14 +2,14 @@
 import useSWR from 'swr';
 import { useState } from 'react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 // Fetcher function sử dụng fetch
 const fetcher = async (url) => {
   const response = await fetch(`${API_BASE_URL}${url}`, {
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token') || ''}`
+      Authorization: `Bearer ${localStorage.getItem('auth-token') || ''}`
     }
   });
 
@@ -236,7 +236,7 @@ export const useThingsBoardMutations = () => {
       const response = await fetch(`${API_BASE_URL}${url}`, {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+          Authorization: `Bearer ${localStorage.getItem('auth-token') || ''}`,
           ...options.headers
         },
         ...options

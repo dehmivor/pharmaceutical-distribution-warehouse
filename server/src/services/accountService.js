@@ -114,7 +114,7 @@ const provisionAccount = async (accountData) => {
       password: hashedPassword,
       role,
       is_manager,
-      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.BASIC_STATUSES.ACTIVE,
     };
 
     const newUser = new User(userData);
