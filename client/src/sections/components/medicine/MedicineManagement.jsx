@@ -40,6 +40,7 @@ import {
 import axios from 'axios';
 import MedicineDetailDialog from './MedicineDetailDialog'; // Import the detail dialog component
 import MedicineEditDialog from './MedicineEditDialog'; // Import the edit dialog component
+import MedicineCreateDialog from './MedicineCreateDialog';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -65,6 +66,7 @@ const MedicineManagement = () => {
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState(null);
 
   const [error, setError] = useState('');
@@ -127,6 +129,19 @@ const MedicineManagement = () => {
       console.error('Update medicine error:', err);
       const serverMessage = err.response?.data?.message;
       setError(serverMessage || 'Lỗi khi cập nhật thuốc');
+    }
+  };
+
+  const handleCreateMedicine = async (newMedicine) => {
+    try {
+      const res = await axios.post(`${API_BASE_URL}/medicine`, newMedicine);
+      if (res.data.success) {
+        setSuccess('Thêm thuốc thành công');
+        setOpenCreateDialog(false);
+        fetchMedicines();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Lỗi khi thêm thuốc');
     }
   };
 
@@ -255,6 +270,9 @@ const MedicineManagement = () => {
           <Typography sx={{ flex: '1 1 100%' }} variant="h6" component="div">
             Danh sách thuốc
           </Typography>
+          <Button variant="contained" color="primary" onClick={() => setOpenCreateDialog(true)} sx={{ mb: 2 }}>
+            ➕ Thêm thuốc
+          </Button>
         </Toolbar>
 
         <TableContainer>
@@ -337,6 +355,13 @@ const MedicineManagement = () => {
         onClose={() => setOpenEditDialog(false)}
         medicine={selectedMedicine}
         onSubmit={handleUpdateMedicine}
+        categoryOptions={filterOptions.category}
+      />
+
+      <MedicineCreateDialog
+        open={openCreateDialog}
+        onClose={() => setOpenCreateDialog(false)}
+        onSubmit={handleCreateMedicine}
         categoryOptions={filterOptions.category}
       />
 
