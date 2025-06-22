@@ -2,17 +2,22 @@ const ImportOrder = require('../models/ImportOrder');
 const { IMPORT_ORDER_STATUSES } = require('../utils/constants');
 
 // Create new import order
-const createImportOrder = async (orderData, importContent) => {
+const createImportOrder = async (orderData, orderDetails) => {
   try {
     const newOrderData = {
       ...orderData,
-      import_content: importContent,
+      details: orderDetails,
     };
 
     const newOrder = new ImportOrder(newOrderData);
     const savedOrder = await newOrder.save();
 
-    return savedOrder;
+    return await ImportOrder.findById(savedOrder._id)
+      .populate('supplier_contract_id')
+      .populate('warehouse_manager_id', 'name email role')
+      .populate('created_by', 'name email role')
+      .populate('approval_by', 'name email role')
+      .populate('details.medicine_id', 'medicine_name license_code');
   } catch (error) {
     throw error;
   }
@@ -23,10 +28,11 @@ const getImportOrders = async (query = {}, page = 1, limit = 10) => {
   try {
     const skip = (page - 1) * limit;
     const orders = await ImportOrder.find(query)
-      .populate('manager_id', 'name email role')
-      .populate('purchase_order_id')
-      .populate('import_content.batch_id', 'name medicine_code')
-      .populate('import_content.created_by', 'name email')
+      .populate('supplier_contract_id')
+      .populate('warehouse_manager_id', 'name email role')
+      .populate('created_by', 'name email role')
+      .populate('approval_by', 'name email role')
+      .populate('details.medicine_id', 'medicine_name license_code')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -51,10 +57,11 @@ const getImportOrders = async (query = {}, page = 1, limit = 10) => {
 const getImportOrderById = async (orderId) => {
   try {
     const order = await ImportOrder.findById(orderId)
-      .populate('manager_id', 'name email role')
-      .populate('purchase_order_id')
-      .populate('import_content.batch_id', 'name medicine_code')
-      .populate('import_content.created_by', 'name email');
+      .populate('supplier_contract_id')
+      .populate('warehouse_manager_id', 'name email role')
+      .populate('created_by', 'name email role')
+      .populate('approval_by', 'name email role')
+      .populate('details.medicine_id', 'medicine_name license_code');
 
     if (!order) {
       throw new Error('Import order not found');
@@ -84,10 +91,11 @@ const updateImportOrder = async (orderId, updateData) => {
       { $set: updateData },
       { new: true, runValidators: true },
     )
-      .populate('manager_id', 'name email role')
-      .populate('purchase_order_id')
-      .populate('import_content.batch_id', 'name medicine_code')
-      .populate('import_content.created_by', 'name email');
+      .populate('supplier_contract_id')
+      .populate('warehouse_manager_id', 'name email role')
+      .populate('created_by', 'name email role')
+      .populate('approval_by', 'name email role')
+      .populate('details.medicine_id', 'medicine_name license_code');
 
     return updatedOrder;
   } catch (error) {
@@ -95,8 +103,8 @@ const updateImportOrder = async (orderId, updateData) => {
   }
 };
 
-// Update import order content
-const updateImportOrderContent = async (orderId, importContent) => {
+// Update import order details
+const updateImportOrderDetails = async (orderId, orderDetails) => {
   try {
     const order = await ImportOrder.findById(orderId);
     if (!order) {
@@ -110,13 +118,14 @@ const updateImportOrderContent = async (orderId, importContent) => {
 
     const updatedOrder = await ImportOrder.findByIdAndUpdate(
       orderId,
-      { $set: { import_content: importContent } },
+      { $set: { details: orderDetails } },
       { new: true, runValidators: true },
     )
-      .populate('manager_id', 'name email role')
-      .populate('purchase_order_id')
-      .populate('import_content.batch_id', 'name medicine_code')
-      .populate('import_content.created_by', 'name email');
+      .populate('supplier_contract_id')
+      .populate('warehouse_manager_id', 'name email role')
+      .populate('created_by', 'name email role')
+      .populate('approval_by', 'name email role')
+      .populate('details.medicine_id', 'medicine_name license_code');
 
     return updatedOrder;
   } catch (error) {
@@ -124,8 +133,8 @@ const updateImportOrderContent = async (orderId, importContent) => {
   }
 };
 
-// Add item to import content
-const addImportContentItem = async (orderId, contentItem) => {
+// Add item to import order details
+const addImportOrderDetail = async (orderId, detailItem) => {
   try {
     const order = await ImportOrder.findById(orderId);
     if (!order) {
@@ -137,27 +146,21 @@ const addImportContentItem = async (orderId, contentItem) => {
       throw new Error('Cannot update completed order');
     }
 
-    // Validate required fields for content item
-    if (!contentItem.batch_id || !contentItem.arrival_number || !contentItem.created_by) {
-      throw new Error(
-        'batch_id, arrival_number, and created_by are required for import content item',
-      );
-    }
-
-    // Set default values if not provided
-    if (contentItem.rejected_number === undefined) {
-      contentItem.rejected_number = 0;
+    // Validate required fields for detail item
+    if (!detailItem.medicine_id || !detailItem.quantity) {
+      throw new Error('medicine_id and quantity are required for import order detail');
     }
 
     const updatedOrder = await ImportOrder.findByIdAndUpdate(
       orderId,
-      { $push: { import_content: contentItem } },
+      { $push: { details: detailItem } },
       { new: true, runValidators: true },
     )
-      .populate('manager_id', 'name email role')
-      .populate('purchase_order_id')
-      .populate('import_content.batch_id', 'name medicine_code')
-      .populate('import_content.created_by', 'name email');
+      .populate('supplier_contract_id')
+      .populate('warehouse_manager_id', 'name email role')
+      .populate('created_by', 'name email role')
+      .populate('approval_by', 'name email role')
+      .populate('details.medicine_id', 'medicine_name license_code');
 
     return updatedOrder;
   } catch (error) {
@@ -165,8 +168,8 @@ const addImportContentItem = async (orderId, contentItem) => {
   }
 };
 
-// Update specific import content item
-const updateImportContentItem = async (orderId, contentItemId, updateData) => {
+// Update specific import order detail
+const updateImportOrderDetail = async (orderId, detailId, updateData) => {
   try {
     const order = await ImportOrder.findById(orderId);
     if (!order) {
@@ -178,27 +181,28 @@ const updateImportContentItem = async (orderId, contentItemId, updateData) => {
       throw new Error('Cannot update completed order');
     }
 
-    // Validate that the content item exists
-    const contentItem = order.import_content.id(contentItemId);
-    if (!contentItem) {
-      throw new Error('Import content item not found');
+    // Validate that the detail item exists
+    const detailItem = order.details.id(detailId);
+    if (!detailItem) {
+      throw new Error('Import order detail not found');
     }
 
     // Prepare update data with proper field mapping
     const updateFields = {};
     Object.keys(updateData).forEach((key) => {
-      updateFields[`import_content.$.${key}`] = updateData[key];
+      updateFields[`details.$.${key}`] = updateData[key];
     });
 
     const updatedOrder = await ImportOrder.findOneAndUpdate(
-      { _id: orderId, 'import_content._id': contentItemId },
+      { _id: orderId, 'details._id': detailId },
       { $set: updateFields },
       { new: true, runValidators: true },
     )
-      .populate('manager_id', 'name email role')
-      .populate('purchase_order_id')
-      .populate('import_content.batch_id', 'name medicine_code')
-      .populate('import_content.created_by', 'name email');
+      .populate('supplier_contract_id')
+      .populate('warehouse_manager_id', 'name email role')
+      .populate('created_by', 'name email role')
+      .populate('approval_by', 'name email role')
+      .populate('details.medicine_id', 'medicine_name license_code');
 
     return updatedOrder;
   } catch (error) {
@@ -206,8 +210,8 @@ const updateImportContentItem = async (orderId, contentItemId, updateData) => {
   }
 };
 
-// Remove item from import content
-const removeImportContentItem = async (orderId, contentItemId) => {
+// Remove item from import order details
+const removeImportOrderDetail = async (orderId, detailId) => {
   try {
     const order = await ImportOrder.findById(orderId);
     if (!order) {
@@ -221,13 +225,14 @@ const removeImportContentItem = async (orderId, contentItemId) => {
 
     const updatedOrder = await ImportOrder.findByIdAndUpdate(
       orderId,
-      { $pull: { import_content: { _id: contentItemId } } },
+      { $pull: { details: { _id: detailId } } },
       { new: true, runValidators: true },
     )
-      .populate('manager_id', 'name email role')
-      .populate('purchase_order_id')
-      .populate('import_content.batch_id', 'name medicine_code')
-      .populate('import_content.created_by', 'name email');
+      .populate('supplier_contract_id')
+      .populate('warehouse_manager_id', 'name email role')
+      .populate('created_by', 'name email role')
+      .populate('approval_by', 'name email role')
+      .populate('details.medicine_id', 'medicine_name license_code');
 
     return updatedOrder;
   } catch (error) {
@@ -244,8 +249,8 @@ const deleteImportOrder = async (orderId) => {
     }
 
     // Check if order can be deleted
-    if (order.status !== IMPORT_ORDER_STATUSES.PENDING) {
-      throw new Error('Can only delete pending orders');
+    if (order.status !== IMPORT_ORDER_STATUSES.DRAFT) {
+      throw new Error('Can only delete draft orders');
     }
 
     await ImportOrder.findByIdAndDelete(orderId);
@@ -257,7 +262,7 @@ const deleteImportOrder = async (orderId) => {
 };
 
 // Update order status
-const updateOrderStatus = async (orderId, status, managerId = null) => {
+const updateOrderStatus = async (orderId, status, approvalBy = null) => {
   try {
     const order = await ImportOrder.findById(orderId);
     if (!order) {
@@ -266,11 +271,23 @@ const updateOrderStatus = async (orderId, status, managerId = null) => {
 
     // Validate status transition
     const validTransitions = {
-      [IMPORT_ORDER_STATUSES.PENDING]: [
-        IMPORT_ORDER_STATUSES.IN_PROGRESS,
+      [IMPORT_ORDER_STATUSES.DRAFT]: [
+        IMPORT_ORDER_STATUSES.APPROVED,
         IMPORT_ORDER_STATUSES.CANCELLED,
       ],
-      [IMPORT_ORDER_STATUSES.IN_PROGRESS]: [
+      [IMPORT_ORDER_STATUSES.APPROVED]: [
+        IMPORT_ORDER_STATUSES.DELIVERED,
+        IMPORT_ORDER_STATUSES.CANCELLED,
+      ],
+      [IMPORT_ORDER_STATUSES.DELIVERED]: [
+        IMPORT_ORDER_STATUSES.CHECKED,
+        IMPORT_ORDER_STATUSES.CANCELLED,
+      ],
+      [IMPORT_ORDER_STATUSES.CHECKED]: [
+        IMPORT_ORDER_STATUSES.ARRANGED,
+        IMPORT_ORDER_STATUSES.CANCELLED,
+      ],
+      [IMPORT_ORDER_STATUSES.ARRANGED]: [
         IMPORT_ORDER_STATUSES.COMPLETED,
         IMPORT_ORDER_STATUSES.CANCELLED,
       ],
@@ -283,8 +300,8 @@ const updateOrderStatus = async (orderId, status, managerId = null) => {
     }
 
     const updateData = { status };
-    if (managerId) {
-      updateData.manager_id = managerId;
+    if (approvalBy) {
+      updateData.approval_by = approvalBy;
     }
 
     const updatedOrder = await ImportOrder.findByIdAndUpdate(
@@ -292,10 +309,11 @@ const updateOrderStatus = async (orderId, status, managerId = null) => {
       { $set: updateData },
       { new: true, runValidators: true },
     )
-      .populate('manager_id', 'name email role')
-      .populate('purchase_order_id')
-      .populate('import_content.batch_id', 'name medicine_code')
-      .populate('import_content.created_by', 'name email');
+      .populate('supplier_contract_id')
+      .populate('warehouse_manager_id', 'name email role')
+      .populate('created_by', 'name email role')
+      .populate('approval_by', 'name email role')
+      .populate('details.medicine_id', 'medicine_name license_code');
 
     return updatedOrder;
   } catch (error) {
@@ -303,24 +321,25 @@ const updateOrderStatus = async (orderId, status, managerId = null) => {
   }
 };
 
-// Get import orders by manager
-const getImportOrdersByManager = async (managerId, query = {}, page = 1, limit = 10) => {
+// Get import orders by warehouse manager
+const getImportOrdersByWarehouseManager = async (warehouseManagerId, query = {}, page = 1, limit = 10) => {
   try {
-    const searchQuery = { ...query, manager_id: managerId };
+    const searchQuery = { ...query, warehouse_manager_id: warehouseManagerId };
     return await getImportOrders(searchQuery, page, limit);
   } catch (error) {
     throw error;
   }
 };
 
-// Get import orders by purchase order
-const getImportOrdersByPurchaseOrder = async (purchaseOrderId) => {
+// Get import orders by supplier contract
+const getImportOrdersBySupplierContract = async (supplierContractId) => {
   try {
-    const orders = await ImportOrder.find({ purchase_order_id: purchaseOrderId })
-      .populate('manager_id', 'name email role')
-      .populate('purchase_order_id')
-      .populate('import_content.batch_id', 'name medicine_code')
-      .populate('import_content.created_by', 'name email')
+    const orders = await ImportOrder.find({ supplier_contract_id: supplierContractId })
+      .populate('supplier_contract_id')
+      .populate('warehouse_manager_id', 'name email role')
+      .populate('created_by', 'name email role')
+      .populate('approval_by', 'name email role')
+      .populate('details.medicine_id', 'medicine_name license_code')
       .sort({ createdAt: -1 });
 
     return orders;
@@ -334,12 +353,12 @@ module.exports = {
   getImportOrders,
   getImportOrderById,
   updateImportOrder,
-  updateImportOrderContent,
-  addImportContentItem,
-  updateImportContentItem,
-  removeImportContentItem,
+  updateImportOrderDetails,
+  addImportOrderDetail,
+  updateImportOrderDetail,
+  removeImportOrderDetail,
   deleteImportOrder,
   updateOrderStatus,
-  getImportOrdersByManager,
-  getImportOrdersByPurchaseOrder,
+  getImportOrdersByWarehouseManager,
+  getImportOrdersBySupplierContract,
 };

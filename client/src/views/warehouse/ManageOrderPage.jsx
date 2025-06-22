@@ -171,7 +171,7 @@ const ManageImportOrder = () => {
             <TableRow>
               <TableCell>Manager</TableCell>
               <TableCell>Import Date</TableCell>
-              <TableCell>Purchase Order</TableCell>
+              <TableCell>Supplier Contract</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Actions</TableCell>
             </TableRow>
@@ -179,11 +179,11 @@ const ManageImportOrder = () => {
           <TableBody>
             {paginatedOrders.map((order) => (
               <TableRow key={order._id}>
-                <TableCell>{order.manager_id?.fullName || 'N/A'}</TableCell>
+                <TableCell>{order.warehouse_manager_id?.name || 'N/A'}</TableCell>
                 <TableCell>
-                  {new Date(order.import_date).toLocaleDateString()}
+                  {new Date(order.createdAt).toLocaleDateString()}
                 </TableCell>
-                <TableCell>{order.purchase_order_id?.code || 'N/A'}</TableCell>
+                <TableCell>{order.supplier_contract_id?.contract_code || 'N/A'}</TableCell>
                 <TableCell>{order.status}</TableCell>
                 <TableCell>
                   <IconButton color="primary" onClick={() => handleOpenForm(order)} disabled={order.status === 'completed'}>
