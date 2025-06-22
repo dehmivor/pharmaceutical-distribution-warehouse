@@ -38,7 +38,7 @@ describe('AuthService', () => {
         _id: 'user-id',
         email: 'test@example.com',
         role: constants.USER_ROLES.VIEWER,
-        status: constants.USER_STATUSES.ACTIVE,
+        status: constants.BASIC_STATUSES.ACTIVE,
         is_manager: false,
       };
 
@@ -86,7 +86,7 @@ describe('AuthService', () => {
       _id: 'user-id',
       email: 'test@example.com',
       password: 'hashed-password',
-      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.BASIC_STATUSES.ACTIVE,
     };
 
     it('should send OTP successfully', async () => {
@@ -114,7 +114,7 @@ describe('AuthService', () => {
     });
 
     it('should return error for inactive user', async () => {
-      const inactiveUser = { ...mockUser, status: constants.USER_STATUSES.INACTIVE };
+      const inactiveUser = { ...mockUser, status: constants.BASIC_STATUSES.INACTIVE };
       User.findOne.mockResolvedValue(inactiveUser);
 
       const result = await authService.loginStep1('test@example.com', 'password123');
@@ -129,7 +129,7 @@ describe('AuthService', () => {
       _id: 'user-id',
       email: 'test@example.com',
       role: constants.USER_ROLES.VIEWER,
-      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.BASIC_STATUSES.ACTIVE,
       is_manager: false,
       otp_login: {
         code: '123456',
@@ -182,7 +182,7 @@ describe('AuthService', () => {
       email: 'test@example.com',
       password: 'hashed-password',
       role: constants.USER_ROLES.VIEWER,
-      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.BASIC_STATUSES.ACTIVE,
       is_manager: false,
     };
 
@@ -220,7 +220,7 @@ describe('AuthService', () => {
   describe('verifyToken', () => {
     const mockUser = {
       _id: 'user-id',
-      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.BASIC_STATUSES.ACTIVE,
     };
 
     it('should verify token successfully', async () => {
@@ -261,7 +261,7 @@ describe('AuthService', () => {
       _id: 'user-id',
       email: 'test@example.com',
       role: constants.USER_ROLES.VIEWER,
-      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.BASIC_STATUSES.ACTIVE,
       is_manager: false,
     };
 
@@ -294,7 +294,7 @@ describe('AuthService', () => {
       _id: 'user-id',
       email: 'test@example.com',
       role: constants.USER_ROLES.VIEWER,
-      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.BASIC_STATUSES.ACTIVE,
       is_manager: false,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -324,7 +324,7 @@ describe('AuthService', () => {
       _id: 'user-id',
       email: 'test@example.com',
       role: constants.USER_ROLES.ADMIN,
-      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.BASIC_STATUSES.ACTIVE,
       is_manager: true,
     };
 
