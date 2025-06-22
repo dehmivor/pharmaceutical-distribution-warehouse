@@ -20,7 +20,7 @@ import ReceiptList from '@/sections/warehouse/ReceiptList';
 import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
 import { Create } from '@mui/icons-material';
 import CreateReceiptTab from './CreateReceiptTab';
-import PurchaseOrderListTab from './PurchaseOrderListTab';
+
 
 /***************************  BORDER WITH RADIUS  ***************************/
 
@@ -232,13 +232,13 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
           {/* Breadcrumbs Navigation */}
           <WarehouseBreadcrumbs currentPath={currentBreadcrumbPath} onNavigate={handleBreadcrumbNavigate} />
 
-          <Typography variant="h6">Quản Lý Đơn Mua</Typography>
+          <Typography variant="h6">Quản Lý Đơn Nhập</Typography>
 
           <Box>
             <Tabs variant="fullWidth" value={activeTab} onChange={handleTabChange} type={TabsType.SEGMENTED}>
               <Tab label="Tạo phiếu nhập mới" />
               <Tab label="Danh sách phiếu nhập" />
-              <Tab label="Danh sách đơn mua" />
+              <Tab label="Danh sách đơn nhập" />
             </Tabs>
 
             {/* Tab Panel - Tạo phiếu nhập mới */}
@@ -251,7 +251,7 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
               <ReceiptList />
             </TabPanel>
 
-            {/* Tab Panel - Danh sách đơn mua */}
+            {/* Tab Panel - Danh sách đơn nhập */}
             <TabPanel value={activeTab} index={2}>
               <PurchaseOrderListTab />
             </TabPanel>
