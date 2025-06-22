@@ -1,5 +1,5 @@
 'use client';
-import { useRole } from '@/contexts/RoleContext';
+import { useAuth } from '@/hooks/useAuth';
 import { emailSchema, passwordSchema } from '@/utils/validationSchema';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -20,9 +20,9 @@ export default function AuthLogin({ inputSx }) {
   const router = useRouter();
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const { updateUserRole } = useRole();
+
+  const { login, loading } = useAuth();
 
   const {
     register,
@@ -30,47 +30,21 @@ export default function AuthLogin({ inputSx }) {
     formState: { errors }
   } = useForm();
 
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-
-  // Đăng nhập trực tiếp với email/password
   const handleLogin = async (formData) => {
     try {
-      setIsProcessing(true);
       setLoginError('');
 
-      const response = await fetch(`${backendUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        })
-      });
-
-      const result = await response.json();
+      const result = await login(formData.email, formData.password);
 
       if (result.success) {
-        // Store token và user info
-        localStorage.setItem('auth-token', result.data.token);
-        localStorage.setItem('refresh-token', result.data.refreshToken);
-        localStorage.setItem('user', JSON.stringify(result.data.user));
-
-        // Update role context
-        updateUserRole(result.data.user);
-
-        // Redirect theo role
+        // Redirect theo role từ backend response
         const redirectUrl = result.data.redirectUrl || '/dashboard';
         router.push(redirectUrl);
       } else {
         setLoginError(result.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      setLoginError('Không thể kết nối đến server. Vui lòng thử lại.');
-    } finally {
-      setIsProcessing(false);
+      setLoginError(error.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     }
   };
 
@@ -120,12 +94,11 @@ export default function AuthLogin({ inputSx }) {
             type="submit"
             color="primary"
             variant="contained"
-            disabled={isProcessing}
-            endIcon={isProcessing && <CircularProgress color="secondary" size={16} />}
-            fullWidth
-            sx={{ maxWidth: 150 }}
+            disabled={loading}
+            endIcon={loading && <CircularProgress color="secondary" size={16} />}
+            sx={{ width: 150 }}
           >
-            {isProcessing ? 'Logging in...' : 'Login'}
+            {loading ? 'Logging in...' : 'Login'}
           </Button>
         </Grid>
       </Grid>
