@@ -91,8 +91,18 @@ const supplierContractService =  {
     } finally {
       session.endSession();
     }
-  }
+  },
 
+  async getSupplierContractById(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return null;
+    }
+    return SupplierContract.findById(id)
+      .populate('created_by', 'name email')
+      .populate('supplier_id', 'name')
+      .populate('items.medicine_id', 'medicine_name')
+      .lean();
+  }
 }
 
 module.exports = supplierContractService;
