@@ -1,9 +1,9 @@
-import UpdateInventoryLocation from './components/UpdateInventoryLocation'
+import UpdatePackageLocation from './components/UpdatePackageLocation'
 
 function page() {
   return (
     <div>
-      <UpdateInventoryLocation />
+      <UpdatePackageLocation />
     </div>
   )
 }
