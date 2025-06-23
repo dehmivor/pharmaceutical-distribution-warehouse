@@ -2,6 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const constants = require('../utils/constants');
+const { generateOtpData } = require('../utils/otpUtils');
 
 // Helper: Tạo password ngẫu nhiên
 const generateRandomPassword = (length = 12) => {
@@ -13,34 +14,10 @@ const generateRandomPassword = (length = 12) => {
   return password;
 };
 
-// Helper: Tạo email với bí danh
-const generateEmailWithAlias = (baseEmail, alias) => {
-  if (!alias) return baseEmail;
-
-  const [localPart, domain] = baseEmail.split('@');
-  if (!domain) throw new Error('Invalid email format');
-
-  return `${localPart}+${alias}@${domain}`;
-};
-
-// Helper: Trích xuất thông tin từ email có bí danh
-const extractEmailInfo = (email) => {
-  const [localPart, domain] = email.split('@');
-
-  if (localPart.includes('+')) {
-    const [originalLocal, alias] = localPart.split('+');
-    return {
-      originalEmail: `${originalLocal}@${domain}`,
-      alias: alias,
-      hasAlias: true,
-    };
-  }
-
-  return {
-    originalEmail: email,
-    alias: null,
-    hasAlias: false,
-  };
+// Helper: Validate email format
+const validateEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 };
 
 // Helper: Validate role permissions
@@ -55,22 +32,30 @@ const validateRolePermissions = (role, requestedPermissions = []) => {
   return requestedPermissions.every((permission) => allowedRoles.includes(permission));
 };
 
-// 1. Cấp tài khoản mới với role và bí danh
-const provisionAccount = async (accountData) => {
+// 1. Cấp tài khoản mới
+const createAccount = async (accountData) => {
   try {
+    console.log('🔄 Processing account creation for:', accountData.email);
+
     const {
       email,
       role,
-      alias = null,
       is_manager = false,
       generatePassword = true,
       customPassword = null,
       permissions = [],
+      status = constants.BASIC_STATUSES.PENDING,
+      created_by,
     } = accountData;
 
-    // Validate input
+    // 1. Validate input
     if (!email || !role) {
       throw new Error('Email and role are required');
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      throw new Error('Invalid email format');
     }
 
     // Validate role
@@ -80,77 +65,117 @@ const provisionAccount = async (accountData) => {
       );
     }
 
-    // Tạo email với bí danh
-    const finalEmail = generateEmailWithAlias(email, alias);
+    console.log('✅ Input validation passed');
 
-    // Kiểm tra email đã tồn tại
-    const existingUser = await User.findOne({ email: finalEmail });
+    // 2. Kiểm tra email đã tồn tại
+    const existingUser = await User.findOne({
+      email: email.toLowerCase().trim(),
+    });
+
     if (existingUser) {
-      throw new Error(`Email ${finalEmail} already exists`);
+      console.log('❌ Email already exists:', email);
+      throw new Error(`Email ${email} already exists`);
     }
 
-    // Validate permissions theo role
+    console.log('✅ Email availability check passed');
+
+    // 3. Validate permissions theo role
     if (permissions.length > 0 && !validateRolePermissions(role, permissions)) {
       throw new Error(`Invalid permissions for role ${role}`);
     }
 
-    // Tạo password
+    // 4. Tạo password
     let password;
     if (generatePassword) {
       password = generateRandomPassword();
+      console.log('✅ Random password generated');
     } else if (customPassword) {
+      // Validate custom password strength
+      if (customPassword.length < 6) {
+        throw new Error('Password must be at least 6 characters');
+      }
+      if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(customPassword)) {
+        throw new Error('Password must contain at least 1 uppercase, 1 lowercase and 1 number');
+      }
       password = customPassword;
+      console.log('✅ Custom password validated');
     } else {
       throw new Error('Password is required when generatePassword is false');
     }
 
-    // Hash password
+    // 5. Hash password
+    const bcrypt = require('bcrypt');
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
+    console.log('✅ Password hashed successfully');
 
-    // Tạo user mới
+    // 6. Generate OTP for activation
+    const otpData = generateOtpData();
+    console.log('✅ OTP generated for activation');
+
+    // 7. Tạo user mới
     const userData = {
-      email: finalEmail,
+      email: email.toLowerCase().trim(),
       password: hashedPassword,
       role,
       is_manager,
-      status: constants.BASIC_STATUSES.ACTIVE,
+      status,
+      otp_reset: otpData, // Add OTP for activation
+      created_by,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     const newUser = new User(userData);
-    await newUser.save();
+    const savedUser = await newUser.save();
 
-    // Chuẩn bị response
-    const userResponse = newUser.toObject();
+    if (!savedUser) {
+      throw new Error('Failed to create account. Please try again');
+    }
+
+    console.log('✅ User created successfully:', savedUser.email);
+
+    // 8. Chuẩn bị response data
+    const userResponse = savedUser.toObject();
+
+    // Remove sensitive data from response
     delete userResponse.password;
     delete userResponse.otp_login;
     delete userResponse.otp_reset;
 
-    const emailInfo = extractEmailInfo(finalEmail);
+    const responseData = {
+      ...userResponse,
+      temporaryPassword: generatePassword ? password : null,
+      permissions: permissions,
+      activationOtp: otpData.code, // Include OTP for email sending
+    };
+
+    console.log('✅ Account creation completed');
 
     return {
       success: true,
-      data: {
-        ...userResponse,
-        ...emailInfo,
-        temporaryPassword: generatePassword ? password : null,
-        permissions: permissions,
-      },
-      message: 'Account provisioned successfully',
+      data: responseData,
+      message: 'Account created successfully',
     };
   } catch (error) {
-    return {
-      success: false,
-      message: error.message,
-      data: null,
-    };
+    console.error('❌ Error in createAccount service:', error);
+
+    // Log specific error types for monitoring
+    if (error.message.includes('already exists')) {
+      console.warn(`🚨 Duplicate account creation attempt: ${accountData.email}`);
+    } else if (error.message.includes('validation')) {
+      console.warn(`🚨 Validation error in account creation: ${error.message}`);
+    }
+
+    // Re-throw error to let controller handle HTTP response
+    throw error;
   }
 };
 
-// 2. Cấp tài khoản hàng loạt với bí danh
-const provisionBulkAccounts = async (bulkData) => {
+// 2. Cấp tài khoản hàng loạt
+const createBulkAccounts = async (bulkData) => {
   try {
-    const { accounts, defaultRole = 'warehouse', defaultAlias = null } = bulkData;
+    const { accounts, defaultRole = 'warehouse' } = bulkData;
 
     if (!Array.isArray(accounts) || accounts.length === 0) {
       throw new Error('Accounts array is required and must not be empty');
@@ -161,13 +186,13 @@ const provisionBulkAccounts = async (bulkData) => {
 
     for (const accountData of accounts) {
       try {
-        const { email, role = defaultRole, alias = defaultAlias, is_manager = false } = accountData;
+        const { email, role = defaultRole, is_manager = false, permissions = [] } = accountData;
 
-        const result = await provisionAccount({
+        const result = await createAccount({
           email,
           role,
-          alias,
           is_manager,
+          permissions,
           generatePassword: true,
         });
 
@@ -198,7 +223,7 @@ const provisionBulkAccounts = async (bulkData) => {
           failed: errors.length,
         },
       },
-      message: `Bulk provisioning completed. ${results.length} successful, ${errors.length} failed`,
+      message: `Bulk account creation completed. ${results.length} successful, ${errors.length} failed`,
     };
   } catch (error) {
     return {
@@ -209,10 +234,10 @@ const provisionBulkAccounts = async (bulkData) => {
   }
 };
 
-// 3. Cập nhật quyền và thông tin tài khoản
-const updateAccountPermissions = async (userId, updateData) => {
+// 3. Cập nhật thông tin tài khoản
+const updateAccount = async (userId, updateData) => {
   try {
-    const { role, is_manager, status, email, alias, permissions = [] } = updateData;
+    const { role, is_manager, status, email, permissions = [] } = updateData;
 
     // Kiểm tra user tồn tại
     const user = await User.findById(userId);
@@ -237,21 +262,28 @@ const updateAccountPermissions = async (userId, updateData) => {
       updates.role = role;
     }
 
-    // Cập nhật email với bí danh
-    if (email) {
-      const finalEmail = generateEmailWithAlias(email, alias);
-
-      if (finalEmail !== user.email) {
-        const existingUser = await User.findOne({ email: finalEmail });
-        if (existingUser) {
-          throw new Error(`Email ${finalEmail} already exists`);
-        }
-        updates.email = finalEmail;
+    // Cập nhật email
+    if (email && email !== user.email) {
+      if (!validateEmail(email)) {
+        throw new Error('Invalid email format');
       }
+
+      const normalizedEmail = email.toLowerCase();
+      const existingUser = await User.findOne({
+        email: normalizedEmail,
+        _id: { $ne: userId },
+      });
+
+      if (existingUser) {
+        throw new Error(`Email ${email} already exists`);
+      }
+
+      updates.email = normalizedEmail;
     }
 
     if (typeof is_manager !== 'undefined') updates.is_manager = is_manager;
     if (status) updates.status = status;
+    updates.updatedAt = new Date();
 
     // Thực hiện cập nhật
     const updatedUser = await User.findByIdAndUpdate(userId, updates, {
@@ -259,13 +291,10 @@ const updateAccountPermissions = async (userId, updateData) => {
       runValidators: true,
     }).select('-password -otp_login -otp_reset');
 
-    const emailInfo = extractEmailInfo(updatedUser.email);
-
     return {
       success: true,
       data: {
         ...updatedUser.toObject(),
-        ...emailInfo,
         permissions: permissions,
       },
       message: 'Account updated successfully',
@@ -303,16 +332,16 @@ const resetAccountPassword = async (userId, options = {}) => {
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
     // Cập nhật password
-    await User.findByIdAndUpdate(userId, { password: hashedPassword });
-
-    const emailInfo = extractEmailInfo(user.email);
+    await User.findByIdAndUpdate(userId, {
+      password: hashedPassword,
+      updatedAt: new Date(),
+    });
 
     return {
       success: true,
       data: {
         userId: user._id,
         email: user.email,
-        ...emailInfo,
         newPassword: newPassword,
         passwordResetAt: new Date(),
       },
@@ -327,14 +356,15 @@ const resetAccountPassword = async (userId, options = {}) => {
   }
 };
 
-// 5. Lấy danh sách tài khoản theo role và bí danh
-const getAccountsByRoleAndAlias = async (filters = {}) => {
+// 5. Lấy danh sách tài khoản với filter
+const getAccounts = async (filters = {}) => {
   try {
     const {
       role,
-      alias,
       is_manager,
       status,
+      email,
+      search,
       page = 1,
       limit = 10,
       sortBy = 'createdAt',
@@ -351,8 +381,14 @@ const getAccountsByRoleAndAlias = async (filters = {}) => {
     if (role) query.role = role;
     if (typeof is_manager !== 'undefined') query.is_manager = is_manager;
     if (status) query.status = status;
-    if (alias) {
-      query.email = { $regex: `\\+${alias}@`, $options: 'i' };
+    if (email) query.email = { $regex: email, $options: 'i' };
+
+    // Search trong email và role
+    if (search) {
+      query.$or = [
+        { email: { $regex: search, $options: 'i' } },
+        { role: { $regex: search, $options: 'i' } },
+      ];
     }
 
     // Xây dựng sort object
@@ -370,18 +406,9 @@ const getAccountsByRoleAndAlias = async (filters = {}) => {
       User.countDocuments(query),
     ]);
 
-    // Thêm thông tin email và bí danh
-    const usersWithEmailInfo = users.map((user) => {
-      const emailInfo = extractEmailInfo(user.email);
-      return {
-        ...user,
-        ...emailInfo,
-      };
-    });
-
     return {
       success: true,
-      data: usersWithEmailInfo,
+      data: users,
       pagination: {
         current_page: pageNum,
         total_pages: Math.ceil(total / limitNum),
@@ -401,15 +428,159 @@ const getAccountsByRoleAndAlias = async (filters = {}) => {
   }
 };
 
+// 6. Xóa tài khoản (soft delete)
+const deleteAccount = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Soft delete - cập nhật status thành 'deleted'
+    await User.findByIdAndUpdate(userId, {
+      status: 'deleted',
+      updatedAt: new Date(),
+    });
+
+    return {
+      success: true,
+      data: {
+        userId: user._id,
+        email: user.email,
+        deletedAt: new Date(),
+      },
+      message: 'Account deleted successfully',
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message,
+      data: null,
+    };
+  }
+};
+
+// 7. Khôi phục tài khoản đã xóa
+const restoreAccount = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (user.status !== 'deleted') {
+      throw new Error('Account is not in deleted state');
+    }
+
+    await User.findByIdAndUpdate(userId, {
+      status: constants.BASIC_STATUSES.ACTIVE,
+      updatedAt: new Date(),
+    });
+
+    return {
+      success: true,
+      data: {
+        userId: user._id,
+        email: user.email,
+        restoredAt: new Date(),
+      },
+      message: 'Account restored successfully',
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message,
+      data: null,
+    };
+  }
+};
+
+// 8. Lấy thông tin chi tiết một tài khoản
+const getAccountById = async (userId) => {
+  try {
+    const user = await User.findById(userId).select('-password -otp_login -otp_reset').lean();
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return {
+      success: true,
+      data: user,
+      message: 'Account retrieved successfully',
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message,
+      data: null,
+    };
+  }
+};
+
+// 9. Thống kê tài khoản theo role
+const getAccountStatistics = async () => {
+  try {
+    const stats = await User.aggregate([
+      {
+        $group: {
+          _id: '$role',
+          total: { $sum: 1 },
+          active: {
+            $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] },
+          },
+          inactive: {
+            $sum: { $cond: [{ $eq: ['$status', 'inactive'] }, 1, 0] },
+          },
+          managers: {
+            $sum: { $cond: ['$is_manager', 1, 0] },
+          },
+        },
+      },
+      {
+        $sort: { _id: 1 },
+      },
+    ]);
+
+    const totalUsers = await User.countDocuments();
+
+    return {
+      success: true,
+      data: {
+        total_users: totalUsers,
+        by_role: stats,
+        summary: {
+          active_users: await User.countDocuments({ status: 'active' }),
+          inactive_users: await User.countDocuments({ status: 'inactive' }),
+          deleted_users: await User.countDocuments({ status: 'deleted' }),
+          total_managers: await User.countDocuments({ is_manager: true }),
+        },
+      },
+      message: 'Statistics retrieved successfully',
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message,
+      data: null,
+    };
+  }
+};
+
 module.exports = {
-  provisionAccount,
-  provisionBulkAccounts,
-  updateAccountPermissions,
+  // Core functions
+  createAccount,
+  createBulkAccounts,
+  updateAccount,
   resetAccountPassword,
-  getAccountsByRoleAndAlias,
-  // Helper functions (optional export)
+  getAccounts,
+  deleteAccount,
+  restoreAccount,
+  getAccountById,
+  getAccountStatistics,
+
+  // Helper functions
   generateRandomPassword,
-  generateEmailWithAlias,
-  extractEmailInfo,
+  validateEmail,
   validateRolePermissions,
 };
