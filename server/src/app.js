@@ -19,6 +19,7 @@ const {
   cronRoutes,
   medicineRoutes,
   supervisorRoutes,
+  supplierContractRoutes,
   packageRoutes,
 } = require('./routes');
 const importOrderRoutes = require('./routes/importOrderRoutes');
@@ -45,6 +46,7 @@ app.use('/api/import-orders', route.importOrderRoutes);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRoutes);
+app.use('/api/supplier-contracts', supplierContractRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 
