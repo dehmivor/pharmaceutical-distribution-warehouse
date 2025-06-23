@@ -26,10 +26,76 @@ import {
   IconButton,
   Tooltip
 } from '@mui/material';
-import { Visibility, Edit, Delete, CheckCircle, Cancel, LocalShipping, Inventory } from '@mui/icons-material';
+import { Visibility, Edit, Delete, CheckCircle, LabelImportantOutlineSharp, LocalShipping, Inventory } from '@mui/icons-material';
 import { useImportOrders, useImportOrder, useImportOrderActions } from '@/hooks/useImportOrders';
 
 function ImportOrderList({ onOrderSelect, onSendForApproval }) {
+  const mockImportOrders = [
+    {
+      _id: 'IO001',
+      id: 'IO001',
+      orderNumber: 'IO001',
+      status: 'pending',
+      createdAt: '2024-06-15T10:30:00Z',
+      contract_id: 'Nhà cung cấp A',
+      totalAmount: 5000000,
+      items: [
+        { product: { name: 'Sản phẩm A' }, quantity: 10, unitPrice: 250000 },
+        { product: { name: 'Sản phẩm B' }, quantity: 5, unitPrice: 500000 }
+      ]
+    },
+    {
+      _id: 'IO002',
+      id: 'IO002',
+      orderNumber: 'IO002',
+      status: 'approved',
+      createdAt: '2024-06-14T14:20:00Z',
+      contract_id: 'Nhà cung cấp B',
+      totalAmount: 3500000,
+      items: [{ product: { name: 'Sản phẩm C' }, quantity: 7, unitPrice: 500000 }]
+    },
+    {
+      _id: 'IO003',
+      id: 'IO003',
+      orderNumber: 'IO003',
+      status: 'shipped',
+      createdAt: '2024-06-13T09:15:00Z',
+      contract_id: 'Nhà cung cấp C',
+      totalAmount: 7200000,
+      items: [{ product: { name: 'Sản phẩm D' }, quantity: 12, unitPrice: 600000 }]
+    },
+    {
+      _id: 'IO004',
+      id: 'IO004',
+      orderNumber: 'IO004',
+      status: 'received',
+      createdAt: '2024-06-12T16:45:00Z',
+      contract_id: 'Nhà cung cấp D',
+      totalAmount: 2800000,
+      items: [{ product: { name: 'Sản phẩm E' }, quantity: 4, unitPrice: 700000 }]
+    },
+    {
+      _id: 'IO005',
+      id: 'IO005',
+      orderNumber: 'IO005',
+      status: 'verified',
+      createdAt: '2024-06-11T11:30:00Z',
+      contract_id: 'Nhà cung cấp E',
+      totalAmount: 4100000,
+      items: [{ product: { name: 'Sản phẩm F' }, quantity: 6, unitPrice: 683333 }]
+    },
+    {
+      _id: 'IO006',
+      id: 'IO006',
+      orderNumber: 'IO006',
+      status: 'completed',
+      createdAt: '2024-06-10T08:15:00Z',
+      contract_id: 'Nhà cung cấp F',
+      totalAmount: 6300000,
+      items: [{ product: { name: 'Sản phẩm G' }, quantity: 9, unitPrice: 700000 }]
+    }
+  ];
+
   // State declarations
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -55,27 +121,71 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
     notes: ''
   });
 
-  // Hooks
-  const { importOrders, pagination, isLoading, isError, mutate } = useImportOrders(filters);
+  // State cho mock data
+  const [importOrders, setImportOrders] = useState(mockImportOrders);
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [isError, setIsError] = useState(null);
 
-  const { importOrder: selectedOrderDetails, isLoading: isLoadingDetails, mutate: mutateDetails } = useImportOrder(selectedOrder?.id);
+  // Mock pagination
+  const pagination = {
+    totalPages: Math.ceil(importOrders.length / filters.limit)
+  }; // Mock functions thay thế cho API calls
+  const updateStatus = async (orderId, status, notes) => {
+    console.log(`Updating order ${orderId} to status ${status} with notes: ${notes}`);
+    setImportOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status } : order)));
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+  };
 
-  const {
-    updateStatus,
-    createImportOrder,
-    updateImportOrder,
-    updateImportOrderDetails,
-    deleteImportOrder,
-    receiveImportOrder,
-    verifyImportOrder,
-    completeImportOrder,
-    updateInventory,
-    performQualityCheck
-  } = useImportOrderActions();
+  const deleteImportOrder = async (orderId) => {
+    console.log(`Deleting order ${orderId}`);
+    setImportOrders((prev) => prev.filter((order) => order.id !== orderId));
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+  };
 
-  // Cleanup cho component lifecycle
+  const receiveImportOrder = async (orderId, data) => {
+    console.log(`Receiving order ${orderId}`, data);
+    setImportOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status: 'received' } : order)));
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+  };
+
+  const verifyImportOrder = async (orderId, data) => {
+    console.log(`Verifying order ${orderId}`, data);
+    setImportOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status: 'verified' } : order)));
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+  };
+
+  const completeImportOrder = async (orderId, data) => {
+    console.log(`Completing order ${orderId}`, data);
+    setImportOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status: 'completed' } : order)));
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+  };
+
+  const performQualityCheck = async (orderId, data) => {
+    console.log(`Quality checking order ${orderId}`, data);
+    return new Promise((resolve) => setTimeout(resolve, 1000));
+  };
+
+  const mutate = () => {
+    console.log('Refreshing data...');
+    // Không cần làm gì vì đã có mock data
+  };
+
+  const mutateDetails = () => {
+    console.log('Refreshing order details...');
+    // Không cần làm gì
+  }; // Cleanup cho component lifecycle
   useEffect(() => {
     let isMounted = true;
+
+    // Simulate loading mock data
+    setIsLoading(true);
+    setTimeout(() => {
+      if (isMounted) {
+        setIsLoading(false);
+      }
+    }, 500);
 
     return () => {
       isMounted = false;
@@ -87,47 +197,17 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
     };
   }, []);
 
-  // Cleanup cho notification timeout
+  // Load selected order details khi cần
   useEffect(() => {
-    let timeoutId;
-
-    if (notification.open) {
-      timeoutId = setTimeout(() => {
-        setNotification((prev) => ({ ...prev, open: false }));
-      }, 6000);
+    if (selectedOrder) {
+      setIsLoadingDetails(true);
+      setTimeout(() => {
+        const orderDetails = mockImportOrders.find((order) => order.id === selectedOrder.id);
+        setSelectedOrderDetails(orderDetails);
+        setIsLoadingDetails(false);
+      }, 300);
     }
-
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [notification.open]);
-
-  // Cleanup cho keyboard events
-  useEffect(() => {
-    const handleKeyPress = (event) => {
-      if (event.key === 'Escape') {
-        if (viewDialogOpen) {
-          setViewDialogOpen(false);
-        }
-        if (editDialogOpen) {
-          setEditDialogOpen(false);
-        }
-        if (statusDialogOpen) {
-          setStatusDialogOpen(false);
-        }
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyPress);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyPress);
-    };
-  }, [viewDialogOpen, editDialogOpen, statusDialogOpen]);
-
-  // Event handlers
+  }, [selectedOrder]); // Event handlers - cập nhật để sử dụng mock data
   const handleViewOrder = (order) => {
     setSelectedOrder(order);
     setViewDialogOpen(true);
@@ -159,7 +239,6 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
           message: 'Xóa đơn hàng thành công!',
           severity: 'success'
         });
-        mutate();
       } catch (error) {
         setNotification({
           open: true,
@@ -174,14 +253,13 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
     try {
       await receiveImportOrder(orderId, {
         receivedAt: new Date().toISOString(),
-        receivedBy: 'current_user' // Replace with actual user
+        receivedBy: 'current_user'
       });
       setNotification({
         open: true,
         message: 'Xác nhận nhận hàng thành công!',
         severity: 'success'
       });
-      mutate();
     } catch (error) {
       setNotification({
         open: true,
@@ -195,14 +273,13 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
     try {
       await verifyImportOrder(orderId, {
         verifiedAt: new Date().toISOString(),
-        verifiedBy: 'current_user' // Replace with actual user
+        verifiedBy: 'current_user'
       });
       setNotification({
         open: true,
         message: 'Xác minh hàng hóa thành công!',
         severity: 'success'
       });
-      mutate();
     } catch (error) {
       setNotification({
         open: true,
@@ -216,40 +293,17 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
     try {
       await completeImportOrder(orderId, {
         completedAt: new Date().toISOString(),
-        completedBy: 'current_user' // Replace with actual user
+        completedBy: 'current_user'
       });
       setNotification({
         open: true,
         message: 'Hoàn thành đơn hàng thành công!',
         severity: 'success'
       });
-      mutate();
     } catch (error) {
       setNotification({
         open: true,
         message: `Lỗi khi hoàn thành: ${error.message}`,
-        severity: 'error'
-      });
-    }
-  };
-
-  const handleQualityCheck = async (orderId) => {
-    try {
-      await performQualityCheck(orderId, {
-        checkedAt: new Date().toISOString(),
-        checkedBy: 'current_user', // Replace with actual user
-        status: 'passed'
-      });
-      setNotification({
-        open: true,
-        message: 'Kiểm tra chất lượng thành công!',
-        severity: 'success'
-      });
-      mutate();
-    } catch (error) {
-      setNotification({
-        open: true,
-        message: `Lỗi khi kiểm tra chất lượng: ${error.message}`,
         severity: 'error'
       });
     }
@@ -264,7 +318,6 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
         severity: 'success'
       });
       setStatusDialogOpen(false);
-      mutate();
     } catch (error) {
       setNotification({
         open: true,
@@ -272,21 +325,20 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
         severity: 'error'
       });
     }
-  };
+  }; // Filter mock data based on current filters
+  const filteredOrders = importOrders.filter((order) => {
+    const statusMatch = filters.status === 'all' || order.status === filters.status;
+    const supplierMatch = !filters.supplierId || order.contract_id.toLowerCase().includes(filters.supplierId.toLowerCase());
+    return statusMatch && supplierMatch;
+  });
 
-  const handleFilterChange = (field, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [field]: value,
-      page: 1 // Reset page when filter changes
-    }));
-  };
+  // Paginate filtered results
+  const startIndex = (filters.page - 1) * filters.limit;
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + filters.limit);
 
-  const handlePageChange = (event, newPage) => {
-    setFilters((prev) => ({
-      ...prev,
-      page: newPage
-    }));
+  // Update pagination info
+  const updatedPagination = {
+    totalPages: Math.ceil(filteredOrders.length / filters.limit)
   };
 
   const getStatusColor = (status) => {
@@ -352,9 +404,10 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
           <TableHead>
             <TableRow>
               <TableCell>Mã đơn hàng</TableCell>
-              <TableCell>Nhà cung cấp</TableCell>
-              <TableCell>Ngày tạo</TableCell>
-              <TableCell>Tổng tiền</TableCell>
+              {/* <TableCell>Nhà cung cấp</TableCell> */}
+              <TableCell>Ngày nhập</TableCell>
+              {/* <TableCell>Liên kết với đơn mua</TableCell> */}
+              {/* <TableCell>Số mặt hàng đã nhập</TableCell> */}
               <TableCell>Trạng thái</TableCell>
               <TableCell align="center">Thao tác</TableCell>
             </TableRow>
@@ -374,16 +427,12 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
               </TableRow>
             ) : (
               importOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell>{order.orderNumber}</TableCell>
-                  <TableCell>{order.supplier?.name || 'N/A'}</TableCell>
+                <TableRow key={order._id}>
+                  <TableCell>{order._id}</TableCell>
+                  {/* <TableCell>{order.contract_id || 'N/A'}</TableCell> */}
                   <TableCell>{new Date(order.createdAt).toLocaleDateString('vi-VN')}</TableCell>
-                  <TableCell>
-                    {new Intl.NumberFormat('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND'
-                    }).format(order.totalAmount)}
-                  </TableCell>
+                  {/* <TableCell>{order.purchase_order_id || 'N/A'}</TableCell> */}
+                  {/* <TableCell>{order.import_content.length || 'N/A'}</TableCell> */}
                   <TableCell>
                     <Chip label={getStatusText(order.status)} color={getStatusColor(order.status)} size="small" />
                   </TableCell>
@@ -398,7 +447,7 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
                       {order.status === 'pending' && (
                         <Tooltip title="Chỉnh sửa">
                           <IconButton size="small" onClick={() => handleEditOrder(order)}>
-                            <Edit />
+                            <LabelImportantOutlineSharp />
                           </IconButton>
                         </Tooltip>
                       )}
@@ -415,14 +464,6 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
                         <Tooltip title="Xác minh">
                           <IconButton size="small" color="secondary" onClick={() => handleVerifyOrder(order.id)}>
                             <Inventory />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-
-                      {(order.status === 'received' || order.status === 'verified') && (
-                        <Tooltip title="Kiểm tra chất lượng">
-                          <IconButton size="small" color="info" onClick={() => handleQualityCheck(order.id)}>
-                            {/* <QualityCheck /> */}
                           </IconButton>
                         </Tooltip>
                       )}
@@ -479,7 +520,7 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
                 <strong>Mã đơn:</strong> {selectedOrderDetails.orderNumber}
               </Typography>
               <Typography>
-                <strong>Nhà cung cấp:</strong> {selectedOrderDetails.supplier?.name}
+                <strong>Nhà cung cấp:</strong> {selectedOrderDetails.contract_id}
               </Typography>
               <Typography>
                 <strong>Ngày tạo:</strong> {new Date(selectedOrderDetails.createdAt).toLocaleString('vi-VN')}

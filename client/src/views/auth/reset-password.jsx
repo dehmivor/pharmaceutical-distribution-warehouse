@@ -15,6 +15,7 @@ import FormHelperText from '@mui/material/FormHelperText';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
 
 import { useForm } from 'react-hook-form';
@@ -31,6 +32,7 @@ export default function ResetPassword() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [tokenValid, setTokenValid] = useState(null);
 
   const {
     register,
@@ -42,11 +44,41 @@ export default function ResetPassword() {
   const password = watch('password');
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
+  // Kiểm tra tính hợp lệ của token khi component mount
   useEffect(() => {
-    if (!token) {
-      setMessage('Invalid or missing reset token.');
-    }
-  }, [token]);
+    const verifyToken = async () => {
+      if (!token) {
+        setTokenValid(false);
+        setMessage('Invalid or missing reset token.');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${backendUrl}/api/auth/verify-reset-token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ token })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          setTokenValid(true);
+        } else {
+          setTokenValid(false);
+          setMessage(result.message || 'Invalid or expired reset token.');
+        }
+      } catch (error) {
+        console.error('Token verification error:', error);
+        setTokenValid(false);
+        setMessage('Unable to verify reset token. Please try again.');
+      }
+    };
+
+    verifyToken();
+  }, [token, backendUrl]);
 
   const onSubmit = async (formData) => {
     if (formData.password !== formData.confirmPassword) {
@@ -88,13 +120,33 @@ export default function ResetPassword() {
     }
   };
 
-  if (!token) {
+  // Loading state khi đang verify token
+  if (tokenValid === null) {
     return (
       <Stack sx={{ height: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Alert severity="error">Invalid or missing reset token.</Alert>
-        <Link component={NextLink} href="/auth/login" sx={{ mt: 2 }}>
-          Back to Sign In
-        </Link>
+        <CircularProgress />
+        <Typography variant="body2" sx={{ mt: 2 }}>
+          Verifying reset token...
+        </Typography>
+      </Stack>
+    );
+  }
+
+  // Token không hợp lệ
+  if (tokenValid === false) {
+    return (
+      <Stack sx={{ height: 1, alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+        <Alert severity="error" sx={{ maxWidth: 458 }}>
+          {message}
+        </Alert>
+        <Stack direction="row" spacing={2}>
+          <Button variant="outlined" onClick={() => router.push('/auth/forgot-password')}>
+            Request New Reset Link
+          </Button>
+          <Button variant="contained" onClick={() => router.push('/auth/login')}>
+            Back to Login
+          </Button>
+        </Stack>
       </Stack>
     );
   }
@@ -121,8 +173,10 @@ export default function ResetPassword() {
                   fullWidth
                   error={Boolean(errors.password)}
                   endAdornment={
-                    <InputAdornment position="end" sx={{ cursor: 'pointer' }} onClick={() => setShowPassword(!showPassword)}>
-                      {showPassword ? <IconEye size={16} /> : <IconEyeOff size={16} />}
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
+                        {showPassword ? <IconEye size={16} /> : <IconEyeOff size={16} />}
+                      </IconButton>
                     </InputAdornment>
                   }
                 />
@@ -141,8 +195,10 @@ export default function ResetPassword() {
                   fullWidth
                   error={Boolean(errors.confirmPassword)}
                   endAdornment={
-                    <InputAdornment position="end" sx={{ cursor: 'pointer' }} onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-                      {showConfirmPassword ? <IconEye size={16} /> : <IconEyeOff size={16} />}
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end" size="small">
+                        {showConfirmPassword ? <IconEye size={16} /> : <IconEyeOff size={16} />}
+                      </IconButton>
                     </InputAdornment>
                   }
                 />
@@ -154,7 +210,7 @@ export default function ResetPassword() {
                 variant="contained"
                 fullWidth
                 disabled={isLoading}
-                endIcon={isLoading && <CircularProgress color="secondary" size={16} />}
+                endIcon={isLoading && <CircularProgress color="inherit" size={16} />}
                 sx={{ mt: 3 }}
               >
                 {isLoading ? 'Resetting...' : 'Reset Password'}
@@ -167,7 +223,7 @@ export default function ResetPassword() {
               {message}
             </Alert>
             <Typography variant="body2" color="text.secondary">
-              Redirecting to sign in page...
+              Redirecting to sign in page in 3 seconds...
             </Typography>
           </Box>
         )}
@@ -177,12 +233,6 @@ export default function ResetPassword() {
             {message}
           </Alert>
         )}
-
-        <Stack direction="row" justifyContent="center" sx={{ mt: 3 }}>
-          <Link component={NextLink} href="/auth/login" underline="hover" variant="subtitle2" sx={{ '&:hover': { color: 'primary.dark' } }}>
-            Back to Sign In
-          </Link>
-        </Stack>
       </Box>
 
       <Copyright />

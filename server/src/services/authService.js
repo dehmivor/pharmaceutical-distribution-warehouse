@@ -5,6 +5,7 @@ const User = require('../models/User');
 const constants = require('../utils/constants');
 const { sendOTPEmail } = require('./emailService');
 const getRedirectByRole = require('../utils/directUrl');
+const crypto = require('crypto');
 
 const authService = {
   register: async (userData) => {
@@ -22,7 +23,7 @@ const authService = {
       }
 
       // Check if user already exists
-      const existingUser = await User.findOne({
+      const existingUser = User.findOne({
         email: email.toLowerCase().trim(),
       });
 
@@ -35,7 +36,7 @@ const authService = {
 
       // Hash password
       const saltRounds = 12;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      const hashedPassword = bcrypt.hash(password, saltRounds);
 
       // Create new user
       const newUser = new User({
@@ -45,7 +46,7 @@ const authService = {
         status: constants.USER_STATUSES.ACTIVE,
       });
 
-      const savedUser = await newUser.save();
+      const savedUser = newUser.save();
 
       return {
         success: true,
@@ -173,7 +174,9 @@ const authService = {
       let decoded;
       try {
         decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+        console.log('📝 Decoded token:', decoded);
       } catch (error) {
+        console.error('❌ Token verification error:', error);
         return {
           success: false,
           message: 'Token không hợp lệ hoặc đã hết hạn',
@@ -181,6 +184,7 @@ const authService = {
       }
 
       if (decoded.step !== 'otp_verification') {
+        console.error('❌ Invalid token step:', decoded.step);
         return {
           success: false,
           message: 'Token không hợp lệ',
@@ -190,20 +194,47 @@ const authService = {
       // Find user
       const user = await User.findById(decoded.userId);
       if (!user) {
+        console.error('❌ User not found:', decoded.userId);
         return {
           success: false,
           message: 'Người dùng không tồn tại',
         };
       }
 
-      if (
-        !user.otp_login ||
-        user.otp_login.code !== otp ||
-        user.otp_login.expiry_time < new Date()
-      ) {
+      console.log('📝 User OTP data:', {
+        storedOTP: user.otp_login?.code,
+        receivedOTP: otp,
+        expiryTime: user.otp_login?.expiry_time,
+        currentTime: new Date()
+      });
+
+      if (!user.otp_login) {
+        console.error('❌ No OTP data found for user');
         return {
           success: false,
           message: 'OTP không hợp lệ hoặc đã hết hạn',
+        };
+      }
+
+      if (user.otp_login.code !== otp) {
+        console.error('❌ OTP mismatch:', {
+          stored: user.otp_login.code,
+          received: otp
+        });
+        return {
+          success: false,
+          message: 'OTP không chính xác',
+        };
+      }
+
+      if (user.otp_login.expiry_time < new Date()) {
+        console.error('❌ OTP expired:', {
+          expiryTime: user.otp_login.expiry_time,
+          currentTime: new Date()
+        });
+        return {
+          success: false,
+          message: 'OTP đã hết hạn',
         };
       }
 
@@ -230,6 +261,9 @@ const authService = {
         { expiresIn: '7d' },
       );
 
+      const redirectUrl = getRedirectByRole(user.role);
+      console.log('📝 Login successful, redirecting to:', redirectUrl);
+
       return {
         success: true,
         data: {
@@ -243,7 +277,7 @@ const authService = {
           },
           token,
           refreshToken,
-          redirectUrl: getRedirectByRole(user.role),
+          redirectUrl,
         },
       };
     } catch (error) {
@@ -593,6 +627,169 @@ const authService = {
       return {
         success: false,
         message: 'Error updating user',
+      };
+    }
+  },
+
+  // Hủy tất cả tokens của user
+  getUserByEmail: async (email) => {
+    try {
+      const user = await User.findOne({
+        email: email.toLowerCase().trim(),
+      });
+
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          user: {
+            id: user._id,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+          },
+        },
+      };
+    } catch (error) {
+      console.error('❌ Get user by email error:', error);
+      return {
+        success: false,
+        message: 'Error fetching user data',
+      };
+    }
+  },
+
+  generateResetToken: async (userId) => {
+    try {
+      console.log('🔄 Generating reset token for user:', userId);
+
+      // Tạo token ngẫu nhiên
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+      // Thời gian hết hạn 10 phút
+      const tokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+      // Cập nhật user với token reset (lưu token đã hash)
+      await User.findByIdAndUpdate(userId, {
+        otp_reset: {
+          code: hashedToken,
+          expiry_time: tokenExpiry,
+        },
+      });
+
+      console.log('✅ Reset token generated successfully');
+      return resetToken; // Trả về token gốc để gửi email
+    } catch (error) {
+      console.error('❌ Generate reset token error:', error);
+      throw new Error('Failed to generate reset token');
+    }
+  },
+
+  // Sửa lại hàm verifyResetToken để verify token thay vì OTP
+  verifyResetToken: async (token) => {
+    try {
+      console.log('🔍 Verifying reset token...');
+
+      if (!token) {
+        return {
+          success: false,
+          message: 'Token không được cung cấp',
+        };
+      }
+
+      // Hash token để so sánh với database
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+      const user = await User.findOne({
+        'otp_reset.code': hashedToken,
+        'otp_reset.expiry_time': { $gt: new Date() },
+      });
+
+      if (!user) {
+        return {
+          success: false,
+          message: 'Token không hợp lệ hoặc đã hết hạn',
+        };
+      }
+
+      console.log('✅ Reset token is valid');
+      return {
+        success: true,
+        data: {
+          userId: user._id,
+          email: user.email,
+        },
+      };
+    } catch (error) {
+      console.error('❌ Verify reset token error:', error);
+      return {
+        success: false,
+        message: 'Failed to verify reset token',
+      };
+    }
+  },
+
+  // Sửa lại hàm resetPassword để nhận token thay vì email + OTP
+  resetPassword: async (token, newPassword) => {
+    try {
+      console.log('🔄 Resetting password with token...');
+
+      if (!token || !newPassword) {
+        return {
+          success: false,
+          message: 'Token và mật khẩu mới là bắt buộc',
+        };
+      }
+
+      // Verify token trước
+      const verifyResult = await authService.verifyResetToken(token);
+      if (!verifyResult.success) {
+        return verifyResult;
+      }
+
+      const user = await User.findById(verifyResult.data.userId);
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+
+      // Hash password mới
+      const saltRounds = 12;
+      const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+      // Cập nhật password và xóa token reset
+      await User.findByIdAndUpdate(user._id, {
+        password: hashedPassword,
+        $unset: {
+          otp_reset: 1,
+        },
+      });
+
+      console.log(`✅ Password reset successful for user ${user.email}`);
+      return {
+        success: true,
+        data: {
+          user: {
+            id: user._id,
+            email: user.email,
+            role: user.role,
+          },
+        },
+      };
+    } catch (error) {
+      console.error('❌ Reset password error:', error);
+      return {
+        success: false,
+        message: 'Lỗi khi reset password',
       };
     }
   },
