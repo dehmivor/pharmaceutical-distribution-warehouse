@@ -5,7 +5,7 @@ module.exports = {
   medicineRoutes: require('./medicineRoute'),
   supervisorRoutes: require('./supervisorRoute'),
   packageRoutes: require('./packageRoute'),
-  importOrderRoutes: require('./importOrderRoute'),
+  importOrderRoutes: require('./importOrderRoutes'),
   notificationRoutes: require('./notificationRoute'),
   accountRoutes: require('./accountRoute'),
   thingsboardRoutes: require('./thingsboardRoute'),

@@ -21,8 +21,9 @@ const {
   supervisorRoutes,
   supplierContractRoutes,
   packageRoutes,
+  importOrderRoutes,
 } = require('./routes');
-const importOrderRoutes = require('./routes/importOrderRoutes');
+
 
 // Middlewares
 app.use(helmet());
@@ -42,7 +43,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/medicine', medicineRoutes);
 
-app.use('/api/import-orders', route.importOrderRoutes);
+app.use('/api/import-orders', importOrderRoutes);
 app.use('api/thingsboard', route.thingsboardRoutes);
 
 // Protected routes với role-based access
