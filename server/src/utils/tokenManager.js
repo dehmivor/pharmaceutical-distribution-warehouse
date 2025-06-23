@@ -18,7 +18,7 @@ export const tokenManager = {
       console.error('Attempted to save invalid token');
       return false;
     }
-    localStorage.setItem('authToken', token);
+    localStorage.setItem('auth-token', token);
     return true;
   },
 

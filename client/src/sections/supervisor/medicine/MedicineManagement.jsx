@@ -44,7 +44,19 @@ import MedicineDetailDialog from './MedicineDetailDialog'; // Import the detail 
 import MedicineEditDialog from './MedicineEditDialog'; // Import the edit dialog component
 import MedicineAddDialog from './MedicineAddDialog';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
+
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true
+});
 
 const MedicineManagement = () => {
   const [medicines, setMedicines] = useState([]);
@@ -84,7 +96,9 @@ const MedicineManagement = () => {
         ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== ''))
       });
 
-      const response = await axios.get(`${API_BASE_URL}/medicine?${params}`);
+      const response = await axiosInstance.get(`/medicine?${params}`, {
+        headers: getAuthHeaders(),
+      });
 
       if (response.data.success) {
         setMedicines(response.data.data.medicines);
@@ -101,7 +115,9 @@ const MedicineManagement = () => {
   // Fetch filter options
   const fetchFilterOptions = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/medicine/filter-options`);
+      const response = await axiosInstance.get(`/medicine/filter-options`, {
+        headers: getAuthHeaders(),
+      });
       if (response.data.success) {
         setFilterOptions(response.data.data);
       }
@@ -117,7 +133,9 @@ const MedicineManagement = () => {
     }
 
     try {
-      const response = await axios.put(`${API_BASE_URL}/medicine/${updatedMedicine._id}`, updatedMedicine);
+      const response = await axiosInstance.put(`/medicine/${updatedMedicine._id}`, updatedMedicine, {
+        headers: getAuthHeaders(),
+      });
 
       if (response.data.success) {
         setSuccess('Cập nhật thuốc thành công');
@@ -143,7 +161,9 @@ const MedicineManagement = () => {
   // Delete medicine
   const handleDeleteMedicine = async () => {
     try {
-      const response = await axios.delete(`${API_BASE_URL}/medicine/${selectedMedicine._id}`);
+      const response = await axios.delete(`/medicine/${selectedMedicine._id}`, {
+        headers: getAuthHeaders(),
+      });
 
       if (response.data.success) {
         setSuccess('Xóa thuốc thành công');
