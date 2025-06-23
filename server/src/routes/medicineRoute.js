@@ -6,8 +6,8 @@ const authenticate = require('../middlewares/authenticate'); // Giả sử bạn
 
 // === MEDICINE ROUTES ===
 
-
-router.get('/', medicineController.getAllMedicines);
+router.use(authenticate);
+router.get('/',medicineController.getAllMedicines);
 
 
 router.get('/filter-options', medicineController.getFilterOptions);

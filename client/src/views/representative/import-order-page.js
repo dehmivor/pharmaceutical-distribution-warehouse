@@ -29,6 +29,7 @@ import {
   Divider
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Info as InfoIcon } from '@mui/icons-material';
+import axios from 'axios';
 
 function ImportOrderPage() {
   const [orders, setOrders] = useState([]);
@@ -44,7 +45,6 @@ function ImportOrderPage() {
   // Form states
   const [formData, setFormData] = useState({
     supplier_contract_id: '',
-    warehouse_manager_id: '',
     details: [{
       medicine_id: '',
       quantity: 0,
@@ -61,15 +61,11 @@ function ImportOrderPage() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/import-orders');
-      if (!response.ok) {
-        throw new Error('Failed to fetch orders');
-      }
-      const data = await response.json();
-      setOrders(data.data || []);
+      const response = await axios.get('/api/import-orders');
+      setOrders(response.data.data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
-      setError(error.message);
+      setError(error.response?.data?.error || error.message);
     } finally {
       setLoading(false);
     }
@@ -77,10 +73,9 @@ function ImportOrderPage() {
 
   const fetchSupplierContracts = async () => {
     try {
-      const response = await fetch('/api/supplier-contracts');
-      if (!response.ok) throw new Error('Failed to fetch supplier contracts');
-      const data = await response.json();
-      setSupplierContracts(data.data || []);
+      const response = await axios.get('/api/supplier-contracts');
+      const activeContracts = (response.data.data.contracts || []).filter(c => c.status === 'active');
+      setSupplierContracts(activeContracts);
     } catch (error) {
       console.error('Error fetching supplier contracts:', error);
       setError('Failed to load supplier contracts');
@@ -89,13 +84,10 @@ function ImportOrderPage() {
 
   const fetchWarehouseManagers = async () => {
     try {
-      const response = await fetch('/api/users?role=warehouse_manager');
-      if (!response.ok) throw new Error('Failed to fetch warehouse managers');
-      const data = await response.json();
-      setWarehouseManagers(data.data || []);
+      const response = await axios.get('/api/users?role=warehouse_manager');
+      setWarehouseManagers(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching warehouse managers:', error);
-      setError('Failed to load warehouse managers');
+      setWarehouseManagers([]);
     }
   };
 
@@ -106,11 +98,9 @@ function ImportOrderPage() {
     }
     setMedicinesLoading(true);
     try {
-      const response = await fetch(`/api/supplier-contracts/${contractId}`);
-      if (!response.ok) throw new Error('Failed to fetch contract details');
-      const data = await response.json();
-      console.log('Contract medicines loaded:', data.data?.items);
-      setContractMedicines(data.data?.items || []);
+      const response = await axios.get(`/api/supplier-contracts/${contractId}`);
+      console.log('Contract medicines loaded:', response.data.data?.items);
+      setContractMedicines(response.data.data?.items || []);
     } catch (error) {
       console.error('Error fetching contract medicines:', error);
       setError('Failed to load contract medicines');
@@ -140,36 +130,22 @@ function ImportOrderPage() {
     }
 
     try {
-      const response = await fetch(`/api/import-orders/${id}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete order');
-      }
-
+      await axios.delete(`/api/import-orders/${id}`);
       setSuccess('Order deleted successfully');
       fetchOrders();
     } catch (error) {
       console.error('Error deleting order:', error);
-      setError(error.message);
+      setError(error.response?.data?.error || error.message);
     }
   };
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    
-    // If supplier contract changes, reset details and load new medicines
     if (name === 'supplier_contract_id') {
       setFormData(prev => ({
         ...prev,
         [name]: value,
-        details: [{
-          medicine_id: '',
-          quantity: 0,
-          unit_price: 0
-        }]
+        details: []
       }));
     } else {
       setFormData(prev => ({
@@ -232,38 +208,43 @@ function ImportOrderPage() {
     e.preventDefault();
     setFormLoading(true);
 
+    // Validate: không cho chọn trùng thuốc
+    const medicineIds = formData.details.map(d => d.medicine_id);
+    const hasDuplicate = new Set(medicineIds).size !== medicineIds.length;
+    if (hasDuplicate) {
+      setError('Không được chọn trùng thuốc trong cùng một phiếu nhập!');
+      setFormLoading(false);
+      return;
+    }
+    // Validate: số lượng và đơn giá > 0
+    for (const detail of formData.details) {
+      if (!detail.medicine_id || detail.quantity <= 0 || detail.unit_price <= 0) {
+        setError('Vui lòng nhập đầy đủ, số lượng và đơn giá phải lớn hơn 0!');
+        setFormLoading(false);
+        return;
+      }
+    }
+
     try {
       const orderData = {
         supplier_contract_id: formData.supplier_contract_id,
-        warehouse_manager_id: formData.warehouse_manager_id,
-        details: formData.details
+        total: calculateTotal()
       };
-
+      const orderDetails = formData.details;
       const url = selectedOrder
         ? `/api/import-orders/${selectedOrder._id}`
         : '/api/import-orders';
-      
-      const method = selectedOrder ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save order');
+      if (selectedOrder) {
+        await axios.put(url, { orderData, orderDetails });
+      } else {
+        await axios.post(url, { orderData, orderDetails });
       }
-
       setSuccess(selectedOrder ? 'Order updated successfully' : 'Order created successfully');
       handleCloseForm();
       fetchOrders();
     } catch (error) {
       console.error('Error saving order:', error);
-      setError(error.message);
+      setError(error.response?.data?.error || error.message);
     } finally {
       setFormLoading(false);
     }
@@ -282,18 +263,15 @@ function ImportOrderPage() {
     if (order) {
       setFormData({
         supplier_contract_id: order.supplier_contract_id._id || order.supplier_contract_id,
-        warehouse_manager_id: order.warehouse_manager_id._id || order.warehouse_manager_id,
-        details: order.details || []
+        details: order.details.map(d => ({
+          ...d,
+          medicine_id: typeof d.medicine_id === 'object' ? d.medicine_id._id : d.medicine_id
+        }))
       });
     } else {
       setFormData({
         supplier_contract_id: '',
-        warehouse_manager_id: '',
-        details: [{
-          medicine_id: '',
-          quantity: 0,
-          unit_price: 0
-        }]
+        details: []
       });
     }
     setSelectedOrder(order);
@@ -305,12 +283,7 @@ function ImportOrderPage() {
     setOpenForm(false);
     setFormData({
       supplier_contract_id: '',
-      warehouse_manager_id: '',
-      details: [{
-        medicine_id: '',
-        quantity: 0,
-        unit_price: 0
-      }]
+      details: []
     });
   };
 
@@ -360,21 +333,23 @@ function ImportOrderPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Supplier ID</TableCell>
-              <TableCell>Warehouse Name</TableCell>
-              <TableCell>Created By</TableCell>
-              <TableCell>Total Amount</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell sx={{ minWidth: 120 }}>Contract Code</TableCell>
+              <TableCell sx={{ minWidth: 150 }}>Supplier</TableCell>
+              <TableCell sx={{ minWidth: 150 }}>Warehouse</TableCell>
+              <TableCell sx={{ minWidth: 120 }}>Created By</TableCell>
+              <TableCell align="right" sx={{ minWidth: 120 }}>Total Amount</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
+              <TableCell sx={{ minWidth: 120 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {paginatedOrders.map((order) => (
-              <TableRow key={order._id}>
+              <TableRow key={order._id} hover>
+                <TableCell>{order.supplier_contract_id?.contract_code || 'N/A'}</TableCell>
                 <TableCell>{order.supplier_contract_id?.supplier_id?.name || 'N/A'}</TableCell>
                 <TableCell>{order.warehouse_manager_id?.name || 'N/A'}</TableCell>
-                <TableCell>{order.created_by?.name || 'N/A'}</TableCell>
-                <TableCell>
+                <TableCell>{order.created_by?._id || order.created_by || 'N/A'}</TableCell>
+                <TableCell align="right">
                   ${order.details?.reduce((total, detail) => 
                     total + (detail.quantity * detail.unit_price), 0
                   ).toLocaleString() || 0}
@@ -387,18 +362,17 @@ function ImportOrderPage() {
                   />
                 </TableCell>
                 <TableCell>
-                  <IconButton color="primary" onClick={() => handleOpenForm(order)} disabled={order.status !== 'draft'}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton color="error" onClick={() => handleDelete(order._id)} disabled={order.status !== 'draft'}>
-                    <DeleteIcon />
-                  </IconButton>
-                  <IconButton
-                    color="info"
-                    onClick={() => handleOpenDetails(order)}
-                  >
-                    <InfoIcon />
-                  </IconButton>
+                  <Box display="flex" gap={1}>
+                    <IconButton color="primary" onClick={() => handleOpenForm(order)} disabled={order.status !== 'draft'}>
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton color="error" onClick={() => handleDelete(order._id)} disabled={order.status !== 'draft'}>
+                      <DeleteIcon />
+                    </IconButton>
+                    <IconButton color="info" onClick={() => handleOpenDetails(order)}>
+                      <InfoIcon />
+                    </IconButton>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}
@@ -422,9 +396,9 @@ function ImportOrderPage() {
         </DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-            <Grid container spacing={3}>
+            <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
+                <FormControl fullWidth required size="small">
                   <InputLabel>Supplier Contract</InputLabel>
                   <Select
                     name="supplier_contract_id"
@@ -440,138 +414,128 @@ function ImportOrderPage() {
                   </Select>
                 </FormControl>
               </Grid>
-
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>Warehouse Manager</InputLabel>
-                  <Select
-                    name="warehouse_manager_id"
-                    value={formData.warehouse_manager_id}
-                    onChange={handleFormChange}
-                    label="Warehouse Manager"
-                  >
-                    {warehouseManagers.map((manager) => (
-                      <MenuItem key={manager._id} value={manager._id}>
-                        {manager.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Divider sx={{ my: 2 }} />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">Order Details</Typography>
-                  <Button 
-                    onClick={addDetail} 
-                    variant="outlined" 
-                    size="small"
-                    disabled={!formData.supplier_contract_id}
-                  >
-                    Add Medicine
-                  </Button>
-                </Box>
-                {!formData.supplier_contract_id && (
-                  <Alert severity="info" sx={{ mb: 2 }}>
-                    Please select a Supplier Contract first to load available medicines
-                  </Alert>
-                )}
-                {medicinesLoading && (
-                  <Alert severity="info" sx={{ mb: 2 }}>
-                    Loading medicines from selected contract...
-                  </Alert>
-                )}
-              </Grid>
-
-              {formData.details.map((detail, index) => (
-                <Grid item xs={12} key={index}>
-                  <Paper sx={{ p: 2 }}>
-                    <Grid container spacing={2} alignItems="center">
-                      <Grid item xs={12} md={4}>
-                        <FormControl fullWidth required>
-                          <InputLabel>Medicine</InputLabel>
-                          <Select
-                            value={detail.medicine_id}
-                            onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
-                            label="Medicine"
-                            disabled={!formData.supplier_contract_id || medicinesLoading}
-                          >
-                            {contractMedicines.length === 0 ? (
-                              <MenuItem disabled>
-                                {!formData.supplier_contract_id 
-                                  ? 'Select a contract first' 
-                                  : medicinesLoading 
-                                    ? 'Loading medicines...' 
-                                    : 'No medicines available in this contract'
-                                }
-                              </MenuItem>
-                            ) : (
-                              contractMedicines.map((item) => (
-                                <MenuItem key={item.medicine_id._id} value={item.medicine_id._id}>
-                                  {item.medicine_id.medicine_name} - ${item.unit_price?.toLocaleString()}
-                                </MenuItem>
-                              ))
-                            )}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-
-                      <Grid item xs={12} md={3}>
-                        <TextField
-                          fullWidth
-                          label="Quantity"
-                          type="number"
-                          value={detail.quantity}
-                          onChange={(e) => handleDetailChange(index, 'quantity', Number(e.target.value))}
-                          required
-                          disabled={!detail.medicine_id}
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} md={3}>
-                        <TextField
-                          fullWidth
-                          label="Unit Price"
-                          type="number"
-                          value={detail.unit_price}
-                          onChange={(e) => handleDetailChange(index, 'unit_price', Number(e.target.value))}
-                          required
-                          disabled={!detail.medicine_id}
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} md={1}>
-                        <TextField
-                          fullWidth
-                          label="Total"
-                          value={(detail.quantity * detail.unit_price).toLocaleString()}
-                          InputProps={{ readOnly: true }}
-                        />
-                      </Grid>
-
-                      <Grid item xs={12} md={1}>
-                        <IconButton 
-                          color="error" 
-                          onClick={() => removeDetail(index)}
-                          disabled={formData.details.length === 1}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                </Grid>
-              ))}
-
-              <Grid item xs={12}>
-                <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-                  <Typography variant="h6" align="right">
-                    Total Amount: ${calculateTotal().toLocaleString()}
-                  </Typography>
-                </Paper>
-              </Grid>
             </Grid>
+            <Divider sx={{ my: 2 }} />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">Order Details</Typography>
+              <Button 
+                onClick={addDetail} 
+                variant="outlined" 
+                size="small"
+                disabled={!formData.supplier_contract_id || formData.details.length >= contractMedicines.length}
+              >
+                Add Medicine
+              </Button>
+            </Box>
+            {!formData.supplier_contract_id && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Please select a Supplier Contract first to load available medicines
+              </Alert>
+            )}
+            {medicinesLoading && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Loading medicines from selected contract...
+              </Alert>
+            )}
+            {formData.details.length > 0 && formData.details.map((detail, index) => (
+              <Paper sx={{ p: 2, mb: 2, boxShadow: 2 }} key={index}>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={12} md={4}>
+                    <FormControl fullWidth required size="small">
+                      <InputLabel>Medicine</InputLabel>
+                      <Select
+                        value={detail.medicine_id}
+                        onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
+                        label="Medicine"
+                        disabled={!formData.supplier_contract_id || medicinesLoading}
+                        sx={{ minWidth: 240 }}
+                        MenuProps={{
+                          PaperProps: {
+                            sx: { minWidth: 300 }
+                          }
+                        }}
+                      >
+                        {contractMedicines.length === 0 ? (
+                          <MenuItem disabled>
+                            {!formData.supplier_contract_id 
+                              ? 'Select a contract first' 
+                              : medicinesLoading 
+                                ? 'Loading medicines...' 
+                                : 'No medicines available in this contract'
+                            }
+                          </MenuItem>
+                        ) : (
+                          contractMedicines
+                            .filter(item =>
+                              item.medicine_id._id === detail.medicine_id ||
+                              !formData.details.some((d, i) => d.medicine_id === item.medicine_id._id && i !== index)
+                            )
+                            .map((item) => (
+                              <MenuItem key={item.medicine_id._id} value={item.medicine_id._id} sx={{ whiteSpace: 'normal', minWidth: 280 }}>
+                                {item.medicine_id.medicine_name}
+                              </MenuItem>
+                            ))
+                        )}
+                        {!contractMedicines.some(item => item.medicine_id._id === detail.medicine_id) && detail.medicine_id && (
+                          <MenuItem value={detail.medicine_id} sx={{ whiteSpace: 'normal', minWidth: 280 }}>
+                            {typeof detail.medicine_id === 'object' ? detail.medicine_id.medicine_name : detail.medicine_id}
+                          </MenuItem>
+                        )}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={6} md={2}>
+                    <TextField
+                      fullWidth
+                      label="Quantity"
+                      type="number"
+                      value={detail.quantity}
+                      onChange={(e) => handleDetailChange(index, 'quantity', Number(e.target.value))}
+                      required
+                      disabled={!detail.medicine_id}
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={6} md={2}>
+                    <TextField
+                      fullWidth
+                      label="Unit Price"
+                      type="number"
+                      value={detail.unit_price}
+                      InputProps={{ readOnly: true }}
+                      required
+                      disabled={!detail.medicine_id}
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={6} md={2}>
+                    <TextField
+                      fullWidth
+                      label="Total"
+                      value={(detail.quantity * detail.unit_price).toLocaleString()}
+                      InputProps={{ readOnly: true }}
+                      size="small"
+                    />
+                  </Grid>
+                  <Grid item xs={6} md={2} sx={{ textAlign: 'center' }}>
+                    <IconButton 
+                      color="error" 
+                      onClick={() => removeDetail(index)}
+                      disabled={formData.details.length === 1}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Grid>
+                </Grid>
+              </Paper>
+            ))}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+              <Paper sx={{ p: 2, bgcolor: 'grey.50', minWidth: 220, textAlign: 'right' }}>
+                <Typography variant="h6">
+                  Total Amount: ${calculateTotal().toLocaleString()}
+                </Typography>
+              </Paper>
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -592,20 +556,24 @@ function ImportOrderPage() {
         <DialogContent>
           {selectedOrder && (
             <Box sx={{ mt: 2 }}>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} md={3}>
                   <Typography variant="subtitle2" color="text.secondary">Supplier</Typography>
                   <Typography variant="body1">{selectedOrder.supplier_contract_id?.supplier_id?.name || 'N/A'}</Typography>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={3}>
+                  <Typography variant="subtitle2" color="text.secondary">Contract Code</Typography>
+                  <Typography variant="body1">{selectedOrder.supplier_contract_id?.contract_code || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={12} md={3}>
                   <Typography variant="subtitle2" color="text.secondary">Warehouse Manager</Typography>
                   <Typography variant="body1">{selectedOrder.warehouse_manager_id?.name || 'N/A'}</Typography>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={3}>
                   <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
-                  <Typography variant="body1">{selectedOrder.created_by?.name || 'N/A'}</Typography>
+                  <Typography variant="body1">{selectedOrder.created_by?._id || selectedOrder.created_by || 'N/A'}</Typography>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={3}>
                   <Typography variant="subtitle2" color="text.secondary">Status</Typography>
                   <Chip
                     label={selectedOrder.status}
@@ -613,39 +581,40 @@ function ImportOrderPage() {
                     size="small"
                   />
                 </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Order Details</Typography>
-                  <TableContainer component={Paper}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Medicine</TableCell>
-                          <TableCell>Quantity</TableCell>
-                          <TableCell>Unit Price</TableCell>
-                          <TableCell>Total</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {selectedOrder.details?.map((detail, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
-                            <TableCell>{detail.quantity}</TableCell>
-                            <TableCell>${detail.unit_price?.toLocaleString()}</TableCell>
-                            <TableCell>${(detail.quantity * detail.unit_price)?.toLocaleString()}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="h6" align="right">
+              </Grid>
+              <Divider sx={{ my: 2 }} />
+              <Typography variant="h6" sx={{ mb: 1 }}>Order Details</Typography>
+              <TableContainer component={Paper} sx={{ mb: 2 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ minWidth: 150 }}>Medicine</TableCell>
+                      <TableCell align="right" sx={{ minWidth: 80 }}>Quantity</TableCell>
+                      <TableCell align="right" sx={{ minWidth: 100 }}>Unit Price</TableCell>
+                      <TableCell align="right" sx={{ minWidth: 100 }}>Total</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {selectedOrder.details?.map((detail, index) => (
+                      <TableRow key={index} hover>
+                        <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
+                        <TableCell align="right">{detail.quantity}</TableCell>
+                        <TableCell align="right">${detail.unit_price?.toLocaleString()}</TableCell>
+                        <TableCell align="right">${(detail.quantity * detail.unit_price)?.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                <Paper sx={{ p: 2, bgcolor: 'grey.50', minWidth: 220, textAlign: 'right' }}>
+                  <Typography variant="h6">
                     Total Amount: ${selectedOrder.details?.reduce((total, detail) => 
                       total + (detail.quantity * detail.unit_price), 0
                     ).toLocaleString() || 0}
                   </Typography>
-                </Grid>
-              </Grid>
+                </Paper>
+              </Box>
             </Box>
           )}
         </DialogContent>

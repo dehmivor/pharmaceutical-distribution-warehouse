@@ -76,10 +76,13 @@ const getImportOrderById = async (req, res) => {
 const updateImportOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
-
+    const { orderData, orderDetails } = req.body;
+    // Gộp lại thành object đúng schema
+    const updateData = {
+      ...orderData,
+      details: orderDetails
+    };
     const updatedOrder = await importOrderService.updateImportOrder(id, updateData);
-
     res.status(200).json({
       success: true,
       data: updatedOrder,

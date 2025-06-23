@@ -12,7 +12,7 @@ const importOrderSchema = new mongoose.Schema(
     warehouse_manager_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Warehouse manager ID is required'],
+   
     },
     status: {
       type: String,
