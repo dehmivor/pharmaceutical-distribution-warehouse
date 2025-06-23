@@ -17,21 +17,18 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 const ImportOrderForm = ({ order, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
-    manager_id: '',
-    import_date: new Date(),
-    status: 'pending',
-    purchase_order_id: '',
-    import_content: [{
-      batch_id: '',
-      arrival_number: 0,
-      rejected_number: 0,
-      rejected_reason: '',
-      created_by: ''
+    warehouse_manager_id: '',
+    supplier_contract_id: '',
+    status: 'draft',
+    details: [{
+      medicine_id: '',
+      quantity: 0,
+      unit_price: 0
     }]
   });
 
-  const [batches, setBatches] = useState([]);
-  const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [medicines, setMedicines] = useState([]);
+  const [supplierContracts, setSupplierContracts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -39,34 +36,34 @@ const ImportOrderForm = ({ order, onClose, onSuccess }) => {
     if (order) {
       setFormData({
         ...order,
-        import_date: new Date(order.import_date)
+        details: order.details || []
       });
     }
-    fetchBatches();
-    fetchPurchaseOrders();
+    fetchMedicines();
+    fetchSupplierContracts();
   }, [order]);
 
-  const fetchBatches = async () => {
+  const fetchMedicines = async () => {
     try {
-      const response = await fetch('/api/batches');
-      if (!response.ok) throw new Error('Failed to fetch batches');
+      const response = await fetch('/api/medicines');
+      if (!response.ok) throw new Error('Failed to fetch medicines');
       const data = await response.json();
-      setBatches(data.data);
+      setMedicines(data.data);
     } catch (error) {
-      console.error('Error fetching batches:', error);
-      setError('Failed to load batches');
+      console.error('Error fetching medicines:', error);
+      setError('Failed to load medicines');
     }
   };
 
-  const fetchPurchaseOrders = async () => {
+  const fetchSupplierContracts = async () => {
     try {
-      const response = await fetch('/api/purchase-orders');
-      if (!response.ok) throw new Error('Failed to fetch purchase orders');
+      const response = await fetch('/api/supplier-contracts');
+      if (!response.ok) throw new Error('Failed to fetch supplier contracts');
       const data = await response.json();
-      setPurchaseOrders(data.data);
+      setSupplierContracts(data.data);
     } catch (error) {
-      console.error('Error fetching purchase orders:', error);
-      setError('Failed to load purchase orders');
+      console.error('Error fetching supplier contracts:', error);
+      setError('Failed to load supplier contracts');
     }
   };
 
@@ -185,15 +182,15 @@ const ImportOrderForm = ({ order, onClose, onSuccess }) => {
           <TextField
             fullWidth
             select
-            label="Purchase Order"
-            name="purchase_order_id"
-            value={formData.purchase_order_id}
+            label="Supplier Contract"
+            name="supplier_contract_id"
+            value={formData.supplier_contract_id}
             onChange={handleChange}
             required
           >
-            {purchaseOrders.map((po) => (
-              <MenuItem key={po._id} value={po._id}>
-                {po.code}
+            {supplierContracts.map((contract) => (
+              <MenuItem key={contract._id} value={contract._id}>
+                {contract.contract_code}
               </MenuItem>
             ))}
           </TextField>

@@ -43,7 +43,20 @@ const createSupplierContract = asyncHandler(async (req, res) => {
   });
 });
 
+const getSupplierContractById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, message: 'Missing contract id' });
+  }
+  const contract = await supplierContractService.getSupplierContractById(id);
+  if (!contract) {
+    return res.status(404).json({ success: false, message: 'Contract not found' });
+  }
+  res.status(200).json({ success: true, data: contract });
+});
+
 module.exports = {
   getAllSupplierContracts,
   createSupplierContract,
+  getSupplierContractById,
 };

@@ -19,10 +19,10 @@ const representative = {
       icon: 'IconCertificate'
     },
     {
-      id: 'manage-purchase-orders',
-      title: 'Manage Purchase Orders',
+      id: 'manage-import-orders',
+      title: 'Manage Import Orders',
       type: 'item',
-      url: '/manage-purchase-orders',
+      url: '/manage-import-orders',
       icon: 'IconShoppingCart'
     }
   ]
