@@ -8,6 +8,7 @@ module.exports = {
   importOrderRoutes: require('./importOrderRoute'),
   notificationRoutes: require('./notificationRoute'),
   accountRoutes: require('./accountRoute'),
+  supplierContractRoutes: require('./supplierContractRoute'),
   // warehouseRoutes: require('./warehouseRoute'),
   // presentativeRoutes: require('./presentativeRoute'),
   // retailerRoutes: require('./retailerRoute'),
