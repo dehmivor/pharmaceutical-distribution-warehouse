@@ -2,6 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const constants = require('../utils/constants');
+const { generateOtpData } = require('../utils/otpUtils');
 
 // Helper: Tạo password ngẫu nhiên
 const generateRandomPassword = (length = 12) => {
@@ -34,6 +35,8 @@ const validateRolePermissions = (role, requestedPermissions = []) => {
 // 1. Cấp tài khoản mới
 const createAccount = async (accountData) => {
   try {
+    console.log('🔄 Processing account creation for:', accountData.email);
+
     const {
       email,
       role,
@@ -41,10 +44,11 @@ const createAccount = async (accountData) => {
       generatePassword = true,
       customPassword = null,
       permissions = [],
-      status = constants.BASIC_STATUSES.ACTIVE,
+      status = constants.BASIC_STATUSES.PENDING,
+      created_by,
     } = accountData;
 
-    // Validate input
+    // 1. Validate input
     if (!email || !role) {
       throw new Error('Email and role are required');
     }
@@ -61,66 +65,110 @@ const createAccount = async (accountData) => {
       );
     }
 
-    // Kiểm tra email đã tồn tại
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    console.log('✅ Input validation passed');
+
+    // 2. Kiểm tra email đã tồn tại
+    const existingUser = await User.findOne({
+      email: email.toLowerCase().trim(),
+    });
+
     if (existingUser) {
+      console.log('❌ Email already exists:', email);
       throw new Error(`Email ${email} already exists`);
     }
 
-    // Validate permissions theo role
+    console.log('✅ Email availability check passed');
+
+    // 3. Validate permissions theo role
     if (permissions.length > 0 && !validateRolePermissions(role, permissions)) {
       throw new Error(`Invalid permissions for role ${role}`);
     }
 
-    // Tạo password
+    // 4. Tạo password
     let password;
     if (generatePassword) {
       password = generateRandomPassword();
+      console.log('✅ Random password generated');
     } else if (customPassword) {
+      // Validate custom password strength
+      if (customPassword.length < 6) {
+        throw new Error('Password must be at least 6 characters');
+      }
+      if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(customPassword)) {
+        throw new Error('Password must contain at least 1 uppercase, 1 lowercase and 1 number');
+      }
       password = customPassword;
+      console.log('✅ Custom password validated');
     } else {
       throw new Error('Password is required when generatePassword is false');
     }
 
-    // Hash password
+    // 5. Hash password
+    const bcrypt = require('bcrypt');
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
+    console.log('✅ Password hashed successfully');
 
-    // Tạo user mới
+    // 6. Generate OTP for activation
+    const otpData = generateOtpData();
+    console.log('✅ OTP generated for activation');
+
+    // 7. Tạo user mới
     const userData = {
-      email: email.toLowerCase(),
+      email: email.toLowerCase().trim(),
       password: hashedPassword,
       role,
       is_manager,
       status,
+      otp_reset: otpData, // Add OTP for activation
+      created_by,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
     const newUser = new User(userData);
-    await newUser.save();
+    const savedUser = await newUser.save();
 
-    // Chuẩn bị response
-    const userResponse = newUser.toObject();
+    if (!savedUser) {
+      throw new Error('Failed to create account. Please try again');
+    }
+
+    console.log('✅ User created successfully:', savedUser.email);
+
+    // 8. Chuẩn bị response data
+    const userResponse = savedUser.toObject();
+
+    // Remove sensitive data from response
     delete userResponse.password;
     delete userResponse.otp_login;
     delete userResponse.otp_reset;
 
+    const responseData = {
+      ...userResponse,
+      temporaryPassword: generatePassword ? password : null,
+      permissions: permissions,
+      activationOtp: otpData.code, // Include OTP for email sending
+    };
+
+    console.log('✅ Account creation completed');
+
     return {
       success: true,
-      data: {
-        ...userResponse,
-        temporaryPassword: generatePassword ? password : null,
-        permissions: permissions,
-      },
+      data: responseData,
       message: 'Account created successfully',
     };
   } catch (error) {
-    return {
-      success: false,
-      message: error.message,
-      data: null,
-    };
+    console.error('❌ Error in createAccount service:', error);
+
+    // Log specific error types for monitoring
+    if (error.message.includes('already exists')) {
+      console.warn(`🚨 Duplicate account creation attempt: ${accountData.email}`);
+    } else if (error.message.includes('validation')) {
+      console.warn(`🚨 Validation error in account creation: ${error.message}`);
+    }
+
+    // Re-throw error to let controller handle HTTP response
+    throw error;
   }
 };
 

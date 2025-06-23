@@ -146,7 +146,7 @@ const sendActivationEmail = async (
     const transporter = createTransporter();
 
     // Tạo activation URL với token[1]
-    const activationURL = `${process.env.CLIENT_URL}/activate-account?token=${activationToken}&email=${encodeURIComponent(email)}`;
+    const activationURL = `${process.env.CLIENT_URL}/auth/active-account?token=${activationToken}&email=${encodeURIComponent(email)}`;
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
