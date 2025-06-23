@@ -27,5 +27,5 @@ router.get('/me', authenticate, authController.getCurrentUser);
 
 // === ROLE-BASED REDIRECT ===
 router.get('/redirect', authenticate, authController.getRoleBasedRedirect);
-
+router.post('/activate-account', authController.activateAccount);
 module.exports = router;

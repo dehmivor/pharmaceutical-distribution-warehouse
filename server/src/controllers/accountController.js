@@ -1,3 +1,4 @@
+const { User } = require('../models');
 const accountService = require('../services/accountService');
 const {
   sendActivationEmail,
@@ -5,13 +6,11 @@ const {
   sendActivationNotificationToSupervisor,
 } = require('../services/emailService');
 const { validationResult } = require('express-validator');
-const crypto = require('crypto');
 
 // Helper function để tạo activation token và OTP
 const generateActivationData = () => {
-  const activationToken = crypto.randomBytes(32).toString('hex');
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  return { activationToken, otp };
+  return { otp };
 };
 
 // Helper function để xử lý validation errors
@@ -30,6 +29,8 @@ const handleValidationErrors = (req, res) => {
 // 1. Tạo tài khoản đơn lẻ
 const createSingleAccount = async (req, res) => {
   try {
+    console.log('📧 Create account request received');
+
     // Check validation errors
     const validationError = handleValidationErrors(req, res);
     if (validationError) return validationError;
@@ -51,28 +52,21 @@ const createSingleAccount = async (req, res) => {
     // Call service to create account
     const result = await accountService.createAccount(accountData);
 
-    if (!result.success) {
-      return res.status(400).json({
-        success: false,
-        message: result.message,
-      });
-    }
-
-    // Generate activation data
-    const { activationToken, otp } = generateActivationData();
+    // Generate activation data from result
+    const { activationOtp } = result.data;
 
     // Send activation email
     try {
       await sendActivationEmail(
         result.data.email,
-        activationToken,
-        otp,
+        null, // no activation token needed
+        activationOtp,
         result.data.temporaryPassword,
         result.data.role,
         supervisor.name || supervisor.email,
       );
 
-      // Notify supervisor về việc tạo tài khoản thành công
+      // Notify supervisor
       await sendActivationNotificationToSupervisor(
         supervisor.email,
         result.data.email,
@@ -83,12 +77,13 @@ const createSingleAccount = async (req, res) => {
       console.log(`✅ Activation email sent to: ${result.data.email}`);
     } catch (emailError) {
       console.error('❌ Email sending failed:', emailError);
-      // Không fail account creation, chỉ log error
+      // Don't fail account creation, just log error
     }
 
     // Remove sensitive data from response
     const responseData = { ...result.data };
     delete responseData.temporaryPassword;
+    delete responseData.activationOtp;
 
     return res.status(201).json({
       success: true,
@@ -96,84 +91,36 @@ const createSingleAccount = async (req, res) => {
       data: responseData,
     });
   } catch (error) {
-    console.error('Error in createSingleAccount:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
+    console.error('❌ Error in createSingleAccount controller:', error);
 
-// 2. Tạo tài khoản hàng loạt
-const createBulkAccounts = async (req, res) => {
-  try {
-    const validationError = handleValidationErrors(req, res);
-    if (validationError) return validationError;
+    // Handle specific error types
+    let statusCode = 500;
+    let message = 'Internal server error';
 
-    const bulkData = req.body;
-    const supervisor = req.user;
+    if (error.message) {
+      statusCode = 400;
+      message = error.message;
 
-    if (supervisor.role !== 'supervisor') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only supervisors can create bulk accounts',
-      });
-    }
-
-    // Call service
-    const result = await accountService.createBulkAccounts(bulkData);
-
-    if (!result.success) {
-      return res.status(400).json({
-        success: false,
-        message: result.message,
-      });
-    }
-
-    // Send activation emails for successful accounts
-    const emailPromises = result.data.created.map(async (account) => {
-      try {
-        const { activationToken, otp } = generateActivationData();
-
-        await sendActivationEmail(
-          account.email,
-          activationToken,
-          otp,
-          account.temporaryPassword,
-          account.role,
-          supervisor.name || supervisor.email,
-        );
-
-        console.log(`✅ Activation email sent to: ${account.email}`);
-      } catch (emailError) {
-        console.error(`❌ Failed to send email to ${account.email}:`, emailError);
+      // Specific error handling
+      if (error.message.includes('already exists')) {
+        statusCode = 409; // Conflict
+      } else if (error.message.includes('Invalid role')) {
+        statusCode = 400; // Bad Request
+      } else if (error.message.includes('permissions')) {
+        statusCode = 403; // Forbidden
       }
-    });
+    }
 
-    // Wait for all emails to be sent
-    await Promise.allSettled(emailPromises);
-
-    // Remove sensitive data
-    const responseData = {
-      ...result.data,
-      created: result.data.created.map((account) => {
-        const { temporaryPassword, ...accountData } = account;
-        return accountData;
-      }),
-    };
-
-    return res.status(201).json({
-      success: true,
-      message: `${result.data.created.length} accounts created successfully. Activation emails sent.`,
-      data: responseData,
-    });
-  } catch (error) {
-    console.error('Error in createBulkAccounts:', error);
-    return res.status(500).json({
+    return res.status(statusCode).json({
       success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      message: message,
+      error:
+        process.env.NODE_ENV === 'development'
+          ? {
+              message: error.message,
+              stack: error.stack,
+            }
+          : undefined,
     });
   }
 };
@@ -451,7 +398,6 @@ const getAccountStatistics = async (req, res) => {
 
 module.exports = {
   createSingleAccount,
-  createBulkAccounts,
   getAccounts,
   getAccountById,
   updateAccount,
