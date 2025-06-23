@@ -249,8 +249,11 @@ const deleteImportOrder = async (orderId) => {
     }
 
     // Check if order can be deleted
-    if (order.status !== IMPORT_ORDER_STATUSES.DRAFT) {
-      throw new Error('Can only delete draft orders');
+    if (
+      order.status !== IMPORT_ORDER_STATUSES.DRAFT &&
+      order.status !== IMPORT_ORDER_STATUSES.CANCELLED
+    ) {
+      throw new Error('Can only delete draft or cancelled orders');
     }
 
     await ImportOrder.findByIdAndDelete(orderId);
@@ -262,41 +265,43 @@ const deleteImportOrder = async (orderId) => {
 };
 
 // Update order status
-const updateOrderStatus = async (orderId, status, approvalBy = null) => {
+const updateOrderStatus = async (orderId, status, approvalBy = null, bypassValidation = false) => {
   try {
     const order = await ImportOrder.findById(orderId);
     if (!order) {
       throw new Error('Import order not found');
     }
 
-    // Validate status transition
-    const validTransitions = {
-      [IMPORT_ORDER_STATUSES.DRAFT]: [
-        IMPORT_ORDER_STATUSES.APPROVED,
-        IMPORT_ORDER_STATUSES.CANCELLED,
-      ],
-      [IMPORT_ORDER_STATUSES.APPROVED]: [
-        IMPORT_ORDER_STATUSES.DELIVERED,
-        IMPORT_ORDER_STATUSES.CANCELLED,
-      ],
-      [IMPORT_ORDER_STATUSES.DELIVERED]: [
-        IMPORT_ORDER_STATUSES.CHECKED,
-        IMPORT_ORDER_STATUSES.CANCELLED,
-      ],
-      [IMPORT_ORDER_STATUSES.CHECKED]: [
-        IMPORT_ORDER_STATUSES.ARRANGED,
-        IMPORT_ORDER_STATUSES.CANCELLED,
-      ],
-      [IMPORT_ORDER_STATUSES.ARRANGED]: [
-        IMPORT_ORDER_STATUSES.COMPLETED,
-        IMPORT_ORDER_STATUSES.CANCELLED,
-      ],
-      [IMPORT_ORDER_STATUSES.COMPLETED]: [],
-      [IMPORT_ORDER_STATUSES.CANCELLED]: [],
-    };
+    // Validate status transition (skip if bypassValidation is true for supervisor)
+    if (!bypassValidation) {
+      const validTransitions = {
+        [IMPORT_ORDER_STATUSES.DRAFT]: [
+          IMPORT_ORDER_STATUSES.APPROVED,
+          IMPORT_ORDER_STATUSES.CANCELLED,
+        ],
+        [IMPORT_ORDER_STATUSES.APPROVED]: [
+          IMPORT_ORDER_STATUSES.DELIVERED,
+          IMPORT_ORDER_STATUSES.CANCELLED,
+        ],
+        [IMPORT_ORDER_STATUSES.DELIVERED]: [
+          IMPORT_ORDER_STATUSES.CHECKED,
+          IMPORT_ORDER_STATUSES.CANCELLED,
+        ],
+        [IMPORT_ORDER_STATUSES.CHECKED]: [
+          IMPORT_ORDER_STATUSES.ARRANGED,
+          IMPORT_ORDER_STATUSES.CANCELLED,
+        ],
+        [IMPORT_ORDER_STATUSES.ARRANGED]: [
+          IMPORT_ORDER_STATUSES.COMPLETED,
+          IMPORT_ORDER_STATUSES.CANCELLED,
+        ],
+        [IMPORT_ORDER_STATUSES.COMPLETED]: [],
+        [IMPORT_ORDER_STATUSES.CANCELLED]: [],
+      };
 
-    if (!validTransitions[order.status].includes(status)) {
-      throw new Error(`Cannot change status from ${order.status} to ${status}`);
+      if (!validTransitions[order.status].includes(status)) {
+        throw new Error(`Cannot change status from ${order.status} to ${status}`);
+      }
     }
 
     const updateData = { status };
@@ -348,6 +353,64 @@ const getImportOrdersBySupplierContract = async (supplierContractId) => {
   }
 };
 
+// Get valid status transitions for a given status
+const getValidStatusTransitions = (currentStatus) => {
+  const validTransitions = {
+    [IMPORT_ORDER_STATUSES.DRAFT]: [
+      IMPORT_ORDER_STATUSES.APPROVED,
+      IMPORT_ORDER_STATUSES.CANCELLED,
+    ],
+    [IMPORT_ORDER_STATUSES.APPROVED]: [
+      IMPORT_ORDER_STATUSES.DELIVERED,
+      IMPORT_ORDER_STATUSES.CANCELLED,
+    ],
+    [IMPORT_ORDER_STATUSES.DELIVERED]: [
+      IMPORT_ORDER_STATUSES.CHECKED,
+      IMPORT_ORDER_STATUSES.CANCELLED,
+    ],
+    [IMPORT_ORDER_STATUSES.CHECKED]: [
+      IMPORT_ORDER_STATUSES.ARRANGED,
+      IMPORT_ORDER_STATUSES.CANCELLED,
+    ],
+    [IMPORT_ORDER_STATUSES.ARRANGED]: [
+      IMPORT_ORDER_STATUSES.COMPLETED,
+      IMPORT_ORDER_STATUSES.CANCELLED,
+    ],
+    [IMPORT_ORDER_STATUSES.COMPLETED]: [],
+    [IMPORT_ORDER_STATUSES.CANCELLED]: [],
+  };
+
+  return validTransitions[currentStatus] || [];
+};
+
+// Get all status transitions mapping
+const getAllStatusTransitions = () => {
+  return {
+    [IMPORT_ORDER_STATUSES.DRAFT]: [
+      IMPORT_ORDER_STATUSES.APPROVED,
+      IMPORT_ORDER_STATUSES.CANCELLED,
+    ],
+    [IMPORT_ORDER_STATUSES.APPROVED]: [
+      IMPORT_ORDER_STATUSES.DELIVERED,
+      IMPORT_ORDER_STATUSES.CANCELLED,
+    ],
+    [IMPORT_ORDER_STATUSES.DELIVERED]: [
+      IMPORT_ORDER_STATUSES.CHECKED,
+      IMPORT_ORDER_STATUSES.CANCELLED,
+    ],
+    [IMPORT_ORDER_STATUSES.CHECKED]: [
+      IMPORT_ORDER_STATUSES.ARRANGED,
+      IMPORT_ORDER_STATUSES.CANCELLED,
+    ],
+    [IMPORT_ORDER_STATUSES.ARRANGED]: [
+      IMPORT_ORDER_STATUSES.COMPLETED,
+      IMPORT_ORDER_STATUSES.CANCELLED,
+    ],
+    [IMPORT_ORDER_STATUSES.COMPLETED]: [],
+    [IMPORT_ORDER_STATUSES.CANCELLED]: [],
+  };
+};
+
 module.exports = {
   createImportOrder,
   getImportOrders,
@@ -361,4 +424,6 @@ module.exports = {
   updateOrderStatus,
   getImportOrdersByWarehouseManager,
   getImportOrdersBySupplierContract,
+  getValidStatusTransitions,
+  getAllStatusTransitions,
 };

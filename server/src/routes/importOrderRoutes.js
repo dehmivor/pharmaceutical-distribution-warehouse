@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const importOrderController = require('../controllers/importOrderController');
-// const authenticate = require('../middlewares/authenticate');
+const authenticate = require('../middlewares/authenticate');
+const authorize = require('../middlewares/authorize');
 
 // BỎ authenticate tạm thời
 // router.use(authenticate);
@@ -22,7 +23,7 @@ router.get('/supplier-contract/:supplierContractId', importOrderController.getIm
 router.get('/:id', importOrderController.getImportOrderById);
 
 // Update import order
-router.put('/:id', importOrderController.updateImportOrder);
+router.put('/:id', authenticate, authorize('supervisor'), importOrderController.updateImportOrder);
 
 // Update import order details
 router.put('/:id/details', importOrderController.updateImportOrderDetails);
@@ -40,7 +41,10 @@ router.delete('/:id/details/:detailId', importOrderController.removeImportOrderD
 router.delete('/:id', importOrderController.deleteImportOrder);
 
 // Update order status
-router.patch('/:id/status', importOrderController.updateOrderStatus);
+router.patch('/:id/status', authenticate, authorize('supervisor'), importOrderController.updateOrderStatus);
+
+// Get valid status transitions
+router.get('/status-transitions', importOrderController.getValidStatusTransitions);
 
 module.exports = router;
 

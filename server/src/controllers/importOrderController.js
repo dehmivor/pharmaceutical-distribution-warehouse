@@ -197,16 +197,12 @@ const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+    
+    // Check if user is supervisor and bypass validation
+    const bypassValidation = req.user && req.user.role === 'supervisor';
+    const approvalBy = req.user ? req.user._id : null;
 
-    // Validate status
-    if (!Object.values(IMPORT_ORDER_STATUSES).includes(status)) {
-      throw new Error('Invalid status');
-    }
-
-    // Get approved_by from authenticated user if available
-    const approvedBy = req.user && req.user._id ? req.user._id : null;
-
-    const updatedOrder = await importOrderService.updateOrderStatus(id, status, approvedBy);
+    const updatedOrder = await importOrderService.updateOrderStatus(id, status, approvalBy, bypassValidation);
 
     res.status(200).json({
       success: true,
@@ -268,6 +264,37 @@ const getImportOrdersBySupplierContract = async (req, res) => {
   }
 };
 
+// Get valid status transitions
+const getValidStatusTransitions = async (req, res) => {
+  try {
+    const { currentStatus } = req.query;
+    
+    if (currentStatus) {
+      // Get valid transitions for specific status
+      const validTransitions = importOrderService.getValidStatusTransitions(currentStatus);
+      res.status(200).json({
+        success: true,
+        data: {
+          currentStatus,
+          validTransitions,
+        },
+      });
+    } else {
+      // Get all status transitions mapping
+      const allTransitions = importOrderService.getAllStatusTransitions();
+      res.status(200).json({
+        success: true,
+        data: allTransitions,
+      });
+    }
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createImportOrder,
   getImportOrders,
@@ -281,4 +308,5 @@ module.exports = {
   updateOrderStatus,
   getImportOrdersByWarehouseManager,
   getImportOrdersBySupplierContract,
+  getValidStatusTransitions,
 };
