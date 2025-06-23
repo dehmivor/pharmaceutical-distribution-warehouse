@@ -1,68 +1,175 @@
-const UserService = require('../services/accountService');
+const accountService = require('../services/accountService');
+const {
+  sendActivationEmail,
+  sendAccountActivatedNotification,
+  sendActivationNotificationToSupervisor,
+} = require('../services/emailService');
 const { validationResult } = require('express-validator');
+const crypto = require('crypto');
 
-// Helper: Xử lý validation errors
+// Helper function để tạo activation token và OTP
+const generateActivationData = () => {
+  const activationToken = crypto.randomBytes(32).toString('hex');
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  return { activationToken, otp };
+};
+
+// Helper function để xử lý validation errors
 const handleValidationErrors = (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
-      message: 'Validation errors',
+      message: 'Validation failed',
       errors: errors.array(),
     });
   }
   return null;
 };
 
-// Helper: Xử lý response
-const sendResponse = (res, result, successStatus = 200) => {
-  if (result.success) {
-    return res.status(successStatus).json(result);
-  } else {
-    const statusCode = result.message.includes('not found')
-      ? 404
-      : result.message.includes('already exists')
-        ? 409
-        : 400;
-    return res.status(statusCode).json(result);
-  }
-};
-
-// 1. Cấp tài khoản đơn lẻ
-const provisionSingleAccount = async (req, res) => {
+// 1. Tạo tài khoản đơn lẻ
+const createSingleAccount = async (req, res) => {
   try {
-    // Kiểm tra validation errors
+    // Check validation errors
     const validationError = handleValidationErrors(req, res);
     if (validationError) return validationError;
 
-    const {
-      email,
-      role,
-      alias,
-      is_manager,
-      generatePassword = true,
-      customPassword,
-      permissions,
-    } = req.body;
+    const accountData = req.body;
+    const supervisor = req.user;
 
-    const accountData = {
-      email,
-      role,
-      alias,
-      is_manager,
-      generatePassword,
-      customPassword,
-      permissions,
+    // Check supervisor permissions
+    if (supervisor.role !== 'supervisor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only supervisors can create accounts',
+      });
+    }
+
+    // Add created_by field
+    accountData.created_by = supervisor._id;
+
+    // Call service to create account
+    const result = await accountService.createAccount(accountData);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+      });
+    }
+
+    // Generate activation data
+    const { activationToken, otp } = generateActivationData();
+
+    // Send activation email
+    try {
+      await sendActivationEmail(
+        result.data.email,
+        activationToken,
+        otp,
+        result.data.temporaryPassword,
+        result.data.role,
+        supervisor.name || supervisor.email,
+      );
+
+      // Notify supervisor về việc tạo tài khoản thành công
+      await sendActivationNotificationToSupervisor(
+        supervisor.email,
+        result.data.email,
+        result.data.name || 'New User',
+        result.data.role,
+      );
+
+      console.log(`✅ Activation email sent to: ${result.data.email}`);
+    } catch (emailError) {
+      console.error('❌ Email sending failed:', emailError);
+      // Không fail account creation, chỉ log error
+    }
+
+    // Remove sensitive data from response
+    const responseData = { ...result.data };
+    delete responseData.temporaryPassword;
+
+    return res.status(201).json({
+      success: true,
+      message: 'Account created successfully. Activation email sent.',
+      data: responseData,
+    });
+  } catch (error) {
+    console.error('Error in createSingleAccount:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+// 2. Tạo tài khoản hàng loạt
+const createBulkAccounts = async (req, res) => {
+  try {
+    const validationError = handleValidationErrors(req, res);
+    if (validationError) return validationError;
+
+    const bulkData = req.body;
+    const supervisor = req.user;
+
+    if (supervisor.role !== 'supervisor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only supervisors can create bulk accounts',
+      });
+    }
+
+    // Call service
+    const result = await accountService.createBulkAccounts(bulkData);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+      });
+    }
+
+    // Send activation emails for successful accounts
+    const emailPromises = result.data.created.map(async (account) => {
+      try {
+        const { activationToken, otp } = generateActivationData();
+
+        await sendActivationEmail(
+          account.email,
+          activationToken,
+          otp,
+          account.temporaryPassword,
+          account.role,
+          supervisor.name || supervisor.email,
+        );
+
+        console.log(`✅ Activation email sent to: ${account.email}`);
+      } catch (emailError) {
+        console.error(`❌ Failed to send email to ${account.email}:`, emailError);
+      }
+    });
+
+    // Wait for all emails to be sent
+    await Promise.allSettled(emailPromises);
+
+    // Remove sensitive data
+    const responseData = {
+      ...result.data,
+      created: result.data.created.map((account) => {
+        const { temporaryPassword, ...accountData } = account;
+        return accountData;
+      }),
     };
 
-    const result = await UserService.provisionAccount(accountData);
-
-    // Log activity
-    console.log(`Account provision attempt for ${email} by user ${req.user?.id || 'system'}`);
-
-    return sendResponse(res, result, 201);
+    return res.status(201).json({
+      success: true,
+      message: `${result.data.created.length} accounts created successfully. Activation emails sent.`,
+      data: responseData,
+    });
   } catch (error) {
-    console.error('Error in provisionSingleAccount:', error);
+    console.error('Error in createBulkAccounts:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -71,45 +178,31 @@ const provisionSingleAccount = async (req, res) => {
   }
 };
 
-// 2. Cấp tài khoản hàng loạt
-const provisionBulkAccounts = async (req, res) => {
+// 3. Lấy danh sách tài khoản
+const getAccounts = async (req, res) => {
   try {
     const validationError = handleValidationErrors(req, res);
     if (validationError) return validationError;
 
-    const { accounts, defaultRole, defaultAlias } = req.body;
+    const filters = req.query;
+    const result = await accountService.getAccounts(filters);
 
-    if (!Array.isArray(accounts) || accounts.length === 0) {
+    if (!result.success) {
       return res.status(400).json({
         success: false,
-        message: 'Accounts array is required and must not be empty',
+        message: result.message,
       });
     }
 
-    // Giới hạn số lượng accounts có thể tạo cùng lúc
-    if (accounts.length > 100) {
-      return res.status(400).json({
-        success: false,
-        message: 'Maximum 100 accounts can be provisioned at once',
-      });
-    }
-
-    const bulkData = {
-      accounts,
-      defaultRole,
-      defaultAlias,
-    };
-
-    const result = await UserService.provisionBulkAccounts(bulkData);
-
-    // Log activity
-    console.log(
-      `Bulk account provision: ${accounts.length} accounts by user ${req.user?.id || 'system'}`,
-    );
-
-    return sendResponse(res, result, 201);
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      pagination: result.pagination,
+      filters: result.filters,
+      message: `Retrieved ${result.data.length} accounts`,
+    });
   } catch (error) {
-    console.error('Error in provisionBulkAccounts:', error);
+    console.error('Error in getAccounts:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -118,152 +211,26 @@ const provisionBulkAccounts = async (req, res) => {
   }
 };
 
-// 3. Cập nhật quyền tài khoản
-const updateAccountPermissions = async (req, res) => {
-  try {
-    const validationError = handleValidationErrors(req, res);
-    if (validationError) return validationError;
-
-    const { id } = req.params;
-    const updateData = req.body;
-
-    // Validate ObjectId format
-    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid user ID format',
-      });
-    }
-
-    const result = await UserService.updateAccountPermissions(id, updateData);
-
-    // Log activity
-    console.log(`Account update for user ${id} by ${req.user?.id || 'system'}`);
-
-    return sendResponse(res, result);
-  } catch (error) {
-    console.error('Error in updateAccountPermissions:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
-// 4. Đặt lại password
-const resetAccountPassword = async (req, res) => {
-  try {
-    const validationError = handleValidationErrors(req, res);
-    if (validationError) return validationError;
-
-    const { id } = req.params;
-    const { generateNew = true, customPassword } = req.body;
-
-    // Validate ObjectId format
-    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid user ID format',
-      });
-    }
-
-    const options = { generateNew, customPassword };
-    const result = await UserService.resetAccountPassword(id, options);
-
-    // Log activity (không log password)
-    console.log(`Password reset for user ${id} by ${req.user?.id || 'system'}`);
-
-    return sendResponse(res, result);
-  } catch (error) {
-    console.error('Error in resetAccountPassword:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
-// 5. Lấy danh sách tài khoản theo filter
-const getAccountsByFilter = async (req, res) => {
-  try {
-    const {
-      role,
-      alias,
-      is_manager,
-      status,
-      page = 1,
-      limit = 10,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
-    } = req.query;
-
-    // Validate pagination parameters
-    const pageNum = Math.max(1, parseInt(page) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
-
-    // Validate sort parameters
-    const allowedSortFields = ['createdAt', 'email', 'role', 'status'];
-    const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
-    const validSortOrder = ['asc', 'desc'].includes(sortOrder) ? sortOrder : 'desc';
-
-    const filters = {
-      role,
-      alias,
-      is_manager: is_manager !== undefined ? is_manager === 'true' : undefined,
-      status,
-      page: pageNum,
-      limit: limitNum,
-      sortBy: validSortBy,
-      sortOrder: validSortOrder,
-    };
-
-    const result = await UserService.getAccountsByRoleAndAlias(filters);
-
-    return sendResponse(res, result);
-  } catch (error) {
-    console.error('Error in getAccountsByFilter:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-    });
-  }
-};
-
-// 6. Lấy thông tin tài khoản theo ID
+// 4. Lấy thông tin tài khoản theo ID
 const getAccountById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const validationError = handleValidationErrors(req, res);
+    if (validationError) return validationError;
 
-    // Validate ObjectId format
-    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({
+    const { id } = req.params;
+    const result = await accountService.getAccountById(id);
+
+    if (!result.success) {
+      return res.status(404).json({
         success: false,
-        message: 'Invalid user ID format',
+        message: result.message,
       });
     }
 
-    const result = await UserService.getAccountsByRoleAndAlias({
-      page: 1,
-      limit: 1,
-    });
-
-    if (result.success && result.data.length > 0) {
-      const user = result.data.find((u) => u._id.toString() === id);
-      if (user) {
-        return res.status(200).json({
-          success: true,
-          data: user,
-          message: 'Account retrieved successfully',
-        });
-      }
-    }
-
-    return res.status(404).json({
-      success: false,
-      message: 'Account not found',
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      message: 'Account retrieved successfully',
     });
   } catch (error) {
     console.error('Error in getAccountById:', error);
@@ -275,30 +242,40 @@ const getAccountById = async (req, res) => {
   }
 };
 
-// 7. Cấp tài khoản với bí danh PDWA (shortcut)
-const provisionPdwaAccount = async (req, res) => {
+// 5. Cập nhật tài khoản
+const updateAccount = async (req, res) => {
   try {
     const validationError = handleValidationErrors(req, res);
     if (validationError) return validationError;
 
-    const { email, role = 'warehouse', is_manager = false } = req.body;
+    const { id } = req.params;
+    const updateData = req.body;
+    const currentUser = req.user;
 
-    const accountData = {
-      email,
-      role,
-      alias: 'pdwa', // Fixed alias for PDWA accounts
-      is_manager,
-      generatePassword: true,
-    };
+    // Check permissions
+    if (currentUser.role !== 'supervisor' && currentUser._id.toString() !== id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only update your own account or you must be a supervisor',
+      });
+    }
 
-    const result = await UserService.provisionAccount(accountData);
+    const result = await accountService.updateAccount(id, updateData);
 
-    // Log activity
-    console.log(`PDWA account provision for ${email} by user ${req.user?.id || 'system'}`);
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+      });
+    }
 
-    return sendResponse(res, result, 201);
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      message: 'Account updated successfully',
+    });
   } catch (error) {
-    console.error('Error in provisionPdwaAccount:', error);
+    console.error('Error in updateAccount:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -307,11 +284,161 @@ const provisionPdwaAccount = async (req, res) => {
   }
 };
 
-// 8. Lấy thống kê tài khoản (bonus function)
+// 6. Đặt lại password
+const resetAccountPassword = async (req, res) => {
+  try {
+    const validationError = handleValidationErrors(req, res);
+    if (validationError) return validationError;
+
+    const { id } = req.params;
+    const options = req.body;
+    const currentUser = req.user;
+
+    // Check permissions
+    if (currentUser.role !== 'supervisor' && currentUser._id.toString() !== id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only reset your own password or you must be a supervisor',
+      });
+    }
+
+    const result = await accountService.resetAccountPassword(id, options);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+      });
+    }
+
+    // Don't return the actual password in response for security
+    const responseData = { ...result.data };
+    delete responseData.newPassword;
+
+    return res.status(200).json({
+      success: true,
+      data: responseData,
+      message: 'Password reset successfully',
+    });
+  } catch (error) {
+    console.error('Error in resetAccountPassword:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+// 7. Xóa tài khoản (soft delete)
+const deleteAccount = async (req, res) => {
+  try {
+    const validationError = handleValidationErrors(req, res);
+    if (validationError) return validationError;
+
+    const { id } = req.params;
+    const currentUser = req.user;
+
+    // Only supervisors can delete accounts
+    if (currentUser.role !== 'supervisor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only supervisors can delete accounts',
+      });
+    }
+
+    const result = await accountService.deleteAccount(id);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      message: 'Account deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error in deleteAccount:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+// 8. Khôi phục tài khoản
+const restoreAccount = async (req, res) => {
+  try {
+    const validationError = handleValidationErrors(req, res);
+    if (validationError) return validationError;
+
+    const { id } = req.params;
+    const currentUser = req.user;
+
+    // Only supervisors can restore accounts
+    if (currentUser.role !== 'supervisor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only supervisors can restore accounts',
+      });
+    }
+
+    const result = await accountService.restoreAccount(id);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      message: 'Account restored successfully',
+    });
+  } catch (error) {
+    console.error('Error in restoreAccount:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+};
+
+// 9. Lấy thống kê tài khoản
 const getAccountStatistics = async (req, res) => {
   try {
-    const result = await UserService.getAccountStatistics();
-    return sendResponse(res, result);
+    const currentUser = req.user;
+
+    // Only supervisors can view statistics
+    if (currentUser.role !== 'supervisor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only supervisors can view account statistics',
+      });
+    }
+
+    const result = await accountService.getAccountStatistics();
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      message: 'Account statistics retrieved successfully',
+    });
   } catch (error) {
     console.error('Error in getAccountStatistics:', error);
     return res.status(500).json({
@@ -323,12 +450,13 @@ const getAccountStatistics = async (req, res) => {
 };
 
 module.exports = {
-  provisionSingleAccount,
-  provisionBulkAccounts,
-  updateAccountPermissions,
-  resetAccountPassword,
-  getAccountsByFilter,
+  createSingleAccount,
+  createBulkAccounts,
+  getAccounts,
   getAccountById,
-  provisionPdwaAccount,
+  updateAccount,
+  resetAccountPassword,
+  deleteAccount,
+  restoreAccount,
   getAccountStatistics,
 };
