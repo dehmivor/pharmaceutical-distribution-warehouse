@@ -7,7 +7,7 @@ const constants = require('../../utils/constants');
 jest.mock('../../services/authService');
 jest.mock('../../models/User');
 jest.mock('../../utils/constants', () => ({
-  USER_STATUSES: {
+  BASIC_STATUSES: {
     ACTIVE: 'active',
     INACTIVE: 'inactive',
   },
@@ -51,7 +51,7 @@ describe('Authentication Middleware', () => {
         _id: 'user123',
         email: 'test@example.com',
         role: 'user',
-        status: constants.USER_STATUSES.ACTIVE,
+        status: constants.BASIC_STATUSES.ACTIVE,
         is_manager: false,
       };
 
@@ -74,7 +74,7 @@ describe('Authentication Middleware', () => {
         _id: 'user123',
         email: 'test@example.com',
         role: 'user',
-        status: constants.USER_STATUSES.ACTIVE,
+        status: constants.BASIC_STATUSES.ACTIVE,
         is_manager: false,
       };
 
@@ -98,7 +98,7 @@ describe('Authentication Middleware', () => {
         _id: 'user123',
         email: 'test@example.com',
         role: 'user',
-        status: constants.USER_STATUSES.ACTIVE,
+        status: constants.BASIC_STATUSES.ACTIVE,
         is_manager: false,
       };
 
@@ -224,7 +224,7 @@ describe('Authentication Middleware', () => {
         _id: 'user123',
         email: 'test@example.com',
         role: 'user',
-        status: constants.USER_STATUSES.INACTIVE,
+        status: constants.BASIC_STATUSES.INACTIVE,
         is_manager: false,
       };
 
@@ -246,7 +246,7 @@ describe('Authentication Middleware', () => {
         _id: 'user123',
         email: 'test@example.com',
         role: 'user',
-        status: constants.USER_STATUSES.ACTIVE,
+        status: constants.BASIC_STATUSES.ACTIVE,
         is_manager: false,
       };
 
@@ -268,7 +268,7 @@ describe('Authentication Middleware', () => {
         _id: 'user123',
         email: 'test@example.com',
         role: 'admin',
-        status: constants.USER_STATUSES.ACTIVE,
+        status: constants.BASIC_STATUSES.ACTIVE,
         is_manager: true,
       };
 
@@ -285,7 +285,7 @@ describe('Authentication Middleware', () => {
         email: 'test@example.com',
         role: 'admin',
         is_manager: true,
-        status: constants.USER_STATUSES.ACTIVE,
+        status: constants.BASIC_STATUSES.ACTIVE,
         tokenData: decoded,
       });
       expect(next).toHaveBeenCalled();
