@@ -46,10 +46,6 @@ export const useAuth = () => {
       throw new Error('Không thể kết nối đến server');
     }
   };
-
-  /**
-   * Đăng ký
-   */
   const register = async (userData) => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -65,14 +61,10 @@ export const useAuth = () => {
       const result = await response.json();
 
       if (result.success) {
-        // Store tokens nếu đăng ký thành công và có token
         if (result.data?.token) {
           localStorage.setItem('auth-token', result.data.token);
           localStorage.setItem('refresh-token', result.data.refreshToken);
           localStorage.setItem('user', JSON.stringify(result.data.user));
-
-          // Update RoleContext
-          updateRoleUser(result.data.user);
         }
         return result;
       }
@@ -84,9 +76,6 @@ export const useAuth = () => {
     }
   };
 
-  /**
-   * Đăng xuất
-   */
   const logout = () => {
     try {
       // Clear localStorage
@@ -98,9 +87,6 @@ export const useAuth = () => {
     }
   };
 
-  /**
-   * Kiểm tra role
-   */
   const hasRole = (role) => {
     if (!userRole) return false;
 
@@ -110,31 +96,12 @@ export const useAuth = () => {
     return userRole === role;
   };
 
-  /**
-   * Kiểm tra quyền supervisor
-   */
   const isSupervisor = () => hasRole('supervisor');
 
-  /**
-   * Kiểm tra quyền representative
-   */
   const isRepresentative = () => hasRole('representative');
 
-  /**
-   * Kiểm tra quyền warehouse
-   */
   const isWarehouse = () => hasRole('warehouse');
 
-  /**
-   * Kiểm tra xem user có phải manager không
-   */
-  const isManager = () => {
-    return user?.is_manager === true;
-  };
-
-  /**
-   * Refresh token
-   */
   const refreshToken = async () => {
     try {
       const storedRefreshToken = localStorage.getItem('refresh-token');
@@ -162,20 +129,16 @@ export const useAuth = () => {
       throw new Error(result.message || 'Failed to refresh token');
     } catch (error) {
       console.error('Refresh token error:', error);
-      logout(); // Logout if refresh fails
+      logout();
       throw error;
     }
   };
 
-  /**
-   * Kiểm tra token có hợp lệ không
-   */
   const isTokenValid = () => {
     const token = localStorage.getItem('auth-token');
     if (!token) return false;
 
     try {
-      // Decode JWT để kiểm tra expiry (optional)
       const payload = JSON.parse(atob(token.split('.')[1]));
       const currentTime = Date.now() / 1000;
 
@@ -186,25 +149,21 @@ export const useAuth = () => {
   };
 
   return {
-    // States
     user,
     userRole,
     loading: isLoading,
     isAuthenticated,
 
-    // Methods
     login,
     register,
     logout,
     refreshToken,
 
-    // Role checks
     hasRole,
     isRepresentative,
     isWarehouse,
-    isManager,
+    isSupervisor,
 
-    // Utils
     isTokenValid
   };
 };
