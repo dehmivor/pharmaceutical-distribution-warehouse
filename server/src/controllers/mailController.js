@@ -1,4 +1,4 @@
-import { sendEmail } from '../services/mailtrap.service';
+import { sendEmail } from '../services/mailtrapService';
 
 sendEmail({
   to: 'recipient@email.com',
