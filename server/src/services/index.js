@@ -4,4 +4,5 @@ module.exports = {
   ...require('./cronService'),
   ...require('./emailService'),
   ...require('./notificationService'),
+  ...require('./thingsboardService'),
 };

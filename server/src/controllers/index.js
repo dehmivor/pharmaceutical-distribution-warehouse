@@ -8,4 +8,5 @@ module.exports = {
   importOrderController: require('./importOrderController'),
   locationController: require('./locationController'),
   notificationController: require('./notificationController'),
+  thingsboardController: require('./thingsboardController'),
 };
