@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const importOrderController = require('../controllers/importOrderController');
-const authenticate = require('../middlewares/authenticate');
+// const authenticate = require('../middlewares/authenticate');
 
-// Apply authentication middleware to all routes
+// BỎ authenticate tạm thời
 // router.use(authenticate);
 
 // Create new import order

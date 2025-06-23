@@ -13,7 +13,7 @@ const createImportOrder = async (orderData, orderDetails) => {
     const savedOrder = await newOrder.save();
 
     return await ImportOrder.findById(savedOrder._id)
-      .populate('supplier_contract_id')
+      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -28,7 +28,7 @@ const getImportOrders = async (query = {}, page = 1, limit = 10) => {
   try {
     const skip = (page - 1) * limit;
     const orders = await ImportOrder.find(query)
-      .populate('supplier_contract_id')
+      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -57,7 +57,7 @@ const getImportOrders = async (query = {}, page = 1, limit = 10) => {
 const getImportOrderById = async (orderId) => {
   try {
     const order = await ImportOrder.findById(orderId)
-      .populate('supplier_contract_id')
+      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -91,7 +91,7 @@ const updateImportOrder = async (orderId, updateData) => {
       { $set: updateData },
       { new: true, runValidators: true },
     )
-      .populate('supplier_contract_id')
+      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -121,7 +121,7 @@ const updateImportOrderDetails = async (orderId, orderDetails) => {
       { $set: { details: orderDetails } },
       { new: true, runValidators: true },
     )
-      .populate('supplier_contract_id')
+      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -156,7 +156,7 @@ const addImportOrderDetail = async (orderId, detailItem) => {
       { $push: { details: detailItem } },
       { new: true, runValidators: true },
     )
-      .populate('supplier_contract_id')
+      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -198,7 +198,7 @@ const updateImportOrderDetail = async (orderId, detailId, updateData) => {
       { $set: updateFields },
       { new: true, runValidators: true },
     )
-      .populate('supplier_contract_id')
+      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -228,7 +228,7 @@ const removeImportOrderDetail = async (orderId, detailId) => {
       { $pull: { details: { _id: detailId } } },
       { new: true, runValidators: true },
     )
-      .populate('supplier_contract_id')
+      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -309,7 +309,7 @@ const updateOrderStatus = async (orderId, status, approvalBy = null) => {
       { $set: updateData },
       { new: true, runValidators: true },
     )
-      .populate('supplier_contract_id')
+      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -335,7 +335,7 @@ const getImportOrdersByWarehouseManager = async (warehouseManagerId, query = {},
 const getImportOrdersBySupplierContract = async (supplierContractId) => {
   try {
     const orders = await ImportOrder.find({ supplier_contract_id: supplierContractId })
-      .populate('supplier_contract_id')
+      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
