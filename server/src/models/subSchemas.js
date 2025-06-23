@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { MEDICINE_CATEGORY } = require('../utils/constants');
 
 // Sub-schema cho storage_conditions
 const storageConditionsSchema = new mongoose.Schema({
@@ -59,6 +60,11 @@ const itemContractSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Quantity is required'],
     min: [0, 'Quantity cannot be negative'],
+  },
+  min_order_quantity: {
+    type: Number,
+    required: [true, 'Minimum order quantity is required'],
+    min: [0, 'Minimum order quantity cannot be negative'],
   },
   unit_price: {
     type: Number,
