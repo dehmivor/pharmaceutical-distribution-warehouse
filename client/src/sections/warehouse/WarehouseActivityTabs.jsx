@@ -170,7 +170,7 @@ function TabPanel({ children, value, index, ...other }) {
 export default function WarehouseActivityTabs({ onBackToDashboard }) {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(1); // Mặc định hiển thị tab danh sách
-  const [currentBreadcrumbPath, setCurrentBreadcrumbPath] = useState('list');
+  const [currentBreadcrumbPath, setCurrentBreadcrumbPath] = useState(1);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -229,16 +229,16 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
           {/* Breadcrumbs Navigation */}
           <WarehouseBreadcrumbs currentPath={currentBreadcrumbPath} onNavigate={handleBreadcrumbNavigate} />
 
-          <Typography variant="h6">Quản Lý Đơn Nhập</Typography>
+          <Typography variant="h6">Quản Lý Đơn Kiểm Tra Nhập</Typography>
 
           <Box>
             <Tabs variant="fullWidth" value={activeTab} onChange={handleTabChange} type={TabsType.SEGMENTED}>
-              <Tab label="Tạo phiếu nhập mới" />
+              <Tab label="Tạo phiếu kiểm tra đơn nhập" />
               <Tab label="Danh sách phiếu nhập" />
               <Tab label="Danh sách đơn nhập" />
             </Tabs>
 
-            {/* Tab Panel - Tạo phiếu nhập mới */}
+            {/* Tab Panel - Tạo phiếu kiểm tra đơn nhập */}
             <TabPanel value={activeTab} index={0}>
               <CreateReceiptTab />
             </TabPanel>
