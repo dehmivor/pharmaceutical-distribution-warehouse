@@ -67,7 +67,7 @@ function WarehouseBreadcrumbs({ currentPath, onNavigate }) {
       path: 'warehouse'
     },
     list: {
-      label: 'Danh sách đơn mua',
+      label: 'Danh sách phiếu nhập',
       icon: <IconList size={16} />,
       path: 'list'
     },
