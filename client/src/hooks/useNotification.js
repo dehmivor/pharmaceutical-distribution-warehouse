@@ -46,7 +46,7 @@ const useNotifications = (recipientId) => {
     isLoading: notificationsLoading,
     mutate: mutateNotifications
   } = useSWR(notificationsKey, fetcher, {
-    refreshInterval: 30000, // Auto refresh mỗi 30 giây
+    refreshInterval: 300000, // Auto refresh mỗi 30 giây
     revalidateOnFocus: true,
     dedupingInterval: 5000
   });
@@ -56,7 +56,7 @@ const useNotifications = (recipientId) => {
     error: unreadCountError,
     mutate: mutateUnreadCount
   } = useSWR(unreadCountKey, fetcher, {
-    refreshInterval: 10000 // Refresh unread count mỗi 10 giây
+    refreshInterval: 1000000 // Refresh unread count mỗi 10 giây
   });
 
   const {
