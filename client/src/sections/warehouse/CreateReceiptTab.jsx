@@ -19,10 +19,13 @@ import {
   Chip,
   IconButton,
   TextField,
-  InputAdornment
+  InputAdornment,
+  Card
 } from '@mui/material';
 import { Search, Visibility } from '@mui/icons-material';
 import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
+import CardContent from '@/themes/overrides/CardContent';
+import LinearProgress from '@/themes/overrides/LinearProgress';
 
 export default function CreateReceiptTab() {
   // State để quản lý dữ liệu đơn hàng mẫu
@@ -82,6 +85,14 @@ export default function CreateReceiptTab() {
       ]
     }
   ];
+
+  const [statistics, setStatistics] = useState({
+    totalExpected: 100,
+    totalReceived: 50,
+    totalReturned: 20,
+    receivedPercentage: 50,
+    totalValue: 50
+  });
 
   // Load danh sách đơn hàng khi mở dialog
   useEffect(() => {
@@ -217,11 +228,10 @@ export default function CreateReceiptTab() {
     const config = statusConfig[status] || { label: status, color: 'default' };
     return <Chip label={config.label} color={config.color} size="small" />;
   };
-
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
-        Tạo Phiếu Nhập Mới
+        Tạo Phiếu Kiểm Tra Đơn Nhập
       </Typography>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -252,13 +262,6 @@ export default function CreateReceiptTab() {
           </Typography>
         </Alert>
       )}
-
-      {/* Component tạo phiếu nhập */}
-      <EnhancedReceiptForm
-        orderData={orderData}
-        onReceiptCreate={handleReceiptCreate}
-        checkedItems={[]} // Có thể truyền danh sách items đã chọn nếu cần
-      />
 
       {/* Dialog chọn đơn hàng */}
       <Dialog open={orderDialog.open} onClose={handleCloseOrderDialog} maxWidth="lg" fullWidth>
