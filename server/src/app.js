@@ -21,8 +21,8 @@ const {
   supervisorRoutes,
   supplierContractRoutes,
   packageRoutes,
-  importInspectionRoutes
-  importOrderRoutes,
+  importInspectionRoutes,
+  importOrderRoutes
 } = require('./routes');
 
 // Middlewares
