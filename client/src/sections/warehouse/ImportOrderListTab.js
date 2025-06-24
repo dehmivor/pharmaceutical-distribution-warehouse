@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useCallback } from 'react';
 import {
   Box,
@@ -36,7 +37,10 @@ import {
   Receipt as ReceiptIcon
 } from '@mui/icons-material';
 
+import { useRole } from '@/contexts/RoleContext';
+
 export default function PurchaseOrderListTab() {
+  const { user, userRole, hasRole } = useRole();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -110,6 +114,8 @@ export default function PurchaseOrderListTab() {
   const pagination = {
     totalPages: 1
   };
+
+  console.log('in ra useRole', useRole());
 
   const mutate = () => {
     setIsLoading(true);
