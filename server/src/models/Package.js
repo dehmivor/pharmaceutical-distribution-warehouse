@@ -4,7 +4,6 @@ const packageSchema = new mongoose.Schema({
   location_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Location',
-    required: [true, 'Location ID is required'],
   },
   batch_id: {
     type: mongoose.Schema.Types.ObjectId,
