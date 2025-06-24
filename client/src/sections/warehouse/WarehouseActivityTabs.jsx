@@ -71,11 +71,6 @@ function WarehouseBreadcrumbs({ currentPath, onNavigate }) {
       icon: <IconList size={16} />,
       path: 'list'
     },
-    list_import: {
-      label: 'Danh sách phiếu nhập',
-      icon: <IconList size={16} />,
-      path: 'list'
-    },
     create: {
       label: 'Tạo phiếu nhập',
       icon: <IconPackage size={16} />,
@@ -177,10 +172,8 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
     // Cập nhật breadcrumb path
     if (newValue === 0) {
       setCurrentBreadcrumbPath('create');
-    } else if (newValue === 2) {
-      setCurrentBreadcrumbPath('list');
     } else if (newValue === 1) {
-      setCurrentBreadcrumbPath('list_import');
+      setCurrentBreadcrumbPath('list');
     }
   };
 
@@ -200,10 +193,6 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
       case 'create':
         setActiveTab(0);
         setCurrentBreadcrumbPath('create');
-        break;
-      case 'list_import':
-        setActiveTab(2);
-        setCurrentBreadcrumbPath('list_import');
         break;
       default:
         break;
@@ -234,22 +223,14 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
           <Box>
             <Tabs variant="fullWidth" value={activeTab} onChange={handleTabChange} type={TabsType.SEGMENTED}>
               <Tab label="Tạo phiếu kiểm tra đơn nhập" />
-              <Tab label="Danh sách phiếu nhập" />
               <Tab label="Danh sách đơn nhập" />
             </Tabs>
 
-            {/* Tab Panel - Tạo phiếu kiểm tra đơn nhập */}
             <TabPanel value={activeTab} index={0}>
               <CreateReceiptTab />
             </TabPanel>
 
-            {/* Tab Panel - Danh sách phiếu nhập */}
             <TabPanel value={activeTab} index={1}>
-              <ReceiptList />
-            </TabPanel>
-
-            {/* Tab Panel - Danh sách đơn nhập */}
-            <TabPanel value={activeTab} index={2}>
               <ImportOrderListTab />
             </TabPanel>
           </Box>

@@ -43,9 +43,7 @@ const profileData = {
 
 const languageList = [
   { key: ThemeI18n.EN, value: 'English' },
-  { key: ThemeI18n.FR, value: 'French' },
-  { key: ThemeI18n.RO, value: 'Romanian' },
-  { key: ThemeI18n.ZH, value: 'Chinese' }
+  { key: ThemeI18n.VN, value: 'Vietnam' }
 ];
 
 /***************************  HEADER - PROFILE  ***************************/
