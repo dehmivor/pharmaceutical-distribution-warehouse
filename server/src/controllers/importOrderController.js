@@ -31,13 +31,13 @@ const createImportOrder = async (req, res) => {
 // Get all import orders
 const getImportOrders = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, supplier_id, warehouse_id } = req.query;
+    const { page = 1, limit = 10, status, supplier_contract_id, warehouse_manager_id } = req.query;
 
     // Build query
     const query = {};
     if (status) query.status = status;
-    if (supplier_id) query.supplier_id = supplier_id;
-    if (warehouse_id) query.warehouse_id = warehouse_id;
+    if (supplier_contract_id) query.supplier_contract_id = supplier_contract_id;
+    if (warehouse_manager_id) query.warehouse_manager_id = warehouse_manager_id;
 
     const result = await importOrderService.getImportOrders(query, parseInt(page), parseInt(limit));
 
@@ -76,10 +76,13 @@ const getImportOrderById = async (req, res) => {
 const updateImportOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
-
+    const { orderData, orderDetails } = req.body;
+    // Gộp lại thành object đúng schema
+    const updateData = {
+      ...orderData,
+      details: orderDetails
+    };
     const updatedOrder = await importOrderService.updateImportOrder(id, updateData);
-
     res.status(200).json({
       success: true,
       data: updatedOrder,
@@ -112,6 +115,65 @@ const updateImportOrderDetails = async (req, res) => {
   }
 };
 
+// Add import order detail
+const addImportOrderDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const detailItem = req.body;
+
+    const updatedOrder = await importOrderService.addImportOrderDetail(id, detailItem);
+
+    res.status(200).json({
+      success: true,
+      data: updatedOrder,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// Update specific import order detail
+const updateImportOrderDetail = async (req, res) => {
+  try {
+    const { id, detailId } = req.params;
+    const updateData = req.body;
+
+    const updatedOrder = await importOrderService.updateImportOrderDetail(id, detailId, updateData);
+
+    res.status(200).json({
+      success: true,
+      data: updatedOrder,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// Remove import order detail
+const removeImportOrderDetail = async (req, res) => {
+  try {
+    const { id, detailId } = req.params;
+
+    const updatedOrder = await importOrderService.removeImportOrderDetail(id, detailId);
+
+    res.status(200).json({
+      success: true,
+      data: updatedOrder,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 // Delete import order
 const deleteImportOrder = async (req, res) => {
   try {
@@ -135,21 +197,96 @@ const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+    
+    // Check if user is supervisor and bypass validation
+    const bypassValidation = req.user && req.user.role === 'supervisor';
+    const approvalBy = req.user ? req.user._id : null;
 
-    // Validate status
-    if (!Object.values(IMPORT_ORDER_STATUSES).includes(status)) {
-      throw new Error('Invalid status');
-    }
-
-    // Get approved_by from authenticated user if available
-    const approvedBy = req.user && req.user._id ? req.user._id : null;
-
-    const updatedOrder = await importOrderService.updateOrderStatus(id, status, approvedBy);
+    const updatedOrder = await importOrderService.updateOrderStatus(id, status, approvalBy, bypassValidation);
 
     res.status(200).json({
       success: true,
       data: updatedOrder,
     });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// Get import orders by warehouse manager
+const getImportOrdersByWarehouseManager = async (req, res) => {
+  try {
+    const { warehouseManagerId } = req.params;
+    const { page = 1, limit = 10, status } = req.query;
+
+    const query = {};
+    if (status) query.status = status;
+
+    const result = await importOrderService.getImportOrdersByWarehouseManager(
+      warehouseManagerId,
+      query,
+      parseInt(page),
+      parseInt(limit)
+    );
+
+    res.status(200).json({
+      success: true,
+      data: result.orders,
+      pagination: result.pagination,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// Get import orders by supplier contract
+const getImportOrdersBySupplierContract = async (req, res) => {
+  try {
+    const { supplierContractId } = req.params;
+
+    const orders = await importOrderService.getImportOrdersBySupplierContract(supplierContractId);
+
+    res.status(200).json({
+      success: true,
+      data: orders,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// Get valid status transitions
+const getValidStatusTransitions = async (req, res) => {
+  try {
+    const { currentStatus } = req.query;
+    
+    if (currentStatus) {
+      // Get valid transitions for specific status
+      const validTransitions = importOrderService.getValidStatusTransitions(currentStatus);
+      res.status(200).json({
+        success: true,
+        data: {
+          currentStatus,
+          validTransitions,
+        },
+      });
+    } else {
+      // Get all status transitions mapping
+      const allTransitions = importOrderService.getAllStatusTransitions();
+      res.status(200).json({
+        success: true,
+        data: allTransitions,
+      });
+    }
   } catch (error) {
     res.status(400).json({
       success: false,
@@ -164,6 +301,12 @@ module.exports = {
   getImportOrderById,
   updateImportOrder,
   updateImportOrderDetails,
+  addImportOrderDetail,
+  updateImportOrderDetail,
+  removeImportOrderDetail,
   deleteImportOrder,
   updateOrderStatus,
+  getImportOrdersByWarehouseManager,
+  getImportOrdersBySupplierContract,
+  getValidStatusTransitions,
 };

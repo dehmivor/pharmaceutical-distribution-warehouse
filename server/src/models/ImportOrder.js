@@ -12,7 +12,7 @@ const importOrderSchema = new mongoose.Schema(
     warehouse_manager_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: [true, 'Warehouse manager ID is required'],
+   
     },
     status: {
       type: String,
@@ -21,7 +21,7 @@ const importOrderSchema = new mongoose.Schema(
         values: Object.values(IMPORT_ORDER_STATUSES),
         message: `Status must be one of: ${Object.values(IMPORT_ORDER_STATUSES).join(', ')}`,
       },
-      default: IMPORT_ORDER_STATUSES.PENDING,
+      default: IMPORT_ORDER_STATUSES.DRAFT,
     },
     created_by: {
       type: mongoose.Schema.Types.ObjectId,
