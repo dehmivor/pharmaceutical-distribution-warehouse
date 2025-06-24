@@ -39,7 +39,7 @@ const createSingleAccount = async (req, res) => {
     const supervisor = req.user;
 
     // Check supervisor permissions
-    if (supervisor.role !== 'supervisor') {
+    if (supervisor.role !== USER_ROLES.SUPERVISOR) {
       return res.status(403).json({
         success: false,
         message: 'Only supervisors can create accounts',
