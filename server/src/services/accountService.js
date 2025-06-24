@@ -59,9 +59,9 @@ const createAccount = async (accountData) => {
     }
 
     // Validate role
-    if (!Object.values(USER_ROLES.SUPERVISOR).includes(role)) {
+    if (!Object.values(constants.USER_ROLES).includes(role)) {
       throw new Error(
-        `Invalid role. Must be one of: ${Object.values(USER_ROLES).join(', ')}`,
+        `Invalid role. Must be one of: ${Object.values(constants.USER_ROLES).join(', ')}`,
       );
     }
 

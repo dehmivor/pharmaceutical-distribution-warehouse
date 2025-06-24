@@ -38,8 +38,7 @@ const createUser = async (req, res) => {
       password: hashedPassword,
       role,
       is_manager: is_manager || false,
-      status: constants.USER_STATUSES.ACTIVE,
-      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.USER_STATUSES.PENDING,
     });
 
     await newUser.save();
@@ -124,13 +123,11 @@ const getAllUsers = async (req, res) => {
 
     if (status) {
       if (Object.values(constants.USER_STATUSES).includes(status)) {
-      if (Object.values(constants.USER_STATUSES).includes(status)) {
         filter.status = status;
       } else {
         return res.status(400).json({
           success: false,
           message: 'Invalid status filter',
-          validStatuses: Object.values(constants.USER_STATUSES),
           validStatuses: Object.values(constants.USER_STATUSES),
         });
       }
@@ -370,10 +367,8 @@ const toggleUserStatus = async (req, res) => {
 
     // Kiểm tra status hợp lệ
     if (!Object.values(constants.USER_STATUSES).includes(status)) {
-    if (!Object.values(constants.USER_STATUSES).includes(status)) {
       return res.status(400).json({
         success: false,
-        message: `Invalid status. Must be one of: ${Object.values(constants.USER_STATUSES).join(', ')}`,
         message: `Invalid status. Must be one of: ${Object.values(constants.USER_STATUSES).join(', ')}`,
       });
     }
