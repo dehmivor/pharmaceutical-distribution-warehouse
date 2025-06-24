@@ -43,7 +43,7 @@ const authService = {
         email: email.toLowerCase().trim(),
         password: hashedPassword,
         role: role || constants.USER_ROLES.WAREHOUSE,
-        status: constants.BASIC_STATUSES.ACTIVE,
+        status: constants.USER_STATUSES.ACTIVE,
       });
 
       const savedUser = newUser.save();
@@ -109,7 +109,7 @@ const authService = {
       }
 
       // Check user status
-      if (user.status !== constants.BASIC_STATUSES.ACTIVE) {
+      if (user.status !== constants.USER_STATUSES.ACTIVE) {
         return {
           success: false,
           message: 'Tài khoản đã bị khóa hoặc không hoạt động',
@@ -316,7 +316,7 @@ const authService = {
       }
 
       // Check user status
-      if (user.status !== constants.BASIC_STATUSES.ACTIVE) {
+      if (user.status !== constants.USER_STATUSES.ACTIVE) {
         return {
           success: false,
           message: 'Tài khoản đã bị khóa hoặc không hoạt động',
@@ -474,7 +474,7 @@ const authService = {
         };
       }
 
-      if (user.status !== constants.BASIC_STATUSES.ACTIVE) {
+      if (user.status !== constants.USER_STATUSES.ACTIVE) {
         return {
           success: false,
           message: 'User account is inactive',
@@ -832,11 +832,11 @@ const authService = {
       // 3. Kiểm tra constants
       const constants = require('../utils/constants'); // Đảm bảo import đúng path
 
-      if (user.status === constants.BASIC_STATUSES.ACTIVE) {
+      if (user.status === constants.USER_STATUSES.ACTIVE) {
         throw new Error('Tài khoản đã được kích hoạt trước đó');
       }
 
-      if (user.status !== constants.BASIC_STATUSES.PENDING) {
+      if (user.status !== constants.USER_STATUSES.PENDING) {
         throw new Error('Tài khoản không ở trạng thái chờ kích hoạt');
       }
 
@@ -872,7 +872,7 @@ const authService = {
       // 6. Update user
       const updateData = {
         password: hashedPassword,
-        status: constants.BASIC_STATUSES.ACTIVE,
+        status: constants.USER_STATUSES.ACTIVE,
         $unset: {
           otp_reset: 1,
         },
