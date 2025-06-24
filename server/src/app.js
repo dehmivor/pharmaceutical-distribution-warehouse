@@ -25,7 +25,6 @@ const {
   importOrderRoutes,
 } = require('./routes');
 
-
 // Middlewares
 app.use(helmet());
 app.use(cors({ origin: config.clientUrl, credentials: true }));
@@ -43,7 +42,9 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/medicine', medicineRoutes);
-
+app.use('/api/import-inspections', importInspectionRoutes);
+app.use('/api/import-orders', route.importOrderRoutes);
+app.use('/api/notifications', route.notificationRoutes);
 app.use('/api/import-orders', importOrderRoutes);
 app.use('api/thingsboard', route.thingsboardRoutes);
 
@@ -53,6 +54,7 @@ app.use('/api/warehouse_manager', importInspectionRoutes);
 app.use('/api/warehouse_manager', packageRoutes);
 app.use('/api/accounts', authenticate, authorize('supervisor'), route.accountRoutes);
 app.use('/api/supplier-contracts', supplierContractRoutes);
+app.use('/api/import-inspections', authenticate, authorize('warehouse'), route.inspectionRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 
