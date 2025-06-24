@@ -108,14 +108,6 @@ const authService = {
         };
       }
 
-      // Check user status
-      if (user.status !== constants.BASIC_STATUSES.ACTIVE) {
-        return {
-          success: false,
-          message: 'Tài khoản đã bị khóa hoặc không hoạt động',
-        };
-      }
-
       // Verify password
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
