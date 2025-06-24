@@ -1,8 +1,22 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Form, Button, Modal, Row, Col } from 'react-bootstrap';
-
-
+import {
+  Box,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Typography,
+  Alert,
+  CircularProgress,
+  Chip,
+} from '@mui/material';
 
 // Supervisor Contract Manager Screen
 export function ContractManager() {
@@ -36,60 +50,98 @@ export function ContractManager() {
     }
   };
 
-  if (loading) return <p>Loading contracts...</p>;
-  if (error) return <p className="text-danger">{error}</p>;
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'draft':
+        return 'default';
+      case 'active':
+        return 'success';
+      case 'cancelled':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
 
   return (
-    <div className="p-4">
-      <h2>Contract Manager</h2>
-      <Table striped bordered hover>
-        <thead>
-          <tr>
-            <th>Code</th>
-            <th>Type</th>
-            <th>Partner</th>
-            <th>Start Date</th>
-            <th>End Date</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {contracts.map((c) => (
-            <tr key={c._id}>
-              <td>{c.contract_code}</td>
-              <td>{c.type}</td>
-              <td>
-                {c.partner_type === 'supplier' ? c.supplier.name : c.retailer.name}
-              </td>
-              <td>{new Date(c.start_date).toLocaleDateString()}</td>
-              <td>{new Date(c.end_date).toLocaleDateString()}</td>
-              <td>{c.status}</td>
-              <td>
-                {c.status === 'draft' && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="success"
-                      onClick={() => updateStatus(c._id, 'active')}
-                      className="me-2"
-                    >
-                      Accept
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => updateStatus(c._id, 'cancelled')}
-                    >
-                      Cancel
-                    </Button>
-                  </>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-    </div>
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        Contract Manager
+      </Typography>
+
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Code</TableCell>
+              <TableCell>Type</TableCell>
+              <TableCell>Partner</TableCell>
+              <TableCell>Start Date</TableCell>
+              <TableCell>End Date</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {contracts.map((c) => (
+              <TableRow key={c._id}>
+                <TableCell>{c.contract_code}</TableCell>
+                <TableCell>{c.type}</TableCell>
+                <TableCell>
+                  {c.partner_type === 'supplier' ? c.supplier?.name : c.retailer?.name}
+                </TableCell>
+                <TableCell>{new Date(c.start_date).toLocaleDateString()}</TableCell>
+                <TableCell>{new Date(c.end_date).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={c.status} 
+                    color={getStatusColor(c.status)}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
+                  {c.status === 'draft' && (
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="success"
+                        onClick={() => updateStatus(c._id, 'active')}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="error"
+                        onClick={() => updateStatus(c._id, 'cancelled')}
+                      >
+                        Cancel
+                      </Button>
+                    </Box>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 }

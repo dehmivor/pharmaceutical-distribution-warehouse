@@ -1,39 +1,25 @@
 const mongoose = require('mongoose');
+const { MEDICINE_CATEGORY } = require('../utils/constants');
 
 // Sub-schema cho storage_conditions
 const storageConditionsSchema = new mongoose.Schema({
   temperature: {
     type: String,
-    required: [true, 'Temperature is required'],
-    match: [/^\d+-\d+°C$|^-\d+°C$/, 'Temperature must be in format "X-Y°C" or "-X°C"'],
+    required: false,
+    match: [/^\d+-\d+°C$|^-\d+°C$|^\d+°C$/, 'Temperature must be in format "X-Y°C", "-X°C", or "X°C"'],
   },
   humidity: {
     type: String,
-    required: [true, 'Humidity is required'],
+    required: false,
     match: [/^\d+%$|^\d+-\d+%$/, 'Humidity must be in format "X%" or "X-Y%"'],
   },
   light: {
     type: String,
-    enum: ['none', 'low', 'medium', 'high'],
-    required: [true, 'Light condition is required'],
-  },
-  vacuum: {
-    type: Boolean,
-    default: false,
-  },
-  gas_environment: {
-    type: String,
-    enum: ['ISO5', 'ISO7', 'normal'],
-    default: 'normal',
-  },
-  vibration: {
-    type: Boolean,
-    default: false,
-    type: String,
-    enum: ['normal', 'nitrogen', 'argon'],
-    default: 'normal',
-  },
-  cleanliness: {},
+    enum: ['none', 'low', 'medium', 'high', ''],
+    required: false,
+  }
+}, {
+  _id: false, // Không tạo ID riêng cho sub-schema
 });
 
 // Sub-schema cho OTP
@@ -74,6 +60,11 @@ const itemContractSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Quantity is required'],
     min: [0, 'Quantity cannot be negative'],
+  },
+  min_order_quantity: {
+    type: Number,
+    required: [true, 'Minimum order quantity is required'],
+    min: [0, 'Minimum order quantity cannot be negative'],
   },
   unit_price: {
     type: Number,

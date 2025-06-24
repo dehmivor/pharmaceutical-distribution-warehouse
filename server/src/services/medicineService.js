@@ -3,37 +3,18 @@ const Medicine = require('../models/Medicine');
 const constants = require('../utils/constants');
 
 const medicineService = {
-  // ✅ Get all medicines with filtering
   getAllMedicines: async (filters = {}) => {
     try {
-      console.log('📝 MedicineService.getAllMedicines called with filters:', filters);
-
-      // Build query object based on filters
       const query = {};
 
-      // Filter by dosage_form
-      if (filters.dosage_form && Object.values(constants.MEDICINE_DOSAGE_FORMS).includes(filters.dosage_form)) {
-        query.dosage_form = filters.dosage_form;
+      // Filter by category
+      if (filters.category && Object.values(constants.MEDICINE_CATEGORY).includes(filters.category)) {
+        query.category = filters.category;
       }
 
-      // Filter by target_customer
-      if (filters.target_customer && Object.values(constants.MEDICINE_TARGET_CUSTOMERS).includes(filters.target_customer)) {
-        query.target_customer = filters.target_customer;
-      }
-
-      // Filter by unit_of_measure
-      if (filters.unit_of_measure && Object.values(constants.MEDICINE_UNITS).includes(filters.unit_of_measure)) {
-        query.unit_of_measure = filters.unit_of_measure;
-      }
-
-      // Filter by category (exact match)
-      if (filters.category) {
-        query.category = new RegExp(filters.category, 'i'); // Case insensitive
-      }
-
-      // Filter by medicine name (partial match)
-      if (filters.medicine_name) {
-        query.medicine_name = new RegExp(filters.medicine_name, 'i');
+      // Filter by license code (partial match)
+      if (filters.license_code) {
+        query.license_code = new RegExp(filters.license_code, 'i');
       }
 
       // Pagination
@@ -63,7 +44,7 @@ const medicineService = {
         },
       };
     } catch (error) {
-      console.error('❌ Get all medicines service error:', error);
+      console.error('Get all medicines service error:', error);
       return {
         success: false,
         message: 'Lỗi server khi lấy danh sách thuốc',
@@ -74,7 +55,6 @@ const medicineService = {
   // ✅ Get medicine by ID
   getMedicineById: async (medicineId) => {
     try {
-      console.log('📝 MedicineService.getMedicineById called:', medicineId);
 
       if (!medicineId) {
         return {
@@ -99,7 +79,7 @@ const medicineService = {
         },
       };
     } catch (error) {
-      console.error('❌ Get medicine by ID service error:', error);
+      console.error('Get medicine by ID service error:', error);
       
       if (error.name === 'CastError') {
         return {
@@ -122,34 +102,31 @@ const medicineService = {
 
       const {
         medicine_name,
-        medicine_code,
+        license_code,
         category,
         storage_conditions,
-        dosage_form,
-        target_customer,
         min_stock_threshold,
         max_stock_threshold,
         unit_of_measure,
-        description,
       } = medicineData;
 
       // Validate required fields
-      if (!medicine_name || !medicine_code || !category || !dosage_form || !unit_of_measure) {
+      if (!medicine_name || !license_code || !category || !unit_of_measure) {
         return {
           success: false,
-          message: 'Tên thuốc, mã thuốc, danh mục, dạng bào chế và đơn vị đo là bắt buộc',
+          message: 'Tên thuốc, mã thuốc, danh mục và đơn vị đo là bắt buộc',
         };
       }
 
       // Check if medicine code already exists
       const existingMedicine = await Medicine.findOne({
-        medicine_code: medicine_code.trim(),
+        license_code: license_code.trim(),
       });
 
       if (existingMedicine) {
         return {
           success: false,
-          message: 'Mã thuốc đã được sử dụng',
+          message: 'Số đăng ký đã được sử dụng',
         };
       }
 
@@ -171,15 +148,12 @@ const medicineService = {
       // Create new medicine
       const newMedicine = new Medicine({
         medicine_name: medicine_name.trim(),
-        medicine_code: medicine_code.trim(),
+        license_code: license_code.trim(),
         category: category.trim(),
         storage_conditions: storage_conditions || {},
-        dosage_form,
-        target_customer: target_customer || constants.MEDICINE_TARGET_CUSTOMERS.ALL,
         min_stock_threshold: min_stock_threshold || 0,
         max_stock_threshold: max_stock_threshold || 0,
         unit_of_measure,
-        description: description?.trim() || '',
       });
 
       const savedMedicine = await newMedicine.save();
@@ -191,13 +165,13 @@ const medicineService = {
         },
       };
     } catch (error) {
-      console.error('❌ Create medicine service error:', error);
+      console.error('Create medicine service error:', error);
 
       // Handle specific MongoDB errors
       if (error.code === 11000) {
         return {
           success: false,
-          message: 'Mã thuốc đã được sử dụng',
+          message: 'Số đăng ký đã được sử dụng',
         };
       }
 
@@ -237,9 +211,9 @@ const medicineService = {
       }
 
       // Check if medicine_code is being updated and already exists
-      if (updateData.medicine_code && updateData.medicine_code !== existingMedicine.medicine_code) {
+      if (updateData.license_code && updateData.license_code !== existingMedicine.license_code) {
         const codeExists = await Medicine.findOne({
-          medicine_code: updateData.medicine_code.trim(),
+          license_code: updateData.license_code.trim(),
           _id: { $ne: medicineId },
         });
 
@@ -272,9 +246,8 @@ const medicineService = {
       // Trim string fields
       const sanitizedData = { ...updateData };
       if (sanitizedData.medicine_name) sanitizedData.medicine_name = sanitizedData.medicine_name.trim();
-      if (sanitizedData.medicine_code) sanitizedData.medicine_code = sanitizedData.medicine_code.trim();
+      if (sanitizedData.license_code) sanitizedData.license_code = sanitizedData.license_code.trim();
       if (sanitizedData.category) sanitizedData.category = sanitizedData.category.trim();
-      if (sanitizedData.description) sanitizedData.description = sanitizedData.description.trim();
 
       const updatedMedicine = await Medicine.findByIdAndUpdate(
         medicineId,
@@ -289,7 +262,7 @@ const medicineService = {
         },
       };
     } catch (error) {
-      console.error('❌ Update medicine service error:', error);
+      console.error('Update medicine service error:', error);
 
       if (error.name === 'CastError') {
         return {
@@ -350,7 +323,7 @@ const medicineService = {
         },
       };
     } catch (error) {
-      console.error('❌ Delete medicine service error:', error);
+      console.error('Delete medicine service error:', error);
 
       if (error.name === 'CastError') {
         return {
@@ -366,62 +339,6 @@ const medicineService = {
     }
   },
 
-  // ✅ Get medicine statistics
-  getMedicineStats: async () => {
-    try {
-      console.log('📝 MedicineService.getMedicineStats called');
-
-      const stats = await Medicine.aggregate([
-        {
-          $group: {
-            _id: null,
-            total_medicines: { $sum: 1 },
-            by_dosage_form: {
-              $push: {
-                dosage_form: '$dosage_form',
-                count: 1,
-              },
-            },
-            by_target_customer: {
-              $push: {
-                target_customer: '$target_customer',
-                count: 1,
-              },
-            },
-            avg_min_threshold: { $avg: '$min_stock_threshold' },
-            avg_max_threshold: { $avg: '$max_stock_threshold' },
-          },
-        },
-      ]);
-
-      // Count by dosage form
-      const dosageFormCounts = await Medicine.aggregate([
-        { $group: { _id: '$dosage_form', count: { $sum: 1 } } },
-      ]);
-
-      // Count by target customer
-      const targetCustomerCounts = await Medicine.aggregate([
-        { $group: { _id: '$target_customer', count: { $sum: 1 } } },
-      ]);
-
-      return {
-        success: true,
-        data: {
-          total_medicines: stats[0]?.total_medicines || 0,
-          by_dosage_form: dosageFormCounts,
-          by_target_customer: targetCustomerCounts,
-          avg_min_threshold: Math.round(stats[0]?.avg_min_threshold || 0),
-          avg_max_threshold: Math.round(stats[0]?.avg_max_threshold || 0),
-        },
-      };
-    } catch (error) {
-      console.error('❌ Get medicine stats service error:', error);
-      return {
-        success: false,
-        message: 'Lỗi server khi lấy thống kê thuốc',
-      };
-    }
-  },
 };
 
 module.exports = medicineService;

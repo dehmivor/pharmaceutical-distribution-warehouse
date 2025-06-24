@@ -38,7 +38,7 @@ const supervisor = {
           id: 'manage-import-orders',
           title: 'Import Orders',
           type: 'item',
-          url: '/manage-import-orders',
+          url: '/import-orders',
           icon: 'IconFileImport'
         },
         {

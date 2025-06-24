@@ -35,7 +35,6 @@ const authController = {
         message: 'Đăng ký thành công',
         data: {
           user: result.data.user,
-          // Không trả về token cho register, user cần login
         },
       });
     } catch (error) {
@@ -124,6 +123,7 @@ const authController = {
       });
     }
   },
+
   login: async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -135,8 +135,6 @@ const authController = {
       }
 
       const { user, token, refreshToken } = result.data;
-
-      // Xác định redirect URL dựa theo role
       const redirectUrl = getRedirectByRole(user.role);
 
       res.json({
@@ -146,7 +144,7 @@ const authController = {
           user,
           token,
           refreshToken,
-          redirectUrl, // ← Frontend sẽ dùng này để điều hướng
+          redirectUrl,
         },
       });
     } catch (error) {
@@ -160,7 +158,7 @@ const authController = {
 
   validateSession: (req, res) => {
     try {
-      const user = req.user; // Từ authenticate middleware
+      const user = req.user;
 
       res.json({
         success: true,
@@ -177,10 +175,10 @@ const authController = {
       });
     }
   },
+
   getCurrentUser: (req, res) => {
     try {
       const user = req.user;
-
       res.json({
         success: true,
         data: {
@@ -195,6 +193,7 @@ const authController = {
       });
     }
   },
+
   getRoleBasedRedirect: (req, res) => {
     try {
       const user = req.user;
@@ -211,17 +210,17 @@ const authController = {
       });
     }
   },
+
   logout: async (req, res) => {
     try {
       const token = req.headers.authorization?.split(' ')[1];
 
-      // Blacklist token hoặc remove từ database
       await authService.logout(token);
 
       res.json({
         success: true,
         message: 'Logout successful',
-        redirectUrl: '/auth/login', // Redirect đến trang login
+        redirectUrl: '/auth/login',
       });
     } catch (error) {
       res.status(500).json({
@@ -230,6 +229,7 @@ const authController = {
       });
     }
   },
+
   forgotPassword: async (req, res) => {
     try {
       const { email } = req.body;
@@ -250,11 +250,8 @@ const authController = {
       }
 
       const user = userResult.data.user;
-
-      // Tạo reset token
       const resetToken = await authService.generateResetToken(user.id);
 
-      // Gửi email với reset link
       await sendResetPasswordEmail(email, resetToken);
 
       res.status(200).json({
@@ -273,7 +270,6 @@ const authController = {
     }
   },
 
-  // Thêm hàm verify reset token (để frontend gọi khi load component)
   verifyResetToken: async (req, res) => {
     try {
       const { token } = req.body;
@@ -307,7 +303,6 @@ const authController = {
     }
   },
 
-  // Sửa lại hàm resetPassword
   resetPassword: async (req, res) => {
     try {
       const errors = validationResult(req);
@@ -328,14 +323,12 @@ const authController = {
         });
       }
 
-      // Reset password
       const result = await authService.resetPassword(token, newPassword);
 
       if (!result.success) {
         return res.status(400).json(result);
       }
 
-      // Send confirmation email
       await sendPasswordResetConfirmation(
         result.data.user.email,
         result.data.user.email.split('@')[0],
@@ -350,6 +343,44 @@ const authController = {
       res.status(500).json({
         success: false,
         message: 'Internal server error',
+      });
+    }
+  },
+
+  // ✅ Sửa lại activateAccount method
+  activateAccount: async (req, res) => {
+    try {
+      // Kiểm tra validation errors inline
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          errors: errors.array(),
+        });
+      }
+
+      const activationData = req.body;
+      const result = await authService.activateAccount(activationData);
+
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          message: result.message,
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: result.data,
+        message: 'Account activated successfully',
+      });
+    } catch (error) {
+      console.error('Error in activateAccount:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       });
     }
   },

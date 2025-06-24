@@ -7,43 +7,23 @@ const medicineController = {
   getAllMedicines: async (req, res) => {
     try {
       const {
-        dosage_form,
-        target_customer,
-        unit_of_measure,
         category,
-        medicine_name,
+        license_code,
         page,
         limit,
       } = req.query;
 
       // Validate enum filters
-      if (dosage_form && !Object.values(constants.MEDICINE_DOSAGE_FORMS).includes(dosage_form)) {
+      if (category && !Object.values(constants.MEDICINE_CATEGORY).includes(category)) {
         return res.status(400).json({
           success: false,
-          message: `Dạng bào chế không hợp lệ. Phải là một trong: ${Object.values(constants.MEDICINE_DOSAGE_FORMS).join(', ')}`,
-        });
-      }
-
-      if (target_customer && !Object.values(constants.MEDICINE_TARGET_CUSTOMERS).includes(target_customer)) {
-        return res.status(400).json({
-          success: false,
-          message: `Đối tượng khách hàng không hợp lệ. Phải là một trong: ${Object.values(constants.MEDICINE_TARGET_CUSTOMERS).join(', ')}`,
-        });
-      }
-
-      if (unit_of_measure && !Object.values(constants.MEDICINE_UNITS).includes(unit_of_measure)) {
-        return res.status(400).json({
-          success: false,
-          message: `Đơn vị đo không hợp lệ. Phải là một trong: ${Object.values(constants.MEDICINE_UNITS).join(', ')}`,
+          message: `Danh mục không hợp lệ. Phải là một trong: ${Object.values(constants.MEDICINE_CATEGORY).join(', ')}`,
         });
       }
 
       const filters = {
-        dosage_form,
-        target_customer,
-        unit_of_measure,
         category,
-        medicine_name,
+        license_code,
         page,
         limit,
       };
@@ -105,44 +85,27 @@ const medicineController = {
     try {
       const {
         medicine_name,
-        medicine_code,
+        license_code,
         category,
         storage_conditions,
-        dosage_form,
-        target_customer,
         min_stock_threshold,
         max_stock_threshold,
         unit_of_measure,
-        description,
       } = req.body;
 
       // Validate required fields
-      if (!medicine_name || !medicine_code || !category || !dosage_form || !unit_of_measure) {
+      if (!medicine_name || !license_code || !category || !unit_of_measure) {
         return res.status(400).json({
           success: false,
-          message: 'Tên thuốc, mã thuốc, danh mục, dạng bào chế và đơn vị đo là bắt buộc',
+          message: 'Tên thuốc, mã thuốc, danh mục và đơn vị đo là bắt buộc',
         });
       }
 
       // Validate enum fields
-      if (!Object.values(constants.MEDICINE_DOSAGE_FORMS).includes(dosage_form)) {
+      if (!Object.values(constants.MEDICINE_CATEGORY).includes(category)) {
         return res.status(400).json({
           success: false,
-          message: `Dạng bào chế không hợp lệ. Phải là một trong: ${Object.values(constants.MEDICINE_DOSAGE_FORMS).join(', ')}`,
-        });
-      }
-
-      if (target_customer && !Object.values(constants.MEDICINE_TARGET_CUSTOMERS).includes(target_customer)) {
-        return res.status(400).json({
-          success: false,
-          message: `Đối tượng khách hàng không hợp lệ. Phải là một trong: ${Object.values(constants.MEDICINE_TARGET_CUSTOMERS).join(', ')}`,
-        });
-      }
-
-      if (!Object.values(constants.MEDICINE_UNITS).includes(unit_of_measure)) {
-        return res.status(400).json({
-          success: false,
-          message: `Đơn vị đo không hợp lệ. Phải là một trong: ${Object.values(constants.MEDICINE_UNITS).join(', ')}`,
+          message: `Danh mục không hợp lệ. Phải là một trong: ${Object.values(constants.MEDICINE_CATEGORY).join(', ')}`,
         });
       }
 
@@ -170,15 +133,12 @@ const medicineController = {
 
       const medicineData = {
         medicine_name,
-        medicine_code,
+        license_code,
         category,
         storage_conditions,
-        dosage_form,
-        target_customer,
         min_stock_threshold: min_stock_threshold || 0,
         max_stock_threshold: max_stock_threshold || 0,
         unit_of_measure,
-        description,
       };
 
       const result = await medicineService.createMedicine(medicineData);
@@ -211,28 +171,6 @@ const medicineController = {
         return res.status(400).json({
           success: false,
           message: 'ID thuốc là bắt buộc',
-        });
-      }
-
-      // Validate enum fields if they exist in update data
-      if (updateData.dosage_form && !Object.values(constants.MEDICINE_DOSAGE_FORMS).includes(updateData.dosage_form)) {
-        return res.status(400).json({
-          success: false,
-          message: `Dạng bào chế không hợp lệ. Phải là một trong: ${Object.values(constants.MEDICINE_DOSAGE_FORMS).join(', ')}`,
-        });
-      }
-
-      if (updateData.target_customer && !Object.values(constants.MEDICINE_TARGET_CUSTOMERS).includes(updateData.target_customer)) {
-        return res.status(400).json({
-          success: false,
-          message: `Đối tượng khách hàng không hợp lệ. Phải là một trong: ${Object.values(constants.MEDICINE_TARGET_CUSTOMERS).join(', ')}`,
-        });
-      }
-
-      if (updateData.unit_of_measure && !Object.values(constants.MEDICINE_UNITS).includes(updateData.unit_of_measure)) {
-        return res.status(400).json({
-          success: false,
-          message: `Đơn vị đo không hợp lệ. Phải là một trong: ${Object.values(constants.MEDICINE_UNITS).join(', ')}`,
         });
       }
 
@@ -306,36 +244,11 @@ const medicineController = {
     }
   },
 
-  // ✅ Get medicine statistics
-  getMedicineStats: async (req, res) => {
-    try {
-      const result = await medicineService.getMedicineStats();
-
-      if (!result.success) {
-        return res.status(400).json(result);
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'Lấy thống kê thuốc thành công',
-        data: result.data,
-      });
-    } catch (error) {
-      console.error('Get medicine stats error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Lỗi server khi lấy thống kê thuốc',
-      });
-    }
-  },
-
   // ✅ Get available options for filters
   getFilterOptions: async (req, res) => {
     try {
       const options = {
-        dosage_forms: Object.values(constants.MEDICINE_DOSAGE_FORMS),
-        target_customers: Object.values(constants.MEDICINE_TARGET_CUSTOMERS),
-        units_of_measure: Object.values(constants.MEDICINE_UNITS),
+        category: Object.values(constants.MEDICINE_CATEGORY),
       };
 
       res.status(200).json({

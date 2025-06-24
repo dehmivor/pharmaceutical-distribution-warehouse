@@ -89,10 +89,28 @@ const ImportOrderDetails = ({ order, onClose }) => {
 
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Purchase Order
+                  Warehouse Manager
                 </Typography>
                 <Typography variant="body1">
-                  {orderDetails.purchase_order_id?.code || 'N/A'}
+                  {orderDetails.warehouse_manager_id?.name || 'N/A'}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Created Date
+                </Typography>
+                <Typography variant="body1">
+                  {format(new Date(orderDetails.createdAt), 'dd/MM/yyyy')}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Supplier Contract
+                </Typography>
+                <Typography variant="body1">
+                  {orderDetails.supplier_contract_id?.contract_code || 'N/A'}
                 </Typography>
               </Grid>
 
