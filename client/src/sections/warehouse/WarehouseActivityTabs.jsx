@@ -1,26 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useTheme } from '@mui/material/styles';
+import { TabsType } from '@/enum';
+import { getRadiusStyles } from '@/utils/getRadiusStyles';
+import Box from '@mui/material/Box';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Grid from '@mui/material/Grid';
+import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
+import { useTheme } from '@mui/material/styles';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Breadcrumbs from '@mui/material/Breadcrumbs';
-import Link from '@mui/material/Link';
-import { TabsType } from '@/enum';
-import { getRadiusStyles } from '@/utils/getRadiusStyles';
-import { IconHome, IconPackage, IconList, IconChevronRight } from '@tabler/icons-react';
+import { IconChevronRight, IconHome, IconList, IconPackage } from '@tabler/icons-react';
+import { useState } from 'react';
 
 // Import components
+import ImportOrderListTab from '@/sections/warehouse/ImportOrderListTab';
 import ReceiptList from '@/sections/warehouse/ReceiptList';
-import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
-import { Create } from '@mui/icons-material';
 import CreateReceiptTab from './CreateReceiptTab';
-import PurchaseOrderListTab from './PurchaseOrderListTab';
 
 /***************************  BORDER WITH RADIUS  ***************************/
 
@@ -70,11 +67,6 @@ function WarehouseBreadcrumbs({ currentPath, onNavigate }) {
       path: 'warehouse'
     },
     list: {
-      label: 'Danh sách đơn mua',
-      icon: <IconList size={16} />,
-      path: 'list'
-    },
-    list_import: {
       label: 'Danh sách phiếu nhập',
       icon: <IconList size={16} />,
       path: 'list'
@@ -173,17 +165,15 @@ function TabPanel({ children, value, index, ...other }) {
 export default function WarehouseActivityTabs({ onBackToDashboard }) {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(1); // Mặc định hiển thị tab danh sách
-  const [currentBreadcrumbPath, setCurrentBreadcrumbPath] = useState('list');
+  const [currentBreadcrumbPath, setCurrentBreadcrumbPath] = useState(1);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
     // Cập nhật breadcrumb path
     if (newValue === 0) {
       setCurrentBreadcrumbPath('create');
-    } else if (newValue === 2) {
-      setCurrentBreadcrumbPath('list');
     } else if (newValue === 1) {
-      setCurrentBreadcrumbPath('list_import');
+      setCurrentBreadcrumbPath('list');
     }
   };
 
@@ -203,10 +193,6 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
       case 'create':
         setActiveTab(0);
         setCurrentBreadcrumbPath('create');
-        break;
-      case 'list_import':
-        setActiveTab(2);
-        setCurrentBreadcrumbPath('list_import');
         break;
       default:
         break;
@@ -232,28 +218,20 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
           {/* Breadcrumbs Navigation */}
           <WarehouseBreadcrumbs currentPath={currentBreadcrumbPath} onNavigate={handleBreadcrumbNavigate} />
 
-          <Typography variant="h6">Quản Lý Đơn Mua</Typography>
+          <Typography variant="h6">Quản Lý Đơn Kiểm Tra Nhập</Typography>
 
           <Box>
             <Tabs variant="fullWidth" value={activeTab} onChange={handleTabChange} type={TabsType.SEGMENTED}>
-              <Tab label="Tạo phiếu nhập mới" />
-              <Tab label="Danh sách phiếu nhập" />
-              <Tab label="Danh sách đơn mua" />
+              <Tab label="Tạo phiếu kiểm tra đơn nhập" />
+              <Tab label="Danh sách đơn nhập" />
             </Tabs>
 
-            {/* Tab Panel - Tạo phiếu nhập mới */}
             <TabPanel value={activeTab} index={0}>
               <CreateReceiptTab />
             </TabPanel>
 
-            {/* Tab Panel - Danh sách phiếu nhập */}
             <TabPanel value={activeTab} index={1}>
-              <ReceiptList />
-            </TabPanel>
-
-            {/* Tab Panel - Danh sách đơn mua */}
-            <TabPanel value={activeTab} index={2}>
-              <PurchaseOrderListTab />
+              <ImportOrderListTab />
             </TabPanel>
           </Box>
         </Stack>

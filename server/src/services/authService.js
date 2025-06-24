@@ -43,7 +43,7 @@ const authService = {
         email: email.toLowerCase().trim(),
         password: hashedPassword,
         role: role || constants.USER_ROLES.WAREHOUSE,
-        status: constants.BASIC_STATUSES.ACTIVE,
+        status: constants.USER_STATUSES.ACTIVE,
       });
 
       const savedUser = newUser.save();
@@ -109,7 +109,7 @@ const authService = {
       }
 
       // Check user status
-      if (user.status !== constants.BASIC_STATUSES.ACTIVE) {
+      if (user.status !== constants.USER_STATUSES.ACTIVE) {
         return {
           success: false,
           message: 'Tài khoản đã bị khóa hoặc không hoạt động',
@@ -316,7 +316,7 @@ const authService = {
       }
 
       // Check user status
-      if (user.status !== constants.BASIC_STATUSES.ACTIVE) {
+      if (user.status !== constants.USER_STATUSES.ACTIVE) {
         return {
           success: false,
           message: 'Tài khoản đã bị khóa hoặc không hoạt động',
@@ -474,7 +474,7 @@ const authService = {
         };
       }
 
-      if (user.status !== constants.BASIC_STATUSES.ACTIVE) {
+      if (user.status !== constants.USER_STATUSES.ACTIVE) {
         return {
           success: false,
           message: 'User account is inactive',
@@ -790,6 +790,144 @@ const authService = {
         success: false,
         message: 'Lỗi khi reset password',
       };
+    }
+  },
+
+  activateAccount: async (activationData) => {
+    try {
+      console.log('🔄 Processing activation for:', activationData.email);
+
+      const { email, otp, newPassword } = activationData;
+
+      // 1. Validate đầu vào
+      if (!email || !otp || !newPassword) {
+        throw new Error('Email, OTP và mật khẩu mới là bắt buộc');
+      }
+
+      // Validate OTP format
+      if (!/^\d{6}$/.test(otp)) {
+        throw new Error('OTP phải là 6 chữ số');
+      }
+
+      // Validate password strength
+      if (newPassword.length < 6) {
+        throw new Error('Mật khẩu phải có ít nhất 6 ký tự');
+      }
+
+      console.log('✅ Input validation passed');
+
+      // 2. Tìm user với email
+      const User = require('../models/User'); // Đảm bảo import đúng path
+      const user = await User.findOne({
+        email: email.toLowerCase().trim(),
+      });
+
+      if (!user) {
+        console.log('❌ User not found:', email);
+        throw new Error('Không tìm thấy tài khoản với email này');
+      }
+
+      console.log('✅ User found:', user.email, 'Status:', user.status);
+
+      // 3. Kiểm tra constants
+      const constants = require('../utils/constants'); // Đảm bảo import đúng path
+
+      if (user.status === constants.USER_STATUSES.ACTIVE) {
+        throw new Error('Tài khoản đã được kích hoạt trước đó');
+      }
+
+      if (user.status !== constants.USER_STATUSES.PENDING) {
+        throw new Error('Tài khoản không ở trạng thái chờ kích hoạt');
+      }
+
+      // 4. Kiểm tra OTP
+      if (!user.otp_reset || !user.otp_reset.code) {
+        console.log('❌ No OTP found for user:', email);
+        throw new Error('Không tìm thấy mã OTP. Vui lòng yêu cầu OTP mới');
+      }
+
+      // Check expiry
+      if (new Date() > user.otp_reset.expiry_time) {
+        console.log('❌ OTP expired for user:', email);
+        await User.findByIdAndUpdate(user._id, {
+          $unset: { otp_reset: 1 },
+        });
+        throw new Error('Mã OTP đã hết hạn. Vui lòng yêu cầu OTP mới');
+      }
+
+      // Verify OTP
+      if (user.otp_reset.code !== otp) {
+        console.log('❌ Invalid OTP for user:', email);
+        throw new Error('Mã OTP không đúng');
+      }
+
+      console.log('✅ OTP validation passed');
+
+      // 5. Hash password
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      console.log('✅ Password hashed');
+
+      // 6. Update user
+      const updateData = {
+        password: hashedPassword,
+        status: constants.USER_STATUSES.ACTIVE,
+        $unset: {
+          otp_reset: 1,
+        },
+      };
+
+      const activatedUser = await User.findByIdAndUpdate(user._id, updateData, {
+        new: true,
+        runValidators: true,
+      }).select('-password');
+
+      if (!activatedUser) {
+        throw new Error('Không thể kích hoạt tài khoản. Vui lòng thử lại');
+      }
+
+      console.log('✅ User updated successfully');
+
+      // 7. Generate tokens
+      const jwt = require('jsonwebtoken');
+
+      if (!process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET not configured');
+      }
+
+      const accessToken = jwt.sign(
+        {
+          userId: activatedUser._id,
+          email: activatedUser.email,
+          role: activatedUser.role,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' },
+      );
+
+      const refreshToken = jwt.sign(
+        {
+          userId: activatedUser._id,
+        },
+        process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+        { expiresIn: '7d' },
+      );
+
+      console.log('✅ Tokens generated');
+
+      return {
+        success: true,
+        data: {
+          user: activatedUser.toObject(),
+          token: accessToken,
+          refreshToken: refreshToken,
+        },
+        message: 'Tài khoản đã được kích hoạt thành công!',
+      };
+    } catch (error) {
+      console.error('❌ Error in activateAccount service:', error);
+      throw error;
     }
   },
 };

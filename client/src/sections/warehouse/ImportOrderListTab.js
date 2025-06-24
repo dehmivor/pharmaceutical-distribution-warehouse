@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useCallback } from 'react';
 import {
   Box,
@@ -36,7 +37,10 @@ import {
   Receipt as ReceiptIcon
 } from '@mui/icons-material';
 
+import { useRole } from '@/contexts/RoleContext';
+
 export default function PurchaseOrderListTab() {
+  const { user, userRole, hasRole } = useRole();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -46,7 +50,6 @@ export default function PurchaseOrderListTab() {
   const [notes, setNotes] = useState('');
   const [createReceiptDialog, setCreateReceiptDialog] = useState({ open: false, order: null });
 
-  // Khởi tạo trực tiếp với mock data thay vì gọi API
   const [purchaseOrders, setPurchaseOrders] = useState([
     {
       _id: 'PO001',
@@ -105,25 +108,23 @@ export default function PurchaseOrderListTab() {
     }
   ]);
 
-  // Thêm state cho loading và error để tương thích với UI hiện tại
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(null);
 
-  // Mock pagination data
   const pagination = {
     totalPages: 1
   };
 
+  console.log('in ra useRole', useRole());
+
   const mutate = () => {
     setIsLoading(true);
     setTimeout(() => {
-      // Simulate API call delay
       setPurchaseOrders(mockPurchaseOrders);
       setIsLoading(false);
     }, 500);
   };
 
-  // Filter data dựa trên status và search keyword
   const filteredOrders = purchaseOrders.filter((order) => {
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     const matchesSearch =
@@ -135,10 +136,8 @@ export default function PurchaseOrderListTab() {
     return matchesStatus && matchesSearch;
   });
 
-  // Mock functions cho actions
   const updateStatus = async (orderId, status) => {
     console.log(`Updating order ${orderId} to status ${status}`);
-    // Simulate API call
     return new Promise((resolve) => setTimeout(resolve, 1000));
   };
 
@@ -160,7 +159,6 @@ export default function PurchaseOrderListTab() {
     return new Promise((resolve) => setTimeout(resolve, 1000));
   };
 
-  // Mock export functions
   const exportToExcel = async (params) => {
     console.log('Exporting to Excel with params:', params);
     console.log('Mock data exported:', filteredOrders);
@@ -174,7 +172,6 @@ export default function PurchaseOrderListTab() {
     return new Promise((resolve) => setTimeout(resolve, 1000));
   };
 
-  // Status color mapping
   const getStatusColor = (status) => {
     const statusColors = {
       draft: 'default',
@@ -186,7 +183,6 @@ export default function PurchaseOrderListTab() {
     return statusColors[status] || 'default';
   };
 
-  // Status label mapping
   const getStatusLabel = (status) => {
     const statusLabels = {
       draft: 'Nháp',
@@ -198,7 +194,6 @@ export default function PurchaseOrderListTab() {
     return statusLabels[status] || status;
   };
 
-  // Handle menu actions
   const handleMenuClick = (event, order) => {
     setAnchorEl(event.currentTarget);
     setSelectedOrder(order);
@@ -209,7 +204,6 @@ export default function PurchaseOrderListTab() {
     setSelectedOrder(null);
   };
 
-  // Handle action dialogs
   const handleActionClick = (type, order) => {
     setActionDialog({ open: true, type, order });
     setNotes('');
@@ -233,17 +227,13 @@ export default function PurchaseOrderListTab() {
         default:
           break;
       }
-
-      // Refresh data
       mutate();
       setActionDialog({ open: false, type: '', order: null });
     } catch (error) {
       console.error('Action failed:', error);
-      // Có thể thêm toast notification ở đây
     }
   };
 
-  // Handle create receipt
   const handleCreateReceipt = (order) => {
     setCreateReceiptDialog({ open: true, order });
     handleMenuClose();
@@ -252,9 +242,6 @@ export default function PurchaseOrderListTab() {
   const handleCreateReceiptConfirm = async () => {
     try {
       const { order } = createReceiptDialog;
-
-      // Tạo đơn nhập hàng từ đơn mua
-      // Gọi API tạo receipt từ purchase order
       const response = await fetch(`/api/receipts/from-purchase-order/${order.id}`, {
         method: 'POST',
         headers: {
@@ -262,26 +249,17 @@ export default function PurchaseOrderListTab() {
           Authorization: `Bearer ${localStorage.getItem('auth-token')}`
         }
       });
-
       if (!response.ok) {
         throw new Error('Không thể tạo đơn nhập hàng');
       }
-
       const result = await response.json();
-
-      // Refresh data và đóng dialog
       mutate();
       setCreateReceiptDialog({ open: false, order: null });
-
-      // Có thể chuyển hướng đến trang chi tiết đơn nhập
-      // hoặc hiển thị thông báo thành công
     } catch (error) {
       console.error('Create receipt failed:', error);
-      // Hiển thị thông báo lỗi
     }
   };
 
-  // Handle export
   const handleExport = async (type) => {
     try {
       if (type === 'excel') {
@@ -326,7 +304,7 @@ export default function PurchaseOrderListTab() {
   return (
     <Box>
       <Typography variant="subtitle1" sx={{ mb: 2 }}>
-        Danh sách đơn mua
+        Danh sách phiếu nhập
       </Typography>
 
       {/* Filter and Actions Bar */}
@@ -381,7 +359,7 @@ export default function PurchaseOrderListTab() {
               /* Handle create new purchase order */
             }}
           >
-            Tạo đơn mua
+            Xem danh sách manager
           </Button>
         </Box>
       </Box>
