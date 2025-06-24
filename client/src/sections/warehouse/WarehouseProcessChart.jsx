@@ -91,6 +91,12 @@ export default function WarehouseProcessChart() {
     id: series.id
   }));
 
+  const viewToIndex = {
+    daily: 0,
+    weekly: 1,
+    monthly: 2
+  };
+
   return (
     <MainCard>
       <Stack sx={{ gap: 3 }}>
@@ -104,7 +110,7 @@ export default function WarehouseProcessChart() {
             </Typography>
           </Stack>
           <Tabs
-            value={timeFilter.indexOf(timeFilter.find((_, i) => Object.keys({ daily: 0, weekly: 1, monthly: 2 })[view] === i))}
+            value={viewToIndex[view] || 0}
             onChange={handleViewChange}
             aria-label="filter tabs"
             type={TabsType.SEGMENTED}

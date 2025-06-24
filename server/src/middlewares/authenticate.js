@@ -57,7 +57,7 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    if (user.status !== constants.BASIC_STATUSES.ACTIVE) {
+    if (user.status !== constants.USER_STATUSES.ACTIVE) {
       return res.status(401).json({
         success: false,
         message: 'Account is inactive',

@@ -1,368 +1,196 @@
-// hooks/useImportOrders.js
-import useSWR from 'swr';
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-// Hàm helper để xây dựng URL đầy đủ
-const buildUrl = (endpoint) => {
-  // Nếu endpoint đã có protocol, trả về nguyên
-  if (endpoint.startsWith('http')) {
-    return endpoint;
-  }
-  // Nếu endpoint bắt đầu bằng /, loại bỏ nó để tránh double slash
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-  return `${backendUrl}/${cleanEndpoint}`;
-};
-
-// Hàm helper để lấy token
-const getAuthToken = () => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('auth-token') || localStorage.getItem('auth-token');
-};
-
-// Fetcher function với error handling cải thiện
-const fetcher = async (url) => {
+// Enhanced fetcher with better error handling
+const fetcher = async (url, signal) => {
   try {
-    const fullUrl = buildUrl(url);
-    const token = getAuthToken();
+    const token = localStorage.getItem('auth-token');
+    const fullUrl = `${backendUrl}/api/import-orders${url}`;
 
-    console.log('Fetching:', fullUrl); // Debug log
+    console.log('🔍 Fetching URL:', fullUrl);
+    console.log('🔑 Auth Token:', token ? 'Present' : 'Missing');
+
+    const headers = {
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    };
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
 
     const response = await fetch(fullUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` })
-      }
+      headers,
+      signal // For cancelling requests
     });
 
-    // Kiểm tra status code
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      let errorData = null;
+    console.log('📊 Response Status:', response.status);
+    console.log('📋 Response Headers:', Object.fromEntries(response.headers.entries()));
 
-      try {
-        // Thử parse JSON error response
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } else {
-          // Nếu không phải JSON, lấy text
-          const errorText = await response.text();
-          if (errorText) {
-            errorMessage = errorText;
-          }
-        }
-      } catch (parseError) {
-        console.warn('Could not parse error response:', parseError);
+    const contentType = response.headers.get('content-type');
+    console.log('📄 Content-Type:', contentType);
+
+    if (!response.ok) {
+      const responseText = await response.text();
+      console.error('❌ Response Text:', responseText);
+
+      if (responseText.includes('<!DOCTYPE') || responseText.includes('<html>')) {
+        throw new Error(`Server returned HTML (Status: ${response.status}). Check if API endpoint exists and is accessible.`);
       }
 
-      const error = new Error(errorMessage);
-      error.status = response.status;
-      error.statusText = response.statusText;
-      error.data = errorData;
-
-      console.error('API Error:', {
-        url: fullUrl,
-        status: response.status,
-        message: errorMessage,
-        data: errorData
-      });
-
-      throw error;
+      try {
+        const errorData = JSON.parse(responseText);
+        throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
+      } catch (parseError) {
+        throw new Error(`HTTP ${response.status}: ${responseText}`);
+      }
     }
 
-    // Kiểm tra Content-Type cho response thành công
-    const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       const responseText = await response.text();
-      console.error('Non-JSON response:', responseText);
-      throw new Error('Server did not return JSON');
+      console.error('❌ Expected JSON but got:', contentType);
+      console.error('❌ Response content:', responseText);
+      throw new Error(`Expected JSON response but got ${contentType}. Response: ${responseText.substring(0, 200)}...`);
     }
 
     const data = await response.json();
-    console.log('API Response:', data); // Debug log
+    console.log('✅ API Response Data:', data);
+
     return data;
   } catch (error) {
-    console.error('Fetch error:', error);
+    if (error.name === 'AbortError') {
+      console.log('🚫 Request was cancelled');
+      throw new Error('Request cancelled');
+    }
+    console.error('💥 Fetcher Error:', error);
     throw error;
   }
 };
 
-export function useImportOrders(options = {}) {
-  const { status, supplierId, page = 1, limit = 10 } = options;
+const useImportOrders = (queryParams = {}) => {
+  const { page = 1, limit = 10, search, ...filters } = queryParams;
 
-  // Xây dựng query string
-  const queryParams = new URLSearchParams({
+  // State management
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [lastFetchParams, setLastFetchParams] = useState(null);
+
+  // Ref để track abort controller
+  const abortControllerRef = useRef(null);
+
+  // Process filters
+  const processedFilters = { ...filters };
+  if (filters.status && typeof filters.status === 'string' && filters.status.includes(',')) {
+    processedFilters.status = filters.status;
+  }
+
+  if (search) {
+    processedFilters.search = search;
+  }
+
+  // Build query params
+  const params = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
-    ...(status && status !== 'all' && { status }),
-    ...(supplierId && { supplierId })
-  });
+    ...processedFilters
+  }).toString();
 
-  const endpoint = `api/import-orders?${queryParams}`;
+  const url = `/?${params}`;
 
-  const { data, error, isLoading, mutate } = useSWR(endpoint, fetcher, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: true,
-    refreshInterval: 30000, // Refresh mỗi 30 giây
-    // Cấu hình retry
-    onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
-      // Không retry cho lỗi client (4xx)
-      if (error.status >= 400 && error.status < 500) {
+  // Fetch function
+  const fetchData = useCallback(
+    async (fetchUrl, force = false) => {
+      // Prevent duplicate requests
+      if (!force && lastFetchParams === fetchUrl && data && !error) {
+        console.log('🔄 Using cached data for:', fetchUrl);
         return;
       }
 
-      // Chỉ retry tối đa 3 lần
-      if (retryCount >= 3) return;
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      // Retry với exponential backoff
-      const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
-      setTimeout(() => revalidate({ retryCount }), retryDelay);
-    }
-  });
+        // Cancel previous request if exists
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+
+        // Create new abort controller
+        abortControllerRef.current = new AbortController();
+
+        console.log('🚀 Fetching data for:', fetchUrl);
+
+        const result = await fetcher(fetchUrl, abortControllerRef.current.signal);
+
+        setData(result);
+        setLastFetchParams(fetchUrl);
+        setError(null);
+
+        console.log('✅ Fetch Success:', result);
+      } catch (err) {
+        if (err.message !== 'Request cancelled') {
+          setError(err);
+          console.error('❌ Fetch Error:', err);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [lastFetchParams, data, error]
+  );
+
+  // Manual refresh function (equivalent to SWR's mutate)
+  const mutate = useCallback(async () => {
+    console.log('🔄 Manual refresh triggered');
+    await fetchData(url, true); // Force refresh
+  }, [fetchData, url]);
+
+  // Effect to fetch data when params change
+  useEffect(() => {
+    fetchData(url);
+
+    // Cleanup function
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [fetchData, url]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return {
     importOrders: data?.data || [],
-    pagination: data?.pagination || {},
+    pagination: data?.pagination || {
+      current_page: page,
+      total_pages: 1,
+      total_items: 0,
+      items_per_page: limit,
+      has_next: false,
+      has_prev: false
+    },
     isLoading,
-    isError: error,
-    mutate
+    error,
+    mutate,
+    success: data?.success || false,
+    // Additional utilities
+    refetch: mutate, // Alias for mutate
+    isIdle: !isLoading && !error && !data, // When no request has been made
+    isSuccess: !isLoading && !error && !!data, // Successful state
+    isError: !!error // Error state
   };
-}
+};
 
-// Hook để lấy chi tiết import order
-export function useImportOrder(id) {
-  const endpoint = id ? `api/import-orders/${id}` : null;
-
-  const { data, error, isLoading, mutate } = useSWR(endpoint, fetcher, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: true
-  });
-
-  return {
-    importOrder: data?.data || null,
-    isLoading,
-    isError: error,
-    mutate
-  };
-}
-
-// Hook để cập nhật trạng thái và actions
-export function useImportOrderActions() {
-  const makeRequest = async (endpoint, method, body = null) => {
-    try {
-      const fullUrl = buildUrl(endpoint);
-      const token = getAuthToken();
-
-      console.log(`${method} request to:`, fullUrl); // Debug log
-
-      const response = await fetch(fullUrl, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        ...(body && { body: JSON.stringify(body) })
-      });
-
-      if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        let errorData = null;
-
-        try {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            errorData = await response.json();
-            errorMessage = errorData.message || errorData.error || errorMessage;
-          } else {
-            const errorText = await response.text();
-            if (errorText) errorMessage = errorText;
-          }
-        } catch (parseError) {
-          console.warn('Could not parse error response:', parseError);
-        }
-
-        const error = new Error(errorMessage);
-        error.status = response.status;
-        error.data = errorData;
-        throw error;
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('Request error:', error);
-      throw error;
-    }
-  };
-
-  const updateStatus = async (id, status, notes = '') => {
-    return await makeRequest(`api/import-orders/${id}/status`, 'PATCH', {
-      status,
-      notes
-    });
-  };
-
-  const createImportOrder = async (data) => {
-    return await makeRequest('api/import-orders', 'POST', data);
-  };
-
-  const updateImportOrder = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}`, 'PUT', data);
-  };
-
-  const updateImportOrderDetails = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}/details`, 'PUT', data);
-  };
-
-  const deleteImportOrder = async (id) => {
-    return await makeRequest(`api/import-orders/${id}`, 'DELETE');
-  };
-
-  // Warehouse specific actions
-  const receiveImportOrder = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}/receive`, 'PATCH', data);
-  };
-
-  const verifyImportOrder = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}/verify`, 'PATCH', data);
-  };
-
-  const completeImportOrder = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}/complete`, 'PATCH', data);
-  };
-
-  const updateInventory = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}/inventory`, 'POST', data);
-  };
-
-  const performQualityCheck = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}/quality-check`, 'PATCH', data);
-  };
-
-  return {
-    updateStatus,
-    createImportOrder,
-    updateImportOrder,
-    updateImportOrderDetails,
-    deleteImportOrder,
-    receiveImportOrder,
-    verifyImportOrder,
-    completeImportOrder,
-    updateInventory,
-    performQualityCheck
-  };
-}
-
-// Hook để search
-export function useSearchImportOrders() {
-  const searchImportOrders = async (keyword, options = {}) => {
-    const queryParams = new URLSearchParams({
-      page: (options.page || 1).toString(),
-      limit: (options.limit || 10).toString(),
-      ...(options.sortBy && { sortBy: options.sortBy }),
-      ...(options.sortOrder && { sortOrder: options.sortOrder })
-    });
-
-    const fullUrl = buildUrl(`api/import-orders/search/${encodeURIComponent(keyword)}?${queryParams}`);
-    const token = getAuthToken();
-
-    const response = await fetch(fullUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` })
-      }
-    });
-
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch (e) {
-        // Ignore parse error, use default message
-      }
-      throw new Error(errorMessage);
-    }
-
-    return response.json();
-  };
-
-  return { searchImportOrders };
-}
-
-// Hook để export data
-export function useExportImportOrders() {
-  const exportToExcel = async (filters = {}) => {
-    const queryParams = new URLSearchParams(filters);
-    const fullUrl = buildUrl(`api/import-orders/export/excel?${queryParams}`);
-    const token = getAuthToken();
-
-    const response = await fetch(fullUrl, {
-      method: 'GET',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` })
-      }
-    });
-
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch (e) {
-        // Ignore parse error, use default message
-      }
-      throw new Error(errorMessage);
-    }
-
-    // Xử lý download file
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `import-orders-${new Date().toISOString().split('T')[0]}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
-
-  const exportToPDF = async (id) => {
-    const fullUrl = buildUrl(`api/import-orders/export/pdf/${id}`);
-    const token = getAuthToken();
-
-    const response = await fetch(fullUrl, {
-      method: 'GET',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` })
-      }
-    });
-
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch (e) {
-        // Ignore parse error, use default message
-      }
-      throw new Error(errorMessage);
-    }
-
-    // Xử lý download file
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `import-order-${id}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
-
-  return { exportToExcel, exportToPDF };
-}
+export default useImportOrders;

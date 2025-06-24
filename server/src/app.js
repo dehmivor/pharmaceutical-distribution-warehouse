@@ -21,9 +21,9 @@ const {
   supervisorRoutes,
   supplierContractRoutes,
   packageRoutes,
-  importOrderRoutes,
+  importInspectionRoutes,
+  importOrderRoutes
 } = require('./routes');
-
 
 // Middlewares
 app.use(helmet());
@@ -42,7 +42,9 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/medicine', medicineRoutes);
-
+app.use('/api/import-inspections', importInspectionRoutes);
+app.use('/api/import-orders', route.importOrderRoutes);
+app.use('/api/notifications', route.notificationRoutes);
 app.use('/api/import-orders', importOrderRoutes);
 app.use('api/thingsboard', route.thingsboardRoutes);
 
@@ -50,6 +52,7 @@ app.use('api/thingsboard', route.thingsboardRoutes);
 app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRoutes);
 app.use('/api/accounts', authenticate, authorize('supervisor'), route.accountRoutes);
 app.use('/api/supplier-contracts', supplierContractRoutes);
+app.use('/api/import-inspections', authenticate, authorize('warehouse'), route.inspectionRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 
