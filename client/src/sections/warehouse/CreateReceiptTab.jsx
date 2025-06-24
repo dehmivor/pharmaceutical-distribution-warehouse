@@ -23,18 +23,22 @@ import {
   InputAdornment,
   Card,
   CircularProgress,
-  Skeleton
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
-import { Search, Visibility, Refresh } from '@mui/icons-material';
+import { Search, Visibility, Refresh, BugReport, ExpandMore } from '@mui/icons-material';
 import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
-import useImportOrders from '@/hooks/useImportOrders';
 
 export default function CreateReceiptTab() {
-  // Sử dụng useImportOrder hook thay vì mock data
-
-  // State để quản lý dữ liệu đơn hàng đã chọn
+  // State để quản lý dữ liệu đơn hàng
   const [orderData, setOrderData] = useState({});
-  const [selectedOrderId, setSelectedOrderId] = useState('');
+
+  // State cho API data
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [apiDebugInfo, setApiDebugInfo] = useState(null);
 
   // State để quản lý thông báo
   const [notification, setNotification] = useState({
@@ -43,45 +47,176 @@ export default function CreateReceiptTab() {
     severity: 'success'
   });
 
-  // State để lưu trữ các phiếu nhập đã tạo
-  const [createdReceipts, setCreatedReceipts] = useState([]);
-
   // State cho dialog chọn đơn hàng
   const [orderDialog, setOrderDialog] = useState({
     open: false,
     searchTerm: '',
     currentPage: 1
   });
+  // Enhanced fetch function với debugging
+  const fetchOrders = async (params = {}) => {
+    setLoading(true);
+    setError(null);
 
-  // Sử dụng hook để lấy danh sách đơn nhập
-  const {
-    importOrders,
-    isLoading: loadingOrders,
-    error: ordersError,
-    mutate: refreshOrders,
-    pagination
-  } = useImportOrders({
-    status: 'pending,confirmed', // Chỉ lấy đơn hàng chờ nhập và đã xác nhận
-    page: orderDialog.currentPage,
-    limit: 10,
-    search: orderDialog.searchTerm
+    try {
+      // Build URL với parameters
+      const queryParams = new URLSearchParams({
+        page: params.page || 1,
+        limit: params.limit || 10,
+        ...params.filters
+      });
+
+      const url = `/api/import-orders?${queryParams.toString()}`;
+
+      console.log('🔍 Fetching from URL:', url);
+      console.log('🔑 Auth token:', localStorage.getItem('auth-token') ? 'Present' : 'Missing');
+
+      const token = localStorage.getItem('auth-token');
+      const headers = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      console.log('📤 Request headers:', headers);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers
+      });
+
+      console.log('📊 Response status:', response.status);
+      console.log('📋 Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Error response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ API Response:', data);
+
+      // Store debug info
+      setApiDebugInfo({
+        url,
+        status: response.status,
+        headers: Object.fromEntries(response.headers.entries()),
+        data,
+        timestamp: new Date().toISOString()
+      });
+
+      // Kiểm tra cấu trúc response
+      if (data.success) {
+        const ordersData = data.data || [];
+        console.log('📦 Orders received:', ordersData.length);
+
+        setOrders(ordersData);
+
+        // Nếu không có data, hiển thị thông báo debug
+        if (ordersData.length === 0) {
+          setNotification({
+            open: true,
+            message: `API trả về thành công nhưng không có đơn hàng nào. Total: ${data.pagination?.total || 0}`,
+            severity: 'warning'
+          });
+        }
+      } else {
+        throw new Error(data.message || 'API response unsuccessful');
+      }
+    } catch (error) {
+      console.error('💥 Fetch error:', error);
+      setError(error.message);
+
+      // Fallback to mock data trong development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔧 Using mock data as fallback');
+        setNotification({
+          open: true,
+          message: 'Lỗi API, đang sử dụng dữ liệu mẫu',
+          severity: 'info'
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Test API với các parameters khác nhau
+  const testDifferentParams = async () => {
+    console.log('🧪 Testing different API parameters...');
+
+    const testCases = [
+      { name: 'No params', params: {} },
+      { name: 'All status', params: { status: '' } },
+      { name: 'Pending only', params: { status: 'pending' } },
+      { name: 'All statuses', params: { status: 'pending,confirmed,completed' } },
+      { name: 'Large limit', params: { limit: 100 } },
+      { name: 'No filters', params: { page: 1, limit: 50 } }
+    ];
+
+    for (const testCase of testCases) {
+      try {
+        console.log(`🧪 Testing: ${testCase.name}`, testCase.params);
+
+        const queryParams = new URLSearchParams({
+          page: testCase.params.page || 1,
+          limit: testCase.params.limit || 10,
+          ...testCase.params
+        });
+
+        const response = await fetch(`/api/import-orders?${queryParams.toString()}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('auth-token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+        console.log(`✅ ${testCase.name} result:`, {
+          status: response.status,
+          total: data.pagination?.total,
+          dataLength: data.data?.length
+        });
+      } catch (error) {
+        console.error(`❌ ${testCase.name} failed:`, error);
+      }
+    }
+  };
+
+  // Load danh sách đơn hàng khi mở dialog
+  useEffect(() => {
+    if (orderDialog.open) {
+      fetchOrders({
+        page: orderDialog.currentPage,
+        limit: 10,
+        filters: {
+          status: 'pending,confirmed',
+          search: orderDialog.searchTerm
+        }
+      });
+    }
+  }, [orderDialog.open, orderDialog.currentPage, orderDialog.searchTerm]);
+
+  // Initial load
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  // Lọc đơn hàng theo từ khóa tìm kiếm (local filter cho mock data)
+  const filteredOrders = orders.filter((order) => {
+    if (!orderDialog.searchTerm) return true;
+    const searchLower = orderDialog.searchTerm.toLowerCase();
+    return order.order_code?.toLowerCase().includes(searchLower) || order.supplier_name?.toLowerCase().includes(searchLower);
   });
 
-  // Statistics state (có thể lấy từ API hoặc tính toán)
-  const [statistics, setStatistics] = useState({
-    totalExpected: 100,
-    totalReceived: 50,
-    totalReturned: 20,
-    receivedPercentage: 50,
-    totalValue: 50
-  });
-
-  // Mở dialog chọn đơn hàng
   const handleOpenOrderDialog = () => {
     setOrderDialog((prev) => ({ ...prev, open: true, currentPage: 1 }));
   };
 
-  // Đóng dialog chọn đơn hàng
   const handleCloseOrderDialog = () => {
     setOrderDialog((prev) => ({
       ...prev,
@@ -91,10 +226,9 @@ export default function CreateReceiptTab() {
     }));
   };
 
-  // Chọn đơn hàng
   const handleSelectOrder = (selectedOrder) => {
-    setSelectedOrderId(selectedOrder._id);
-    setOrderData({
+    // Convert API response format to component format
+    const convertedOrder = {
       orderId: selectedOrder.order_code,
       supplier: selectedOrder.supplier_name,
       orderDate: selectedOrder.order_date,
@@ -109,8 +243,9 @@ export default function CreateReceiptTab() {
           orderedQuantity: detail.quantity,
           unit: detail.unit || 'cái'
         })) || []
-    });
+    };
 
+    setOrderData(convertedOrder);
     handleCloseOrderDialog();
 
     setNotification({
@@ -120,36 +255,13 @@ export default function CreateReceiptTab() {
     });
   };
 
-  // Xử lý tìm kiếm đơn hàng với debounce
-  const [searchTimeout, setSearchTimeout] = useState(null);
   const handleSearchChange = (event) => {
     const searchValue = event.target.value;
-
-    // Clear previous timeout
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-
-    // Set new timeout
-    const newTimeout = setTimeout(() => {
-      setOrderDialog((prev) => ({
-        ...prev,
-        searchTerm: searchValue,
-        currentPage: 1
-      }));
-    }, 500); // Debounce 500ms
-
-    setSearchTimeout(newTimeout);
+    setOrderDialog((prev) => ({ ...prev, searchTerm: searchValue }));
   };
 
-  // Xử lý phân trang
-  const handlePageChange = (newPage) => {
-    setOrderDialog((prev) => ({ ...prev, currentPage: newPage }));
-  };
-
-  // Refresh danh sách đơn hàng
-  const handleRefreshOrders = () => {
-    refreshOrders();
+  const handleRefresh = () => {
+    fetchOrders();
     setNotification({
       open: true,
       message: 'Đã làm mới danh sách đơn hàng',
@@ -157,79 +269,6 @@ export default function CreateReceiptTab() {
     });
   };
 
-  // Xử lý khi tạo phiếu nhập thành công
-  const handleReceiptCreate = (receiptData) => {
-    try {
-      // Validate dữ liệu cơ bản
-      if (!receiptData.receiptId || !receiptData.receiver) {
-        setNotification({
-          open: true,
-          message: 'Vui lòng điền đầy đủ thông tin bắt buộc (Số phiếu nhập, Người nhận hàng)',
-          severity: 'error'
-        });
-        return;
-      }
-
-      // Kiểm tra có ít nhất một sản phẩm với số lượng > 0
-      const hasValidItems = receiptData.items.some((item) => parseFloat(item.actualQuantity) > 0);
-
-      if (!hasValidItems) {
-        setNotification({
-          open: true,
-          message: 'Vui lòng nhập số lượng thực nhận cho ít nhất một sản phẩm',
-          severity: 'error'
-        });
-        return;
-      }
-
-      // Lưu phiếu nhập (trong thực tế sẽ gọi API)
-      const finalReceipt = {
-        ...receiptData,
-        id: Date.now(),
-        status: 'completed',
-        createdAt: new Date().toISOString(),
-        createdBy: 'Current User',
-        importOrderId: selectedOrderId
-      };
-
-      setCreatedReceipts((prev) => [...prev, finalReceipt]);
-
-      // Hiển thị thông báo thành công
-      setNotification({
-        open: true,
-        message: `Tạo phiếu nhập ${receiptData.receiptId} thành công!`,
-        severity: 'success'
-      });
-
-      console.log('Phiếu nhập được tạo:', finalReceipt);
-
-      // Reset form
-      resetOrderData();
-
-      // Refresh danh sách đơn hàng để cập nhật trạng thái
-      refreshOrders();
-    } catch (error) {
-      console.error('Lỗi khi tạo phiếu nhập:', error);
-      setNotification({
-        open: true,
-        message: 'Có lỗi xảy ra khi tạo phiếu nhập. Vui lòng thử lại.',
-        severity: 'error'
-      });
-    }
-  };
-
-  // Reset dữ liệu đơn hàng
-  const resetOrderData = () => {
-    setOrderData({});
-    setSelectedOrderId('');
-  };
-
-  // Đóng thông báo
-  const handleCloseNotification = () => {
-    setNotification((prev) => ({ ...prev, open: false }));
-  };
-
-  // Render trạng thái đơn hàng
   const renderOrderStatus = (status) => {
     const statusConfig = {
       pending: { label: 'Chờ nhập', color: 'warning' },
@@ -243,35 +282,30 @@ export default function CreateReceiptTab() {
     return <Chip label={config.label} color={config.color} size="small" />;
   };
 
-  // Render loading skeleton cho bảng
-  const renderTableSkeleton = () => (
-    <>
-      {[...Array(5)].map((_, index) => (
-        <TableRow key={index}>
-          <TableCell>
-            <Skeleton variant="text" />
-          </TableCell>
-          <TableCell>
-            <Skeleton variant="text" />
-          </TableCell>
-          <TableCell>
-            <Skeleton variant="text" />
-          </TableCell>
-          <TableCell>
-            <Skeleton variant="rectangular" width={80} height={24} />
-          </TableCell>
-          <TableCell align="right">
-            <Skeleton variant="text" />
-          </TableCell>
-          <TableCell align="right">
-            <Skeleton variant="text" />
-          </TableCell>
-          <TableCell align="center">
-            <Skeleton variant="rectangular" width={60} height={32} />
-          </TableCell>
-        </TableRow>
-      ))}
-    </>
+  // Debug panel
+  const renderDebugPanel = () => (
+    <Accordion sx={{ mb: 2 }}>
+      <AccordionSummary expandIcon={<ExpandMore />}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <BugReport fontSize="small" />
+          <Typography variant="caption">Debug Information (Orders: {orders.length})</Typography>
+        </Box>
+      </AccordionSummary>
+      <AccordionDetails>
+        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+          <Button size="small" onClick={testDifferentParams} variant="outlined">
+            Test Different Params
+          </Button>
+          <Button size="small" onClick={handleRefresh} variant="outlined">
+            Refresh Data
+          </Button>
+        </Box>
+
+        <Typography variant="caption" component="pre" sx={{ fontSize: '0.7rem', overflow: 'auto' }}>
+          {JSON.stringify(apiDebugInfo, null, 2)}
+        </Typography>
+      </AccordionDetails>
+    </Accordion>
   );
 
   return (
@@ -284,20 +318,40 @@ export default function CreateReceiptTab() {
         Tạo phiếu nhập kho từ đơn đặt hàng hoặc nhập thủ công
       </Typography>
 
-      {/* Hiển thị lỗi nếu có */}
-      {ordersError && (
+      {/* Debug Panel cho development */}
+      {process.env.NODE_ENV === 'development' && renderDebugPanel()}
+
+      {/* Error Alert */}
+      {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          Lỗi khi tải danh sách đơn hàng: {ordersError.message}
+          <Typography variant="subtitle2">Lỗi khi tải danh sách đơn hàng:</Typography>
+          <Typography variant="body2">{error}</Typography>
+          <Button size="small" onClick={handleRefresh} sx={{ mt: 1 }}>
+            Thử lại
+          </Button>
+        </Alert>
+      )}
+
+      {/* Empty Data Warning */}
+      {!loading && !error && orders.length === 0 && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          <Typography variant="subtitle2">Không có đơn hàng nào</Typography>
+          <Typography variant="body2">API trả về thành công nhưng danh sách đơn hàng trống. Có thể do:</Typography>
+          <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+            <li>Database chưa có dữ liệu</li>
+            <li>Filters loại bỏ tất cả records</li>
+            <li>Permissions không đủ để xem data</li>
+          </ul>
         </Alert>
       )}
 
       {/* Nút chọn đơn hàng */}
       <Box sx={{ mb: 3 }}>
-        <Button variant="outlined" onClick={handleOpenOrderDialog} sx={{ mr: 2 }} disabled={loadingOrders}>
-          {loadingOrders ? <CircularProgress size={20} /> : 'Chọn Đơn Mua'}
+        <Button variant="outlined" onClick={handleOpenOrderDialog} sx={{ mr: 2 }} disabled={loading}>
+          {loading ? <CircularProgress size={20} /> : 'Chọn Đơn Mua'}
         </Button>
         {orderData.orderId && (
-          <Button variant="text" onClick={resetOrderData} color="error">
+          <Button variant="text" onClick={() => setOrderData({})} color="error">
             Xóa Đơn Hàng Đã Chọn
           </Button>
         )}
@@ -317,23 +371,35 @@ export default function CreateReceiptTab() {
       )}
 
       {/* Form tạo phiếu nhập */}
-      {orderData.orderId && <EnhancedReceiptForm orderData={orderData} onReceiptCreate={handleReceiptCreate} />}
+      {orderData.orderId && (
+        <EnhancedReceiptForm
+          orderData={orderData}
+          onReceiptCreate={(receiptData) => {
+            console.log('Receipt created:', receiptData);
+            setNotification({
+              open: true,
+              message: 'Tạo phiếu nhập thành công!',
+              severity: 'success'
+            });
+          }}
+        />
+      )}
 
       {/* Dialog chọn đơn hàng */}
       <Dialog open={orderDialog.open} onClose={handleCloseOrderDialog} maxWidth="lg" fullWidth>
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            Chọn Đơn Nhập
-            <IconButton onClick={handleRefreshOrders} disabled={loadingOrders}>
+            Chọn Đơn Nhập ({orders.length} đơn hàng)
+            <IconButton onClick={handleRefresh} disabled={loading}>
               <Refresh />
             </IconButton>
           </Box>
         </DialogTitle>
         <DialogContent>
-          {/* Tìm kiếm */}
           <TextField
             fullWidth
             placeholder="Tìm kiếm theo mã đơn hàng hoặc nhà cung cấp..."
+            value={orderDialog.searchTerm}
             onChange={handleSearchChange}
             sx={{ mb: 2 }}
             InputProps={{
@@ -345,69 +411,57 @@ export default function CreateReceiptTab() {
             }}
           />
 
-          {/* Bảng danh sách đơn hàng */}
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Mã Đơn Hàng</TableCell>
-                  <TableCell>Nhà Cung Cấp</TableCell>
-                  <TableCell>Ngày Đặt</TableCell>
-                  <TableCell>Trạng Thái</TableCell>
-                  <TableCell align="right">Số Sản Phẩm</TableCell>
-                  <TableCell align="right">Tổng Tiền</TableCell>
-                  <TableCell align="center">Thao Tác</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loadingOrders ? (
-                  renderTableSkeleton()
-                ) : importOrders && importOrders.length > 0 ? (
-                  importOrders.map((order) => (
-                    <TableRow key={order._id} hover>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="medium">
-                          {order.order_code}
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Mã Đơn Hàng</TableCell>
+                    <TableCell>Nhà Cung Cấp</TableCell>
+                    <TableCell>Ngày Đặt</TableCell>
+                    <TableCell>Trạng Thái</TableCell>
+                    <TableCell align="right">Số Sản Phẩm</TableCell>
+                    <TableCell align="right">Tổng Tiền</TableCell>
+                    <TableCell align="center">Thao Tác</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredOrders.length > 0 ? (
+                    filteredOrders.map((order) => (
+                      <TableRow key={order._id} hover>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="medium">
+                            {order.order_code}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{order.supplier_name}</TableCell>
+                        <TableCell>{new Date(order.order_date).toLocaleDateString('vi-VN')}</TableCell>
+                        <TableCell>{renderOrderStatus(order.status)}</TableCell>
+                        <TableCell align="right">{order.details?.length || 0}</TableCell>
+                        <TableCell align="right">{order.total_amount?.toLocaleString('vi-VN') || 0} ₫</TableCell>
+                        <TableCell align="center">
+                          <Button variant="contained" size="small" onClick={() => handleSelectOrder(order)}>
+                            Chọn
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center">
+                        <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
+                          {orderDialog.searchTerm ? 'Không tìm thấy đơn hàng nào phù hợp' : 'Không có đơn hàng nào trong hệ thống'}
                         </Typography>
                       </TableCell>
-                      <TableCell>{order.supplier_name}</TableCell>
-                      <TableCell>{new Date(order.order_date).toLocaleDateString('vi-VN')}</TableCell>
-                      <TableCell>{renderOrderStatus(order.status)}</TableCell>
-                      <TableCell align="right">{order.details?.length || 0}</TableCell>
-                      <TableCell align="right">{order.total_amount?.toLocaleString('vi-VN') || 0} ₫</TableCell>
-                      <TableCell align="center">
-                        <Button variant="contained" size="small" onClick={() => handleSelectOrder(order)}>
-                          Chọn
-                        </Button>
-                      </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center">
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
-                        {orderDialog.searchTerm ? 'Không tìm thấy đơn hàng nào phù hợp' : 'Không có đơn hàng nào'}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          {/* Phân trang */}
-          {pagination && pagination.total_pages > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-              <Button disabled={!pagination.has_prev} onClick={() => handlePageChange(orderDialog.currentPage - 1)}>
-                Trước
-              </Button>
-              <Typography sx={{ mx: 2, alignSelf: 'center' }}>
-                Trang {pagination.current_page} / {pagination.total_pages}
-              </Typography>
-              <Button disabled={!pagination.has_next} onClick={() => handlePageChange(orderDialog.currentPage + 1)}>
-                Sau
-              </Button>
-            </Box>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </DialogContent>
         <DialogActions>
@@ -419,10 +473,14 @@ export default function CreateReceiptTab() {
       <Snackbar
         open={notification.open}
         autoHideDuration={6000}
-        onClose={handleCloseNotification}
+        onClose={() => setNotification((prev) => ({ ...prev, open: false }))}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert onClose={handleCloseNotification} severity={notification.severity} sx={{ width: '100%' }}>
+        <Alert
+          onClose={() => setNotification((prev) => ({ ...prev, open: false }))}
+          severity={notification.severity}
+          sx={{ width: '100%' }}
+        >
           {notification.message}
         </Alert>
       </Snackbar>
