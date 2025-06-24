@@ -21,8 +21,7 @@ const {
   supervisorRoutes,
   supplierContractRoutes,
   packageRoutes,
-  importInspectionRoutes
-  importOrderRoutes,
+  importInspectionRoutes,
 } = require('./routes');
 
 // Middlewares
@@ -43,9 +42,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/medicine', medicineRoutes);
 app.use('/api/import-inspections', importInspectionRoutes);
-app.use('/api/import-orders', route.importOrderRoutes);
 app.use('/api/notifications', route.notificationRoutes);
-app.use('/api/import-orders', importOrderRoutes);
+app.use('/api/import-orders', route.importOrderRoutes);
 app.use('api/thingsboard', route.thingsboardRoutes);
 
 // Protected routes với role-based access

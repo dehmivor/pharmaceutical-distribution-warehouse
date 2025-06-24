@@ -72,125 +72,69 @@ const fetcher = async (url, signal) => {
 };
 
 const useImportOrders = (queryParams = {}) => {
-  const { page = 1, limit = 10, search, ...filters } = queryParams;
-
-  // State management
-  const [data, setData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [lastFetchParams, setLastFetchParams] = useState(null);
+  const [apiDebugInfo, setApiDebugInfo] = useState(null);
 
-  // Ref để track abort controller
-  const abortControllerRef = useRef(null);
+  const fetchOrders = async (params = {}) => {
+    setLoading(true);
+    setError(null);
 
-  // Process filters
-  const processedFilters = { ...filters };
-  if (filters.status && typeof filters.status === 'string' && filters.status.includes(',')) {
-    processedFilters.status = filters.status;
-  }
+    try {
+      const queryParams = new URLSearchParams({
+        page: params.page || 1,
+        limit: params.limit || 10,
+        ...params.filters
+      });
 
-  if (search) {
-    processedFilters.search = search;
-  }
+      const url = `/api/import-orders?${queryParams.toString()}`;
+      const token = localStorage.getItem('auth-token');
+      const headers = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      };
 
-  // Build query params
-  const params = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
-    ...processedFilters
-  }).toString();
-
-  const url = `/?${params}`;
-
-  // Fetch function
-  const fetchData = useCallback(
-    async (fetchUrl, force = false) => {
-      // Prevent duplicate requests
-      if (!force && lastFetchParams === fetchUrl && data && !error) {
-        console.log('🔄 Using cached data for:', fetchUrl);
-        return;
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
       }
 
-      try {
-        setIsLoading(true);
-        setError(null);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers
+      });
 
-        // Cancel previous request if exists
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
-
-        // Create new abort controller
-        abortControllerRef.current = new AbortController();
-
-        console.log('🚀 Fetching data for:', fetchUrl);
-
-        const result = await fetcher(fetchUrl, abortControllerRef.current.signal);
-
-        setData(result);
-        setLastFetchParams(fetchUrl);
-        setError(null);
-
-        console.log('✅ Fetch Success:', result);
-      } catch (err) {
-        if (err.message !== 'Request cancelled') {
-          setError(err);
-          console.error('❌ Fetch Error:', err);
-        }
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
-    },
-    [lastFetchParams, data, error]
-  );
 
-  // Manual refresh function (equivalent to SWR's mutate)
-  const mutate = useCallback(async () => {
-    console.log('🔄 Manual refresh triggered');
-    await fetchData(url, true); // Force refresh
-  }, [fetchData, url]);
+      const data = await response.json();
 
-  // Effect to fetch data when params change
-  useEffect(() => {
-    fetchData(url);
+      setApiDebugInfo({
+        url,
+        status: response.status,
+        headers: Object.fromEntries(response.headers.entries()),
+        data,
+        timestamp: new Date().toISOString()
+      });
 
-    // Cleanup function
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      if (data.success) {
+        setOrders(data.data || []);
+      } else {
+        throw new Error(data.message || 'API response unsuccessful');
       }
-    };
-  }, [fetchData, url]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+    } catch (error) {
+      setError(error.message);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔧 Using mock data as fallback');
       }
-    };
-  }, []);
-
-  return {
-    importOrders: data?.data || [],
-    pagination: data?.pagination || {
-      current_page: page,
-      total_pages: 1,
-      total_items: 0,
-      items_per_page: limit,
-      has_next: false,
-      has_prev: false
-    },
-    isLoading,
-    error,
-    mutate,
-    success: data?.success || false,
-    // Additional utilities
-    refetch: mutate, // Alias for mutate
-    isIdle: !isLoading && !error && !data, // When no request has been made
-    isSuccess: !isLoading && !error && !!data, // Successful state
-    isError: !!error // Error state
+    } finally {
+      setLoading(false);
+    }
   };
+
+  return { orders, loading, error, apiDebugInfo, fetchOrders };
 };
 
 export default useImportOrders;
