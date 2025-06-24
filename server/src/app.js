@@ -20,6 +20,7 @@ const {
   medicineRoutes,
   supervisorRoutes,
   packageRoutes,
+  importInspectionRoutes
 } = require('./routes');
 const importOrderRoutes = require('./routes/importOrderRoutes');
 
@@ -40,7 +41,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/medicine', medicineRoutes);
-
+app.use('/api/import-inspections', importInspectionRoutes);
 app.use('/api/import-orders', route.importOrderRoutes);
 app.use('api/thingsboard', route.thingsboardRoutes);
 
