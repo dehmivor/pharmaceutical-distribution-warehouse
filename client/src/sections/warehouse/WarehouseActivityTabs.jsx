@@ -1,26 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useTheme } from '@mui/material/styles';
+import { TabsType } from '@/enum';
+import { getRadiusStyles } from '@/utils/getRadiusStyles';
+import Box from '@mui/material/Box';
+import Breadcrumbs from '@mui/material/Breadcrumbs';
 import Grid from '@mui/material/Grid';
+import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
+import { useTheme } from '@mui/material/styles';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Breadcrumbs from '@mui/material/Breadcrumbs';
-import Link from '@mui/material/Link';
-import { TabsType } from '@/enum';
-import { getRadiusStyles } from '@/utils/getRadiusStyles';
-import { IconHome, IconPackage, IconList, IconChevronRight } from '@tabler/icons-react';
+import { IconChevronRight, IconHome, IconList, IconPackage } from '@tabler/icons-react';
+import { useState } from 'react';
 
 // Import components
+import ImportOrderListTab from '@/sections/warehouse/ImportOrderListTab';
 import ReceiptList from '@/sections/warehouse/ReceiptList';
-import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
-import { Create } from '@mui/icons-material';
 import CreateReceiptTab from './CreateReceiptTab';
-
 
 /***************************  BORDER WITH RADIUS  ***************************/
 
@@ -253,7 +250,7 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
 
             {/* Tab Panel - Danh sách đơn nhập */}
             <TabPanel value={activeTab} index={2}>
-              <PurchaseOrderListTab />
+              <ImportOrderListTab />
             </TabPanel>
           </Box>
         </Stack>

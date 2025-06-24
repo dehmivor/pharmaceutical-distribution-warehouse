@@ -24,7 +24,6 @@ const {
   importOrderRoutes,
 } = require('./routes');
 
-
 // Middlewares
 app.use(helmet());
 app.use(cors({ origin: config.clientUrl, credentials: true }));
@@ -42,6 +41,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/medicine', medicineRoutes);
+app.use('/api/notifications', route.notificationRoutes);
 
 app.use('/api/import-orders', importOrderRoutes);
 app.use('api/thingsboard', route.thingsboardRoutes);
