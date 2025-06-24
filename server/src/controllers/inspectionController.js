@@ -1,6 +1,4 @@
-const importInspectionService = require('../services/importInspectionService');
-const { successResponse, errorResponse } = require('../utils/responseHelper');
-
+const importInspectionService = require('../services/inspectionService');
 class ImportInspectionController {
   // Tạo phiếu kiểm tra mới
   async createInspection(req, res) {
