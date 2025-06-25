@@ -6,14 +6,15 @@ import {
   Box,
   Button,
   Card,
-  CardContent,
   Chip,
   CircularProgress,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
   FormControl,
+  FormControlLabel,
   Grid,
   IconButton,
   InputLabel,
@@ -21,6 +22,7 @@ import {
   Select,
   Snackbar,
   Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -28,30 +30,26 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Typography,
-  Divider,
-  Switch,
-  FormControlLabel
+  Typography
 } from '@mui/material';
 
 import {
   BarChart as BarChartIcon,
+  CheckCircle as CheckCircleIcon,
+  Close as CloseIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
-  Person as PersonIcon,
   PersonAdd as PersonAddIcon,
+  Person as PersonIcon,
   Refresh as RefreshIcon,
   Security as SecurityIcon,
-  SupervisorAccount as SupervisorIcon,
-  Warehouse as WarehouseIcon,
-  Close as CloseIcon,
   Send as SendIcon,
-  CheckCircle as CheckCircleIcon
+  SupervisorAccount as SupervisorIcon,
+  Warehouse as WarehouseIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
-import { useMemo, useState, useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
-// @project
 import ComponentsWrapper from '@/components/ComponentsWrapper';
 import PresentationCard from '@/components/cards/PresentationCard';
 import axios from 'axios';
@@ -60,7 +58,6 @@ function UserManagement({ onOpenPermissionDialog }) {
   const theme = useTheme();
   const { users, loading, error, refetch } = useUsers();
 
-  // State cho Add User Dialog
   const [openAddUserDialog, setOpenAddUserDialog] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -73,31 +70,28 @@ function UserManagement({ onOpenPermissionDialog }) {
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  // State cho Snackbar notifications
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'success'
   });
 
-  // Filter users theo role
-  const { supervisorUsers, representativeUsers, warehouseUsers } = useMemo(() => {
+  const { supervisorUsers, representativeUsers, warehouseUsers, warehouseManagersUsers } = useMemo(() => {
     const safeUsers = Array.isArray(users) ? users : [];
 
     return {
       supervisorUsers: safeUsers.filter((user) => user?.role === 'supervisor'),
       representativeUsers: safeUsers.filter((user) => user?.role === 'representative'),
-      warehouseUsers: safeUsers.filter((user) => user?.role === 'warehouse')
+      warehouseUsers: safeUsers.filter((user) => user?.role === 'warehouse'),
+      warehouseManagersUsers: safeUsers.filter((user) => user?.role === 'warehouse_manager')
     };
   }, [users]);
 
-  // Validate email format
   const validateEmail = useCallback((email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }, []);
 
-  // Validate form data
   const validateForm = useCallback(() => {
     const errors = {};
 
@@ -121,14 +115,12 @@ function UserManagement({ onOpenPermissionDialog }) {
     return Object.keys(errors).length === 0;
   }, [formData, validateEmail]);
 
-  // Handle form input changes - Prevent any form submission[3]
   const handleFormChange = useCallback((field, value) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value
     }));
 
-    // Clear error for this field
     setFormErrors((prev) => {
       if (prev[field]) {
         const newErrors = { ...prev };
@@ -139,10 +131,8 @@ function UserManagement({ onOpenPermissionDialog }) {
     });
   }, []);
 
-  // Handle form submission - Prevent page reload[3][6]
   const handleFormSubmit = useCallback(
     (event) => {
-      // Critical: Prevent default form submission behavior[3][6]
       event.preventDefault();
       event.stopPropagation();
 
@@ -161,7 +151,6 @@ function UserManagement({ onOpenPermissionDialog }) {
 
     setSubmitting(true);
     try {
-      // Axios automatically handles JSON serialization
       const response = await axios.post(
         'http://localhost:5000/api/accounts/create',
         {
@@ -212,7 +201,6 @@ function UserManagement({ onOpenPermissionDialog }) {
     }
   }, [formData, submitting, refetch]);
 
-  // Reset form function
   const resetForm = useCallback(() => {
     setFormData({
       email: '',
@@ -233,7 +221,6 @@ function UserManagement({ onOpenPermissionDialog }) {
     }
   }, [submitting, resetForm]);
 
-  // Handle button click (not form submission)
   const handleAddUserClick = useCallback(() => {
     setOpenAddUserDialog((state) => !state);
   }, []);
@@ -246,6 +233,8 @@ function UserManagement({ onOpenPermissionDialog }) {
         return 'warning';
       case 'warehouse':
         return 'info';
+      case 'warehouse_manager':
+        return 'primary';
       default:
         return 'default';
     }
@@ -259,6 +248,8 @@ function UserManagement({ onOpenPermissionDialog }) {
         return 'Representative';
       case 'warehouse':
         return 'Warehouse';
+      case 'warehouse_manager':
+        return 'Warehouse Manager';
       default:
         return role || 'Unknown';
     }
@@ -271,6 +262,8 @@ function UserManagement({ onOpenPermissionDialog }) {
       case 'representative':
         return <PersonAddIcon fontSize="small" />;
       case 'warehouse':
+        return <WarehouseIcon fontSize="small" />;
+      case 'warehouse_manager':
         return <WarehouseIcon fontSize="small" />;
       default:
         return <PersonIcon fontSize="small" />;
@@ -385,7 +378,6 @@ function UserManagement({ onOpenPermissionDialog }) {
     );
   };
 
-  // Add User Dialog với form handling đúng cách[3][6]
   const AddUserDialog = () => (
     <Dialog
       open={openAddUserDialog}
@@ -417,11 +409,9 @@ function UserManagement({ onOpenPermissionDialog }) {
 
       <Divider />
 
-      {/* Form với onSubmit handler để prevent reload[3][6] */}
       <form onSubmit={handleFormSubmit} noValidate>
         <DialogContent sx={{ pt: 3 }}>
           <Grid container spacing={3}>
-            {/* Email Field */}
             <Grid item xs={12}>
               <TextField
                 autoFocus
@@ -432,7 +422,6 @@ function UserManagement({ onOpenPermissionDialog }) {
                 value={formData.email}
                 onChange={(e) => handleFormChange('email', e.target.value)}
                 onKeyDown={(e) => {
-                  // Prevent form submission on Enter in text fields[2]
                   if (e.key === 'Enter') {
                     e.preventDefault();
                   }
@@ -445,7 +434,6 @@ function UserManagement({ onOpenPermissionDialog }) {
               />
             </Grid>
 
-            {/* Role Selection */}
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth variant="outlined" error={!!formErrors.role}>
                 <InputLabel>Role</InputLabel>
@@ -468,6 +456,12 @@ function UserManagement({ onOpenPermissionDialog }) {
                       Supervisor
                     </Box>
                   </MenuItem>
+                  <MenuItem value="supervisor">
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <WarehouseIcon fontSize="small" />
+                      Warehouse Manager
+                    </Box>
+                  </MenuItem>
                 </Select>
                 {formErrors.role && (
                   <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
@@ -477,7 +471,6 @@ function UserManagement({ onOpenPermissionDialog }) {
               </FormControl>
             </Grid>
 
-            {/* Manager Status */}
             <Grid item xs={12} sm={6}>
               <FormControlLabel
                 control={
@@ -611,6 +604,14 @@ function UserManagement({ onOpenPermissionDialog }) {
               <Typography variant="body2">Warehouse</Typography>
             </Card>
           </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'info.dark', color: 'info.contrastText' }}>
+              <Typography variant="h4" fontWeight={700}>
+                {warehouseManagersUsers.length}
+              </Typography>
+              <Typography variant="body2">Warehouse Managers</Typography>
+            </Card>
+          </Grid>
         </Grid>
       </PresentationCard>
 
@@ -667,6 +668,14 @@ function UserManagement({ onOpenPermissionDialog }) {
           management.
         </Typography>
         <UserTable users={warehouseUsers} sectionName="Warehouse" />
+      </PresentationCard>
+
+      {/* Warehouse Section */}
+      <PresentationCard title="Warehouse Managers">
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Warehouse managers oversee warehouse operations and ensure efficient inventory management.
+        </Typography>
+        <UserTable users={warehouseManagersUsers} sectionName="Warehouse Managers" />
       </PresentationCard>
 
       {/* Add User Dialog */}
