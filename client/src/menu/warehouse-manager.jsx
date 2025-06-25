@@ -6,25 +6,18 @@ const warehouseManager = {
   children: [
     // 2. Quản lý đơn nhập 
     {
-      id: 'inbound-order-management',
-      title: 'Inbound order Management',
+      id: 'inbound-order',
+      title: 'Inbound order',
       type: 'collapse',
       icon: 'IconFileImport',
       children: [
         {
-          id: 'waiting-for-inbound-approval',
-          title: 'Waitng for inbound approval',
+          id: 'assigned-inbound-order',
+          title: 'Assigned inbound order',
           type: 'item',
-          url: '/wating-for-inbound-approval',
+          url: '/assigned-inbound-order',
           icon: 'IconFileImport'
         },
-        {
-          id: 'waiting-for-packetization',
-          title: 'Waiting for packetization',
-          type: 'item',
-          url: '/waiting-for-packetization',
-          icon: 'IconFileExport'
-        }
       ]
     },
     // 2. Quản lý đơn xuất  

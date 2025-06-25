@@ -4,7 +4,7 @@ import { Box, Container } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useState } from 'react';
 
-function ManageUsers() {
+function ManageInventory() {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
 
@@ -20,4 +20,4 @@ function ManageUsers() {
   );
 }
 
-export default ManageUsers;
+export default ManageInventory;
