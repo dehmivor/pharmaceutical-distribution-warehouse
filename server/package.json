@@ -29,11 +29,12 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "test:server": "jest --config jest.config.js"
+    "test:server": "jest --config jest.config.js && mv server/test-results/junit.xml server/test-results/junit-$(date +%Y-%m-%d-%H-%M-%S).xml"
   },
   "devDependencies": {
     "eslint": "^9.26.0",
     "jest": "^29.7.0",
+    "jest-junit": "^16.0.0",
     "nodemon": "^3.1.10",
     "prettier": "^3.5.3"
   }
