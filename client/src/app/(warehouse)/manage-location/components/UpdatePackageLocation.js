@@ -1,5 +1,5 @@
-"use client"
-import { useEffect, useState } from "react"
+'use client';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -21,163 +21,163 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Grid,
-} from "@mui/material"
+  Grid
+} from '@mui/material';
 
 // Sample batchId, replace with dynamic value in a real application
-const BATCH_ID = "685a5e26c832ad11bcaa5fdd"
+const BATCH_ID = '685a5e26c832ad11bcaa5fdd';
 
 export default function UpdatePackageLocation() {
-  const [packages, setPackages] = useState([])
-  const [areas, setAreas] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [areasLoading, setAreasLoading] = useState(false)
-  const [open, setOpen] = useState(false)
-  const [selected, setSelected] = useState(null)
+  const [packages, setPackages] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [areasLoading, setAreasLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({
-    areaId: "",
-    bay: "",
-    row: "",
-    column: "",
-  })
+    areaId: '',
+    bay: '',
+    row: '',
+    column: ''
+  });
 
   // Fetch areas from backend
   const fetchAreas = async () => {
-    setAreasLoading(true)
+    setAreasLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/areas")
-      if (!res.ok) throw new Error("Failed to fetch areas")
-      const data = await res.json()
-      setAreas(data)
+      const res = await fetch('http://localhost:5000/api/areas');
+      if (!res.ok) throw new Error('Failed to fetch areas');
+      const data = await res.json();
+      setAreas(data);
     } catch (error) {
-      console.error("Error fetching areas:", error)
-      alert("Không thể tải danh sách khu vực. Vui lòng thử lại.")
+      console.error('Error fetching areas:', error);
+      alert('Không thể tải danh sách khu vực. Vui lòng thử lại.');
     } finally {
-      setAreasLoading(false)
+      setAreasLoading(false);
     }
-  }
+  };
 
   // Fetch packages by batchId
   const fetchPackages = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/packages/by-batch/${BATCH_ID}`)
-      if (!res.ok) throw new Error("Failed to fetch packages")
-      const data = await res.json()
+      const res = await fetch(`http://localhost:5000/api/packages/by-batch/${BATCH_ID}`);
+      if (!res.ok) throw new Error('Failed to fetch packages');
+      const data = await res.json();
       const mapped = data.map((item, idx) => ({
         id: item._id,
         packageCode: `TH-${idx + 1}`,
-        batchCode: item.batch_id?.batch_code || "",
-        drugName: item.batch_id?.medicine_id?.medicine_name || "",
+        batchCode: item.batch_id?.batch_code || '',
+        drugName: item.batch_id?.medicine_id?.medicine_name || '',
         location: item.location_id
           ? `${item.location_id.area_id.name}-${item.location_id.bay}-${item.location_id.row}-${item.location_id.column}`
-          : "",
-        status: item.location_id ? "Đã xếp" : "Chưa xếp",
-      }))
-      setPackages(mapped)
+          : '',
+        status: item.location_id ? 'Đã xếp' : 'Chưa xếp'
+      }));
+      setPackages(mapped);
     } catch (error) {
-      console.error("Error fetching packages:", error)
+      console.error('Error fetching packages:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchPackages()
-    fetchAreas()
-  }, [])
+    fetchPackages();
+    fetchAreas();
+  }, []);
 
   const handleOpen = (pkg) => {
-    setSelected(pkg)
+    setSelected(pkg);
 
     // Parse existing location if available
     if (pkg.location) {
-      const parts = pkg.location.split("-")
+      const parts = pkg.location.split('-');
       if (parts.length === 4) {
-        const [areaName, bay, row, column] = parts
-        const area = areas.find((a) => a.name === areaName)
+        const [areaName, bay, row, column] = parts;
+        const area = areas.find((a) => a.name === areaName);
         setForm({
-          areaId: area?._id || "",
+          areaId: area?._id || '',
           bay,
           row,
-          column,
-        })
+          column
+        });
       } else {
         setForm({
-          areaId: "",
-          bay: "",
-          row: "",
-          column: "",
-        })
+          areaId: '',
+          bay: '',
+          row: '',
+          column: ''
+        });
       }
     } else {
       setForm({
-        areaId: "",
-        bay: "",
-        row: "",
-        column: "",
-      })
+        areaId: '',
+        bay: '',
+        row: '',
+        column: ''
+      });
     }
-    setOpen(true)
-  }
+    setOpen(true);
+  };
 
   const handleClose = () => {
-    setOpen(false)
-    setSelected(null)
+    setOpen(false);
+    setSelected(null);
     setForm({
-      areaId: "",
-      bay: "",
-      row: "",
-      column: "",
-    })
-  }
+      areaId: '',
+      bay: '',
+      row: '',
+      column: ''
+    });
+  };
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setForm({ ...form, [name]: value })
-  }
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+  };
 
   // Update package location
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!selected) return
+    if (!selected) return;
 
     // Validate form
     if (!form.areaId || !form.bay || !form.row || !form.column) {
-      alert("Vui lòng điền đầy đủ thông tin vị trí.")
-      return
+      alert('Vui lòng điền đầy đủ thông tin vị trí.');
+      return;
     }
 
     try {
       const res = await fetch(`http://localhost:5000/api/packages/${selected.id}/location-detailed`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           areaId: form.areaId,
           bay: form.bay,
           row: form.row,
-          column: form.column,
-        }),
-      })
+          column: form.column
+        })
+      });
 
       if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error(errorData.error || "Failed to update location")
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to update location');
       }
 
       // Reload data after successful update
-      await fetchPackages()
-      handleClose()
-      alert("Cập nhật vị trí thành công!")
+      await fetchPackages();
+      handleClose();
+      alert('Cập nhật vị trí thành công!');
     } catch (error) {
-      console.error("Error updating location:", error)
-      alert(`Cập nhật vị trí thất bại: ${error.message || "Vui lòng thử lại."}`)
+      console.error('Error updating location:', error);
+      alert(`Cập nhật vị trí thất bại: ${error.message || 'Vui lòng thử lại.'}`);
     }
-  }
+  };
 
   // Check if all packages have locations assigned
-  const allFilled = packages.length > 0 && packages.every((pkg) => pkg.status === "Đã xếp")
+  const allFilled = packages.length > 0 && packages.every((pkg) => pkg.status === 'Đã xếp');
 
   return (
     <Box maxWidth={1200} mx="auto" mt={4}>
@@ -213,7 +213,7 @@ export default function UpdatePackageLocation() {
                     <TableCell>{pkg.drugName}</TableCell>
                     <TableCell>{pkg.location}</TableCell>
                     <TableCell>
-                      <Chip label={pkg.status} color={pkg.status === "Đã xếp" ? "success" : "warning"} size="small" />
+                      <Chip label={pkg.status} color={pkg.status === 'Đã xếp' ? 'success' : 'warning'} size="small" />
                     </TableCell>
                     <TableCell>
                       <Button variant="contained" size="small" onClick={() => handleOpen(pkg)}>
@@ -236,13 +236,7 @@ export default function UpdatePackageLocation() {
               <Grid item xs={12}>
                 <FormControl fullWidth required>
                   <InputLabel>Khu vực</InputLabel>
-                  <Select
-                    name="areaId"
-                    value={form.areaId}
-                    onChange={handleChange}
-                    label="Khu vực"
-                    disabled={areasLoading}
-                  >
+                  <Select name="areaId" value={form.areaId} onChange={handleChange} label="Khu vực" disabled={areasLoading}>
                     {areas.map((area) => (
                       <MenuItem key={area._id} value={area._id}>
                         {area.name} {area.description && `- ${area.description}`}
@@ -253,27 +247,11 @@ export default function UpdatePackageLocation() {
               </Grid>
 
               <Grid item xs={4}>
-                <TextField
-                  label="Bay"
-                  name="bay"
-                  value={form.bay}
-                  onChange={handleChange}
-                  fullWidth
-                  required
-                  helperText="Ví dụ: 01"
-                />
+                <TextField label="Bay" name="bay" value={form.bay} onChange={handleChange} fullWidth required helperText="Ví dụ: 01" />
               </Grid>
 
               <Grid item xs={4}>
-                <TextField
-                  label="Hàng"
-                  name="row"
-                  value={form.row}
-                  onChange={handleChange}
-                  fullWidth
-                  required
-                  helperText="Ví dụ: 01"
-                />
+                <TextField label="Hàng" name="row" value={form.row} onChange={handleChange} fullWidth required helperText="Ví dụ: 01" />
               </Grid>
 
               <Grid item xs={4}>
@@ -298,5 +276,5 @@ export default function UpdatePackageLocation() {
         </DialogActions>
       </Dialog>
     </Box>
-  )
+  );
 }

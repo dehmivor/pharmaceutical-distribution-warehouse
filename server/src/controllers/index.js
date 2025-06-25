@@ -11,4 +11,6 @@ module.exports = {
   thingsboardController: require('./thingsboardController'),
   importInspectionController: require('./importInspectionController'),
   areaController: require('./areaController'),
+  stripeController: require('./stripeController'),
+  packageController: require('./packageController'),
 };

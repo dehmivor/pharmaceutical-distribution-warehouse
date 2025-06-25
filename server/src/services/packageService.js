@@ -105,38 +105,12 @@ const packageService = {
       const { batch_id, quantity, location_id, status = 'PENDING' } = packageData;
 
       // Validate required fields
-      if (!batch_id || !quantity || !location_id) {
+      if (!batch_id || !quantity) {
         return {
           success: false,
-          message: 'Batch ID, quantity, và location ID là bắt buộc',
+          message: 'Batch ID, quantity là bắt buộc',
         };
       }
-
-      // Check if location exists and is available
-      const location = await Location.findById(location_id);
-      if (!location) {
-        return {
-          success: false,
-          message: 'Location không tồn tại',
-        };
-      }
-
-      if (!location.available) {
-        return {
-          success: false,
-          message: 'Location không khả dụng',
-        };
-      }
-
-      // Check if location already has a package
-      const existingPackage = await Package.findOne({ location_id });
-      if (existingPackage) {
-        return {
-          success: false,
-          message: 'Location đã có package khác',
-        };
-      }
-
       // Create new package
       const newPackage = new Package({
         batch_id,

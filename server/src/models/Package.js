@@ -14,6 +14,10 @@ const packageSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'Quantity is required'],
     min: [0, 'Quantity cannot be negative'],
+  },
+  import_order_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ImportOrder',
   }
 });
 

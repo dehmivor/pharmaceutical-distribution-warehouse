@@ -62,8 +62,6 @@ const authenticate = async (req, res, next) => {
         message: 'Account is inactive',
       });
     }
-
-    // Attach user data to request với thông tin mới nhất từ database
     req.user = {
       userId: user._id.toString(),
       email: user.email,

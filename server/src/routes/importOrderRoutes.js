@@ -41,7 +41,7 @@ router.delete('/:id/details/:detailId', importOrderController.removeImportOrderD
 router.delete('/:id', importOrderController.deleteImportOrder);
 
 // Update order status
-router.patch('/:id/status', authenticate, authorize('supervisor'), importOrderController.updateOrderStatus);
+router.patch('/:id/status', importOrderController.updateOrderStatus);
 
 // Get valid status transitions
 router.get('/status-transitions', importOrderController.getValidStatusTransitions);
