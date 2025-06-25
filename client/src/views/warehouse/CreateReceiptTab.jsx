@@ -2,7 +2,7 @@
 import { useAlert } from '@/hooks/useAlert';
 import useImportOrders from '@/hooks/useImportOrders';
 import OrderSelectionDialog from '@/sections/warehouse/create-inspect/OrderSelectionDialog';
-import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
+import EnhancedReceiptForm from '@/sections/warehouse/create-inspect/EnhancedReceiptForm';
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
 
@@ -95,7 +95,7 @@ export default function CreateReceiptTab() {
       </Typography>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Tạo phiếu nhập kho từ đơn đặt hàng hoặc nhập thủ công
+        Tạo phiếu kiểm nhập từ đơn đặt hàng hoặc nhập thủ công
       </Typography>
 
       {error && (

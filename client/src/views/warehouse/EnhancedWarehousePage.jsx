@@ -5,7 +5,7 @@ import { Box, Paper, Stepper, Step, StepLabel, Typography, Button, Tabs, Tab, Al
 import OrderStatus from '@/sections/warehouse/OrderStatus';
 import InventoryCheck from '@/sections/warehouse/InventoryCheck';
 import UnitConversion from '@/sections/warehouse/UnitConversion';
-import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
+import EnhancedReceiptForm from '@/sections/warehouse/create-inspect/EnhancedReceiptForm';
 import ReceiptList from '@/sections/warehouse/ReceiptList';
 import SupervisorApproval from '@/sections/supervisor/SupervisorApproval';
 

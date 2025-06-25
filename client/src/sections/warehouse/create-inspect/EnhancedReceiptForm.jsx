@@ -28,7 +28,7 @@ import {
   Typography
 } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import ReceiptStatistics from './ReceiptStatistics';
+import ReceiptStatistics from '../dashboard-import/ReceiptStatistics';
 
 const UNIT_CONVERSIONS = {
   kg: { g: 1000, tấn: 0.001 },
@@ -319,7 +319,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       const response = await createInspection(inspectionData);
 
       console.log('✅ Tạo phiếu thành công:', response);
-      showAlert(`Tạo phiếu nhập kho ${response.receipt_id || receiptData.receiptId} thành công!`, 'success');
+      showAlert(`Tạo phiếu kiểm nhập ${response.receipt_id || receiptData.receiptId} thành công!`, 'success');
 
       if (onReceiptCreate) {
         onReceiptCreate({
