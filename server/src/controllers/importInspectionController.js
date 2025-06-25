@@ -1,8 +1,4 @@
-const ImportOrder = require('../models/ImportOrder');
 const ImportInspection = require('../models/ImportInspection');
-const Batch = require('../models/Batch');
-const Medicine = require('../models/Medicine');
-const mongoose = require('mongoose');
 
 // Lấy danh sách các thùng theo batch_id
 exports.getByBatch = async (req, res) => {
@@ -15,57 +11,58 @@ exports.getByBatch = async (req, res) => {
         populate: { path: 'medicine_id' },
       })
       .populate('created_by');
+
     res.json(inspections);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// Cập nhật vị trí thùng
 exports.updateLocation = async (req, res) => {
   try {
-    const { id } = req.params; // id của import inspection (thùng)
-    const { location } = req.body; // location là string hoặc object tùy bạn thiết kế
+    const { id } = req.params;
+    const { location } = req.body;
 
-    const updated = await ImportInspection.findByIdAndUpdate(id, { location }, { new: true });
-    if (!updated) return res.status(404).json({ error: 'Not found' });
+    const updated = await ImportInspection.findByIdAndUpdate(
+      id,
+      { location },
+      { new: true, runValidators: true },
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Thùng nhập khẩu không tồn tại' });
+    }
+
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
-const packageController = {
-  // Get packages by location
-  getInspectionByImportOrder: async (req, res) => {
-    try {
-      const { importOrderId } = req.params;
 
-      const inspections = await ImportInspection.find({ import_order_id: importOrderId })
-        .populate({
-          path: 'batch_id',
-          select: '-createdAt -updatedAt -production_date -expiry_date',
-          populate: [
-            {
-              path: 'supplier_id',
-              select: 'name',
-            },
-            {
-              path: 'medicine_id',
-              select: 'name',
-            },
-          ],
-        })
-        .sort({ _id: -1 });
+// Lấy danh sách inspection theo import_order_id
+exports.getInspectionByImportOrder = async (req, res) => {
+  try {
+    const { importOrderId } = req.params;
 
-      res.status(200).json({ inspections });
-    } catch (error) {
-      console.error('Error fetching import inspections:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Error fetching import order inspections',
-        error: error.message,
-      });
-    }
-  },
+    const inspections = await ImportInspection.find({ import_order_id: importOrderId })
+      .populate({
+        path: 'batch_id',
+        select: '-createdAt -updatedAt -production_date -expiry_date',
+        populate: [
+          { path: 'supplier_id', select: 'name' },
+          { path: 'medicine_id', select: 'name' },
+        ],
+      })
+      .sort({ _id: -1 });
+
+    res.status(200).json({ inspections });
+  } catch (error) {
+    console.error('Lỗi khi truy xuất dữ liệu kiểm tra:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi hệ thống khi lấy dữ liệu kiểm tra',
+      error: error.message,
+    });
+  }
 };
-
-module.exports = packageController;
