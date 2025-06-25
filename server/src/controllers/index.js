@@ -10,5 +10,6 @@ module.exports = {
   notificationController: require('./notificationController'),
   thingsboardController: require('./thingsboardController'),
   ImportInspectionController: require("./importInspectionController"),
-  packageController: require('./packageController')
+  packageController: require('./packageController'),
+  areaController: require('./areaController'),
 };

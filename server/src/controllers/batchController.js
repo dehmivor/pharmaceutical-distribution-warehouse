@@ -43,3 +43,12 @@ exports.checkCapacity = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.getAll = async (req, res) => {
+  try {
+    const batches = await Batch.find().populate('medicine_id');
+    res.json(batches);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

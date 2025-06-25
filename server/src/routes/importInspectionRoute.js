@@ -4,6 +4,9 @@ const importInspectionController = require('../controllers/importInspectionContr
 const authenticate = require('../middlewares/authenticate');
 const authorize = require('../middlewares/authorize');
 
+// GET /api/import-inspections/by-batch/:batchId
+router.get('/by-batch/:batchId', importInspectionController.getByBatch);
+router.put('/:id/location', importInspectionController.updateLocation);
 
 // Apply authentication middleware to all routes
 //router.use(authenticate);

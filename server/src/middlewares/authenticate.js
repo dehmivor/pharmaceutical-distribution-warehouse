@@ -1,7 +1,6 @@
 // middlewares/authMiddleware.js
 const authService = require('../services/authService');
 const User = require('../models/User');
-const constants = require('../utils/constants');
 
 const authenticate = async (req, res, next) => {
   try {
@@ -67,7 +66,7 @@ const authenticate = async (req, res, next) => {
     }
     */
 
-    
+
     // Attach user data to request với thông tin mới nhất từ database
     req.user = {
       userId: user._id.toString(),
