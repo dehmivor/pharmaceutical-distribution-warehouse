@@ -3,10 +3,10 @@ import dynamic from 'next/dynamic';
 
 // @project
 
-const ManageUsers = dynamic(() => import('@/views/supervisor/manage-users'));
+const ManageInventory = dynamic(() => import('@/views/warehouse-manager/manage-inventory'));
 
 /***************************  AUTH - LOGIN  ***************************/
 
 export default function Login() {
-  return <ManageUsers />;
+  return <ManageInventory/>;
 }
