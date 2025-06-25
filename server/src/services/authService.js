@@ -314,7 +314,6 @@ const authService = {
           message: 'Email hoặc mật khẩu không chính xác',
         };
       }
-
       // Check user status
       if (user.status !== constants.USER_STATUSES.ACTIVE) {
         return {
@@ -322,6 +321,7 @@ const authService = {
           message: 'Tài khoản đã bị khóa hoặc không hoạt động',
         };
       }
+
 
       // Verify password
       const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -349,6 +349,7 @@ const authService = {
         process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET,
         { expiresIn: '7d' },
       );
+
 
       return {
         success: true,

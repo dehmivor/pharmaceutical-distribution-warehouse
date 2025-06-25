@@ -16,4 +16,6 @@ router.put('/packages/:packageId/confirm', packageController.confirmPackageStora
 // Get packages by location
 router.get('/packages/location/:locationId', packageController.getPackagesByLocation);
 
+router.post('/packages', packageController.createPackage);
+
 module.exports = router;

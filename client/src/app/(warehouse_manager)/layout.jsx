@@ -3,12 +3,12 @@ import PropTypes from 'prop-types';
 import dynamic from 'next/dynamic';
 
 // @project
-const WarehouseLayout = dynamic(() => import('@/layouts/WarehouseLayout'));
+const WarehouseManagerLayout = dynamic(() => import('@/layouts/WarehouseManagerLayout'));
 
 /***************************  LAYOUT - AUTH PAGES  ***************************/
 
 export default function Layout({ children }) {
-  return <WarehouseLayout>{children}</WarehouseLayout>;
+  return <WarehouseManagerLayout>{children}</WarehouseManagerLayout>;
 }
 
 Layout.propTypes = { children: PropTypes.any };

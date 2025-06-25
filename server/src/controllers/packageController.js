@@ -92,7 +92,7 @@ const packageController = {
       const packageData = req.body;
 
       // Validate required fields
-      if (!packageData.batch_id || !packageData.quantity || !packageData.location_id) {
+      if (!packageData.batch_id || !packageData.quantity) {
         return res.status(400).json({
           success: false,
           message: 'Batch ID, quantity, and location ID are required',
@@ -193,13 +193,12 @@ const packageController = {
 
       res.status(200).json({
         success: true,
-        data: result.packages,
+        data: packages,
       });
     } catch (error) {
-      console.error('Error getting packages by location:', error);
       res.status(500).json({
         success: false,
-        message: 'Error getting packages by location',
+        message: 'Error fetching packages by location',
         error: error.message,
       });
     }
@@ -237,12 +236,10 @@ const packageController = {
       // Phân tích chuỗi vị trí: "area-bay-row-column"
       const parts = location.split('-');
       if (parts.length !== 4) {
-        return res
-          .status(400)
-          .json({
-            error:
-              'Định dạng vị trí không hợp lệ. Sử dụng "area-bay-row-column" (ví dụ: "A1-01-01-01")',
-          });
+        return res.status(400).json({
+          error:
+            'Định dạng vị trí không hợp lệ. Sử dụng "area-bay-row-column" (ví dụ: "A1-01-01-01")',
+        });
       }
       const [areaName, bay, row, column] = parts;
 
