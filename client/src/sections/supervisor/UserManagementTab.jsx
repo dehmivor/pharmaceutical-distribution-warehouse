@@ -54,6 +54,7 @@ import { useMemo, useState, useCallback } from 'react';
 // @project
 import ComponentsWrapper from '@/components/ComponentsWrapper';
 import PresentationCard from '@/components/cards/PresentationCard';
+import axios from 'axios';
 
 function UserManagement({ onOpenPermissionDialog }) {
   const theme = useTheme();
@@ -155,51 +156,55 @@ function UserManagement({ onOpenPermissionDialog }) {
     [validateForm]
   );
 
-  // Handle create user API call
   const handleCreateUser = useCallback(async () => {
     if (submitting) return;
 
     setSubmitting(true);
     try {
-      const response = await fetch('/api/accounts/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('auth-token')}`
-        },
-        body: JSON.stringify({
+      // Axios automatically handles JSON serialization
+      const response = await axios.post(
+        'http://localhost:5000/api/accounts/create',
+        {
           email: formData.email.toLowerCase().trim(),
           role: formData.role,
           is_manager: formData.is_manager,
           generatePassword: formData.generatePassword,
           customPassword: formData.generatePassword ? null : formData.customPassword,
-          permissions: formData.permissions
-        })
-      });
+          permissions: formData.permissions,
+          status: 'inactive'
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('auth-token')}`
+          }
+        }
+      );
 
-      const result = await response.json();
-
-      if (response.ok) {
+      // Axios puts response data in .data property
+      if (response.status === 201) {
+        // Use appropriate success status
         setSnackbar({
           open: true,
           message: 'User created successfully! Activation email sent to user.',
           severity: 'success'
         });
 
-        // Reset form và đóng dialog
         resetForm();
         setOpenAddUserDialog(false);
-
-        // Refresh user list
         refetch();
       } else {
-        throw new Error(result.message || 'Failed to create user');
+        throw new Error(response.data.message || 'Failed to create user');
       }
     } catch (error) {
       console.error('Error creating user:', error);
+
+      // Axios error handling
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create user. Please try again.';
+
       setSnackbar({
         open: true,
-        message: error.message || 'Failed to create user. Please try again.',
+        message: errorMessage,
         severity: 'error'
       });
     } finally {

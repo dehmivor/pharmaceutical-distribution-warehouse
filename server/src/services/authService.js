@@ -43,7 +43,7 @@ const authService = {
         email: email.toLowerCase().trim(),
         password: hashedPassword,
         role: role || constants.USER_ROLES.WAREHOUSE,
-        status: constants.USER_STATUSES.ACTIVE,
+        status: constants.USER_STATUSES.PENDING,
       });
 
       const savedUser = newUser.save();
@@ -835,11 +835,6 @@ const authService = {
       if (user.status === constants.USER_STATUSES.ACTIVE) {
         throw new Error('Tài khoản đã được kích hoạt trước đó');
       }
-
-      if (user.status !== constants.USER_STATUSES.PENDING) {
-        throw new Error('Tài khoản không ở trạng thái chờ kích hoạt');
-      }
-
       // 4. Kiểm tra OTP
       if (!user.otp_reset || !user.otp_reset.code) {
         console.log('❌ No OTP found for user:', email);
