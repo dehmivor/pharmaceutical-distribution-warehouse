@@ -37,16 +37,13 @@ import {
   Receipt as ReceiptIcon
 } from '@mui/icons-material';
 
-import { useRole } from '@/contexts/RoleContext';
 import useImportOrders from '@/hooks/useImportOrders'; // Adjust the import path
 
 const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export default function PurchaseOrderListTab() {
-  const { user, userRole, hasRole } = useRole();
-
   // Replace mock state with the custom hook
-  const { orders: purchaseOrders, loading: isLoading, error: isError, fetchOrders, apiDebugInfo } = useImportOrders();
+  const { orders: purchaseOrders, loading: isLoading, error: isError, fetchOrders } = useImportOrders();
 
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -61,8 +58,7 @@ export default function PurchaseOrderListTab() {
     totalPages: Math.ceil(purchaseOrders.length / 10) || 1
   };
 
-  console.log('in ra useRole', useRole());
-  console.log('API Debug Info:', apiDebugInfo);
+  console.log('Purchase Orders:', purchaseOrders);
 
   // Fetch data on component mount and when filters change
   useEffect(() => {
@@ -246,10 +242,10 @@ export default function PurchaseOrderListTab() {
   const getStatusColor = (status) => {
     const statusColors = {
       draft: 'default',
-      pending: 'warning',
+      delivered: 'warning',
       approved: 'success',
-      rejected: 'error',
-      completed: 'info'
+      checked: 'info',
+      arranged: 'info'
     };
     return statusColors[status] || 'default';
   };
@@ -257,10 +253,10 @@ export default function PurchaseOrderListTab() {
   const getStatusLabel = (status) => {
     const statusLabels = {
       draft: 'Nháp',
-      pending: 'Chờ duyệt',
+      delivered: 'Đã giao',
       approved: 'Đã duyệt',
-      rejected: 'Từ chối',
-      completed: 'Hoàn thành'
+      arranged: 'Đã sắp xếp',
+      checked: 'Đã kiểm tra'
     };
     return statusLabels[status] || status;
   };
@@ -449,11 +445,11 @@ export default function PurchaseOrderListTab() {
           <TableHead>
             <TableRow>
               <TableCell>Mã đơn</TableCell>
-              <TableCell>Ngày tạo</TableCell>
+              <TableCell>Mã hợp đồng</TableCell>
               <TableCell>Nhà cung cấp</TableCell>
               <TableCell>Tổng tiền</TableCell>
               <TableCell>Trạng thái</TableCell>
-              <TableCell>Người tạo</TableCell>
+              <TableCell>Số mặt hàng</TableCell>
               <TableCell align="center">Thao tác</TableCell>
             </TableRow>
           </TableHead>
@@ -473,27 +469,42 @@ export default function PurchaseOrderListTab() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredOrders.map((order) => (
-                <TableRow key={order._id} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="medium">
-                      {order.orderNumber || order._id}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{formatDate(order.createdAt)}</TableCell>
-                  <TableCell>{order.supplier}</TableCell>
-                  <TableCell>{formatCurrency(order.totalAmount)}</TableCell>
-                  <TableCell>
-                    <Chip label={getStatusLabel(order.status)} color={getStatusColor(order.status)} size="small" />
-                  </TableCell>
-                  <TableCell>{order.created_by?.email}</TableCell>
-                  <TableCell align="center">
-                    <IconButton size="small" onClick={(e) => handleMenuClick(e, order)}>
-                      <MoreVertIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
+              filteredOrders.map((order) => {
+                // Tính tổng tiền từ details
+                const totalAmount = order.details?.reduce((sum, detail) => sum + detail.quantity * detail.unit_price, 0) || 0;
+
+                return (
+                  <TableRow key={order._id} hover>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="medium">
+                        {order._id?.slice(-8).toUpperCase()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{order.supplier_contract_id?.contract_code || 'N/A'}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{order.supplier_contract_id?.supplier_id?.name || 'N/A'}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="medium">
+                        {totalAmount.toLocaleString('vi-VN')} ₫
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={getStatusLabel(order.status)} color={getStatusColor(order.status)} size="small" />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{order.details?.length || 0} mặt hàng</Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton size="small" onClick={(e) => handleMenuClick(e, order)}>
+                        <MoreVertIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
