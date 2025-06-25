@@ -1,8 +1,42 @@
-module.exports = {
-  ...require('./mailtrapService'),
-  ...require('./authService'),
-  ...require('./cronService'),
-  ...require('./emailService'),
-  ...require('./notificationService'),
-  ...require('./thingsboardService'),
+const authService = require('./authService');
+const cronService = require('./cronService');
+const emailService = require('./emailService');
+const notificationService = require('./notificationService');
+const thingsboardService = require('./thingsboardService');
+const importOrderService = require('./importOrderService');
+const inspectionService = require('./inspectionService');
+const medicineService = require('./medicineService');
+const packageService = require('./packageService');
+const stripeService = require('./stripeService');
+const supplierContractService = require('./supplierContractService');
+
+let mailtrapService = {};
+
+// Tải bất đồng bộ
+const loadMailtrap = async () => {
+  try {
+    const module = await import('./mailtrapService.js');
+    mailtrapService = module.default || module;
+  } catch (e) {
+    console.error('Mailtrap load error:', e);
+  }
 };
+
+module.exports = new Promise(async (resolve) => {
+  await loadMailtrap();
+
+  resolve({
+    ...mailtrapService,
+    ...authService,
+    ...cronService,
+    ...emailService,
+    ...notificationService,
+    ...thingsboardService,
+    ...importOrderService,
+    ...inspectionService,
+    ...medicineService,
+    ...packageService,
+    ...stripeService,
+    ...supplierContractService,
+  });
+});

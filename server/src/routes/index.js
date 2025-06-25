@@ -12,4 +12,5 @@ module.exports = {
   importInspectionRoutes: require('./importInspectionRoute'),
   supplierContractRoutes: require('./supplierContractRoute'),
   inspectionRoutes: require('./inspectionRoute'),
+  stripeRoutes: require('./stripeRoute'),
 };

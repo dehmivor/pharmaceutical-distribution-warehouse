@@ -10,4 +10,5 @@ module.exports = {
   notificationController: require('./notificationController'),
   thingsboardController: require('./thingsboardController'),
   importInspectionController: require('./importInspectionController'),
+  stripeController: require('./stripeController'),
 };
