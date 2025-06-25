@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -37,10 +37,14 @@ import {
   Receipt as ReceiptIcon
 } from '@mui/icons-material';
 
-import { useRole } from '@/contexts/RoleContext';
+import useImportOrders from '@/hooks/useImportOrders'; // Adjust the import path
+
+const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export default function PurchaseOrderListTab() {
-  const { user, userRole, hasRole } = useRole();
+  // Replace mock state with the custom hook
+  const { orders: purchaseOrders, loading: isLoading, error: isError, fetchOrders } = useImportOrders();
+
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -50,135 +54,198 @@ export default function PurchaseOrderListTab() {
   const [notes, setNotes] = useState('');
   const [createReceiptDialog, setCreateReceiptDialog] = useState({ open: false, order: null });
 
-  const [purchaseOrders, setPurchaseOrders] = useState([
-    {
-      _id: 'PO001',
-      orderNumber: 'PO001',
-      status: 'draft',
-      createdAt: '2024-06-15T10:30:00Z',
-      created_by: {
-        email: 'user1@example.com'
-      },
-      totalAmount: 5000000,
-      supplier: 'Nhà cung cấp A'
-    },
-    {
-      _id: 'PO002',
-      orderNumber: 'PO002',
-      status: 'pending',
-      createdAt: '2024-06-14T14:20:00Z',
-      created_by: {
-        email: 'user2@example.com'
-      },
-      totalAmount: 3500000,
-      supplier: 'Nhà cung cấp B'
-    },
-    {
-      _id: 'PO003',
-      orderNumber: 'PO003',
-      status: 'approved',
-      createdAt: '2024-06-13T09:15:00Z',
-      created_by: {
-        email: 'user3@example.com'
-      },
-      totalAmount: 7200000,
-      supplier: 'Nhà cung cấp C'
-    },
-    {
-      _id: 'PO004',
-      orderNumber: 'PO004',
-      status: 'completed',
-      createdAt: '2024-06-12T16:45:00Z',
-      created_by: {
-        email: 'user4@example.com'
-      },
-      totalAmount: 2800000,
-      supplier: 'Nhà cung cấp D'
-    },
-    {
-      _id: 'PO005',
-      orderNumber: 'PO005',
-      status: 'rejected',
-      createdAt: '2024-06-11T11:30:00Z',
-      created_by: {
-        email: 'user5@example.com'
-      },
-      totalAmount: 4100000,
-      supplier: 'Nhà cung cấp E'
-    }
-  ]);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(null);
-
   const pagination = {
-    totalPages: 1
+    totalPages: Math.ceil(purchaseOrders.length / 10) || 1
   };
 
-  console.log('in ra useRole', useRole());
+  console.log('Purchase Orders:', purchaseOrders);
 
-  const mutate = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setPurchaseOrders(mockPurchaseOrders);
-      setIsLoading(false);
-    }, 500);
-  };
+  // Fetch data on component mount and when filters change
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchOrders({
+        page,
+        limit: 10,
+        filters: {
+          ...(statusFilter !== 'all' && { status: statusFilter }),
+          ...(searchKeyword && { search: searchKeyword })
+        }
+      });
+    };
 
+    fetchData();
+  }, [page, statusFilter, searchKeyword, fetchOrders]);
+
+  // Update the mutate function to refetch data
+  const mutate = useCallback(async () => {
+    await fetchOrders({
+      page,
+      limit: 10,
+      filters: {
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+        ...(searchKeyword && { search: searchKeyword })
+      }
+    });
+  }, [page, statusFilter, searchKeyword, fetchOrders]);
+
+  // Filter orders client-side if needed (you might want to handle this server-side)
   const filteredOrders = purchaseOrders.filter((order) => {
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     const matchesSearch =
       !searchKeyword ||
-      order._id.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-      order.created_by.email.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-      order.supplier.toLowerCase().includes(searchKeyword.toLowerCase());
+      order._id?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+      order.orderNumber?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+      order.created_by?.email?.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+      order.supplier?.toLowerCase().includes(searchKeyword.toLowerCase());
 
     return matchesStatus && matchesSearch;
   });
 
   const updateStatus = async (orderId, status) => {
-    console.log(`Updating order ${orderId} to status ${status}`);
-    return new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const token = localStorage.getItem('auth-token');
+      const response = await fetch(`${backendUrl}/api/import-orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to update status: ${errorText}`);
+      }
+
+      // Refetch data after update
+      await mutate();
+    } catch (error) {
+      console.error('Update status failed:', error);
+      throw error;
+    }
   };
 
   const sendForApproval = async (orderId) => {
-    console.log(`Sending order ${orderId} for approval`);
-    setPurchaseOrders((prev) => prev.map((order) => (order._id === orderId ? { ...order, status: 'pending' } : order)));
-    return new Promise((resolve) => setTimeout(resolve, 1000));
+    await updateStatus(orderId, 'pending');
   };
 
   const approve = async (orderId, notes) => {
-    console.log(`Approving order ${orderId} with notes: ${notes}`);
-    setPurchaseOrders((prev) => prev.map((order) => (order._id === orderId ? { ...order, status: 'approved' } : order)));
-    return new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const token = localStorage.getItem('auth-token');
+      const response = await fetch(`${backendUrl}/api/import-orders/${orderId}/approve`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ notes })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to approve order: ${errorText}`);
+      }
+
+      await mutate();
+    } catch (error) {
+      console.error('Approve failed:', error);
+      throw error;
+    }
   };
 
   const reject = async (orderId, notes) => {
-    console.log(`Rejecting order ${orderId} with notes: ${notes}`);
-    setPurchaseOrders((prev) => prev.map((order) => (order._id === orderId ? { ...order, status: 'rejected' } : order)));
-    return new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const token = localStorage.getItem('auth-token');
+      const response = await fetch(`${backendUrl}/api/import-orders/${orderId}/reject`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ notes })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to reject order: ${errorText}`);
+      }
+
+      await mutate();
+    } catch (error) {
+      console.error('Reject failed:', error);
+      throw error;
+    }
   };
 
   const exportToExcel = async (params) => {
-    console.log('Exporting to Excel with params:', params);
-    console.log('Mock data exported:', filteredOrders);
-    return new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const token = localStorage.getItem('auth-token');
+      const queryParams = new URLSearchParams(params);
+      const response = await fetch(`${backendUrl}/api/import-orders/export/excel?${queryParams.toString()}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export to Excel');
+      }
+
+      // Handle file download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'purchase-orders.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export to Excel failed:', error);
+      throw error;
+    }
   };
 
   const exportToPDF = async (orderId) => {
-    console.log(`Exporting order ${orderId} to PDF`);
-    const order = purchaseOrders.find((o) => o._id === orderId);
-    console.log('Order data:', order);
-    return new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const token = localStorage.getItem('auth-token');
+      const response = await fetch(`${backendUrl}/api/import-orders/${orderId}/export/pdf`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export to PDF');
+      }
+
+      // Handle file download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `purchase-order-${orderId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export to PDF failed:', error);
+      throw error;
+    }
   };
 
   const getStatusColor = (status) => {
     const statusColors = {
       draft: 'default',
-      pending: 'warning',
+      delivered: 'warning',
       approved: 'success',
-      rejected: 'error',
-      completed: 'info'
+      checked: 'info',
+      arranged: 'info'
     };
     return statusColors[status] || 'default';
   };
@@ -186,10 +253,10 @@ export default function PurchaseOrderListTab() {
   const getStatusLabel = (status) => {
     const statusLabels = {
       draft: 'Nháp',
-      pending: 'Chờ duyệt',
+      delivered: 'Đã giao',
       approved: 'Đã duyệt',
-      rejected: 'Từ chối',
-      completed: 'Hoàn thành'
+      arranged: 'Đã sắp xếp',
+      checked: 'Đã kiểm tra'
     };
     return statusLabels[status] || status;
   };
@@ -216,21 +283,21 @@ export default function PurchaseOrderListTab() {
 
       switch (type) {
         case 'submit':
-          await sendForApproval(order.id);
+          await sendForApproval(order._id); // Use _id instead of id
           break;
         case 'approve':
-          await approve(order.id, notes);
+          await approve(order._id, notes);
           break;
         case 'reject':
-          await reject(order.id, notes);
+          await reject(order._id, notes);
           break;
         default:
           break;
       }
-      mutate();
       setActionDialog({ open: false, type: '', order: null });
     } catch (error) {
       console.error('Action failed:', error);
+      // You might want to show an error message to the user here
     }
   };
 
@@ -242,21 +309,26 @@ export default function PurchaseOrderListTab() {
   const handleCreateReceiptConfirm = async () => {
     try {
       const { order } = createReceiptDialog;
-      const response = await fetch(`/api/receipts/from-purchase-order/${order.id}`, {
+      const token = localStorage.getItem('auth-token');
+      const response = await fetch(`${backendUrl}/api/receipts/from-purchase-order/${order._id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('auth-token')}`
+          Authorization: `Bearer ${token}`
         }
       });
+
       if (!response.ok) {
-        throw new Error('Không thể tạo đơn nhập hàng');
+        const errorText = await response.text();
+        throw new Error(`Không thể tạo đơn nhập hàng: ${errorText}`);
       }
+
       const result = await response.json();
-      mutate();
+      await mutate(); // Refetch data
       setCreateReceiptDialog({ open: false, order: null });
     } catch (error) {
       console.error('Create receipt failed:', error);
+      // Show error message to user
     }
   };
 
@@ -265,7 +337,7 @@ export default function PurchaseOrderListTab() {
       if (type === 'excel') {
         await exportToExcel({ status: statusFilter });
       } else if (type === 'pdf' && selectedOrder) {
-        await exportToPDF(selectedOrder.id);
+        await exportToPDF(selectedOrder._id);
       }
     } catch (error) {
       console.error('Export failed:', error);
@@ -295,8 +367,11 @@ export default function PurchaseOrderListTab() {
     return (
       <Box>
         <Alert severity="error" sx={{ mb: 2 }}>
-          Có lỗi xảy ra khi tải dữ liệu: {isError.message}
+          Có lỗi xảy ra khi tải dữ liệu: {isError}
         </Alert>
+        <Button onClick={mutate} variant="outlined">
+          Thử lại
+        </Button>
       </Box>
     );
   }
@@ -323,10 +398,12 @@ export default function PurchaseOrderListTab() {
             <Select value={statusFilter} label="Trạng thái" onChange={(e) => setStatusFilter(e.target.value)}>
               <MenuItem value="all">Tất cả</MenuItem>
               <MenuItem value="draft">Nháp</MenuItem>
-              <MenuItem value="pending">Chờ duyệt</MenuItem>
+              <MenuItem value="delivered">Đã giao</MenuItem>
               <MenuItem value="approved">Đã duyệt</MenuItem>
-              <MenuItem value="rejected">Từ chối</MenuItem>
+              <MenuItem value="checked">Đã kiểm tra</MenuItem>
+              <MenuItem value="arranged">Đã sắp xếp</MenuItem>
               <MenuItem value="completed">Hoàn thành</MenuItem>
+              <MenuItem value="cancelled">Hủy</MenuItem>
             </Select>
           </FormControl>
 
@@ -343,12 +420,12 @@ export default function PurchaseOrderListTab() {
 
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Tooltip title="Làm mới">
-            <IconButton onClick={() => mutate()}>
+            <IconButton onClick={() => mutate()} disabled={isLoading}>
               <RefreshIcon />
             </IconButton>
           </Tooltip>
 
-          <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={() => handleExport('excel')}>
+          <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={() => handleExport('excel')} disabled={isLoading}>
             Xuất Excel
           </Button>
 
@@ -359,7 +436,7 @@ export default function PurchaseOrderListTab() {
               /* Handle create new purchase order */
             }}
           >
-            Xem danh sách manager
+            Tạo đơn mới
           </Button>
         </Box>
       </Box>
@@ -370,11 +447,11 @@ export default function PurchaseOrderListTab() {
           <TableHead>
             <TableRow>
               <TableCell>Mã đơn</TableCell>
-              <TableCell>Ngày tạo</TableCell>
+              <TableCell>Mã hợp đồng</TableCell>
               <TableCell>Nhà cung cấp</TableCell>
               <TableCell>Tổng tiền</TableCell>
               <TableCell>Trạng thái</TableCell>
-              <TableCell>Người tạo</TableCell>
+              <TableCell>Số mặt hàng</TableCell>
               <TableCell align="center">Thao tác</TableCell>
             </TableRow>
           </TableHead>
@@ -394,27 +471,42 @@ export default function PurchaseOrderListTab() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredOrders.map((order) => (
-                <TableRow key={order._id} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="medium">
-                      {order._id}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{formatDate(order.createdAt)}</TableCell>
-                  <TableCell>{order.supplier}</TableCell>
-                  <TableCell>{formatCurrency(order.totalAmount)}</TableCell>
-                  <TableCell>
-                    <Chip label={getStatusLabel(order.status)} color={getStatusColor(order.status)} size="small" />
-                  </TableCell>
-                  <TableCell>{order.created_by?.email}</TableCell>
-                  <TableCell align="center">
-                    <IconButton size="small" onClick={(e) => handleMenuClick(e, order)}>
-                      <MoreVertIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
+              filteredOrders.map((order) => {
+                // Tính tổng tiền từ details
+                const totalAmount = order.details?.reduce((sum, detail) => sum + detail.quantity * detail.unit_price, 0) || 0;
+
+                return (
+                  <TableRow key={order._id} hover>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="medium">
+                        {order._id?.slice(-8).toUpperCase()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{order.supplier_contract_id?.contract_code || 'N/A'}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{order.supplier_contract_id?.supplier_id?.name || 'N/A'}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="medium">
+                        {totalAmount.toLocaleString('vi-VN')} ₫
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={getStatusLabel(order.status)} color={getStatusColor(order.status)} size="small" />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{order.details?.length || 0} mặt hàng</Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton size="small" onClick={(e) => handleMenuClick(e, order)}>
+                        <MoreVertIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -495,7 +587,8 @@ export default function PurchaseOrderListTab() {
         <DialogTitle>Tạo đơn nhập hàng</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2 }}>
-            Bạn có muốn tạo đơn nhập hàng từ đơn mua <strong>{createReceiptDialog.order?.orderNumber}</strong>?
+            Bạn có muốn tạo đơn nhập hàng từ đơn mua{' '}
+            <strong>{createReceiptDialog.order?.orderNumber || createReceiptDialog.order?._id}</strong>?
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Đơn nhập hàng sẽ được tạo với các sản phẩm từ đơn mua này.

@@ -1,8 +1,8 @@
 // pages/warehouse/WarehouseDashboard.jsx
 'use client';
 
-import DashboardLayout from '@/sections/warehouse/inspection/DashboardLayoutInspection';
-import InspectionModeView from '@/sections/warehouse/inspection/InspectionModeView';
+import DashboardLayout from '@/sections/warehouse/dashboard-import/DashboardLayoutInspection';
+import InspectionModeView from '@/sections/warehouse/dashboard-import/InspectionModeView';
 import React, { useState } from 'react';
 
 // Components
