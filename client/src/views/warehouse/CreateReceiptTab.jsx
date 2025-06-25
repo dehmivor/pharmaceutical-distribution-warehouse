@@ -1,11 +1,12 @@
 'use client';
+import { useAlert } from '@/hooks/useAlert';
 import useImportOrders from '@/hooks/useImportOrders';
-import useNotifications from '@/hooks/useNotification';
-import DebugPanel from '@/sections/warehouse/create-inspect/DebugPanel';
+import { useWarehouseAlerts } from '@/hooks/useThingsBoard';
 import OrderSelectionDialog from '@/sections/warehouse/create-inspect/OrderSelectionDialog';
 import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
+
 export default function CreateReceiptTab() {
   const [orderData, setOrderData] = useState({});
   const [orderDialog, setOrderDialog] = useState({
@@ -14,8 +15,8 @@ export default function CreateReceiptTab() {
     currentPage: 1
   });
 
-  const { orders, loading, error, apiDebugInfo, fetchOrders } = useImportOrders();
-  const { notification, showNotification, hideNotification } = useNotifications();
+  const { orders, loading, error, fetchOrders } = useImportOrders();
+  const { alert, showAlert, hideAlert } = useAlert();
 
   // Load orders when dialog opens
   useEffect(() => {
@@ -24,14 +25,13 @@ export default function CreateReceiptTab() {
         page: orderDialog.currentPage,
         limit: 10,
         filters: {
-          status: 'pending,confirmed',
+          status: 'delivered', // Updated to match actual statuses from data
           search: orderDialog.searchTerm
         }
       });
     }
   }, [orderDialog.open, orderDialog.currentPage, orderDialog.searchTerm]);
 
-  // Initial load
   useEffect(() => {
     fetchOrders();
   }, []);
@@ -50,31 +50,43 @@ export default function CreateReceiptTab() {
   };
 
   const handleSelectOrder = (selectedOrder) => {
+    // Calculate total amount from details
+    const totalAmount = selectedOrder.details?.reduce((sum, detail) => sum + detail.quantity * detail.unit_price, 0) || 0;
+
     const convertedOrder = {
-      orderId: selectedOrder.order_code,
-      supplier: selectedOrder.supplier_name,
-      orderDate: selectedOrder.order_date,
+      orderId: selectedOrder._id?.slice(-8).toUpperCase() || selectedOrder._id, // Use last 8 chars of _id
+      orderCode: selectedOrder.supplier_contract_id?.contract_code || 'N/A',
+      supplier: selectedOrder.supplier_contract_id?.supplier_id?.name || 'Unknown Supplier',
+      orderDate: new Date().toISOString(), // Use current date as no order_date in data
       status: selectedOrder.status,
       totalItems: selectedOrder.details?.length || 0,
-      totalAmount: selectedOrder.total_amount,
+      totalAmount: totalAmount,
+      contractInfo: {
+        contractCode: selectedOrder.supplier_contract_id?.contract_code,
+        startDate: selectedOrder.supplier_contract_id?.start_date,
+        endDate: selectedOrder.supplier_contract_id?.end_date
+      },
       items:
         selectedOrder.details?.map((detail) => ({
           id: detail._id,
-          productCode: detail.medicine_id?.code || detail.medicine_code,
-          productName: detail.medicine_id?.name || detail.medicine_name,
+          productCode: detail.medicine_id?.license_code || detail.medicine_id?._id?.slice(-6),
+          productName: detail.medicine_id?.medicine_name || `Medicine ${detail.medicine_id?.license_code}`,
+          medicineId: detail.medicine_id?._id,
           orderedQuantity: detail.quantity,
-          unit: detail.unit || 'cái'
+          unitPrice: detail.unit_price,
+          totalPrice: detail.quantity * detail.unit_price,
+          unit: 'viên' // Default unit as not specified in data
         })) || []
     };
 
     setOrderData(convertedOrder);
     handleCloseOrderDialog();
-    showNotification(`Đã chọn đơn hàng ${selectedOrder.order_code} từ ${selectedOrder.supplier_name}`);
+    showAlert(`Đã chọn đơn hàng ${convertedOrder.orderCode} từ ${convertedOrder.supplier}`, 'success');
   };
 
   const handleRefresh = () => {
     fetchOrders();
-    showNotification('Đã làm mới danh sách đơn hàng', 'info');
+    showAlert('Đã làm mới danh sách đơn hàng', 'info');
   };
 
   return (
@@ -86,8 +98,6 @@ export default function CreateReceiptTab() {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Tạo phiếu nhập kho từ đơn đặt hàng hoặc nhập thủ công
       </Typography>
-
-      <DebugPanel orders={orders} apiDebugInfo={apiDebugInfo} onRefresh={handleRefresh} />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -101,7 +111,7 @@ export default function CreateReceiptTab() {
 
       <Box sx={{ mb: 3 }}>
         <Button variant="outlined" onClick={handleOpenOrderDialog} sx={{ mr: 2 }} disabled={loading}>
-          {loading ? <CircularProgress size={20} /> : 'Chọn Đơn Mua'}
+          {loading ? <CircularProgress size={20} /> : 'Chọn Đơn Nhập'}
         </Button>
         {orderData.orderId && (
           <Button variant="text" onClick={() => setOrderData({})} color="error">
@@ -113,12 +123,20 @@ export default function CreateReceiptTab() {
       {orderData.orderId && orderData.supplier && (
         <Alert severity="info" sx={{ mb: 3 }}>
           <Typography variant="subtitle2">
-            Đang tạo phiếu nhập cho đơn hàng: <strong>{orderData.orderId}</strong>
+            Đang tạo phiếu nhập cho đơn hàng: <strong>{orderData.orderCode}</strong>
           </Typography>
           <Typography variant="body2">
-            Nhà cung cấp: {orderData.supplier} | Số sản phẩm: {orderData.items?.length || 0} | Ngày đặt:{' '}
-            {new Date(orderData.orderDate).toLocaleDateString('vi-VN')}
+            Nhà cung cấp: {orderData.supplier} | Số sản phẩm: {orderData.items?.length || 0} | Tổng tiền:{' '}
+            {orderData.totalAmount?.toLocaleString('vi-VN')} ₫ | Trạng thái:{' '}
+            {orderData.status === 'approved' ? 'Đã duyệt' : orderData.status === 'delivered' ? 'Đã giao' : orderData.status}
           </Typography>
+          {orderData.contractInfo?.contractCode && (
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Hợp đồng: {orderData.contractInfo.contractCode} | Hiệu lực:{' '}
+              {new Date(orderData.contractInfo.startDate).toLocaleDateString('vi-VN')} -{' '}
+              {new Date(orderData.contractInfo.endDate).toLocaleDateString('vi-VN')}
+            </Typography>
+          )}
         </Alert>
       )}
 
@@ -127,7 +145,7 @@ export default function CreateReceiptTab() {
           orderData={orderData}
           onReceiptCreate={(receiptData) => {
             console.log('Receipt created:', receiptData);
-            showNotification('Tạo phiếu nhập thành công!');
+            showAlert('Tạo phiếu nhập thành công!', 'success');
           }}
         />
       )}
