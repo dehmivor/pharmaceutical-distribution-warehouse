@@ -223,7 +223,7 @@ export const useAuth = () => {
     const roleRedirects = {
       supervisor: '/manage-users',
       representative: '/manage-contracts',
-      warehouse: '/manage-inspections'
+      warehouse: '/manage-inspections',
     };
 
     return roleRedirects[role] || '/dashboard';

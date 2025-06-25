@@ -1,7 +1,7 @@
 'use client';
-import ContentSection from '@/sections/supervisor/ContentSection';
-import HeaderSection from '@/sections/supervisor/HeaderSection';
-import TableSection from '@/sections/supervisor/TableSection';
+import ContentSection from '@/sections/supervisor/activate-account/ContentSection';
+import HeaderSection from '@/sections/supervisor/activate-account/HeaderSection';
+import TableSection from '@/sections/supervisor/activate-account/TableSection';
 import { Box, Container } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useState } from 'react';

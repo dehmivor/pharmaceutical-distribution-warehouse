@@ -1,23 +1,21 @@
-const express = require("express")
-const router = express.Router()
-const packageController = require("../controllers/packageController")
+const express = require('express');
+const router = express.Router();
+const packageController = require('../controllers/packageController');
 
 // Get all packages with location info
-router.get("/", packageController.getAllPackages)
+router.get('/packages', packageController.getAllPackages);
 
-// Update package location (original method)
-router.put("/:packageId/location", packageController.updatePackageLocation)
+// Get all available locations
+router.get('/locations', packageController.getAllLocations);
 
-// Update package location with detailed input (new method)
-router.put("/:id/location-detailed", packageController.setPackageLocationDetailed)
+// Update package location
+router.put('/packages/:packageId/location', packageController.updatePackageLocation);
 
-router.put("/:packageId/confirm", packageController.confirmPackageStorage)
+router.put('/packages/:packageId/confirm', packageController.confirmPackageStorage);
 
 // Get packages by location
-router.get("/location/:locationId", packageController.getPackagesByLocation)
-router.get("/by-batch/:batchId", packageController.getByBatch)
+router.get('/packages/location/:locationId', packageController.getPackagesByLocation);
 
-// Original location update method (keep for backward compatibility)
-router.put("/:id/location", packageController.setPackageLocation)
+router.post('/packages', packageController.createPackage);
 
-module.exports = router
+module.exports = router;

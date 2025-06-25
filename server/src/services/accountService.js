@@ -44,7 +44,7 @@ const createAccount = async (accountData) => {
       generatePassword = true,
       customPassword = null,
       permissions = [],
-      status = USER_STATUSES.ACTIVE,
+      status = constants.USER_STATUSES.PENDING,
       created_by,
     } = accountData;
 
@@ -59,9 +59,9 @@ const createAccount = async (accountData) => {
     }
 
     // Validate role
-    if (!Object.values(USER_ROLES.SUPERVISOR).includes(role)) {
+    if (!Object.values(constants.USER_ROLES).includes(role)) {
       throw new Error(
-        `Invalid role. Must be one of: ${Object.values(USER_ROLES).join(', ')}`,
+        `Invalid role. Must be one of: ${Object.values(constants.USER_ROLES).join(', ')}`,
       );
     }
 
