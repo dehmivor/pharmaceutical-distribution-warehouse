@@ -411,6 +411,19 @@ const getAllStatusTransitions = () => {
   };
 };
 
+const assignWarehouseManager = async (orderId, warehouseManagerId) => {
+  const order = await ImportOrder.findById(orderId);
+  if (!order) throw new Error('Import order not found');
+  order.warehouse_manager_id = warehouseManagerId;
+  await order.save();
+  return await ImportOrder.findById(orderId)
+    .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+    .populate('warehouse_manager_id', 'name email role')
+    .populate('created_by', 'name email role')
+    .populate('approval_by', 'name email role')
+    .populate('details.medicine_id', 'medicine_name license_code');
+};
+
 module.exports = {
   createImportOrder,
   getImportOrders,
@@ -426,4 +439,5 @@ module.exports = {
   getImportOrdersBySupplierContract,
   getValidStatusTransitions,
   getAllStatusTransitions,
+  assignWarehouseManager,
 };
