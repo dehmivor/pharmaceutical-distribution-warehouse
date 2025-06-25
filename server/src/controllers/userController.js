@@ -38,7 +38,7 @@ const createUser = async (req, res) => {
       password: hashedPassword,
       role,
       is_manager: is_manager || false,
-      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.USER_STATUSES.PENDING,
     });
 
     await newUser.save();

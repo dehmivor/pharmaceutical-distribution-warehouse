@@ -8,7 +8,7 @@ exports.getByBatch = async (req, res) => {
       .populate('import_order_id')
       .populate({
         path: 'batch_id',
-        populate: { path: 'medicine_id' }
+        populate: { path: 'medicine_id' },
       })
       .populate('created_by');
     res.json(inspections);
@@ -22,11 +22,7 @@ exports.updateLocation = async (req, res) => {
     const { id } = req.params; // id của import inspection (thùng)
     const { location } = req.body; // location là string hoặc object tùy bạn thiết kế
 
-    const updated = await ImportInspection.findByIdAndUpdate(
-      id,
-      { location },
-      { new: true }
-    );
+    const updated = await ImportInspection.findByIdAndUpdate(id, { location }, { new: true });
     if (!updated) return res.status(404).json({ error: 'Not found' });
     res.json(updated);
   } catch (err) {

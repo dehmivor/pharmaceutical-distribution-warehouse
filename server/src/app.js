@@ -54,9 +54,15 @@ app.use('/api/areas', areaRoutes);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
-app.use('/api/accounts', authenticate, authorize('supervisor'), route.accountRoutes);
+app.use(
+  '/api/accounts',
+  authenticate,
+  authorize(['supervisor', 'representative']),
+  route.accountRoutes,
+);
 app.use('/api/supplier-contracts', route.supplierContractRoutes);
 app.use('/api/inspections', authenticate, authorize('warehouse'), route.inspectionRoutes);
+app.use('/api/stripe', route.stripeRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 

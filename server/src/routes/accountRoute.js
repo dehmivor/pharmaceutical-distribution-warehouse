@@ -31,7 +31,7 @@ router.post(
 router.get('/statistics', authorizeSupervisor, accountController.getAccountStatistics);
 
 // Lấy danh sách accounts - role-based access
-router.get('/', authorizeRole('supervisor', 'representative'), accountController.getAccounts);
+router.get('/', accountController.getAccounts);
 
 // Lấy account theo ID - self hoặc supervisor + validate ID
 router.get(
