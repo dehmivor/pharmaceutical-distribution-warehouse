@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>0/19</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/11</span>
+                <span class='fraction'>0/19</span>
             </div>
         
             
@@ -91,13 +91,57 @@
 <a name='L26'></a><a href='#L26'>26</a>
 <a name='L27'></a><a href='#L27'>27</a>
 <a name='L28'></a><a href='#L28'>28</a>
-<a name='L29'></a><a href='#L29'>29</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -123,8 +167,9 @@
 const router = <span class="cstat-no" title="statement not covered" >express.Router();</span>
 const importOrderController = <span class="cstat-no" title="statement not covered" >require('../controllers/importOrderController');</span>
 const authenticate = <span class="cstat-no" title="statement not covered" >require('../middlewares/authenticate');</span>
+const authorize = <span class="cstat-no" title="statement not covered" >require('../middlewares/authorize');</span>
 &nbsp;
-// Apply authentication middleware to all routes
+// BỎ authenticate tạm thời
 // router.use(authenticate);
 &nbsp;
 // Create new import order
@@ -133,17 +178,38 @@ const authenticate = <span class="cstat-no" title="statement not covered" >requi
 // Get all import orders with filters
 <span class="cstat-no" title="statement not covered" >router.get('/', importOrderController.getImportOrders);</span>
 &nbsp;
+// Get import orders by warehouse manager
+<span class="cstat-no" title="statement not covered" >router.get('/warehouse-manager/:warehouseManagerId', importOrderController.getImportOrdersByWarehouseManager);</span>
+&nbsp;
+// Get import orders by supplier contract
+<span class="cstat-no" title="statement not covered" >router.get('/supplier-contract/:supplierContractId', importOrderController.getImportOrdersBySupplierContract);</span>
+&nbsp;
 // Get import order by ID
 <span class="cstat-no" title="statement not covered" >router.get('/:id', importOrderController.getImportOrderById);</span>
 &nbsp;
 // Update import order
-<span class="cstat-no" title="statement not covered" >router.put('/:id', importOrderController.updateImportOrder);</span>
+<span class="cstat-no" title="statement not covered" >router.put('/:id', authenticate, authorize('supervisor'), importOrderController.updateImportOrder);</span>
+&nbsp;
+// Update import order details
+<span class="cstat-no" title="statement not covered" >router.put('/:id/details', importOrderController.updateImportOrderDetails);</span>
+&nbsp;
+// Add import order detail
+<span class="cstat-no" title="statement not covered" >router.post('/:id/details', importOrderController.addImportOrderDetail);</span>
+&nbsp;
+// Update specific import order detail
+<span class="cstat-no" title="statement not covered" >router.put('/:id/details/:detailId', importOrderController.updateImportOrderDetail);</span>
+&nbsp;
+// Remove import order detail
+<span class="cstat-no" title="statement not covered" >router.delete('/:id/details/:detailId', importOrderController.removeImportOrderDetail);</span>
 &nbsp;
 // Delete import order
 <span class="cstat-no" title="statement not covered" >router.delete('/:id', importOrderController.deleteImportOrder);</span>
 &nbsp;
 // Update order status
-<span class="cstat-no" title="statement not covered" >router.patch('/:id/status', importOrderController.updateOrderStatus);</span>
+<span class="cstat-no" title="statement not covered" >router.patch('/:id/status', authenticate, authorize('supervisor'), importOrderController.updateOrderStatus);</span>
+&nbsp;
+// Get valid status transitions
+<span class="cstat-no" title="statement not covered" >router.get('/status-transitions', importOrderController.getValidStatusTransitions);</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >module.exports = router;</span>
 &nbsp;
@@ -154,7 +220,7 @@ const authenticate = <span class="cstat-no" title="statement not covered" >requi
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-06-19T04:10:07.992Z
+                at 2025-06-24T16:15:35.121Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
