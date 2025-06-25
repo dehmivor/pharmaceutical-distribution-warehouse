@@ -1,8 +1,12 @@
 const date = new Date().toISOString().replace(/[:.]/g, '-');
 module.exports = {
   testEnvironment: 'node',
+  transform: {
+    '^.+\\.js$': 'babel-jest',
+  },
   roots: ['<rootDir>'],
-  testMatch: ['**/__tests__/**/*.js', '**/?(*.)+(spec|test).js'],
+  testMatch: ['<rootDir>/src/**/__tests__/**/*.js', '<rootDir>/src/**/*.(spec|test).js'],
+  globalTeardown: '<rootDir>/testTeardown.js',
   collectCoverageFrom: [
     'src/**/*.js',
     'services/**/*.js',
