@@ -1,7 +1,6 @@
 'use client';
 import { useAlert } from '@/hooks/useAlert';
 import useImportOrders from '@/hooks/useImportOrders';
-import { useWarehouseAlerts } from '@/hooks/useThingsBoard';
 import OrderSelectionDialog from '@/sections/warehouse/create-inspect/OrderSelectionDialog';
 import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';

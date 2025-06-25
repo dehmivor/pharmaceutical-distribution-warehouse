@@ -23,10 +23,13 @@ import {
   FormControl,
   InputLabel,
   Chip,
-  IconButton
+  IconButton,
+  CircularProgress
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import ReceiptStatistics from './ReceiptStatistics';
+import { useAlert } from '@/hooks/useAlert';
+import useInspection from '@/hooks/useInspection';
 
 // Danh sách đơn vị chuyển đổi
 const UNIT_CONVERSIONS = {
@@ -78,6 +81,11 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     }
     return quantity;
   }, []);
+
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState(null);
+  const { createInspection } = useInspection();
+  const { showAlert } = useAlert();
 
   // Khởi tạo danh sách hàng từ đơn mua - FIX: Thêm điều kiện để tránh infinite loop
   useEffect(() => {
@@ -297,13 +305,109 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     [receiptData, receiptItems, statistics, onReceiptCreate]
   );
 
+  const handleCreateReceipt = useCallback(async () => {
+    if (receiptItems.length === 0) {
+      showAlert('Vui lòng thêm ít nhất một sản phẩm', 'warning');
+      return;
+    }
+
+    // Validate dữ liệu bắt buộc
+    if (!receiptData.receiver.trim()) {
+      showAlert('Vui lòng nhập tên người nhận hàng', 'warning');
+      return;
+    }
+
+    if (!receiptData.warehouse.trim()) {
+      showAlert('Vui lòng chọn kho nhập', 'warning');
+      return;
+    }
+
+    // Kiểm tra có ít nhất 1 sản phẩm có số lượng thực nhận > 0
+    const hasValidItems = receiptItems.some((item) => parseFloat(item.actualQuantity) > 0 && item.productName.trim() !== '');
+
+    if (!hasValidItems) {
+      showAlert('Vui lòng nhập số lượng thực nhận cho ít nhất một sản phẩm', 'warning');
+      return;
+    }
+
+    setIsCreating(true);
+    setCreateError(null);
+
+    try {
+      // Chuẩn bị dữ liệu gửi lên API
+      const inspectionData = {
+        import_order_id: orderData?.orderId,
+        batch_id: null, // Để useInspection tự generate
+        actual_quantity: statistics.totalReceived,
+        rejected_quantity: statistics.totalReturned,
+        note: receiptData.notes,
+        created_by: '685aba038d7e1e2eb3d86bd1'
+      };
+
+      console.log('📝 Tạo phiếu nhập kho:', inspectionData);
+
+      // Gọi API tạo phiếu
+      const response = await createInspection(inspectionData);
+
+      console.log('✅ Tạo phiếu thành công:', response);
+
+      // Thông báo thành công
+      showAlert(`Tạo phiếu nhập kho ${response.receipt_id || receiptData.receiptId} thành công!`, 'success');
+
+      // Callback cho parent component
+      if (onReceiptCreate) {
+        onReceiptCreate({
+          ...response,
+          receiptData,
+          items: receiptItems,
+          statistics
+        });
+      }
+
+      // Reset form sau khi tạo thành công (tùy chọn)
+      // resetForm();
+    } catch (error) {
+      console.error('❌ Lỗi tạo phiếu:', error);
+
+      let errorMessage = 'Có lỗi xảy ra khi tạo phiếu nhập kho';
+
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error?.error) {
+        errorMessage = error.error;
+      }
+
+      setCreateError(errorMessage);
+      showAlert(errorMessage, 'error');
+    } finally {
+      setIsCreating(false);
+    }
+  }, [receiptItems, receiptData, orderData, statistics, createInspection, showAlert, onReceiptCreate]);
+
+  // Hàm reset form (tùy chọn)
+  const resetForm = useCallback(() => {
+    setReceiptData({
+      receiptId: `PN${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+      orderId: '',
+      supplier: '',
+      warehouse: 'Kho chính',
+      receiver: '',
+      notes: ''
+    });
+    setReceiptItems([]);
+    setCreateError(null);
+  }, []);
+
   return (
     <Box>
       {/* Form tạo phiếu */}
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Tạo Phiếu Nhập Kho
+            Tạo Phiếu Kiểm Tra Nhập
           </Typography>
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
@@ -478,10 +582,34 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       {/* Thống kê */}
       <ReceiptStatistics statistics={statistics} items={receiptItems} />
 
-      {/* Nút tạo phiếu */}
-      <Box display="flex" justifyContent="center" mt={3}>
-        <Button variant="contained" color="primary" size="large" onClick={handleSubmit} disabled={receiptItems.length === 0}>
-          Tạo Phiếu Nhập Kho
+      {/* Hiển thị lỗi nếu có */}
+      {createError && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          <Typography variant="subtitle2">Lỗi tạo phiếu nhập kho:</Typography>
+          <Typography variant="body2">{createError}</Typography>
+          <Button size="small" onClick={() => setCreateError(null)} sx={{ mt: 1 }} color="inherit">
+            Đóng
+          </Button>
+        </Alert>
+      )}
+
+      {/* Nút tạo phiếu - UPDATED */}
+      <Box display="flex" justifyContent="center" gap={2} mt={3}>
+        <Button
+          variant="contained"
+          color="primary"
+          size="large"
+          onClick={handleCreateReceipt}
+          disabled={receiptItems.length === 0 || isCreating}
+          startIcon={isCreating ? <CircularProgress size={20} /> : null}
+          sx={{ minWidth: 200 }}
+        >
+          {isCreating ? 'Đang tạo phiếu...' : 'Tạo Phiếu Nhập Kho'}
+        </Button>
+
+        {/* Nút reset form (tùy chọn) */}
+        <Button variant="outlined" color="secondary" size="large" onClick={resetForm} disabled={isCreating}>
+          Làm mới
         </Button>
       </Box>
     </Box>
