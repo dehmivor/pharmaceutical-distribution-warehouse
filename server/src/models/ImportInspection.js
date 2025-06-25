@@ -29,7 +29,7 @@ const importInspectionSchema = new mongoose.Schema({
   created_by: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Created by is required'],
+    required: [false, 'Created by is required'],
   },
 });
 
