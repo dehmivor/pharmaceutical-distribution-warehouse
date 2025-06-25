@@ -4,5 +4,6 @@ const importInspectionController = require('../controllers/importInspectionContr
 
 // GET /api/import-inspections/by-batch/:batchId
 router.get('/by-batch/:batchId', importInspectionController.getByBatch);
+router.put('/:id/location', importInspectionController.updateLocation);
 
 module.exports = router;
