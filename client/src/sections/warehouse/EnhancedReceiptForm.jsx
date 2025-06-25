@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -38,25 +38,23 @@ const UNIT_CONVERSIONS = {
   cái: { hộp: 1 / 12, thùng: 1 / 144 },
   lít: { ml: 1000, gallon: 0.264172 },
   ml: { lít: 0.001, gallon: 0.000264172 },
-  gallon: { lít: 3.78541, ml: 3785.41 }
+  gallon: { lít: 3.78541, ml: 3785.41 },
+  viên: { gói: 10, hộp: 100 }
 };
 
 function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) {
   const [receiptData, setReceiptData] = useState({
     receiptId: `PN${Date.now()}`,
     date: new Date().toISOString().split('T')[0],
-    orderId: orderData.orderId || '',
-    supplier: orderData.supplier || '',
+    orderId: orderData?.orderId || '',
+    supplier: orderData?.supplier || '',
     warehouse: 'Kho chính',
     receiver: '',
     notes: ''
   });
 
-  // Danh sách hàng hóa từ đơn mua với thông tin nhập kho
   const [receiptItems, setReceiptItems] = useState([]);
   const [editingItem, setEditingItem] = useState(null);
-
-  // Tính toán thống kê
   const [statistics, setStatistics] = useState({
     totalExpected: 0,
     totalReceived: 0,
@@ -65,53 +63,90 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     totalValue: 0
   });
 
-  // Khởi tạo danh sách hàng từ đơn mua
-  useEffect(() => {
-    if (orderData && orderData.items) {
-      const initialItems = orderData.items.map((item, index) => ({
-        id: index + 1,
-        productCode: item.productCode || '',
-        productName: item.productName || '',
-        expectedQuantity: parseFloat(item.quantity) || 0,
-        expectedUnit: item.unit || 'cái',
-        actualQuantity: 0,
-        actualUnit: item.unit || 'cái',
-        unitPrice: parseFloat(item.unitPrice) || 0,
-        lotNumber: '',
-        expiryDate: '',
-        notes: '',
-        status: 'pending' // pending, received, partial, shortage
-      }));
-      setReceiptItems(initialItems);
-    } else if (checkedItems.length > 0) {
-      setReceiptItems(
-        checkedItems.map((item, index) => ({
-          ...item,
-          id: index + 1,
-          actualUnit: item.expectedUnit || item.unit || 'cái',
-          status: 'pending'
-        }))
-      );
-    }
-  }, [orderData, checkedItems]);
+  // Sử dụng ref để track việc initialization
+  const isInitialized = useRef(false);
+  const lastOrderId = useRef(null);
+  const lastCheckedItemsLength = useRef(0);
 
-  // Hàm chuyển đổi đơn vị
-  const convertUnit = (quantity, fromUnit, toUnit) => {
+  // Hàm chuyển đổi đơn vị được memoize
+  const convertUnit = useCallback((quantity, fromUnit, toUnit) => {
     if (fromUnit === toUnit) return quantity;
 
     const conversions = UNIT_CONVERSIONS[fromUnit];
     if (conversions && conversions[toUnit]) {
       return quantity * conversions[toUnit];
     }
-    return quantity; // Không thể chuyển đổi
-  };
+    return quantity;
+  }, []);
 
-  // Tính toán thống kê khi danh sách thay đổi
+  // Khởi tạo danh sách hàng từ đơn mua - FIX: Thêm điều kiện để tránh infinite loop
   useEffect(() => {
+    const currentOrderId = orderData?.orderId;
+    const currentCheckedItemsLength = checkedItems.length;
+
+    // Chỉ initialize khi:
+    // 1. Chưa được initialize hoặc
+    // 2. OrderId thay đổi hoặc
+    // 3. CheckedItems length thay đổi
+    if (!isInitialized.current || lastOrderId.current !== currentOrderId || lastCheckedItemsLength.current !== currentCheckedItemsLength) {
+      let initialItems = [];
+
+      if (orderData?.items?.length > 0) {
+        initialItems = orderData.items.map((item, index) => ({
+          id: index + 1,
+          productCode: item.productCode || '',
+          productName: item.productName || '',
+          expectedQuantity: parseFloat(item.orderedQuantity) || 0, // Fix: sử dụng orderedQuantity
+          expectedUnit: item.unit || 'viên',
+          actualQuantity: 0,
+          actualUnit: item.unit || 'viên',
+          unitPrice: parseFloat(item.unitPrice) || 0,
+          lotNumber: '',
+          expiryDate: '',
+          notes: '',
+          status: 'pending'
+        }));
+      } else if (checkedItems.length > 0) {
+        initialItems = checkedItems.map((item, index) => ({
+          ...item,
+          id: index + 1,
+          actualUnit: item.expectedUnit || item.unit || 'viên',
+          status: 'pending'
+        }));
+      }
+
+      if (initialItems.length > 0 || receiptItems.length !== initialItems.length) {
+        setReceiptItems(initialItems);
+      }
+
+      // Update refs
+      isInitialized.current = true;
+      lastOrderId.current = currentOrderId;
+      lastCheckedItemsLength.current = currentCheckedItemsLength;
+
+      // Update receipt data khi orderData thay đổi
+      if (currentOrderId !== receiptData.orderId) {
+        setReceiptData((prev) => ({
+          ...prev,
+          orderId: orderData?.orderId || '',
+          supplier: orderData?.supplier || ''
+        }));
+      }
+    }
+  }, [
+    orderData?.orderId, // Chỉ phụ thuộc vào orderId thay vì toàn bộ orderData object
+    orderData?.supplier,
+    orderData?.items?.length, // Chỉ phụ thuộc vào length thay vì toàn bộ items array
+    checkedItems.length, // Chỉ phụ thuộc vào length
+    receiptData.orderId
+  ]);
+
+  // Tính toán thống kê - FIX: Sử dụng useCallback và tối ưu dependencies
+  const calculateStatistics = useCallback(() => {
     const totalExpected = receiptItems.reduce((sum, item) => sum + (parseFloat(item.expectedQuantity) || 0), 0);
+
     const totalReceived = receiptItems.reduce((sum, item) => {
       const actualQty = parseFloat(item.actualQuantity) || 0;
-      // Chuyển đổi về đơn vị gốc để tính tổng
       const convertedQty = convertUnit(actualQty, item.actualUnit, item.expectedUnit);
       return sum + convertedQty;
     }, 0);
@@ -128,74 +163,98 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       return sum + (parseFloat(item.actualQuantity) || 0) * (parseFloat(item.unitPrice) || 0);
     }, 0);
 
-    setStatistics({
+    return {
       totalExpected,
       totalReceived,
       totalReturned,
       receivedPercentage,
       totalValue
-    });
-  }, [receiptItems]);
-
-  // Cập nhật thông tin sản phẩm
-  const updateReceiptItem = (id, field, value) => {
-    setReceiptItems((prev) =>
-      prev.map((item) => {
-        if (item.id === id) {
-          const updatedItem = { ...item, [field]: value };
-
-          // Cập nhật trạng thái dựa trên số lượng nhận
-          if (field === 'actualQuantity' || field === 'actualUnit') {
-            const actualQty = parseFloat(field === 'actualQuantity' ? value : updatedItem.actualQuantity) || 0;
-            const expectedQty = parseFloat(updatedItem.expectedQuantity) || 0;
-            const convertedQty = convertUnit(actualQty, updatedItem.actualUnit, updatedItem.expectedUnit);
-
-            if (convertedQty === 0) {
-              updatedItem.status = 'pending';
-            } else if (convertedQty >= expectedQty) {
-              updatedItem.status = 'received';
-            } else {
-              updatedItem.status = 'partial';
-            }
-
-            if (convertedQty < expectedQty) {
-              updatedItem.status = 'shortage';
-            }
-          }
-
-          return updatedItem;
-        }
-        return item;
-      })
-    );
-  };
-
-  // Thêm sản phẩm mới
-  const addNewItem = () => {
-    const newItem = {
-      id: receiptItems.length + 1,
-      productCode: '',
-      productName: '',
-      expectedQuantity: 0,
-      expectedUnit: 'cái',
-      actualQuantity: 0,
-      actualUnit: 'cái',
-      unitPrice: 0,
-      lotNumber: '',
-      expiryDate: '',
-      notes: '',
-      status: 'pending'
     };
-    setReceiptItems((prev) => [...prev, newItem]);
-  };
+  }, [receiptItems, convertUnit]);
 
-  // Xóa sản phẩm
-  const removeItem = (id) => {
+  // Update statistics khi receiptItems thay đổi - FIX: Sử dụng functional update
+  useEffect(() => {
+    const newStats = calculateStatistics();
+
+    // Chỉ update khi statistics thực sự thay đổi
+    setStatistics((prevStats) => {
+      if (
+        prevStats.totalExpected !== newStats.totalExpected ||
+        prevStats.totalReceived !== newStats.totalReceived ||
+        prevStats.totalReturned !== newStats.totalReturned ||
+        prevStats.receivedPercentage !== newStats.receivedPercentage ||
+        prevStats.totalValue !== newStats.totalValue
+      ) {
+        return newStats;
+      }
+      return prevStats;
+    });
+  }, [calculateStatistics]); // Chỉ phụ thuộc vào memoized function
+
+  // Cập nhật thông tin sản phẩm - FIX: Sử dụng useCallback
+  const updateReceiptItem = useCallback(
+    (id, field, value) => {
+      setReceiptItems((prev) =>
+        prev.map((item) => {
+          if (item.id === id) {
+            const updatedItem = { ...item, [field]: value };
+
+            // Cập nhật trạng thái dựa trên số lượng nhận
+            if (field === 'actualQuantity' || field === 'actualUnit') {
+              const actualQty = parseFloat(field === 'actualQuantity' ? value : updatedItem.actualQuantity) || 0;
+              const expectedQty = parseFloat(updatedItem.expectedQuantity) || 0;
+              const convertedQty = convertUnit(actualQty, updatedItem.actualUnit, updatedItem.expectedUnit);
+
+              if (convertedQty === 0) {
+                updatedItem.status = 'pending';
+              } else if (convertedQty >= expectedQty) {
+                updatedItem.status = 'received';
+              } else if (convertedQty < expectedQty) {
+                updatedItem.status = 'shortage';
+              }
+
+              if (convertedQty > 0 && convertedQty < expectedQty) {
+                updatedItem.status = 'partial';
+              }
+            }
+
+            return updatedItem;
+          }
+          return item;
+        })
+      );
+    },
+    [convertUnit]
+  );
+
+  // Thêm sản phẩm mới - FIX: Sử dụng useCallback
+  const addNewItem = useCallback(() => {
+    setReceiptItems((prev) => {
+      const newItem = {
+        id: prev.length + 1,
+        productCode: '',
+        productName: '',
+        expectedQuantity: 0,
+        expectedUnit: 'viên',
+        actualQuantity: 0,
+        actualUnit: 'viên',
+        unitPrice: 0,
+        lotNumber: '',
+        expiryDate: '',
+        notes: '',
+        status: 'pending'
+      };
+      return [...prev, newItem];
+    });
+  }, []);
+
+  // Xóa sản phẩm - FIX: Sử dụng useCallback
+  const removeItem = useCallback((id) => {
     setReceiptItems((prev) => prev.filter((item) => item.id !== id));
-  };
+  }, []);
 
   // Lấy màu sắc cho trạng thái
-  const getStatusColor = (status) => {
+  const getStatusColor = useCallback((status) => {
     switch (status) {
       case 'received':
         return 'success';
@@ -206,10 +265,10 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       default:
         return 'default';
     }
-  };
+  }, []);
 
   // Lấy text cho trạng thái
-  const getStatusText = (status) => {
+  const getStatusText = useCallback((status) => {
     switch (status) {
       case 'received':
         return 'Đã nhận đủ';
@@ -220,20 +279,23 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       default:
         return 'Đang chờ';
     }
-  };
+  }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const receipt = {
-      ...receiptData,
-      items: receiptItems,
-      statistics,
-      totalItems: receiptItems.length,
-      createdAt: new Date().toISOString(),
-      status: 'draft'
-    };
-    onReceiptCreate(receipt);
-  };
+  const handleSubmit = useCallback(
+    (e) => {
+      e.preventDefault();
+      const receipt = {
+        ...receiptData,
+        items: receiptItems,
+        statistics,
+        totalItems: receiptItems.length,
+        createdAt: new Date().toISOString(),
+        status: 'draft'
+      };
+      onReceiptCreate?.(receipt);
+    },
+    [receiptData, receiptItems, statistics, onReceiptCreate]
+  );
 
   return (
     <Box>
@@ -243,7 +305,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
           <Typography variant="h6" gutterBottom>
             Tạo Phiếu Nhập Kho
           </Typography>
-
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
@@ -363,7 +424,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                                 {unit}
                               </MenuItem>
                             ))}
-                            <MenuItem value="cái">cái</MenuItem>
+                            <MenuItem value="viên">viên</MenuItem>
                           </Select>
                         </FormControl>
                       </Box>
@@ -384,7 +445,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                                 {unit}
                               </MenuItem>
                             ))}
-                            <MenuItem value="cái">cái</MenuItem>
+                            <MenuItem value="viên">viên</MenuItem>
                           </Select>
                         </FormControl>
                       </Box>
@@ -415,7 +476,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       </Card>
 
       {/* Thống kê */}
-      <ReceiptStatistics statistics={statistics} />
+      <ReceiptStatistics statistics={statistics} items={receiptItems} />
 
       {/* Nút tạo phiếu */}
       <Box display="flex" justifyContent="center" mt={3}>

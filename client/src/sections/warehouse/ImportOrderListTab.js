@@ -398,10 +398,12 @@ export default function PurchaseOrderListTab() {
             <Select value={statusFilter} label="Trạng thái" onChange={(e) => setStatusFilter(e.target.value)}>
               <MenuItem value="all">Tất cả</MenuItem>
               <MenuItem value="draft">Nháp</MenuItem>
-              <MenuItem value="pending">Chờ duyệt</MenuItem>
+              <MenuItem value="delivered">Đã giao</MenuItem>
               <MenuItem value="approved">Đã duyệt</MenuItem>
-              <MenuItem value="rejected">Từ chối</MenuItem>
+              <MenuItem value="checked">Đã kiểm tra</MenuItem>
+              <MenuItem value="arranged">Đã sắp xếp</MenuItem>
               <MenuItem value="completed">Hoàn thành</MenuItem>
+              <MenuItem value="cancelled">Hủy</MenuItem>
             </Select>
           </FormControl>
 
