@@ -17,7 +17,7 @@ import { useState } from 'react';
 // Import components
 import ImportOrderListTab from '@/sections/warehouse/ImportOrderListTab';
 import ReceiptList from '@/sections/warehouse/ReceiptList';
-import CreateReceiptTab from './CreateReceiptTab';
+import CreateReceiptTab from '@/views/warehouse/CreateReceiptTab';
 
 /***************************  BORDER WITH RADIUS  ***************************/
 

@@ -14,17 +14,6 @@ const errorHandler = require('./middlewares/error.middleware.js');
 const authenticate = require('./middlewares/authenticate');
 const authorize = require('./middlewares/authorize');
 
-const {
-  authRoutes,
-  cronRoutes,
-  medicineRoutes,
-  supervisorRoutes,
-  supplierContractRoutes,
-  packageRoutes,
-  importInspectionRoutes
-  importOrderRoutes,
-} = require('./routes');
-
 // Middlewares
 app.use(helmet());
 app.use(cors({ origin: config.clientUrl, credentials: true }));
@@ -39,20 +28,19 @@ app.get('/api/health', (req, res) => {
 });
 
 // Public routes
-app.use('/api/auth', authRoutes);
-app.use('/api/cron', cronRoutes);
-app.use('/api/medicine', medicineRoutes);
-app.use('/api/import-inspections', importInspectionRoutes);
-app.use('/api/import-orders', route.importOrderRoutes);
+app.use('/api/auth', route.authRoutes);
+app.use('/api/cron', route.cronRoutes);
+app.use('/api/medicine', route.medicineRoutes);
+app.use('/api/import-inspections', route.importInspectionRoutes);
 app.use('/api/notifications', route.notificationRoutes);
-app.use('/api/import-orders', importOrderRoutes);
+app.use('/api/import-orders', route.importOrderRoutes);
 app.use('api/thingsboard', route.thingsboardRoutes);
 
 // Protected routes với role-based access
-app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRoutes);
+app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
 app.use('/api/accounts', authenticate, authorize('supervisor'), route.accountRoutes);
-app.use('/api/supplier-contracts', supplierContractRoutes);
-app.use('/api/import-inspections', authenticate, authorize('warehouse'), route.inspectionRoutes);
+app.use('/api/supplier-contracts', route.supplierContractRoutes);
+app.use('/api/inspections', authenticate, authorize('warehouse'), route.inspectionRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 
