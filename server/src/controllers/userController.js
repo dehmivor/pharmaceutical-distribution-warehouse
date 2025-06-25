@@ -413,7 +413,7 @@ const deleteUser = async (req, res) => {
 
     // Soft delete - chuyển status thành INACTIVE
     await User.findByIdAndUpdate(id, {
-      status: USER_STATUSES.INACTIVE,
+      status: constants.USER_STATUSES.INACTIVE,
     });
 
     res.status(200).json({

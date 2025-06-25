@@ -8,6 +8,7 @@ const USER_ROLES = {
 const USER_STATUSES = {
   ACTIVE: 'active',
   INACTIVE: 'inactive',
+  PENDING: 'pending',
 };
 
 const BASIC_STATUSES = {
