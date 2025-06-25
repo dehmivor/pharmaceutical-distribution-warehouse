@@ -1,35 +1,34 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useAlert, alert, hideAlert, showAlert } from '@/hooks/useAlert';
+import useInspection from '@/hooks/useInspection';
+import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import {
+  Alert,
+  Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  TextField,
-  Button,
+  Chip,
+  CircularProgress,
+  FormControl,
   Grid,
-  Divider,
-  Box,
-  Alert,
+  IconButton,
+  MenuItem,
+  Paper,
+  Select,
+  Snackbar,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Chip,
-  IconButton,
-  CircularProgress
+  TextField,
+  Typography
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ReceiptStatistics from './ReceiptStatistics';
-import { useAlert } from '@/hooks/useAlert';
-import useInspection from '@/hooks/useInspection';
 
 const UNIT_CONVERSIONS = {
   kg: { g: 1000, tấn: 0.001 },
@@ -61,7 +60,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     receivedPercentage: 0,
     totalValue: 0
   });
-
   const isInitialized = useRef(false);
   const lastOrderId = useRef(null);
   const lastCheckedItemsLength = useRef(0);
@@ -80,7 +78,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
   const [createError, setCreateError] = useState(null);
   const { createInspection, loading, error } = useInspection();
 
-  const { showAlert } = useAlert();
+  const { alert, showAlert, hideAlert } = useAlert();
 
   useEffect(() => {
     const currentOrderId = orderData?.orderId;
@@ -401,15 +399,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                   required
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Người nhận hàng"
-                  value={receiptData.receiver}
-                  onChange={(e) => setReceiptData((prev) => ({ ...prev, receiver: e.target.value }))}
-                  required
-                />
-              </Grid>
             </Grid>
 
             <TextField
@@ -443,7 +432,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                   <TableCell>Tên sản phẩm</TableCell>
                   <TableCell>SL dự kiến</TableCell>
                   <TableCell>SL thực nhận</TableCell>
-                  <TableCell>HSD</TableCell>
                   <TableCell>Trạng thái</TableCell>
                   <TableCell>Thao tác</TableCell>
                 </TableRow>
@@ -510,15 +498,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <TextField
-                        size="small"
-                        type="date"
-                        value={item.expiryDate}
-                        onChange={(e) => updateReceiptItem(item.id, 'expiryDate', e.target.value)}
-                        sx={{ width: 130 }}
-                      />
-                    </TableCell>
-                    <TableCell>
                       <Chip label={getStatusText(item.status)} color={getStatusColor(item.status)} size="small" />
                     </TableCell>
                     <TableCell>
@@ -566,6 +545,12 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
         <Button variant="outlined" color="secondary" size="large" onClick={resetForm} disabled={isCreating}>
           Làm mới
         </Button>
+
+        <Snackbar open={alert.open} autoHideDuration={6000} onClose={hideAlert} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+          <Alert onClose={hideAlert} severity={alert.severity} sx={{ width: '100%' }}>
+            {alert.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </Box>
   );

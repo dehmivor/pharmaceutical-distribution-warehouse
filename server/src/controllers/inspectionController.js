@@ -5,22 +5,13 @@ const createInspection = async (req, res) => {
   try {
     const inspectionData = {
       ...req.body,
-      created_by: req.user.id,
     };
 
     const inspection = await importInspectionService.createInspection(inspectionData);
 
-    return successResponse(
-      res,
-      {
-        message: 'Import inspection created successfully',
-        data: inspection,
-      },
-      201,
-    );
+    return res.status(201).json(inspection);
   } catch (error) {
     return res.status(error.statusCode || 500).json({
-      success: false,
       message: error.message,
     });
   }
@@ -41,14 +32,9 @@ const getInspections = async (req, res) => {
       filters,
     });
 
-    return successResponse(res, {
-      message: 'Import inspections retrieved successfully',
-      data: result.inspections,
-      pagination: result.pagination,
-    });
+    return res.json(result);
   } catch (error) {
     return res.status(error.statusCode || 500).json({
-      success: false,
       message: error.message,
     });
   }
@@ -60,13 +46,9 @@ const getInspectionById = async (req, res) => {
     const { id } = req.params;
     const inspection = await importInspectionService.getInspectionById(id);
 
-    return successResponse(res, {
-      message: 'Import inspection retrieved successfully',
-      data: inspection,
-    });
+    return res.json(inspection);
   } catch (error) {
     return res.status(error.statusCode || 500).json({
-      success: false,
       message: error.message,
     });
   }
@@ -80,13 +62,9 @@ const updateInspection = async (req, res) => {
 
     const inspection = await importInspectionService.updateInspection(id, updateData);
 
-    return successResponse(res, {
-      message: 'Import inspection updated successfully',
-      data: inspection,
-    });
+    return res.json(inspection);
   } catch (error) {
     return res.status(error.statusCode || 500).json({
-      success: false,
       message: error.message,
     });
   }
@@ -98,12 +76,9 @@ const deleteInspection = async (req, res) => {
     const { id } = req.params;
     await importInspectionService.deleteInspection(id);
 
-    return successResponse(res, {
-      message: 'Import inspection deleted successfully',
-    });
+    return res.status(204).send();
   } catch (error) {
     return res.status(error.statusCode || 500).json({
-      success: false,
       message: error.message,
     });
   }
@@ -115,13 +90,9 @@ const getInspectionStatistics = async (req, res) => {
     const { importOrderId } = req.params;
     const statistics = await importInspectionService.getInspectionStatistics(importOrderId);
 
-    return successResponse(res, {
-      message: 'Inspection statistics retrieved successfully',
-      data: statistics,
-    });
+    return res.json(statistics);
   } catch (error) {
     return res.status(error.statusCode || 500).json({
-      success: false,
       message: error.message,
     });
   }
