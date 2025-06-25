@@ -3,7 +3,7 @@ import React from 'react';
 import { Box, Fade } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import DashboardHeader from './DashboardHeader';
-import WarehouseOverviewCard from '../WarehouseOverviewCard';
+import WarehouseOverviewCard from './WarehouseOverviewCard';
 import QuickActionsCard from './QuickActionsCard';
 import WarehouseProcessChart from '../WarehouseProcessChart';
 import RecentActivitiesCard from './RecentActivitiesCard';

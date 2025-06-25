@@ -2,10 +2,10 @@
 import dynamic from 'next/dynamic';
 
 // @project
-const ImportOrderListTab = dynamic(() => import('@/sections/warehouse/ImportOrderListTab'));
+const WarehouseDashboard = dynamic(() => import('@/views/warehouse/WarehouseDashboard'));
 
 /***************************  DASHBOARD PAGE  ***************************/
 
 export default function DashboardPages() {
-  return <ImportOrderListTab />;
+  return <WarehouseDashboard />;
 }
