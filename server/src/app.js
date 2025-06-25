@@ -14,6 +14,19 @@ const errorHandler = require('./middlewares/error.middleware.js');
 const authenticate = require('./middlewares/authenticate');
 const authorize = require('./middlewares/authorize');
 
+const {
+  authRoutes,
+  cronRoutes,
+  medicineRoutes,
+  supervisorRoutes,
+  supplierContractRoutes,
+  packageRoutes,
+  importInspectionRoutes,
+  importOrderRoutes,
+  batchRoutes,
+  areaRoutes,
+} = require('./routes');
+
 // Middlewares
 app.use(helmet());
 app.use(cors({ origin: config.clientUrl, credentials: true }));
@@ -35,6 +48,9 @@ app.use('/api/import-inspections', route.importInspectionRoutes);
 app.use('/api/notifications', route.notificationRoutes);
 app.use('/api/import-orders', route.importOrderRoutes);
 app.use('api/thingsboard', route.thingsboardRoutes);
+app.use('/api/batch', batchRoutes);
+app.use('/api/packages', packageRoutes);
+app.use('/api/areas', areaRoutes);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
