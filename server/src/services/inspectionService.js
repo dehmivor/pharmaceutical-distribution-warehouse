@@ -8,18 +8,11 @@ class ImportInspectionService {
     // Kiểm tra import order tồn tại
     const importOrder = await ImportOrder.findById(inspectionData.import_order_id);
     if (!importOrder) {
-      throw new AppError('Import order not found', 404);
+      throw new Error('Import order not found', 404);
     }
-
-    // Kiểm tra batch tồn tại
-    const batch = await Batch.findById(inspectionData.batch_id);
-    if (!batch) {
-      throw new AppError('Batch not found', 404);
-    }
-
     // Kiểm tra logic nghiệp vụ
     if (inspectionData.rejected_quantity > inspectionData.actual_quantity) {
-      throw new AppError('Rejected quantity cannot exceed actual quantity', 400);
+      throw new Error('Rejected quantity cannot exceed actual quantity', 400);
     }
 
     // Kiểm tra xem đã có phiếu kiểm tra cho batch này chưa
@@ -29,7 +22,7 @@ class ImportInspectionService {
     });
 
     if (existingInspection) {
-      throw new AppError('Inspection already exists for this batch', 409);
+      throw new Error('Inspection already exists for this batch', 409);
     }
 
     const inspection = new ImportInspection(inspectionData);
@@ -75,7 +68,7 @@ class ImportInspectionService {
       .populate('created_by', 'name email');
 
     if (!inspection) {
-      throw new AppError('Import inspection not found', 404);
+      throw new Error('Import inspection not found', 404);
     }
 
     return inspection;
@@ -85,7 +78,7 @@ class ImportInspectionService {
   async updateInspection(id, updateData) {
     const inspection = await ImportInspection.findById(id);
     if (!inspection) {
-      throw new AppError('Import inspection not found', 404);
+      throw new Error('Import inspection not found', 404);
     }
 
     // Kiểm tra logic nghiệp vụ khi cập nhật
@@ -93,7 +86,7 @@ class ImportInspectionService {
     const rejectedQuantity = updateData.rejected_quantity || inspection.rejected_quantity;
 
     if (rejectedQuantity > actualQuantity) {
-      throw new AppError('Rejected quantity cannot exceed actual quantity', 400);
+      throw new Error('Rejected quantity cannot exceed actual quantity', 400);
     }
 
     Object.assign(inspection, updateData);
@@ -107,7 +100,7 @@ class ImportInspectionService {
   async deleteInspection(id) {
     const inspection = await ImportInspection.findById(id);
     if (!inspection) {
-      throw new AppError('Import inspection not found', 404);
+      throw new Error('Import inspection not found', 404);
     }
 
     await ImportInspection.findByIdAndDelete(id);

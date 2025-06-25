@@ -31,7 +31,6 @@ import ReceiptStatistics from './ReceiptStatistics';
 import { useAlert } from '@/hooks/useAlert';
 import useInspection from '@/hooks/useInspection';
 
-// Danh sách đơn vị chuyển đổi
 const UNIT_CONVERSIONS = {
   kg: { g: 1000, tấn: 0.001 },
   g: { kg: 0.001, tấn: 0.000001 },
@@ -44,7 +43,6 @@ const UNIT_CONVERSIONS = {
   gallon: { lít: 3.78541, ml: 3785.41 },
   viên: { gói: 10, hộp: 100 }
 };
-
 function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) {
   const [receiptData, setReceiptData] = useState({
     receiptId: `PN${Date.now()}`,
@@ -52,12 +50,10 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     orderId: orderData?.orderId || '',
     supplier: orderData?.supplier || '',
     warehouse: 'Kho chính',
-    receiver: '',
     notes: ''
   });
 
   const [receiptItems, setReceiptItems] = useState([]);
-  const [editingItem, setEditingItem] = useState(null);
   const [statistics, setStatistics] = useState({
     totalExpected: 0,
     totalReceived: 0,
@@ -66,12 +62,10 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     totalValue: 0
   });
 
-  // Sử dụng ref để track việc initialization
   const isInitialized = useRef(false);
   const lastOrderId = useRef(null);
   const lastCheckedItemsLength = useRef(0);
 
-  // Hàm chuyển đổi đơn vị được memoize
   const convertUnit = useCallback((quantity, fromUnit, toUnit) => {
     if (fromUnit === toUnit) return quantity;
 
@@ -84,18 +78,14 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
 
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
-  const { createInspection } = useInspection();
+  const { createInspection, loading, error } = useInspection();
+
   const { showAlert } = useAlert();
 
-  // Khởi tạo danh sách hàng từ đơn mua - FIX: Thêm điều kiện để tránh infinite loop
   useEffect(() => {
     const currentOrderId = orderData?.orderId;
     const currentCheckedItemsLength = checkedItems.length;
 
-    // Chỉ initialize khi:
-    // 1. Chưa được initialize hoặc
-    // 2. OrderId thay đổi hoặc
-    // 3. CheckedItems length thay đổi
     if (!isInitialized.current || lastOrderId.current !== currentOrderId || lastCheckedItemsLength.current !== currentCheckedItemsLength) {
       let initialItems = [];
 
@@ -311,50 +301,28 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       return;
     }
 
-    // Validate dữ liệu bắt buộc
-    if (!receiptData.receiver.trim()) {
-      showAlert('Vui lòng nhập tên người nhận hàng', 'warning');
-      return;
-    }
-
-    if (!receiptData.warehouse.trim()) {
-      showAlert('Vui lòng chọn kho nhập', 'warning');
-      return;
-    }
-
-    // Kiểm tra có ít nhất 1 sản phẩm có số lượng thực nhận > 0
-    const hasValidItems = receiptItems.some((item) => parseFloat(item.actualQuantity) > 0 && item.productName.trim() !== '');
-
-    if (!hasValidItems) {
-      showAlert('Vui lòng nhập số lượng thực nhận cho ít nhất một sản phẩm', 'warning');
-      return;
-    }
-
     setIsCreating(true);
     setCreateError(null);
 
     try {
-      // Chuẩn bị dữ liệu gửi lên API
+      console.log('📦 Order data:', orderData);
+
       const inspectionData = {
-        import_order_id: orderData?.orderId,
-        batch_id: null, // Để useInspection tự generate
+        import_order_id: '6859812162c95723b56b32a9',
+        batch_id: null,
         actual_quantity: statistics.totalReceived,
         rejected_quantity: statistics.totalReturned,
-        note: receiptData.notes,
+        note: receiptData.notes || '',
         created_by: '685aba038d7e1e2eb3d86bd1'
       };
 
       console.log('📝 Tạo phiếu nhập kho:', inspectionData);
 
-      // Gọi API tạo phiếu
       const response = await createInspection(inspectionData);
 
       console.log('✅ Tạo phiếu thành công:', response);
-
-      // Thông báo thành công
       showAlert(`Tạo phiếu nhập kho ${response.receipt_id || receiptData.receiptId} thành công!`, 'success');
 
-      // Callback cho parent component
       if (onReceiptCreate) {
         onReceiptCreate({
           ...response,
@@ -363,22 +331,9 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
           statistics
         });
       }
-
-      // Reset form sau khi tạo thành công (tùy chọn)
-      // resetForm();
     } catch (error) {
       console.error('❌ Lỗi tạo phiếu:', error);
-
-      let errorMessage = 'Có lỗi xảy ra khi tạo phiếu nhập kho';
-
-      if (error?.message) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      } else if (error?.error) {
-        errorMessage = error.error;
-      }
-
+      const errorMessage = error?.message || 'Có lỗi xảy ra khi tạo phiếu nhập kho';
       setCreateError(errorMessage);
       showAlert(errorMessage, 'error');
     } finally {

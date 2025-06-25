@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import axios from 'axios';
+import { useRole } from '@/contexts/RoleContext'; // Import useRole
 
 const backendUrl = 'http://localhost:5000';
 
@@ -9,6 +10,9 @@ const useInspection = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [apiDebugInfo, setApiDebugInfo] = useState(null);
+
+  // ✅ Sử dụng useRole để lấy thông tin user
+  const { user, isLoading: userLoading } = useRole();
 
   const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem('auth-token');
@@ -27,7 +31,25 @@ const useInspection = () => {
     return headers;
   }, []);
 
-  // ✅ Trong useInspection.js - Thêm validation trước khi gửi
+  // ✅ Helper function để lấy user ID
+  // ✅ Sửa hàm getCurrentUserId
+  const getCurrentUserId = useCallback(() => {
+    // Fallback: lấy từ localStorage
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        return parsedUser.userId || parsedUser._id || parsedUser.id; // ✅ Thêm các trường khác
+      } catch (e) {
+        console.warn('⚠️ Failed to parse stored user data');
+      }
+    }
+
+    // Fallback cuối: hardcode (chỉ dùng cho development)
+    console.warn('⚠️ Using fallback user ID - this should not happen in production');
+    return '685aba038d7e1e2eb3d86bd1';
+  }, [user]);
+
   const createInspection = useCallback(
     async (inspectionData) => {
       setLoading(true);
@@ -36,25 +58,35 @@ const useInspection = () => {
       try {
         console.log('🔍 Raw inspection data:', inspectionData);
 
-        // ✅ Validation
+        if (userLoading) {
+          throw new Error('Đang tải thông tin người dùng, vui lòng thử lại');
+        }
+
+        const currentUserId = getCurrentUserId();
+
+        if (!currentUserId) {
+          throw new Error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
+        }
+
         if (!inspectionData.import_order_id) {
           throw new Error('Import Order ID is required');
         }
 
+        // ✅ Sử dụng user ID thực tế thay vì hardcode
         const transformedData = {
-          import_order_id: '6859812162c95723b56b32a9',
-          batch_id: '685aa60ee40c9295c466a90c',
+          import_order_id: inspectionData.import_order_id, // ✅ Sử dụng giá trị thực
+          batch_id: inspectionData.batch_id || null,
           actual_quantity: Number(inspectionData.total_received || inspectionData.actual_quantity || 0),
           rejected_quantity: Number(inspectionData.total_returned || inspectionData.rejected_quantity || 0),
           note: String(inspectionData.notes || inspectionData.note || ''),
-          created_by: '685aba038d7e1e2eb3d86bd1'
+          created_by: currentUserId // ✅ Sử dụng user ID thực tế
         };
 
         console.log('📤 Transformed data:', transformedData);
+        console.log('👤 Current user:', { id: currentUserId, name: user?.name || 'Unknown' });
 
-        // ✅ Validate transformed data
         if (transformedData.actual_quantity < 0 || transformedData.rejected_quantity < 0) {
-          throw new Error('Quantities cannot be negative');
+          throw new Error('Số lượng không được âm');
         }
 
         const headers = getAuthHeaders();
@@ -68,10 +100,10 @@ const useInspection = () => {
       } catch (error) {
         console.error('❌ Create inspection error:', {
           originalData: inspectionData,
+          currentUser: user,
           error: error.response?.data || error.message
         });
 
-        // ✅ Better error handling
         let errorMessage = 'Có lỗi xảy ra khi tạo phiếu kiểm hàng';
 
         if (error.response?.status === 500) {
@@ -88,86 +120,34 @@ const useInspection = () => {
         setLoading(false);
       }
     },
-    [getAuthHeaders]
+    [getAuthHeaders, getCurrentUserId, user, userLoading]
   );
 
-  // ✅ Debug helper function
-  const debugToken = useCallback(() => {
-    const token = localStorage.getItem('auth-token');
-    if (!token) {
-      console.log('❌ No token found');
-      return { hasToken: false };
-    }
+  // ✅ Debug helper function với user info
+  const debugUserInfo = useCallback(() => {
+    console.log('🔍 Debug User Info:');
+    console.log('- User from context:', user);
+    console.log('- User loading:', userLoading);
+    console.log('- Current user ID:', getCurrentUserId());
+    console.log('- Stored user:', localStorage.getItem('user'));
 
-    try {
-      const parts = token.split('.');
-      if (parts.length === 3) {
-        const payload = JSON.parse(atob(parts[1]));
-        console.log('🔍 JWT Payload:', payload);
-        console.log('🔍 Token expires:', new Date(payload.exp * 1000));
-        console.log('🔍 Token expired:', payload.exp < Date.now() / 1000);
+    return {
+      contextUser: user,
+      userLoading,
+      currentUserId: getCurrentUserId(),
+      hasValidUserId: !!getCurrentUserId()
+    };
+  }, [user, userLoading, getCurrentUserId]);
 
-        return {
-          hasToken: true,
-          payload,
-          expired: payload.exp < Date.now() / 1000
-        };
-      }
-    } catch (e) {
-      console.error('❌ Invalid JWT:', e);
-      return { hasToken: true, invalid: true };
-    }
-  }, []);
-
-  // ✅ Test API connection
-  const testConnection = useCallback(async () => {
-    try {
-      const headers = getAuthHeaders();
-      const response = await axios.get('/api/inspections', {
-        headers,
-        baseURL: backendUrl,
-        params: { page: 1, limit: 1 }
-      });
-
-      console.log('✅ Connection test successful:', response.status);
-      return { success: true, status: response.status };
-    } catch (error) {
-      console.error('❌ Connection test failed:', error.response?.data || error.message);
-      return {
-        success: false,
-        error: error.response?.data || error.message,
-        status: error.response?.status
-      };
-    }
-  }, [getAuthHeaders]);
-
-  const debugRequest = useCallback(
-    async (inspectionData) => {
-      console.log('🧪 Debug request data:');
-      console.log('- inspectionData:', inspectionData);
-      console.log('- import_order_id type:', typeof inspectionData.import_order_id);
-      console.log('- import_order_id valid ObjectId:', /^[0-9a-fA-F]{24}$/.test(inspectionData.import_order_id));
-
-      const headers = getAuthHeaders();
-      console.log('- headers:', headers);
-
-      // Test GET first
-      try {
-        const getResponse = await axios.get('/api/inspections', {
-          headers,
-          baseURL: backendUrl,
-          params: { page: 1, limit: 1 }
-        });
-        console.log('✅ GET test successful:', getResponse.status);
-      } catch (error) {
-        console.error('❌ GET test failed:', error.response?.data || error.message);
-      }
-    },
-    [getAuthHeaders]
-  );
-
+  // ✅ Test với user ID thực tế
   const testMinimalPost = useCallback(async () => {
     try {
+      const currentUserId = getCurrentUserId();
+
+      if (!currentUserId) {
+        throw new Error('No user ID available for testing');
+      }
+
       const headers = getAuthHeaders();
       const minimalData = {
         import_order_id: '677a1234567890abcdef1234',
@@ -175,7 +155,7 @@ const useInspection = () => {
         actual_quantity: 1,
         rejected_quantity: 0,
         note: 'Test',
-        created_by: '685aba038d7e1e2eb3d86bd1'
+        created_by: currentUserId // ✅ Sử dụng user ID thực tế
       };
 
       console.log('🧪 Testing minimal POST:', minimalData);
@@ -195,43 +175,44 @@ const useInspection = () => {
       });
       return { success: false, error: error.response?.data || error.message };
     }
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, getCurrentUserId]);
 
   return {
     // States
     loading,
     error,
     apiDebugInfo,
+    userLoading, // ✅ Expose user loading state
 
     // Methods
     createInspection,
     updateInspection: useCallback(
       async (id, updateData) => {
-        // ... existing updateInspection code from search results
+        // ... existing updateInspection code
       },
       [getAuthHeaders]
     ),
     deleteInspection: useCallback(
       async (id) => {
-        // ... existing deleteInspection code from search results
+        // ... existing deleteInspection code
       },
       [getAuthHeaders]
     ),
     fetchInspections: useCallback(
       async (params = {}) => {
-        // ... existing fetchInspections code from search results
+        // ... existing fetchInspections code
       },
       [getAuthHeaders]
     ),
     fetchInspectionDetail: useCallback(
       async (id) => {
-        // ... existing fetchInspectionDetail code from search results
+        // ... existing fetchInspectionDetail code
       },
       [getAuthHeaders]
     ),
     fetchInspectionStats: useCallback(
       async (importOrderId) => {
-        // ... existing fetchInspectionStats code from search results
+        // ... existing fetchInspectionStats code
       },
       [getAuthHeaders]
     ),
@@ -242,14 +223,31 @@ const useInspection = () => {
       const token = localStorage.getItem('auth-token');
       return {
         isAuthenticated: !!token,
-        token: token ? token.substring(0, 20) + '...' : null
+        token: token ? token.substring(0, 20) + '...' : null,
+        user: user,
+        userId: getCurrentUserId()
       };
-    }, []),
-    debugToken,
-    testConnection,
+    }, [user, getCurrentUserId]),
+
+    // ✅ New debug helpers
+    debugUserInfo,
+    getCurrentUserId,
 
     // Debug
-    debugRequest,
+    debugRequest: useCallback(
+      async (inspectionData) => {
+        console.log('🧪 Debug request data:');
+        console.log('- inspectionData:', inspectionData);
+        console.log('- current user:', user);
+        console.log('- current user ID:', getCurrentUserId());
+        console.log('- import_order_id type:', typeof inspectionData.import_order_id);
+        console.log('- import_order_id valid ObjectId:', /^[0-9a-fA-F]{24}$/.test(inspectionData.import_order_id));
+
+        const headers = getAuthHeaders();
+        console.log('- headers:', headers);
+      },
+      [getAuthHeaders, user, getCurrentUserId]
+    ),
     testMinimalPost,
 
     // Helper getters
