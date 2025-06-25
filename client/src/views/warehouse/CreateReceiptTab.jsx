@@ -1,13 +1,11 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Alert, Button, CircularProgress } from '@mui/material';
 import useImportOrders from '@/hooks/useImportOrders';
-import DebugPanel from '@/sections/warehouse/create-inspect/DebugPanel';
-import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
-import OrderSelectionDialog from '@/sections/warehouse/create-inspect/OrderSelectionDialog';
-import NotificationSnackbar from '@/sections/warehouse/create-inspect/NotificationSnackbar';
 import useNotifications from '@/hooks/useNotification';
-
+import DebugPanel from '@/sections/warehouse/create-inspect/DebugPanel';
+import OrderSelectionDialog from '@/sections/warehouse/create-inspect/OrderSelectionDialog';
+import EnhancedReceiptForm from '@/sections/warehouse/EnhancedReceiptForm';
+import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
 export default function CreateReceiptTab() {
   const [orderData, setOrderData] = useState({});
   const [orderDialog, setOrderDialog] = useState({
@@ -144,8 +142,6 @@ export default function CreateReceiptTab() {
         onSelectOrder={handleSelectOrder}
         onRefresh={handleRefresh}
       />
-
-      <NotificationSnackbar notification={notification} onClose={hideNotification} />
     </Box>
   );
 }
