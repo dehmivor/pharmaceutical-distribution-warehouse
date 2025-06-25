@@ -16,3 +16,20 @@ exports.getByBatch = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.updateLocation = async (req, res) => {
+  try {
+    const { id } = req.params; // id của import inspection (thùng)
+    const { location } = req.body; // location là string hoặc object tùy bạn thiết kế
+
+    const updated = await ImportInspection.findByIdAndUpdate(
+      id,
+      { location },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ error: 'Not found' });
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

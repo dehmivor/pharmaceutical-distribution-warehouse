@@ -12,4 +12,10 @@ module.exports = {
   importInspectionRoutes: require('./importInspectionRoute'),
   supplierContractRoutes: require('./supplierContractRoute'),
   inspectionRoutes: require('./inspectionRoute'),
+  batchRoutes: require('./batchRoute'),
+  areaRoutes: require('./areaRoute'),
+  // warehouseRoutes: require('./warehouseRoute'),
+  // presentativeRoutes: require('./presentativeRoute'),
+  // retailerRoutes: require('./retailerRoute'),
+  // supplierRoutes: require('./supplierRoute'),
 };
