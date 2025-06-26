@@ -66,17 +66,18 @@ function ImportOrderSupervisor() {
     warehouse_manager_id: ''
   });
 
+  // Thêm state cho inline status edit
+  const [editingStatusOrderId, setEditingStatusOrderId] = useState(null);
+  const [editStatusValue, setEditStatusValue] = useState('');
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      console.log('Fetching orders...');
       const response = await axiosInstance.get('/import-orders', {
         headers: getAuthHeaders(),
       });
-      console.log('Orders response:', response.data);
       setOrders(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching orders:', error);
       setError(error.response?.data?.error || error.message);
     } finally {
       setLoading(false);
@@ -85,28 +86,22 @@ function ImportOrderSupervisor() {
 
   const fetchWarehouseManagers = async () => {
     try {
-      console.log('Fetching warehouse managers...');
-      const response = await axiosInstance.get('/users?role=warehouse_manager', {
+      const response = await axiosInstance.get('/accounts?role=warehouse_manager', {
         headers: getAuthHeaders(),
       });
-      console.log('Warehouse managers response:', response.data);
       setWarehouseManagers(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching warehouse managers:', error);
       setWarehouseManagers([]);
     }
   };
 
   const fetchStatusTransitions = async () => {
     try {
-      console.log('Fetching status transitions...');
       const response = await axiosInstance.get('/import-orders/status-transitions', {
         headers: getAuthHeaders(),
       });
-      console.log('Status transitions response:', response.data);
       setStatusTransitions(response.data.data || {});
     } catch (error) {
-      console.error('Error fetching status transitions:', error);
       setStatusTransitions({});
     }
   };
@@ -158,7 +153,7 @@ function ImportOrderSupervisor() {
 
       // Update warehouse manager if changed
       if (editForm.warehouse_manager_id !== (selectedOrder.warehouse_manager_id?._id || '')) {
-        await axiosInstance.put(`/import-orders/${selectedOrder._id}`, 
+        await axiosInstance.patch(`/import-orders/${selectedOrder._id}/assign-warehouse-manager`, 
           { warehouse_manager_id: editForm.warehouse_manager_id },
           { headers: getAuthHeaders() }
         );
@@ -168,7 +163,6 @@ function ImportOrderSupervisor() {
       handleCloseEditDialog();
       fetchOrders();
     } catch (error) {
-      console.error('Error updating order:', error);
       setError(error.response?.data?.error || error.message);
     } finally {
       setActionLoading(false);
@@ -243,6 +237,24 @@ function ImportOrderSupervisor() {
 
   const paginatedOrders = orders.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
+  // Thêm hàm handleStatusChange
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      setActionLoading(true);
+      await axiosInstance.patch(`/import-orders/${orderId}/status`,
+        { status: newStatus },
+        { headers: getAuthHeaders() }
+      );
+      setEditingStatusOrderId(null);
+      setSuccess('Status updated successfully');
+      fetchOrders();
+    } catch (error) {
+      setError(error.response?.data?.error || error.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -264,7 +276,6 @@ function ImportOrderSupervisor() {
               <TableCell sx={{ minWidth: 120 }}>Order Code</TableCell>
               <TableCell sx={{ minWidth: 120 }}>Contract Code</TableCell>
               <TableCell sx={{ minWidth: 150 }}>Supplier</TableCell>
-              <TableCell sx={{ minWidth: 150 }}>Warehouse</TableCell>
               <TableCell sx={{ minWidth: 120 }}>Created By</TableCell>
               <TableCell align="right" sx={{ minWidth: 120 }}>Total Amount</TableCell>
               <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
@@ -278,7 +289,6 @@ function ImportOrderSupervisor() {
                 <TableCell>{order.import_order_code || 'N/A'}</TableCell>
                 <TableCell>{order.supplier_contract_id?.contract_code || 'N/A'}</TableCell>
                 <TableCell>{order.supplier_contract_id?.supplier_id?.name || 'N/A'}</TableCell>
-                <TableCell>{order.warehouse_id?.name || 'N/A'}</TableCell>
                 <TableCell>{order.created_by?.name || 'N/A'}</TableCell>
                 <TableCell align="right">
                   {formatCurrency(order.details?.reduce((total, detail) => 
@@ -286,20 +296,44 @@ function ImportOrderSupervisor() {
                   ) || 0)}
                 </TableCell>
                 <TableCell>
-                  <Chip
-                    label={order.status}
-                    color={getStatusColor(order.status)}
-                    size="small"
-                  />
+                  {editingStatusOrderId === order._id ? (
+                    <FormControl size="small" fullWidth>
+                      <Select
+                        value={editStatusValue}
+                        onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                        onBlur={() => setEditingStatusOrderId(null)}
+                        autoFocus
+                      >
+                        <MenuItem value={IMPORT_ORDER_STATUSES.DRAFT}>Draft</MenuItem>
+                        <MenuItem value={IMPORT_ORDER_STATUSES.APPROVED}>Approved</MenuItem>
+                        <MenuItem value={IMPORT_ORDER_STATUSES.DELIVERED}>Delivered</MenuItem>
+                        <MenuItem value={IMPORT_ORDER_STATUSES.CHECKED}>Checked</MenuItem>
+                        <MenuItem value={IMPORT_ORDER_STATUSES.ARRANGED}>Arranged</MenuItem>
+                        <MenuItem value={IMPORT_ORDER_STATUSES.COMPLETED}>Completed</MenuItem>
+                        <MenuItem value={IMPORT_ORDER_STATUSES.CANCELLED}>Cancelled</MenuItem>
+                      </Select>
+                    </FormControl>
+                  ) : (
+                    <Chip
+                      label={order.status}
+                      color={getStatusColor(order.status)}
+                      size="small"
+                      onClick={() => {
+                        setEditingStatusOrderId(order._id);
+                        setEditStatusValue(order.status);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  )}
                 </TableCell>
-                <TableCell>{order.warehouse_manager_id?.name || 'Not Assigned'}</TableCell>
+                <TableCell>{order.warehouse_manager_id?.email || 'Not Assigned'}</TableCell>
                 <TableCell>
                   <Box display="flex" gap={1}>
                     <IconButton 
                       color="primary" 
                       onClick={() => handleOpenEditDialog(order)}
                       disabled={actionLoading}
-                      title="Edit order"
+                      title="Assign warehouse manager"
                     >
                       <EditIcon />
                     </IconButton>
@@ -325,51 +359,24 @@ function ImportOrderSupervisor() {
 
       {/* Edit Dialog */}
       <Dialog open={openEditDialog} onClose={handleCloseEditDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit Import Order</DialogTitle>
+        <DialogTitle>Assign Warehouse Manager</DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  Order Code: {selectedOrder?.import_order_code}
-                </Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={editForm.status}
-                    onChange={(e) => handleEditFormChange('status', e.target.value)}
-                    label="Status"
-                  >
-                    <MenuItem value={IMPORT_ORDER_STATUSES.DRAFT}>Draft</MenuItem>
-                    <MenuItem value={IMPORT_ORDER_STATUSES.APPROVED}>Approved</MenuItem>
-                    <MenuItem value={IMPORT_ORDER_STATUSES.DELIVERED}>Delivered</MenuItem>
-                    <MenuItem value={IMPORT_ORDER_STATUSES.CHECKED}>Checked</MenuItem>
-                    <MenuItem value={IMPORT_ORDER_STATUSES.ARRANGED}>Arranged</MenuItem>
-                    <MenuItem value={IMPORT_ORDER_STATUSES.COMPLETED}>Completed</MenuItem>
-                    <MenuItem value={IMPORT_ORDER_STATUSES.CANCELLED}>Cancelled</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Warehouse Manager</InputLabel>
-                  <Select
-                    value={editForm.warehouse_manager_id}
-                    onChange={(e) => handleEditFormChange('warehouse_manager_id', e.target.value)}
-                    label="Warehouse Manager"
-                  >
-                    <MenuItem value=""><em>None</em></MenuItem>
-                    {warehouseManagers.map((manager) => (
-                      <MenuItem key={manager._id} value={manager._id}>
-                        {manager.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+            <FormControl fullWidth size="small">
+              <InputLabel>Warehouse Manager</InputLabel>
+              <Select
+                value={editForm.warehouse_manager_id}
+                onChange={(e) => handleEditFormChange('warehouse_manager_id', e.target.value)}
+                label="Warehouse Manager"
+              >
+                <MenuItem value=""><em>None</em></MenuItem>
+                {warehouseManagers.map((manager) => (
+                  <MenuItem key={manager._id} value={manager._id}>
+                    {manager.name} ({manager.email})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -381,7 +388,7 @@ function ImportOrderSupervisor() {
             variant="contained" 
             disabled={actionLoading}
           >
-            {actionLoading ? <CircularProgress size={20} /> : 'Update'}
+            {actionLoading ? <CircularProgress size={20} /> : 'Assign'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -410,7 +417,7 @@ function ImportOrderSupervisor() {
                           size="small"
                         />
                       </Grid>
-                      
+                
                     </Grid>
                   </Paper>
                 </Grid>
@@ -439,11 +446,11 @@ function ImportOrderSupervisor() {
                     <Grid container spacing={2}>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">Warehouse</Typography>
-                        <Typography variant="body1">{selectedOrder.warehouse_id?.name || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.warehouse_id?.email || 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">Warehouse Manager</Typography>
-                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.name || 'Not Assigned'}</Typography>
+                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || 'Not Assigned'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">Manager Email</Typography>

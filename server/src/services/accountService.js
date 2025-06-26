@@ -474,6 +474,7 @@ const restoreAccount = async (userId) => {
 
     await User.findByIdAndUpdate(userId, {
       status: constants.USER_STATUSES.ACTIVE,
+      status: constants.USER_STATUSES.ACTIVE,
       updatedAt: new Date(),
     });
 

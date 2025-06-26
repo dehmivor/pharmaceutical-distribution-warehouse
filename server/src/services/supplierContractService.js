@@ -26,7 +26,7 @@ const supplierContractService =  {
     const contracts = await SupplierContract.find(query)
       .populate('created_by', 'name email')
       .populate('supplier_id', 'name')
-      .populate('items.medicine_id', 'license_code')
+      .populate('items.medicine_id', 'medicine_name license_code')
       .skip(skip)
       .limit(limit)
       .lean();
