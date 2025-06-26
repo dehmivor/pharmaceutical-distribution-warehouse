@@ -1,8 +1,12 @@
-// server/jest.config.js
+const date = new Date().toISOString().replace(/[:.]/g, '-');
 module.exports = {
   testEnvironment: 'node',
+  transform: {
+    '^.+\\.js$': 'babel-jest',
+  },
   roots: ['<rootDir>'],
-  testMatch: ['**/__tests__/**/*.js', '**/?(*.)+(spec|test).js'],
+  testMatch: ['<rootDir>/src/**/__tests__/**/*.js', '<rootDir>/src/**/*.(spec|test).js'],
+  globalTeardown: '<rootDir>/testTeardown.js',
   collectCoverageFrom: [
     'src/**/*.js',
     'services/**/*.js',
@@ -14,4 +18,15 @@ module.exports = {
   coverageReporters: ['text', 'lcov', 'html'],
   verbose: true,
   clearMocks: true,
+  reporters: [
+    'default',
+    [
+      'jest-junit',
+      {
+        outputDirectory: './server/test-results',
+        outputName: 'junit.xml',
+        ancestorSeparator: ' › ',
+      },
+    ],
+  ],
 };
