@@ -70,7 +70,7 @@ app.use(
   route.accountRoutes,
 );
 app.use('/api/stripe', route.stripeRoutes);
-
+app.use('/api/bills', route.billRoutes);
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 
 // app.use(

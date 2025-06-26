@@ -8,6 +8,7 @@ const inspectionService = require('./inspectionService');
 const medicineService = require('./medicineService');
 const packageService = require('./packageService');
 const stripeService = require('./stripeService');
+const billService = require('./billService');
 const supplierContractService = require('./supplierContractService');
 
 let mailtrapService = {};
@@ -37,5 +38,6 @@ module.exports = new Promise(async (resolve) => {
     ...packageService,
     ...stripeService,
     ...supplierContractService,
+    ...billService,
   });
 });
