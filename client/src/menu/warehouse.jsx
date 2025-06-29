@@ -19,10 +19,10 @@ const warehouse = {
       icon: 'IconChecklist'
     },
     {
-      id: 'manage-stock',
-      title: 'Manage Stock',
+      id: 'manage-inventory',
+      title: 'Manage Inventory',
       type: 'item',
-      url: '/manage-stock',
+      url: '/manage-inventory',
       icon: 'IconBoxMultiple'
     },
     {

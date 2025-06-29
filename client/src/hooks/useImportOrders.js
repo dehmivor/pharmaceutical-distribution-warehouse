@@ -1,368 +1,110 @@
-// hooks/useImportOrders.js
-import useSWR from 'swr';
+'use client';
 
-const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 
-// Hàm helper để xây dựng URL đầy đủ
-const buildUrl = (endpoint) => {
-  // Nếu endpoint đã có protocol, trả về nguyên
-  if (endpoint.startsWith('http')) {
-    return endpoint;
-  }
-  // Nếu endpoint bắt đầu bằng /, loại bỏ nó để tránh double slash
-  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-  return `${backendUrl}/${cleanEndpoint}`;
-};
+const backendUrl = 'http://localhost:5000';
 
-// Hàm helper để lấy token
-const getAuthToken = () => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('auth-token') || localStorage.getItem('auth-token');
-};
+// Setup axios default config
+axios.defaults.baseURL = backendUrl;
 
-// Fetcher function với error handling cải thiện
-const fetcher = async (url) => {
-  try {
-    const fullUrl = buildUrl(url);
-    const token = getAuthToken();
+const useImportOrders = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [apiDebugInfo, setApiDebugInfo] = useState(null);
 
-    console.log('Fetching:', fullUrl); // Debug log
+  // Fetch orders function
+  const fetchOrders = useCallback(async (params = {}) => {
+    setLoading(true);
+    setError(null);
 
-    const response = await fetch(fullUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` })
-      }
-    });
-
-    // Kiểm tra status code
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      let errorData = null;
-
-      try {
-        // Thử parse JSON error response
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-        } else {
-          // Nếu không phải JSON, lấy text
-          const errorText = await response.text();
-          if (errorText) {
-            errorMessage = errorText;
-          }
-        }
-      } catch (parseError) {
-        console.warn('Could not parse error response:', parseError);
-      }
-
-      const error = new Error(errorMessage);
-      error.status = response.status;
-      error.statusText = response.statusText;
-      error.data = errorData;
-
-      console.error('API Error:', {
-        url: fullUrl,
-        status: response.status,
-        message: errorMessage,
-        data: errorData
-      });
-
-      throw error;
-    }
-
-    // Kiểm tra Content-Type cho response thành công
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const responseText = await response.text();
-      console.error('Non-JSON response:', responseText);
-      throw new Error('Server did not return JSON');
-    }
-
-    const data = await response.json();
-    console.log('API Response:', data); // Debug log
-    return data;
-  } catch (error) {
-    console.error('Fetch error:', error);
-    throw error;
-  }
-};
-
-export function useImportOrders(options = {}) {
-  const { status, supplierId, page = 1, limit = 10 } = options;
-
-  // Xây dựng query string
-  const queryParams = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
-    ...(status && status !== 'all' && { status }),
-    ...(supplierId && { supplierId })
-  });
-
-  const endpoint = `api/import-orders?${queryParams}`;
-
-  const { data, error, isLoading, mutate } = useSWR(endpoint, fetcher, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: true,
-    refreshInterval: 30000, // Refresh mỗi 30 giây
-    // Cấu hình retry
-    onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
-      // Không retry cho lỗi client (4xx)
-      if (error.status >= 400 && error.status < 500) {
-        return;
-      }
-
-      // Chỉ retry tối đa 3 lần
-      if (retryCount >= 3) return;
-
-      // Retry với exponential backoff
-      const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
-      setTimeout(() => revalidate({ retryCount }), retryDelay);
-    }
-  });
-
-  return {
-    importOrders: data?.data || [],
-    pagination: data?.pagination || {},
-    isLoading,
-    isError: error,
-    mutate
-  };
-}
-
-// Hook để lấy chi tiết import order
-export function useImportOrder(id) {
-  const endpoint = id ? `api/import-orders/${id}` : null;
-
-  const { data, error, isLoading, mutate } = useSWR(endpoint, fetcher, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: true
-  });
-
-  return {
-    importOrder: data?.data || null,
-    isLoading,
-    isError: error,
-    mutate
-  };
-}
-
-// Hook để cập nhật trạng thái và actions
-export function useImportOrderActions() {
-  const makeRequest = async (endpoint, method, body = null) => {
     try {
-      const fullUrl = buildUrl(endpoint);
-      const token = getAuthToken();
+      // Debug logs
+      console.log('🔍 Backend URL:', backendUrl);
+      console.log('🔍 Full URL:', `${backendUrl}/api/import-orders`);
+      console.log('🔍 Params:', params);
 
-      console.log(`${method} request to:`, fullUrl); // Debug log
+      const token = localStorage.getItem('auth-token');
+      const headers = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      };
 
-      const response = await fetch(fullUrl, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        ...(body && { body: JSON.stringify(body) })
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const queryParams = new URLSearchParams({
+        page: params.page || 1,
+        limit: params.limit || 10,
+        ...params.filters
       });
 
-      if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        let errorData = null;
+      const url = `${backendUrl}/api/import-orders?${queryParams.toString()}`;
+      console.log('📡 Fetching:', url);
 
-        try {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            errorData = await response.json();
-            errorMessage = errorData.message || errorData.error || errorMessage;
-          } else {
-            const errorText = await response.text();
-            if (errorText) errorMessage = errorText;
-          }
-        } catch (parseError) {
-          console.warn('Could not parse error response:', parseError);
-        }
+      const response = await axios.get('/api/import-orders', {
+        params: {
+          page: params.page || 1,
+          limit: params.limit || 10,
+          ...params.filters
+        },
+        headers,
+        baseURL: backendUrl
+      });
 
-        const error = new Error(errorMessage);
-        error.status = response.status;
-        error.data = errorData;
-        throw error;
+      setOrders(response.data.data || []);
+      // ... rest of the logic
+    } catch (error) {
+      let errorMessage = 'Có lỗi xảy ra khi tải dữ liệu';
+
+      if (error.code === 'ERR_NETWORK' || error.message.includes('ERR_CONNECTION_REFUSED')) {
+        errorMessage = `Không thể kết nối tới server backend tại ${backendUrl}. Vui lòng kiểm tra:
+        1. Server backend có đang chạy không?
+        2. URL backend có đúng không?
+        3. Firewall có chặn port 5000 không?`;
       }
 
-      return response.json();
-    } catch (error) {
-      console.error('Request error:', error);
-      throw error;
+      console.error('💥 Fetch error:', error);
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const updateStatus = async (id, status, notes = '') => {
-    return await makeRequest(`api/import-orders/${id}/status`, 'PATCH', {
-      status,
-      notes
-    });
-  };
+  const refreshOrders = useCallback(
+    (params) => {
+      return fetchOrders(params);
+    },
+    [fetchOrders]
+  );
 
-  const createImportOrder = async (data) => {
-    return await makeRequest('api/import-orders', 'POST', data);
-  };
-
-  const updateImportOrder = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}`, 'PUT', data);
-  };
-
-  const updateImportOrderDetails = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}/details`, 'PUT', data);
-  };
-
-  const deleteImportOrder = async (id) => {
-    return await makeRequest(`api/import-orders/${id}`, 'DELETE');
-  };
-
-  // Warehouse specific actions
-  const receiveImportOrder = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}/receive`, 'PATCH', data);
-  };
-
-  const verifyImportOrder = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}/verify`, 'PATCH', data);
-  };
-
-  const completeImportOrder = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}/complete`, 'PATCH', data);
-  };
-
-  const updateInventory = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}/inventory`, 'POST', data);
-  };
-
-  const performQualityCheck = async (id, data) => {
-    return await makeRequest(`api/import-orders/${id}/quality-check`, 'PATCH', data);
-  };
+  // Clear data function
+  const clearOrders = useCallback(() => {
+    setOrders([]);
+    setError(null);
+    setApiDebugInfo(null);
+  }, []);
 
   return {
-    updateStatus,
-    createImportOrder,
-    updateImportOrder,
-    updateImportOrderDetails,
-    deleteImportOrder,
-    receiveImportOrder,
-    verifyImportOrder,
-    completeImportOrder,
-    updateInventory,
-    performQualityCheck
+    // Data
+    orders,
+    loading,
+    error,
+    apiDebugInfo,
+
+    // Methods
+    fetchOrders,
+    refreshOrders,
+    clearOrders,
+
+    // Helper getters
+    hasOrders: orders.length > 0,
+    isEmpty: !loading && orders.length === 0,
+    hasError: !!error
   };
-}
+};
 
-// Hook để search
-export function useSearchImportOrders() {
-  const searchImportOrders = async (keyword, options = {}) => {
-    const queryParams = new URLSearchParams({
-      page: (options.page || 1).toString(),
-      limit: (options.limit || 10).toString(),
-      ...(options.sortBy && { sortBy: options.sortBy }),
-      ...(options.sortOrder && { sortOrder: options.sortOrder })
-    });
-
-    const fullUrl = buildUrl(`api/import-orders/search/${encodeURIComponent(keyword)}?${queryParams}`);
-    const token = getAuthToken();
-
-    const response = await fetch(fullUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` })
-      }
-    });
-
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch (e) {
-        // Ignore parse error, use default message
-      }
-      throw new Error(errorMessage);
-    }
-
-    return response.json();
-  };
-
-  return { searchImportOrders };
-}
-
-// Hook để export data
-export function useExportImportOrders() {
-  const exportToExcel = async (filters = {}) => {
-    const queryParams = new URLSearchParams(filters);
-    const fullUrl = buildUrl(`api/import-orders/export/excel?${queryParams}`);
-    const token = getAuthToken();
-
-    const response = await fetch(fullUrl, {
-      method: 'GET',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` })
-      }
-    });
-
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch (e) {
-        // Ignore parse error, use default message
-      }
-      throw new Error(errorMessage);
-    }
-
-    // Xử lý download file
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `import-orders-${new Date().toISOString().split('T')[0]}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
-
-  const exportToPDF = async (id) => {
-    const fullUrl = buildUrl(`api/import-orders/export/pdf/${id}`);
-    const token = getAuthToken();
-
-    const response = await fetch(fullUrl, {
-      method: 'GET',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` })
-      }
-    });
-
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch (e) {
-        // Ignore parse error, use default message
-      }
-      throw new Error(errorMessage);
-    }
-
-    // Xử lý download file
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `import-order-${id}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
-
-  return { exportToExcel, exportToPDF };
-}
+export default useImportOrders;

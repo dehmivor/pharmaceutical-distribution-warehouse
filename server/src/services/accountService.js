@@ -44,7 +44,7 @@ const createAccount = async (accountData) => {
       generatePassword = true,
       customPassword = null,
       permissions = [],
-      status = constants.BASIC_STATUSES.PENDING,
+      status = constants.USER_STATUSES.PENDING,
       created_by,
     } = accountData;
 
@@ -473,7 +473,8 @@ const restoreAccount = async (userId) => {
     }
 
     await User.findByIdAndUpdate(userId, {
-      status: constants.BASIC_STATUSES.ACTIVE,
+      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.USER_STATUSES.ACTIVE,
       updatedAt: new Date(),
     });
 

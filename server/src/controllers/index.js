@@ -9,4 +9,8 @@ module.exports = {
   locationController: require('./locationController'),
   notificationController: require('./notificationController'),
   thingsboardController: require('./thingsboardController'),
+  importInspectionController: require('./importInspectionController'),
+  areaController: require('./areaController'),
+  stripeController: require('./stripeController'),
+  packageController: require('./packageController'),
 };

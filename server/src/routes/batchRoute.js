@@ -4,5 +4,6 @@ const batchController = require('../controllers/batchController');
 
 router.post('/assign-batch', batchController.assignBatch);
 router.post('/check-capacity', batchController.checkCapacity);
+router.get('/', batchController.getAll);
 
 module.exports = router;

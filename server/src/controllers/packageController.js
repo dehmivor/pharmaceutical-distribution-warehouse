@@ -1,4 +1,7 @@
 const packageService = require('../services/packageService');
+const Package = require('../models/Package');
+const Area = require('../models/Area');
+const Location = require('../models/Location');
 
 const packageController = {
   // ✅ Get all packages
@@ -7,8 +10,8 @@ const packageController = {
       const { page = 1, limit = 10, status, location_id } = req.query;
 
       const result = await packageService.getAllPackages({
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: Number.parseInt(page),
+        limit: Number.parseInt(limit),
         status,
         location_id,
       });
@@ -89,7 +92,7 @@ const packageController = {
       const packageData = req.body;
 
       // Validate required fields
-      if (!packageData.batch_id || !packageData.quantity || !packageData.location_id) {
+      if (!packageData.batch_id || !packageData.quantity) {
         return res.status(400).json({
           success: false,
           message: 'Batch ID, quantity, and location ID are required',
@@ -190,15 +193,195 @@ const packageController = {
 
       res.status(200).json({
         success: true,
-        data: result.packages,
+        data: packages,
       });
     } catch (error) {
-      console.error('Error getting packages by location:', error);
       res.status(500).json({
         success: false,
-        message: 'Error getting packages by location',
+        message: 'Error fetching packages by location',
         error: error.message,
       });
+    }
+  },
+
+  getByBatch: async (req, res) => {
+    try {
+      const { batchId } = req.params;
+      const packages = await Package.find({ batch_id: batchId })
+        .populate({
+          path: 'batch_id',
+          populate: { path: 'medicine_id' },
+        })
+        .populate({
+          path: 'location_id',
+          populate: { path: 'area_id' },
+        });
+      res.json(packages);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  // Original method - keep for backward compatibility
+  setPackageLocation: async (req, res) => {
+    try {
+      const { id } = req.params; // Package ID
+      const { location } = req.body; // Chuỗi vị trí, ví dụ: "A1-01-01-01"
+
+      // Kiểm tra input
+      if (!location) {
+        return res.status(400).json({ error: 'Vị trí là bắt buộc' });
+      }
+
+      // Phân tích chuỗi vị trí: "area-bay-row-column"
+      const parts = location.split('-');
+      if (parts.length !== 4) {
+        return res.status(400).json({
+          error:
+            'Định dạng vị trí không hợp lệ. Sử dụng "area-bay-row-column" (ví dụ: "A1-01-01-01")',
+        });
+      }
+      const [areaName, bay, row, column] = parts;
+
+      // Tìm area theo tên
+      const area = await Area.findOne({ name: areaName });
+      if (!area) {
+        return res.status(404).json({ error: `Không tìm thấy khu vực với tên ${areaName}` });
+      }
+
+      // Tìm package
+      const pkg = await Package.findById(id);
+      if (!pkg) {
+        return res.status(404).json({ error: 'Không tìm thấy thùng' });
+      }
+
+      const oldLocationId = pkg.location_id;
+
+      // Tìm hoặc tạo vị trí mới
+      let newLocation = await Location.findOne({
+        area_id: area._id,
+        bay,
+        row,
+        column,
+      });
+
+      if (!newLocation) {
+        // Tạo vị trí mới
+        newLocation = new Location({
+          area_id: area._id,
+          bay,
+          row,
+          column,
+          available: false,
+        });
+        await newLocation.save();
+      } else {
+        if (newLocation._id.equals(oldLocationId)) {
+          // Vị trí không thay đổi
+          return res.json({ message: 'Vị trí không thay đổi', location: newLocation });
+        } else if (!newLocation.available) {
+          return res.status(400).json({ error: 'Vị trí đã bị chiếm' });
+        } else {
+          // Cập nhật vị trí thành đã chiếm
+          newLocation.available = false;
+          await newLocation.save();
+        }
+      }
+
+      // Cập nhật location_id của package
+      pkg.location_id = newLocation._id;
+      await pkg.save();
+
+      // Nếu thùng có vị trí cũ khác với vị trí mới, đặt lại vị trí cũ thành available
+      if (oldLocationId && !oldLocationId.equals(newLocation._id)) {
+        await Location.findByIdAndUpdate(oldLocationId, { available: true });
+      }
+
+      res.json({ message: 'Cập nhật vị trí thành công', location: newLocation });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+
+  // New method with detailed input
+  setPackageLocationDetailed: async (req, res) => {
+    try {
+      const { id } = req.params; // Package ID
+      const { areaId, bay, row, column } = req.body;
+
+      // Validate input
+      if (!areaId || !bay || !row || !column) {
+        return res.status(400).json({ error: 'Khu vực, bay, hàng và cột là bắt buộc' });
+      }
+
+      // Tìm area theo ID
+      const area = await Area.findById(areaId);
+      if (!area) {
+        return res.status(404).json({ error: 'Không tìm thấy khu vực' });
+      }
+
+      // Tìm package
+      const pkg = await Package.findById(id);
+      if (!pkg) {
+        return res.status(404).json({ error: 'Không tìm thấy thùng' });
+      }
+
+      const oldLocationId = pkg.location_id;
+
+      // Tìm hoặc tạo vị trí mới
+      let newLocation = await Location.findOne({
+        area_id: areaId,
+        bay: bay.toString(),
+        row: row.toString(),
+        column: column.toString(),
+      });
+
+      if (!newLocation) {
+        // Tạo vị trí mới
+        newLocation = new Location({
+          area_id: areaId,
+          bay: bay.toString(),
+          row: row.toString(),
+          column: column.toString(),
+          available: false,
+        });
+        await newLocation.save();
+      } else {
+        if (oldLocationId && newLocation._id.equals(oldLocationId)) {
+          // Vị trí không thay đổi
+          return res.json({
+            message: 'Vị trí không thay đổi',
+            location: newLocation,
+          });
+        } else if (!newLocation.available) {
+          return res.status(400).json({ error: 'Vị trí đã bị chiếm bởi thùng khác' });
+        } else {
+          // Cập nhật vị trí thành đã chiếm
+          newLocation.available = false;
+          await newLocation.save();
+        }
+      }
+
+      // Cập nhật location_id của package
+      pkg.location_id = newLocation._id;
+      await pkg.save();
+
+      // Nếu thùng có vị trí cũ khác với vị trí mới, đặt lại vị trí cũ thành available
+      if (oldLocationId && !oldLocationId.equals(newLocation._id)) {
+        await Location.findByIdAndUpdate(oldLocationId, { available: true });
+      }
+
+      // Populate area information for response
+      await newLocation.populate('area_id');
+
+      res.json({
+        message: 'Cập nhật vị trí thành công',
+        location: newLocation,
+        locationString: `${area.name}-${bay}-${row}-${column}`,
+      });
+    } catch (err) {
+      console.error('Error updating package location:', err);
+      res.status(500).json({ error: err.message });
     }
   },
 };

@@ -280,18 +280,22 @@ const updateOrderStatus = async (orderId, status, approvalBy = null, bypassValid
           IMPORT_ORDER_STATUSES.CANCELLED,
         ],
         [IMPORT_ORDER_STATUSES.APPROVED]: [
+          IMPORT_ORDER_STATUSES.DRAFT,
           IMPORT_ORDER_STATUSES.DELIVERED,
           IMPORT_ORDER_STATUSES.CANCELLED,
         ],
         [IMPORT_ORDER_STATUSES.DELIVERED]: [
+          IMPORT_ORDER_STATUSES.APPROVED,
           IMPORT_ORDER_STATUSES.CHECKED,
           IMPORT_ORDER_STATUSES.CANCELLED,
         ],
         [IMPORT_ORDER_STATUSES.CHECKED]: [
+          IMPORT_ORDER_STATUSES.DELIVERED,
           IMPORT_ORDER_STATUSES.ARRANGED,
           IMPORT_ORDER_STATUSES.CANCELLED,
         ],
         [IMPORT_ORDER_STATUSES.ARRANGED]: [
+          IMPORT_ORDER_STATUSES.CHECKED,
           IMPORT_ORDER_STATUSES.COMPLETED,
           IMPORT_ORDER_STATUSES.CANCELLED,
         ],
@@ -361,18 +365,22 @@ const getValidStatusTransitions = (currentStatus) => {
       IMPORT_ORDER_STATUSES.CANCELLED,
     ],
     [IMPORT_ORDER_STATUSES.APPROVED]: [
+      IMPORT_ORDER_STATUSES.DRAFT,
       IMPORT_ORDER_STATUSES.DELIVERED,
       IMPORT_ORDER_STATUSES.CANCELLED,
     ],
     [IMPORT_ORDER_STATUSES.DELIVERED]: [
+      IMPORT_ORDER_STATUSES.APPROVED,
       IMPORT_ORDER_STATUSES.CHECKED,
       IMPORT_ORDER_STATUSES.CANCELLED,
     ],
     [IMPORT_ORDER_STATUSES.CHECKED]: [
+      IMPORT_ORDER_STATUSES.DELIVERED,
       IMPORT_ORDER_STATUSES.ARRANGED,
       IMPORT_ORDER_STATUSES.CANCELLED,
     ],
     [IMPORT_ORDER_STATUSES.ARRANGED]: [
+      IMPORT_ORDER_STATUSES.CHECKED,
       IMPORT_ORDER_STATUSES.COMPLETED,
       IMPORT_ORDER_STATUSES.CANCELLED,
     ],
@@ -391,24 +399,41 @@ const getAllStatusTransitions = () => {
       IMPORT_ORDER_STATUSES.CANCELLED,
     ],
     [IMPORT_ORDER_STATUSES.APPROVED]: [
+      IMPORT_ORDER_STATUSES.DRAFT,
       IMPORT_ORDER_STATUSES.DELIVERED,
       IMPORT_ORDER_STATUSES.CANCELLED,
     ],
     [IMPORT_ORDER_STATUSES.DELIVERED]: [
+      IMPORT_ORDER_STATUSES.APPROVED,
       IMPORT_ORDER_STATUSES.CHECKED,
       IMPORT_ORDER_STATUSES.CANCELLED,
     ],
     [IMPORT_ORDER_STATUSES.CHECKED]: [
+      IMPORT_ORDER_STATUSES.DELIVERED,
       IMPORT_ORDER_STATUSES.ARRANGED,
       IMPORT_ORDER_STATUSES.CANCELLED,
     ],
     [IMPORT_ORDER_STATUSES.ARRANGED]: [
+      IMPORT_ORDER_STATUSES.CHECKED,
       IMPORT_ORDER_STATUSES.COMPLETED,
       IMPORT_ORDER_STATUSES.CANCELLED,
     ],
     [IMPORT_ORDER_STATUSES.COMPLETED]: [],
     [IMPORT_ORDER_STATUSES.CANCELLED]: [],
   };
+};
+
+const assignWarehouseManager = async (orderId, warehouseManagerId) => {
+  const order = await ImportOrder.findById(orderId);
+  if (!order) throw new Error('Import order not found');
+  order.warehouse_manager_id = warehouseManagerId;
+  await order.save();
+  return await ImportOrder.findById(orderId)
+    .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+    .populate('warehouse_manager_id', 'name email role')
+    .populate('created_by', 'name email role')
+    .populate('approval_by', 'name email role')
+    .populate('details.medicine_id', 'medicine_name license_code');
 };
 
 module.exports = {
@@ -426,4 +451,5 @@ module.exports = {
   getImportOrdersBySupplierContract,
   getValidStatusTransitions,
   getAllStatusTransitions,
+  assignWarehouseManager,
 };

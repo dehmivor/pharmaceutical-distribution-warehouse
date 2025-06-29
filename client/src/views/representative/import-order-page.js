@@ -223,6 +223,13 @@ function ImportOrderPage() {
         setFormLoading(false);
         return;
       }
+      // Validate: số lượng nhập phải >= min_order_quantity từ hợp đồng
+      const contractItem = contractMedicines.find(med => med.medicine_id._id === detail.medicine_id);
+      if (contractItem && detail.quantity < contractItem.min_order_quantity) {
+        setError(`Số lượng nhập cho thuốc "${contractItem.medicine_id.medicine_name}" phải tối thiểu là ${contractItem.min_order_quantity}`);
+        setFormLoading(false);
+        return;
+      }
     }
 
     try {
@@ -439,32 +446,31 @@ function ImportOrderPage() {
                 )}
             {formData.details.length > 0 && formData.details.map((detail, index) => (
               <Paper sx={{ p: 2, mb: 2, boxShadow: 2 }} key={index}>
-                    <Grid container spacing={2} alignItems="center">
-                      <Grid item xs={12} md={4}>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={12} md={4}>
                     <FormControl fullWidth required size="small">
-                          <InputLabel>Medicine</InputLabel>
-                          <Select
-                            value={detail.medicine_id}
-                            onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
-                            label="Medicine"
-                            disabled={!formData.supplier_contract_id || medicinesLoading}
+                      <InputLabel id={`medicine-label-${index}`}>Medicine</InputLabel>
+                      <Select
+                        labelId={`medicine-label-${index}`}
+                        value={detail.medicine_id || ""}
+                        onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
+                        label="Medicine"
+                        disabled={!formData.supplier_contract_id || medicinesLoading}
                         sx={{ minWidth: 240 }}
                         MenuProps={{
-                          PaperProps: {
-                            sx: { minWidth: 300 }
-                          }
+                          PaperProps: { sx: { minWidth: 300 } }
                         }}
-                          >
-                            {contractMedicines.length === 0 ? (
-                              <MenuItem disabled>
-                                {!formData.supplier_contract_id 
-                                  ? 'Select a contract first' 
-                                  : medicinesLoading 
-                                    ? 'Loading medicines...' 
-                                    : 'No medicines available in this contract'
-                                }
-                              </MenuItem>
-                            ) : (
+                      >
+                        {contractMedicines.length === 0 ? (
+                          <MenuItem disabled>
+                            {!formData.supplier_contract_id
+                              ? 'Select a contract first'
+                              : medicinesLoading
+                                ? 'Loading medicines...'
+                                : 'No medicines available in this contract'
+                            }
+                          </MenuItem>
+                        ) : (
                           contractMedicines
                             .filter(item =>
                               item.medicine_id._id === detail.medicine_id ||
@@ -473,62 +479,65 @@ function ImportOrderPage() {
                             .map((item) => (
                               <MenuItem key={item.medicine_id._id} value={item.medicine_id._id} sx={{ whiteSpace: 'normal', minWidth: 280 }}>
                                 {item.medicine_id.medicine_name}
-                                </MenuItem>
-                              ))
-                            )}
-                        {!contractMedicines.some(item => item.medicine_id._id === detail.medicine_id) && detail.medicine_id && (
-                          <MenuItem value={detail.medicine_id} sx={{ whiteSpace: 'normal', minWidth: 280 }}>
-                            {typeof detail.medicine_id === 'object' ? detail.medicine_id.medicine_name : detail.medicine_id}
-                          </MenuItem>
+                              </MenuItem>
+                            ))
                         )}
-                          </Select>
-                        </FormControl>
-                      </Grid>
+                      </Select>
+                    </FormControl>
+                  </Grid>
                   <Grid item xs={6} md={2}>
-                        <TextField
-                          fullWidth
-                          label="Quantity"
-                          type="number"
-                          value={detail.quantity}
-                          onChange={(e) => handleDetailChange(index, 'quantity', Number(e.target.value))}
-                          required
-                          disabled={!detail.medicine_id}
+                    <TextField
+                      fullWidth
+                      label="Quantity"
+                      type="number"
+                      value={detail.quantity}
+                      onChange={(e) => handleDetailChange(index, 'quantity', Number(e.target.value))}
+                      required
+                      disabled={!detail.medicine_id}
                       size="small"
-                        />
-                      </Grid>
+                      inputProps={{
+                        min: contractMedicines.find(med => med.medicine_id._id === detail.medicine_id)?.min_order_quantity || 1
+                      }}
+                      helperText={
+                        detail.medicine_id
+                          ? `Tối thiểu: ${contractMedicines.find(med => med.medicine_id._id === detail.medicine_id)?.min_order_quantity || 1}`
+                          : ''
+                      }
+                    />
+                  </Grid>
                   <Grid item xs={6} md={2}>
-                        <TextField
-                          fullWidth
-                          label="Unit Price"
-                          type="number"
-                          value={detail.unit_price}
+                    <TextField
+                      fullWidth
+                      label="Unit Price"
+                      type="number"
+                      value={detail.unit_price}
                       InputProps={{ readOnly: true }}
-                          required
-                          disabled={!detail.medicine_id}
+                      required
+                      disabled={!detail.medicine_id}
                       size="small"
-                        />
-                      </Grid>
+                    />
+                  </Grid>
                   <Grid item xs={6} md={2}>
-                        <TextField
-                          fullWidth
-                          label="Total"
-                          value={(detail.quantity * detail.unit_price).toLocaleString()}
-                          InputProps={{ readOnly: true }}
+                    <TextField
+                      fullWidth
+                      label="Total"
+                      value={(detail.quantity * detail.unit_price).toLocaleString()}
+                      InputProps={{ readOnly: true }}
                       size="small"
-                        />
-                      </Grid>
+                    />
+                  </Grid>
                   <Grid item xs={6} md={2} sx={{ textAlign: 'center' }}>
-                        <IconButton 
-                          color="error" 
-                          onClick={() => removeDetail(index)}
-                          disabled={formData.details.length === 1}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Grid>
-                    </Grid>
-                  </Paper>
-              ))}
+                    <IconButton
+                      color="error"
+                      onClick={() => removeDetail(index)}
+                      disabled={formData.details.length === 1}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Grid>
+                </Grid>
+              </Paper>
+            ))}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
               <Paper sx={{ p: 2, bgcolor: 'grey.50', minWidth: 220, textAlign: 'right' }}>
                 <Typography variant="h6">

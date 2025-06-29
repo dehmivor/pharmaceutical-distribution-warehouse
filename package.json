@@ -2,16 +2,7 @@
   "name": "pharmaceutical-distribution-warehouse",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "client"
-  ],
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
   "engines": {
     "node": ">=18.0.0"
   }
-} 
+}

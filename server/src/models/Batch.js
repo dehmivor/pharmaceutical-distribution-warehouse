@@ -36,6 +36,11 @@ const batchSchema = new mongoose.Schema({
     },
     default: BATCH_QUALITY_STATUSES.PENDING,
   },
+  supplier_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Supplier',
+    required: [true, 'Supplier ID is required'],
+  },
 }, {
   timestamps: true,
 });

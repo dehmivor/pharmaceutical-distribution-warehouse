@@ -38,7 +38,7 @@ const createUser = async (req, res) => {
       password: hashedPassword,
       role,
       is_manager: is_manager || false,
-      status: constants.BASIC_STATUSES.ACTIVE,
+      status: constants.USER_STATUSES.PENDING,
     });
 
     await newUser.save();
@@ -122,13 +122,13 @@ const getAllUsers = async (req, res) => {
     }
 
     if (status) {
-      if (Object.values(constants.BASIC_STATUSES).includes(status)) {
+      if (Object.values(constants.USER_STATUSES).includes(status)) {
         filter.status = status;
       } else {
         return res.status(400).json({
           success: false,
           message: 'Invalid status filter',
-          validStatuses: Object.values(constants.BASIC_STATUSES),
+          validStatuses: Object.values(constants.USER_STATUSES),
         });
       }
     }
@@ -366,10 +366,10 @@ const toggleUserStatus = async (req, res) => {
     const { status } = req.body;
 
     // Kiểm tra status hợp lệ
-    if (!Object.values(constants.BASIC_STATUSES).includes(status)) {
+    if (!Object.values(constants.USER_STATUSES).includes(status)) {
       return res.status(400).json({
         success: false,
-        message: `Invalid status. Must be one of: ${Object.values(constants.BASIC_STATUSES).join(', ')}`,
+        message: `Invalid status. Must be one of: ${Object.values(constants.USER_STATUSES).join(', ')}`,
       });
     }
 
@@ -413,7 +413,7 @@ const deleteUser = async (req, res) => {
 
     // Soft delete - chuyển status thành INACTIVE
     await User.findByIdAndUpdate(id, {
-      status: constants.BASIC_STATUSES.INACTIVE,
+      status: constants.USER_STATUSES.INACTIVE,
     });
 
     res.status(200).json({

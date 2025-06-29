@@ -32,9 +32,7 @@ export let ThemeI18n;
 
 (function (ThemeI18n) {
   ThemeI18n['EN'] = 'en';
-  ThemeI18n['FR'] = 'fr';
-  ThemeI18n['RO'] = 'ro';
-  ThemeI18n['ZH'] = 'zh';
+  ThemeI18n['VN'] = 'vn';
 })(ThemeI18n || (ThemeI18n = {}));
 
 /***************************  CONFIG  ***************************/
