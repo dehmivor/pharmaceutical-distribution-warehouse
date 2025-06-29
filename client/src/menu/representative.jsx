@@ -5,11 +5,26 @@ const representative = {
   type: 'group',
   children: [
     {
-      id: 'manage-contracts',
-      title: 'Manage Contracts',
-      type: 'item',
-      url: '/manage-contracts',
-      icon: 'IconFileInvoice'
+      id: 'contract-management',
+      title: 'Contract Management',
+      type: 'collapse',
+      icon: 'IconFileInvoice',
+      children: [
+        {
+          id: 'manage-supplier-contracts',
+          title: 'Supplier Contracts',
+          type: 'item',
+          url: '/manage-supplier-contracts',
+          icon: 'IconFileInvoice'
+        },
+        {
+          id: 'manage-reatailer-contracts',
+          title: 'Retailer Contracts',
+          type: 'item',
+          url: '/manage-retailer-contracts',
+          icon: 'IconFileInvoice'
+        }
+      ]
     },
     {
       id: 'manage-licenses',

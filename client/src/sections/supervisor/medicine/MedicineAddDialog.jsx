@@ -35,8 +35,20 @@ import {
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
 
-const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true
+});
+
+const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
   const [formData, setFormData] = useState({
     medicine_name: '',
     license_code: '',
@@ -55,27 +67,27 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [filterOptions, setFilterOptions] = useState({
-    category: []
-  });
+  // const [filterOptions, setFilterOptions] = useState({
+  //   category: []
+  // });
 
   // Fetch filter options
-  const fetchFilterOptions = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/medicine/filter-options`);
-      if (response.data.success) {
-        setFilterOptions(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching filter options:', error);
-    }
-  };
+  // const fetchFilterOptions = async () => {
+  //   try {
+  //     const response = await axios.get(`${API_BASE_URL}/medicine/filter-options`);
+  //     if (response.data.success) {
+  //       setFilterOptions(response.data.data);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching filter options:', error);
+  //   }
+  // };
 
-  useEffect(() => {
-    if (open) {
-      fetchFilterOptions();
-    }
-  }, [open]);
+  // useEffect(() => {
+  //   if (open) {
+  //     fetchFilterOptions();
+  //   }
+  // }, [open]);
 
   // Reset form when dialog opens/closes
   useEffect(() => {
@@ -195,7 +207,9 @@ const MedicineAddDialog = ({ open, onClose, onSuccess }) => {
         storage_conditions: Object.keys(storageConditions).length > 0 ? storageConditions : null
       };
 
-      const response = await axios.post(`${API_BASE_URL}/medicine`, payload);
+      const response = await axiosInstance.post(`${API_BASE_URL}/medicine`, payload, {
+        headers: getAuthHeaders()
+      });
 
       if (response.data.success) {
         onSuccess(response.data.data);

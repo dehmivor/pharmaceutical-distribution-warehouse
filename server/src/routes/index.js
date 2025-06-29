@@ -10,6 +10,7 @@ module.exports = {
   accountRoutes: require('./accountRoute'),
   thingsboardRoutes: require('./thingsboardRoute'),
   supplierContractRoutes: require('./supplierContractRoute'),
+  supplierRoutes: require('./supplierRoute'),
   // warehouseRoutes: require('./warehouseRoute'),
   // presentativeRoutes: require('./presentativeRoute'),
   // retailerRoutes: require('./retailerRoute'),

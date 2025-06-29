@@ -222,7 +222,7 @@ export const useAuth = () => {
   const getRedirectUrlByRole = (role) => {
     const roleRedirects = {
       supervisor: '/manage-users',
-      representative: '/manage-contracts',
+      representative: '/manage-import-orders',
       warehouse: '/manage-inspections'
     };
 

@@ -22,6 +22,7 @@ const {
   supplierContractRoutes,
   packageRoutes,
   importOrderRoutes,
+  supplierRoutes
 } = require('./routes');
 
 
@@ -49,7 +50,8 @@ app.use('api/thingsboard', route.thingsboardRoutes);
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRoutes);
 app.use('/api/accounts', authenticate, authorize('supervisor'), route.accountRoutes);
-app.use('/api/supplier-contracts', supplierContractRoutes);
+app.use('/api/supplier-contract', supplierContractRoutes);
+app.use('/api/supplier', supplierRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 
