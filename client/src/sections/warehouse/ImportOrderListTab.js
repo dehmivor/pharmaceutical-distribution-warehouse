@@ -245,7 +245,9 @@ export default function PurchaseOrderListTab() {
       delivered: 'warning',
       approved: 'success',
       checked: 'info',
-      arranged: 'info'
+      arranged: 'primary',
+      completed: 'success',
+      cancelled: 'error'
     };
     return statusColors[status] || 'default';
   };
