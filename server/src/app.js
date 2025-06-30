@@ -25,7 +25,7 @@ const {
   importOrderRoutes,
   batchRoutes,
   areaRoutes,
-  supplierRoutes
+  supplierRoutes,
 } = require('./routes');
 
 // Middlewares
@@ -56,7 +56,12 @@ app.use('/api/areas', areaRoutes);
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
 app.use('/api/supplier-contracts', route.supplierContractRoutes);
-app.use('/api/inspections', authenticate, authorize('warehouse'), route.inspectionRoutes);
+app.use(
+  '/api/inspections',
+  authenticate,
+  authorize(['warehouse', 'warehouse_manager']),
+  route.inspectionRoutes,
+);
 
 // Protected routes với role-based access
 app.use(
@@ -66,6 +71,7 @@ app.use(
   route.accountRoutes,
 );
 app.use('/api/stripe', route.stripeRoutes);
+app.use('/api/bills', route.billRoutes);
 app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRoutes);
 app.use('/api/accounts', authenticate, authorize('supervisor'), route.accountRoutes);
 app.use('/api/supplier-contract', supplierContractRoutes);
