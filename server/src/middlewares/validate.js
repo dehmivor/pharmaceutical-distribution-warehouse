@@ -3,13 +3,10 @@ const { CONTRACT_STATUSES } = require('../utils/constants');
 
 // Reusable validation helpers
 const isMongoId = (field) => check(field).isMongoId().withMessage(`Invalid ${field} ID`);
-const isPositiveInt = (field) =>
-  check(field).isInt({ min: 1 }).withMessage(`${field} must be a positive integer`);
+const isPositiveInt = (field) => check(field).isInt({ min: 1 }).withMessage(`${field} must be a positive integer`);
 const isValidDate = (field) => check(field).isISO8601().toDate().withMessage(`Invalid ${field}`);
-const isNonNegativeInt = (field) =>
-  check(field).isInt({ min: 0 }).withMessage(`${field} must be a non-negative integer`);
-const isNonNegativeFloat = (field) =>
-  check(field).isFloat({ min: 0 }).withMessage(`${field} must be a non-negative number`);
+const isNonNegativeInt = (field) => check(field).isInt({ min: 0 }).withMessage(`${field} must be a non-negative integer`);
+const isNonNegativeFloat = (field) => check(field).isFloat({ min: 0 }).withMessage(`${field} must be a non-negative number`);
 
 const supplierContract = {
   validateGetAllContracts: [
@@ -29,7 +26,11 @@ const supplierContract = {
       .withMessage('Contract code must be a non-empty string'),
   ],
   validateCreateContract: [
-    check('contract_code').isString().trim().notEmpty().withMessage('Contract code is required'),
+    check('contract_code')
+      .isString()
+      .trim()
+      .notEmpty()
+      .withMessage('Contract code is required'),
     isMongoId('supplier_id'),
     isValidDate('start_date'),
     isValidDate('end_date'),
@@ -59,28 +60,6 @@ const supplierContract = {
       if (new Date(endDate) < new Date(req.body.start_date)) {
         throw new Error('End date must be after start date');
       }
-      return true;
-    }),
-    body('items.*.kpi_details').custom((kpiDetails, { req, location, path }) => {
-      if (!kpiDetails || kpiDetails.length === 0) return true; // Allow empty kpi_details
-
-      // Check for duplicate min_sale_quantity
-      const minSaleQuantities = kpiDetails.map((kpi) => kpi.min_sale_quantity);
-      const uniqueMinSaleQuantities = new Set(minSaleQuantities);
-      if (minSaleQuantities.length !== uniqueMinSaleQuantities.size) {
-        throw new Error('Duplicate min_sale_quantity values are not allowed in kpi_details');
-      }
-
-      // Check that profit_percentage increases with min_sale_quantity
-      const sortedKpiDetails = [...kpiDetails].sort(
-        (a, b) => a.min_sale_quantity - b.min_sale_quantity,
-      );
-      for (let i = 1; i < sortedKpiDetails.length; i++) {
-        if (sortedKpiDetails[i].profit_percentage <= sortedKpiDetails[i - 1].profit_percentage) {
-          throw new Error('Profit percentage must increase with higher min_sale_quantity');
-        }
-      }
-
       return true;
     }),
   ],

@@ -23,7 +23,7 @@ router.get('/supplier-contract/:supplierContractId', importOrderController.getIm
 router.get('/:id', importOrderController.getImportOrderById);
 
 // Update import order
-router.put('/:id', authenticate, authorize(['supervisor', 'representative']), importOrderController.updateImportOrder);
+router.put('/:id', authenticate, authorize('supervisor'), importOrderController.updateImportOrder);
 
 // Update import order details
 router.put('/:id/details', importOrderController.updateImportOrderDetails);
@@ -45,9 +45,6 @@ router.patch('/:id/status', importOrderController.updateOrderStatus);
 
 // Get valid status transitions
 router.get('/status-transitions', importOrderController.getValidStatusTransitions);
-
-// Assign warehouse manager (chỉ supervisor được phép)
-router.patch('/:id/assign-warehouse-manager', authenticate, authorize('supervisor'), importOrderController.assignWarehouseManager);
 
 module.exports = router;
 

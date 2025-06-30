@@ -1,14 +1,14 @@
 // services/medicineService.js
 const Medicine = require('../models/Medicine');
-// const constants = require('../utils/constants');
-const { MEDICINE_STATUSES } = require('../utils/constants');
+const constants = require('../utils/constants');
+
 const medicineService = {
-  getMedicinesPaging: async (filters = {}) => {
+  getAllMedicines: async (filters = {}) => {
     try {
       const query = {};
 
       // Filter by category
-      if (filters.category){
+      if (filters.category && Object.values(constants.MEDICINE_CATEGORY).includes(filters.category)) {
         query.category = filters.category;
       }
 
@@ -17,18 +17,16 @@ const medicineService = {
         query.license_code = new RegExp(filters.license_code, 'i');
       }
 
-      // Filter by status
-      if (filters.status) {
-        query.status = filters.status;
-      }
-
       // Pagination
       const page = parseInt(filters.page) || 1;
       const limit = parseInt(filters.limit) || 10;
       const skip = (page - 1) * limit;
 
       // Execute query
-      const medicines = await Medicine.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit);
+      const medicines = await Medicine.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
 
       // Get total count for pagination
       const total = await Medicine.countDocuments(query);
@@ -57,6 +55,7 @@ const medicineService = {
   // ✅ Get medicine by ID
   getMedicineById: async (medicineId) => {
     try {
+
       if (!medicineId) {
         return {
           success: false,
@@ -81,7 +80,7 @@ const medicineService = {
       };
     } catch (error) {
       console.error('Get medicine by ID service error:', error);
-
+      
       if (error.name === 'CastError') {
         return {
           success: false,
@@ -246,16 +245,15 @@ const medicineService = {
 
       // Trim string fields
       const sanitizedData = { ...updateData };
-      if (sanitizedData.medicine_name)
-        sanitizedData.medicine_name = sanitizedData.medicine_name.trim();
-      if (sanitizedData.license_code)
-        sanitizedData.license_code = sanitizedData.license_code.trim();
+      if (sanitizedData.medicine_name) sanitizedData.medicine_name = sanitizedData.medicine_name.trim();
+      if (sanitizedData.license_code) sanitizedData.license_code = sanitizedData.license_code.trim();
       if (sanitizedData.category) sanitizedData.category = sanitizedData.category.trim();
 
-      const updatedMedicine = await Medicine.findByIdAndUpdate(medicineId, sanitizedData, {
-        new: true,
-        runValidators: true,
-      });
+      const updatedMedicine = await Medicine.findByIdAndUpdate(
+        medicineId,
+        sanitizedData,
+        { new: true, runValidators: true }
+      );
 
       return {
         success: true,
@@ -341,26 +339,6 @@ const medicineService = {
     }
   },
 
-  // Get all medicines with out filters
-  getAllMedicines: async () => {
-    try {
-      const medicines = await Medicine.find(
-        { status: 'active' }, // Lọc chỉ lấy thuốc active
-        { _id: 1, license_code: 1 }, // Chỉ lấy _id và license_code
-      ).lean();
-
-      return {
-        success: true,
-        data: medicines,
-      };
-    } catch (error) {
-      console.error('Error in getAllMedicines service:', error);
-      return {
-        success: false,
-        message: 'Lỗi khi lấy danh sách thuốc',
-      };
-    }
-  },
 };
 
 module.exports = medicineService;

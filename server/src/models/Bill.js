@@ -11,25 +11,6 @@ const billSchema = new mongoose.Schema({
     ref: 'ExportOrder',
     required: [true, 'Export order ID is required'],
   },
-  type: {
-    type: String,
-    required: true,
-    enum: ['IMPORT', 'EXPORT', 'PAYMENT_VOUCHER'],
-    default: 'IMPORT',
-  },
-  voucher_code: {
-    type: String,
-    unique: true,
-    required: function () {
-      return this.type === 'PAYMENT_VOUCHER';
-    },
-  },
-  payment_date: {
-    type: Date,
-    required: function () {
-      return this.type === 'PAYMENT_VOUCHER';
-    },
-  },
   items: [
     {
       type: mongoose.Schema.Types.ObjectId,
@@ -57,15 +38,6 @@ billSchema.pre('validate', function (next) {
 
   if (this.import_order_id && this.export_order_id) {
     return next(new Error('Cannot have both import_order_id and export_order_id'));
-  }
-
-  if (this.type === 'PAYMENT_VOUCHER') {
-    if (!this.payment_date) {
-      this.invalidate('payment_date', 'Ngày thanh toán là bắt buộc');
-    }
-    if (!this.voucher_code) {
-      this.invalidate('voucher_code', 'Mã phiếu là bắt buộc');
-    }
   }
   next();
 });

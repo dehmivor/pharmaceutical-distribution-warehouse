@@ -4,7 +4,7 @@ const warehouseManager = {
   icon: 'IconBrandAsana',
   type: 'group',
   children: [
-    // 2. Quản lý đơn nhập
+    // 2. Quản lý đơn nhập 
     {
       id: 'inbound-order',
       title: 'Inbound order',
@@ -20,22 +20,29 @@ const warehouseManager = {
         },
       ]
     },
-    // 2. Quản lý đơn xuất
+    // 2. Quản lý đơn xuất  
     {
-      id: 'outbound-order-management',
-      title: 'Outbound order',
+      id: 'inbound-order-management',
+      title: 'Inbound order Management',
       type: 'collapse',
-      icon: 'IconBrandAsana',
+      icon: 'IconFileImport',
       children: [
         {
-          id: 'waiting-for-outbound-approval',
-          title: 'Waitng for outbound approval',
+          id: 'waiting-for-inbound-approval',
+          title: 'Waitng for inbound approval',
           type: 'item',
-          url: '/wating-for-outbound-approval',
+          url: '/wating-for-inbound-approval',
           icon: 'IconFileImport'
+        },
+        {
+          id: 'waiting-for-packetization',
+          title: 'Waiting for packetization',
+          type: 'item',
+          url: '/waiting-for-packetization',
+          icon: 'IconFileExport'
         }
       ]
-    }
+    },
   ]
 };
 

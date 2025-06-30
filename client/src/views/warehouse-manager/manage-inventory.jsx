@@ -15,7 +15,6 @@ function ManageInventory() {
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
       <Container maxWidth={true} sx={{ py: { xs: 2, md: 3 } }}>
-        inventory-page
       </Container>
     </Box>
   );

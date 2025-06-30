@@ -1,17 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const importInspectionController = require('../controllers/importInspectionController');
+const authenticate = require('../middlewares/authenticate');
+const authorize = require('../middlewares/authorize');
 
-// Lấy danh sách các thùng theo batch_id
+// GET /api/import-inspections/by-batch/:batchId
 router.get('/by-batch/:batchId', importInspectionController.getByBatch);
-
-// Cập nhật vị trí thùng
 router.put('/:id/location', importInspectionController.updateLocation);
 
-// Lấy danh sách inspection theo import_order_id
+// Apply authentication middleware to all routes
+//router.use(authenticate);
+
+// Routes for representative
 router.get(
   '/import-orders/:importOrderId/inspections',
   importInspectionController.getInspectionByImportOrder,
 );
 
-module.exports = router;
+module.exports = router
