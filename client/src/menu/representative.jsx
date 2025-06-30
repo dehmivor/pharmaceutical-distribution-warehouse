@@ -5,6 +5,13 @@ const representative = {
   type: 'group',
   children: [
     {
+      id: 'manage-contracts',
+      title: 'Manage Contracts',
+      type: 'item',
+      url: '/manage-contracts',
+      icon: 'IconFileInvoice'
+    },
+    {
       id: 'contract-management',
       title: 'Contract Management',
       type: 'collapse',
