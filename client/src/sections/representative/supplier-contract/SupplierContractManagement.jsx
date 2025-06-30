@@ -40,9 +40,9 @@ import {
   Add as AddIcon
 } from '@mui/icons-material';
 import axios from 'axios';
-import MedicineDetailDialog from './MedicineDetailDialog'; // Import the detail dialog component
+import SupplierContractDetailDialog from './SupplierContractDetailDialog'; // Import the detail dialog component
 import MedicineEditDialog from './MedicineEditDialog'; // Import the edit dialog component
-import MedicineAddDialog from './MedicineAddDialog';
+import SupplierContractAddDialog from './SupplierContractAddDialog';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
@@ -58,7 +58,9 @@ const axiosInstance = axios.create({
   withCredentials: true
 });
 
-const MedicineManagement = () => {
+const SupplierContractManagement = () => {
+  const [contracts, setContracts] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [medicines, setMedicines] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -67,7 +69,7 @@ const MedicineManagement = () => {
 
   // Filter states
   const [filters, setFilters] = useState({
-    license_code: '',
+    contract_code: '',
     category: ''
   });
 
@@ -81,13 +83,13 @@ const MedicineManagement = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [selectedMedicine, setSelectedMedicine] = useState(null);
+  const [selectedContract, setSelectedContract] = useState(null);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   // Fetch medicines
-  const fetchMedicines = async () => {
+  const fetchContracts = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -96,12 +98,12 @@ const MedicineManagement = () => {
         ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== ''))
       });
 
-      const response = await axiosInstance.get(`/medicine?${params}`, {
+      const response = await axiosInstance.get(`/supplier-contract?${params}`, {
         headers: getAuthHeaders(),
       });
 
       if (response.data.success) {
-        setMedicines(response.data.data.medicines);
+        setContracts(response.data.data.contracts);
         setTotalCount(response.data.data.pagination.total);
       }
     } catch (error) {
@@ -112,18 +114,52 @@ const MedicineManagement = () => {
     }
   };
 
-  // Fetch filter options
-  const fetchFilterOptions = async () => {
+  // Fetch suppliers
+  const fetchSuppliers = async () => {
+    setLoading(true);
     try {
-      const response = await axiosInstance.get(`/medicine/filter-options`, {
+      const response = await axiosInstance.get('/supplier/all/v1', {
         headers: getAuthHeaders(),
       });
       if (response.data.success) {
-        setFilterOptions(response.data.data);
+        setSuppliers(response.data.data); // Dữ liệu từ API, chỉ chứa _id và name
       }
     } catch (error) {
-      console.error('Error fetching filter options:', error);
+      console.error('Error fetching suppliers:', error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Fetch medicines
+  const fetchMedicines = async () => {
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get('/medicine/all/v1', {
+        headers: getAuthHeaders(),
+      });
+      if (response.data.success) {
+        setMedicines(response.data.data); // Dữ liệu từ API, chỉ chứa _id và license_code
+      }
+    } catch (error) {
+      console.error('Error fetching medicines:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch filter options
+  const fetchFilterOptions = async () => {
+    // try {
+    //   const response = await axiosInstance.get(`/medicine/filter-options`, {
+    //     headers: getAuthHeaders(),
+    //   });
+    //   if (response.data.success) {
+    //     setFilterOptions(response.data.data);
+    //   }
+    // } catch (error) {
+    //   console.error('Error fetching filter options:', error);
+    // }
   };
 
   const handleUpdateMedicine = async (updatedMedicine) => {
@@ -140,7 +176,7 @@ const MedicineManagement = () => {
       if (response.data.success) {
         setSuccess('Cập nhật thuốc thành công');
         setOpenEditDialog(false);
-        setSelectedMedicine(null);
+        setSelectedContract(null);
         fetchMedicines();
       } else {
         setError(response.data.message || 'Cập nhật thất bại');
@@ -153,26 +189,26 @@ const MedicineManagement = () => {
   };
 
   // Handle add medicine success
-  const handleAddMedicineSuccess = () => {
-    setSuccess('Thêm thuốc mới thành công');
-    fetchMedicines(); // Refresh the list
+  const handleAddContractSuccess = () => {
+    setSuccess('Thêm hợp đồng mới thành công');
+    fetchContracts(); // Refresh the list
   };
 
   // Delete medicine
-  const handleDeleteMedicine = async () => {
+  const handleDeleteContract = async () => {
     try {
-      const response = await axios.delete(`/medicine/${selectedMedicine._id}`, {
+      const response = await axiosInstance.delete(`/supplier-contract/${selectedContract._id}`, {
         headers: getAuthHeaders(),
       });
 
       if (response.data.success) {
-        setSuccess('Xóa thuốc thành công');
+        setSuccess('Xóa hợp đồng thành công');
         setOpenDeleteDialog(false);
-        setSelectedMedicine(null);
-        fetchMedicines();
+        setSelectedContract(null);
+        fetchContracts();
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Lỗi khi xóa thuốc');
+      setError(error.response?.data?.message || 'Lỗi khi xóa hợp đồng');
     }
   };
 
@@ -198,10 +234,12 @@ const MedicineManagement = () => {
 
   useEffect(() => {
     fetchFilterOptions();
+    fetchSuppliers();
+    fetchMedicines();
   }, []);
 
   useEffect(() => {
-    fetchMedicines();
+    fetchContracts();
   }, [page, rowsPerPage, filters]);
 
   // Clear alerts after 5 seconds
@@ -220,10 +258,10 @@ const MedicineManagement = () => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-          Quản Lý Thuốc
+          Quản Lý Hợp đồng Nhà Cung Cấp
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Quản lý danh sách thuốc và thông tin chi tiết
+          Quản lý danh sách hợp đồng và thông tin chi tiết
         </Typography>
       </Box>
 
@@ -252,9 +290,9 @@ const MedicineManagement = () => {
             <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
-                label="Số đăng ký"
+                label="Mã hợp đồng"
                 value={filters.license_code}
-                onChange={(e) => handleFilterChange('license_code', e.target.value)}
+                onChange={(e) => handleFilterChange('contract_code', e.target.value)}
                 variant="outlined"
                 size="medium"
                 InputProps={{
@@ -268,7 +306,7 @@ const MedicineManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 300 }}>
-                <InputLabel>Danh mục</InputLabel>
+                <InputLabel>Trạng thái</InputLabel>
                 <Select
                   value={filters.category}
                   onChange={(e) => handleFilterChange('category', e.target.value)}
@@ -292,9 +330,9 @@ const MedicineManagement = () => {
                   }}
                 >
                   <MenuItem value="">Tất cả</MenuItem>
-                  {filterOptions?.category?.map((cate) => (
-                    <MenuItem key={cate} value={cate} title={cate}>
-                      {cate}
+                  {filterOptions?.status?.map((sta) => (
+                    <MenuItem key={sta} value={sta} title={sta}>
+                      {sta}
                     </MenuItem>
                   ))}
                 </Select>
@@ -317,7 +355,7 @@ const MedicineManagement = () => {
                   fontWeight: 600
                 }}
               >
-                Thêm thuốc mới
+                Thêm hợp đồng
               </Button>
             </Grid>
           </Grid>
@@ -334,10 +372,10 @@ const MedicineManagement = () => {
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-            Danh Sách Thuốc
+            Danh Sách Hợp Đồng
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Tổng cộng {totalCount} thuốc
+            Tổng cộng {totalCount} hợp đồng
           </Typography>
         </Box>
 
@@ -345,29 +383,29 @@ const MedicineManagement = () => {
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600 }}>Tên thuốc</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Số đăng ký</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Danh mục</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Đơn vị đo</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Mã hợp đồng</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Người tạo</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Nhà cung cấp</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>
                   Hành động
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {medicines.map((medicine) => (
-                <TableRow key={medicine._id} hover>
-                  <TableCell sx={{ fontWeight: 500 }}>{medicine.medicine_name}</TableCell>
+              {contracts.map((contract) => (
+                <TableRow key={contract._id} hover>
+                  <TableCell sx={{ fontWeight: 500 }}>{contract.contract_code}</TableCell>
                   <TableCell>
-                    <Chip label={medicine.license_code} size="small" variant="outlined" color="primary" />
+                    <Chip label={contract.created_by.email} size="small" variant="outlined" color="primary" />
                   </TableCell>
                   <TableCell
                     sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                    title={medicine.category}
+                    title={contract.supplier_id.name}
                   >
-                    <Chip label={medicine.category} size="small" color="secondary" variant="outlined" />
+                    <Chip label={contract.supplier_id.name} size="small" color="secondary" variant="outlined" />
                   </TableCell>
-                  <TableCell>{medicine.unit_of_measure}</TableCell>
+                  <TableCell>{contract.status}</TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                       <Tooltip title="Xem chi tiết">
@@ -375,7 +413,7 @@ const MedicineManagement = () => {
                           color="primary"
                           size="small"
                           onClick={() => {
-                            setSelectedMedicine(medicine);
+                            setSelectedContract(contract);
                             setOpenViewDialog(true);
                           }}
                           sx={{
@@ -392,7 +430,7 @@ const MedicineManagement = () => {
                           color="secondary"
                           size="small"
                           onClick={() => {
-                            setSelectedMedicine(medicine);
+                            setSelectedContract(contract);
                             setOpenEditDialog(true);
                           }}
                           sx={{
@@ -409,7 +447,7 @@ const MedicineManagement = () => {
                           color="error"
                           size="small"
                           onClick={() => {
-                            setSelectedMedicine(medicine);
+                            setSelectedContract(contract);
                             setOpenDeleteDialog(true);
                           }}
                           sx={{
@@ -445,17 +483,27 @@ const MedicineManagement = () => {
         />
       </Card>
 
-      <MedicineDetailDialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} medicine={selectedMedicine} />
+      <SupplierContractDetailDialog
+        open={openViewDialog}
+        onClose={() => setOpenViewDialog(false)}
+        contract={selectedContract}
+      />
 
       <MedicineEditDialog
         open={openEditDialog}
         onClose={() => setOpenEditDialog(false)}
-        medicine={selectedMedicine}
+        medicine={selectedContract}
         onSubmit={handleUpdateMedicine}
         categoryOptions={filterOptions.category}
       />
 
-      <MedicineAddDialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} onSuccess={handleAddMedicineSuccess} filterOptions={filterOptions}/>
+      <SupplierContractAddDialog
+        open={openAddDialog}
+        onClose={() => setOpenAddDialog(false)}
+        onSuccess={handleAddContractSuccess}
+        suppliers={suppliers}
+        medicines={medicines}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog
@@ -484,7 +532,7 @@ const MedicineManagement = () => {
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Bạn có chắc chắn muốn xóa thuốc này không?
+            Bạn có chắc chắn muốn xóa hợp đồng này không?
           </Typography>
           <Box
             sx={{
@@ -496,7 +544,7 @@ const MedicineManagement = () => {
             }}
           >
             <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>
-              {selectedMedicine?.medicine_name}
+              {selectedContract?.contract_code}
             </Typography>
             <Typography variant="caption" color="error.main">
               Hành động này không thể hoàn tác!
@@ -525,7 +573,7 @@ const MedicineManagement = () => {
             Hủy
           </Button>
           <Button
-            onClick={handleDeleteMedicine}
+            onClick={handleDeleteContract}
             variant="contained"
             color="error"
             startIcon={<DeleteIcon />}
@@ -549,4 +597,4 @@ const MedicineManagement = () => {
   );
 };
 
-export default MedicineManagement;
+export default SupplierContractManagement;

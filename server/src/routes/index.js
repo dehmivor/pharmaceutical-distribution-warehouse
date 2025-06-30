@@ -16,6 +16,7 @@ module.exports = {
   batchRoutes: require('./batchRoute'),
   areaRoutes: require('./areaRoute'),
   locationRoutes: require('./locationRoute'),
+  supplierRoutes: require('./supplierRoute'),
   // warehouseRoutes: require('./warehouseRoute'),
   // presentativeRoutes: require('./presentativeRoute'),
   // retailerRoutes: require('./retailerRoute'),

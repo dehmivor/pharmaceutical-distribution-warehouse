@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { MEDICINE_CATEGORY } = require('../utils/constants');
+const { ANNEX_ACTIONS,ANNEX_STATUSES } = require('../utils/constants');
 
 // Sub-schema cho storage_conditions
 const storageConditionsSchema = new mongoose.Schema({
@@ -108,6 +108,96 @@ const billDetailsSchema = new mongoose.Schema({
   },
 });
 
+// Sub-schema cho item_economic_contract
+const itemEconomicContractSchema = new mongoose.Schema({
+  medicine_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Medicine',
+    required: [true, 'Medicine ID is required'],
+  },
+  quantity: {
+    type: Number,
+    required: [true, 'Quantity is required'],
+    min: [0, 'Quantity cannot be negative'],
+  },
+  unit_price: {
+    type: Number,
+    min: [0, 'Unit price cannot be negative'],
+  },
+}, {
+  _id: false,
+});
+
+// Sub-schema cho item_principle_contract
+const itemPrincipleContractSchema = new mongoose.Schema({
+  medicine_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Medicine',
+    required: [true, 'Medicine ID is required'],
+  },
+  unit_price: {
+    type: Number,
+    min: [0, 'Unit price cannot be negative'],
+  },
+}, {
+  _id: false,
+});
+
+// Sub-schema cho phụ lục
+const annexSchema = new mongoose.Schema({
+  annex_code: {
+    type: String,
+    required: [true, 'Annex code is required'],
+  },
+  description: {
+    type: String,
+  },
+  action: {
+    type: String,
+    required: [true, 'Action is required'],
+    enum: {
+      values: Object.values(ANNEX_ACTIONS),
+      message: `Action must be one of: ${Object.values(ANNEX_ACTIONS).join(', ')}`,
+    },
+  },
+  items: [{
+    medicine_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Medicine',
+      required: [true, 'Medicine ID is required'],
+    },
+    unit_price: {
+      type: Number,
+      min: [0, 'Unit price cannot be negative'],
+      required: function() {
+        return this.parent().action === ANNEX_ACTIONS.ADD || this.parent().action === ANNEX_ACTIONS.UPDATE_PRICE;
+      },
+    },
+  }],
+  end_date: {
+    type: Date,
+    validate: {
+      validator: function(value) {
+        return !this.parent().start_date || value >= this.parent().start_date;
+      },
+      message: 'Annex end date must be after contract start date',
+    },
+    required: function() {
+      return this.action === ANNEX_ACTIONS.UPDATE_END_DATE;
+    },
+  },
+   status: {
+    type: String,
+    required: [true, 'Status is required'],
+    enum: {
+      values: Object.values(ANNEX_STATUSES),
+      message: `Status must be one of: ${Object.values(ANNEX_STATUSES).join(', ')}`,
+    },
+    default: ANNEX_STATUSES.DRAFT,
+  },
+}, { _id: false });
+
+
 // Xuất sub-schema để sử dụng ở các file khác
 module.exports = {
   storageConditionsSchema,
@@ -115,4 +205,7 @@ module.exports = {
   itemContractSchema,
   importOrderDetailsSchema,
   billDetailsSchema,
+  itemEconomicContractSchema,
+  itemPrincipleContractSchema,
+  annexSchema
 };

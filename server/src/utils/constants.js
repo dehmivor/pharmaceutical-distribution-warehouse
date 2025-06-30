@@ -5,6 +5,7 @@ const USER_ROLES = {
   REPRESENTATIVE: 'representative',
   WAREHOUSEMANAGER: 'warehouse_manager',
 };
+
 const USER_STATUSES = {
   ACTIVE: 'active',
   INACTIVE: 'inactive',
@@ -86,6 +87,7 @@ const CONTRACT_PARTNER_TYPE = {
 
 const CONTRACT_STATUSES = {
   DRAFT: 'draft',
+  REJECTED: 'rejected',
   ACTIVE: 'active',
   EXPIRED: 'expired',
   CANCELLED: 'cancelled',
@@ -120,6 +122,29 @@ const INSPECTION_STATUSES = {
   REJECTED: 'rejected',
 };
 
+const MEDICINE_STATUSES = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+};
+
+const PARTNER_TYPES = {
+  SUPPLIER: 'Supplier',
+  RETAILER: 'Retailer',
+};
+
+const ANNEX_ACTIONS = {
+  ADD: 'add',
+  REMOVE: 'remove',
+  UPDATE_PRICE: 'update_price',
+  UPDATE_END_DATE: 'update_end_date',
+};
+
+const ANNEX_STATUSES = {
+  DRAFT: 'draft',
+  ACTIVE: 'active',
+  REJECTED: 'rejected',
+};
+
 module.exports = {
   USER_ROLES,
   BASIC_STATUSES,
@@ -135,4 +160,8 @@ module.exports = {
   INSPECTION_STATUSES,
   MEDICINE_CATEGORY,
   PURCHASE_ORDER_STATUSES,
+  MEDICINE_STATUSES,
+  PARTNER_TYPES,
+  ANNEX_ACTIONS,
+  ANNEX_STATUSES,
 };
