@@ -27,16 +27,16 @@ const authService = {
         email: email.toLowerCase().trim(),
       });
 
-      if (existingUser) {
-        return {
-          success: false,
-          message: 'Email đã được sử dụng',
-        };
-      }
+      // if (existingUser) {
+      //   return {
+      //     success: false,
+      //     message: 'Email đã được sử dụng',
+      //   };
+      // }
 
       // Hash password
       const saltRounds = 12;
-      const hashedPassword = bcrypt.hash(password, saltRounds);
+      const hashedPassword = bcrypt.hashSync(password, saltRounds);
 
       // Create new user
       const newUser = new User({
@@ -322,7 +322,6 @@ const authService = {
         };
       }
 
-
       // Verify password
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
@@ -349,7 +348,6 @@ const authService = {
         process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET,
         { expiresIn: '7d' },
       );
-
 
       return {
         success: true,
