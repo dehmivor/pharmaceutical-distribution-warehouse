@@ -22,6 +22,7 @@ const warehouse = {
           title: 'Create Inspections',
           type: 'item',
           url: '/create-inspections',
+          matchPattern: '/create-inspections/*',
           icon: 'IconMapPin'
         },
         {
