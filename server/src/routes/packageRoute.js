@@ -4,6 +4,11 @@ const packageController = require("../controllers/packageController")
 
 // Get all packages with location info
 router.get("/", packageController.getAllPackages)
+router.post("/", packageController.createPackage)
+router.post("/", packageController.createPackage)
+
+//For warehouse manager deleting package record before finalizing import order
+router.patch('/:packageId/clear-location', packageController.clearLocation);
 
 // Update package location (original method)
 router.put("/:packageId/location", packageController.updatePackageLocation)
@@ -16,8 +21,9 @@ router.put("/:packageId/confirm", packageController.confirmPackageStorage)
 // Get packages by location
 router.get("/location/:locationId", packageController.getPackagesByLocation)
 router.get("/by-batch/:batchId", packageController.getByBatch)
+router.get("/import-order/:importOrderId", packageController.getPackagesForOrder)
 
-router.post("/packages", packageController.createPackage)
+
 
 module.exports = router
 // Original location update method (keep for backward compatibility)

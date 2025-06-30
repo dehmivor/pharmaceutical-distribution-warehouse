@@ -20,10 +20,18 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  IconButton
+  IconButton,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Paper,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { useTheme } from '@mui/material/styles';
 
 export default function ImportOrderDetail() {
@@ -35,34 +43,106 @@ export default function ImportOrderDetail() {
   const [inspections, setInspections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   const [packages, setPackages] = useState([]);
   const [saving, setSaving] = useState(false);
 
+
+  const [inspectionsDone, setInspectionsDone] = useState(false);
+  const [packagesDone, setPackagesDone] = useState(false);
+  const [putAwayDone, setPutAwayDone] = useState(false);
+
+
+  const [putAway, setPutAway] = useState([]);
+  const [loadingPutAway, setLoadingPutAway] = useState(false);
+
+  // Initial fetch: order + inspections + initial packages
   useEffect(() => {
     if (!orderId) return;
     (async () => {
       try {
         setLoading(true);
-        const orderResp = await axios.get(`/api/import-orders/${orderId}`);
-        if (!orderResp.data.success) throw new Error('Không lấy được chi tiết đơn hàng');
-        setOrder(orderResp.data.data);
+        const { data: orderResp } = await axios.get(`/api/import-orders/${orderId}`);
+        if (!orderResp.success) throw new Error('Failed to load order');
+        setOrder(orderResp.data);
 
-        const inspResp = await axios.get(`/api/warehouse_manager/import-orders/${orderId}/inspections`);
-        const insps = inspResp.data.inspections || [];
+        const { data: inspResp } = await axios.get(`/api/warehouse_manager/import-orders/${orderId}/inspections`);
+        const insps = inspResp.inspections || [];
         setInspections(insps);
 
         setPackages(insps.map(i => ({
           batch_id: i.batch_id?._id || '',
           quantity: i.actual_quantity - i.rejected_quantity
-        })));
+        })))
+        
+        switch (orderResp.data.status){
+          case 'delivered':
+            enableAccordion('delivered');
+            break;
+          case 'checked':
+            enableAccordion('checked');
+            break;
+          default:
+            enableAccordion('other');
+            break;
+        }
       } catch (err) {
-        console.error(err);
-        setError(err.response?.data?.message || err.message);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     })();
   }, [orderId]);
+
+  const fetchPutAway = async () => {
+    try {
+      setLoadingPutAway(true);
+      const resp = await axios.get(`/api/packages/import-order/${orderId}`);
+      // resp.data might be { success, data: [...] }
+      const list = Array.isArray(resp.data.data)
+        ? resp.data.data
+        : [];
+      setPutAway(list);
+    } catch (err) {
+      console.error(err);
+      setPutAway([]);
+    } finally {
+      setLoadingPutAway(false);
+    }
+  };
+
+  const handleClearLocation = async (pkgId) => {
+    try {
+      await axios.patch(`/api/packages/${pkgId}/clear-location`);
+      await fetchPutAway();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+
+  const enableAccordion = async (orderState) => {
+    if ( orderState == 'other ' ){
+      setInspectionsDone(true);
+      setPackagesDone(true);
+      setPutAwayDone(true);
+    }
+    if ( orderState == 'delivered' ){
+      setInspectionsDone(false);
+      setPackagesDone(true);
+      setPutAwayDone(true);
+    }
+    if ( orderState == 'checked' ){
+      setInspectionsDone(true);
+      setPackagesDone(false);
+      setPutAwayDone(true);
+    }
+    if ( orderState == 'packaged' ){
+      setInspectionsDone(true);
+      setPackagesDone(true);
+      setPutAwayDone(false);
+    }
+  } 
 
   const batchOptions = inspections.map(i => {
     const net = i.actual_quantity - i.rejected_quantity;
@@ -77,9 +157,10 @@ export default function ImportOrderDetail() {
     const net = ins.actual_quantity - ins.rejected_quantity;
     const sum = packages
       .filter(p => p.batch_id === ins.batch_id?._id)
-      .reduce((acc, p) => acc + Number(p.quantity || 0), 0);
+      .reduce((a, p) => a + Number(p.quantity || 0), 0);
     return sum === net;
   });
+
 
   const handlePkgChange = (idx, field, value) => {
     setPackages(pkgs => {
@@ -100,41 +181,35 @@ export default function ImportOrderDetail() {
     setPackages(pkgs => pkgs.filter((_, i) => i !== idx));
   };
 
-  const handleContinue = async () => {
+  const handleContinuePackages = async () => {
     if (!isValid) return;
     setSaving(true);
     try {
       await Promise.all(packages.map(p =>
-        axios.post('/api/warehouse_manager/packages', {
+        axios.post('/api/packages', {
           import_order_id: orderId,
           batch_id: p.batch_id,
           quantity: p.quantity
         })
       ));
-      router.push(`/assigned-inbound-order/${orderId}/put-away`);
+      await fetchPutAway();
+      enableAccordion('packaged');    // ← disable creation UI
     } catch (err) {
       console.error(err);
-      setError('Lỗi khi tạo packages');
+      setError('Error creating packages');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return (
-    <Box textAlign="center" py={8}>
-      <CircularProgress />
-    </Box>
-  );
-  if (error) return (
-    <Alert severity="error" sx={{ m: 4 }}>
-      {error}
-    </Alert>
-  );
-  if (!order) return (
-    <Alert severity="info" sx={{ m: 4 }}>
-      Không tìm thấy đơn hàng
-    </Alert>
-  );
+  const handleFinalize = () => {
+    // navigate to next step, or call API to mark order arranged
+    router.push(`/assigned-inbound-order/${orderId}/summary`);
+  };
+
+  if (loading) return <Box textAlign="center" py={8}><CircularProgress /></Box>;
+  if (error) return <Alert severity="error" sx={{ m: 4 }}>{error}</Alert>;
+  if (!order) return <Alert severity="info" sx={{ m: 4 }}>Order not found</Alert>;
 
   return (
     <Box sx={{ background: theme.palette.background.default, minHeight: '100vh', py: 4 }}>
@@ -167,30 +242,21 @@ export default function ImportOrderDetail() {
         </Accordion>
 
         {/* Inspection */}
-        <Accordion defaultExpanded>
+        <Accordion disabled={inspectionsDone} defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography>Inspection</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            {inspections.length === 0 ? (
-              <Typography>No inspection records.</Typography>
-            ) : inspections.map(i => (
-              <Box key={i._id} sx={{ mb: 1 }}>
-                <Typography>
-                  • {i.batch_id?.batch_code || '—'}: arrived {i.actual_quantity - i.rejected_quantity}, rejected {i.rejected_quantity}
-                </Typography>
-                {i.note && (
-                  <Typography variant="body2" color="text.secondary">
-                    Note: {i.note}
-                  </Typography>
-                )}
-              </Box>
+            {inspections.map(i => (
+              <Typography key={i._id}>
+                {i.batch_id?.batch_code}: arrived {i.actual_quantity - i.rejected_quantity}, rejected {i.rejected_quantity}
+              </Typography>
             ))}
           </AccordionDetails>
         </Accordion>
 
-        {/* Packages */}
-        <Accordion defaultExpanded>
+        {/* Packages Creation */}
+        <Accordion disabled={packagesDone} defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography>Packages</Typography>
           </AccordionSummary>
@@ -199,42 +265,32 @@ export default function ImportOrderDetail() {
               {packages.map((p, idx) => {
                 const opt = batchOptions.find(o => o.id === p.batch_id) || {};
                 return (
-                  <Stack
-                    key={idx}
-                    direction="row"
-                    spacing={2}
-                    alignItems="center"
-                  >
-                    <FormControl sx={{ flex: 1 }}>
+                  <Stack key={idx} direction="row" spacing={2} alignItems="center">
+                    <FormControl sx={{ flex: 1 }} disabled={packagesDone}>
                       <InputLabel>Batch</InputLabel>
                       <Select
                         size="small"
                         value={p.batch_id}
-                        label="Batch"
                         onChange={e => handlePkgChange(idx, 'batch_id', e.target.value)}
                       >
                         {batchOptions.map(opt => (
-                          <MenuItem key={opt.id} value={opt.id}>
-                            {opt.label}
-                          </MenuItem>
+                          <MenuItem key={opt.id} value={opt.id}>{opt.label}</MenuItem>
                         ))}
                       </Select>
                     </FormControl>
-
                     <TextField
                       size="small"
                       label="Quantity"
                       type="number"
-                      inputProps={{ min: 0, max: opt.max }}
                       value={p.quantity}
                       onChange={e => handlePkgChange(idx, 'quantity', e.target.value)}
                       sx={{ width: 120 }}
+                      disabled={packagesDone}
                     />
-
                     <IconButton
                       size="small"
-                      aria-label="remove"
                       onClick={() => removePackageRow(idx)}
+                      disabled={packagesDone}
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
@@ -242,7 +298,7 @@ export default function ImportOrderDetail() {
                 );
               })}
 
-              <Button onClick={addPackageRow} size="small">
+              <Button onClick={addPackageRow} size="small" disabled={packagesDone}>
                 + Add Package
               </Button>
 
@@ -250,8 +306,8 @@ export default function ImportOrderDetail() {
 
               <Button
                 variant="contained"
-                disabled={!isValid || saving}
-                onClick={handleContinue}
+                disabled={!isValid || saving || packagesDone}
+                onClick={handleContinuePackages}
               >
                 {saving ? 'Saving…' : 'Continue to Put Away'}
               </Button>
@@ -259,11 +315,66 @@ export default function ImportOrderDetail() {
           </AccordionDetails>
         </Accordion>
 
-        {/* Put Away (disabled) */}
-        <Accordion disabled>
-          <AccordionSummary>
+        {/* Put Away */}
+        <Accordion disabled={putAwayDone} defaultExpanded>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography>Put Away</Typography>
           </AccordionSummary>
+          <AccordionDetails>
+            <Stack spacing={2}>
+              <IconButton onClick={fetchPutAway} size="small" sx={{ ml: 2 }}>
+                <RefreshIcon />
+              </IconButton>
+              {loadingPutAway ? (
+                <CircularProgress />
+              ) : putAway.length === 0 ? (
+                <Typography>No packages yet.</Typography>
+              ) : (
+                <Paper>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Batch</TableCell>
+                        <TableCell>Qty</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Action</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {putAway.map(pkg => (
+                        <TableRow key={pkg._id}>
+                          <TableCell>{pkg.batch_id.batch_code}</TableCell>
+                          <TableCell>{pkg.quantity}</TableCell>
+                          <TableCell>
+                            {pkg.location_id ? 'Arranged' : 'Unarranged'}
+                          </TableCell>
+                          <TableCell>
+                            {pkg.location_id && (
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleClearLocation(pkg._id)}
+                              >
+                                <DeleteForeverIcon fontSize="small" />
+                              </IconButton>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Paper>
+              )}
+
+              <Button
+                variant="contained"
+                disabled={!putAway.length || !putAway.every(p => p.location_id)}
+                onClick={handleFinalize}
+              >
+                Finalize
+              </Button>
+            </Stack>
+          </AccordionDetails>
         </Accordion>
       </Container>
     </Box>
