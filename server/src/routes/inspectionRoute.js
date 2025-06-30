@@ -13,7 +13,7 @@ router.put('/:id', importInspectionController.updateInspection);
 
 router.delete(
   '/:id',
-  authorize(['warehouse', 'supervisor']),
+  authorize(['warehouse_manager', 'supervisor']),
   importInspectionController.deleteInspection,
 );
 

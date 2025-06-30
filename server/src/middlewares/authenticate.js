@@ -56,18 +56,12 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    //temp 
-    /*
-    if (user.status !== USER_STATUSES.ACTIVE) {
+    if (user.status !== 'active') {
       return res.status(401).json({
         success: false,
         message: 'Account is inactive',
       });
     }
-    */
-
-
-    // Attach user data to request với thông tin mới nhất từ database
     req.user = {
       userId: user._id.toString(),
       email: user.email,

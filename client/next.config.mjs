@@ -1,18 +1,5 @@
 /** @type {import('next').NextConfig} */
 
-const cspHeader = `
-  default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline';
-  style-src 'self' 'unsafe-inline';
-  img-src 'self' blob: data: https://flagcdn.com;
-  font-src 'self';
-  object-src 'self';
-  base-uri 'self';
-  form-action 'self';
-  frame-ancestors 'self';
-  connect-src 'self' http://localhost:5000 https://cdn.jsdelivr.net;
-`;
-
 const nextConfig = {
   modularizeImports: {
     '@mui/material': {
@@ -26,9 +13,8 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: process.env.NODE_ENV === 'production' 
-          ? `${process.env.NEXT_PUBLIC_API_URL || 'https://your-backend-url.com'}/api/:path*`
-          : 'http://localhost:5000/api/:path*'
+        destination:
+          process.env.NODE_ENV === 'production' ? `${process.env.NEXT_PUBLIC_API_URL}/api/:path*` : 'http://localhost:5000/api/:path*'
       }
     ];
   },
@@ -38,17 +24,41 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'flagcdn.com',
         pathname: '**'
+      },
+      {
+        protocol: 'https',
+        hostname: 'js.stripe.com',
+        pathname: '**'
       }
     ]
   },
   async headers() {
+    const cspHeader = `
+      default-src 'self';
+      script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com;
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' blob: data: https://flagcdn.com https://*.stripe.com;
+      font-src 'self';
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+      frame-src 'self' https://js.stripe.com;
+      connect-src 'self' http://localhost:5000 https://api.stripe.com ${process.env.NEXT_PUBLIC_API_URL || ''};
+    `
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
     return [
       {
         source: '/(.*)',
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: cspHeader.replace(/\n/g, '')
+            value: cspHeader
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
           }
         ]
       }

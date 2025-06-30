@@ -29,7 +29,7 @@ import {
   Button,
   CircularProgress
 } from '@mui/material';
-import { Info as InfoIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Info as InfoIcon, Edit as EditIcon, ForkLeft as ForwardIcon } from '@mui/icons-material';
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -66,17 +66,18 @@ function ImportOrderSupervisor() {
     warehouse_manager_id: ''
   });
 
+  // Thêm state cho inline status edit
+  const [editingStatusOrderId, setEditingStatusOrderId] = useState(null);
+  const [editStatusValue, setEditStatusValue] = useState('');
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      console.log('Fetching orders...');
       const response = await axiosInstance.get('/import-orders', {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
-      console.log('Orders response:', response.data);
       setOrders(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching orders:', error);
       setError(error.response?.data?.error || error.message);
     } finally {
       setLoading(false);
@@ -85,28 +86,22 @@ function ImportOrderSupervisor() {
 
   const fetchWarehouseManagers = async () => {
     try {
-      console.log('Fetching warehouse managers...');
-      const response = await axiosInstance.get('/users?role=warehouse_manager', {
-        headers: getAuthHeaders(),
+      const response = await axiosInstance.get('/accounts?role=warehouse_manager', {
+        headers: getAuthHeaders()
       });
-      console.log('Warehouse managers response:', response.data);
       setWarehouseManagers(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching warehouse managers:', error);
       setWarehouseManagers([]);
     }
   };
 
   const fetchStatusTransitions = async () => {
     try {
-      console.log('Fetching status transitions...');
       const response = await axiosInstance.get('/import-orders/status-transitions', {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
-      console.log('Status transitions response:', response.data);
       setStatusTransitions(response.data.data || {});
     } catch (error) {
-      console.error('Error fetching status transitions:', error);
       setStatusTransitions({});
     }
   };
@@ -136,7 +131,7 @@ function ImportOrderSupervisor() {
   };
 
   const handleEditFormChange = (field, value) => {
-    setEditForm(prev => ({
+    setEditForm((prev) => ({
       ...prev,
       [field]: value
     }));
@@ -147,18 +142,16 @@ function ImportOrderSupervisor() {
 
     try {
       setActionLoading(true);
-      
+
       // Update status if changed
       if (editForm.status !== selectedOrder.status) {
-        await axiosInstance.patch(`/import-orders/${selectedOrder._id}/status`, 
-          { status: editForm.status },
-          { headers: getAuthHeaders() }
-        );
+        await axiosInstance.patch(`/import-orders/${selectedOrder._id}/status`, { status: editForm.status }, { headers: getAuthHeaders() });
       }
 
       // Update warehouse manager if changed
       if (editForm.warehouse_manager_id !== (selectedOrder.warehouse_manager_id?._id || '')) {
-        await axiosInstance.put(`/import-orders/${selectedOrder._id}`, 
+        await axiosInstance.patch(
+          `/import-orders/${selectedOrder._id}/assign-warehouse-manager`,
           { warehouse_manager_id: editForm.warehouse_manager_id },
           { headers: getAuthHeaders() }
         );
@@ -168,7 +161,6 @@ function ImportOrderSupervisor() {
       handleCloseEditDialog();
       fetchOrders();
     } catch (error) {
-      console.error('Error updating order:', error);
       setError(error.response?.data?.error || error.message);
     } finally {
       setActionLoading(false);
@@ -196,14 +188,22 @@ function ImportOrderSupervisor() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'draft': return 'default';
-      case 'approved': return 'success';
-      case 'delivered': return 'info';
-      case 'checked': return 'warning';
-      case 'arranged': return 'primary';
-      case 'completed': return 'success';
-      case 'cancelled': return 'error';
-      default: return 'default';
+      case 'draft':
+        return 'default';
+      case 'approved':
+        return 'success';
+      case 'delivered':
+        return 'info';
+      case 'checked':
+        return 'warning';
+      case 'arranged':
+        return 'primary';
+      case 'completed':
+        return 'success';
+      case 'cancelled':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
@@ -215,7 +215,7 @@ function ImportOrderSupervisor() {
     CHECKED: 'checked',
     ARRANGED: 'arranged',
     COMPLETED: 'completed',
-    CANCELLED: 'cancelled',
+    CANCELLED: 'cancelled'
   };
 
   const formatDate = (dateString) => {
@@ -225,7 +225,7 @@ function ImportOrderSupervisor() {
       return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: '2-digit',
-        day: '2-digit',
+        day: '2-digit'
       });
     } catch (error) {
       return '-';
@@ -242,6 +242,21 @@ function ImportOrderSupervisor() {
   };
 
   const paginatedOrders = orders.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  // Thêm hàm handleStatusChange
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      setActionLoading(true);
+      await axiosInstance.patch(`/import-orders/${orderId}/status`, { status: newStatus }, { headers: getAuthHeaders() });
+      setEditingStatusOrderId(null);
+      setSuccess('Status updated successfully');
+      fetchOrders();
+    } catch (error) {
+      setError(error.response?.data?.error || error.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -264,9 +279,10 @@ function ImportOrderSupervisor() {
               <TableCell sx={{ minWidth: 120 }}>Order Code</TableCell>
               <TableCell sx={{ minWidth: 120 }}>Contract Code</TableCell>
               <TableCell sx={{ minWidth: 150 }}>Supplier</TableCell>
-              <TableCell sx={{ minWidth: 150 }}>Warehouse</TableCell>
               <TableCell sx={{ minWidth: 120 }}>Created By</TableCell>
-              <TableCell align="right" sx={{ minWidth: 120 }}>Total Amount</TableCell>
+              <TableCell align="right" sx={{ minWidth: 120 }}>
+                Total Amount
+              </TableCell>
               <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
               <TableCell sx={{ minWidth: 150 }}>Warehouse Manager</TableCell>
               <TableCell sx={{ minWidth: 120 }}>Actions</TableCell>
@@ -278,33 +294,61 @@ function ImportOrderSupervisor() {
                 <TableCell>{order.import_order_code || 'N/A'}</TableCell>
                 <TableCell>{order.supplier_contract_id?.contract_code || 'N/A'}</TableCell>
                 <TableCell>{order.supplier_contract_id?.supplier_id?.name || 'N/A'}</TableCell>
-                <TableCell>{order.warehouse_id?.name || 'N/A'}</TableCell>
                 <TableCell>{order.created_by?.name || 'N/A'}</TableCell>
                 <TableCell align="right">
-                  {formatCurrency(order.details?.reduce((total, detail) => 
-                    total + (detail.quantity * detail.unit_price), 0
-                  ) || 0)}
+                  {formatCurrency(order.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0) || 0)}
                 </TableCell>
                 <TableCell>
-                  <Chip
-                    label={order.status}
-                    color={getStatusColor(order.status)}
-                    size="small"
-                  />
+                  {editingStatusOrderId === order._id ? (
+                    <FormControl size="small" fullWidth>
+                      <Select
+                        value={editStatusValue}
+                        onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                        onBlur={() => setEditingStatusOrderId(null)}
+                        autoFocus
+                      >
+                        <MenuItem value={IMPORT_ORDER_STATUSES.DRAFT}>Draft</MenuItem>
+                        <MenuItem value={IMPORT_ORDER_STATUSES.APPROVED}>Approved</MenuItem>
+                        <MenuItem value={IMPORT_ORDER_STATUSES.DELIVERED}>Delivered</MenuItem>
+                        <MenuItem value={IMPORT_ORDER_STATUSES.CHECKED}>Checked</MenuItem>
+                        <MenuItem value={IMPORT_ORDER_STATUSES.ARRANGED}>Arranged</MenuItem>
+                        <MenuItem value={IMPORT_ORDER_STATUSES.COMPLETED}>Completed</MenuItem>
+                        <MenuItem value={IMPORT_ORDER_STATUSES.CANCELLED}>Cancelled</MenuItem>
+                      </Select>
+                    </FormControl>
+                  ) : (
+                    <Chip
+                      label={order.status}
+                      color={getStatusColor(order.status)}
+                      size="small"
+                      onClick={() => {
+                        setEditingStatusOrderId(order._id);
+                        setEditStatusValue(order.status);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  )}
                 </TableCell>
-                <TableCell>{order.warehouse_manager_id?.name || 'Not Assigned'}</TableCell>
+                <TableCell>{order.warehouse_manager_id?.email || 'Not Assigned'}</TableCell>
                 <TableCell>
                   <Box display="flex" gap={1}>
-                    <IconButton 
-                      color="primary" 
+                    <IconButton
+                      color="primary"
                       onClick={() => handleOpenEditDialog(order)}
                       disabled={actionLoading}
-                      title="Edit order"
+                      title="Assign warehouse manager"
                     >
                       <EditIcon />
                     </IconButton>
                     <IconButton color="info" onClick={() => handleOpenDetails(order)}>
                       <InfoIcon />
+                    </IconButton>
+                    <IconButton
+                      color="secondary"
+                      onClick={() => window.location.href('https://localhost:3000/manage-bills')}
+                      title="Tạo công nợ"
+                    >
+                      <ForwardIcon />
                     </IconButton>
                   </Box>
                 </TableCell>
@@ -325,63 +369,34 @@ function ImportOrderSupervisor() {
 
       {/* Edit Dialog */}
       <Dialog open={openEditDialog} onClose={handleCloseEditDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit Import Order</DialogTitle>
+        <DialogTitle>Assign Warehouse Manager</DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  Order Code: {selectedOrder?.import_order_code}
-                </Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={editForm.status}
-                    onChange={(e) => handleEditFormChange('status', e.target.value)}
-                    label="Status"
-                  >
-                    <MenuItem value={IMPORT_ORDER_STATUSES.DRAFT}>Draft</MenuItem>
-                    <MenuItem value={IMPORT_ORDER_STATUSES.APPROVED}>Approved</MenuItem>
-                    <MenuItem value={IMPORT_ORDER_STATUSES.DELIVERED}>Delivered</MenuItem>
-                    <MenuItem value={IMPORT_ORDER_STATUSES.CHECKED}>Checked</MenuItem>
-                    <MenuItem value={IMPORT_ORDER_STATUSES.ARRANGED}>Arranged</MenuItem>
-                    <MenuItem value={IMPORT_ORDER_STATUSES.COMPLETED}>Completed</MenuItem>
-                    <MenuItem value={IMPORT_ORDER_STATUSES.CANCELLED}>Cancelled</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Warehouse Manager</InputLabel>
-                  <Select
-                    value={editForm.warehouse_manager_id}
-                    onChange={(e) => handleEditFormChange('warehouse_manager_id', e.target.value)}
-                    label="Warehouse Manager"
-                  >
-                    <MenuItem value=""><em>None</em></MenuItem>
-                    {warehouseManagers.map((manager) => (
-                      <MenuItem key={manager._id} value={manager._id}>
-                        {manager.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+            <FormControl fullWidth size="small">
+              <InputLabel>Warehouse Manager</InputLabel>
+              <Select
+                value={editForm.warehouse_manager_id}
+                onChange={(e) => handleEditFormChange('warehouse_manager_id', e.target.value)}
+                label="Warehouse Manager"
+              >
+                <MenuItem value="">
+                  <em>None</em>
+                </MenuItem>
+                {warehouseManagers.map((manager) => (
+                  <MenuItem key={manager._id} value={manager._id}>
+                    {manager.name} ({manager.email})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseEditDialog} disabled={actionLoading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleUpdateOrder} 
-            variant="contained" 
-            disabled={actionLoading}
-          >
-            {actionLoading ? <CircularProgress size={20} /> : 'Update'}
+          <Button onClick={handleUpdateOrder} variant="contained" disabled={actionLoading}>
+            {actionLoading ? <CircularProgress size={20} /> : 'Assign'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -395,58 +410,75 @@ function ImportOrderSupervisor() {
               <Grid container spacing={3}>
                 {/* Basic, Contract, Warehouse: mỗi cái 12 trên mobile, 4 trên desktop */}
                 <Grid item xs={12} md={4}>
-                  <Typography variant="h6" gutterBottom>Basic Information</Typography>
+                  <Typography variant="h6" gutterBottom>
+                    Basic Information
+                  </Typography>
                   <Paper sx={{ p: 2, mb: 2 }}>
                     <Grid container spacing={2}>
                       <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">Order Code</Typography>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Order Code
+                        </Typography>
                         <Typography variant="body1">{selectedOrder.import_order_code || 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">Status</Typography>
-                        <Chip
-                          label={selectedOrder.status}
-                          color={getStatusColor(selectedOrder.status)}
-                          size="small"
-                        />
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Status
+                        </Typography>
+                        <Chip label={selectedOrder.status} color={getStatusColor(selectedOrder.status)} size="small" />
                       </Grid>
-                      
                     </Grid>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <Typography variant="h6" gutterBottom>Contract Information</Typography>
+                  <Typography variant="h6" gutterBottom>
+                    Contract Information
+                  </Typography>
                   <Paper sx={{ p: 2, mb: 2 }}>
                     <Grid container spacing={2}>
                       <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">Contract Code</Typography>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Contract Code
+                        </Typography>
                         <Typography variant="body1">{selectedOrder.supplier_contract_id?.contract_code || 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">Supplier</Typography>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Supplier
+                        </Typography>
                         <Typography variant="body1">{selectedOrder.supplier_contract_id?.supplier_id?.name || 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">Contract Status</Typography>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Contract Status
+                        </Typography>
                         <Typography variant="body1">{selectedOrder.supplier_contract_id?.status || 'N/A'}</Typography>
                       </Grid>
                     </Grid>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <Typography variant="h6" gutterBottom>Warehouse Information</Typography>
+                  <Typography variant="h6" gutterBottom>
+                    Warehouse Information
+                  </Typography>
                   <Paper sx={{ p: 2, mb: 2 }}>
                     <Grid container spacing={2}>
                       <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">Warehouse</Typography>
-                        <Typography variant="body1">{selectedOrder.warehouse_id?.name || 'N/A'}</Typography>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Warehouse
+                        </Typography>
+                        <Typography variant="body1">{selectedOrder.warehouse_id?.email || 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">Warehouse Manager</Typography>
-                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.name || 'Not Assigned'}</Typography>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Warehouse Manager
+                        </Typography>
+                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || 'Not Assigned'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">Manager Email</Typography>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Manager Email
+                        </Typography>
                         <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || 'N/A'}</Typography>
                       </Grid>
                     </Grid>
@@ -455,26 +487,36 @@ function ImportOrderSupervisor() {
 
                 {/* User Info & Order Details: mỗi cái 12 trên mobile, 6 trên desktop */}
                 <Grid item xs={12} md={6}>
-                  <Typography variant="h6" gutterBottom>User Information</Typography>
+                  <Typography variant="h6" gutterBottom>
+                    User Information
+                  </Typography>
                   <Paper sx={{ p: 2, mb: 2 }}>
                     <Grid container spacing={2}>
                       <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">Created By</Typography>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Created By
+                        </Typography>
                         <Typography variant="body1">{selectedOrder.created_by?.name || 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">Creator Email</Typography>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Creator Email
+                        </Typography>
                         <Typography variant="body1">{selectedOrder.created_by?.email || 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">Approved By</Typography>
+                        <Typography variant="subtitle2" color="textSecondary">
+                          Approved By
+                        </Typography>
                         <Typography variant="body1">{selectedOrder.approval_by?.name || 'N/A'}</Typography>
                       </Grid>
                     </Grid>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <Typography variant="h6" gutterBottom>Order Details</Typography>
+                  <Typography variant="h6" gutterBottom>
+                    Order Details
+                  </Typography>
                   <Paper sx={{ p: 2, mb: 2 }}>
                     <TableContainer sx={{ overflowX: 'auto' }}>
                       <Table size="small">
@@ -494,20 +536,20 @@ function ImportOrderSupervisor() {
                               <TableCell>{detail.medicine_id?.license_code || 'N/A'}</TableCell>
                               <TableCell align="right">{detail.quantity || 0}</TableCell>
                               <TableCell align="right">{formatCurrency(detail.unit_price)}</TableCell>
-                              <TableCell align="right">
-                                {formatCurrency((detail.quantity || 0) * (detail.unit_price || 0))}
-                              </TableCell>
+                              <TableCell align="right">{formatCurrency((detail.quantity || 0) * (detail.unit_price || 0))}</TableCell>
                             </TableRow>
                           ))}
                           <TableRow>
                             <TableCell colSpan={4}>
-                              <Typography variant="subtitle1" fontWeight="bold">Total Amount</Typography>
+                              <Typography variant="subtitle1" fontWeight="bold">
+                                Total Amount
+                              </Typography>
                             </TableCell>
                             <TableCell align="right">
                               <Typography variant="subtitle1" fontWeight="bold">
-                                {formatCurrency(selectedOrder.details?.reduce((total, detail) => 
-                                  total + (detail.quantity * detail.unit_price), 0
-                                ) || 0)}
+                                {formatCurrency(
+                                  selectedOrder.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0) || 0
+                                )}
                               </Typography>
                             </TableCell>
                           </TableRow>
@@ -520,7 +562,9 @@ function ImportOrderSupervisor() {
                 {/* Notes */}
                 {selectedOrder.notes && (
                   <Grid item xs={12}>
-                    <Typography variant="h6" gutterBottom>Notes</Typography>
+                    <Typography variant="h6" gutterBottom>
+                      Notes
+                    </Typography>
                     <Paper sx={{ p: 2, mb: 2 }}>
                       <Typography variant="body1">{selectedOrder.notes}</Typography>
                     </Paper>
@@ -562,4 +606,4 @@ function ImportOrderSupervisor() {
   );
 }
 
-export default ImportOrderSupervisor; 
+export default ImportOrderSupervisor;

@@ -38,7 +38,7 @@ const createUser = async (req, res) => {
       password: hashedPassword,
       role,
       is_manager: is_manager || false,
-      status: constants.USER_STATUSES.ACTIVE,
+      status: constants.USER_STATUSES.PENDING,
     });
 
     await newUser.save();
@@ -413,7 +413,7 @@ const deleteUser = async (req, res) => {
 
     // Soft delete - chuyển status thành INACTIVE
     await User.findByIdAndUpdate(id, {
-      status: USER_STATUSES.INACTIVE,
+      status: constants.USER_STATUSES.INACTIVE,
     });
 
     res.status(200).json({

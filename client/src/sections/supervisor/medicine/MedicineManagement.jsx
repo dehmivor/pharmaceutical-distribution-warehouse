@@ -455,7 +455,7 @@ const MedicineManagement = () => {
         categoryOptions={filterOptions.category}
       />
 
-      <MedicineAddDialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} onSuccess={handleAddMedicineSuccess} />
+      <MedicineAddDialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} onSuccess={handleAddMedicineSuccess} filterOptions={filterOptions}/>
 
       {/* Delete Confirmation Dialog */}
       <Dialog

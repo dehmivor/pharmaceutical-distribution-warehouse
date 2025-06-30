@@ -2,7 +2,7 @@ const SupplierContract = require('../models/SupplierContract');
 const mongoose = require('mongoose');
 const { CONTRACT_STATUSES } = require('../utils/constants');
 
-const supplierContractService =  {
+const supplierContractService = {
   async getAllSupplierContracts({ page, limit, created_by, supplier_id, status, contract_code }) {
     const query = {};
 
@@ -26,7 +26,7 @@ const supplierContractService =  {
     const contracts = await SupplierContract.find(query)
       .populate('created_by', 'name email')
       .populate('supplier_id', 'name')
-      .populate('items.medicine_id', 'license_code')
+      .populate('items.medicine_id', 'medicine_name license_code')
       .skip(skip)
       .limit(limit)
       .lean();
@@ -44,7 +44,12 @@ const supplierContractService =  {
     };
   },
 
-   async createSupplierContract(contractData) {
+  async createSupplierContract(contractData) {
+    // Set default status to 'draft' if not provided
+    if (!contractData.status) {
+      contractData.status = CONTRACT_STATUSES.DRAFT;
+    }
+
     // Validate references exist
     const [userExists, supplierExists] = await Promise.all([
       mongoose.model('User').exists({ _id: contractData.created_by }),
@@ -60,14 +65,35 @@ const supplierContractService =  {
 
     // Validate medicine_ids in items
     if (contractData.items && contractData.items.length > 0) {
-      const medicineIds = contractData.items.map(item => item.medicine_id);
-      const medicinesExist = await mongoose.model('Medicine').find({ _id: { $in: medicineIds } }).countDocuments();
+      const medicineIds = contractData.items.map((item) => item.medicine_id);
+      const medicinesExist = await mongoose
+        .model('Medicine')
+        .find({ _id: { $in: medicineIds } })
+        .countDocuments();
       if (medicinesExist !== medicineIds.length) {
         throw new Error('One or more medicine IDs are invalid');
       }
       // Ensure kpi_details is an array (empty or non-empty)
-      contractData.items.forEach(item => {
+      contractData.items.forEach((item) => {
         item.kpi_details = item.kpi_details || [];
+        if (item.kpi_details.length > 0) {
+          const minSaleQuantities = item.kpi_details.map((kpi) => kpi.min_sale_quantity);
+          const uniqueMinSaleQuantities = new Set(minSaleQuantities);
+          if (minSaleQuantities.length !== uniqueMinSaleQuantities.size) {
+            throw new Error('Duplicate min_sale_quantity values are not allowed in kpi_details');
+          }
+
+          const sortedKpiDetails = [...item.kpi_details].sort(
+            (a, b) => a.min_sale_quantity - b.min_sale_quantity,
+          );
+          for (let i = 1; i < sortedKpiDetails.length; i++) {
+            if (
+              sortedKpiDetails[i].profit_percentage <= sortedKpiDetails[i - 1].profit_percentage
+            ) {
+              throw new Error('Profit percentage must increase with higher min_sale_quantity');
+            }
+          }
+        }
       });
     }
 
@@ -102,7 +128,21 @@ const supplierContractService =  {
       .populate('supplier_id', 'name')
       .populate('items.medicine_id', 'medicine_name')
       .lean();
-  }
-}
+  },
+
+  async deleteSupplierContract(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error('Invalid contract ID');
+    }
+    const contract = await SupplierContract.findById(id);
+    if (!contract) {
+      throw new Error('Contract not found');
+    }
+    if (contract.status !== CONTRACT_STATUSES.DRAFT) {
+      throw new Error('Only contracts with status draft can be deleted');
+    }
+    return SupplierContract.findByIdAndDelete(id);
+  },
+};
 
 module.exports = supplierContractService;
