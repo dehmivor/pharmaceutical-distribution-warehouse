@@ -55,8 +55,21 @@ const getSupplierContractById = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: contract });
 });
 
+const deleteSupplierContract = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).json({ success: false, message: 'Missing contract id' });
+  }
+  const contract = await supplierContractService.deleteSupplierContract(id);
+  if (!contract) {
+    return res.status(404).json({ success: false, message: 'Contract not found' });
+  }
+  res.status(200).json({ success: true, data: contract });
+});
+
 module.exports = {
   getAllSupplierContracts,
   createSupplierContract,
   getSupplierContractById,
+  deleteSupplierContract,
 };

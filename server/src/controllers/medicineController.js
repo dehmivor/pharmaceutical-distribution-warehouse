@@ -1,34 +1,23 @@
 // controllers/medicineController.js
 const medicineService = require('../services/medicineService');
+const { validationResult } = require('express-validator');
 const constants = require('../utils/constants');
 
 const medicineController = {
   // ✅ Get all medicines with filters
-  getAllMedicines: async (req, res) => {
+  getMedicinesPaging: async (req, res) => {
     try {
-      const {
-        category,
-        license_code,
-        page,
-        limit,
-      } = req.query;
-
-      // Validate enum filters
-      if (category && !Object.values(constants.MEDICINE_CATEGORY).includes(category)) {
-        return res.status(400).json({
-          success: false,
-          message: `Danh mục không hợp lệ. Phải là một trong: ${Object.values(constants.MEDICINE_CATEGORY).join(', ')}`,
-        });
-      }
+      const { category, license_code, status,page, limit } = req.query;
 
       const filters = {
         category,
         license_code,
+        status,
         page,
         limit,
       };
 
-      const result = await medicineService.getAllMedicines(filters);
+      const result = await medicineService.getMedicinesPaging(filters);
 
       if (!result.success) {
         return res.status(400).json(result);
@@ -124,7 +113,11 @@ const medicineController = {
         });
       }
 
-      if (min_stock_threshold !== undefined && max_stock_threshold !== undefined && max_stock_threshold < min_stock_threshold) {
+      if (
+        min_stock_threshold !== undefined &&
+        max_stock_threshold !== undefined &&
+        max_stock_threshold < min_stock_threshold
+      ) {
         return res.status(400).json({
           success: false,
           message: 'Ngưỡng tồn kho tối đa phải lớn hơn hoặc bằng ngưỡng tối thiểu',
@@ -261,6 +254,38 @@ const medicineController = {
       res.status(500).json({
         success: false,
         message: 'Lỗi server khi lấy tùy chọn bộ lọc',
+      });
+    }
+  },
+
+  // Get all medicine with out filters
+  getAllMedicines: async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Dữ liệu đầu vào không hợp lệ',
+          errors: errors.array(),
+        });
+      }
+
+      const result = await medicineService.getAllMedicines();
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Lấy danh sách thuốc thành công',
+        data: result.data,
+      });
+    } catch (error) {
+      console.error('Error in getAllMedicines:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi server khi lấy danh sách thuốc',
       });
     }
   },
