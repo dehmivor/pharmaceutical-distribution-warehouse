@@ -13,4 +13,5 @@ module.exports = {
   areaController: require('./areaController'),
   stripeController: require('./stripeController'),
   packageController: require('./packageController'),
+  billController: require('./billController'),
 };
