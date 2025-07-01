@@ -384,6 +384,26 @@ const packageController = {
       res.status(500).json({ error: err.message });
     }
   },
+
+  getPackagesForOrder: async (req, res) => {
+    const { importOrderId } = req.params;
+    const result = await packageService.getPackagesByImportOrder(importOrderId);
+
+    if (!result.success) {
+      return res.status(400).json({ success: false, message: result.message });
+    }
+    return res.json({ success: true, data: result.packages });
+  },
+
+  clearLocation: async (req, res) => {
+    const { packageId } = req.params;
+    const result = await packageService.clearPackageLocation(packageId);
+    if (!result.success) {
+      return res.status(400).json({ success: false, message: result.message });
+    }
+    res.json({ success: true });
+  },
+
 };
 
 module.exports = packageController;
