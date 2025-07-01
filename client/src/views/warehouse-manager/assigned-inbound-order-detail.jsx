@@ -74,13 +74,18 @@ export default function ImportOrderDetail() {
           batch_id: i.batch_id?._id || '',
           quantity: i.actual_quantity - i.rejected_quantity
         })))
-        
-        switch (orderResp.data.status){
+
+        await fetchPutAway();
+
+        switch (orderResp.data.status) {
           case 'delivered':
             enableAccordion('delivered');
             break;
           case 'checked':
             enableAccordion('checked');
+            break;
+          case 'arranged':
+            enableAccordion('packaged');
             break;
           default:
             enableAccordion('other');
@@ -122,27 +127,27 @@ export default function ImportOrderDetail() {
 
 
   const enableAccordion = async (orderState) => {
-    if ( orderState == 'other ' ){
+    if (orderState == 'other') {
       setInspectionsDone(true);
       setPackagesDone(true);
       setPutAwayDone(true);
     }
-    if ( orderState == 'delivered' ){
+    if (orderState == 'delivered') {
       setInspectionsDone(false);
       setPackagesDone(true);
       setPutAwayDone(true);
     }
-    if ( orderState == 'checked' ){
+    if (orderState == 'checked') {
       setInspectionsDone(true);
       setPackagesDone(false);
       setPutAwayDone(true);
     }
-    if ( orderState == 'packaged' ){
+    if (orderState == 'packaged') {
       setInspectionsDone(true);
       setPackagesDone(true);
       setPutAwayDone(false);
     }
-  } 
+  }
 
   const batchOptions = inspections.map(i => {
     const net = i.actual_quantity - i.rejected_quantity;
@@ -192,6 +197,12 @@ export default function ImportOrderDetail() {
           quantity: p.quantity
         })
       ));
+
+      await axios.patch(
+        `http://localhost:5000/api/import-orders/${orderId}/status`,
+        { status: 'arranged' }
+      );
+
       await fetchPutAway();
       enableAccordion('packaged');    // ← disable creation UI
     } catch (err) {
@@ -202,9 +213,17 @@ export default function ImportOrderDetail() {
     }
   };
 
-  const handleFinalize = () => {
-    // navigate to next step, or call API to mark order arranged
-    router.push(`/assigned-inbound-order/${orderId}/summary`);
+  const handleFinalize = async () => {
+    try {
+      await axios.patch(
+        `http://localhost:5000/api/import-orders/${orderId}/status`,
+        { status: 'completed' }
+      );
+      enableAccordion('other')
+    } catch (err) {
+      console.error('Error updating status:', err);
+      setError('Lỗi khi cập nhật trạng thái đơn');
+    }
   };
 
   if (loading) return <Box textAlign="center" py={8}><CircularProgress /></Box>;
@@ -247,11 +266,13 @@ export default function ImportOrderDetail() {
             <Typography>Inspection</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            {inspections.map(i => (
-              <Typography key={i._id}>
-                {i.batch_id?.batch_code}: arrived {i.actual_quantity - i.rejected_quantity}, rejected {i.rejected_quantity}
-              </Typography>
-            ))}
+            <Stack spacing={2}>
+              {inspections.map(i => (
+                <Typography key={i._id}>
+                  {i.batch_id?.batch_code}: arrived {i.actual_quantity - i.rejected_quantity}, rejected {i.rejected_quantity}
+                </Typography>
+              ))}
+            </Stack>
           </AccordionDetails>
         </Accordion>
 
@@ -322,7 +343,7 @@ export default function ImportOrderDetail() {
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={2}>
-              <IconButton onClick={fetchPutAway} size="small" sx={{ ml: 2 }}>
+              <IconButton onClick={fetchPutAway} size="small" sx={{ ml: 2 }} disabled={putAwayDone}>
                 <RefreshIcon />
               </IconButton>
               {loadingPutAway ? (
@@ -331,7 +352,7 @@ export default function ImportOrderDetail() {
                 <Typography>No packages yet.</Typography>
               ) : (
                 <Paper>
-                  <Table size="small">
+                  <Table size="small" disabled={putAwayDone}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Batch</TableCell>
@@ -354,6 +375,7 @@ export default function ImportOrderDetail() {
                                 size="small"
                                 color="error"
                                 onClick={() => handleClearLocation(pkg._id)}
+                                disabled={putAwayDone}
                               >
                                 <DeleteForeverIcon fontSize="small" />
                               </IconButton>
@@ -368,7 +390,7 @@ export default function ImportOrderDetail() {
 
               <Button
                 variant="contained"
-                disabled={!putAway.length || !putAway.every(p => p.location_id)}
+                disabled={!putAway.length || !putAway.every(p => p.location_id) || putAwayDone}
                 onClick={handleFinalize}
               >
                 Finalize

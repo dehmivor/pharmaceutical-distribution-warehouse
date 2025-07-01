@@ -34,15 +34,13 @@ const batchSchema = new mongoose.Schema({
       values: Object.values(BATCH_QUALITY_STATUSES),
       message: `Quality status must be one of: ${Object.values(BATCH_QUALITY_STATUSES).join(', ')}`,
     },
-    default: BATCH_QUALITY_STATUSES.PENDING,
+    default: BATCH_QUALITY_STATUSES.PASS,
   },
   supplier_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Supplier',
     required: [true, 'Supplier ID is required'],
   },
-}, {
-  timestamps: true,
 });
 
 module.exports = mongoose.model('Batch', batchSchema);
