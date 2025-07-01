@@ -40,6 +40,53 @@ const getInspections = async (req, res) => {
   }
 };
 
+const getInspectionForApprove = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, import_order_id, batch_id } = req.query;
+
+    const filters = {};
+    if (import_order_id) filters.import_order_id = import_order_id;
+    if (batch_id) filters.batch_id = batch_id;
+
+    // Deep population configuration
+    const populateOptions = [
+      {
+        path: 'import_order_id',
+        model: 'ImportOrder',
+        populate: [
+          { path: 'supplier_contract_id', model: 'SupplierContract' },
+          { path: 'warehouse_manager_id', model: 'User' },
+          { path: 'created_by', model: 'User' },
+          { path: 'approval_by', model: 'User' },
+          {
+            path: 'details.medicine_id',
+            model: 'Medicine',
+            populate: {
+              path: 'storage_conditions',
+              model: 'StorageCondition', // Assuming this model exists
+            },
+          },
+        ],
+      },
+      { path: 'batch_id', model: 'Batch' },
+      { path: 'created_by', model: 'User' },
+    ];
+
+    const result = await importInspectionService.getInspectionsForApprove({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      filters,
+      populateOptions, // Pass populate configuration to service
+    });
+
+    return res.json(result);
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.message,
+    });
+  }
+};
+
 // Lấy chi tiết một phiếu kiểm tra
 const getInspectionById = async (req, res) => {
   try {
@@ -105,4 +152,5 @@ module.exports = {
   updateInspection,
   deleteInspection,
   getInspectionStatistics,
+  getInspectionForApprove,
 };
