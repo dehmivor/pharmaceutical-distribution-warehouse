@@ -12,11 +12,27 @@ const warehouse = {
       icon: 'IconFileImport'
     },
     {
-      id: 'manage-inspections',
+      id: 'inspection',
       title: 'Manage Inspections',
-      type: 'item',
-      url: '/manage-inspections',
-      icon: 'IconChecklist'
+      type: 'collapse',
+      icon: 'IconChecklist',
+      children: [
+        {
+          id: 'create-inspection',
+          title: 'Create Inspections',
+          type: 'item',
+          url: '/create-inspections',
+          matchPattern: '/create-inspections/*',
+          icon: 'IconMapPin'
+        },
+        {
+          id: 'approve-inspections',
+          title: 'Approve Inspections',
+          type: 'item',
+          url: '/approve-inspections',
+          icon: 'IconBoxMultiple'
+        }
+      ]
     },
     {
       id: 'manage-inventory',

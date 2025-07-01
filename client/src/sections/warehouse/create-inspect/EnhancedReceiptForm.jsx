@@ -433,6 +433,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                   <TableCell>SL dự kiến</TableCell>
                   <TableCell>SL thực nhận</TableCell>
                   <TableCell>Trạng thái</TableCell>
+                  <TableCell>Ghi chú</TableCell>
                   <TableCell>Thao tác</TableCell>
                 </TableRow>
               </TableHead>
@@ -499,6 +500,14 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                     </TableCell>
                     <TableCell>
                       <Chip label={getStatusText(item.status)} color={getStatusColor(item.status)} size="small" />
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        value={item.notes}
+                        onChange={(e) => updateReceiptItem(item.id, 'notes', e.target.value)}
+                        sx={{ minWidth: 150 }}
+                      />
                     </TableCell>
                     <TableCell>
                       <IconButton size="small" color="error" onClick={() => removeItem(item.id)}>

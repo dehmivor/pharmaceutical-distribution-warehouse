@@ -22,4 +22,6 @@ module.exports = {
   // retailerRoutes: require('./retailerRoute'),
   // supplierRoutes: require('./supplierRoute'),
   stripeRoutes: require('./stripeRoute'),
+  billRoutes: require('./billRoute'),
+  batchRoutes: require('./batchRoute'),
 };
