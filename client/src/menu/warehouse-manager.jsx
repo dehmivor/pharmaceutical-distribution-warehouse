@@ -4,42 +4,58 @@ const warehouseManager = {
   icon: 'IconBrandAsana',
   type: 'group',
   children: [
-    // 2. Quản lý đơn nhập
+    // 1. Quản lý import orders (chính)
+    {
+      id: 'manage-import-orders',
+      title: 'Import Orders Management',
+      type: 'item',
+      url: '/warehouse-import-orders',
+      icon: 'IconFileImport'
+    },
+    // 2. Quản lý inventory
+    {
+      id: 'manage-inventory',
+      title: 'Inventory Management',
+      type: 'item',
+      url: '/inventory',
+      icon: 'IconBoxMultiple'
+    },
+    // 3. Quản lý đơn nhập (inbound)
     {
       id: 'inbound-order-management',
-      title: 'Inbound order',
+      title: 'Inbound Orders',
       type: 'collapse',
       icon: 'IconFileImport',
       children: [
         {
           id: 'waiting-for-inbound-approval',
-          title: 'Waitng for inbound approval',
+          title: 'Pending Approval',
           type: 'item',
-          url: '/wating-for-inbound-approval',
-          icon: 'IconFileImport'
+          url: '/inbound-orders/approval',
+          icon: 'IconClock'
         },
         {
           id: 'waiting-for-packetization',
-          title: 'Waiting for packetization',
+          title: 'Pending Packetization',
           type: 'item',
-          url: '/waiting-for-packetization',
-          icon: 'IconFileExport'
+          url: '/inbound-orders/packetization',
+          icon: 'IconPackage'
         }
       ]
     },
-    // 2. Quản lý đơn xuất
+    // 4. Quản lý đơn xuất (outbound)
     {
       id: 'outbound-order-management',
-      title: 'Outbound order',
+      title: 'Outbound Orders',
       type: 'collapse',
-      icon: 'IconBrandAsana',
+      icon: 'IconFileExport',
       children: [
         {
           id: 'waiting-for-outbound-approval',
-          title: 'Waitng for outbound approval',
+          title: 'Pending Approval',
           type: 'item',
-          url: '/wating-for-outbound-approval',
-          icon: 'IconFileImport'
+          url: '/outbound-orders/approval',
+          icon: 'IconClock'
         }
       ]
     }

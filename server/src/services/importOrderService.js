@@ -27,7 +27,57 @@ const createImportOrder = async (orderData, orderDetails) => {
 const getImportOrders = async (query = {}, page = 1, limit = 10) => {
   try {
     const skip = (page - 1) * limit;
-    const orders = await ImportOrder.find(query)
+    
+    // Xử lý search query
+    let searchQuery = { ...query };
+    if (query.warehouse_manager_id) {
+      searchQuery.warehouse_manager_id = { $exists: true, $ne: null, $eq: query.warehouse_manager_id };
+    }
+    if (query.$or) {
+      // Nếu có search, cần populate trước khi search
+      const orders = await ImportOrder.find({})
+        .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+        .populate('warehouse_manager_id', 'name email role')
+        .populate('created_by', 'name email role')
+        .populate('approval_by', 'name email role')
+        .populate('details.medicine_id', 'medicine_name license_code');
+
+      // Filter theo search
+      const filteredOrders = orders.filter(order => {
+        return query.$or.some(condition => {
+          if (condition._id) {
+            return order._id.toString().toLowerCase().includes(condition._id.$regex.toLowerCase());
+          }
+          if (condition['supplier_contract_id.contract_code']) {
+            return order.supplier_contract_id?.contract_code?.toLowerCase().includes(condition['supplier_contract_id.contract_code'].$regex.toLowerCase());
+          }
+          return false;
+        });
+      });
+
+      // Apply other filters
+      const finalFilteredOrders = filteredOrders.filter(order => {
+        if (query.status && order.status !== query.status) return false;
+        if (query.warehouse_manager_id && (!order.warehouse_manager_id || order.warehouse_manager_id._id.toString() !== query.warehouse_manager_id.toString())) return false;
+        return true;
+      });
+
+      const total = finalFilteredOrders.length;
+      const paginatedOrders = finalFilteredOrders.slice(skip, skip + limit);
+
+      return {
+        orders: paginatedOrders,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    }
+
+    // Nếu không có search, sử dụng query bình thường
+    const orders = await ImportOrder.find(searchQuery)
       .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
@@ -37,7 +87,7 @@ const getImportOrders = async (query = {}, page = 1, limit = 10) => {
       .limit(limit)
       .sort({ createdAt: -1 });
 
-    const total = await ImportOrder.countDocuments(query);
+    const total = await ImportOrder.countDocuments(searchQuery);
 
     return {
       orders,
