@@ -389,8 +389,8 @@ const authController = {
 function getRedirectByRole(role) {
   const roleRoutes = {
     supervisor: '/manage-users',
-    warehouse_manager: '/manage-inventory',
-    warehouse: '/manage-inspections',
+    warehouse_manager: '/approve-inspections',
+    warehouse: '/create-inspections',
     representative: '/manage-contracts',
   };
 
