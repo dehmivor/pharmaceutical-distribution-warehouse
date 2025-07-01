@@ -4,6 +4,7 @@ import {
   Button,
   List,
   ListItemButton,
+  IconButton,
   ListItemText,
   Paper,
   Snackbar,
@@ -20,6 +21,8 @@ import {
 import MuiAlert from '@mui/material/Alert';
 import { useState, useEffect } from 'react';
 import useInspection from '@/hooks/useInspection';
+import DeleteIcon from '@mui/icons-material/Delete';
+import axios from 'axios';
 
 function ApproveInspection() {
   const { fetchInspectionForApprove, loading, error } = useInspection();
@@ -30,10 +33,8 @@ function ApproveInspection() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Lấy data từ API (dạng mảng inspection)
         const data = await fetchInspectionForApprove();
 
-        // Nhóm inspection theo import_order_id
         const grouped = {};
         data.data.forEach((insp) => {
           const order = insp.import_order_id;
@@ -61,6 +62,104 @@ function ApproveInspection() {
     fetchData();
   }, [fetchInspectionForApprove]);
 
+  // Giả sử có API hoàn thành đơn nhập
+  const completeImportOrder = async (importOrderId) => {
+    const token = localStorage.getItem('auth-token');
+    await axios.post(
+      `http://localhost:5000/api/import-orders/${importOrderId}/complete`,
+      {},
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+  };
+
+  const isOrderReadyForCompletion = (order) => {
+    // Ví dụ: kiểm tra số lượng inspections
+    return order.inspections.length > 0;
+  };
+
+  const handleCompleteOrder = async (importOrderId) => {
+    const order = orders.find((o) => o.importOrder._id === importOrderId);
+    if (!order || !isOrderReadyForCompletion(order)) {
+      setSnackbar({
+        open: true,
+        message: 'Đơn nhập chưa đủ điều kiện hoàn thành!',
+        severity: 'warning'
+      });
+      return;
+    }
+    try {
+      await completeImportOrder(importOrderId);
+      setSnackbar({
+        open: true,
+        message: `Đã hoàn thành kiểm tra cho đơn ${importOrderId.slice(-6)}!`,
+        severity: 'success'
+      });
+      // Cập nhật lại state hoặc fetch lại dữ liệu nếu cần
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: `Lỗi khi hoàn thành kiểm tra: ${err.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleCompleteAll = async () => {
+    if (orders.length === 0) {
+      setSnackbar({
+        open: true,
+        message: 'Không có đơn nhập nào để hoàn thành!',
+        severity: 'warning'
+      });
+      return;
+    }
+    let hasAny = false;
+    for (const order of orders) {
+      if (isOrderReadyForCompletion(order)) {
+        hasAny = true;
+        await handleCompleteOrder(order.importOrder._id);
+      }
+    }
+    if (!hasAny) {
+      setSnackbar({
+        open: true,
+        message: 'Không có đơn nhập nào đủ điều kiện hoàn thành!',
+        severity: 'warning'
+      });
+    }
+  };
+
+  const handleDeleteInspection = async (inspectionId) => {
+    try {
+      const token = localStorage.getItem('auth-token');
+      await axios.delete(`http://localhost:5000/api/inspections/${inspectionId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      // Xóa inspection khỏi state orders
+      setOrders((prevOrders) =>
+        prevOrders.map((order) => ({
+          ...order,
+          inspections: order.inspections.filter((insp) => insp._id !== inspectionId)
+        }))
+      );
+      setSnackbar({
+        open: true,
+        message: 'Đã xóa phiếu kiểm nhập thành công!',
+        severity: 'success'
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Lỗi xóa phiếu kiểm nhập!',
+        severity: 'error'
+      });
+    }
+  };
+
   const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
   const selectedOrder = orders.find((o) => o.importOrder._id === selectedOrderId);
@@ -69,7 +168,7 @@ function ApproveInspection() {
     <Box p={2}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h5">Quản lý kiểm kê nhập kho</Typography>
-        <Button variant="contained" color="primary" disabled>
+        <Button variant="contained" color="primary" onClick={handleCompleteAll}>
           Hoàn thành kiểm tra
         </Button>
       </Box>
@@ -132,6 +231,7 @@ function ApproveInspection() {
                         <TableCell>Thực nhập</TableCell>
                         <TableCell>Số loại bỏ</TableCell>
                         <TableCell>Người tạo</TableCell>
+                        <TableCell>Hành động</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -147,6 +247,15 @@ function ApproveInspection() {
                           <TableCell>{insp.actual_quantity}</TableCell>
                           <TableCell>{insp.rejected_quantity}</TableCell>
                           <TableCell>{insp.created_by?.email || '-'}</TableCell>
+                          <TableCell>
+                            <Tooltip title="Xóa phiếu kiểm nhập">
+                              <span>
+                                <IconButton color="error" size="small" onClick={() => handleDeleteInspection(insp._id)}>
+                                  <DeleteIcon />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
