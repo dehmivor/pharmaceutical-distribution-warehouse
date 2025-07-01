@@ -42,7 +42,7 @@ export default function AuthRegister({ inputSx }) {
         fullName: `${formData.firstname} ${formData.lastname}`,
         email: formData.email,
         password: formData.password,
-        role: 'warehouse_manager' // Default role
+        role: 'viewer' // Default role
       };
 
       // ✅ Sửa URL để gọi đến backend server

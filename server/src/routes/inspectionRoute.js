@@ -7,8 +7,6 @@ router.post('/', authorize(['warehouse']), importInspectionController.createInsp
 
 router.get('/', importInspectionController.getInspections);
 
-router.get('/inspection-for-approve', importInspectionController.getInspectionForApprove);
-
 router.get('/:id', importInspectionController.getInspectionById);
 
 router.put('/:id', importInspectionController.updateInspection);

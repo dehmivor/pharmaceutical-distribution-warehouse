@@ -64,8 +64,7 @@ export const RoleProvider = ({ children }) => {
     const rolePermissions = {
       supervisor: ['manage-users'],
       representative: ['manage-license', 'view-clients'],
-      warehouse: ['create-inspections', 'manage-import-orders', 'manage-location'],
-      warehouse_manager: ['approve-inspections', 'manage-inventory']
+      warehouse: ['manage-inventory', 'view-stock']
     };
 
     return rolePermissions[userRole]?.includes(permission) || false;

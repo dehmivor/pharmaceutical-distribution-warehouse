@@ -3,10 +3,11 @@ import React from 'react';
 import { Box, Typography, Slide } from '@mui/material';
 import WarehouseActivityTabs from '../WarehouseActivityTabs';
 
-export default function InspectionModeView({ isVisible = true, onBackToDashboard }) {
+export default function InspectionModeView({ isVisible, onBackToDashboard }) {
   return (
     <Slide direction="left" in={isVisible} mountOnEnter unmountOnExit>
       <Box sx={{ flexGrow: 1, p: { xs: 2, md: 3 } }}>
+        {/* Header */}
         <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
           <Box>
             <Typography variant="h4" component="h1">
@@ -18,6 +19,7 @@ export default function InspectionModeView({ isVisible = true, onBackToDashboard
           </Box>
         </Box>
 
+        {/* Activity Tabs */}
         <WarehouseActivityTabs onBackToDashboard={onBackToDashboard} />
       </Box>
     </Slide>

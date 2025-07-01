@@ -54,29 +54,6 @@ const getInspections = async ({ page, limit, filters }) => {
   };
 };
 
-const getInspectionsForApprove = async ({ page, limit, filters, populateOptions }) => {
-  const skip = (page - 1) * limit;
-
-  const inspections = await ImportInspection.find(filters)
-    .skip(skip)
-    .limit(limit)
-    .populate(populateOptions)
-    .lean()
-    .exec();
-
-  const total = await ImportInspection.countDocuments(filters);
-
-  return {
-    data: inspections,
-    pagination: {
-      total,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      itemsPerPage: limit,
-    },
-  };
-};
-
 // Lấy chi tiết một phiếu kiểm tra
 const getInspectionById = async (id) => {
   const inspection = await ImportInspection.findById(id)
@@ -186,5 +163,4 @@ module.exports = {
   deleteInspection,
   getInspectionStatistics,
   getAvailableQuantityForImport,
-  getInspectionsForApprove,
 };

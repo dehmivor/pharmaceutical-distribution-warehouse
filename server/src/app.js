@@ -10,9 +10,23 @@ require('dotenv').config();
 const models = require('./models');
 const app = express();
 
-const errorHandler = require('./middlewares/errorMiddleware.js');
+const errorHandler = require('./middlewares/error.middleware.js');
 const authenticate = require('./middlewares/authenticate');
 const authorize = require('./middlewares/authorize');
+
+const {
+  authRoutes,
+  cronRoutes,
+  medicineRoutes,
+  supervisorRoutes,
+  supplierContractRoutes,
+  packageRoutes,
+  importInspectionRoutes,
+  importOrderRoutes,
+  locationRoutes,
+  batchRoutes,
+  areaRoutes,
+} = require('./routes');
 
 // Middlewares
 app.use(helmet());
@@ -28,44 +42,34 @@ app.get('/api/health', (req, res) => {
 });
 
 // Public routes
-app.use('/api/auth', route.authRoutes);
-app.use('/api/cron', route.cronRoutes);
-app.use('/api/medicine', route.medicineRoutes);
-app.use('/api/import-inspections', route.importInspectionRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/cron', cronRoutes);
+app.use('/api/medicine', medicineRoutes);
+app.use('/api/import-inspections', importInspectionRoutes);
 app.use('/api/notifications', route.notificationRoutes);
 app.use('/api/import-orders', route.importOrderRoutes);
 app.use('api/thingsboard', route.thingsboardRoutes);
-app.use('/api/batch', route.batchRoutes);
-app.use('/api/packages', route.packageRoutes);
-app.use('/api/areas', route.areaRoutes);
-app.use('/api/warehouse', route.locationRoutes);
+app.use('/api/batch', batchRoutes);
+app.use('/api/packages', packageRoutes);
+app.use('/api/areas', areaRoutes);
 
 // Protected routes với role-based access
-app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
-app.use('/api/supplier-contracts', route.supplierContractRoutes);
-app.use(
-  '/api/inspections',
-  authenticate,
-  authorize(['warehouse', 'warehouse_manager']),
-  route.inspectionRoutes,
-);
-
-// Protected routes với role-based access
-app.use(
-  '/api/accounts',
-  authenticate,
-  authorize(['supervisor', 'representative']),
-  route.accountRoutes,
-);
-app.use('/api/stripe', route.stripeRoutes);
-app.use('/api/bills', route.billRoutes);
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
 app.use('/api/accounts', authenticate, authorize('supervisor'), route.accountRoutes);
-app.use('/api/supplier-contract', route.supplierContractRoutes);
-app.use('/api/supplier', route.supplierRoutes);
+app.use('/api/import-inspections', authenticate, authorize('warehouse'), route.inspectionRoutes);
+app.use('/api/supplier-contracts', supplierContractRoutes);
+app.use('/api/warehouse_manager', importInspectionRoutes);
+app.use('/api/warehouse_manager', packageRoutes);
+app.use('/api/warehouse', locationRoutes);
 
+// app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 
-
+// app.use(
+//   '/api/representative',
+//   authenticate,
+//   authorize(['supervisor', 'representative']),
+//   representativeRoutes,
+// );
 
 // Shared routes cho multiple roles
 app.use(

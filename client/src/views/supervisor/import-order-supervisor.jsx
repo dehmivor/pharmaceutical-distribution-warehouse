@@ -31,7 +31,6 @@ import {
 } from '@mui/material';
 import { Info as InfoIcon, Edit as EditIcon } from '@mui/icons-material';
 import axios from 'axios';
-import useNotifications from '@/hooks/useNotification';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
@@ -60,7 +59,6 @@ function ImportOrderSupervisor() {
   const [warehouseManagers, setWarehouseManagers] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
   const [statusTransitions, setStatusTransitions] = useState({});
-  const { createNotification } = useNotifications(order.warehouse_manager_id);
 
   // Edit form states
   const [editForm, setEditForm] = useState({
@@ -186,24 +184,9 @@ function ImportOrderSupervisor() {
     setPage(0);
   };
 
-  const handleOpenDetails = async (order) => {
+  const handleOpenDetails = (order) => {
     setSelectedOrder(order);
     setOpenDetails(true);
-
-    // Tạo thông báo mới cho warehouse_manager
-    try {
-      await createNotification({
-        recipient_id: order.warehouse_manager_id, // id của warehouse_manager nhận thông báo
-        sender_id: currentUser.id, // id của supervisor (người gửi)
-        type: 'import_order_assigned', // loại thông báo, bạn có thể đặt tên phù hợp
-        title: `Phiếu nhập số ${order.importOrderId} đã được giao`,
-        content: `Supervisor đã giao phiếu nhập số ${order.importOrderId} cho bạn.`,
-        status: 'unread',
-        created_at: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Lỗi khi tạo thông báo:', error);
-    }
   };
 
   const handleCloseDetails = () => {
