@@ -550,7 +550,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
           {isCreating ? 'Đang tạo phiếu...' : 'Tạo Phiếu Nhập Kho'}
         </Button>
 
-        {/* Nút reset form (tùy chọn) */}
         <Button variant="outlined" color="secondary" size="large" onClick={resetForm} disabled={isCreating}>
           Làm mới
         </Button>
