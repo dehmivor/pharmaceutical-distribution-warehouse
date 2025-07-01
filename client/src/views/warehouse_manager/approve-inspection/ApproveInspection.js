@@ -2,9 +2,7 @@
 import {
   Box,
   Button,
-  IconButton,
   List,
-  ListItem,
   ListItemButton,
   ListItemText,
   Paper,
@@ -20,42 +18,37 @@ import {
   CircularProgress
 } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { useState, useEffect } from 'react';
 import useInspection from '@/hooks/useInspection';
 
 function ApproveInspection() {
   const { fetchInspectionForApprove, loading, error } = useInspection();
+  const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [orders, setOrders] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Lấy data từ API (dạng mảng inspection)
         const data = await fetchInspectionForApprove();
 
-        // Chuyển đổi dữ liệu API sang định dạng phù hợp với component
-        const transformedOrders = data.data.map((order) => ({
-          _id: order._id,
-          status: order.status,
-          warehouse_manager_id: { email: order.warehouse_manager?.email || '' },
-          // Đảm bảo details luôn là mảng (kể cả rỗng)
-          details: (order.items || []).map((item) => ({
-            _id: item._id,
-            medicine_id: {
-              _id: item.medicine?._id || '',
-              license_code: item.medicine?.license_code || '',
-              medicine_name: item.medicine?.name || ''
-            },
-            quantity: item.quantity,
-            unit_price: item.unit_price
-          }))
-        }));
-
-        setOrders(transformedOrders);
-        if (transformedOrders.length > 0) {
-          setSelectedOrderId(transformedOrders[0]._id);
+        // Nhóm inspection theo import_order_id
+        const grouped = {};
+        data.data.forEach((insp) => {
+          const order = insp.import_order_id;
+          if (!grouped[order._id]) {
+            grouped[order._id] = {
+              importOrder: order,
+              inspections: []
+            };
+          }
+          grouped[order._id].inspections.push(insp);
+        });
+        const ordersArr = Object.values(grouped);
+        setOrders(ordersArr);
+        if (ordersArr.length > 0) {
+          setSelectedOrderId(ordersArr[0].importOrder._id);
         }
       } catch (err) {
         setSnackbar({
@@ -65,28 +58,12 @@ function ApproveInspection() {
         });
       }
     };
-
     fetchData();
   }, [fetchInspectionForApprove]);
 
-  const handleDeleteInspection = (orderId, inspectionId) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order._id === orderId
-          ? {
-              ...order,
-              // Đảm bảo details luôn là mảng trước khi filter
-              details: (order.details || []).filter((i) => i._id !== inspectionId)
-            }
-          : order
-      )
-    );
-    setSnackbar({ open: true, message: 'Đã xóa phiếu kiểm kê!', severity: 'success' });
-  };
-
   const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
-  const selectedOrder = orders.find((order) => order._id === selectedOrderId);
+  const selectedOrder = orders.find((o) => o.importOrder._id === selectedOrderId);
 
   return (
     <Box p={2}>
@@ -115,94 +92,70 @@ function ApproveInspection() {
             <List>
               {orders.map((order) => (
                 <ListItemButton
-                  key={order._id}
-                  selected={selectedOrderId === order._id}
-                  onClick={() => setSelectedOrderId(order._id)}
+                  key={order.importOrder._id}
+                  selected={selectedOrderId === order.importOrder._id}
+                  onClick={() => setSelectedOrderId(order.importOrder._id)}
                   sx={{ p: 1 }}
                 >
-                  <ListItem>
-                    <ListItemText
-                      primary={`Đơn: ${order._id.slice(-6)}`}
-                      secondary={
-                        <>
-                          <span>Trạng thái: {order.status}</span>
-                          <br />
-                          <span>QL kho: {order.warehouse_manager_id?.email}</span>
-                        </>
-                      }
-                    />
-                  </ListItem>
+                  <ListItemText
+                    primary={`Đơn: ${order.importOrder._id.slice(-6)}`}
+                    secondary={
+                      <>
+                        <span>Trạng thái: {order.importOrder.status}</span>
+                        <br />
+                        <span>QL kho: {order.importOrder.warehouse_manager_id?.email || 'Không có'}</span>
+                      </>
+                    }
+                  />
                 </ListItemButton>
               ))}
             </List>
           </Box>
 
-          {/* Cột phải: Danh sách kiểm kê */}
+          {/* Cột phải: Danh sách phiếu kiểm kê (inspection) */}
           <Box flex={1}>
             {selectedOrder ? (
               <>
                 <Box mb={2}>
                   <Typography variant="h6" gutterBottom>
-                    Danh sách kiểm kê cho đơn {selectedOrder._id.slice(-6)}
+                    Danh sách phiếu kiểm kê cho đơn {selectedOrder.importOrder._id.slice(-6)}
                   </Typography>
-                  {/* Sửa lỗi: Kiểm tra details tồn tại trước khi truy cập length */}
                   <Typography variant="body2" color="text.secondary">
-                    Tổng số mặt hàng đã kiểm kê: <b>{selectedOrder.details?.length || 0}</b>
+                    Tổng số phiếu kiểm kê: <b>{selectedOrder.inspections.length}</b>
                   </Typography>
                 </Box>
                 <TableContainer component={Paper} elevation={3}>
                   <Table size="medium">
                     <TableHead>
                       <TableRow>
-                        <TableCell>ID</TableCell>
-                        <TableCell>Tên thuốc</TableCell>
-                        <TableCell>Mã đăng ký</TableCell>
-                        <TableCell align="right">Số lượng</TableCell>
-                        <TableCell align="right">Đơn giá</TableCell>
-                        <TableCell>Thành tiền</TableCell>
-                        <TableCell>Thao tác</TableCell>
+                        <TableCell>Inspection ID</TableCell>
+                        <TableCell>Thực nhập</TableCell>
+                        <TableCell>Số loại bỏ</TableCell>
+                        <TableCell>Người tạo</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {/* Sửa lỗi: Kiểm tra details tồn tại và là mảng */}
-                      {selectedOrder.details && Array.isArray(selectedOrder.details) ? (
-                        selectedOrder.details.map((item) => (
-                          <TableRow key={item._id} hover>
-                            <TableCell>
-                              <Tooltip title={item._id}>
-                                <Typography variant="body2" fontWeight="bold">
-                                  {item._id.slice(-6)}
-                                </Typography>
-                              </Tooltip>
-                            </TableCell>
-                            <TableCell>{item.medicine_id?.medicine_name || '-'}</TableCell>
-                            <TableCell>{item.medicine_id?.license_code || '-'}</TableCell>
-                            <TableCell align="right">{item.quantity}</TableCell>
-                            <TableCell align="right">{item.unit_price}</TableCell>
-                            <TableCell align="right">{(item.quantity * item.unit_price).toLocaleString()}</TableCell>
-                            <TableCell>
-                              <Tooltip title="Xóa phiếu kiểm kê">
-                                <IconButton color="error" size="small" onClick={() => handleDeleteInspection(selectedOrder._id, item._id)}>
-                                  <DeleteIcon />
-                                </IconButton>
-                              </Tooltip>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={7} align="center">
-                            Không có dữ liệu kiểm kê
+                      {selectedOrder.inspections.map((insp) => (
+                        <TableRow key={insp._id} hover>
+                          <TableCell>
+                            <Tooltip title={insp._id}>
+                              <Typography variant="body2" fontWeight="bold">
+                                {insp._id.slice(-6)}
+                              </Typography>
+                            </Tooltip>
                           </TableCell>
+                          <TableCell>{insp.actual_quantity}</TableCell>
+                          <TableCell>{insp.rejected_quantity}</TableCell>
+                          <TableCell>{insp.created_by?.email || '-'}</TableCell>
                         </TableRow>
-                      )}
+                      ))}
                     </TableBody>
                   </Table>
                 </TableContainer>
               </>
             ) : (
               <Typography variant="body2" color="text.secondary" align="center" py={4}>
-                {orders.length === 0 ? 'Không có đơn nhập nào' : 'Vui lòng chọn một đơn nhập để xem chi tiết'}
+                {orders.length === 0 ? 'Không có đơn nhập nào' : 'Vui lòng chọn một đơn nhập để xem phiếu kiểm kê'}
               </Typography>
             )}
           </Box>
