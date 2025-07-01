@@ -1,8 +1,8 @@
 'use client';
 
-import { useAlert, alert, hideAlert, showAlert } from '@/hooks/useAlert';
+import { useAlert } from '@/hooks/useAlert';
 import useInspection from '@/hooks/useInspection';
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon } from '@mui/icons-material';
 import {
   Alert,
   Box,
@@ -29,6 +29,7 @@ import {
 } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ReceiptStatistics from '../dashboard-import/ReceiptStatistics';
+import { useRouter } from 'next/navigation';
 
 const UNIT_CONVERSIONS = {
   kg: { g: 1000, tấn: 0.001 },
@@ -51,6 +52,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     warehouse: 'Kho chính',
     notes: ''
   });
+  const router = useRouter();
 
   const [receiptItems, setReceiptItems] = useState([]);
   const [statistics, setStatistics] = useState({
@@ -320,7 +322,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
 
       console.log('✅ Tạo phiếu thành công:', response);
       showAlert(`Tạo phiếu kiểm nhập ${response.receipt_id || receiptData.receiptId} thành công!`, 'success');
-
+      router.push('/create-inspections');
       if (onReceiptCreate) {
         onReceiptCreate({
           ...response,
@@ -390,26 +392,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
               <Grid item xs={12} sm={6}>
                 <TextField fullWidth label="Nhà cung cấp" value={receiptData.supplier} InputProps={{ readOnly: true }} />
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Kho nhập"
-                  value={receiptData.warehouse}
-                  onChange={(e) => setReceiptData((prev) => ({ ...prev, warehouse: e.target.value }))}
-                  required
-                />
-              </Grid>
             </Grid>
-
-            <TextField
-              fullWidth
-              label="Ghi chú"
-              multiline
-              rows={3}
-              value={receiptData.notes}
-              onChange={(e) => setReceiptData((prev) => ({ ...prev, notes: e.target.value }))}
-              sx={{ my: 3 }}
-            />
           </form>
         </CardContent>
       </Card>
@@ -419,9 +402,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
         <CardContent>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6">Danh Sách Hàng Hóa ({receiptItems.length} sản phẩm)</Typography>
-            <Button variant="outlined" startIcon={<AddIcon />} onClick={addNewItem}>
-              Thêm sản phẩm
-            </Button>
           </Box>
 
           <TableContainer component={Paper} variant="outlined">
@@ -504,8 +484,8 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                     <TableCell>
                       <TextField
                         size="small"
-                        value={item.notes}
-                        onChange={(e) => updateReceiptItem(item.id, 'notes', e.target.value)}
+                        value={receiptData.notes}
+                        onChange={(e) => setReceiptData((prev) => ({ ...prev, notes: e.target.value }))}
                         sx={{ minWidth: 150 }}
                       />
                     </TableCell>
@@ -550,7 +530,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
           {isCreating ? 'Đang tạo phiếu...' : 'Tạo Phiếu Nhập Kho'}
         </Button>
 
-        {/* Nút reset form (tùy chọn) */}
         <Button variant="outlined" color="secondary" size="large" onClick={resetForm} disabled={isCreating}>
           Làm mới
         </Button>
