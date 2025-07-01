@@ -1,0 +1,614 @@
+'use client';
+import React, { useState, useEffect, use } from 'react';
+import {
+  Box,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Button,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Grid,
+  Typography,
+  Chip,
+  Alert,
+  Card,
+  CardContent,
+  InputAdornment,
+  Tooltip
+} from '@mui/material';
+import {
+  Visibility as ViewIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+  FilterList as FilterIcon,
+  Add as AddIcon
+} from '@mui/icons-material';
+import axios from 'axios';
+import { useRole } from '@/contexts/RoleContext';
+import EconomicContractEditDialog from './EconomicContractEditDialog'; // Import the edit dialog component
+import EconomicContractAddDialog from './EconomicContractAddDialog'; // Import the add dialog component
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
+
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true
+});
+
+const EconomicContractManagement = () => {
+  
+  const { userRole, user, isLoading } = useRole();
+  const [contracts, setContracts] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [retailers, setRetailers] = useState([])
+  const [medicines, setMedicines] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    contract_code: '',
+    status: '',
+  });
+
+  // Filter options
+  const [filterOptions, setFilterOptions] = useState({
+    status: []
+  });
+
+  // Dialog states
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [selectedContract, setSelectedContract] = useState(null);
+
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Fetch medicines
+  const fetchContracts = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page + 1,
+        limit: rowsPerPage,
+        ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== ''))
+      });
+
+      const response = await axiosInstance.get(`/economic-contracts?${params}`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (response.data.success) {
+        setContracts(response.data.data.contracts);
+        setTotalCount(response.data.data.pagination.total);
+      }
+    } catch (error) {
+      setError('Lỗi khi tải danh sách thuốc');
+      console.error('Error fetching medicines:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch suppliers
+  const fetchSuppliers = async () => {
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get('/supplier/all/v1', {
+        headers: getAuthHeaders(),
+      });
+      if (response.data.success) {
+        setSuppliers(response.data.data); // Dữ liệu từ API, chỉ chứa _id và name
+      }
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch retailers
+  const fetchRetailers = async () => {
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get('/retailer/all/v1', {
+        headers: getAuthHeaders(),
+      });
+      if (response.data.success) {
+        setRetailers(response.data.data); // Dữ liệu từ API, chỉ chứa _id và name
+      }
+    } catch (error) {
+      console.error('Error fetching retailers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch medicines
+  const fetchMedicines = async () => {
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get('/medicine/all/v1', {
+        headers: getAuthHeaders(),
+      });
+      if (response.data.success) {
+        setMedicines(response.data.data); // Dữ liệu từ API, chỉ chứa _id và license_code
+      }
+    } catch (error) {
+      console.error('Error fetching medicines:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch filter options
+  const fetchFilterOptions = async () => {
+    try {
+      const response = await axiosInstance.get(`/economic-contracts/filter-options`, {
+        headers: getAuthHeaders(),
+      });
+      if (response.data.success) {
+        setFilterOptions(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching filter options:', error);
+    }
+  };
+
+  // Handle add contract success
+  const handleAddContractSuccess = () => {
+    setSuccess('Thêm hợp đồng mới thành công');
+    fetchContracts(); // Refresh the list
+  };
+
+  // Handle update contract success
+  const handleUpdateContractSuccess = () => {
+    setSuccess('Cập nhật hợp đồng thành công');
+    fetchContracts(); // Refresh the list
+  };
+
+  // Delete contract
+  const handleDeleteContract = async () => {
+    setOpenDeleteDialog(false);
+    setSelectedContract(null);
+    try {
+      const response = await axiosInstance.delete(`/economic-contracts/${selectedContract._id}`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (response.data.success) {
+        setSuccess('Xóa hợp đồng thành công');
+        fetchContracts();
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || 'Lỗi khi xóa hợp đồng');
+    }
+  };
+
+
+  // Handle filter change
+  const handleFilterChange = (field, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+    setPage(0); // Reset to first page when filtering
+  };
+
+  // Handle page change
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  // Handle rows per page change
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  useEffect(() => {
+    console.log('Role', userRole);
+    fetchFilterOptions();
+    fetchSuppliers();
+    // fetchRetailers();
+    fetchMedicines();
+  }, []);
+
+  useEffect(() => {
+    fetchContracts();
+  }, [page, rowsPerPage, filters]);
+
+  // Clear alerts after 5 seconds
+  useEffect(() => {
+    if (error || success) {
+      const timer = setTimeout(() => {
+        setError('');
+        setSuccess('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, success]);
+
+  return (
+    <Box sx={{ p: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+          Quản Lý Hợp đồng Kinh tế
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Quản lý danh sách hợp đồng và thông tin chi tiết
+        </Typography>
+      </Box>
+
+      {/* Alerts */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      )}
+
+      {/* Filters */}
+      <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
+            <FilterIcon sx={{ color: 'primary.main', fontSize: 24 }} />
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+              Bộ Lọc Tìm Kiếm
+            </Typography>
+          </Box>
+          <Grid container spacing={3} alignItems="center">
+            <Grid item xs={12} sm={6} md={4}>
+              <TextField
+                fullWidth
+                label="Mã hợp đồng"
+                value={filters.license_code}
+                onChange={(e) => handleFilterChange('contract_code', e.target.value)}
+                variant="outlined"
+                size="medium"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: 'text.secondary' }} />
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 150 }}>
+                <InputLabel>Trạng thái</InputLabel>
+                <Select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  label="Trạng thái"
+                  renderValue={(selected) => (
+                    <Tooltip title={selected}>
+                      <span
+                        style={{
+                          display: 'block',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {selected || 'Tất cả'}
+                      </span>
+                    </Tooltip>
+                  )}
+                  sx={{
+                    width: 150
+                  }}
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  {filterOptions?.status?.map((sta) => (
+                    <MenuItem key={sta} value={sta} title={sta}>
+                      {sta}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 150 }}>
+                <InputLabel>Loại đối tác</InputLabel>
+                <Select
+                  value={filters.partner_type}
+                  onChange={(e) => handleFilterChange('partner_type', e.target.value)}
+                  label="Loại đối tác"
+                  renderValue={(selected) => (
+                    <Tooltip title={selected}>
+                      <span
+                        style={{
+                          display: 'block',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {selected || 'Tất cả'}
+                      </span>
+                    </Tooltip>
+                  )}
+                  sx={{
+                    width: 150
+                  }}
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  {filterOptions?.partner_type?.map((type) => (
+                    <MenuItem key={type} value={type} title={type}>
+                      {type}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end', ml: 'auto' }}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => setOpenAddDialog(true)}
+                sx={{
+                  bgcolor: 'success.main',
+                  '&:hover': {
+                    bgcolor: 'success.dark'
+                  },
+                  px: 3,
+                  py: 1.2,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600
+                }}
+              >
+                Thêm hợp đồng
+              </Button>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      <Card sx={{ border: '1px solid #e0e0e0' }}>
+        <Box
+          sx={{
+            p: 3,
+            borderBottom: '1px solid #e0e0e0',
+            bgcolor: 'grey.50'
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+            Danh Sách Hợp Đồng
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Tổng cộng {totalCount} hợp đồng
+          </Typography>
+        </Box>
+
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'grey.50' }}>
+                <TableCell sx={{ fontWeight: 600 }}>Mã hợp đồng</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Người tạo</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Đối tác</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>
+                  Hành động
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {contracts.map((contract) => (
+                <TableRow key={contract._id} hover>
+                  <TableCell sx={{ fontWeight: 500 }}>{contract.contract_code}</TableCell>
+                  <TableCell>
+                    <Chip label={contract.created_by.email} size="small" variant="outlined" color="primary" />
+                  </TableCell>
+                  <TableCell
+                    sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                    title={contract.partner_type + ' - ' + contract.partner_id.name}
+                  >
+                    <Chip label={contract.partner_type + ' - ' + contract.partner_id.name} size="small" color="secondary" variant="outlined" />
+                  </TableCell>
+                  <TableCell>{contract.status}</TableCell>
+                  <TableCell align="center">
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                      <Tooltip title="Chỉnh sửa">
+                        <IconButton
+                          color="secondary"
+                          size="small"
+                          onClick={() => {
+                            setSelectedContract(contract);
+                            setOpenEditDialog(true);
+                          }}
+                          sx={{
+                            bgcolor: 'secondary.50',
+                            '&:hover': { bgcolor: 'secondary.100' }
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Tooltip title="Xóa">
+                        <IconButton
+                          color="error"
+                          size="small"
+                          onClick={() => {
+                            setSelectedContract(contract);
+                            setOpenDeleteDialog(true);
+                          }}
+                          sx={{
+                            bgcolor: 'error.50',
+                            '&:hover': { bgcolor: 'error.100' }
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={totalCount}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Số hàng mỗi trang:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
+          sx={{
+            borderTop: '1px solid #e0e0e0',
+            bgcolor: 'grey.50'
+          }}
+        />
+      </Card>
+
+      <EconomicContractEditDialog
+        open={openEditDialog}
+        onClose={() => setOpenEditDialog(false)}
+        contract={selectedContract}
+        onSuccess={handleUpdateContractSuccess}
+        suppliers={suppliers}
+        retailers={retailers}
+        medicines={medicines}
+      />
+
+      <EconomicContractAddDialog
+        open={openAddDialog}
+        onClose={() => setOpenAddDialog(false)}
+        onSuccess={handleAddContractSuccess}
+        suppliers={suppliers}
+        retailers={retailers}
+        medicines={medicines}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={() => setOpenDeleteDialog(false)}
+        sx={{
+          borderRadius: 2,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
+        }}
+      >
+        <DialogTitle
+          sx={{
+            background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            py: 2,
+            px: 3
+          }}
+        >
+          <DeleteIcon sx={{ fontSize: 24 }} />
+          <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
+            Xác Nhận Xóa
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Bạn có chắc chắn muốn xóa hợp đồng này không?
+          </Typography>
+          <Box
+            sx={{
+              p: 2,
+              bgcolor: 'error.50',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'error.200'
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>
+              {selectedContract?.contract_code}
+            </Typography>
+            <Typography variant="caption" color="error.main">
+              Hành động này không thể hoàn tác!
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            p: 3,
+            pt: 2,
+            borderTop: '1px solid #e0e0e0',
+            bgcolor: 'grey.50'
+          }}
+        >
+          <Button
+            onClick={() => setOpenDeleteDialog(false)}
+            variant="outlined"
+            sx={{
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleDeleteContract}
+            variant="contained"
+            color="error"
+            startIcon={<DeleteIcon />}
+            sx={{
+              px: 4,
+              py: 1.5,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #c62828 0%, #d32f2f 100%)'
+              }
+            }}
+          >
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default EconomicContractManagement;

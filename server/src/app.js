@@ -70,6 +70,7 @@ app.use('/api/supervisor', authenticate, authorize('supervisor'), supervisorRout
 app.use('/api/accounts', authenticate, authorize('supervisor'), route.accountRoutes);
 app.use('/api/supplier-contract', supplierContractRoutes);
 app.use('/api/supplier', supplierRoutes);
+app.use('/api/economic-contracts', route.economicContractRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 

@@ -1,5 +1,5 @@
 const { check, body } = require('express-validator');
-const { CONTRACT_STATUSES } = require('../utils/constants');
+const { CONTRACT_STATUSES, PARTNER_TYPES } = require('../utils/constants');
 
 // Reusable validation helpers
 const isMongoId = (field) => check(field).isMongoId().withMessage(`Invalid ${field} ID`);
@@ -86,6 +86,158 @@ const supplierContract = {
   ],
 };
 
+const economicContractValidator = {
+  validateGetAllContracts: [
+    isPositiveInt('page').optional(),
+    isPositiveInt('limit').optional(),
+    isMongoId('created_by').optional(),
+    isMongoId('partner_id').optional(),
+    check('partner_type')
+      .optional()
+      .isIn(Object.values(PARTNER_TYPES))
+      .withMessage(`Partner type must be one of: ${Object.values(PARTNER_TYPES).join(', ')}`),
+    check('status')
+      .optional()
+      .isIn(Object.values(CONTRACT_STATUSES))
+      .withMessage(`Status must be one of: ${Object.values(CONTRACT_STATUSES).join(', ')}`),
+    check('contract_code')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('Contract code must be a non-empty string'),
+  ],
+
+  validateGetEconomicContractById: [isMongoId('id').withMessage('Invalid contract ID')],
+
+  validateCreateEconomicContract: [
+    // Contract code: required, non-empty string
+    check('contract_code')
+      .isString()
+      .withMessage('Contract code must be a string')
+      .notEmpty()
+      .withMessage('Contract code is required'),
+
+    // Partner ID: required, valid ObjectId
+    isMongoId('partner_id'),
+
+    // Partner type: required, in constant
+    check('partner_type')
+      .isIn(Object.values(PARTNER_TYPES))
+      .withMessage(`Partner type must be one of: ${Object.values(PARTNER_TYPES).join(', ')}`),
+
+    // Start date: required, valid ISO date
+    check('start_date')
+      .exists()
+      .withMessage('Start date is required')
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid start date'),
+
+    // End date: required, valid date, must >= start_date
+    check('end_date')
+      .exists()
+      .withMessage('End date is required')
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid end date'),
+    body('end_date').custom((endDate, { req }) => {
+      if (new Date(endDate) < new Date(req.body.start_date)) {
+        throw new Error('End date must be after or equal to start date');
+      }
+      return true;
+    }),
+
+    // Items: required, non-empty array
+    check('items').isArray({ min: 1 }).withMessage('Items must be a non-empty array'),
+
+    // Each item must be valid
+    check('items.*.medicine_id')
+      .exists()
+      .withMessage('Medicine ID is required')
+      .isMongoId()
+      .withMessage('Invalid medicine ID'),
+
+    check('items.*.quantity')
+      .exists()
+      .withMessage('Quantity is required')
+      .isInt({ min: 1 })
+      .withMessage('Quantity must be a positive integer'),
+
+    check('items.*.unit_price')
+      .exists()
+      .withMessage('Unit price is required')
+      .isFloat({ min: 0.01 })
+      .withMessage('Unit price must be a positive number'),
+
+    // Optional status
+    check('status')
+      .optional()
+      .isIn(Object.values(CONTRACT_STATUSES))
+      .withMessage(`Status must be one of: ${Object.values(CONTRACT_STATUSES).join(', ')}`),
+  ],
+
+  validateUpdateEconomicContract: [
+    isMongoId('id').withMessage('Invalid contract ID'),
+
+    // Contract code: required
+    check('contract_code')
+      .isString()
+      .withMessage('Contract code must be a string')
+      .notEmpty()
+      .withMessage('Contract code is required'),
+
+    // Partner ID
+    isMongoId('partner_id'),
+
+    check('partner_type')
+      .isIn(Object.values(PARTNER_TYPES))
+      .withMessage(`Partner type must be one of: ${Object.values(PARTNER_TYPES).join(', ')}`),
+
+    check('start_date')
+      .exists()
+      .withMessage('Start date is required')
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid start date'),
+
+    check('end_date')
+      .exists()
+      .withMessage('End date is required')
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid end date'),
+
+    body('end_date').custom((endDate, { req }) => {
+      if (new Date(endDate) < new Date(req.body.start_date)) {
+        throw new Error('End date must be after or equal to start date');
+      }
+      return true;
+    }),
+
+    check('items').isArray({ min: 1 }).withMessage('Items must be a non-empty array'),
+
+    check('items.*.medicine_id')
+      .exists()
+      .withMessage('Medicine ID is required')
+      .isMongoId()
+      .withMessage('Invalid medicine ID'),
+
+    check('items.*.quantity')
+      .exists()
+      .withMessage('Quantity is required')
+      .isInt({ min: 1 })
+      .withMessage('Quantity must be a positive integer'),
+
+    check('items.*.unit_price')
+      .exists()
+      .withMessage('Unit price is required')
+      .isFloat({ min: 0.01 })
+      .withMessage('Unit price must be a positive number'),
+  ],
+};
+
 module.exports = {
   supplierContract,
+  economicContractValidator,
 };
