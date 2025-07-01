@@ -1,16 +1,13 @@
 'use client';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
-import DeleteIcon from '@mui/icons-material/Delete';
-import InfoIcon from '@mui/icons-material/Info';
 import {
-  Alert,
-  Avatar,
   Box,
   Button,
   Chip,
-  CircularProgress,
   IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
   Paper,
   Snackbar,
   Stack,
@@ -19,280 +16,199 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   TableRow,
   Tooltip,
-  Typography
+  Typography,
+  Avatar
 } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
-import axios from 'axios';
-import { useCallback, useEffect, useState } from 'react';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { useState } from 'react';
+
+// MOCK DATA: importOrderList lấy từ file paste-2.txt
+const importOrderList = [
+  {
+    _id: '68597d6929cc5b7ecb4fbd7d',
+    status: 'completed',
+    warehouse_manager_id: { email: 'kietjay1234+1@gmail.com' },
+    details: [
+      {
+        _id: '68597d6929cc5b7ecb4fbd7e',
+        medicine_id: {
+          _id: '6856b322a0e688dd9478e28b',
+          license_code: 'VN-12345-01',
+          medicine_name: 'Paracetamol 500mg'
+        },
+        quantity: 20,
+        unit_price: 50
+      }
+    ]
+  },
+  {
+    _id: '68597e4c62c95723b56b3242',
+    status: 'delivered',
+    warehouse_manager_id: { email: 'danglqhe173350@fpt.edu.vn' },
+    details: [
+      {
+        _id: '68597e4c62c95723b56b3243',
+        medicine_id: {
+          _id: '6856b322a0e688dd9478e28b',
+          license_code: 'VN-12345-01',
+          medicine_name: 'Paracetamol 500mg'
+        },
+        quantity: 1231,
+        unit_price: 50
+      },
+      {
+        _id: '685985ec92198dadb3403eb5',
+        medicine_id: {
+          _id: '6856b322a0e688dd9478e28e',
+          license_code: 'VN-44444-22',
+          medicine_name: 'Acyclovir 200mg'
+        },
+        quantity: 1,
+        unit_price: 250
+      },
+      {
+        _id: '685985f692198dadb3403ed8',
+        medicine_id: {
+          _id: '6856b322a0e688dd9478e28d',
+          license_code: 'VN-33333-11',
+          medicine_name: 'Amoxicillin 500mg'
+        },
+        quantity: 12323,
+        unit_price: 500
+      }
+    ]
+  },
+  {
+    _id: '6859812162c95723b56b32a9',
+    status: 'delivered',
+    warehouse_manager_id: { email: 'representative@test.com' },
+    details: [
+      {
+        _id: '6859812162c95723b56b32aa',
+        medicine_id: {
+          _id: '6856b322a0e688dd9478e28b',
+          license_code: 'VN-12345-01',
+          medicine_name: 'Paracetamol 500mg'
+        },
+        quantity: 2132,
+        unit_price: 50
+      }
+    ]
+  }
+  // ...Thêm các order khác tương tự ở đây nếu muốn
+];
 
 function ApproveInspection() {
-  const [data, setData] = useState({
-    inspections: [],
-    pagination: null
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [selectedOrderId, setSelectedOrderId] = useState(importOrderList[0]?._id || null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [orders, setOrders] = useState(importOrderList);
 
-  const fetchInspections = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('auth-token');
-      const response = await axios.get('http://localhost:5000/api/inspections', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      setData({
-        inspections: response.data.inspections,
-        pagination: response.data.pagination
-      });
-    } catch (err) {
-      setError('Không thể tải danh sách kiểm tra');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchInspections();
-  }, [fetchInspections]);
-
-  const hasInsufficientItems = (inspection) => inspection.rejected_quantity > 0 || inspection.actual_quantity === 0;
-
-  const isFullyChecked = (inspection) => !hasInsufficientItems(inspection);
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'draft':
-        return 'default';
-      case 'approved':
-        return 'primary';
-      case 'delivered':
-        return 'secondary';
-      case 'checked':
-        return 'warning';
-      case 'arranged':
-        return 'info';
-      case 'completed':
-        return 'success';
-      case 'cancelled':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
-  const isOrderReadyForCompletion = (importOrderId) => {
-    const orderInspections = data.inspections.filter((insp) => insp.import_order_id?._id === importOrderId);
-    if (orderInspections.length === 0) return false;
-    const allFullyChecked = orderInspections.every(isFullyChecked);
-    const currentStatus = orderInspections[0].import_order_id.status;
-    return allFullyChecked && currentStatus !== 'completed';
-  };
-
-  const handleCompleteOrder = async (importOrderId) => {
-    try {
-      const token = localStorage.getItem('auth-token');
-      await axios.patch(
-        `http://localhost:5000/api/import-orders/${importOrderId}/status`,
-        { status: 'checked' },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setSnackbar({
-        open: true,
-        message: `Đã chuyển trạng thái đơn nhập ${importOrderId} thành CHECKED!`,
-        severity: 'success'
-      });
-      fetchInspections();
-    } catch (error) {
-      let errorMessage = error.message;
-      if (error.response) {
-        errorMessage = error.response.data.error || error.response.data.message;
-      }
-      setSnackbar({
-        open: true,
-        message: `Lỗi: ${errorMessage}`,
-        severity: 'error'
-      });
-    }
-  };
-
-  const handleCompleteAll = () => {
-    const uniqueImportOrders = Array.from(new Set(data.inspections.map((i) => i.import_order_id?._id))).filter(Boolean);
-    let hasAny = false;
-    uniqueImportOrders.forEach((importOrderId) => {
-      if (isOrderReadyForCompletion(importOrderId)) {
-        hasAny = true;
-        handleCompleteOrder(importOrderId);
-      }
-    });
-    if (!hasAny) {
-      setSnackbar({
-        open: true,
-        message: 'Không có đơn nhập nào đủ điều kiện hoàn thành!',
-        severity: 'warning'
-      });
-    }
-  };
-
-  const handleDeleteInspection = async (inspectionId) => {
-    try {
-      const token = localStorage.getItem('auth-token');
-      await axios.delete(`http://localhost:5000/api/inspections/${inspectionId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      fetchInspections();
-      setSnackbar({
-        open: true,
-        message: 'Đã xóa phiếu kiểm nhập thành công!',
-        severity: 'success'
-      });
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error.response?.data?.message || 'Lỗi xóa phiếu kiểm nhập!',
-        severity: 'error'
-      });
-    }
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
-        <CircularProgress />
-      </Box>
+  // Xử lý xóa inspection (chỉ xóa trong mock, không gọi API)
+  const handleDeleteInspection = (orderId, inspectionId) => {
+    setOrders((prev) =>
+      prev.map((order) => (order._id === orderId ? { ...order, details: order.details.filter((i) => i._id !== inspectionId) } : order))
     );
-  }
-  if (error) {
-    return <Alert severity="error">{error}</Alert>;
-  }
+    setSnackbar({ open: true, message: 'Đã xóa phiếu kiểm kê!', severity: 'success' });
+  };
+
+  const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
+
+  // Lấy order đang chọn
+  const selectedOrder = orders.find((order) => order._id === selectedOrderId);
 
   return (
     <Box p={2}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5">Danh sách kiểm tra nhập kho</Typography>
-        <Button variant="contained" color="primary" onClick={handleCompleteAll}>
-          Complete inspection import
+        <Typography variant="h5">Quản lý kiểm kê nhập kho</Typography>
+        <Button variant="contained" color="primary" disabled>
+          Hoàn thành kiểm tra
         </Button>
       </Box>
-
-      <TableContainer component={Paper} elevation={3}>
-        <Table size="medium">
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Đơn nhập</TableCell>
-              <TableCell>Lô hàng</TableCell>
-              <TableCell align="right">SL thực nhận</TableCell>
-              <TableCell align="right">SL loại</TableCell>
-              <TableCell>Ghi chú</TableCell>
-              <TableCell>Tạo bởi</TableCell>
-              <TableCell>Trạng thái</TableCell>
-              <TableCell>Thao tác</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.inspections.map((inspection) => (
-              <TableRow key={inspection._id} hover sx={hasInsufficientItems(inspection) ? { backgroundColor: '#fff3e0' } : {}}>
-                <TableCell>
-                  <Tooltip title={inspection._id}>
-                    <Typography variant="body2" fontWeight="bold">
-                      {inspection._id.slice(-6)}
-                    </Typography>
-                  </Tooltip>
-                </TableCell>
-                <TableCell>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Chip
-                      label={inspection.import_order_id?.status}
-                      color={getStatusColor(inspection.import_order_id?.status)}
-                      size="small"
-                    />
-                    <Typography variant="caption">{inspection.import_order_id?._id.slice(-6)}</Typography>
-                  </Stack>
-                </TableCell>
-                <TableCell>
-                  {inspection.batch_id?._id ? (
-                    <Stack spacing={0.5}>
-                      <Typography variant="caption">{inspection.batch_id.batch_code}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {inspection.batch_id.production_date && new Date(inspection.batch_id.production_date).toLocaleDateString()}
-                        {' - '}
-                        {inspection.batch_id.expiry_date && new Date(inspection.batch_id.expiry_date).toLocaleDateString()}
-                      </Typography>
-                    </Stack>
-                  ) : (
-                    <Chip label="Chưa có lô" color="warning" size="small" />
-                  )}
-                </TableCell>
-                <TableCell align="right">
-                  <Typography color={inspection.actual_quantity === 0 ? 'error' : 'text.primary'}>{inspection.actual_quantity}</Typography>
-                </TableCell>
-                <TableCell align="right">
-                  <Typography color={inspection.rejected_quantity > 0 ? 'error' : 'text.primary'}>
-                    {inspection.rejected_quantity}
-                  </Typography>
-                </TableCell>
-                <TableCell>{inspection.note || <i style={{ color: '#aaa' }}>Không có</i>}</TableCell>
-                <TableCell>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Avatar sx={{ width: 24, height: 24, fontSize: 12 }}>{inspection.created_by?.email?.[0]?.toUpperCase() || 'S'}</Avatar>
-                    <Typography variant="body2">{inspection.created_by?.email || 'Hệ thống'}</Typography>
-                  </Stack>
-                </TableCell>
-                <TableCell>
-                  {isFullyChecked(inspection) ? (
-                    <CheckCircleIcon color="success" />
-                  ) : inspection.rejected_quantity > 0 ? (
-                    <ErrorIcon color="error" />
-                  ) : (
-                    <InfoIcon color="info" />
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Tooltip title="Xóa phiếu kiểm nhập">
-                    <span>
-                      <IconButton color="error" size="small" onClick={() => handleDeleteInspection(inspection._id)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {data.pagination && (
-          <TablePagination
-            component="div"
-            count={data.pagination.total_items}
-            page={data.pagination.current_page - 1}
-            onPageChange={() => fetchInspections()}
-            rowsPerPage={data.pagination.page_size || 10}
-            rowsPerPageOptions={[10, 20, 50]}
-            onRowsPerPageChange={() => fetchInspections()}
-          />
-        )}
-      </TableContainer>
-
-      {data.pagination && (
-        <Box mt={2} display="flex" justifyContent="center">
-          <Typography variant="body2">
-            Trang {data.pagination.current_page} / {data.pagination.total_pages} - Tổng cộng {data.pagination.total_items} kiểm tra
+      <Box display="flex" gap={2} flexWrap="wrap">
+        {/* Cột trái: Danh sách đơn nhập */}
+        <Box minWidth={250} flexShrink={0}>
+          <Typography variant="h6" mb={1}>
+            Danh sách đơn nhập
           </Typography>
+          <List>
+            {orders.map((order) => (
+              <ListItemButton
+                key={order._id}
+                selected={selectedOrderId === order._id}
+                onClick={() => setSelectedOrderId(order._id)}
+                sx={{ p: 1 }}
+              >
+                <ListItem>
+                  <ListItemText primary={`Đơn: ${order._id.slice(-6)}`} secondary={`Trạng thái: ${order.status}`} />
+                </ListItem>
+              </ListItemButton>
+            ))}
+          </List>
         </Box>
-      )}
-
-      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+        {/* Cột phải: Danh sách kiểm kê */}
+        <Box flex={1}>
+          {selectedOrder ? (
+            <>
+              <Box mb={2}>
+                <Typography variant="h6" gutterBottom>
+                  Danh sách kiểm kê cho đơn {selectedOrder._id.slice(-6)}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Tổng số mặt hàng đã kiểm kê: <b>{selectedOrder.details.length}</b>
+                </Typography>
+              </Box>
+              <TableContainer component={Paper} elevation={3}>
+                <Table size="medium">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>ID</TableCell>
+                      <TableCell>Tên thuốc</TableCell>
+                      <TableCell>Mã đăng ký</TableCell>
+                      <TableCell align="right">Số lượng trên phiếu</TableCell>
+                      <TableCell align="right">Số lượng thực</TableCell>
+                      <TableCell align="right">Đơn giá</TableCell>
+                      <TableCell>Thao tác</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {selectedOrder.details.map((item) => (
+                      <TableRow key={item._id} hover>
+                        <TableCell>
+                          <Tooltip title={item._id}>
+                            <Typography variant="body2" fontWeight="bold">
+                              {item._id.slice(-6)}
+                            </Typography>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>{item.medicine_id?.medicine_name || '-'}</TableCell>
+                        <TableCell>{item.medicine_id?.license_code || '-'}</TableCell>
+                        <TableCell align="right">{item.quantity}</TableCell>
+                        <TableCell align="right">123</TableCell>
+                        <TableCell align="right">{item.unit_price}</TableCell>
+                        <TableCell>
+                          <Tooltip title="Xóa phiếu kiểm kê">
+                            <IconButton color="error" size="small" onClick={() => handleDeleteInspection(selectedOrder._id, item._id)}>
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </>
+          ) : (
+            <Typography variant="body2" color="text.secondary" align="center" py={4}>
+              Vui lòng chọn một đơn nhập để xem chi tiết
+            </Typography>
+          )}
+        </Box>
+      </Box>
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar}>
         <MuiAlert elevation={6} variant="filled" onClose={handleCloseSnackbar} severity={snackbar.severity}>
           {snackbar.message}
         </MuiAlert>
