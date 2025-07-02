@@ -1,7 +1,7 @@
 import useSWR, { mutate } from 'swr';
 import { useState, useCallback } from 'react';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 // Fetcher function sử dụng fetch API
 const fetcher = (url) =>

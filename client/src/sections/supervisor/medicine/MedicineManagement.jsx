@@ -44,7 +44,7 @@ import MedicineDetailDialog from './MedicineDetailDialog'; // Import the detail 
 import MedicineEditDialog from './MedicineEditDialog'; // Import the edit dialog component
 import MedicineAddDialog from './MedicineAddDialog';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
@@ -97,7 +97,7 @@ const MedicineManagement = () => {
       });
 
       const response = await axiosInstance.get(`/medicine?${params}`, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
 
       if (response.data.success) {
@@ -116,7 +116,7 @@ const MedicineManagement = () => {
   const fetchFilterOptions = async () => {
     try {
       const response = await axiosInstance.get(`/medicine/filter-options`, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       if (response.data.success) {
         setFilterOptions(response.data.data);
@@ -134,7 +134,7 @@ const MedicineManagement = () => {
 
     try {
       const response = await axiosInstance.put(`/medicine/${updatedMedicine._id}`, updatedMedicine, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
 
       if (response.data.success) {
@@ -162,7 +162,7 @@ const MedicineManagement = () => {
   const handleDeleteMedicine = async () => {
     try {
       const response = await axios.delete(`/medicine/${selectedMedicine._id}`, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
 
       if (response.data.success) {
@@ -455,7 +455,12 @@ const MedicineManagement = () => {
         categoryOptions={filterOptions.category}
       />
 
-      <MedicineAddDialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} onSuccess={handleAddMedicineSuccess} filterOptions={filterOptions}/>
+      <MedicineAddDialog
+        open={openAddDialog}
+        onClose={() => setOpenAddDialog(false)}
+        onSuccess={handleAddMedicineSuccess}
+        filterOptions={filterOptions}
+      />
 
       {/* Delete Confirmation Dialog */}
       <Dialog

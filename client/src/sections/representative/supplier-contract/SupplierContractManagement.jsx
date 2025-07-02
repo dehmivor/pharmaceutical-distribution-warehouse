@@ -44,7 +44,7 @@ import SupplierContractDetailDialog from './SupplierContractDetailDialog'; // Im
 import MedicineEditDialog from './MedicineEditDialog'; // Import the edit dialog component
 import SupplierContractAddDialog from './SupplierContractAddDialog';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
@@ -99,7 +99,7 @@ const SupplierContractManagement = () => {
       });
 
       const response = await axiosInstance.get(`/supplier-contract?${params}`, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
 
       if (response.data.success) {
@@ -119,7 +119,7 @@ const SupplierContractManagement = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get('/supplier/all/v1', {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       if (response.data.success) {
         setSuppliers(response.data.data); // Dữ liệu từ API, chỉ chứa _id và name
@@ -136,7 +136,7 @@ const SupplierContractManagement = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get('/medicine/all/v1', {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       if (response.data.success) {
         setMedicines(response.data.data); // Dữ liệu từ API, chỉ chứa _id và license_code
@@ -170,7 +170,7 @@ const SupplierContractManagement = () => {
 
     try {
       const response = await axiosInstance.put(`/medicine/${updatedMedicine._id}`, updatedMedicine, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
 
       if (response.data.success) {
@@ -198,7 +198,7 @@ const SupplierContractManagement = () => {
   const handleDeleteContract = async () => {
     try {
       const response = await axiosInstance.delete(`/supplier-contract/${selectedContract._id}`, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
 
       if (response.data.success) {
@@ -483,11 +483,7 @@ const SupplierContractManagement = () => {
         />
       </Card>
 
-      <SupplierContractDetailDialog
-        open={openViewDialog}
-        onClose={() => setOpenViewDialog(false)}
-        contract={selectedContract}
-      />
+      <SupplierContractDetailDialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} contract={selectedContract} />
 
       <MedicineEditDialog
         open={openEditDialog}

@@ -4,8 +4,7 @@ import { useState, useCallback } from 'react';
 import axios from 'axios';
 import { useRole } from '@/contexts/RoleContext'; // Import useRole
 
-const backendUrl = 'http://localhost:5000';
-
+const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const useInspection = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

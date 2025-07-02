@@ -34,7 +34,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
@@ -412,7 +412,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                   </FormControl>
                 </Grid>
 
-                                {/* License Code */}
+                {/* License Code */}
                 <Grid item sx={12} md={6}>
                   <TextField
                     fullWidth
@@ -428,7 +428,6 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     }}
                   />
                 </Grid>
-                
               </Grid>
             </CardContent>
           </Card>

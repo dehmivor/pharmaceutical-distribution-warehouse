@@ -45,7 +45,8 @@ export default function UpdatePackageLocation() {
   const fetchAreas = async () => {
     setAreasLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/areas');
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${backendUrl}/api/areas`);
       if (!res.ok) throw new Error('Failed to fetch areas');
       const data = await res.json();
       setAreas(data);
@@ -61,7 +62,8 @@ export default function UpdatePackageLocation() {
   const fetchPackages = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/packages/by-batch/${BATCH_ID}`);
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${backendUrl}/api/packages/by-batch/${BATCH_ID}`);
       if (!res.ok) throw new Error('Failed to fetch packages');
       const data = await res.json();
       const mapped = data.map((item, idx) => ({
@@ -150,7 +152,8 @@ export default function UpdatePackageLocation() {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/packages/${selected.id}/location-detailed`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${backendUrl}/api/packages/${selected.id}/location-detailed`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
