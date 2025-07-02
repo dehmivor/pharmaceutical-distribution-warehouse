@@ -3,6 +3,7 @@ import useInspection from '@/hooks/useInspection';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import PersonIcon from '@mui/icons-material/Person';
@@ -15,7 +16,6 @@ import {
   IconButton,
   List,
   ListItemButton,
-  Paper,
   Snackbar,
   Stack,
   Table,
@@ -27,7 +27,11 @@ import {
   Tooltip,
   Typography
 } from '@mui/material';
+import Accordion from '@mui/material/Accordion';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import AccordionSummary from '@mui/material/AccordionSummary';
 import MuiAlert from '@mui/material/Alert';
+import LinearProgress from '@mui/material/LinearProgress';
 import { useTheme } from '@mui/material/styles';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
@@ -71,9 +75,56 @@ function ApproveInspection() {
     fetchData();
   }, [fetchInspectionForApprove]);
 
-  const completeImportOrder = async (importOrderId) => {
+  const handleCompleteOrder = async (importOrderId) => {
+    // Tìm order trong state
+    const order = orders.find((o) => o.importOrder._id === importOrderId);
+    if (!order) {
+      setSnackbar({
+        open: true,
+        message: 'Không tìm thấy đơn nhập!',
+        severity: 'warning'
+      });
+      return;
+    }
+
+    // Validate: Số mặt hàng phải bằng số phiếu inspection
+    const importItems = order.importOrder.details;
+    const inspections = order.inspections;
+    if (importItems.length !== inspections.length) {
+      setSnackbar({
+        open: true,
+        message: 'Số mặt hàng và số phiếu kiểm kê không khớp!',
+        severity: 'warning'
+      });
+      return;
+    }
+
+    // Validate: Số lượng thực nhập >= 90% số lượng yêu cầu với từng mặt hàng
+    for (const item of importItems) {
+      // Tìm inspection tương ứng với mặt hàng này
+      const inspection = inspections.find(
+        (insp) => (insp.medicine_id?._id || insp.medicine_id) === (item.medicine_id?._id || item.medicine_id)
+      );
+      if (!inspection) {
+        setSnackbar({
+          open: true,
+          message: `Thiếu phiếu kiểm kê cho mặt hàng ${item.medicine_id?.medicine_name || item.medicine_id}`,
+          severity: 'warning'
+        });
+        return;
+      }
+      if (inspection.actual_quantity < 0.9 * item.quantity) {
+        setSnackbar({
+          open: true,
+          message: `Số lượng thực nhập của mặt hàng ${item.medicine_id?.medicine_name || item.medicine_id} chưa đạt 90% yêu cầu!`,
+          severity: 'warning'
+        });
+        return;
+      }
+    }
+
+    // Nếu qua validate, gọi API cập nhật trạng thái
     try {
-      // Gọi API cập nhật trạng thái sang "checked"
       const updatedOrder = await updateImportOrderStatus(importOrderId, 'checked');
 
       setOrders((prevOrders) =>
@@ -107,63 +158,33 @@ function ApproveInspection() {
         }
       }
     );
-    return response.data.data; // trả về updatedOrder
+    return response.data.data;
   };
 
   const isOrderReadyForCompletion = (order) => {
-    return order.inspections.length > 0;
-  };
+    // 1. Số mặt hàng trong importOrder (details)
+    const importItems = order.importOrder.details;
+    const inspections = order.inspections;
 
-  const handleCompleteOrder = async (importOrderId) => {
-    const order = orders.find((o) => o.importOrder._id === importOrderId);
-    if (!order || !isOrderReadyForCompletion(order)) {
-      setSnackbar({
-        open: true,
-        message: 'Đơn nhập chưa đủ điều kiện hoàn thành!',
-        severity: 'warning'
-      });
-      return;
-    }
-    try {
-      await completeImportOrder(importOrderId);
-      setSnackbar({
-        open: true,
-        message: `Đã hoàn thành kiểm tra cho đơn ${importOrderId.slice(-6)}!`,
-        severity: 'success'
-      });
-      // Cập nhật lại state hoặc fetch lại dữ liệu nếu cần
-    } catch (err) {
-      setSnackbar({
-        open: true,
-        message: `Lỗi khi hoàn thành kiểm tra: ${err.message}`,
-        severity: 'error'
-      });
-    }
-  };
+    // 2. Số lượng mặt hàng phải bằng số phiếu inspection
+    if (importItems.length !== inspections.length) return false;
 
-  const handleCompleteAll = async () => {
-    if (orders.length === 0) {
-      setSnackbar({
-        open: true,
-        message: 'Không có đơn nhập nào để hoàn thành!',
-        severity: 'warning'
-      });
-      return;
+    // 3. Kiểm tra từng mặt hàng
+    for (const item of importItems) {
+      // Tìm inspection tương ứng với mặt hàng này
+      const inspection = inspections.find(
+        (insp) => (insp.medicine_id?._id || insp.medicine_id) === (item.medicine_id?._id || item.medicine_id)
+      );
+      if (!inspection) return false;
+
+      // Số lượng thực nhập phải >= 90% số lượng yêu cầu
+      if (inspection.actual_quantity < 0.9 * item.quantity) return false;
+
+      // (Có thể thêm điều kiện khác nếu cần, ví dụ không bị loại bỏ hết)
+      // if (inspection.actual_quantity === 0) return false;
     }
-    let hasAny = false;
-    for (const order of orders) {
-      if (isOrderReadyForCompletion(order)) {
-        hasAny = true;
-        await handleCompleteOrder(order.importOrder._id);
-      }
-    }
-    if (!hasAny) {
-      setSnackbar({
-        open: true,
-        message: 'Không có đơn nhập nào đủ điều kiện hoàn thành!',
-        severity: 'warning'
-      });
-    }
+
+    return true;
   };
 
   const handleDeleteInspection = async (inspectionId) => {
@@ -174,7 +195,6 @@ function ApproveInspection() {
           Authorization: `Bearer ${token}`
         }
       });
-      // Xóa inspection khỏi state orders
       setOrders((prevOrders) =>
         prevOrders.map((order) => ({
           ...order,
@@ -335,7 +355,7 @@ function ApproveInspection() {
                     Tổng số phiếu kiểm kê: <b>{selectedOrder.inspections.length}</b>
                   </Typography>
                 </Box>
-                <TableContainer stickyHeader>
+                <TableContainer>
                   <Table size="medium">
                     <TableHead>
                       <TableRow>
@@ -387,11 +407,51 @@ function ApproveInspection() {
         </Box>
       )}
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar}>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Thêm dòng này
+      >
         <MuiAlert elevation={6} variant="filled" onClose={handleCloseSnackbar} severity={snackbar.severity}>
           {snackbar.message}
         </MuiAlert>
       </Snackbar>
+
+      {selectedOrderId && (
+        <Accordion sx={{ mt: 2 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography fontWeight={600}>Tiến độ kiểm kê từng mặt hàng</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            {selectedOrder.importOrder.details.map((item, idx) => {
+              // Tìm inspection tương ứng với mặt hàng này
+              const inspection = selectedOrder.inspections.find(
+                (insp) => (insp.medicine_id?._id || insp.medicine_id) === (item.medicine_id?._id || item.medicine_id)
+              );
+              // Tính phần trăm thực nhập
+              const actual = inspection?.actual_quantity || 0;
+              const percent = Math.min(100, Math.round((actual / item.quantity) * 100));
+              return (
+                <Box key={item._id || idx} mb={2}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5}>
+                    <Typography variant="subtitle2">{item.medicine_id?.medicine_name || 'Mặt hàng'}</Typography>
+                    <Typography variant="caption" color={percent >= 90 ? 'success.main' : 'warning.main'}>
+                      {actual} / {item.quantity} ({percent}%)
+                    </Typography>
+                  </Stack>
+                  <LinearProgress
+                    variant="determinate"
+                    value={percent}
+                    color={percent >= 90 ? 'success' : 'warning'}
+                    sx={{ height: 8, borderRadius: 4 }}
+                  />
+                </Box>
+              );
+            })}
+          </AccordionDetails>
+        </Accordion>
+      )}
     </Box>
   );
 }
