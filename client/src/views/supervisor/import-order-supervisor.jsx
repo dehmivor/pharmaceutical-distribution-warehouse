@@ -60,7 +60,7 @@ function ImportOrderSupervisor() {
   const [warehouseManagers, setWarehouseManagers] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
   const [statusTransitions, setStatusTransitions] = useState({});
-  const { createNotification } = useNotifications(order.warehouse_manager_id);
+  const { createNotification } = useNotifications('685c2c032aaf8fe6edb3a26f');
 
   // Edit form states
   const [editForm, setEditForm] = useState({
