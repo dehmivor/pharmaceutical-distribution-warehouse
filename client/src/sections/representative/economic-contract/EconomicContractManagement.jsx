@@ -35,12 +35,17 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+  Block as BlockIcon,
+  Restore as RestoreIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useRole } from '@/contexts/RoleContext';
 import EconomicContractEditDialog from './EconomicContractEditDialog'; // Import the edit dialog component
 import EconomicContractAddDialog from './EconomicContractAddDialog'; // Import the add dialog component
+import StatusActionDialog from './StatusActionDialog';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
@@ -57,11 +62,10 @@ const axiosInstance = axios.create({
 });
 
 const EconomicContractManagement = () => {
-  
   const { userRole, user, isLoading } = useRole();
   const [contracts, setContracts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
-  const [retailers, setRetailers] = useState([])
+  const [retailers, setRetailers] = useState([]);
   const [medicines, setMedicines] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -71,7 +75,7 @@ const EconomicContractManagement = () => {
   // Filter states
   const [filters, setFilters] = useState({
     contract_code: '',
-    status: '',
+    status: ''
   });
 
   // Filter options
@@ -80,16 +84,23 @@ const EconomicContractManagement = () => {
   });
 
   // Dialog states
+  const [openViewDialog, setOpenViewDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  // const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
+
+  const [openActionDialog, setOpenActionDialog] = useState(false);
+  const [actionType, setActionType] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Fetch medicines
+  // Fetch contracts
   const fetchContracts = async () => {
+    console.log('user')
+    console.log(userRole, user);
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -98,8 +109,11 @@ const EconomicContractManagement = () => {
         ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== ''))
       });
 
+      if( userRole === 'representative') {
+        params.append('created_by', user.userId);
+      }
       const response = await axiosInstance.get(`/economic-contracts?${params}`, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
 
       if (response.data.success) {
@@ -119,7 +133,7 @@ const EconomicContractManagement = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get('/supplier/all/v1', {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       if (response.data.success) {
         setSuppliers(response.data.data); // Dữ liệu từ API, chỉ chứa _id và name
@@ -136,7 +150,7 @@ const EconomicContractManagement = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get('/retailer/all/v1', {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       if (response.data.success) {
         setRetailers(response.data.data); // Dữ liệu từ API, chỉ chứa _id và name
@@ -153,7 +167,7 @@ const EconomicContractManagement = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get('/medicine/all/v1', {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       if (response.data.success) {
         setMedicines(response.data.data); // Dữ liệu từ API, chỉ chứa _id và license_code
@@ -169,7 +183,7 @@ const EconomicContractManagement = () => {
   const fetchFilterOptions = async () => {
     try {
       const response = await axiosInstance.get(`/economic-contracts/filter-options`, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       if (response.data.success) {
         setFilterOptions(response.data.data);
@@ -193,11 +207,12 @@ const EconomicContractManagement = () => {
 
   // Delete contract
   const handleDeleteContract = async () => {
-    setOpenDeleteDialog(false);
+    setOpenActionDialog(false);
+    // setOpenDeleteDialog(false);
     setSelectedContract(null);
     try {
       const response = await axiosInstance.delete(`/economic-contracts/${selectedContract._id}`, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
 
       if (response.data.success) {
@@ -208,7 +223,6 @@ const EconomicContractManagement = () => {
       setError(error.response?.data?.message || 'Lỗi khi xóa hợp đồng');
     }
   };
-
 
   // Handle filter change
   const handleFilterChange = (field, value) => {
@@ -228,6 +242,89 @@ const EconomicContractManagement = () => {
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  // Mở dialog cho từng action
+  const openConfirmDialog = (contract) => {
+    setSelectedContract(contract);
+    setActionType('confirm');
+    setOpenActionDialog(true);
+  };
+
+  const openRejectDialog = (contract) => {
+    setSelectedContract(contract);
+    setActionType('reject');
+    setOpenActionDialog(true);
+  };
+
+  const openCancelDialog = (contract) => {
+    setSelectedContract(contract);
+    setActionType('cancel');
+    setOpenActionDialog(true);
+  };
+
+  const openDeleteDialog = (contract) => {
+    setSelectedContract(contract);
+    setActionType('delete');
+    setOpenActionDialog(true);
+  };
+
+  const openDraftDialog = (contract) => {
+    setSelectedContract(contract);
+    setActionType('draft');
+    setOpenActionDialog(true);
+  };
+
+  // Handler chung cho tất cả actions
+  const handleStatusAction = async () => {
+    if (!selectedContract || !actionType) return;
+
+    setActionLoading(true);
+    try {
+      let newStatus = '';
+      switch (actionType) {
+        case 'confirm':
+          newStatus = 'active';
+          break;
+        case 'reject':
+          newStatus = 'rejected';
+          break;
+        case 'cancel':
+          newStatus = 'cancelled';
+          break;
+        case 'draft':
+          newStatus = 'draft';
+          break;
+        case 'delete':
+          // Handle delete separately
+          await handleDeleteContract();
+          return;
+      }
+
+      const response = await axiosInstance.put(
+        `/economic-contracts/${selectedContract._id}/status`,
+        { status: newStatus },
+        { headers: getAuthHeaders() }
+      );
+
+      if (response.data.success) {
+        const actionMessages = {
+          confirm: 'Xác nhận',
+          reject: 'Từ chối',
+          cancel: 'Hủy',
+          draft: 'Chuyển về nháp'
+        };
+
+        setSuccess(`${actionMessages[actionType]} hợp đồng thành công`);
+        setOpenActionDialog(false);
+        setSelectedContract(null);
+        fetchContracts();
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || 'Có lỗi xảy ra');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -372,26 +469,28 @@ const EconomicContractManagement = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end', ml: 'auto' }}>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setOpenAddDialog(true)}
-                sx={{
-                  bgcolor: 'success.main',
-                  '&:hover': {
-                    bgcolor: 'success.dark'
-                  },
-                  px: 3,
-                  py: 1.2,
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 600
-                }}
-              >
-                Thêm hợp đồng
-              </Button>
-            </Grid>
+            {userRole === 'representative' && (
+              <Grid item xs={12} sm={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end', ml: 'auto' }}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setOpenAddDialog(true)}
+                  sx={{
+                    bgcolor: 'success.main',
+                    '&:hover': {
+                      bgcolor: 'success.dark'
+                    },
+                    px: 3,
+                    py: 1.2,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600
+                  }}
+                >
+                  Thêm hợp đồng
+                </Button>
+              </Grid>
+            )}
           </Grid>
         </CardContent>
       </Card>
@@ -437,45 +536,128 @@ const EconomicContractManagement = () => {
                     sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
                     title={contract.partner_type + ' - ' + contract.partner_id.name}
                   >
-                    <Chip label={contract.partner_type + ' - ' + contract.partner_id.name} size="small" color="secondary" variant="outlined" />
+                    <Chip
+                      label={contract.partner_type + ' - ' + contract.partner_id.name}
+                      size="small"
+                      color="secondary"
+                      variant="outlined"
+                    />
                   </TableCell>
                   <TableCell>{contract.status}</TableCell>
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                      <Tooltip title="Chỉnh sửa">
-                        <IconButton
-                          color="secondary"
-                          size="small"
-                          onClick={() => {
-                            setSelectedContract(contract);
-                            setOpenEditDialog(true);
-                          }}
-                          sx={{
-                            bgcolor: 'secondary.50',
-                            '&:hover': { bgcolor: 'secondary.100' }
-                          }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                  <TableCell align="left">
+                    {userRole === 'representative' && (
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-start' }}>
+                        <Tooltip title="Xem chi tiết">
+                          <IconButton
+                            color="primary"
+                            size="small"
+                            onClick={() => {
+                              setSelectedContract(contract);
+                              setOpenViewDialog(true);
+                            }}
+                            sx={{
+                              bgcolor: 'primary.50',
+                              '&:hover': { bgcolor: 'primary.100' }
+                            }}
+                          >
+                            <ViewIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        {(contract.status === 'draft' || contract.status === 'rejected') && (
+                          <>
+                            <Tooltip title="Chỉnh sửa">
+                              <IconButton
+                                color="secondary"
+                                size="small"
+                                onClick={() => {
+                                  setSelectedContract(contract);
+                                  setOpenEditDialog(true);
+                                }}
+                                sx={{
+                                  bgcolor: 'secondary.50',
+                                  '&:hover': { bgcolor: 'secondary.100' }
+                                }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
 
-                      <Tooltip title="Xóa">
-                        <IconButton
-                          color="error"
-                          size="small"
-                          onClick={() => {
-                            setSelectedContract(contract);
-                            setOpenDeleteDialog(true);
-                          }}
-                          sx={{
-                            bgcolor: 'error.50',
-                            '&:hover': { bgcolor: 'error.100' }
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
+                            <Tooltip title="Xóa">
+                              <IconButton
+                                color="error"
+                                size="small"
+                                onClick={() => {
+                                  openDeleteDialog(contract);
+                                }}
+                                sx={{
+                                  bgcolor: 'error.50',
+                                  '&:hover': { bgcolor: 'error.100' }
+                                }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </>
+                        )}
+                        {contract.status === 'rejected' && (
+                          <Tooltip title="Chuyển về nháp">
+                            <IconButton
+                              color="primary"
+                              size="small"
+                              onClick={() => openDraftDialog(contract)}
+                              sx={{
+                                bgcolor: 'primary.50',
+                                '&:hover': { bgcolor: 'primary.100' }
+                              }}
+                            >
+                              <RestoreIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
+                    )}
+                    {userRole === 'supervisor' && (
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-start' }}>
+                        <Tooltip title="Xem chi tiết">
+                          <IconButton
+                            color="primary"
+                            size="small"
+                            onClick={() => {
+                              setSelectedContract(contract);
+                              setOpenViewDialog(true);
+                            }}
+                            sx={{
+                              bgcolor: 'primary.50',
+                              '&:hover': { bgcolor: 'primary.100' }
+                            }}
+                          >
+                            <ViewIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        {contract.status === 'draft' && (
+                          <>
+                            <Tooltip title="Xác nhận">
+                              <IconButton color="success" size="small" onClick={() => openConfirmDialog(contract)}>
+                                <CheckCircleIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+
+                            <Tooltip title="Từ chối">
+                              <IconButton color="warning" size="small" onClick={() => openRejectDialog(contract)}>
+                                <CancelIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </>
+                        )}
+                        {contract.status === 'active' && (
+                          <Tooltip title="Hủy hợp đồng">
+                            <IconButton color="secondary" size="small" onClick={() => openCancelDialog(contract)}>
+                              <BlockIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -502,12 +684,26 @@ const EconomicContractManagement = () => {
 
       <EconomicContractEditDialog
         open={openEditDialog}
-        onClose={() => setOpenEditDialog(false)}
+        onClose={() => {
+          setOpenEditDialog(false);
+        }}
         contract={selectedContract}
         onSuccess={handleUpdateContractSuccess}
         suppliers={suppliers}
         retailers={retailers}
         medicines={medicines}
+      />
+
+      <EconomicContractEditDialog
+        open={openViewDialog}
+        onClose={() => {
+          setOpenViewDialog(false);
+        }}
+        contract={selectedContract}
+        suppliers={suppliers}
+        retailers={retailers}
+        medicines={medicines}
+        viewDetail={true}
       />
 
       <EconomicContractAddDialog
@@ -520,7 +716,7 @@ const EconomicContractManagement = () => {
       />
 
       {/* Delete Confirmation Dialog */}
-      <Dialog
+      {/* <Dialog
         open={openDeleteDialog}
         onClose={() => setOpenDeleteDialog(false)}
         sx={{
@@ -606,7 +802,16 @@ const EconomicContractManagement = () => {
             Xóa
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog> */}
+
+      <StatusActionDialog
+        open={openActionDialog}
+        onClose={() => setOpenActionDialog(false)}
+        onConfirm={handleStatusAction}
+        contract={selectedContract}
+        actionType={actionType}
+        loading={actionLoading}
+      />
     </Box>
   );
 };

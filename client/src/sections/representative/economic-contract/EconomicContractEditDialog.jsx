@@ -23,6 +23,7 @@ import {
 import {
   Close as CloseIcon,
   Edit as EditIcon,
+  Visibility as ViewIcon,
   Description as ContractIcon,
   LocalShipping as SupplierIcon,
   Event as EventIcon,
@@ -105,6 +106,7 @@ const EconomicContractEditDialog = ({
   suppliers = [],
   retailers = [],
   medicines = [],
+  viewDetail = false,
 }) => {
   const [formData, setFormData] = useState({
     contract_code: "",
@@ -300,7 +302,9 @@ const EconomicContractEditDialog = ({
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle
         sx={{
-          background: "linear-gradient(135deg, #ed6c02 0%, #ff9800 100%)",
+          background: viewDetail
+            ? "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)"
+            : "linear-gradient(135deg, #ed6c02 0%, #ff9800 100%)",
           color: "white",
           display: "flex",
           justifyContent: "space-between",
@@ -308,13 +312,14 @@ const EconomicContractEditDialog = ({
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <EditIcon />
+          {viewDetail ? <ViewIcon /> : <EditIcon />}
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Chỉnh Sửa Hợp Đồng Kinh tế
+              {viewDetail ? "Chi Tiết Hợp Đồng Kinh tế" : "Chỉnh Sửa Hợp Đồng Kinh tế"}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              Cập nhật thông tin hợp đồng: {contract.contract_code}
+              {viewDetail ? "Xem thông tin hợp đồng: " : "Cập nhật thông tin hợp đồng: "}
+              {contract.contract_code}
             </Typography>
           </Box>
         </Box>
@@ -346,7 +351,7 @@ const EconomicContractEditDialog = ({
                   onChange={(e) => handleChange({ target: { name: "contract_code", value: e.target.value } })}
                   error={!!errorValidate.contract_code}
                   helperText={errorValidate.contract_code}
-                  // disabled={true} // Usually contract code shouldn't be editable
+                  disabled={viewDetail}
                 />
               </Grid>
 
@@ -385,12 +390,15 @@ const EconomicContractEditDialog = ({
                           : { value: "Supplier", label: "Nhà cung cấp" }
                       }
                       onChange={(event, newValue) => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          partner_type: newValue ? newValue.value : "Supplier",
-                          partner_id: "",
-                        }))
+                        if (!viewDetail) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            partner_type: newValue ? newValue.value : "Supplier",
+                            partner_id: "",
+                          }))
+                        }
                       }}
+                      disabled={viewDetail}
                       renderInput={(params) => (
                         <TextField
                           {...params}
@@ -444,19 +452,22 @@ const EconomicContractEditDialog = ({
                           : retailers.find((r) => r._id === formData.partner_id)) || null
                       }
                       onChange={(event, newValue) => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          partner_id: newValue ? newValue._id : "",
-                        }))
-                        setErrorValidate((prev) => ({ ...prev, partner_id: "" }))
+                        if (!viewDetail) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            partner_id: newValue ? newValue._id : "",
+                          }))
+                          setErrorValidate((prev) => ({ ...prev, partner_id: "" }))
+                        }
                       }}
+                      disabled={viewDetail}
                       renderInput={(params) => (
                         <TextField
                           {...params}
                           variant="standard"
                           placeholder={formData.partner_type === "Supplier" ? "Chọn nhà cung cấp" : "Chọn nhà bán lẻ"}
-                          error={!!errorValidate.partner_id}
-                          helperText={errorValidate.partner_id}
+                          error={!viewDetail && !!errorValidate.partner_id}
+                          helperText={!viewDetail ? errorValidate.partner_id : ""}
                           InputProps={{
                             ...params.InputProps,
                             disableUnderline: true,
@@ -489,11 +500,12 @@ const EconomicContractEditDialog = ({
                     <DatePicker
                       label="Ngày bắt đầu"
                       value={formData.start_date}
-                      onChange={handleDateChange("start_date")}
+                      onChange={viewDetail ? () => {} : handleDateChange("start_date")}
                       format="dd/MM/yyyy"
+                      disabled={viewDetail}
                       slotProps={{
                         textField: {
-                          error: !!errorValidate.start_date,
+                          error: !viewDetail && !!errorValidate.start_date,
                           fullWidth: true,
                         },
                       }}
@@ -508,11 +520,12 @@ const EconomicContractEditDialog = ({
                     <DatePicker
                       label="Ngày kết thúc"
                       value={formData.end_date}
-                      onChange={handleDateChange("end_date")}
+                      onChange={viewDetail ? () => {} : handleDateChange("end_date")}
                       format="dd/MM/yyyy"
+                      disabled={viewDetail}
                       slotProps={{
                         textField: {
-                          error: !!errorValidate.end_date,
+                          error: !viewDetail && !!errorValidate.end_date,
                           fullWidth: true,
                         },
                       }}
@@ -539,7 +552,7 @@ const EconomicContractEditDialog = ({
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                     Thuốc #{index + 1}
                   </Typography>
-                  {formData.items.length > 1 && (
+                  {formData.items.length > 1 && !viewDetail && (
                     <Button size="small" color="error" onClick={() => removeItem(index)} sx={{ textTransform: "none" }}>
                       Xóa
                     </Button>
@@ -574,15 +587,18 @@ const EconomicContractEditDialog = ({
                           getOptionLabel={(option) => option.license_code || ""}
                           value={medicines.find((m) => m._id === item.medicine_id) || null}
                           onChange={(event, newValue) => {
-                            handleItemChange(index, "medicine_id", newValue ? newValue._id : "")
+                            if (!viewDetail) {
+                              handleItemChange(index, "medicine_id", newValue ? newValue._id : "")
+                            }
                           }}
+                          disabled={viewDetail}
                           renderInput={(params) => (
                             <TextField
                               {...params}
                               variant="standard"
                               placeholder="Chọn thuốc"
-                              error={!!errorValidate.items?.[index]?.medicine_id}
-                              helperText={errorValidate.items?.[index]?.medicine_id}
+                              error={!viewDetail && !!errorValidate.items?.[index]?.medicine_id}
+                              helperText={!viewDetail ? errorValidate.items?.[index]?.medicine_id : ""}
                               InputProps={{
                                 ...params.InputProps,
                                 disableUnderline: true,
@@ -605,9 +621,10 @@ const EconomicContractEditDialog = ({
                     <InfoField
                       label="Số lượng đặt"
                       value={item.quantity}
-                      onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
-                      error={!!errorValidate.items?.[index]?.quantity}
-                      helperText={errorValidate.items?.[index]?.quantity}
+                      onChange={(e) => !viewDetail && handleItemChange(index, "quantity", e.target.value)}
+                      disabled={viewDetail}
+                      error={!viewDetail && !!errorValidate.items?.[index]?.quantity}
+                      helperText={!viewDetail ? errorValidate.items?.[index]?.quantity : ""}
                     />
                   </Grid>
 
@@ -615,9 +632,10 @@ const EconomicContractEditDialog = ({
                     <InfoField
                       label="Đơn giá"
                       value={item.unit_price}
-                      onChange={(e) => handleItemChange(index, "unit_price", e.target.value)}
-                      error={!!errorValidate.items?.[index]?.unit_price}
-                      helperText={errorValidate.items?.[index]?.unit_price}
+                      onChange={(e) => !viewDetail && handleItemChange(index, "unit_price", e.target.value)}
+                      disabled={viewDetail}
+                      error={!viewDetail && !!errorValidate.items?.[index]?.unit_price}
+                      helperText={!viewDetail ? errorValidate.items?.[index]?.unit_price : ""}
                     />
                   </Grid>
                 </Grid>
@@ -630,11 +648,13 @@ const EconomicContractEditDialog = ({
               </Typography>
             )}
 
-            <Box sx={{ mt: 2 }}>
-              <Button variant="outlined" onClick={addItem} sx={{ textTransform: "none", fontWeight: 600 }}>
-                Thêm thuốc
-              </Button>
-            </Box>
+            {!viewDetail && (
+              <Box sx={{ mt: 2 }}>
+                <Button variant="outlined" onClick={addItem} sx={{ textTransform: "none", fontWeight: 600 }}>
+                  Thêm thuốc
+                </Button>
+              </Box>
+            )}
           </CardContent>
         </Card>
       </DialogContent>
@@ -642,28 +662,40 @@ const EconomicContractEditDialog = ({
       <DialogActions sx={{ p: 3, pt: 2, bgcolor: "grey.50", borderTop: "1px solid #e0e0e0" }}>
         <Button
           onClick={onClose}
-          variant="outlined"
-          sx={{ px: 3, py: 1.5, borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-          disabled={isMutating}
-        >
-          Hủy
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
+          variant={viewDetail ? "contained" : "outlined"}
           sx={{
             px: 3,
             py: 1.5,
             borderRadius: 2,
             textTransform: "none",
             fontWeight: 600,
-            background: "linear-gradient(135deg, #ed6c02 0%, #ff9800 100%)",
-            "&:hover": { background: "linear-gradient(135deg, #e65100 0%, #ed6c02 100%)" },
+            ...(viewDetail && {
+              background: "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)",
+              "&:hover": { background: "linear-gradient(135deg, #1565c0 0%, #1976d2 100%)" },
+            }),
           }}
-          disabled={isMutating}
+          disabled={!viewDetail && isMutating}
         >
-          {isMutating ? "Đang cập nhật..." : "Cập nhật hợp đồng"}
+          {viewDetail ? "Đóng" : "Hủy"}
         </Button>
+        {!viewDetail && (
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            sx={{
+              px: 3,
+              py: 1.5,
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: 600,
+              background: "linear-gradient(135deg, #ed6c02 0%, #ff9800 100%)",
+              "&:hover": { background: "linear-gradient(135deg, #e65100 0%, #ed6c02 100%)" },
+            }}
+            disabled={isMutating}
+          >
+            {isMutating ? "Đang cập nhật..." : "Cập nhật hợp đồng"}
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   )

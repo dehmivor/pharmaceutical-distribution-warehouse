@@ -89,8 +89,8 @@ const deleteEconomicContract = asyncHandler(async (req, res) => {
   if (contract.created_by._id.toString() !== req.user.userId) {
     return res.status(403).json({ success: false, message: 'You do not have permission to delete this contract' });
   }
-  if (contract.status !== CONTRACT_STATUSES.DRAFT) {
-    return res.status(400).json({ success: false, message: 'Only draft contracts can be deleted' });
+  if (contract.status !== CONTRACT_STATUSES.DRAFT && contract.status !== CONTRACT_STATUSES.REJECTED) {
+    return res.status(400).json({ success: false, message: 'Only draft and rejected contracts can be deleted' });
   }
 
   const result = await economicContractService.deleteEconomicContract(id);
@@ -112,12 +112,29 @@ const updateEconomicContract = asyncHandler(async (req, res) => {
   if (contract.created_by._id.toString() !== req.user.userId) {
     return res.status(403).json({ success: false, message: 'You do not have permission to update this contract' });
   }
-  if (contract.status !== CONTRACT_STATUSES.DRAFT) {
-    return res.status(400).json({ success: false, message: 'Only draft contracts can be updated' });
+  if (contract.status !== CONTRACT_STATUSES.DRAFT && contract.status !== CONTRACT_STATUSES.REJECTED) {
+    return res.status(400).json({ success: false, message: 'Only draft and rejected contracts can be updated' });
   }
 
   const updatedContract = await economicContractService.updateEconomicContract(id, req.body);
   res.status(200).json({ success: true, data: updatedContract });
+});
+
+const updateContractStatus = asyncHandler(async (req, res) => {
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: errors.array()[0].msg, // hoặc gửi cả mảng lỗi
+    });
+  }
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const updatedContract = await economicContractService.updateContractStatus(id, status, req.user);
+
+  return res.status(200).json({ success: true, data: updatedContract });
 });
 
 module.exports = {
@@ -127,4 +144,5 @@ module.exports = {
   getFilterOptions,
   deleteEconomicContract,
   updateEconomicContract,
+  updateContractStatus,
 };

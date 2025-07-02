@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const EconomicContract = require('../models/EconomicContract');
-const { CONTRACT_STATUSES, PARTNER_TYPES } = require('../utils/constants');
+const { CONTRACT_STATUSES, PARTNER_TYPES, USER_ROLES } = require('../utils/constants');
 
 const economicContractService = {
   async getAllEconomicContracts({
@@ -123,7 +123,6 @@ const economicContractService = {
   },
 
   async updateEconomicContract(id, updateData) {
-    console.log('Update Data:', updateData);
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return null;
     }
@@ -168,6 +167,67 @@ const economicContractService = {
       return null;
     }
     return EconomicContract.findByIdAndDelete(id);
+  },
+
+  async updateContractStatus(id, newStatus, user) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error('Invalid contract ID');
+    }
+
+    const contract = await EconomicContract.findById(id);
+    if (!contract) {
+      throw new Error('Contract not found');
+    }
+
+    const currentStatus = contract.status;
+
+    // Danh sách các trạng thái không được cập nhật nữa
+    if ([CONTRACT_STATUSES.EXPIRED, CONTRACT_STATUSES.CANCELLED].includes(currentStatus)) {
+      throw new Error(`Cannot update a contract with status "${currentStatus}"`);
+    }
+
+    // Logic chuyển trạng thái hợp lệ + phân quyền
+    switch (currentStatus) {
+      case CONTRACT_STATUSES.DRAFT:
+        if (![CONTRACT_STATUSES.ACTIVE, CONTRACT_STATUSES.REJECTED].includes(newStatus)) {
+          throw new Error(`Draft contracts can only be updated to "active" or "rejected"`);
+        }
+        if (user.role !== USER_ROLES.SUPERVISOR) {
+          throw new Error('Only supervisors can approve or reject draft contracts');
+        }
+        break;
+
+      case CONTRACT_STATUSES.REJECTED:
+        if (newStatus !== CONTRACT_STATUSES.DRAFT) {
+          throw new Error('Rejected contracts can only be updated back to draft');
+        }
+        if (contract.created_by.toString() !== user.userId) {
+          throw new Error('Only the contract creator can resubmit a rejected contract');
+        }
+        break;
+
+      case CONTRACT_STATUSES.ACTIVE:
+        if (![CONTRACT_STATUSES.CANCELLED].includes(newStatus)) {
+          throw new Error('Active contracts can only be marked as cancelled');
+        }
+        if (user.role !== USER_ROLES.SUPERVISOR) {
+          throw new Error('Only supervisors can cancel active contracts');
+        }
+        break;
+
+      default:
+        throw new Error(`Unsupported status transition from "${currentStatus}"`);
+    }
+
+    contract.status = newStatus;
+    console.log(`Updating contract ${id} status from ${currentStatus} to ${newStatus}`);
+    await contract.save();
+
+    return await EconomicContract.findById(contract._id)
+      .populate('created_by', 'name email')
+      .populate('partner_id', 'name')
+      .populate('items.medicine_id', 'license_code medicine_name')
+      .lean();
   },
 };
 

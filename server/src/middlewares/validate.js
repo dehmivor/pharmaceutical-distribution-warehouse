@@ -235,6 +235,15 @@ const economicContractValidator = {
       .isFloat({ min: 0.01 })
       .withMessage('Unit price must be a positive number'),
   ],
+
+  validateUpdateStatus: [
+    isMongoId('id').withMessage('Invalid contract ID'),
+    check('status')
+      .exists()
+      .withMessage('Status is required')
+      .isIn(Object.values(CONTRACT_STATUSES))
+      .withMessage(`Status must be one of: ${Object.values(CONTRACT_STATUSES).join(', ')}`),
+  ],
 };
 
 module.exports = {

@@ -14,6 +14,8 @@ router.post('/', authenticate, economicContractValidator.validateCreateEconomicC
 
 router.put('/:id', authenticate, economicContractValidator.validateUpdateEconomicContract, economicContractController.updateEconomicContract);
 
+router.put('/:id/status', authenticate, economicContractValidator.validateUpdateStatus, economicContractController.updateContractStatus);
+
 router.delete('/:id', authenticate, economicContractValidator.validateGetEconomicContractById, economicContractController.deleteEconomicContract);
 
 module.exports = router;

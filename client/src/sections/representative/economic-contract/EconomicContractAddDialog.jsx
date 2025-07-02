@@ -423,6 +423,7 @@ const EconomicContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], r
                   </Box>
                 </Box>
               </Grid>
+
             </Grid>
           </CardContent>
         </Card>
