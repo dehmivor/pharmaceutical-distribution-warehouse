@@ -28,7 +28,7 @@ const medicineService = {
       const skip = (page - 1) * limit;
 
       // Execute query
-      const medicines = await Medicine.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit);
+      const medicines = await Medicine.find(query).sort({ license_code: 1 }).skip(skip).limit(limit);
 
       // Get total count for pagination
       const total = await Medicine.countDocuments(query);

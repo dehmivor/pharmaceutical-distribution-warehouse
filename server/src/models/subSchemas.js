@@ -118,10 +118,11 @@ const itemEconomicContractSchema = new mongoose.Schema({
   quantity: {
     type: Number,
     required: [true, 'Quantity is required'],
-    min: [0, 'Quantity cannot be negative'],
+    min: [1, 'Quantity must be a positive integer'],
   },
   unit_price: {
     type: Number,
+    required: [true, 'Unit price is required'],
     min: [0, 'Unit price cannot be negative'],
   },
 }, {
