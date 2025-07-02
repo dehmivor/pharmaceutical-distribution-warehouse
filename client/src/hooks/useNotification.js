@@ -1,7 +1,7 @@
 import useSWR, { mutate } from 'swr';
 import { useState, useCallback } from 'react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 // Fetcher function sử dụng fetch API
 const fetcher = (url) =>
@@ -35,9 +35,9 @@ const useNotifications = (recipientId) => {
   const [error, setError] = useState(null);
 
   // SWR keys
-  const notificationsKey = recipientId ? `${API_BASE_URL}/notifications/recipient/${recipientId}` : null;
-  const unreadCountKey = recipientId ? `${API_BASE_URL}/notifications/recipient/${recipientId}/unread-count` : null;
-  const allNotificationsKey = `${API_BASE_URL}/notifications`;
+  const notificationsKey = recipientId ? `${API_BASE_URL}/api/notifications/recipient/${recipientId}` : null;
+  const unreadCountKey = recipientId ? `${API_BASE_URL}/api/notifications/recipient/${recipientId}/unread-count` : null;
+  const allNotificationsKey = `${API_BASE_URL}/api/notifications`;
 
   // SWR hooks
   const {
@@ -81,7 +81,7 @@ const useNotifications = (recipientId) => {
       setError(null);
       try {
         const queryParams = new URLSearchParams(filters).toString();
-        const url = `${API_BASE_URL}/notifications/recipient/${recipientId}${queryParams ? `?${queryParams}` : ''}`;
+        const url = `${API_BASE_URL}/api/notifications/recipient/${recipientId}${queryParams ? `?${queryParams}` : ''}`;
 
         // Mutate SWR cache với URL mới
         await mutate(url, fetcher(url), false);
@@ -98,7 +98,7 @@ const useNotifications = (recipientId) => {
     async (notificationData) => {
       setError(null);
       try {
-        const response = await mutationFetcher(`${API_BASE_URL}/notifications`, {
+        const response = await mutationFetcher(`$/api/notifications`, {
           method: 'POST',
           body: notificationData
         });
@@ -143,7 +143,7 @@ const useNotifications = (recipientId) => {
     async (notificationId) => {
       setError(null);
       try {
-        const response = await mutationFetcher(`${API_BASE_URL}/notifications/${notificationId}/read`, {
+        const response = await mutationFetcher(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
           method: 'PUT'
         });
 
@@ -185,7 +185,7 @@ const useNotifications = (recipientId) => {
 
     setError(null);
     try {
-      const response = await mutationFetcher(`${API_BASE_URL}/notifications/recipient/${recipientId}/mark-all-read`, {
+      const response = await mutationFetcher(`${API_BASE_URL}/api/notifications/recipient/${recipientId}/mark-all-read`, {
         method: 'PUT'
       });
 
@@ -224,7 +224,7 @@ const useNotifications = (recipientId) => {
     async (notificationId) => {
       setError(null);
       try {
-        const response = await mutationFetcher(`${API_BASE_URL}/notifications/${notificationId}`, {
+        const response = await mutationFetcher(`${API_BASE_URL}/api/notifications/${notificationId}`, {
           method: 'DELETE'
         });
 
@@ -270,7 +270,7 @@ const useNotifications = (recipientId) => {
 
     setError(null);
     try {
-      const response = await mutationFetcher(`${API_BASE_URL}/notifications/recipient/${recipientId}/clear-all`, {
+      const response = await mutationFetcher(`${API_BASE_URL}/api/notifications/recipient/${recipientId}/clear-all`, {
         method: 'DELETE'
       });
 
