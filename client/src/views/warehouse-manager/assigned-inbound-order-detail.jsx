@@ -799,12 +799,24 @@ function ImportOrderDetail() {
                 type="date"
                 InputLabelProps={{ shrink: true }}
                 value={newProdDate}
-                onChange={e => setNewProdDate(e.target.value)}
+                onChange={e => {
+                  const prod = e.target.value;
+                  setNewProdDate(prod);
+
+                  // If the current expiry is before the new production, bump it forward
+                  if (newExpiryDate && newExpiryDate < prod) {
+                    setNewExpiryDate(prod);
+                  }
+                }}
               />
+
               <TextField
                 label="Expiry Date"
                 type="date"
                 InputLabelProps={{ shrink: true }}
+                inputProps={{
+                  min: newProdDate || undefined   // disable dates before production
+                }}
                 value={newExpiryDate}
                 onChange={e => setNewExpiryDate(e.target.value)}
               />
