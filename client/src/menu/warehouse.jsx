@@ -5,10 +5,10 @@ const warehouse = {
   type: 'group',
   children: [
     {
-      id: 'manage-import-orders',
-      title: 'Manage Import Orders',
+      id: 'view-import-orders',
+      title: 'View Import Orders',
       type: 'item',
-      url: '/manage-import-orders',
+      url: '/warehouse-import-orders',
       icon: 'IconFileImport'
     },
     {
