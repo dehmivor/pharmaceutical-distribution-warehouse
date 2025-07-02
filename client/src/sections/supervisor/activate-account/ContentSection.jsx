@@ -15,24 +15,24 @@ import {
   Typography
 } from '@mui/material';
 import { Security as SecurityIcon } from '@mui/icons-material';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import ComponentsWrapper from '@/components/ComponentsWrapper';
 import PresentationCard from '@/components/cards/PresentationCard';
 import UserManagement from './UserManagementTab';
 import PermissionManagement from '../PermissionManagementTab';
 
-function ContentSection({ activeTab }) {
+function ContentSection({ activeTab, onOpenAddUser }) {
   const [permissionDialog, setPermissionDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newRole, setNewRole] = useState('');
   const [isManager, setIsManager] = useState(false);
 
-  const handleOpenPermissionDialog = (user) => {
+  const handleOpenPermissionDialog = useCallback((user) => {
     setSelectedUser(user);
     setNewRole(user.role);
     setIsManager(user.is_manager);
     setPermissionDialog(true);
-  };
+  }, []);
 
   const handleClosePermissionDialog = () => {
     setPermissionDialog(false);
@@ -56,31 +56,19 @@ function ContentSection({ activeTab }) {
     }
   };
 
-  const getTabContent = () => {
-    switch (activeTab) {
-      case 0:
-        return {
-          component: <UserManagement onOpenPermissionDialog={handleOpenPermissionDialog} />
-        };
-      case 1:
-        return {
-          title: 'Permission Management',
-          component: <PermissionManagement onOpenPermissionDialog={handleOpenPermissionDialog} />
-        };
-      default:
-        return {
-          title: '',
-          component: <UserManagement onOpenPermissionDialog={handleOpenPermissionDialog} />
-        };
-    }
-  };
-
-  const { title, component } = getTabContent();
-
   return (
     <>
       <ComponentsWrapper title="System Administration">
-        <PresentationCard title={title}>{component}</PresentationCard>
+        <PresentationCard title={activeTab === 1 ? 'Permission Management' : ''}>
+          {activeTab === 0 ? (
+            <UserManagement
+              onOpenPermissionDialog={handleOpenPermissionDialog}
+              onOpenAddUser={onOpenAddUser}
+            />
+          ) : (
+            <PermissionManagement onOpenPermissionDialog={handleOpenPermissionDialog} />
+          )}
+        </PresentationCard>
       </ComponentsWrapper>
 
       <Dialog open={permissionDialog} onClose={handleClosePermissionDialog} maxWidth="sm" fullWidth>
