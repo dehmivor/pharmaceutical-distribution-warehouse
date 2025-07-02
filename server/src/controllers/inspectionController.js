@@ -61,15 +61,12 @@ const getInspectionForApprove = async (req, res) => {
           {
             path: 'details.medicine_id',
             model: 'Medicine',
-            populate: {
-              path: 'storage_conditions',
-              model: 'StorageCondition', // Assuming this model exists
-            },
           },
         ],
       },
       { path: 'batch_id', model: 'Batch' },
       { path: 'created_by', model: 'User' },
+      { path: 'medicine_id', model: 'Medicine' },
     ];
 
     const result = await importInspectionService.getInspectionsForApprove({
