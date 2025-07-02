@@ -37,7 +37,9 @@ function ManageBills() {
 
   const fetchBills = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/bills', {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/';
+
+      const response = await axios.get(`${backendUrl}/api/bills`, {
         headers: getAuthHeaders()
       });
       setBills(response.data.data || []);

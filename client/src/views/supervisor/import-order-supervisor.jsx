@@ -33,7 +33,7 @@ import { Info as InfoIcon, Edit as EditIcon, ForkLeft as ForwardIcon } from '@mu
 import axios from 'axios';
 import useNotifications from '@/hooks/useNotification';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {

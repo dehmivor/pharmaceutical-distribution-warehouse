@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const backendUrl = 'http://localhost:5000';
-
+const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 // Setup axios default config
 axios.defaults.baseURL = backendUrl;
 

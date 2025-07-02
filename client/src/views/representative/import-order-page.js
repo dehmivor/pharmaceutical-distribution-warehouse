@@ -31,7 +31,7 @@ import {
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Info as InfoIcon } from '@mui/icons-material';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
@@ -59,11 +59,13 @@ function ImportOrderPage() {
   // Form states
   const [formData, setFormData] = useState({
     supplier_contract_id: '',
-    details: [{
-      medicine_id: '',
-      quantity: 0,
-      unit_price: 0
-    }]
+    details: [
+      {
+        medicine_id: '',
+        quantity: 0,
+        unit_price: 0
+      }
+    ]
   });
 
   const [supplierContracts, setSupplierContracts] = useState([]);
@@ -76,7 +78,7 @@ function ImportOrderPage() {
     setLoading(true);
     try {
       const response = await axiosInstance.get('/import-orders', {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       setOrders(response.data.data || []);
     } catch (error) {
@@ -90,9 +92,9 @@ function ImportOrderPage() {
   const fetchSupplierContracts = async () => {
     try {
       const response = await axiosInstance.get('/supplier-contracts', {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
-      const activeContracts = (response.data.data.contracts || []).filter(c => c.status === 'active');
+      const activeContracts = (response.data.data.contracts || []).filter((c) => c.status === 'active');
       setSupplierContracts(activeContracts);
     } catch (error) {
       console.error('Error fetching supplier contracts:', error);
@@ -103,7 +105,7 @@ function ImportOrderPage() {
   const fetchWarehouseManagers = async () => {
     try {
       const response = await axiosInstance.get('/accounts?role=warehouse_manager', {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       setWarehouseManagers(response.data.data || []);
     } catch (error) {
@@ -119,7 +121,7 @@ function ImportOrderPage() {
     setMedicinesLoading(true);
     try {
       const response = await axiosInstance.get(`/supplier-contracts/${contractId}`, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       console.log('Contract medicines loaded:', response.data.data?.items);
       setContractMedicines(response.data.data?.items || []);
@@ -153,7 +155,7 @@ function ImportOrderPage() {
 
     try {
       await axiosInstance.delete(`/import-orders/${id}`, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       setSuccess('Order deleted successfully');
       fetchOrders();
@@ -166,13 +168,13 @@ function ImportOrderPage() {
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     if (name === 'supplier_contract_id') {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value,
         details: []
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [name]: value
       }));
@@ -188,21 +190,21 @@ function ImportOrderPage() {
 
     // If medicine changes, get unit price from contract
     if (field === 'medicine_id') {
-      const selectedMedicine = contractMedicines.find(med => med.medicine_id._id === value);
+      const selectedMedicine = contractMedicines.find((med) => med.medicine_id._id === value);
       if (selectedMedicine) {
         newDetails[index].unit_price = selectedMedicine.unit_price || 0;
         console.log('Selected medicine:', selectedMedicine.medicine_id.medicine_name, 'Unit price:', selectedMedicine.unit_price);
       }
     }
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       details: newDetails
     }));
   };
 
   const addDetail = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       details: [
         ...prev.details,
@@ -216,7 +218,7 @@ function ImportOrderPage() {
   };
 
   const removeDetail = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       details: prev.details.filter((_, i) => i !== index)
     }));
@@ -224,7 +226,7 @@ function ImportOrderPage() {
 
   const calculateTotal = () => {
     return formData.details.reduce((total, detail) => {
-      return total + (detail.quantity * detail.unit_price);
+      return total + detail.quantity * detail.unit_price;
     }, 0);
   };
 
@@ -233,7 +235,7 @@ function ImportOrderPage() {
     setFormLoading(true);
 
     // Validate: không cho chọn trùng thuốc
-    const medicineIds = formData.details.map(d => d.medicine_id);
+    const medicineIds = formData.details.map((d) => d.medicine_id);
     const hasDuplicate = new Set(medicineIds).size !== medicineIds.length;
     if (hasDuplicate) {
       setError('Không được chọn trùng thuốc trong cùng một phiếu nhập!');
@@ -248,9 +250,11 @@ function ImportOrderPage() {
         return;
       }
       // Validate: số lượng nhập phải >= min_order_quantity từ hợp đồng
-      const contractItem = contractMedicines.find(med => med.medicine_id._id === detail.medicine_id);
+      const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
       if (contractItem && detail.quantity < contractItem.min_order_quantity) {
-        setError(`Số lượng nhập cho thuốc "${contractItem.medicine_id.medicine_name}" phải tối thiểu là ${contractItem.min_order_quantity}`);
+        setError(
+          `Số lượng nhập cho thuốc "${contractItem.medicine_id.medicine_name}" phải tối thiểu là ${contractItem.min_order_quantity}`
+        );
         setFormLoading(false);
         return;
       }
@@ -262,17 +266,23 @@ function ImportOrderPage() {
         total: calculateTotal()
       };
       const orderDetails = formData.details;
-      const url = selectedOrder
-        ? `/import-orders/${selectedOrder._id}`
-        : '/import-orders';
+      const url = selectedOrder ? `/import-orders/${selectedOrder._id}` : '/import-orders';
       if (selectedOrder) {
-        await axiosInstance.put(url, { orderData, orderDetails }, {
-          headers: getAuthHeaders(),
-        });
+        await axiosInstance.put(
+          url,
+          { orderData, orderDetails },
+          {
+            headers: getAuthHeaders()
+          }
+        );
       } else {
-        await axiosInstance.post(url, { orderData, orderDetails }, {
-          headers: getAuthHeaders(),
-        });
+        await axiosInstance.post(
+          url,
+          { orderData, orderDetails },
+          {
+            headers: getAuthHeaders()
+          }
+        );
       }
       setSuccess(selectedOrder ? 'Order updated successfully' : 'Order created successfully');
       handleCloseForm();
@@ -298,7 +308,7 @@ function ImportOrderPage() {
     if (order) {
       setFormData({
         supplier_contract_id: order.supplier_contract_id._id || order.supplier_contract_id,
-        details: order.details.map(d => ({
+        details: order.details.map((d) => ({
           ...d,
           medicine_id: typeof d.medicine_id === 'object' ? d.medicine_id._id : d.medicine_id
         }))
@@ -334,14 +344,22 @@ function ImportOrderPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'draft': return 'default';
-      case 'approved': return 'success';
-      case 'delivered': return 'info';
-      case 'checked': return 'warning';
-      case 'arranged': return 'primary';
-      case 'completed': return 'success';
-      case 'cancelled': return 'error';
-      default: return 'default';
+      case 'draft':
+        return 'default';
+      case 'approved':
+        return 'success';
+      case 'delivered':
+        return 'info';
+      case 'checked':
+        return 'warning';
+      case 'arranged':
+        return 'primary';
+      case 'completed':
+        return 'success';
+      case 'cancelled':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
@@ -355,11 +373,7 @@ function ImportOrderPage() {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Manage Import Orders</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenForm()}
-        >
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenForm()}>
           Create New Order
         </Button>
       </Box>
@@ -372,7 +386,9 @@ function ImportOrderPage() {
               <TableCell sx={{ minWidth: 150 }}>Supplier</TableCell>
               <TableCell sx={{ minWidth: 150 }}>Warehouse</TableCell>
               <TableCell sx={{ minWidth: 120 }}>Created By</TableCell>
-              <TableCell align="right" sx={{ minWidth: 120 }}>Total Amount</TableCell>
+              <TableCell align="right" sx={{ minWidth: 120 }}>
+                Total Amount
+              </TableCell>
               <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
               <TableCell sx={{ minWidth: 120 }}>Actions</TableCell>
             </TableRow>
@@ -385,31 +401,17 @@ function ImportOrderPage() {
                 <TableCell>{order.warehouse_manager_id?.name || 'N/A'}</TableCell>
                 <TableCell>{order.created_by?._id || order.created_by || 'N/A'}</TableCell>
                 <TableCell align="right">
-                  ${order.details?.reduce((total, detail) => 
-                    total + (detail.quantity * detail.unit_price), 0
-                  ).toLocaleString() || 0}
+                  ${order.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0).toLocaleString() || 0}
                 </TableCell>
                 <TableCell>
-                  <Chip
-                    label={order.status}
-                    color={getStatusColor(order.status)}
-                    size="small"
-                  />
+                  <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
                 </TableCell>
                 <TableCell>
                   <Box display="flex" gap={1}>
-                    <IconButton 
-                      color="primary" 
-                      onClick={() => handleOpenForm(order)}
-                      title="Edit order"
-                    >
+                    <IconButton color="primary" onClick={() => handleOpenForm(order)} title="Edit order">
                       <EditIcon />
                     </IconButton>
-                    <IconButton 
-                      color="error" 
-                      onClick={() => handleDelete(order._id)}
-                      title="Delete order"
-                    >
+                    <IconButton color="error" onClick={() => handleDelete(order._id)} title="Delete order">
                       <DeleteIcon />
                     </IconButton>
                     <IconButton color="info" onClick={() => handleOpenDetails(order)}>
@@ -434,9 +436,7 @@ function ImportOrderPage() {
 
       {/* Form Dialog */}
       <Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedOrder ? 'Edit Import Order' : 'Create New Import Order'}
-        </DialogTitle>
+        <DialogTitle>{selectedOrder ? 'Edit Import Order' : 'Create New Import Order'}</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
             <Grid container spacing={2}>
@@ -463,12 +463,7 @@ function ImportOrderPage() {
                 <Divider sx={{ my: 2 }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="h6">Order Details</Typography>
-                  <Button 
-                    onClick={addDetail} 
-                    variant="outlined" 
-                    size="small"
-                    disabled={!formData.supplier_contract_id}
-                  >
+                  <Button onClick={addDetail} variant="outlined" size="small" disabled={!formData.supplier_contract_id}>
                     Add Medicine
                   </Button>
                 </Box>
@@ -529,11 +524,7 @@ function ImportOrderPage() {
                         />
                       </Grid>
                       <Grid item xs={6} md={2}>
-                        <IconButton 
-                          color="error" 
-                          onClick={() => removeDetail(index)}
-                          disabled={formData.details.length === 1}
-                        >
+                        <IconButton color="error" onClick={() => removeDetail(index)} disabled={formData.details.length === 1}>
                           <DeleteIcon />
                         </IconButton>
                       </Grid>
@@ -544,9 +535,7 @@ function ImportOrderPage() {
 
               <Grid item xs={12}>
                 <Divider sx={{ my: 2 }} />
-                <Typography variant="h6">
-                  Total Amount: ${calculateTotal().toLocaleString()}
-                </Typography>
+                <Typography variant="h6">Total Amount: ${calculateTotal().toLocaleString()}</Typography>
               </Grid>
             </Grid>
           </Box>
@@ -555,12 +544,8 @@ function ImportOrderPage() {
           <Button onClick={handleCloseForm} disabled={formLoading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSubmit} 
-            variant="contained" 
-            disabled={formLoading}
-          >
-            {formLoading ? 'Saving...' : (selectedOrder ? 'Update' : 'Create')}
+          <Button onClick={handleSubmit} variant="contained" disabled={formLoading}>
+            {formLoading ? 'Saving...' : selectedOrder ? 'Update' : 'Create'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -575,16 +560,17 @@ function ImportOrderPage() {
                 <Grid item xs={12} md={6}>
                   <Typography variant="h6">Basic Information</Typography>
                   <Paper sx={{ p: 2 }}>
-                    <Typography><strong>Contract:</strong> {selectedOrder.supplier_contract_id?.contract_code}</Typography>
-                    <Typography><strong>Supplier:</strong> {selectedOrder.supplier_contract_id?.supplier_id?.name}</Typography>
+                    <Typography>
+                      <strong>Contract:</strong> {selectedOrder.supplier_contract_id?.contract_code}
+                    </Typography>
+                    <Typography>
+                      <strong>Supplier:</strong> {selectedOrder.supplier_contract_id?.supplier_id?.name}
+                    </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography component="span"><strong>Status:</strong></Typography>
-                      <Chip 
-                        label={selectedOrder.status} 
-                        color={getStatusColor(selectedOrder.status)} 
-                        size="small" 
-                        sx={{ ml: 1 }}
-                      />
+                      <Typography component="span">
+                        <strong>Status:</strong>
+                      </Typography>
+                      <Chip label={selectedOrder.status} color={getStatusColor(selectedOrder.status)} size="small" sx={{ ml: 1 }} />
                     </Box>
                   </Paper>
                 </Grid>
@@ -606,9 +592,7 @@ function ImportOrderPage() {
                             <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
                             <TableCell align="right">{detail.quantity}</TableCell>
                             <TableCell align="right">${detail.unit_price?.toLocaleString()}</TableCell>
-                            <TableCell align="right">
-                              ${((detail.quantity || 0) * (detail.unit_price || 0)).toLocaleString()}
-                            </TableCell>
+                            <TableCell align="right">${((detail.quantity || 0) * (detail.unit_price || 0)).toLocaleString()}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -651,4 +635,4 @@ function ImportOrderPage() {
   );
 }
 
-export default ImportOrderPage; 
+export default ImportOrderPage;
