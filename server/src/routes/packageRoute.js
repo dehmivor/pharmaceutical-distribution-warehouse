@@ -16,7 +16,7 @@ router.put('/packages/:packageId/confirm', packageController.confirmPackageStora
 // Get packages by location
 router.get('/packages/location/:locationId', packageController.getPackagesByLocation);
 
-router.post('/packages', packageController.createPackage);
+router.post('/', packageController.createPackage);
 
 //For warehouse manager deleting package record before finalizing import order
 router.patch('/:packageId/clear-location', packageController.clearLocation);

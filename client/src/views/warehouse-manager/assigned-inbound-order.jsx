@@ -21,11 +21,19 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
+
 function ManageInboundOrders() {
   const theme = useTheme();
-  const [orders, setOrders]       = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
 
   // Grab user from localStorage
@@ -44,7 +52,9 @@ function ManageInboundOrders() {
     (async () => {
       try {
         setLoading(true);
-        const resp = await axios.get(`/api/import-orders/warehouse-manager/${userId}`);
+        const resp = await axios.get(`/api/import-orders/warehouse-manager/${userId}`, {
+          headers: getAuthHeaders()
+        });
         if (resp.data.success) {
           setOrders(resp.data.data);
         } else {

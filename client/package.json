@@ -29,6 +29,7 @@
     "add": "^2.0.6",
     "autoprefixer": "^10.4.21",
     "axios": "^1.9.0",
+    "bwip-js": "^4.7.0",
     "date-fns": "^4.1.0",
     "icons-material": "^0.0.1-security",
     "install": "^0.13.0",

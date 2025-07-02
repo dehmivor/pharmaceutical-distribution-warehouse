@@ -1,5 +1,7 @@
 'use client';
 
+import bwipjs from 'bwip-js/browser';
+import PrintIcon from '@mui/icons-material/Print';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -41,7 +43,17 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { useTheme } from '@mui/material/styles';
 
-export default function ImportOrderDetail() {
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
+
+
+
+function ImportOrderDetail() {
   const theme = useTheme();
   const { orderId } = useParams();
   const router = useRouter();
@@ -74,6 +86,8 @@ export default function ImportOrderDetail() {
 
   const [newBatches, setNewBatches] = useState([]);
 
+
+
   // Initial fetch: order + inspections + initial packages
   useEffect(() => {
     if (!orderId) return;
@@ -83,14 +97,17 @@ export default function ImportOrderDetail() {
         setLoading(true);
 
         // 1) Load the order
-        const { data: orderResp } = await axios.get(`/api/import-orders/${orderId}`);
+        const { data: orderResp } = await axios.get(`/api/import-orders/${orderId}`, {
+          headers: getAuthHeaders()
+        });
         if (!orderResp.success) throw new Error('Failed to load order');
         setOrder(orderResp.data);
 
         // 2) Load the inspections for this order
         const { data: inspResp } = await axios.get(
-          `/api/import-inspections/import-orders/${orderId}/inspections`
-        );
+          `/api/import-inspections/import-orders/${orderId}/inspections`, {
+          headers: getAuthHeaders()
+        });
         const insps = inspResp.inspections || [];
         setInspections(insps);
 
@@ -131,7 +148,9 @@ export default function ImportOrderDetail() {
   const fetchPutAway = async () => {
     try {
       setLoadingPutAway(true);
-      const resp = await axios.get(`/api/packages/import-order/${orderId}`);
+      const resp = await axios.get(`/api/packages/import-order/${orderId}`, {
+        headers: getAuthHeaders()
+      });
       // resp.data might be { success, data: [...] }
       const list = Array.isArray(resp.data.data)
         ? resp.data.data
@@ -145,9 +164,25 @@ export default function ImportOrderDetail() {
     }
   };
 
+  const fetchInspection = async () => {
+    try {
+      const { data: inspResp } = await axios.get(
+        `/api/import-inspections/import-orders/${orderId}/inspections`, {
+        headers: getAuthHeaders()
+      });
+      const insps = inspResp.inspections || [];
+      setInspections(insps);
+    } catch (err) {
+      console.error(err);
+      setPutAway([]);
+    }
+  };
+
   const handleClearLocation = async (pkgId) => {
     try {
-      await axios.patch(`/api/packages/${pkgId}/clear-location`);
+      await axios.patch(`/api/packages/${pkgId}/clear-location`, {
+        headers: getAuthHeaders()
+      });
       await fetchPutAway();
     } catch (err) {
       console.error(err);
@@ -228,32 +263,32 @@ export default function ImportOrderDetail() {
   };
 
   const uniqueInspections = inspections
-  .filter(i => i.medicine_id && i.medicine_id._id)
-  .filter((i, idx, arr) =>
-    arr.findIndex(j => j.medicine_id._id === i.medicine_id._id) === idx
-  );
+    .filter(i => i.medicine_id && i.medicine_id._id)
+    .filter((i, idx, arr) =>
+      arr.findIndex(j => j.medicine_id._id === i.medicine_id._id) === idx
+    );
 
 
 
-  const isValid = 
-  // 1) Must have at least one package row
-  packages.length > 0 &&
+  const isValid =
+    // 1) Must have at least one package row
+    packages.length > 0 &&
 
-  // 2) Every row must have selected a batch
-  packages.every(p => Boolean(p.batch_id)) &&
+    // 2) Every row must have selected a batch
+    packages.every(p => Boolean(p.batch_id)) &&
 
-  // 3) Package sums must exactly match each inspection’s net quantity
-  inspections.every(ins => {
-    // If inspection has no batch_id, skip it
-    if (!ins.batch_id?._id) return true;
+    // 3) Package sums must exactly match each inspection’s net quantity
+    inspections.every(ins => {
+      // If inspection has no batch_id, skip it
+      if (!ins.batch_id?._id) return true;
 
-    const net = ins.actual_quantity - ins.rejected_quantity;
-    const sum = packages
-      .filter(p => String(p.batch_id) === String(ins.batch_id._id))
-      .reduce((total, p) => total + Number(p.quantity || 0), 0);
+      const net = ins.actual_quantity - ins.rejected_quantity;
+      const sum = packages
+        .filter(p => String(p.batch_id) === String(ins.batch_id._id))
+        .reduce((total, p) => total + Number(p.quantity || 0), 0);
 
-    return sum === net;
-  });
+      return sum === net;
+    });
 
   const handlePkgChange = (idx, field, value) => {
     setPackages(pkgs => {
@@ -279,7 +314,7 @@ export default function ImportOrderDetail() {
     try {
       const token = localStorage.getItem('auth-token');
       await axios.delete(`/api/inspections/${inspectionId}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: getAuthHeaders()
       });
 
       // Remove it directly from the inspections array
@@ -299,12 +334,85 @@ export default function ImportOrderDetail() {
     }
   };
 
+  const handlePrintLabel = async (pkg) => {
+    try {
+      // 1) Gather data
+      const pkgId = pkg._id;
+      const medicineName = pkg.batch_id.medicine_id.medicine_name;
+      const batchId = pkg.batch_id._id;
+      const expDate = pkg.batch_id.expiry_date.slice(0, 10); // YYYY-MM-DD
+      const orderIdStr = order._id;
+      const supplierName = order.supplier_contract_id.supplier_id.name;
+
+      // 2) Render barcode to offscreen canvas
+      const canvas = document.createElement('canvas');
+      await bwipjs.toCanvas(canvas, {
+        bcid: 'code128',
+        text: pkgId,
+        scale: 3,
+        includetext: true,
+        textxalign: 'center',
+        textsize: 10,
+      });
+      const barcodeDataUrl = canvas.toDataURL('image/png');
+
+      // 3) Create hidden iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+
+      // 4) Write label HTML into it
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(`
+      <html>
+        <head>
+          <style>
+            body { font-family: sans-serif; margin: 0; padding: 10px; font-size: x-large; }
+            img { display: block; margin: auto; max-width: 100%; }
+            .field { margin: 4px 0; }
+            .label { font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <img src="${barcodeDataUrl}" alt="Barcode" />
+          <br/>
+          <div class="field"><span class="label">Package ID:</span> ${pkgId}</div>
+          <div class="field"><span class="label">Medicine:</span> ${medicineName}</div>
+          <div class="field"><span class="label">Batch ID:</span> ${batchId}</div>
+          <div class="field"><span class="label">EXP:</span> ${expDate}</div>
+          <div class="field"><span class="label">Import Order:</span> ${orderIdStr}</div>
+          <div class="field"><span class="label">Supplier:</span> ${supplierName}</div>
+        </body>
+      </html>
+    `);
+      doc.close();
+
+      // 5) When ready, trigger print and clean up
+      iframe.onload = () => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => document.body.removeChild(iframe), 0);
+      };
+    } catch (err) {
+      console.error('Error printing label', err);
+      setError('Không thể tạo nhãn mã vạch.');
+    }
+  };
+
   const handleArrival = async () => {
     try {
+      console.log("auth headers:", getAuthHeaders());
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
-        { status: 'delivered' }
-      );
+        { status: 'delivered' }, {
+        headers: getAuthHeaders()
+      });
       setOrder(prev => ({ ...prev, status: 'delivered' }));
       enableAccordion('delivered')
     } catch (err) {
@@ -318,8 +426,9 @@ export default function ImportOrderDetail() {
     try {
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
-        { status: 'checked' }
-      );
+        { status: 'checked' }, {
+        headers: getAuthHeaders()
+      });
       setOrder(prev => ({ ...prev, status: 'checked' }));
       enableAccordion('checked')
     } catch (err) {
@@ -331,16 +440,19 @@ export default function ImportOrderDetail() {
   const handleContinuePackages = async () => {
     if (!isValid) return;
     setSaving(true);
+
     try {
-      // 1) Create any new batches first
-      const createdMap = {}; // batch_code → real {_id,label,max}
+      // 1) Create any new batches
+      const createdMap = {};
       for (let spec of newBatches) {
-        const resp = await axios.post('/api/batches', {
+        const resp = await axios.post('/api/batch', {
           medicine_id: spec.medicine_id,
           batch_code: spec.batch_code,
           production_date: spec.production_date,
           expiry_date: spec.expiry_date,
           supplier_id: order.supplier_contract_id.supplier_id._id,
+        }, {
+          headers: getAuthHeaders()
         });
         const b = resp.data.data;
         createdMap[spec.batch_code] = {
@@ -349,39 +461,46 @@ export default function ImportOrderDetail() {
           max: 0
         };
       }
-      // 2) Replace temp IDs in batchOptions and packages
+
+      // 2) Build the **updated** packages array locally
+      const updatedPackages = packages.map(p => {
+        const real = createdMap[p.batch_id];
+        return {
+          batch_id: real ? real.id : p.batch_id,
+          quantity: p.quantity
+        };
+      });
+
+      // 3) Commit to state
       setBatchOptions(opts =>
         opts.map(o => createdMap[o.id] || o)
       );
-      setPackages(pkgs =>
-        pkgs.map(p => ({
-          batch_id: createdMap[p.batch_id]?.id || p.batch_id,
-          quantity: p.quantity
-        }))
-      );
-      // clear newBatches
+      setPackages(updatedPackages);
       setNewBatches([]);
 
-      // 3) Create packages as before
-      await Promise.all(packages.map(p =>
+      // 4) Now post using the **updatedPackages** variable
+      await Promise.all(updatedPackages.map(p =>
         axios.post('/api/packages', {
           import_order_id: orderId,
           batch_id: p.batch_id,
           quantity: p.quantity
+        }, {
+          headers: getAuthHeaders()
         })
       ));
 
-      // 4) Move order to “arranged”
-      await axios.patch(
-        `/api/import-orders/${orderId}/status`,
-        { status: 'arranged' }
-      );
-      await fetchPutAway();
+      // 5) Advance order status
+      await axios.patch(`/api/import-orders/${orderId}/status`, { status: 'arranged' }, {
+        headers: getAuthHeaders()
+      });
       setOrder(prev => ({ ...prev, status: 'arranged' }));
       enableAccordion('packaged');
+
+      // 6) Refresh the list
+      await fetchPutAway();
     } catch (err) {
       console.error(err);
-      setError('Error creating packages');
+      setError('Error creating batches/packages');
     } finally {
       setSaving(false);
     }
@@ -393,7 +512,9 @@ export default function ImportOrderDetail() {
     try {
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
-        { status: 'completed' }
+        { status: 'completed' }, {
+        headers: getAuthHeaders()
+      }
       );
       setOrder(prev => ({ ...prev, status: 'completed' }));
       enableAccordion('other')
@@ -436,12 +557,12 @@ export default function ImportOrderDetail() {
             ))}
             <Divider sx={{ my: 2 }} />
             <Button
-                variant="contained"
-                disabled={order.status != 'approved'}
-                onClick={handleArrival}
-              >
-                Arrived
-              </Button>
+              variant="contained"
+              disabled={order.status != 'approved'}
+              onClick={handleArrival}
+            >
+              Arrived
+            </Button>
           </AccordionDetails>
         </Accordion>
 
@@ -452,6 +573,9 @@ export default function ImportOrderDetail() {
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={2}>
+              <IconButton onClick={fetchInspection} size="small" sx={{ ml: 2 }} disabled={inspectionsDone}>
+                <RefreshIcon />
+              </IconButton>
               <TableContainer component={Paper} elevation={3}>
                 <Table size="medium">
                   <TableHead>
@@ -619,6 +743,14 @@ export default function ImportOrderDetail() {
                                 <DeleteForeverIcon fontSize="small" />
                               </IconButton>
                             )}
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handlePrintLabel(pkg)}
+                              disabled={putAwayDone}
+                            >
+                              <PrintIcon fontSize="small" />
+                            </IconButton>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -656,7 +788,7 @@ export default function ImportOrderDetail() {
                   onChange={e => setNewMedicineId(e.target.value)}
                 >
                   {uniqueInspections.map(i => (
-                    <MenuItem key={i._id} value={i.medicine_id?.medicine_name}>
+                    <MenuItem key={i._id} value={i.medicine_id?._id}>
                       {i.medicine_id?.medicine_name || '—'}
                     </MenuItem>
                   ))}
@@ -693,4 +825,6 @@ export default function ImportOrderDetail() {
       </Container>
     </Box>
   );
-}
+};
+
+export default ImportOrderDetail
