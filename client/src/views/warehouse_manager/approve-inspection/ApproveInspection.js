@@ -149,8 +149,10 @@ function ApproveInspection() {
 
   const updateImportOrderStatus = async (importOrderId, status) => {
     const token = localStorage.getItem('auth-token');
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/';
+
     const response = await axios.patch(
-      `http://localhost:5000/api/import-orders/${importOrderId}/status`,
+      `${backendUrl}/api/import-orders/${importOrderId}/status`,
       { status }, // body
       {
         headers: {
@@ -190,7 +192,9 @@ function ApproveInspection() {
   const handleDeleteInspection = async (inspectionId) => {
     try {
       const token = localStorage.getItem('auth-token');
-      await axios.delete(`http://localhost:5000/api/inspections/${inspectionId}`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/';
+
+      await axios.delete(`${backendUrl}/api/inspections/${inspectionId}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

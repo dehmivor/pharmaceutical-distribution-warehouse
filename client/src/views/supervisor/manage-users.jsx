@@ -75,8 +75,10 @@ function ManageUsers() {
     if (!validateForm()) return;
     setSubmitting(true);
     try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/';
+
       const response = await axios.post(
-        'http://localhost:5000/api/accounts/create',
+        `${backendUrl}/api/accounts/create`,
         {
           email: formData.email.toLowerCase().trim(),
           role: formData.role,

@@ -38,7 +38,7 @@ import { vi } from 'date-fns/locale';
 import axios from 'axios';
 import useSWRMutation from 'swr/mutation'; // Import useSWRMutation cho POST
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
@@ -619,11 +619,7 @@ const SupplierContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], m
               </Typography>
             )}
             <Box sx={{ mt: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={addItem}
-                sx={{ textTransform: 'none', fontWeight: 600 }}
-              >
+              <Button variant="outlined" onClick={addItem} sx={{ textTransform: 'none', fontWeight: 600 }}>
                 Thêm thuốc
               </Button>
             </Box>

@@ -28,16 +28,11 @@ import {
   CircularProgress,
   Grid
 } from '@mui/material';
-import { 
-  Info as InfoIcon, 
-  Update as UpdateIcon,
-  Search as SearchIcon,
-  Refresh as RefreshIcon
-} from '@mui/icons-material';
+import { Info as InfoIcon, Update as UpdateIcon, Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import axios from 'axios';
 import ImportOrderDetails from '@/sections/warehouse/ImportOrderDetails';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -111,33 +106,32 @@ const ManageImportOrders = () => {
   }, [fetchOrders]);
 
   // Handle status change
-  const handleStatusChange = useCallback(async (id, status) => {
-    try {
-      setUpdatingStatus(true);
-      setError(null);
-      
-      const response = await axiosInstance.patch(
-        `/import-orders/${id}/status`,
-        { status },
-        { headers: getAuthHeaders() }
-      );
+  const handleStatusChange = useCallback(
+    async (id, status) => {
+      try {
+        setUpdatingStatus(true);
+        setError(null);
 
-      if (response.data.success) {
-        setSuccess('Order status updated successfully');
-        setOpenStatusDialog(false);
-        setSelectedOrder(null);
-        setNewStatus('');
-        fetchOrders(); // Refresh the list
-      } else {
-        throw new Error(response.data.error || 'Failed to update order status');
+        const response = await axiosInstance.patch(`/import-orders/${id}/status`, { status }, { headers: getAuthHeaders() });
+
+        if (response.data.success) {
+          setSuccess('Order status updated successfully');
+          setOpenStatusDialog(false);
+          setSelectedOrder(null);
+          setNewStatus('');
+          fetchOrders(); // Refresh the list
+        } else {
+          throw new Error(response.data.error || 'Failed to update order status');
+        }
+      } catch (error) {
+        console.log('Lỗi BE trả về:', error.response?.data);
+        setError(error.response?.data?.error || error.message);
+      } finally {
+        setUpdatingStatus(false);
       }
-    } catch (error) {
-      console.log('Lỗi BE trả về:', error.response?.data);
-      setError(error.response?.data?.error || error.message);
-    } finally {
-      setUpdatingStatus(false);
-    }
-  }, [fetchOrders]);
+    },
+    [fetchOrders]
+  );
 
   // Dialog handlers
   const handleOpenStatusDialog = useCallback((order) => {
@@ -184,10 +178,11 @@ const ManageImportOrders = () => {
   }, []);
 
   // Filter orders based on search term
-  const filteredOrders = orders.filter((order) =>
-    order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.supplier_contract_id?.contract_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.warehouse_manager_id?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredOrders = orders.filter(
+    (order) =>
+      order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.supplier_contract_id?.contract_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.warehouse_manager_id?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Paginate orders
@@ -218,12 +213,7 @@ const ManageImportOrders = () => {
             Warehouse managers can update order status to "Checked" or "Arranged"
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={fetchOrders}
-          disabled={loading}
-        >
+        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchOrders} disabled={loading}>
           Refresh
         </Button>
       </Box>
@@ -274,25 +264,23 @@ const ManageImportOrders = () => {
                   <TableCell>{order.supplier_contract_id?.contract_code || 'N/A'}</TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography component="span"><b>Status:</b></Typography>
+                      <Typography component="span">
+                        <b>Status:</b>
+                      </Typography>
                       <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <IconButton 
-                      color="warning" 
+                    <IconButton
+                      color="warning"
                       onClick={() => handleOpenStatusDialog(order)}
                       disabled={!canUpdateStatus(order)}
-                      title={canUpdateStatus(order) ? "Update Status" : "Cannot update this status"}
+                      title={canUpdateStatus(order) ? 'Update Status' : 'Cannot update this status'}
                       sx={{ mr: 1 }}
                     >
                       <UpdateIcon />
                     </IconButton>
-                    <IconButton
-                      color="info"
-                      onClick={() => handleOpenDetails(order)}
-                      title="View Details"
-                    >
+                    <IconButton color="info" onClick={() => handleOpenDetails(order)} title="View Details">
                       <InfoIcon />
                     </IconButton>
                   </TableCell>
@@ -331,12 +319,7 @@ const ManageImportOrders = () => {
             </Typography>
             <FormControl fullWidth sx={{ mt: 2 }}>
               <InputLabel>New Status</InputLabel>
-              <Select
-                value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
-                label="New Status"
-                disabled={updatingStatus}
-              >
+              <Select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} label="New Status" disabled={updatingStatus}>
                 {ALLOWED_STATUSES.map((status) => (
                   <MenuItem key={status} value={status}>
                     {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -353,7 +336,7 @@ const ManageImportOrders = () => {
           <Button onClick={handleCloseStatusDialog} disabled={updatingStatus}>
             Cancel
           </Button>
-          <Button 
+          <Button
             onClick={() => handleStatusChange(selectedOrder._id, newStatus)}
             variant="contained"
             disabled={!newStatus || newStatus === selectedOrder?.status || updatingStatus}
@@ -373,34 +356,56 @@ const ManageImportOrders = () => {
               <Grid container spacing={2}>
                 <Grid item xs={12} md={4}>
                   <Paper sx={{ p: 2, mb: 2 }}>
-                    <Typography variant="h6" gutterBottom>Basic Info</Typography>
-                    <Typography><b>Order Code:</b> {selectedOrder.import_order_code || 'N/A'}</Typography>
+                    <Typography variant="h6" gutterBottom>
+                      Basic Info
+                    </Typography>
+                    <Typography>
+                      <b>Order Code:</b> {selectedOrder.import_order_code || 'N/A'}
+                    </Typography>
                     <Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography component="span"><b>Status:</b></Typography>
+                        <Typography component="span">
+                          <b>Status:</b>
+                        </Typography>
                         <Chip label={selectedOrder.status} color={getStatusColor(selectedOrder.status)} size="small" />
                       </Box>
                     </Typography>
-                    <Typography><b>Created At:</b> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString() : 'N/A'}</Typography>
+                    <Typography>
+                      <b>Created At:</b> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString() : 'N/A'}
+                    </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <Paper sx={{ p: 2, mb: 2 }}>
-                    <Typography variant="h6" gutterBottom>Contract & Supplier</Typography>
-                    <Typography><b>Contract Code:</b> {selectedOrder.supplier_contract_id?.contract_code || 'N/A'}</Typography>
-                    <Typography><b>Supplier:</b> {selectedOrder.supplier_contract_id?.supplier_id?.name || 'N/A'}</Typography>
+                    <Typography variant="h6" gutterBottom>
+                      Contract & Supplier
+                    </Typography>
+                    <Typography>
+                      <b>Contract Code:</b> {selectedOrder.supplier_contract_id?.contract_code || 'N/A'}
+                    </Typography>
+                    <Typography>
+                      <b>Supplier:</b> {selectedOrder.supplier_contract_id?.supplier_id?.name || 'N/A'}
+                    </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <Paper sx={{ p: 2, mb: 2 }}>
-                    <Typography variant="h6" gutterBottom>Warehouse Manager</Typography>
-                    <Typography><b>Name:</b> {selectedOrder.warehouse_manager_id?.name || 'N/A'}</Typography>
-                    <Typography><b>Email:</b> {selectedOrder.warehouse_manager_id?.email || 'N/A'}</Typography>
+                    <Typography variant="h6" gutterBottom>
+                      Warehouse Manager
+                    </Typography>
+                    <Typography>
+                      <b>Name:</b> {selectedOrder.warehouse_manager_id?.name || 'N/A'}
+                    </Typography>
+                    <Typography>
+                      <b>Email:</b> {selectedOrder.warehouse_manager_id?.email || 'N/A'}
+                    </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12}>
                   <Paper sx={{ p: 2, mb: 2 }}>
-                    <Typography variant="h6" gutterBottom>Order Details</Typography>
+                    <Typography variant="h6" gutterBottom>
+                      Order Details
+                    </Typography>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
@@ -422,10 +427,13 @@ const ManageImportOrders = () => {
                           </TableRow>
                         ))}
                         <TableRow>
-                          <TableCell colSpan={4}><b>Total Amount</b></TableCell>
+                          <TableCell colSpan={4}>
+                            <b>Total Amount</b>
+                          </TableCell>
                           <TableCell align="right">
                             <b>
-                              {selectedOrder.details?.reduce((sum, d) => sum + (d.quantity || 0) * (d.unit_price || 0), 0).toLocaleString()} VND
+                              {selectedOrder.details?.reduce((sum, d) => sum + (d.quantity || 0) * (d.unit_price || 0), 0).toLocaleString()}{' '}
+                              VND
                             </b>
                           </TableCell>
                         </TableRow>
@@ -436,7 +444,9 @@ const ManageImportOrders = () => {
                 {selectedOrder.notes && (
                   <Grid item xs={12}>
                     <Paper sx={{ p: 2, mb: 2 }}>
-                      <Typography variant="h6" gutterBottom>Notes</Typography>
+                      <Typography variant="h6" gutterBottom>
+                        Notes
+                      </Typography>
                       <Typography>{selectedOrder.notes}</Typography>
                     </Paper>
                   </Grid>
@@ -451,12 +461,7 @@ const ManageImportOrders = () => {
       </Dialog>
 
       {/* Error Snackbar */}
-      <Snackbar
-        open={!!error}
-        autoHideDuration={6000}
-        onClose={handleCloseError}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseError} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
         <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
           {error}
         </Alert>
