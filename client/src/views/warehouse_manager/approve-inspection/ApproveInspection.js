@@ -363,6 +363,7 @@ function ApproveInspection() {
                         <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>
                           Inspection ID
                         </TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Tên thuốc</TableCell>
                         <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Thực nhập</TableCell>
                         <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Số loại bỏ</TableCell>
                         <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Người tạo</TableCell>
@@ -380,6 +381,7 @@ function ApproveInspection() {
                               </Typography>
                             </Tooltip>
                           </TableCell>
+                          <TableCell>{insp.medicine_id.medicine_name}</TableCell>
                           <TableCell>{insp.actual_quantity}</TableCell>
                           <TableCell>{insp.rejected_quantity}</TableCell>
                           <TableCell>{insp.created_by?.email || '-'}</TableCell>
