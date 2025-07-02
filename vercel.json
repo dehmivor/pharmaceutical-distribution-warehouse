@@ -1,8 +1,13 @@
 {
   "version": 2,
-  "buildCommand": "yarn build",
-  "outputDirectory": ".next",
-  "installCommand": "yarn install",
+  "buildCommand": "cd client && yarn build",
+  "outputDirectory": "client/.next",
+  "installCommand": "cd client && yarn install",
   "framework": "nextjs",
-  "rootDirectory": "client"
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/client/$1"
+    }
+  ]
 } 
