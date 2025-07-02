@@ -577,14 +577,15 @@ function ImportOrderPage() {
                   <Paper sx={{ p: 2 }}>
                     <Typography><strong>Contract:</strong> {selectedOrder.supplier_contract_id?.contract_code}</Typography>
                     <Typography><strong>Supplier:</strong> {selectedOrder.supplier_contract_id?.supplier_id?.name}</Typography>
-                    <Typography><strong>Status:</strong> 
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Typography component="span"><strong>Status:</strong></Typography>
                       <Chip 
                         label={selectedOrder.status} 
                         color={getStatusColor(selectedOrder.status)} 
                         size="small" 
                         sx={{ ml: 1 }}
                       />
-                    </Typography>
+                    </Box>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
