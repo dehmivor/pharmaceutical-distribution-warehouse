@@ -15,18 +15,31 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  TextField,
+  DialogActions,
   TablePagination,
   Snackbar,
-  Alert
+  Alert,
+  Chip,
+  TextField
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Info as InfoIcon } from '@mui/icons-material';
+import axios from 'axios';
 import ImportOrderForm from '@/sections/warehouse/ImportOrderForm';
 import ImportOrderDetails from '@/sections/warehouse/ImportOrderDetails';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
+};
+
 const ManageImportOrder = () => {
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [openForm, setOpenForm] = useState(false);
@@ -37,17 +50,14 @@ const ManageImportOrder = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const fetchOrders = async () => {
-    setLoading(true);
     try {
-      const response = await fetch('/api/import-orders');
-      if (!response.ok) {
-        throw new Error('Failed to fetch orders');
-      }
-      const data = await response.json();
-      setOrders(data.data || []);
+      setLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/import-orders`, {
+        headers: getAuthHeaders()
+      });
+      setOrders(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching orders:', error);
-      setError(error.message);
+      setError(error.response?.data?.error || 'Failed to fetch orders');
     } finally {
       setLoading(false);
     }
@@ -58,63 +68,17 @@ const ManageImportOrder = () => {
   }, []);
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this order?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/import-orders/${id}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete order');
+    if (window.confirm('Are you sure you want to delete this order?')) {
+      try {
+        await axios.delete(`${API_BASE_URL}/import-orders/${id}`, {
+          headers: getAuthHeaders()
+        });
+        setSuccess('Order deleted successfully');
+        fetchOrders();
+      } catch (error) {
+        setError(error.response?.data?.error || 'Failed to delete order');
       }
-
-      setSuccess('Order deleted successfully');
-      fetchOrders();
-    } catch (error) {
-      console.error('Error deleting order:', error);
-      setError(error.message);
     }
-  };
-
-  const handleStatusChange = async (id, status) => {
-    try {
-      const response = await fetch(`/api/import-orders/${id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update order status');
-      }
-
-      setSuccess('Order status updated successfully');
-      fetchOrders();
-    } catch (error) {
-      console.error('Error updating order status:', error);
-      setError(error.message);
-    }
-  };
-
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const handleSearch = (event) => {
-    setSearchTerm(event.target.value);
-    setPage(0);
   };
 
   const handleOpenForm = (order = null) => {
@@ -125,7 +89,6 @@ const ManageImportOrder = () => {
   const handleCloseForm = () => {
     setSelectedOrder(null);
     setOpenForm(false);
-    fetchOrders();
   };
 
   const handleOpenDetails = (order) => {
@@ -146,21 +109,53 @@ const ManageImportOrder = () => {
     setSuccess(null);
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'draft': return 'default';
+      case 'approved': return 'success';
+      case 'delivered': return 'info';
+      case 'checked': return 'warning';
+      case 'arranged': return 'primary';
+      case 'completed': return 'success';
+      case 'cancelled': return 'error';
+      default: return 'default';
+    }
+  };
+
   // Filter orders based on search term
   const filteredOrders = orders.filter((order) =>
-    order._id.toLowerCase().includes(searchTerm.toLowerCase())
+    order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.supplier_contract_id?.contract_code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Paginate orders
   const paginatedOrders = filteredOrders.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const handleSearch = (event) => {
+    setSearchTerm(event.target.value);
+    setPage(0);
+  };
+
+  if (loading) {
+    return <Typography>Loading...</Typography>;
+  }
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Manage Import Orders</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenForm()}>
-          New Order
-        </Button>
+        <Typography variant="h4">View Import Orders</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Warehouse staff can only view orders. Status changes are managed by warehouse managers.
+        </Typography>
       </Box>
 
       <TextField fullWidth label="Search Orders" variant="outlined" value={searchTerm} onChange={handleSearch} sx={{ mb: 3 }} />
@@ -184,17 +179,18 @@ const ManageImportOrder = () => {
                   {new Date(order.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell>{order.supplier_contract_id?.contract_code || 'N/A'}</TableCell>
-                <TableCell>{order.status}</TableCell>
                 <TableCell>
-                  <IconButton color="primary" onClick={() => handleOpenForm(order)} disabled={order.status === 'completed'}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton color="error" onClick={() => handleDelete(order._id)} disabled={order.status === 'completed'}>
-                    <DeleteIcon />
-                  </IconButton>
+                  <Chip
+                    label={order.status}
+                    color={getStatusColor(order.status)}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>
                   <IconButton
                     color="info"
                     onClick={() => handleOpenDetails(order)}
+                    title="View Details"
                   >
                     <InfoIcon />
                   </IconButton>
@@ -213,21 +209,6 @@ const ManageImportOrder = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </TableContainer>
-
-      {/* Form Dialog */}
-      <Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
-        <DialogTitle>{selectedOrder ? 'Edit Import Order' : 'New Import Order'}</DialogTitle>
-        <DialogContent>
-          <ImportOrderForm
-            order={selectedOrder}
-            onClose={handleCloseForm}
-            onSuccess={() => {
-              handleCloseForm();
-              fetchOrders();
-            }}
-          />
-        </DialogContent>
-      </Dialog>
 
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="md" fullWidth>

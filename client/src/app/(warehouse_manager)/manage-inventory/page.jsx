@@ -5,8 +5,8 @@ import dynamic from 'next/dynamic';
 
 const ManageInventory = dynamic(() => import('@/views/warehouse-manager/manage-inventory'));
 
-/***************************  AUTH - LOGIN  ***************************/
+/***************************  INVENTORY MANAGEMENT  ***************************/
 
-export default function Login() {
+export default function InventoryPage() {
   return <ManageInventory/>;
 }

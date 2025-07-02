@@ -1,5 +1,6 @@
 const importOrderService = require('../services/importOrderService');
 const { IMPORT_ORDER_STATUSES } = require('../utils/constants');
+const mongoose = require('mongoose');
 
 // Create new import order
 const createImportOrder = async (req, res) => {
@@ -28,16 +29,31 @@ const createImportOrder = async (req, res) => {
   }
 };
 
-// Get all import orders
+// Get all import orders with filters
 const getImportOrders = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, supplier_contract_id, warehouse_manager_id } = req.query;
+    const { page = 1, limit = 10, status, search } = req.query;
+    const userRole = req.user.role;
+    const userId = req.user.id ? req.user.id.toString() : null;
 
-    // Build query
-    const query = {};
+    let query = {};
+    
+    // Warehouse manager chỉ xem orders được gán cho mình
+    if (userRole === 'warehouse_manager') {
+      if (mongoose.Types.ObjectId.isValid(userId)) {
+        query.warehouse_manager_id = userId;
+        query.status = 'delivered'; // Chỉ lấy order đã giao
+        console.log('DEBUG getImportOrders:', { userRole, userId, query });
+      }
+    }
+
     if (status) query.status = status;
-    if (supplier_contract_id) query.supplier_contract_id = supplier_contract_id;
-    if (warehouse_manager_id) query.warehouse_manager_id = warehouse_manager_id;
+    if (search) {
+      query.$or = [
+        { _id: { $regex: search, $options: 'i' } },
+        { 'supplier_contract_id.contract_code': { $regex: search, $options: 'i' } }
+      ];
+    }
 
     const result = await importOrderService.getImportOrders(query, parseInt(page), parseInt(limit));
 
@@ -200,7 +216,38 @@ const updateOrderStatus = async (req, res) => {
     
     // Check if user is supervisor and bypass validation
     const bypassValidation = req.user && req.user.role === 'supervisor';
-    const approvalBy = req.user ? req.user._id : null;
+    const approvalBy = req.user ? req.user.id : null;
+    const userRole = req.user ? req.user.role : null;
+
+    // Kiểm tra quyền của warehouse manager (chỉ warehouse_manager mới được phép)
+    if (userRole === 'warehouse_manager') {
+      // Warehouse manager chỉ có thể thay đổi sang checked và arranged
+      const allowedStatuses = ['checked', 'arranged'];
+      if (!allowedStatuses.includes(status)) {
+        return res.status(403).json({
+          success: false,
+          error: `Warehouse manager can only change status to: ${allowedStatuses.join(', ')}`
+        });
+      }
+
+      // Kiểm tra xem order có được gán cho warehouse manager này không
+      const order = await importOrderService.getImportOrderById(id);
+      // So sánh quyền bằng email thay vì id
+      const managerEmail = order.warehouse_manager_id && order.warehouse_manager_id.email
+        ? order.warehouse_manager_id.email
+        : null;
+      console.log('DEBUG so sánh quyền bằng email:', {
+        orderId: id,
+        warehouse_manager_email: managerEmail,
+        reqUserEmail: req.user.email
+      });
+      if (!managerEmail || !req.user.email || managerEmail !== req.user.email) {
+        return res.status(403).json({
+          success: false,
+          error: 'You can only update orders assigned to you'
+        });
+      }
+    }
 
     const updatedOrder = await importOrderService.updateOrderStatus(id, status, approvalBy, bypassValidation);
 
