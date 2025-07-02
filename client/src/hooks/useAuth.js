@@ -13,7 +13,7 @@ export const useAuth = () => {
 
   const login = async (email, password) => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL;
 
       const response = await fetch(`${backendUrl}/api/auth/login`, {
         method: 'POST',
@@ -223,7 +223,7 @@ export const useAuth = () => {
     const roleRedirects = {
       supervisor: '/manage-users',
       representative: '/manage-contracts',
-      warehouse: '/manage-inspections',
+      warehouse: '/manage-inspections'
     };
 
     return roleRedirects[role] || '/dashboard';
