@@ -1,13 +1,23 @@
 'use client';
+import useInspection from '@/hooks/useInspection';
+import CancelIcon from '@mui/icons-material/Cancel';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import PersonIcon from '@mui/icons-material/Person';
 import {
+  Avatar,
   Box,
   Button,
+  Chip,
+  CircularProgress,
+  IconButton,
   List,
   ListItemButton,
-  IconButton,
-  ListItemText,
-  Paper,
   Snackbar,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -15,16 +25,19 @@ import {
   TableHead,
   TableRow,
   Tooltip,
-  Typography,
-  CircularProgress
+  Typography
 } from '@mui/material';
+import Accordion from '@mui/material/Accordion';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import AccordionSummary from '@mui/material/AccordionSummary';
 import MuiAlert from '@mui/material/Alert';
-import { useState, useEffect } from 'react';
-import useInspection from '@/hooks/useInspection';
-import DeleteIcon from '@mui/icons-material/Delete';
+import LinearProgress from '@mui/material/LinearProgress';
+import { useTheme } from '@mui/material/styles';
 import axios from 'axios';
+import { useEffect, useState } from 'react';
 
 function ApproveInspection() {
+  const theme = useTheme();
   const { fetchInspectionForApprove, loading, error } = useInspection();
   const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -62,73 +75,116 @@ function ApproveInspection() {
     fetchData();
   }, [fetchInspectionForApprove]);
 
-  // Giả sử có API hoàn thành đơn nhập
-  const completeImportOrder = async (importOrderId) => {
-    const token = localStorage.getItem('auth-token');
-    await axios.post(
-      `http://localhost:5000/api/import-orders/${importOrderId}/complete`,
-      {},
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
-    );
-  };
-
-  const isOrderReadyForCompletion = (order) => {
-    // Ví dụ: kiểm tra số lượng inspections
-    return order.inspections.length > 0;
-  };
-
   const handleCompleteOrder = async (importOrderId) => {
+    // Tìm order trong state
     const order = orders.find((o) => o.importOrder._id === importOrderId);
-    if (!order || !isOrderReadyForCompletion(order)) {
+    if (!order) {
       setSnackbar({
         open: true,
-        message: 'Đơn nhập chưa đủ điều kiện hoàn thành!',
+        message: 'Không tìm thấy đơn nhập!',
         severity: 'warning'
       });
       return;
     }
-    try {
-      await completeImportOrder(importOrderId);
+
+    // Validate: Số mặt hàng phải bằng số phiếu inspection
+    const importItems = order.importOrder.details;
+    const inspections = order.inspections;
+    if (importItems.length !== inspections.length) {
       setSnackbar({
         open: true,
-        message: `Đã hoàn thành kiểm tra cho đơn ${importOrderId.slice(-6)}!`,
+        message: 'Số mặt hàng và số phiếu kiểm kê không khớp!',
+        severity: 'warning'
+      });
+      return;
+    }
+
+    // Validate: Số lượng thực nhập >= 90% số lượng yêu cầu với từng mặt hàng
+    for (const item of importItems) {
+      // Tìm inspection tương ứng với mặt hàng này
+      const inspection = inspections.find(
+        (insp) => (insp.medicine_id?._id || insp.medicine_id) === (item.medicine_id?._id || item.medicine_id)
+      );
+      if (!inspection) {
+        setSnackbar({
+          open: true,
+          message: `Thiếu phiếu kiểm kê cho mặt hàng ${item.medicine_id?.medicine_name || item.medicine_id}`,
+          severity: 'warning'
+        });
+        return;
+      }
+      if (inspection.actual_quantity < 0.9 * item.quantity) {
+        setSnackbar({
+          open: true,
+          message: `Số lượng thực nhập của mặt hàng ${item.medicine_id?.medicine_name || item.medicine_id} chưa đạt 90% yêu cầu!`,
+          severity: 'warning'
+        });
+        return;
+      }
+    }
+
+    // Nếu qua validate, gọi API cập nhật trạng thái
+    try {
+      const updatedOrder = await updateImportOrderStatus(importOrderId, 'checked');
+
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.importOrder._id === importOrderId ? { ...order, importOrder: { ...order.importOrder, status: 'checked' } } : order
+        )
+      );
+
+      setSnackbar({
+        open: true,
+        message: `Đơn nhập ${importOrderId.slice(-6)} đã được cập nhật trạng thái kiểm tra!`,
         severity: 'success'
       });
-      // Cập nhật lại state hoặc fetch lại dữ liệu nếu cần
     } catch (err) {
       setSnackbar({
         open: true,
-        message: `Lỗi khi hoàn thành kiểm tra: ${err.message}`,
+        message: `Lỗi khi cập nhật trạng thái: ${err.response?.data?.error || err.message}`,
         severity: 'error'
       });
     }
   };
 
-  const handleCompleteAll = async () => {
-    if (orders.length === 0) {
-      setSnackbar({
-        open: true,
-        message: 'Không có đơn nhập nào để hoàn thành!',
-        severity: 'warning'
-      });
-      return;
-    }
-    let hasAny = false;
-    for (const order of orders) {
-      if (isOrderReadyForCompletion(order)) {
-        hasAny = true;
-        await handleCompleteOrder(order.importOrder._id);
+  const updateImportOrderStatus = async (importOrderId, status) => {
+    const token = localStorage.getItem('auth-token');
+    const response = await axios.patch(
+      `http://localhost:5000/api/import-orders/${importOrderId}/status`,
+      { status }, // body
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       }
+    );
+    return response.data.data;
+  };
+
+  const isOrderReadyForCompletion = (order) => {
+    // 1. Số mặt hàng trong importOrder (details)
+    const importItems = order.importOrder.details;
+    const inspections = order.inspections;
+
+    // 2. Số lượng mặt hàng phải bằng số phiếu inspection
+    if (importItems.length !== inspections.length) return false;
+
+    // 3. Kiểm tra từng mặt hàng
+    for (const item of importItems) {
+      // Tìm inspection tương ứng với mặt hàng này
+      const inspection = inspections.find(
+        (insp) => (insp.medicine_id?._id || insp.medicine_id) === (item.medicine_id?._id || item.medicine_id)
+      );
+      if (!inspection) return false;
+
+      // Số lượng thực nhập phải >= 90% số lượng yêu cầu
+      if (inspection.actual_quantity < 0.9 * item.quantity) return false;
+
+      // (Có thể thêm điều kiện khác nếu cần, ví dụ không bị loại bỏ hết)
+      // if (inspection.actual_quantity === 0) return false;
     }
-    if (!hasAny) {
-      setSnackbar({
-        open: true,
-        message: 'Không có đơn nhập nào đủ điều kiện hoàn thành!',
-        severity: 'warning'
-      });
-    }
+
+    return true;
   };
 
   const handleDeleteInspection = async (inspectionId) => {
@@ -139,7 +195,6 @@ function ApproveInspection() {
           Authorization: `Bearer ${token}`
         }
       });
-      // Xóa inspection khỏi state orders
       setOrders((prevOrders) =>
         prevOrders.map((order) => ({
           ...order,
@@ -162,13 +217,48 @@ function ApproveInspection() {
 
   const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
+  const getStatusProps = (status) => {
+    switch (status) {
+      case 'delivered':
+        return {
+          icon: <LocalShippingIcon color="info" fontSize="small" />,
+          label: 'Đã giao',
+          color: 'info'
+        };
+      case 'checked':
+        return {
+          icon: <CheckCircleIcon color="success" fontSize="small" />,
+          label: 'Đã kiểm tra',
+          color: 'success'
+        };
+      case 'pending':
+        return {
+          icon: <HourglassEmptyIcon color="warning" fontSize="small" />,
+          label: 'Chờ xử lý',
+          color: 'warning'
+        };
+      case 'cancelled':
+        return {
+          icon: <CancelIcon color="error" fontSize="small" />,
+          label: 'Đã hủy',
+          color: 'error'
+        };
+      default:
+        return {
+          icon: <HourglassEmptyIcon color="disabled" fontSize="small" />,
+          label: status,
+          color: 'default'
+        };
+    }
+  };
+
   const selectedOrder = orders.find((o) => o.importOrder._id === selectedOrderId);
 
   return (
-    <Box p={2}>
+    <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h5">Quản lý kiểm kê nhập kho</Typography>
-        <Button variant="contained" color="primary" onClick={handleCompleteAll}>
+        <Button variant="contained" color="primary" onClick={() => handleCompleteOrder(selectedOrderId)} disabled={!selectedOrderId}>
           Hoàn thành kiểm tra
         </Button>
       </Box>
@@ -183,32 +273,74 @@ function ApproveInspection() {
         </Box>
       ) : (
         <Box display="flex" gap={2} flexWrap="wrap">
-          {/* Cột trái: Danh sách đơn nhập */}
-          <Box minWidth={250} flexShrink={0}>
+          <Box minWidth={280} flexShrink={0}>
             <Typography variant="h6" mb={1}>
               Danh sách đơn nhập
             </Typography>
-            <List>
-              {orders.map((order) => (
-                <ListItemButton
-                  key={order.importOrder._id}
-                  selected={selectedOrderId === order.importOrder._id}
-                  onClick={() => setSelectedOrderId(order.importOrder._id)}
-                  sx={{ p: 1 }}
-                >
-                  <ListItemText
-                    primary={`Đơn: ${order.importOrder._id.slice(-6)}`}
-                    secondary={
-                      <>
-                        <span>Trạng thái: {order.importOrder.status}</span>
-                        <br />
-                        <span>QL kho: {order.importOrder.warehouse_manager_id?.email || 'Không có'}</span>
-                      </>
-                    }
-                  />
-                </ListItemButton>
-              ))}
-            </List>
+            <Box
+              sx={{
+                borderRadius: 2,
+                p: 1
+              }}
+            >
+              <List disablePadding>
+                {orders.map((order, idx) => {
+                  const statusProps = getStatusProps(order.importOrder.status);
+                  const manager = order.importOrder.warehouse_manager_id;
+                  return (
+                    <Box key={order.importOrder._id}>
+                      <ListItemButton
+                        selected={selectedOrderId === order.importOrder._id}
+                        onClick={() => setSelectedOrderId(order.importOrder._id)}
+                        sx={{
+                          mb: 1,
+                          borderRadius: 1,
+                          boxShadow: selectedOrderId === order.importOrder._id ? 2 : 0,
+                          bgcolor: selectedOrderId === order.importOrder._id ? 'primary.lighter' : 'background.paper',
+                          transition: 'all 0.2s',
+                          p: 2,
+                          alignItems: 'flex-start'
+                        }}
+                      >
+                        <Stack direction="row" spacing={1} alignItems="center" sx={{ width: '100%' }}>
+                          {/* Icon trạng thái */}
+                          {statusProps.icon}
+
+                          {/* Thông tin chính */}
+                          <Box flex={1}>
+                            <Typography variant="subtitle1" fontWeight={600}>
+                              Đơn: {order.importOrder._id.slice(-6)}
+                            </Typography>
+                            <Stack direction="row" spacing={1} alignItems="center" mt={0.5}>
+                              {/* Chip trạng thái */}
+                              <Chip
+                                size="small"
+                                label={statusProps.label}
+                                color={statusProps.color}
+                                variant="outlined"
+                                sx={{ fontWeight: 500 }}
+                              />
+                              {/* Avatar QL kho */}
+                              {manager && (
+                                <Stack direction="row" spacing={0.5} alignItems="center">
+                                  <Avatar sx={{ width: 22, height: 22, bgcolor: 'primary.main', fontSize: 14 }}>
+                                    <PersonIcon fontSize="inherit" />
+                                  </Avatar>
+                                  <Typography variant="caption" color="text.secondary" noWrap>
+                                    {manager.email}
+                                  </Typography>
+                                </Stack>
+                              )}
+                            </Stack>
+                          </Box>
+                        </Stack>
+                      </ListItemButton>
+                      {idx < orders.length - 1 && <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', mx: 1 }} />}
+                    </Box>
+                  );
+                })}
+              </List>
+            </Box>
           </Box>
 
           {/* Cột phải: Danh sách phiếu kiểm kê (inspection) */}
@@ -223,20 +355,25 @@ function ApproveInspection() {
                     Tổng số phiếu kiểm kê: <b>{selectedOrder.inspections.length}</b>
                   </Typography>
                 </Box>
-                <TableContainer component={Paper} elevation={3}>
+                <TableContainer>
                   <Table size="medium">
                     <TableHead>
                       <TableRow>
-                        <TableCell>Inspection ID</TableCell>
-                        <TableCell>Thực nhập</TableCell>
-                        <TableCell>Số loại bỏ</TableCell>
-                        <TableCell>Người tạo</TableCell>
-                        <TableCell>Hành động</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Số thứ tự</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>
+                          Inspection ID
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Tên thuốc</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Thực nhập</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Số loại bỏ</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Người tạo</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Hành động</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {selectedOrder.inspections.map((insp) => (
                         <TableRow key={insp._id} hover>
+                          <TableCell>{selectedOrder.inspections.indexOf(insp) + 1}</TableCell>
                           <TableCell>
                             <Tooltip title={insp._id}>
                               <Typography variant="body2" fontWeight="bold">
@@ -244,6 +381,7 @@ function ApproveInspection() {
                               </Typography>
                             </Tooltip>
                           </TableCell>
+                          <TableCell>{insp.medicine_id.medicine_name}</TableCell>
                           <TableCell>{insp.actual_quantity}</TableCell>
                           <TableCell>{insp.rejected_quantity}</TableCell>
                           <TableCell>{insp.created_by?.email || '-'}</TableCell>
@@ -271,11 +409,51 @@ function ApproveInspection() {
         </Box>
       )}
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar}>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Thêm dòng này
+      >
         <MuiAlert elevation={6} variant="filled" onClose={handleCloseSnackbar} severity={snackbar.severity}>
           {snackbar.message}
         </MuiAlert>
       </Snackbar>
+
+      {selectedOrderId && (
+        <Accordion sx={{ mt: 2 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography fontWeight={600}>Tiến độ kiểm kê từng mặt hàng</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            {selectedOrder.importOrder.details.map((item, idx) => {
+              // Tìm inspection tương ứng với mặt hàng này
+              const inspection = selectedOrder.inspections.find(
+                (insp) => (insp.medicine_id?._id || insp.medicine_id) === (item.medicine_id?._id || item.medicine_id)
+              );
+              // Tính phần trăm thực nhập
+              const actual = inspection?.actual_quantity || 0;
+              const percent = Math.min(100, Math.round((actual / item.quantity) * 100));
+              return (
+                <Box key={item._id || idx} mb={2}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5}>
+                    <Typography variant="subtitle2">{item.medicine_id?.medicine_name || 'Mặt hàng'}</Typography>
+                    <Typography variant="caption" color={percent >= 90 ? 'success.main' : 'warning.main'}>
+                      {actual} / {item.quantity} ({percent}%)
+                    </Typography>
+                  </Stack>
+                  <LinearProgress
+                    variant="determinate"
+                    value={percent}
+                    color={percent >= 90 ? 'success' : 'warning'}
+                    sx={{ height: 8, borderRadius: 4 }}
+                  />
+                </Box>
+              );
+            })}
+          </AccordionDetails>
+        </Accordion>
+      )}
     </Box>
   );
 }

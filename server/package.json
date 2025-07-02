@@ -29,7 +29,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "test:stripe": "jest src/services/stripeService.test.js"
+    "test:server": "jest --config jest.config.js && node testTeardown.js"
   },
   "devDependencies": {
     "@babel/core": "^7.27.4",
