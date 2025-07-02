@@ -62,6 +62,16 @@ app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervis
 app.use('/api/accounts', authenticate, authorize('supervisor'), route.accountRoutes);
 app.use('/api/supplier-contract', route.supplierContractRoutes);
 app.use('/api/supplier', route.supplierRoutes);
+app.use('/api/economic-contracts', route.economicContractRoutes);
+
+// app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
+
+// app.use(
+//   '/api/representative',
+//   authenticate,
+//   authorize(['supervisor', 'representative']),
+//   representativeRoutes,
+// );
 
 // Shared routes cho multiple roles
 app.use(

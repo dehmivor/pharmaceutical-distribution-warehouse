@@ -102,6 +102,21 @@ const supervisor = {
           icon: 'IconSettings'
         }
       ]
+    },
+    {
+      id: 'contract-management',
+      title: 'Contract Management',
+      type: 'collapse',
+      icon: 'IconFileInvoice',
+      children: [
+        {
+          id: 'manage-economic-contracts',
+          title: 'Economic Contracts',
+          type: 'item',
+          url: '/manage-economic-contracts',
+          icon: 'IconFileInvoice'
+        }
+      ]
     }
   ]
 };

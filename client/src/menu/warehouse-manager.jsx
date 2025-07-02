@@ -38,9 +38,16 @@ const warehouseManager = {
           id: 'waiting-for-packetization',
           title: 'Pending Packetization',
           type: 'item',
-          url: '/inbound-orders/packetization',
-          icon: 'IconPackage'
-        }
+          url: '/waiting-for-packetization',
+          icon: 'IconFileExport'
+        },
+        {
+          id: 'assigned-inbound-order',
+          title: 'Assigned inbound order',
+          type: 'item',
+          url: '/assigned-inbound-order',
+          icon: 'IconFileImport'
+        },
       ]
     },
     // 4. Quản lý đơn xuất (outbound)

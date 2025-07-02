@@ -1,0 +1,33 @@
+const mongoose = require('mongoose');
+const constants = require('../utils/constants');
+const retailerSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, 'Retailer name is required'],
+    unique: true,
+    trim: true,
+  },
+  address: {
+    type: String,
+    trim: true,
+  },
+  phone: {
+    type: String,
+    trim: true,
+  },
+  license: {
+    type: String,
+    required: [true, 'Retailer license number is required'],
+    trim: true,
+  },
+  status: {
+    type: String,
+    enum: {
+      values: Object.values(constants.USER_STATUSES),
+      message: `Status must be one of: ${Object.values(constants.USER_STATUSES).join(', ')}`,
+    },
+    default: constants.USER_STATUSES.ACTIVE,
+  },
+});
+
+module.exports = mongoose.model('Retailer', retailerSchema);

@@ -412,6 +412,54 @@ const packageService = {
       };
     }
   },
+
+  getPackagesByImportOrder: async (importOrderId) => {
+    try {
+      if (!importOrderId) {
+        return {
+          success: false,
+          message: 'importOrderId là bắt buộc',
+        };
+      }
+
+      const packages = await Package.find({ import_order_id: importOrderId })
+        .populate({
+          path: 'location_id',
+          populate: {
+            path: 'area_id',
+            model: 'Area',
+          },
+        })
+        .populate('batch_id')
+
+      return {
+        success: true,
+        packages,
+      };
+    } catch (error) {
+      console.error('❌ Get packages by import order service error:', error);
+      return {
+        success: false,
+        message: 'Lỗi server khi lấy packages theo import order',
+      };
+    }
+  },
+
+  clearPackageLocation: async (packageId) => {
+    try {
+      if (!packageId) {
+        return { success: false, message: 'packageId là bắt buộc' };
+      }
+      await Package.findByIdAndUpdate(packageId, {
+        $unset: { location_id: '' }
+      });
+      return { success: true };
+    } catch (err) {
+      console.error('❌ clearPackageLocation error:', err);
+      return { success: false, message: 'Lỗi server khi xóa location' };
+    }
+  },
+
 };
 
 module.exports = packageService; 
