@@ -24,7 +24,14 @@ const warehouseManager = {
           type: 'item',
           url: '/waiting-for-packetization',
           icon: 'IconFileExport'
-        }
+        },
+        {
+          id: 'assigned-inbound-order',
+          title: 'Assigned inbound order',
+          type: 'item',
+          url: '/assigned-inbound-order',
+          icon: 'IconFileImport'
+        },
       ]
     },
     // 2. Quản lý đơn xuất

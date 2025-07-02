@@ -49,5 +49,9 @@ router.get('/status-transitions', importOrderController.getValidStatusTransition
 // Assign warehouse manager (chỉ supervisor được phép)
 router.patch('/:id/assign-warehouse-manager', authenticate, authorize('supervisor'), importOrderController.assignWarehouseManager);
 
+// Get import orders by warehouse manager
+router.get('/warehouse-manager/:warehouseManagerId', importOrderController.getImportOrdersByWarehouseManager);
+
+
 module.exports = router;
 
