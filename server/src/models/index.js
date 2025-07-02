@@ -12,6 +12,8 @@ const Notification = require('./Notification');
 const ImportInspection = require('./ImportInspection');
 const LogLocationChange = require('./LogLocationChange');
 const Bill = require('./Bill');
+const EconomicContract = require('./EconomicContract');
+const Retailer = require('./Retailer');
 
 module.exports = {
   User,
@@ -28,4 +30,7 @@ module.exports = {
   ImportInspection,
   LogLocationChange,
   Bill,
+  EconomicContract,
+  Supplier,
+  Retailer,
 };

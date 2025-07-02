@@ -30,6 +30,13 @@ const representative = {
           type: 'item',
           url: '/manage-retailer-contracts',
           icon: 'IconFileInvoice'
+        },
+        {
+          id: 'manage-economic-contracts',
+          title: 'Economic Contracts',
+          type: 'item',
+          url: '/manage-economic-contracts',
+          icon: 'IconFileInvoice'
         }
       ]
     },

@@ -47,12 +47,8 @@ exports.getInspectionByImportOrder = async (req, res) => {
 
     const inspections = await ImportInspection.find({ import_order_id: importOrderId })
       .populate({
-        path: 'batch_id',
-        select: '-createdAt -updatedAt -production_date -expiry_date',
-        populate: [
-          { path: 'supplier_id', select: 'name' },
-          { path: 'medicine_id', select: 'name' },
-        ],
+        path: 'medicine_id',
+        select: '-min_stock_threshold -max_stock_threshold',
       })
       .sort({ _id: -1 });
 

@@ -31,6 +31,20 @@ import {
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Info as InfoIcon } from '@mui/icons-material';
 import axios from 'axios';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
+
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true
+});
+
 function ImportOrderPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -61,7 +75,9 @@ function ImportOrderPage() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/import-orders');
+      const response = await axiosInstance.get('/import-orders', {
+        headers: getAuthHeaders(),
+      });
       setOrders(response.data.data || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -73,7 +89,9 @@ function ImportOrderPage() {
 
   const fetchSupplierContracts = async () => {
     try {
-      const response = await axios.get('/api/supplier-contracts');
+      const response = await axiosInstance.get('/supplier-contracts', {
+        headers: getAuthHeaders(),
+      });
       const activeContracts = (response.data.data.contracts || []).filter(c => c.status === 'active');
       setSupplierContracts(activeContracts);
     } catch (error) {
@@ -84,7 +102,9 @@ function ImportOrderPage() {
 
   const fetchWarehouseManagers = async () => {
     try {
-      const response = await axios.get('/api/users?role=warehouse_manager');
+      const response = await axiosInstance.get('/accounts?role=warehouse_manager', {
+        headers: getAuthHeaders(),
+      });
       setWarehouseManagers(response.data.data || []);
     } catch (error) {
       setWarehouseManagers([]);
@@ -98,7 +118,9 @@ function ImportOrderPage() {
     }
     setMedicinesLoading(true);
     try {
-      const response = await axios.get(`/api/supplier-contracts/${contractId}`);
+      const response = await axiosInstance.get(`/supplier-contracts/${contractId}`, {
+        headers: getAuthHeaders(),
+      });
       console.log('Contract medicines loaded:', response.data.data?.items);
       setContractMedicines(response.data.data?.items || []);
     } catch (error) {
@@ -130,7 +152,9 @@ function ImportOrderPage() {
     }
 
     try {
-      await axios.delete(`/api/import-orders/${id}`);
+      await axiosInstance.delete(`/import-orders/${id}`, {
+        headers: getAuthHeaders(),
+      });
       setSuccess('Order deleted successfully');
       fetchOrders();
     } catch (error) {
@@ -239,12 +263,16 @@ function ImportOrderPage() {
       };
       const orderDetails = formData.details;
       const url = selectedOrder
-        ? `/api/import-orders/${selectedOrder._id}`
-        : '/api/import-orders';
+        ? `/import-orders/${selectedOrder._id}`
+        : '/import-orders';
       if (selectedOrder) {
-        await axios.put(url, { orderData, orderDetails });
+        await axiosInstance.put(url, { orderData, orderDetails }, {
+          headers: getAuthHeaders(),
+        });
       } else {
-        await axios.post(url, { orderData, orderDetails });
+        await axiosInstance.post(url, { orderData, orderDetails }, {
+          headers: getAuthHeaders(),
+        });
       }
       setSuccess(selectedOrder ? 'Order updated successfully' : 'Order created successfully');
       handleCloseForm();
@@ -370,15 +398,23 @@ function ImportOrderPage() {
                 </TableCell>
                 <TableCell>
                   <Box display="flex" gap={1}>
-                  <IconButton color="primary" onClick={() => handleOpenForm(order)} disabled={order.status !== 'draft'}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton color="error" onClick={() => handleDelete(order._id)} disabled={order.status !== 'draft'}>
-                    <DeleteIcon />
-                  </IconButton>
+                    <IconButton 
+                      color="primary" 
+                      onClick={() => handleOpenForm(order)}
+                      title="Edit order"
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton 
+                      color="error" 
+                      onClick={() => handleDelete(order._id)}
+                      title="Delete order"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                     <IconButton color="info" onClick={() => handleOpenDetails(order)}>
-                    <InfoIcon />
-                  </IconButton>
+                      <InfoIcon />
+                    </IconButton>
                   </Box>
                 </TableCell>
               </TableRow>
@@ -403,15 +439,16 @@ function ImportOrderPage() {
         </DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required size="small">
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <FormControl fullWidth>
                   <InputLabel>Supplier Contract</InputLabel>
                   <Select
                     name="supplier_contract_id"
                     value={formData.supplier_contract_id}
                     onChange={handleFormChange}
                     label="Supplier Contract"
+                    required
                   >
                     {supplierContracts.map((contract) => (
                       <MenuItem key={contract._id} value={contract._id}>
@@ -421,7 +458,8 @@ function ImportOrderPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              </Grid>
+
+              <Grid item xs={12}>
                 <Divider sx={{ my: 2 }} />
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="h6">Order Details</Typography>
@@ -429,7 +467,7 @@ function ImportOrderPage() {
                     onClick={addDetail} 
                     variant="outlined" 
                     size="small"
-                disabled={!formData.supplier_contract_id || formData.details.length >= contractMedicines.length}
+                    disabled={!formData.supplier_contract_id}
                   >
                     Add Medicine
                   </Button>
@@ -439,116 +477,84 @@ function ImportOrderPage() {
                     Please select a Supplier Contract first to load available medicines
                   </Alert>
                 )}
-                {medicinesLoading && (
-                  <Alert severity="info" sx={{ mb: 2 }}>
-                    Loading medicines from selected contract...
-                  </Alert>
-                )}
-            {formData.details.length > 0 && formData.details.map((detail, index) => (
-              <Paper sx={{ p: 2, mb: 2, boxShadow: 2 }} key={index}>
-                <Grid container spacing={2} alignItems="center">
-                  <Grid item xs={12} md={4}>
-                    <FormControl fullWidth required size="small">
-                      <InputLabel id={`medicine-label-${index}`}>Medicine</InputLabel>
-                      <Select
-                        labelId={`medicine-label-${index}`}
-                        value={detail.medicine_id || ""}
-                        onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
-                        label="Medicine"
-                        disabled={!formData.supplier_contract_id || medicinesLoading}
-                        sx={{ minWidth: 240 }}
-                        MenuProps={{
-                          PaperProps: { sx: { minWidth: 300 } }
-                        }}
-                      >
-                        {contractMedicines.length === 0 ? (
-                          <MenuItem disabled>
-                            {!formData.supplier_contract_id
-                              ? 'Select a contract first'
-                              : medicinesLoading
-                                ? 'Loading medicines...'
-                                : 'No medicines available in this contract'
-                            }
-                          </MenuItem>
-                        ) : (
-                          contractMedicines
-                            .filter(item =>
-                              item.medicine_id._id === detail.medicine_id ||
-                              !formData.details.some((d, i) => d.medicine_id === item.medicine_id._id && i !== index)
-                            )
-                            .map((item) => (
-                              <MenuItem key={item.medicine_id._id} value={item.medicine_id._id} sx={{ whiteSpace: 'normal', minWidth: 280 }}>
-                                {item.medicine_id.medicine_name}
+              </Grid>
+
+              {formData.details.map((detail, index) => (
+                <Grid item xs={12} key={index}>
+                  <Paper sx={{ p: 2 }}>
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} md={4}>
+                        <FormControl fullWidth>
+                          <InputLabel>Medicine</InputLabel>
+                          <Select
+                            value={detail.medicine_id}
+                            onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
+                            label="Medicine"
+                            required
+                          >
+                            {contractMedicines.map((med) => (
+                              <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
+                                {med.medicine_id.medicine_name} - {med.medicine_id.license_code}
                               </MenuItem>
-                            ))
-                        )}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={6} md={2}>
-                    <TextField
-                      fullWidth
-                      label="Quantity"
-                      type="number"
-                      value={detail.quantity}
-                      onChange={(e) => handleDetailChange(index, 'quantity', Number(e.target.value))}
-                      required
-                      disabled={!detail.medicine_id}
-                      size="small"
-                      inputProps={{
-                        min: contractMedicines.find(med => med.medicine_id._id === detail.medicine_id)?.min_order_quantity || 1
-                      }}
-                      helperText={
-                        detail.medicine_id
-                          ? `Tối thiểu: ${contractMedicines.find(med => med.medicine_id._id === detail.medicine_id)?.min_order_quantity || 1}`
-                          : ''
-                      }
-                    />
-                  </Grid>
-                  <Grid item xs={6} md={2}>
-                    <TextField
-                      fullWidth
-                      label="Unit Price"
-                      type="number"
-                      value={detail.unit_price}
-                      InputProps={{ readOnly: true }}
-                      required
-                      disabled={!detail.medicine_id}
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={6} md={2}>
-                    <TextField
-                      fullWidth
-                      label="Total"
-                      value={(detail.quantity * detail.unit_price).toLocaleString()}
-                      InputProps={{ readOnly: true }}
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={6} md={2} sx={{ textAlign: 'center' }}>
-                    <IconButton
-                      color="error"
-                      onClick={() => removeDetail(index)}
-                      disabled={formData.details.length === 1}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Grid>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={6} md={2}>
+                        <TextField
+                          fullWidth
+                          label="Quantity"
+                          type="number"
+                          value={detail.quantity}
+                          onChange={(e) => handleDetailChange(index, 'quantity', parseInt(e.target.value) || 0)}
+                          required
+                        />
+                      </Grid>
+                      <Grid item xs={6} md={2}>
+                        <TextField
+                          fullWidth
+                          label="Unit Price"
+                          type="number"
+                          value={detail.unit_price}
+                          onChange={(e) => handleDetailChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                          required
+                        />
+                      </Grid>
+                      <Grid item xs={6} md={2}>
+                        <TextField
+                          fullWidth
+                          label="Total"
+                          value={(detail.quantity * detail.unit_price).toLocaleString()}
+                          InputProps={{ readOnly: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={6} md={2}>
+                        <IconButton 
+                          color="error" 
+                          onClick={() => removeDetail(index)}
+                          disabled={formData.details.length === 1}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Grid>
+                    </Grid>
+                  </Paper>
                 </Grid>
-              </Paper>
-            ))}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-              <Paper sx={{ p: 2, bgcolor: 'grey.50', minWidth: 220, textAlign: 'right' }}>
+              ))}
+
+              <Grid item xs={12}>
+                <Divider sx={{ my: 2 }} />
                 <Typography variant="h6">
-                    Total Amount: ${calculateTotal().toLocaleString()}
-                  </Typography>
-                </Paper>
-            </Box>
+                  Total Amount: ${calculateTotal().toLocaleString()}
+                </Typography>
+              </Grid>
+            </Grid>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseForm}>Cancel</Button>
+          <Button onClick={handleCloseForm} disabled={formLoading}>
+            Cancel
+          </Button>
           <Button 
             onClick={handleSubmit} 
             variant="contained" 
@@ -560,84 +566,83 @@ function ImportOrderPage() {
       </Dialog>
 
       {/* Details Dialog */}
-      <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="md" fullWidth>
+      <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
         <DialogTitle>Import Order Details</DialogTitle>
         <DialogContent>
           {selectedOrder && (
             <Box sx={{ mt: 2 }}>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={3}>
-                  <Typography variant="subtitle2" color="text.secondary">Supplier</Typography>
-                  <Typography variant="body1">{selectedOrder.supplier_contract_id?.supplier_id?.name || 'N/A'}</Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6">Basic Information</Typography>
+                  <Paper sx={{ p: 2 }}>
+                    <Typography><strong>Contract:</strong> {selectedOrder.supplier_contract_id?.contract_code}</Typography>
+                    <Typography><strong>Supplier:</strong> {selectedOrder.supplier_contract_id?.supplier_id?.name}</Typography>
+                    <Typography><strong>Status:</strong> 
+                      <Chip 
+                        label={selectedOrder.status} 
+                        color={getStatusColor(selectedOrder.status)} 
+                        size="small" 
+                        sx={{ ml: 1 }}
+                      />
+                    </Typography>
+                  </Paper>
                 </Grid>
-                <Grid item xs={12} md={3}>
-                  <Typography variant="subtitle2" color="text.secondary">Contract Code</Typography>
-                  <Typography variant="body1">{selectedOrder.supplier_contract_id?.contract_code || 'N/A'}</Typography>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <Typography variant="subtitle2" color="text.secondary">Warehouse Manager</Typography>
-                  <Typography variant="body1">{selectedOrder.warehouse_manager_id?.name || 'N/A'}</Typography>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <Typography variant="subtitle2" color="text.secondary">Created By</Typography>
-                  <Typography variant="body1">{selectedOrder.created_by?._id || selectedOrder.created_by || 'N/A'}</Typography>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                  <Chip
-                    label={selectedOrder.status}
-                    color={getStatusColor(selectedOrder.status)}
-                    size="small"
-                  />
-                </Grid>
-              </Grid>
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" sx={{ mb: 1 }}>Order Details</Typography>
-              <TableContainer component={Paper} sx={{ mb: 2 }}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6">Order Details</Typography>
+                  <TableContainer component={Paper}>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                      <TableCell sx={{ minWidth: 150 }}>Medicine</TableCell>
-                      <TableCell align="right" sx={{ minWidth: 80 }}>Quantity</TableCell>
-                      <TableCell align="right" sx={{ minWidth: 100 }}>Unit Price</TableCell>
-                      <TableCell align="right" sx={{ minWidth: 100 }}>Total</TableCell>
+                          <TableCell>Medicine</TableCell>
+                          <TableCell align="right">Quantity</TableCell>
+                          <TableCell align="right">Unit Price</TableCell>
+                          <TableCell align="right">Total</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {selectedOrder.details?.map((detail, index) => (
-                      <TableRow key={index} hover>
+                          <TableRow key={index}>
                             <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
-                        <TableCell align="right">{detail.quantity}</TableCell>
-                        <TableCell align="right">${detail.unit_price?.toLocaleString()}</TableCell>
-                        <TableCell align="right">${(detail.quantity * detail.unit_price)?.toLocaleString()}</TableCell>
+                            <TableCell align="right">{detail.quantity}</TableCell>
+                            <TableCell align="right">${detail.unit_price?.toLocaleString()}</TableCell>
+                            <TableCell align="right">
+                              ${((detail.quantity || 0) * (detail.unit_price || 0)).toLocaleString()}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
                   </TableContainer>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                <Paper sx={{ p: 2, bgcolor: 'grey.50', minWidth: 220, textAlign: 'right' }}>
-                  <Typography variant="h6">
-                    Total Amount: ${selectedOrder.details?.reduce((total, detail) => 
-                      total + (detail.quantity * detail.unit_price), 0
-                    ).toLocaleString() || 0}
-                  </Typography>
-                </Paper>
-              </Box>
+                </Grid>
+              </Grid>
             </Box>
           )}
         </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDetails}>Close</Button>
+        </DialogActions>
       </Dialog>
 
-      {/* Snackbar for notifications */}
-      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-        <Alert onClose={() => setError(null)} severity="error">
+      {/* Error Snackbar */}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setError(null)} severity="error" sx={{ width: '100%' }}>
           {error}
         </Alert>
       </Snackbar>
 
-      <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess(null)}>
-        <Alert onClose={() => setSuccess(null)} severity="success">
+      {/* Success Snackbar */}
+      <Snackbar
+        open={!!success}
+        autoHideDuration={4000}
+        onClose={() => setSuccess(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setSuccess(null)} severity="success" sx={{ width: '100%' }}>
           {success}
         </Alert>
       </Snackbar>

@@ -18,4 +18,10 @@ router.get('/packages/location/:locationId', packageController.getPackagesByLoca
 
 router.post('/packages', packageController.createPackage);
 
+//For warehouse manager deleting package record before finalizing import order
+router.patch('/:packageId/clear-location', packageController.clearLocation);
+
+//Get by import location
+router.get("/import-order/:importOrderId", packageController.getPackagesForOrder)
+
 module.exports = router;
