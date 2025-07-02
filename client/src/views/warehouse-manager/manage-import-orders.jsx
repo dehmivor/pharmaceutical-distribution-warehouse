@@ -25,7 +25,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  CircularProgress
+  CircularProgress,
+  Grid
 } from '@mui/material';
 import { 
   Info as InfoIcon, 
@@ -131,8 +132,8 @@ const ManageImportOrders = () => {
         throw new Error(response.data.error || 'Failed to update order status');
       }
     } catch (error) {
-      console.error('Error updating order status:', error);
-      setError(error.response?.data?.error || 'Failed to update order status. Please try again.');
+      console.log('Lỗi BE trả về:', error.response?.data);
+      setError(error.response?.data?.error || error.message);
     } finally {
       setUpdatingStatus(false);
     }
@@ -141,7 +142,8 @@ const ManageImportOrders = () => {
   // Dialog handlers
   const handleOpenStatusDialog = useCallback((order) => {
     setSelectedOrder(order);
-    setNewStatus(order.status);
+    const allowedStatuses = ['checked', 'arranged'];
+    setNewStatus(allowedStatuses.includes(order.status) ? order.status : allowedStatuses[0]);
     setOpenStatusDialog(true);
   }, []);
 
@@ -271,12 +273,10 @@ const ManageImportOrders = () => {
                   <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>{order.supplier_contract_id?.contract_code || 'N/A'}</TableCell>
                   <TableCell>
-                    <Chip
-                      label={order.status}
-                      color={getStatusColor(order.status)}
-                      size="small"
-                      variant="outlined"
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography component="span"><b>Status:</b></Typography>
+                      <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <IconButton 
@@ -364,12 +364,90 @@ const ManageImportOrders = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Details Dialog */}
+      {/* Details Dialog - UI tối ưu */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="md" fullWidth>
         <DialogTitle>Import Order Details</DialogTitle>
-        <DialogContent>
-          <ImportOrderDetails order={selectedOrder} onClose={handleCloseDetails} />
+        <DialogContent sx={{ p: 3 }}>
+          {selectedOrder && (
+            <Box>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 2, mb: 2 }}>
+                    <Typography variant="h6" gutterBottom>Basic Info</Typography>
+                    <Typography><b>Order Code:</b> {selectedOrder.import_order_code || 'N/A'}</Typography>
+                    <Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography component="span"><b>Status:</b></Typography>
+                        <Chip label={selectedOrder.status} color={getStatusColor(selectedOrder.status)} size="small" />
+                      </Box>
+                    </Typography>
+                    <Typography><b>Created At:</b> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString() : 'N/A'}</Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 2, mb: 2 }}>
+                    <Typography variant="h6" gutterBottom>Contract & Supplier</Typography>
+                    <Typography><b>Contract Code:</b> {selectedOrder.supplier_contract_id?.contract_code || 'N/A'}</Typography>
+                    <Typography><b>Supplier:</b> {selectedOrder.supplier_contract_id?.supplier_id?.name || 'N/A'}</Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 2, mb: 2 }}>
+                    <Typography variant="h6" gutterBottom>Warehouse Manager</Typography>
+                    <Typography><b>Name:</b> {selectedOrder.warehouse_manager_id?.name || 'N/A'}</Typography>
+                    <Typography><b>Email:</b> {selectedOrder.warehouse_manager_id?.email || 'N/A'}</Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12}>
+                  <Paper sx={{ p: 2, mb: 2 }}>
+                    <Typography variant="h6" gutterBottom>Order Details</Typography>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Medicine Name</TableCell>
+                          <TableCell>License Code</TableCell>
+                          <TableCell align="right">Quantity</TableCell>
+                          <TableCell align="right">Unit Price</TableCell>
+                          <TableCell align="right">Total</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {selectedOrder.details?.map((detail, idx) => (
+                          <TableRow key={idx}>
+                            <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
+                            <TableCell>{detail.medicine_id?.license_code || 'N/A'}</TableCell>
+                            <TableCell align="right">{detail.quantity || 0}</TableCell>
+                            <TableCell align="right">{detail.unit_price?.toLocaleString() || 0}</TableCell>
+                            <TableCell align="right">{((detail.quantity || 0) * (detail.unit_price || 0)).toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow>
+                          <TableCell colSpan={4}><b>Total Amount</b></TableCell>
+                          <TableCell align="right">
+                            <b>
+                              {selectedOrder.details?.reduce((sum, d) => sum + (d.quantity || 0) * (d.unit_price || 0), 0).toLocaleString()} VND
+                            </b>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </Paper>
+                </Grid>
+                {selectedOrder.notes && (
+                  <Grid item xs={12}>
+                    <Paper sx={{ p: 2, mb: 2 }}>
+                      <Typography variant="h6" gutterBottom>Notes</Typography>
+                      <Typography>{selectedOrder.notes}</Typography>
+                    </Paper>
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
+          )}
         </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDetails}>Close</Button>
+        </DialogActions>
       </Dialog>
 
       {/* Error Snackbar */}

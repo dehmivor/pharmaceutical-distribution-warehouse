@@ -34,19 +34,16 @@ const getImportOrders = async (req, res) => {
   try {
     const { page = 1, limit = 10, status, search } = req.query;
     const userRole = req.user.role;
-    const userId = req.user._id;
+    const userId = req.user.id ? req.user.id.toString() : null;
 
     let query = {};
     
     // Warehouse manager chỉ xem orders được gán cho mình
     if (userRole === 'warehouse_manager') {
       if (mongoose.Types.ObjectId.isValid(userId)) {
-        query.warehouse_manager_id = mongoose.Types.ObjectId(userId);
-      } else {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid userId for warehouse_manager',
-        });
+        query.warehouse_manager_id = userId;
+        query.status = 'delivered'; // Chỉ lấy order đã giao
+        console.log('DEBUG getImportOrders:', { userRole, userId, query });
       }
     }
 
@@ -219,7 +216,7 @@ const updateOrderStatus = async (req, res) => {
     
     // Check if user is supervisor and bypass validation
     const bypassValidation = req.user && req.user.role === 'supervisor';
-    const approvalBy = req.user ? req.user._id : null;
+    const approvalBy = req.user ? req.user.id : null;
     const userRole = req.user ? req.user.role : null;
 
     // Kiểm tra quyền của warehouse manager (chỉ warehouse_manager mới được phép)
@@ -235,7 +232,16 @@ const updateOrderStatus = async (req, res) => {
 
       // Kiểm tra xem order có được gán cho warehouse manager này không
       const order = await importOrderService.getImportOrderById(id);
-      if (!order.warehouse_manager_id || order.warehouse_manager_id._id.toString() !== req.user._id.toString()) {
+      // So sánh quyền bằng email thay vì id
+      const managerEmail = order.warehouse_manager_id && order.warehouse_manager_id.email
+        ? order.warehouse_manager_id.email
+        : null;
+      console.log('DEBUG so sánh quyền bằng email:', {
+        orderId: id,
+        warehouse_manager_email: managerEmail,
+        reqUserEmail: req.user.email
+      });
+      if (!managerEmail || !req.user.email || managerEmail !== req.user.email) {
         return res.status(403).json({
           success: false,
           error: 'You can only update orders assigned to you'

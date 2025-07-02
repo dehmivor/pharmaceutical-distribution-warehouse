@@ -58,7 +58,10 @@ const getImportOrders = async (query = {}, page = 1, limit = 10) => {
       // Apply other filters
       const finalFilteredOrders = filteredOrders.filter(order => {
         if (query.status && order.status !== query.status) return false;
-        if (query.warehouse_manager_id && (!order.warehouse_manager_id || order.warehouse_manager_id._id.toString() !== query.warehouse_manager_id.toString())) return false;
+        if (
+          query.warehouse_manager_id &&
+          getManagerId(order.warehouse_manager_id) !== query.warehouse_manager_id.toString()
+        ) return false;
         return true;
       });
 
@@ -485,6 +488,19 @@ const assignWarehouseManager = async (orderId, warehouseManagerId) => {
     .populate('approval_by', 'name email role')
     .populate('details.medicine_id', 'medicine_name license_code');
 };
+
+// Helper function to safely get manager id as string
+function getManagerId(warehouse_manager_id) {
+  if (!warehouse_manager_id) return null;
+  if (typeof warehouse_manager_id === 'string' || typeof warehouse_manager_id === 'number') {
+    return warehouse_manager_id.toString();
+  }
+  if (typeof warehouse_manager_id === 'object') {
+    if (warehouse_manager_id._id) return warehouse_manager_id._id.toString();
+    if (typeof warehouse_manager_id.toString === 'function') return warehouse_manager_id.toString();
+  }
+  return null;
+}
 
 module.exports = {
   createImportOrder,

@@ -456,7 +456,7 @@ function UserManagement({ onOpenPermissionDialog }) {
                       Supervisor
                     </Box>
                   </MenuItem>
-                  <MenuItem value="supervisor">
+                  <MenuItem value="warehouse_manager">
                     <Box display="flex" alignItems="center" gap={1}>
                       <WarehouseIcon fontSize="small" />
                       Warehouse Manager
@@ -556,7 +556,7 @@ function UserManagement({ onOpenPermissionDialog }) {
           <Button
             type="submit"
             variant="contained"
-            disabled={submitting || !formData.email.trim()}
+            disabled={submitting || !formData.email.trim() || !!formErrors.email}
             startIcon={submitting ? <CircularProgress size={16} /> : <SendIcon />}
             sx={{ minWidth: 120 }}
           >
