@@ -392,6 +392,7 @@ function getRedirectByRole(role) {
     warehouse_manager: '/approve-inspections',
     warehouse: '/create-inspections',
     representative: '/manage-contracts',
+    representative_manager: '/create-bills',
   };
 
   return roleRoutes[role] || '/dashboard';
