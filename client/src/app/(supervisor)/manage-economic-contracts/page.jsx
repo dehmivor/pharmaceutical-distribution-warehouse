@@ -6,6 +6,6 @@ const ManageEconomicContractPage = dynamic(() => import('@/views/supervisor/econ
 
 /***************************  DASHBOARD PAGE  ***************************/
 
-export default function EconomicContractPage() {
+export default function EconomicContractPageSupervisor() {
   return <ManageEconomicContractPage />;
 }
