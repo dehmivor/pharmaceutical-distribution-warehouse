@@ -1,4 +1,4 @@
-"use client";
+'use client';
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -27,13 +27,13 @@ import axios from 'axios';
 import ImportOrderForm from '@/sections/warehouse/ImportOrderForm';
 import ImportOrderDetails from '@/sections/warehouse/ImportOrderDetails';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    Authorization: `Bearer ${token}`
   };
 };
 
@@ -111,21 +111,30 @@ const ManageImportOrder = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'draft': return 'default';
-      case 'approved': return 'success';
-      case 'delivered': return 'info';
-      case 'checked': return 'warning';
-      case 'arranged': return 'primary';
-      case 'completed': return 'success';
-      case 'cancelled': return 'error';
-      default: return 'default';
+      case 'draft':
+        return 'default';
+      case 'approved':
+        return 'success';
+      case 'delivered':
+        return 'info';
+      case 'checked':
+        return 'warning';
+      case 'arranged':
+        return 'primary';
+      case 'completed':
+        return 'success';
+      case 'cancelled':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
   // Filter orders based on search term
-  const filteredOrders = orders.filter((order) =>
-    order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.supplier_contract_id?.contract_code?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredOrders = orders.filter(
+    (order) =>
+      order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.supplier_contract_id?.contract_code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Paginate orders
@@ -175,23 +184,13 @@ const ManageImportOrder = () => {
             {paginatedOrders.map((order) => (
               <TableRow key={order._id}>
                 <TableCell>{order.warehouse_manager_id?.name || 'N/A'}</TableCell>
-                <TableCell>
-                  {new Date(order.createdAt).toLocaleDateString()}
-                </TableCell>
+                <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>{order.supplier_contract_id?.contract_code || 'N/A'}</TableCell>
                 <TableCell>
-                  <Chip
-                    label={order.status}
-                    color={getStatusColor(order.status)}
-                    size="small"
-                  />
+                  <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
                 </TableCell>
                 <TableCell>
-                  <IconButton
-                    color="info"
-                    onClick={() => handleOpenDetails(order)}
-                    title="View Details"
-                  >
+                  <IconButton color="info" onClick={() => handleOpenDetails(order)} title="View Details">
                     <InfoIcon />
                   </IconButton>
                 </TableCell>
@@ -219,22 +218,14 @@ const ManageImportOrder = () => {
       </Dialog>
 
       {/* Error Snackbar */}
-      <Snackbar
-        open={!!error}
-        autoHideDuration={6000}
-        onClose={handleCloseError}
-      >
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseError}>
         <Alert onClose={handleCloseError} severity="error">
           {error}
         </Alert>
       </Snackbar>
 
       {/* Success Snackbar */}
-      <Snackbar
-        open={!!success}
-        autoHideDuration={6000}
-        onClose={handleCloseSuccess}
-      >
+      <Snackbar open={!!success} autoHideDuration={6000} onClose={handleCloseSuccess}>
         <Alert onClose={handleCloseSuccess} severity="success">
           {success}
         </Alert>

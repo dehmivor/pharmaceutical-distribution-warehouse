@@ -12,9 +12,10 @@ export default function QualityCheckPage({ id }) {
   const fetchData = useCallback(() => {
     if (!id) return;
     setLoading(true);
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     axios
-      .get(`http://localhost:5000/cyclecountform/${id}`)
-      .then(res => setForm(res.data.data))
+      .get(`${backendUrl}/cyclecountform/${id}`)
+      .then((res) => setForm(res.data.data))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
@@ -25,17 +26,18 @@ export default function QualityCheckPage({ id }) {
   }, [fetchData]);
 
   if (loading) return <p>Loading form…</p>;
-  if (!form)  return <p>Form not found.</p>;
+  if (!form) return <p>Form not found.</p>;
 
   // check if *all* content items are verified
-  const allVerified = form.content.every(item => item.verified === true);
+  const allVerified = form.content.every((item) => item.verified === true);
 
   const handleSend = () => {
     setUpdating(true);
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     axios
-      .patch(`http://localhost:5000/cyclecountform/${id}/status`, { status: 'waiting_approval' })
+      .patch(`${backendUrl}/cyclecountform/${id}/status`, { status: 'waiting_approval' })
       .then(() => {
-        setForm(f => ({ ...f, status: 'waiting_approval' }));
+        setForm((f) => ({ ...f, status: 'waiting_approval' }));
       })
       .catch(console.error)
       .finally(() => setUpdating(false));
@@ -60,11 +62,21 @@ export default function QualityCheckPage({ id }) {
       </button>
 
       <h1>Cycle Count Form Detail</h1>
-      <p><strong>Manager:</strong> {form.team.manager}</p>
-      <p><strong>Members:</strong> {form.team.members.join(', ') || '–'}</p>
-      <p><strong>Status:</strong> {form.status}</p>
-      <p><strong>Start:</strong> {new Date(form.startTime).toLocaleString()}</p>
-      <p><strong>End:</strong>   {new Date(form.endTime).toLocaleString()}</p>
+      <p>
+        <strong>Manager:</strong> {form.team.manager}
+      </p>
+      <p>
+        <strong>Members:</strong> {form.team.members.join(', ') || '–'}
+      </p>
+      <p>
+        <strong>Status:</strong> {form.status}
+      </p>
+      <p>
+        <strong>Start:</strong> {new Date(form.startTime).toLocaleString()}
+      </p>
+      <p>
+        <strong>End:</strong> {new Date(form.endTime).toLocaleString()}
+      </p>
 
       <h2>Content</h2>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>

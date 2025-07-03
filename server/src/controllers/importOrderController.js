@@ -219,12 +219,13 @@ const updateOrderStatus = async (req, res) => {
     const approvalBy = req.user ? req.user.id : null;
     const userRole = req.user ? req.user.role : null;
 
+
     // Kiểm tra quyền của warehouse manager (chỉ warehouse_manager mới được phép)
     if (userRole === 'warehouse_manager') {
       // Warehouse manager chỉ có thể thay đổi sang checked và arranged
-      const allowedStatuses = ['checked', 'arranged'];
+      const allowedStatuses = ['checked', 'arranged', 'delivered', 'completed'];
       if (!allowedStatuses.includes(status)) {
-        return res.status(403).json({
+        return res.status(200).json({
           success: false,
           error: `Warehouse manager can only change status to: ${allowedStatuses.join(', ')}`
         });
