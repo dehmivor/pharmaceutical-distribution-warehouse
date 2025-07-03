@@ -3,6 +3,7 @@ const { validationResult } = require('express-validator');
 
 const supplierController = {
   getAllSuppliers: async (req, res) => {
+    console.log('getAllSuppliers called');
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
