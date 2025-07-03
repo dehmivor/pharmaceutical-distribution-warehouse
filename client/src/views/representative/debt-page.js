@@ -21,7 +21,9 @@ export default function CheckoutPage() {
     });
 
     // 2. Lấy clientSecret từ backend
-    fetch(`http://localhost:5000/api/stripe/create-payment-intent`, {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/';
+
+    fetch(`${backendUrl}/api/stripe/create-payment-intent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount: 100000, currency: 'vnd' })

@@ -102,7 +102,7 @@ const packageService = {
   // ✅ Create new package
   createPackage: async (packageData) => {
     try {
-      const { batch_id, quantity, location_id, status = 'PENDING' } = packageData;
+      const { batch_id, quantity, location_id, status = 'PENDING', import_order_id } = packageData;
 
       // Validate required fields
       if (!batch_id || !quantity) {
@@ -116,6 +116,7 @@ const packageService = {
         batch_id,
         quantity,
         location_id,
+        import_order_id,
         status,
       });
 

@@ -47,7 +47,7 @@ import EconomicContractEditDialog from './EconomicContractEditDialog'; // Import
 import EconomicContractAddDialog from './EconomicContractAddDialog'; // Import the add dialog component
 import StatusActionDialog from './StatusActionDialog';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
@@ -107,7 +107,7 @@ const EconomicContractManagement = () => {
         ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== ''))
       });
 
-      if( userRole === 'representative') {
+      if (userRole === 'representative') {
         params.append('created_by', user.userId);
       }
       const response = await axiosInstance.get(`/economic-contracts?${params}`, {
