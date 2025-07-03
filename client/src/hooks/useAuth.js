@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRole } from '@/contexts/RoleContext';
 
 export const useAuth = () => {
-  const { user, userRole, isLoading } = useRole();
+  const { user, userRole, isLoading, updateUserRole } = useRole();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
@@ -30,6 +30,7 @@ export const useAuth = () => {
         localStorage.setItem('auth-token', result.data.token);
         localStorage.setItem('refresh-token', result.data.refreshToken);
         localStorage.setItem('user', JSON.stringify(result.data.user));
+        updateUserRole(result.data.user);
 
         return result;
       }

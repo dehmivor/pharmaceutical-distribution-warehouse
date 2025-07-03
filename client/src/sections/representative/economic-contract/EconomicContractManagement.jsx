@@ -99,8 +99,6 @@ const EconomicContractManagement = () => {
 
   // Fetch contracts
   const fetchContracts = async () => {
-    console.log('user')
-    console.log(userRole, user);
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -328,12 +326,16 @@ const EconomicContractManagement = () => {
   };
 
   useEffect(() => {
-    console.log('Role', userRole);
-    fetchFilterOptions();
-    fetchSuppliers();
-    // fetchRetailers();
-    fetchMedicines();
-  }, []);
+    if (!isLoading) {
+      console.log('Role', userRole);
+      if( userRole === 'representative') {
+      fetchFilterOptions();
+      fetchSuppliers();
+      // fetchRetailers();
+      fetchMedicines();
+      }
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     fetchContracts();
@@ -349,6 +351,9 @@ const EconomicContractManagement = () => {
       return () => clearTimeout(timer);
     }
   }, [error, success]);
+
+  if (isLoading) return <div>Loading...</div>; // hoặc spinner
+
 
   return (
     <Box sx={{ p: 3 }}>
@@ -714,95 +719,6 @@ const EconomicContractManagement = () => {
         retailers={retailers}
         medicines={medicines}
       />
-
-      {/* Delete Confirmation Dialog */}
-      {/* <Dialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-        sx={{
-          borderRadius: 2,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
-        }}
-      >
-        <DialogTitle
-          sx={{
-            background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 2,
-            py: 2,
-            px: 3
-          }}
-        >
-          <DeleteIcon sx={{ fontSize: 24 }} />
-          <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-            Xác Nhận Xóa
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Bạn có chắc chắn muốn xóa hợp đồng này không?
-          </Typography>
-          <Box
-            sx={{
-              p: 2,
-              bgcolor: 'error.50',
-              borderRadius: 1,
-              border: '1px solid',
-              borderColor: 'error.200'
-            }}
-          >
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>
-              {selectedContract?.contract_code}
-            </Typography>
-            <Typography variant="caption" color="error.main">
-              Hành động này không thể hoàn tác!
-            </Typography>
-          </Box>
-        </DialogContent>
-        <DialogActions
-          sx={{
-            p: 3,
-            pt: 2,
-            borderTop: '1px solid #e0e0e0',
-            bgcolor: 'grey.50'
-          }}
-        >
-          <Button
-            onClick={() => setOpenDeleteDialog(false)}
-            variant="outlined"
-            sx={{
-              px: 3,
-              py: 1.5,
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 600
-            }}
-          >
-            Hủy
-          </Button>
-          <Button
-            onClick={handleDeleteContract}
-            variant="contained"
-            color="error"
-            startIcon={<DeleteIcon />}
-            sx={{
-              px: 4,
-              py: 1.5,
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 600,
-              background: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #c62828 0%, #d32f2f 100%)'
-              }
-            }}
-          >
-            Xóa
-          </Button>
-        </DialogActions>
-      </Dialog> */}
 
       <StatusActionDialog
         open={openActionDialog}

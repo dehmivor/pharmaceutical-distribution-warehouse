@@ -31,7 +31,7 @@ export const RoleProvider = ({ children }) => {
           setUserRole(result.data.role);
           localStorage.setItem('user', JSON.stringify(result.data));
         } else {
-          console.log('Auth failed:', response.status);
+          localStorage.removeItem('refresh-token');
           localStorage.removeItem('auth-token');
           localStorage.removeItem('user');
           setUser(null);
