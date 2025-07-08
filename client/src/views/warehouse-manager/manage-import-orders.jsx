@@ -1,36 +1,37 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import { Info as InfoIcon, Refresh as RefreshIcon, Search as SearchIcon, Update as UpdateIcon } from '@mui/icons-material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
+  Alert,
   Box,
-  Typography,
   Button,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Snackbar,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Paper,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TablePagination,
-  Snackbar,
-  Alert,
-  Chip,
+  TableRow,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  Grid
+  Typography
 } from '@mui/material';
-import { Info as InfoIcon, Update as UpdateIcon, Search as SearchIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import Menu from '@mui/material/Menu';
 import axios from 'axios';
-import ImportOrderDetails from '@/sections/warehouse/ImportOrderDetails';
+import { useCallback, useEffect, useState } from 'react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -78,6 +79,19 @@ const ManageImportOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [newStatus, setNewStatus] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuOrder, setMenuOrder] = useState(null);
+
+  const handleMenuOpen = (event, order) => {
+    setAnchorEl(event.currentTarget);
+    setMenuOrder(order);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMenuOrder(null);
+  };
 
   // Fetch orders from API
   const fetchOrders = useCallback(async () => {
@@ -272,9 +286,6 @@ const ManageImportOrders = () => {
                   <TableCell>{order.supplier_contract_id?.contract_code || 'N/A'}</TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography component="span">
-                        <b>Status:</b>
-                      </Typography>
                       <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
                     </Box>
                   </TableCell>
@@ -288,8 +299,12 @@ const ManageImportOrders = () => {
                     >
                       <UpdateIcon />
                     </IconButton>
-                    <IconButton color="info" onClick={() => handleOpenDetails(order)} title="View Details">
+                    <IconButton color="info" onClick={() => handleOpenDetails(order)} title="View Details" sx={{ mr: 1 }}>
                       <InfoIcon />
+                    </IconButton>
+                    {/* Icon 3 chấm */}
+                    <IconButton aria-label="more actions" onClick={(event) => handleMenuOpen(event, order)}>
+                      <MoreVertIcon />
                     </IconButton>
                   </TableCell>
                 </TableRow>
@@ -467,6 +482,42 @@ const ManageImportOrders = () => {
           <Button onClick={handleCloseDetails}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <MenuItem
+          onClick={() => {
+            // TODO: Xử lý xem danh sách inspection cho menuOrder
+            alert(`View List Inspection for order ${menuOrder?._id}`);
+            handleMenuClose();
+          }}
+        >
+          View List Inspection
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            // TODO: Xử lý xem vị trí cho menuOrder
+            alert(`View Location for order ${menuOrder?._id}`);
+            handleMenuClose();
+          }}
+        >
+          View Location
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            // TODO: Xử lý xem batch cho menuOrder
+            alert(`View Batch for order ${menuOrder?._id}`);
+            handleMenuClose();
+          }}
+        >
+          View Batch
+        </MenuItem>
+      </Menu>
 
       {/* Error Snackbar */}
       <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseError} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
