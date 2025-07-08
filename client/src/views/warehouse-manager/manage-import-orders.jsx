@@ -81,20 +81,28 @@ const ManageImportOrders = () => {
 
   // Fetch orders from API
   const fetchOrders = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
-      const response = await axiosInstance.get('/import-orders', {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await axios.get(`${backendUrl}/api/import-orders`, {
         headers: getAuthHeaders()
       });
-      if (response.data.success) {
-        setOrders(response.data.data || []);
+
+      // Kiểm tra dữ liệu trả về
+      if (response?.data?.success && Array.isArray(response.data.data)) {
+        setOrders(response.data.data);
       } else {
-        throw new Error(response.data.error || 'Failed to fetch orders');
+        const errorMsg = response?.data?.error || 'Không thể lấy danh sách đơn hàng';
+        setOrders([]); // Đảm bảo reset danh sách nếu lỗi
+        setError(errorMsg);
       }
     } catch (error) {
-      console.error('Error fetching orders:', error);
-      setError(error.response?.data?.error || 'Failed to fetch orders. Please try again.');
+      // Xử lý lỗi chi tiết hơn
+      const errorMsg = error?.response?.data?.error || error?.message || 'Không thể lấy đơn hàng. Vui lòng thử lại.';
+      setOrders([]); // Đảm bảo reset danh sách nếu lỗi
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
