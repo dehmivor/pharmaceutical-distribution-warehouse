@@ -309,7 +309,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
 
       const inspectionData = {
         import_order_id: '6859812162c95723b56b32a9',
-        batch_id: null,
         actual_quantity: statistics.totalReceived,
         rejected_quantity: statistics.totalReturned,
         note: receiptData.notes || '',
@@ -340,21 +339,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       setIsCreating(false);
     }
   }, [receiptItems, receiptData, orderData, statistics, createInspection, showAlert, onReceiptCreate]);
-
-  // Hàm reset form (tùy chọn)
-  const resetForm = useCallback(() => {
-    setReceiptData({
-      receiptId: `PN${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
-      orderId: '',
-      supplier: '',
-      warehouse: 'Kho chính',
-      receiver: '',
-      notes: ''
-    });
-    setReceiptItems([]);
-    setCreateError(null);
-  }, []);
 
   return (
     <Box>
@@ -528,10 +512,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
           sx={{ minWidth: 200 }}
         >
           {isCreating ? 'Đang tạo phiếu...' : 'Tạo Phiếu Nhập Kho'}
-        </Button>
-
-        <Button variant="outlined" color="secondary" size="large" onClick={resetForm} disabled={isCreating}>
-          Làm mới
         </Button>
 
         <Snackbar open={alert.open} autoHideDuration={6000} onClose={hideAlert} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
