@@ -1,12 +1,34 @@
 import {
-  Dialog, DialogActions, DialogContent, DialogTitle, Button, Divider, Grid, TextField, Typography,
-  FormControl, InputLabel, Select, MenuItem, Box, IconButton, FormControlLabel, Switch, Alert, CircularProgress
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Button,
+  Divider,
+  Grid,
+  TextField,
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Box,
+  IconButton,
+  FormControlLabel,
+  Switch,
+  Alert,
+  CircularProgress
 } from '@mui/material';
-import { PersonAdd as PersonAddIcon, Close as CloseIcon, Warehouse as WarehouseIcon, Person as PersonIcon, SupervisorAccount as SupervisorIcon, Send as SendIcon } from '@mui/icons-material';
+import {
+  PersonAdd as PersonAddIcon,
+  Close as CloseIcon,
+  Warehouse as WarehouseIcon,
+  Person as PersonIcon,
+  SupervisorAccount as SupervisorIcon,
+  Send as SendIcon
+} from '@mui/icons-material';
 
-export default function AddUserDialog({
-  open, onClose, formData, setFormData, formErrors, setFormErrors, submitting, onSubmit
-}) {
+export default function AddUserDialog({ open, onClose, formData, setFormData, formErrors, setFormErrors, submitting, onSubmit }) {
   const handleFormChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setFormErrors((prev) => {
@@ -24,7 +46,9 @@ export default function AddUserDialog({
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
         <Box display="flex" alignItems="center" gap={1}>
           <PersonAddIcon color="primary" />
-          <Typography variant="h6" fontWeight={600}>Add New User</Typography>
+          <Typography variant="h6" fontWeight={600}>
+            Add New User
+          </Typography>
         </Box>
         <IconButton onClick={onClose} size="small" sx={{ color: 'text.secondary' }} disabled={submitting}>
           <CloseIcon />
@@ -43,7 +67,9 @@ export default function AddUserDialog({
                 variant="outlined"
                 value={formData.email}
                 onChange={(e) => handleFormChange('email', e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') e.preventDefault();
+                }}
                 error={!!formErrors.email}
                 helperText={formErrors.email}
                 placeholder="user@example.com"
@@ -126,7 +152,9 @@ export default function AddUserDialog({
                   variant="outlined"
                   value={formData.customPassword}
                   onChange={(e) => handleFormChange('customPassword', e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.preventDefault();
+                  }}
                   error={!!formErrors.customPassword}
                   helperText={formErrors.customPassword || 'Minimum 6 characters required'}
                   disabled={submitting}
@@ -151,13 +179,20 @@ export default function AddUserDialog({
         </DialogContent>
         <Divider />
         <DialogActions sx={{ p: 3, gap: 1 }}>
-          <Button type="button" onClick={onClose} disabled={submitting} sx={{ minWidth: 100 }}>Cancel</Button>
-          <Button type="submit" variant="contained" disabled={submitting || !formData.email.trim() || !!formErrors.email}
-            startIcon={submitting ? <CircularProgress size={16} /> : <SendIcon />} sx={{ minWidth: 120 }}>
+          <Button type="button" onClick={onClose} disabled={submitting} sx={{ minWidth: 100 }}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={submitting || !formData.email.trim() || !!formErrors.email}
+            startIcon={submitting ? <CircularProgress size={16} /> : <SendIcon />}
+            sx={{ minWidth: 120 }}
+          >
             {submitting ? 'Creating...' : 'Create User'}
           </Button>
         </DialogActions>
       </form>
     </Dialog>
   );
-} 
+}

@@ -8,5 +8,5 @@ const AssignedInboundOrder = dynamic(() => import('@/views/warehouse-manager/ass
 /***************************  AUTH - LOGIN  ***************************/
 
 export default function Login() {
-  return <AssignedInboundOrder/>;
+  return <AssignedInboundOrder />;
 }

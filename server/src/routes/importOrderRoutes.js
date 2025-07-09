@@ -20,7 +20,7 @@ router.get('/warehouse-manager/:warehouseManagerId', authorize(['warehouse_manag
 router.get('/supplier-contract/:supplierContractId', authorize(['representative', 'supervisor']), importOrderController.getImportOrdersBySupplierContract);
 
 // Get import order by ID - chỉ supervisor, representative và warehouse_manager
-router.get('/:id', authorize(['supervisor', 'representative', 'warehouse_manager']), importOrderController.getImportOrderById);
+router.get('/:id', authorize(['supervisor', 'representative', 'warehouse_manager', 'warehouse']), importOrderController.getImportOrderById);
 
 // Update import order - chỉ supervisor và representative
 router.put('/:id', authorize(['supervisor', 'representative']), importOrderController.updateImportOrder);

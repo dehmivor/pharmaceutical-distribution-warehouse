@@ -118,14 +118,7 @@ export default function DetailDialog({ open, onClose, data, onUpdate }) {
         />
 
         {canChangeStatus ? (
-          <TextField
-            label="Trạng thái"
-            fullWidth
-            select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            sx={{ mb: 2 }}
-          >
+          <TextField label="Trạng thái" fullWidth select value={status} onChange={(e) => setStatus(e.target.value)} sx={{ mb: 2 }}>
             <MenuItem value={status}>{status}</MenuItem>
             {status === 'pending' && <MenuItem value="sent">sent</MenuItem>}
             {status === 'sent' && <MenuItem value="success">success</MenuItem>}
@@ -151,22 +144,14 @@ export default function DetailDialog({ open, onClose, data, onUpdate }) {
               <TableRow key={idx}>
                 <TableCell>
                   {canEditFields ? (
-                    <TextField
-                      value={r.criteria}
-                      onChange={(e) => handleReqChange(idx, 'criteria', e.target.value)}
-                      size="small"
-                    />
+                    <TextField value={r.criteria} onChange={(e) => handleReqChange(idx, 'criteria', e.target.value)} size="small" />
                   ) : (
                     r.criteria
                   )}
                 </TableCell>
                 <TableCell>
                   {canEditFields ? (
-                    <TextField
-                      value={r.expected}
-                      onChange={(e) => handleReqChange(idx, 'expected', e.target.value)}
-                      size="small"
-                    />
+                    <TextField value={r.expected} onChange={(e) => handleReqChange(idx, 'expected', e.target.value)} size="small" />
                   ) : (
                     r.expected
                   )}
@@ -184,20 +169,10 @@ export default function DetailDialog({ open, onClose, data, onUpdate }) {
             {canEditFields && (
               <TableRow>
                 <TableCell>
-                  <TextField
-                    size="small"
-                    placeholder="Tiêu chí mới"
-                    value={newCriteria}
-                    onChange={(e) => setNewCriteria(e.target.value)}
-                  />
+                  <TextField size="small" placeholder="Tiêu chí mới" value={newCriteria} onChange={(e) => setNewCriteria(e.target.value)} />
                 </TableCell>
                 <TableCell>
-                  <TextField
-                    size="small"
-                    placeholder="Expected"
-                    value={newExpected}
-                    onChange={(e) => setNewExpected(e.target.value)}
-                  />
+                  <TextField size="small" placeholder="Expected" value={newExpected} onChange={(e) => setNewExpected(e.target.value)} />
                 </TableCell>
                 <TableCell>
                   <Button variant="contained" size="small" onClick={handleAddRequirement}>
@@ -216,14 +191,7 @@ export default function DetailDialog({ open, onClose, data, onUpdate }) {
         {images.length > 0 && (
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
             {images.map((img, idx) => (
-              <img
-                key={idx}
-                src={img}
-                alt="Attachment"
-                width={80}
-                height={80}
-                style={{ objectFit: 'cover', borderRadius: 4 }}
-              />
+              <img key={idx} src={img} alt="Attachment" width={80} height={80} style={{ objectFit: 'cover', borderRadius: 4 }} />
             ))}
           </div>
         )}

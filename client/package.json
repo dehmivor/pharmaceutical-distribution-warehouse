@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "format": "prettier --write .",
+    "lint:format": "yarn lint && yarn format",
     "test:client": "jest --config jest.config.js && node rename-junit.js"
   },
   "dependencies": {

@@ -4,4 +4,4 @@ const SupervisorImportOrders = dynamic(() => import('@/views/supervisor/import-o
 
 export default function ImportOrdersPage() {
   return <SupervisorImportOrders />;
-} 
+}
