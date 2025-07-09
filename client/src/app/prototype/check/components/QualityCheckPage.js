@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -14,54 +14,52 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-} from "@mui/material";
+  DialogActions
+} from '@mui/material';
 
-import DetailDialog from "./DetailDialog";
-import ResultDialog from "./ResultDialog";
-import AddDialog from "./AddDialog";
+import DetailDialog from './DetailDialog';
+import ResultDialog from './ResultDialog';
+import AddDialog from './AddDialog';
 
 const mockData = [
   {
     id: 1,
-    drugName: "Paracetamol",
-    batchCode: "PA202501",
-    createdBy: "warehouse1",
-    createdDate: "2025-05-20",
-    status: "pending", // pending, sent, success
+    drugName: 'Paracetamol',
+    batchCode: 'PA202501',
+    createdBy: 'warehouse1',
+    createdDate: '2025-05-20',
+    status: 'pending', // pending, sent, success
     requirements: [
-      { criteria: "Hàm lượng hoạt chất", expected: "95-105%" },
-      { criteria: "Độ hòa tan", expected: "≥80% trong 30 phút" },
+      { criteria: 'Hàm lượng hoạt chất', expected: '95-105%' },
+      { criteria: 'Độ hòa tan', expected: '≥80% trong 30 phút' }
     ],
     images: [],
-    result: null,
+    result: null
   },
   {
     id: 2,
-    drugName: "Amoxicillin",
-    batchCode: "AMX0525A",
-    createdBy: "warehouse2",
-    createdDate: "2025-05-18",
-    status: "sent",
-    requirements: [
-      { criteria: "Độ hòa tan", expected: "≥80% trong 30 phút" },
-    ],
+    drugName: 'Amoxicillin',
+    batchCode: 'AMX0525A',
+    createdBy: 'warehouse2',
+    createdDate: '2025-05-18',
+    status: 'sent',
+    requirements: [{ criteria: 'Độ hòa tan', expected: '≥80% trong 30 phút' }],
     images: [],
-    result: null,
+    result: null
   },
   {
     id: 3,
-    drugName: "Ibuprofen",
-    batchCode: "IBF3001",
-    createdBy: "warehouse3",
-    createdDate: "2025-05-15",
-    status: "success",
-    requirements: [
-      { criteria: "Hàm lượng hoạt chất", expected: "90-110%" },
-    ],
+    drugName: 'Ibuprofen',
+    batchCode: 'IBF3001',
+    createdBy: 'warehouse3',
+    createdDate: '2025-05-15',
+    status: 'success',
+    requirements: [{ criteria: 'Hàm lượng hoạt chất', expected: '90-110%' }],
     images: [],
-    result: { /* kết quả trả về */ },
-  },
+    result: {
+      /* kết quả trả về */
+    }
+  }
 ];
 
 export default function QualityCheckPage() {
@@ -85,27 +83,22 @@ export default function QualityCheckPage() {
 
   // Cập nhật phiếu kiểm định
   const handleUpdateRequest = (updated) => {
-    setDataList((prev) =>
-      prev.map((item) => (item.id === updated.id ? updated : item))
-    );
+    setDataList((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
   };
 
   // Thêm phiếu mới
   const handleAddRequest = (newReq) => {
-    setDataList((prev) => [
-      ...prev,
-      { ...newReq, id: prev.length + 1, status: "pending", images: [], result: null },
-    ]);
+    setDataList((prev) => [...prev, { ...newReq, id: prev.length + 1, status: 'pending', images: [], result: null }]);
   };
 
   return (
     <div style={{ padding: 16 }}>
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16
         }}
       >
         <Typography variant="h6" fontWeight={700}>
@@ -136,22 +129,12 @@ export default function QualityCheckPage() {
               <TableCell>{item.createdDate}</TableCell>
               <TableCell>{item.status}</TableCell>
               <TableCell>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => handleOpenDetail(item)}
-                  style={{ marginRight: 8 }}
-                >
+                <Button variant="outlined" size="small" onClick={() => handleOpenDetail(item)} style={{ marginRight: 8 }}>
                   Chi tiết
                 </Button>
 
-                {(item.status === "sent" || item.status === "success") && (
-                  <Button
-                    variant="contained"
-                    size="small"
-                    color="secondary"
-                    onClick={() => handleOpenResult(item)}
-                  >
+                {(item.status === 'sent' || item.status === 'success') && (
+                  <Button variant="contained" size="small" color="secondary" onClick={() => handleOpenResult(item)}>
                     Cập nhật kết quả
                   </Button>
                 )}
@@ -161,25 +144,11 @@ export default function QualityCheckPage() {
         </TableBody>
       </Table>
 
-      <DetailDialog
-        open={detailOpen}
-        data={selected}
-        onClose={() => setDetailOpen(false)}
-        onUpdate={handleUpdateRequest}
-      />
+      <DetailDialog open={detailOpen} data={selected} onClose={() => setDetailOpen(false)} onUpdate={handleUpdateRequest} />
 
-      <ResultDialog
-        open={resultOpen}
-        data={selected}
-        onClose={() => setResultOpen(false)}
-        onUpdate={handleUpdateRequest}
-      />
+      <ResultDialog open={resultOpen} data={selected} onClose={() => setResultOpen(false)} onUpdate={handleUpdateRequest} />
 
-      <AddDialog
-        open={newRequestOpen}
-        onClose={() => setNewRequestOpen(false)}
-        onAdd={handleAddRequest}
-      />
+      <AddDialog open={newRequestOpen} onClose={() => setNewRequestOpen(false)} onAdd={handleAddRequest} />
     </div>
   );
 }

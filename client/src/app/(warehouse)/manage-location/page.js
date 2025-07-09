@@ -1,11 +1,11 @@
-import UpdatePackageLocation from './components/UpdatePackageLocation'
+import UpdatePackageLocation from './components/UpdatePackageLocation';
 
 function page() {
   return (
     <div>
       <UpdatePackageLocation />
     </div>
-  )
+  );
 }
 
-export default page 
+export default page;

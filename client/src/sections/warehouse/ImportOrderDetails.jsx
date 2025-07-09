@@ -1,19 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Button,
-} from '@mui/material';
+import { Box, Typography, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button } from '@mui/material';
 
 const ImportOrderDetails = ({ order, onClose }) => {
   const [orderData, setOrderData] = useState(null);
@@ -63,41 +51,31 @@ const ImportOrderDetails = ({ order, onClose }) => {
           <Typography variant="subtitle2" color="text.secondary">
             Contract
           </Typography>
-          <Typography variant="body1">
-            {orderDetails.contract_id.contract_code}
-          </Typography>
+          <Typography variant="body1">{orderDetails.contract_id.contract_code}</Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
             Supplier
           </Typography>
-          <Typography variant="body1">
-            {orderDetails.supplier_id.full_name}
-          </Typography>
+          <Typography variant="body1">{orderDetails.supplier_id.full_name}</Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
             Warehouse
           </Typography>
-          <Typography variant="body1">
-            {orderDetails.warehouse_id.full_name}
-          </Typography>
+          <Typography variant="body1">{orderDetails.warehouse_id.full_name}</Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
             Import Date
           </Typography>
-          <Typography variant="body1">
-            {new Date(orderDetails.import_date).toLocaleDateString()}
-          </Typography>
+          <Typography variant="body1">{new Date(orderDetails.import_date).toLocaleDateString()}</Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
             Total Value
           </Typography>
-          <Typography variant="body1">
-            {orderDetails.total_value.toLocaleString()} VND
-          </Typography>
+          <Typography variant="body1">{orderDetails.total_value.toLocaleString()} VND</Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
@@ -109,18 +87,14 @@ const ImportOrderDetails = ({ order, onClose }) => {
           <Typography variant="subtitle2" color="text.secondary">
             Created By
           </Typography>
-          <Typography variant="body1">
-            {orderDetails.created_by.full_name}
-          </Typography>
+          <Typography variant="body1">{orderDetails.created_by.full_name}</Typography>
         </Grid>
         {orderDetails.approved_by && (
           <Grid item xs={12} sm={6}>
             <Typography variant="subtitle2" color="text.secondary">
               Approved By
             </Typography>
-            <Typography variant="body1">
-              {orderDetails.approved_by.full_name}
-            </Typography>
+            <Typography variant="body1">{orderDetails.approved_by.full_name}</Typography>
           </Grid>
         )}
 
@@ -147,9 +121,7 @@ const ImportOrderDetails = ({ order, onClose }) => {
                     <TableCell>{detail.batch_id.batch_code}</TableCell>
                     <TableCell>{detail.quantity}</TableCell>
                     <TableCell>{detail.unit_price.toLocaleString()} VND</TableCell>
-                    <TableCell>
-                      {(detail.quantity * detail.unit_price).toLocaleString()} VND
-                    </TableCell>
+                    <TableCell>{(detail.quantity * detail.unit_price).toLocaleString()} VND</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -170,4 +142,4 @@ const ImportOrderDetails = ({ order, onClose }) => {
   );
 };
 
-export default ImportOrderDetails; 
+export default ImportOrderDetails;

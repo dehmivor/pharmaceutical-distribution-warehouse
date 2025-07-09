@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 
 // @project
 
-const ManageImportOrders = dynamic(() => import('@/views/warehouse-manager/manage-import-orders'));
+const ManageImportOrders = dynamic(() => import('@/views/warehouse/wh-import-ord'));
 
 /***************************  IMPORT ORDERS MANAGEMENT  ***************************/
 
