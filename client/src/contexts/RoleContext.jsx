@@ -63,6 +63,7 @@ export const RoleProvider = ({ children }) => {
     const rolePermissions = {
       supervisor: ['manage-users'],
       representative: ['manage-license', 'view-clients'],
+      representative_manager: ['create-bills'],
       warehouse: ['create-inspections', 'manage-import-orders', 'manage-location'],
       warehouse_manager: ['approve-inspections', 'manage-inventory']
     };

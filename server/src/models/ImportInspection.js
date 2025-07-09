@@ -11,11 +11,6 @@ const importInspectionSchema = new mongoose.Schema({
     ref: 'Medicine',
     required: [false, 'Medicine ID is required'],
   },
-  batch_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Batch',
-    required: [false, 'Batch ID is required'],
-  },
   actual_quantity: {
     type: Number,
     required: [true, 'Actual quantity is required'],

@@ -77,7 +77,8 @@ function ImportOrderPage() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await axiosInstance.get('/import-orders', {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.get(`${backendUrl}/api/import-orders`, {
         headers: getAuthHeaders()
       });
       setOrders(response.data.data || []);
