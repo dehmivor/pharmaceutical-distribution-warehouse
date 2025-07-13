@@ -12,7 +12,7 @@ const warehouseManager = {
       icon: 'IconFileImport'
     },
     {
-      id: 'manage-inventory',
+      id: 'inventory-management',
       title: 'Inventory Management',
       type: 'item',
       url: '/wm-dashboard-import',
@@ -26,7 +26,7 @@ const warehouseManager = {
       children: [
         {
           id: 'assigned-inbound-order',
-          title: 'Assigned inbound order',
+          title: 'Assigned Inbound Order',
           type: 'item',
           url: '/wm-assigned-inbound-order',
           icon: 'IconFileImport'
@@ -34,13 +34,13 @@ const warehouseManager = {
       ]
     },
     {
-      id: 'manage-inventory',
+      id: 'checking',
       title: 'Checking',
       type: 'collapse',
       icon: 'IconFileExport',
       children: [
         {
-          id: 'manage-inventory',
+          id: 'manage-inventory-checking',
           title: 'Manage Inventory',
           type: 'item',
           url: '/wm-manage-inventory',
