@@ -17,7 +17,7 @@ import {
   Select,
   MenuItem,
   Chip,
-  Alert,
+  Alert
 } from '@mui/material';
 
 export default function NewContract() {
@@ -29,7 +29,7 @@ export default function NewContract() {
     retailer_id: null,
     start_date: '',
     end_date: '',
-    status: 'draft',
+    status: 'draft'
   });
 
   const [supplierQuery, setSupplierQuery] = useState('');
@@ -125,14 +125,7 @@ export default function NewContract() {
       <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Contract Code"
-              name="contract_code"
-              value={form.contract_code}
-              onChange={handleChange}
-              required
-            />
+            <TextField fullWidth label="Contract Code" name="contract_code" value={form.contract_code} onChange={handleChange} required />
           </Grid>
 
           <Grid item xs={12} md={6}>
@@ -249,17 +242,9 @@ export default function NewContract() {
 
       {/* Modal for adding new supplier/retailer */}
       <Dialog open={showModal} onClose={() => setShowModal(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Add New {modalType.charAt(0).toUpperCase() + modalType.slice(1)}
-        </DialogTitle>
+        <DialogTitle>Add New {modalType.charAt(0).toUpperCase() + modalType.slice(1)}</DialogTitle>
         <DialogContent>
-          <TextField
-            fullWidth
-            label="Name"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            sx={{ mt: 1 }}
-          />
+          <TextField fullWidth label="Name" value={newName} onChange={(e) => setNewName(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowModal(false)}>Cancel</Button>

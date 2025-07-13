@@ -72,7 +72,6 @@ const useInspection = () => {
         // ✅ Sử dụng user ID thực tế thay vì hardcode
         const transformedData = {
           import_order_id: inspectionData.import_order_id, // ✅ Sử dụng giá trị thực
-          batch_id: inspectionData.batch_id || null,
           actual_quantity: Number(inspectionData.total_received || inspectionData.actual_quantity || 0),
           rejected_quantity: Number(inspectionData.total_returned || inspectionData.rejected_quantity || 0),
           note: String(inspectionData.notes || inspectionData.note || ''),

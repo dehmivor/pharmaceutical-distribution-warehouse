@@ -8,5 +8,5 @@ const ManageInventory = dynamic(() => import('@/views/warehouse-manager/manage-i
 /***************************  INVENTORY MANAGEMENT  ***************************/
 
 export default function InventoryPage() {
-  return <ManageInventory/>;
+  return <ManageInventory />;
 }

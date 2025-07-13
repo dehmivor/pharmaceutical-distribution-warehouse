@@ -19,11 +19,6 @@ const useImportOrders = () => {
     setError(null);
 
     try {
-      // Debug logs
-      console.log('🔍 Backend URL:', backendUrl);
-      console.log('🔍 Full URL:', `${backendUrl}/api/import-orders`);
-      console.log('🔍 Params:', params);
-
       const token = localStorage.getItem('auth-token');
       const headers = {
         'Content-Type': 'application/json',

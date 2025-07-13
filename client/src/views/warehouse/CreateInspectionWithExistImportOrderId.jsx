@@ -5,6 +5,14 @@ import { useEffect, useState } from 'react';
 import EnhancedReceiptForm from '@/sections/warehouse/create-inspect/EnhancedReceiptForm';
 import { Alert, Box, CircularProgress, Typography } from '@mui/material';
 
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
+
 export default function CreateInspectionWithExistImportOrderId() {
   const params = useParams();
   const importOrderId = params.importOrderId;
@@ -19,7 +27,9 @@ export default function CreateInspectionWithExistImportOrderId() {
       setLoading(true);
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/';
 
-      const response = await fetch(`${backendUrl}/api/import-orders/${orderId}`);
+      const response = await fetch(`${backendUrl}/api/import-orders/${orderId}`, {
+        headers: getAuthHeaders()
+      });
 
       if (!response.ok) {
         throw new Error('Không tìm thấy đơn hàng');

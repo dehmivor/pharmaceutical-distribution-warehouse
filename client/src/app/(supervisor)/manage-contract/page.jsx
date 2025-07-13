@@ -15,7 +15,7 @@ import {
   Typography,
   Alert,
   CircularProgress,
-  Chip,
+  Chip
 } from '@mui/material';
 
 // Supervisor Contract Manager Screen
@@ -42,9 +42,7 @@ export function ContractManager() {
   const updateStatus = async (id, status) => {
     try {
       await axios.patch(`/api/contracts/${id}/status`, { status });
-      setContracts((prev) =>
-        prev.map((c) => (c._id === id ? { ...c, status } : c))
-      );
+      setContracts((prev) => prev.map((c) => (c._id === id ? { ...c, status } : c)));
     } catch (err) {
       alert(err.response?.data?.message || 'Error updating status');
     }
@@ -103,35 +101,19 @@ export function ContractManager() {
               <TableRow key={c._id}>
                 <TableCell>{c.contract_code}</TableCell>
                 <TableCell>{c.type}</TableCell>
-                <TableCell>
-                  {c.partner_type === 'supplier' ? c.supplier?.name : c.retailer?.name}
-                </TableCell>
+                <TableCell>{c.partner_type === 'supplier' ? c.supplier?.name : c.retailer?.name}</TableCell>
                 <TableCell>{new Date(c.start_date).toLocaleDateString()}</TableCell>
                 <TableCell>{new Date(c.end_date).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  <Chip 
-                    label={c.status} 
-                    color={getStatusColor(c.status)}
-                    size="small"
-                  />
+                  <Chip label={c.status} color={getStatusColor(c.status)} size="small" />
                 </TableCell>
                 <TableCell>
                   {c.status === 'draft' && (
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="success"
-                        onClick={() => updateStatus(c._id, 'active')}
-                      >
+                      <Button size="small" variant="contained" color="success" onClick={() => updateStatus(c._id, 'active')}>
                         Accept
                       </Button>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="error"
-                        onClick={() => updateStatus(c._id, 'cancelled')}
-                      >
+                      <Button size="small" variant="contained" color="error" onClick={() => updateStatus(c._id, 'cancelled')}>
                         Cancel
                       </Button>
                     </Box>

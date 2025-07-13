@@ -3,11 +3,11 @@ const billService = require('../services/billService');
 const billController = {
   getAllBills: async (req, res) => {
     try {
-      const bills = await billService.getAllBills();
+      const response = await billService.getAllBills();
 
       res.status(200).json({
         success: true,
-        data: bills,
+        data: response.data,
         message: 'Bills retrieved successfully',
       });
     } catch (error) {

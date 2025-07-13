@@ -47,7 +47,7 @@ const warehouseManager = {
           type: 'item',
           url: '/assigned-inbound-order',
           icon: 'IconFileImport'
-        },
+        }
       ]
     },
     // 4. Quản lý đơn xuất (outbound)

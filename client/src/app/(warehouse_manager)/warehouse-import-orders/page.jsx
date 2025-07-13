@@ -8,5 +8,5 @@ const ManageImportOrders = dynamic(() => import('@/views/warehouse-manager/manag
 /***************************  IMPORT ORDERS MANAGEMENT  ***************************/
 
 export default function ImportOrdersPage() {
-  return <ManageImportOrders/>;
-} 
+  return <ManageImportOrders />;
+}

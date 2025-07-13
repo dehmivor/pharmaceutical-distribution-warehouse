@@ -6,6 +6,6 @@ const EconomicContractPage = dynamic(() => import('@/views/representative/econom
 
 /***************************  DASHBOARD PAGE  ***************************/
 
-export default function EconomicContractPages() {
+export default function EconomicContractPagesRepresentative() {
   return <EconomicContractPage />;
 }

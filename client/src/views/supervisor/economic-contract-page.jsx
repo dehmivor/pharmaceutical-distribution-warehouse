@@ -1,4 +1,4 @@
-import EconomicContractManagement from '@/sections/representative/economic-contract/EconomicContractManagement';
+import EconomicContractManagement from '@/sections/components/economic-contract/EconomicContractManagement';
 function EconomicContractPage() {
   return <EconomicContractManagement />;
 }

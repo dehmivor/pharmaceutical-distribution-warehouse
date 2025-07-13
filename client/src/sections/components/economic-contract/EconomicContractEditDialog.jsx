@@ -37,7 +37,7 @@ import { vi } from 'date-fns/locale';
 import axios from 'axios';
 import useSWRMutation from 'swr/mutation';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -79,7 +79,6 @@ const InfoField = ({ label, value, icon: Icon, onChange, disabled = false, error
         disabled={disabled}
         variant="standard"
         error={error}
-        helperText={helperText}
         sx={{
           '& .MuiInputBase-input': {
             color: disabled ? 'text.disabled' : 'text.primary'
@@ -87,6 +86,12 @@ const InfoField = ({ label, value, icon: Icon, onChange, disabled = false, error
         }}
       />
     </Box>
+    {/* Hiển thị error message bên ngoài Box */}
+    {error && helperText && (
+      <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+        {helperText}
+      </Typography>
+    )}
   </Box>
 );
 
@@ -97,6 +102,28 @@ async function updateContract(url, { arg: payload }) {
   });
   return response.data;
 }
+
+// Helper function để validate số nguyên strict
+const isValidInteger = (value) => {
+  // Loại bỏ khoảng trắng
+  const trimmed = value.toString().trim();
+  // Kiểm tra chỉ chứa số
+  if (!/^\d+$/.test(trimmed)) return false;
+  // Parse và kiểm tra
+  const parsed = Number.parseInt(trimmed, 10);
+  return !isNaN(parsed) && parsed > 0 && parsed.toString() === trimmed;
+};
+
+// Helper function để validate số thực strict
+const isValidFloat = (value) => {
+  // Loại bỏ khoảng trắng
+  const trimmed = value.toString().trim();
+  // Kiểm tra format số (có thể có dấu chấm)
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) return false;
+  // Parse và kiểm tra
+  const parsed = Number.parseFloat(trimmed);
+  return !isNaN(parsed) && parsed >= 0;
+};
 
 const EconomicContractEditDialog = ({
   open,
@@ -121,7 +148,7 @@ const EconomicContractEditDialog = ({
   const [errorApi, setErrorApi] = useState('');
 
   // useSWRMutation for update
-  const { trigger, isMutating } = useSWRMutation(contract?._id ? `/economic-contracts/${contract._id}` : null, updateContract);
+  const { trigger, isMutating } = useSWRMutation(contract?._id ? `/api/economic-contracts/${contract._id}` : null, updateContract);
 
   // Pre-fill form data when contract changes
   useEffect(() => {
@@ -167,10 +194,19 @@ const EconomicContractEditDialog = ({
     const newItems = [...formData.items];
     newItems[index][field] = value;
     setFormData((prev) => ({ ...prev, items: newItems }));
+
+    // Clear error cho field cụ thể của item cụ thể
     setErrorValidate((prev) => {
       const newErrors = { ...prev };
-      if (newErrors.items && newErrors.items[index]) {
-        newErrors.items[index][field] = '';
+      if (newErrors.items && Array.isArray(newErrors.items) && newErrors.items[index]) {
+        newErrors.items[index] = {
+          ...newErrors.items[index],
+          [field]: ''
+        };
+        // Nếu item không còn error nào, xóa item đó khỏi array
+        if (Object.values(newErrors.items[index]).every((err) => !err)) {
+          newErrors.items[index] = null;
+        }
       }
       return newErrors;
     });
@@ -187,6 +223,18 @@ const EconomicContractEditDialog = ({
     if (formData.items.length > 1) {
       const newItems = formData.items.filter((_, i) => i !== index);
       setFormData((prev) => ({ ...prev, items: newItems }));
+
+      // Cập nhật lại errors sau khi xóa item
+      setErrorValidate((prev) => {
+        const newErrors = { ...prev };
+        if (newErrors.items && Array.isArray(newErrors.items)) {
+          newErrors.items = newErrors.items.filter((_, i) => i !== index);
+          if (newErrors.items.length === 0 || newErrors.items.every((item) => !item)) {
+            delete newErrors.items;
+          }
+        }
+        return newErrors;
+      });
     }
   };
 
@@ -219,33 +267,39 @@ const EconomicContractEditDialog = ({
     if (formData.items.length === 0) {
       newErrors.items = 'Phải có ít nhất 1 thuốc';
     } else {
-      newErrors.items = formData.items
-        .map((item, index) => {
-          const itemErrors = {};
+      // Tạo array errors cho từng item
+      const itemErrors = [];
 
-          if (!item.medicine_id) itemErrors.medicine_id = 'Thuốc là bắt buộc';
+      formData.items.forEach((item, index) => {
+        const itemError = {};
 
-          if (!item.quantity && item.quantity !== 0) itemErrors.quantity = 'Số lượng là bắt buộc';
-          else {
-            const parsedQuantity = Number.parseInt(item.quantity.replace(',', '.'), 10);
-            if (isNaN(parsedQuantity) || parsedQuantity <= 0 || parsedQuantity !== Math.floor(parsedQuantity)) {
-              itemErrors.quantity = 'Số lượng phải là số nguyên dương';
-            }
-          }
+        // Validate medicine_id
+        if (!item.medicine_id) {
+          itemError.medicine_id = 'Thuốc là bắt buộc';
+        }
 
-          if (!item.unit_price && item.unit_price !== 0) itemErrors.unit_price = 'Đơn giá là bắt buộc';
-          else {
-            const parsedUnitPrice = Number.parseFloat(item.unit_price.replace(',', '.'));
-            if (isNaN(parsedUnitPrice) || parsedUnitPrice < 0) {
-              itemErrors.unit_price = 'Đơn giá phải là số không âm';
-            }
-          }
+        // Validate quantity với strict checking
+        if (!item.quantity && item.quantity !== '0') {
+          itemError.quantity = 'Số lượng là bắt buộc';
+        } else if (!isValidInteger(item.quantity)) {
+          itemError.quantity = 'Số lượng phải là số nguyên dương (chỉ chứa chữ số)';
+        }
 
-          return Object.keys(itemErrors).length > 0 ? itemErrors : null;
-        })
-        .filter((error) => error !== null);
+        // Validate unit_price với strict checking
+        if (!item.unit_price && item.unit_price !== '0') {
+          itemError.unit_price = 'Đơn giá là bắt buộc';
+        } else if (!isValidFloat(item.unit_price)) {
+          itemError.unit_price = 'Đơn giá phải là số không âm (chỉ chứa chữ số và dấu chấm)';
+        }
 
-      if (newErrors.items.length === 0) delete newErrors.items;
+        // Chỉ thêm vào array nếu có lỗi
+        itemErrors[index] = Object.keys(itemError).length > 0 ? itemError : null;
+      });
+
+      // Chỉ set items error nếu có ít nhất 1 item có lỗi
+      if (itemErrors.some((error) => error !== null)) {
+        newErrors.items = itemErrors;
+      }
     }
 
     setErrorValidate(newErrors);
@@ -264,8 +318,8 @@ const EconomicContractEditDialog = ({
         ...formData,
         items: formData.items.map((item) => ({
           ...item,
-          quantity: Number.parseInt(item.quantity.replace(',', '.'), 10),
-          unit_price: Number.parseFloat(item.unit_price.replace(',', '.'))
+          quantity: Number.parseInt(item.quantity, 10),
+          unit_price: Number.parseFloat(item.unit_price)
         }))
       };
 
@@ -569,7 +623,10 @@ const EconomicContractEditDialog = ({
                           alignItems: 'center',
                           width: '100%',
                           minWidth: 200,
-                          borderColor: errorValidate.items?.[index]?.medicine_id ? 'red' : '#e0e0e0'
+                          borderColor:
+                            errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.medicine_id
+                              ? 'red'
+                              : '#e0e0e0'
                         }}
                       >
                         <Autocomplete
@@ -587,8 +644,10 @@ const EconomicContractEditDialog = ({
                               {...params}
                               variant="standard"
                               placeholder="Chọn thuốc"
-                              error={!viewDetail && !!errorValidate.items?.[index]?.medicine_id}
-                              helperText={!viewDetail ? errorValidate.items?.[index]?.medicine_id : ''}
+                              error={
+                                !viewDetail &&
+                                !!(errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.medicine_id)
+                              }
                               InputProps={{
                                 ...params.InputProps,
                                 disableUnderline: true
@@ -602,6 +661,15 @@ const EconomicContractEditDialog = ({
                           sx={{ width: '100%' }}
                         />
                       </Box>
+                      {/* Error message cho medicine */}
+                      {!viewDetail &&
+                        errorValidate.items &&
+                        Array.isArray(errorValidate.items) &&
+                        errorValidate.items[index]?.medicine_id && (
+                          <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                            {errorValidate.items[index].medicine_id}
+                          </Typography>
+                        )}
                     </Box>
                   </Grid>
 
@@ -611,8 +679,14 @@ const EconomicContractEditDialog = ({
                       value={item.quantity}
                       onChange={(e) => !viewDetail && handleItemChange(index, 'quantity', e.target.value)}
                       disabled={viewDetail}
-                      error={!viewDetail && !!errorValidate.items?.[index]?.quantity}
-                      helperText={!viewDetail ? errorValidate.items?.[index]?.quantity : ''}
+                      error={
+                        !viewDetail && !!(errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.quantity)
+                      }
+                      helperText={
+                        !viewDetail && errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.quantity
+                          ? errorValidate.items[index].quantity
+                          : ''
+                      }
                     />
                   </Grid>
 
@@ -622,8 +696,15 @@ const EconomicContractEditDialog = ({
                       value={item.unit_price}
                       onChange={(e) => !viewDetail && handleItemChange(index, 'unit_price', e.target.value)}
                       disabled={viewDetail}
-                      error={!viewDetail && !!errorValidate.items?.[index]?.unit_price}
-                      helperText={!viewDetail ? errorValidate.items?.[index]?.unit_price : ''}
+                      error={
+                        !viewDetail &&
+                        !!(errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.unit_price)
+                      }
+                      helperText={
+                        !viewDetail && errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.unit_price
+                          ? errorValidate.items[index].unit_price
+                          : ''
+                      }
                     />
                   </Grid>
                 </Grid>

@@ -34,7 +34,7 @@ import {
   TableContainer,
   TableCell,
   Tooltip,
-  Paper,
+  Paper
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -51,8 +51,6 @@ const getAuthHeaders = () => {
   };
 };
 
-
-
 function ImportOrderDetail() {
   const theme = useTheme();
   const { orderId } = useParams();
@@ -66,15 +64,12 @@ function ImportOrderDetail() {
   const [packages, setPackages] = useState([]);
   const [saving, setSaving] = useState(false);
 
-
   const [inspectionsDone, setInspectionsDone] = useState(false);
   const [packagesDone, setPackagesDone] = useState(false);
   const [putAwayDone, setPutAwayDone] = useState(false);
 
-
   const [putAway, setPutAway] = useState([]);
   const [loadingPutAway, setLoadingPutAway] = useState(false);
-
 
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
   const [newMedicineId, setNewMedicineId] = useState('');
@@ -85,8 +80,6 @@ function ImportOrderDetail() {
   const [newBatchCode, setNewBatchCode] = useState('');
 
   const [newBatches, setNewBatches] = useState([]);
-
-
 
   // Initial fetch: order + inspections + initial packages
   useEffect(() => {
@@ -104,19 +97,17 @@ function ImportOrderDetail() {
         setOrder(orderResp.data);
 
         // 2) Load the inspections for this order
-        const { data: inspResp } = await axios.get(
-          `/api/import-inspections/import-orders/${orderId}/inspections`, {
+        const { data: inspResp } = await axios.get(`/api/import-inspections/import-orders/${orderId}/inspections`, {
           headers: getAuthHeaders()
         });
         const insps = inspResp.inspections || [];
         setInspections(insps);
 
         // 3) Prefill packages with NET quantities (actual - rejected)
-        const prefillPackages = insps
-          .map(i => ({
-            batch_id: i.batch_id?._id || '',
-            quantity: i.actual_quantity - i.rejected_quantity
-          }));
+        const prefillPackages = insps.map((i) => ({
+          batch_id: i.batch_id?._id || '',
+          quantity: i.actual_quantity - i.rejected_quantity
+        }));
 
         setPackages(prefillPackages);
 
@@ -152,9 +143,7 @@ function ImportOrderDetail() {
         headers: getAuthHeaders()
       });
       // resp.data might be { success, data: [...] }
-      const list = Array.isArray(resp.data.data)
-        ? resp.data.data
-        : [];
+      const list = Array.isArray(resp.data.data) ? resp.data.data : [];
       setPutAway(list);
     } catch (err) {
       console.error(err);
@@ -166,8 +155,7 @@ function ImportOrderDetail() {
 
   const fetchInspection = async () => {
     try {
-      const { data: inspResp } = await axios.get(
-        `/api/import-inspections/import-orders/${orderId}/inspections`, {
+      const { data: inspResp } = await axios.get(`/api/import-inspections/import-orders/${orderId}/inspections`, {
         headers: getAuthHeaders()
       });
       const insps = inspResp.inspections || [];
@@ -188,7 +176,6 @@ function ImportOrderDetail() {
       console.error(err);
     }
   };
-
 
   const enableAccordion = async (orderState) => {
     if (orderState == 'other') {
@@ -211,19 +198,19 @@ function ImportOrderDetail() {
       setPackagesDone(true);
       setPutAwayDone(false);
     }
-  }
+  };
 
   const [batchOptions, setBatchOptions] = useState([]);
   useEffect(() => {
     const opts = inspections
       // only keep inspections with a real batch_id
-      .filter(i => i.batch_id && i.batch_id._id)
-      .map(i => {
+      .filter((i) => i.batch_id && i.batch_id._id)
+      .map((i) => {
         const net = i.actual_quantity - i.rejected_quantity;
         return {
           id: i.batch_id._id,
           label: i.batch_id.batch_code,
-          max: net,
+          max: net
         };
       });
 
@@ -247,51 +234,44 @@ function ImportOrderDetail() {
       return;
     }
     // stash locally
-    setNewBatches(list => [
+    setNewBatches((list) => [
       ...list,
       {
-        medicine_id: newMedicineId, batch_code: newBatchCode,
-        production_date: newProdDate, expiry_date: newExpiryDate
+        medicine_id: newMedicineId,
+        batch_code: newBatchCode,
+        production_date: newProdDate,
+        expiry_date: newExpiryDate
       }
     ]);
     // add a temp option so users can pick it immediately
-    setBatchOptions(opts => [
-      ...opts,
-      { id: newBatchCode, label: newBatchCode, max: 0 }
-    ]);
+    setBatchOptions((opts) => [...opts, { id: newBatchCode, label: newBatchCode, max: 0 }]);
     closeBatchDialog();
   };
 
   const uniqueInspections = inspections
-    .filter(i => i.medicine_id && i.medicine_id._id)
-    .filter((i, idx, arr) =>
-      arr.findIndex(j => j.medicine_id._id === i.medicine_id._id) === idx
-    );
-
-
+    .filter((i) => i.medicine_id && i.medicine_id._id)
+    .filter((i, idx, arr) => arr.findIndex((j) => j.medicine_id._id === i.medicine_id._id) === idx);
 
   const isValid =
     // 1) Must have at least one package row
     packages.length > 0 &&
-
     // 2) Every row must have selected a batch
-    packages.every(p => Boolean(p.batch_id)) &&
-
+    packages.every((p) => Boolean(p.batch_id)) &&
     // 3) Package sums must exactly match each inspection’s net quantity
-    inspections.every(ins => {
+    inspections.every((ins) => {
       // If inspection has no batch_id, skip it
       if (!ins.batch_id?._id) return true;
 
       const net = ins.actual_quantity - ins.rejected_quantity;
       const sum = packages
-        .filter(p => String(p.batch_id) === String(ins.batch_id._id))
+        .filter((p) => String(p.batch_id) === String(ins.batch_id._id))
         .reduce((total, p) => total + Number(p.quantity || 0), 0);
 
       return sum === net;
     });
 
   const handlePkgChange = (idx, field, value) => {
-    setPackages(pkgs => {
+    setPackages((pkgs) => {
       const next = [...pkgs];
       next[idx] = { ...next[idx], [field]: value };
       return next;
@@ -299,16 +279,12 @@ function ImportOrderDetail() {
   };
 
   const addPackageRow = () => {
-    setPackages(pkgs => [
-      ...pkgs,
-      { batch_id: batchOptions[0]?.id || '', quantity: 0 }
-    ]);
+    setPackages((pkgs) => [...pkgs, { batch_id: batchOptions[0]?.id || '', quantity: 0 }]);
   };
 
-  const removePackageRow = idx => {
-    setPackages(pkgs => pkgs.filter((_, i) => i !== idx));
+  const removePackageRow = (idx) => {
+    setPackages((pkgs) => pkgs.filter((_, i) => i !== idx));
   };
-
 
   const handleDeleteInspection = async (inspectionId) => {
     try {
@@ -318,7 +294,7 @@ function ImportOrderDetail() {
       });
 
       // Remove it directly from the inspections array
-      setInspections(prev => prev.filter(insp => insp._id !== inspectionId));
+      setInspections((prev) => prev.filter((insp) => insp._id !== inspectionId));
 
       setSnackbar({
         open: true,
@@ -352,7 +328,7 @@ function ImportOrderDetail() {
         scale: 3,
         includetext: true,
         textxalign: 'center',
-        textsize: 10,
+        textsize: 10
       });
       const barcodeDataUrl = canvas.toDataURL('image/png');
 
@@ -407,30 +383,33 @@ function ImportOrderDetail() {
 
   const handleArrival = async () => {
     try {
-      console.log("auth headers:", getAuthHeaders());
+      console.log('auth headers:', getAuthHeaders());
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
-        { status: 'delivered' }, {
-        headers: getAuthHeaders()
-      });
-      setOrder(prev => ({ ...prev, status: 'delivered' }));
-      enableAccordion('delivered')
+        { status: 'delivered' },
+        {
+          headers: getAuthHeaders()
+        }
+      );
+      setOrder((prev) => ({ ...prev, status: 'delivered' }));
+      enableAccordion('delivered');
     } catch (err) {
       console.error('Error updating status:', err);
       setError('Lỗi khi cập nhật trạng thái đơn');
     }
   };
 
-
   const handleFinishInspection = async () => {
     try {
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
-        { status: 'checked' }, {
-        headers: getAuthHeaders()
-      });
-      setOrder(prev => ({ ...prev, status: 'checked' }));
-      enableAccordion('checked')
+        { status: 'checked' },
+        {
+          headers: getAuthHeaders()
+        }
+      );
+      setOrder((prev) => ({ ...prev, status: 'checked' }));
+      enableAccordion('checked');
     } catch (err) {
       console.error('Error updating status:', err);
       setError('Lỗi khi cập nhật trạng thái đơn');
@@ -445,15 +424,19 @@ function ImportOrderDetail() {
       // 1) Create any new batches
       const createdMap = {};
       for (let spec of newBatches) {
-        const resp = await axios.post('/api/batch', {
-          medicine_id: spec.medicine_id,
-          batch_code: spec.batch_code,
-          production_date: spec.production_date,
-          expiry_date: spec.expiry_date,
-          supplier_id: order.supplier_contract_id.supplier_id._id,
-        }, {
-          headers: getAuthHeaders()
-        });
+        const resp = await axios.post(
+          '/api/batch',
+          {
+            medicine_id: spec.medicine_id,
+            batch_code: spec.batch_code,
+            production_date: spec.production_date,
+            expiry_date: spec.expiry_date,
+            supplier_id: order.supplier_contract_id.supplier_id._id
+          },
+          {
+            headers: getAuthHeaders()
+          }
+        );
         const b = resp.data.data;
         createdMap[spec.batch_code] = {
           id: b._id,
@@ -463,7 +446,7 @@ function ImportOrderDetail() {
       }
 
       // 2) Build the **updated** packages array locally
-      const updatedPackages = packages.map(p => {
+      const updatedPackages = packages.map((p) => {
         const real = createdMap[p.batch_id];
         return {
           batch_id: real ? real.id : p.batch_id,
@@ -472,28 +455,36 @@ function ImportOrderDetail() {
       });
 
       // 3) Commit to state
-      setBatchOptions(opts =>
-        opts.map(o => createdMap[o.id] || o)
-      );
+      setBatchOptions((opts) => opts.map((o) => createdMap[o.id] || o));
       setPackages(updatedPackages);
       setNewBatches([]);
 
       // 4) Now post using the **updatedPackages** variable
-      await Promise.all(updatedPackages.map(p =>
-        axios.post('/api/packages', {
-          import_order_id: orderId,
-          batch_id: p.batch_id,
-          quantity: p.quantity
-        }, {
-          headers: getAuthHeaders()
-        })
-      ));
+      await Promise.all(
+        updatedPackages.map((p) =>
+          axios.post(
+            '/api/packages',
+            {
+              import_order_id: orderId,
+              batch_id: p.batch_id,
+              quantity: p.quantity
+            },
+            {
+              headers: getAuthHeaders()
+            }
+          )
+        )
+      );
 
       // 5) Advance order status
-      await axios.patch(`/api/import-orders/${orderId}/status`, { status: 'arranged' }, {
-        headers: getAuthHeaders()
-      });
-      setOrder(prev => ({ ...prev, status: 'arranged' }));
+      await axios.patch(
+        `/api/import-orders/${orderId}/status`,
+        { status: 'arranged' },
+        {
+          headers: getAuthHeaders()
+        }
+      );
+      setOrder((prev) => ({ ...prev, status: 'arranged' }));
       enableAccordion('packaged');
 
       // 6) Refresh the list
@@ -506,27 +497,41 @@ function ImportOrderDetail() {
     }
   };
 
-
-
   const handleFinalize = async () => {
     try {
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
-        { status: 'completed' }, {
-        headers: getAuthHeaders()
-      }
+        { status: 'completed' },
+        {
+          headers: getAuthHeaders()
+        }
       );
-      setOrder(prev => ({ ...prev, status: 'completed' }));
-      enableAccordion('other')
+      setOrder((prev) => ({ ...prev, status: 'completed' }));
+      enableAccordion('other');
     } catch (err) {
       console.error('Error updating status:', err);
       setError('Lỗi khi cập nhật trạng thái đơn');
     }
   };
 
-  if (loading) return <Box textAlign="center" py={8}><CircularProgress /></Box>;
-  if (error) return <Alert severity="error" sx={{ m: 4 }}>{error}</Alert>;
-  if (!order) return <Alert severity="info" sx={{ m: 4 }}>Order not found</Alert>;
+  if (loading)
+    return (
+      <Box textAlign="center" py={8}>
+        <CircularProgress />
+      </Box>
+    );
+  if (error)
+    return (
+      <Alert severity="error" sx={{ m: 4 }}>
+        {error}
+      </Alert>
+    );
+  if (!order)
+    return (
+      <Alert severity="info" sx={{ m: 4 }}>
+        Order not found
+      </Alert>
+    );
 
   return (
     <Box sx={{ background: theme.palette.background.default, minHeight: '100vh', py: 4 }}>
@@ -541,7 +546,9 @@ function ImportOrderDetail() {
             <Typography>Order Detail</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography><strong>Status:</strong> {order.status}</Typography>
+            <Typography>
+              <strong>Status:</strong> {order.status}
+            </Typography>
             <Typography>
               <strong>Contract:</strong> {order.supplier_contract_id.contract_code}
             </Typography>
@@ -549,18 +556,16 @@ function ImportOrderDetail() {
               <strong>Supplier:</strong> {order.supplier_contract_id.supplier_id.name}
             </Typography>
             <Divider sx={{ my: 2 }} />
-            <Typography><strong>Items:</strong></Typography>
-            {order.details.map(d => (
+            <Typography>
+              <strong>Items:</strong>
+            </Typography>
+            {order.details.map((d) => (
               <Typography key={d._id}>
                 • {d.medicine_id.medicine_name}: {d.quantity} @ {d.unit_price}
               </Typography>
             ))}
             <Divider sx={{ my: 2 }} />
-            <Button
-              variant="contained"
-              disabled={order.status != 'approved'}
-              onClick={handleArrival}
-            >
+            <Button variant="contained" disabled={order.status != 'approved'} onClick={handleArrival}>
               Arrived
             </Button>
           </AccordionDetails>
@@ -592,7 +597,7 @@ function ImportOrderDetail() {
                         <TableCell>
                           <Tooltip title={insp._id}>
                             <Typography variant="body2" fontWeight="bold">
-                              {insp.medicine_id?.medicine_name || ""}
+                              {insp.medicine_id?.medicine_name || ''}
                             </Typography>
                           </Tooltip>
                         </TableCell>
@@ -617,17 +622,11 @@ function ImportOrderDetail() {
                   </TableBody>
                 </Table>
               </TableContainer>
-              <Button
-                variant="contained"
-                disabled={inspectionsDone}
-                onClick={handleFinishInspection}
-              >
+              <Button variant="contained" disabled={inspectionsDone} onClick={handleFinishInspection}>
                 Finish inspection
               </Button>
-
             </Stack>
           </AccordionDetails>
-
         </Accordion>
 
         {/* Packages Creation */}
@@ -637,28 +636,20 @@ function ImportOrderDetail() {
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={2}>
-              <IconButton
-                size="small"
-                color="primary"
-                onClick={openBatchDialog}
-                disabled={packagesDone}
-                sx={{ ml: 2 }}
-              >
+              <IconButton size="small" color="primary" onClick={openBatchDialog} disabled={packagesDone} sx={{ ml: 2 }}>
                 <AddCircleIcon />
               </IconButton>
               {packages.map((p, idx) => {
-                const opt = batchOptions.find(o => o.id === p.batch_id) || {};
+                const opt = batchOptions.find((o) => o.id === p.batch_id) || {};
                 return (
                   <Stack key={idx} direction="row" spacing={2} alignItems="center">
                     <FormControl sx={{ flex: 1 }} disabled={packagesDone}>
                       <InputLabel>Batch</InputLabel>
-                      <Select
-                        size="small"
-                        value={p.batch_id}
-                        onChange={e => handlePkgChange(idx, 'batch_id', e.target.value)}
-                      >
-                        {batchOptions.map(opt => (
-                          <MenuItem key={opt.id} value={opt.id}>{opt.label}</MenuItem>
+                      <Select size="small" value={p.batch_id} onChange={(e) => handlePkgChange(idx, 'batch_id', e.target.value)}>
+                        {batchOptions.map((opt) => (
+                          <MenuItem key={opt.id} value={opt.id}>
+                            {opt.label}
+                          </MenuItem>
                         ))}
                       </Select>
                     </FormControl>
@@ -667,15 +658,11 @@ function ImportOrderDetail() {
                       label="Quantity"
                       type="number"
                       value={p.quantity}
-                      onChange={e => handlePkgChange(idx, 'quantity', e.target.value)}
+                      onChange={(e) => handlePkgChange(idx, 'quantity', e.target.value)}
                       sx={{ width: 120 }}
                       disabled={packagesDone}
                     />
-                    <IconButton
-                      size="small"
-                      onClick={() => removePackageRow(idx)}
-                      disabled={packagesDone}
-                    >
+                    <IconButton size="small" onClick={() => removePackageRow(idx)} disabled={packagesDone}>
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </Stack>
@@ -688,11 +675,7 @@ function ImportOrderDetail() {
 
               <Divider />
 
-              <Button
-                variant="contained"
-                disabled={!isValid || saving || packagesDone}
-                onClick={handleContinuePackages}
-              >
+              <Button variant="contained" disabled={!isValid || saving || packagesDone} onClick={handleContinuePackages}>
                 {saving ? 'Saving…' : 'Continue to Put Away'}
               </Button>
             </Stack>
@@ -725,30 +708,18 @@ function ImportOrderDetail() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {putAway.map(pkg => (
+                      {putAway.map((pkg) => (
                         <TableRow key={pkg._id}>
                           <TableCell>{pkg.batch_id.batch_code}</TableCell>
                           <TableCell>{pkg.quantity}</TableCell>
-                          <TableCell>
-                            {pkg.location_id ? 'Arranged' : 'Unarranged'}
-                          </TableCell>
+                          <TableCell>{pkg.location_id ? 'Arranged' : 'Unarranged'}</TableCell>
                           <TableCell>
                             {pkg.location_id && (
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleClearLocation(pkg._id)}
-                                disabled={putAwayDone}
-                              >
+                              <IconButton size="small" color="error" onClick={() => handleClearLocation(pkg._id)} disabled={putAwayDone}>
                                 <DeleteForeverIcon fontSize="small" />
                               </IconButton>
                             )}
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handlePrintLabel(pkg)}
-                              disabled={putAwayDone}
-                            >
+                            <IconButton size="small" color="primary" onClick={() => handlePrintLabel(pkg)} disabled={putAwayDone}>
                               <PrintIcon fontSize="small" />
                             </IconButton>
                           </TableCell>
@@ -761,7 +732,7 @@ function ImportOrderDetail() {
 
               <Button
                 variant="contained"
-                disabled={!putAway.length || !putAway.every(p => p.location_id) || putAwayDone}
+                disabled={!putAway.length || !putAway.every((p) => p.location_id) || putAwayDone}
                 onClick={handleFinalize}
               >
                 Finalize
@@ -774,20 +745,11 @@ function ImportOrderDetail() {
           <DialogTitle>Create New Batch</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1, minWidth: 300 }}>
-              <TextField
-                label="Batch Code"
-                value={newBatchCode}
-                onChange={e => setNewBatchCode(e.target.value)}
-                required
-              />
+              <TextField label="Batch Code" value={newBatchCode} onChange={(e) => setNewBatchCode(e.target.value)} required />
               <FormControl fullWidth>
                 <InputLabel>Medicine</InputLabel>
-                <Select
-                  value={newMedicineId}
-                  label="Medicine"
-                  onChange={e => setNewMedicineId(e.target.value)}
-                >
-                  {uniqueInspections.map(i => (
+                <Select value={newMedicineId} label="Medicine" onChange={(e) => setNewMedicineId(e.target.value)}>
+                  {uniqueInspections.map((i) => (
                     <MenuItem key={i._id} value={i.medicine_id?._id}>
                       {i.medicine_id?.medicine_name || '—'}
                     </MenuItem>
@@ -799,7 +761,7 @@ function ImportOrderDetail() {
                 type="date"
                 InputLabelProps={{ shrink: true }}
                 value={newProdDate}
-                onChange={e => {
+                onChange={(e) => {
                   const prod = e.target.value;
                   setNewProdDate(prod);
 
@@ -815,21 +777,19 @@ function ImportOrderDetail() {
                 type="date"
                 InputLabelProps={{ shrink: true }}
                 inputProps={{
-                  min: newProdDate || undefined   // disable dates before production
+                  min: newProdDate || undefined // disable dates before production
                 }}
                 value={newExpiryDate}
-                onChange={e => setNewExpiryDate(e.target.value)}
+                onChange={(e) => setNewExpiryDate(e.target.value)}
               />
               {batchError && <Alert severity="error">{batchError}</Alert>}
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button onClick={closeBatchDialog} disabled={creatingBatch}>Cancel</Button>
-            <Button
-              variant="contained"
-              onClick={handleCreateBatch}
-              disabled={creatingBatch}
-            >
+            <Button onClick={closeBatchDialog} disabled={creatingBatch}>
+              Cancel
+            </Button>
+            <Button variant="contained" onClick={handleCreateBatch} disabled={creatingBatch}>
               {creatingBatch ? 'Creating…' : 'Create Batch'}
             </Button>
           </DialogActions>
@@ -837,6 +797,6 @@ function ImportOrderDetail() {
       </Container>
     </Box>
   );
-};
+}
 
-export default ImportOrderDetail
+export default ImportOrderDetail;

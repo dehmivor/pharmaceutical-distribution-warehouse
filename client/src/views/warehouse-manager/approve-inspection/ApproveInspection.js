@@ -385,7 +385,7 @@ function ApproveInspection() {
                               </Typography>
                             </Tooltip>
                           </TableCell>
-                          <TableCell>{insp.medicine_id.medicine_name}</TableCell>
+                          {/* <TableCell>{insp.medicine_id.medicine_name}</TableCell> */}
                           <TableCell>{insp.actual_quantity}</TableCell>
                           <TableCell>{insp.rejected_quantity}</TableCell>
                           <TableCell>{insp.created_by?.email || '-'}</TableCell>
