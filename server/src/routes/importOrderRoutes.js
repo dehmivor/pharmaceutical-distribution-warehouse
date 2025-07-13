@@ -1,17 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const importOrderController = require('../controllers/importOrderController');
-const authenticate = require('../middlewares/authenticate');
+const { authenticateToken } = require('../middlewares/accountMiddleware');
 const authorize = require('../middlewares/authorize');
 
 // Apply authentication middleware to all routes
-router.use(authenticate);
+router.use(authenticateToken);
 
 // Create new import order - chỉ representative và supervisor
 router.post('/', authorize(['representative', 'supervisor']), importOrderController.createImportOrder);
 
 // Get all import orders with filters - chỉ supervisor, representative và warehouse_manager
 router.get('/', authorize(['supervisor', 'representative', 'warehouse_manager', 'warehouse']), importOrderController.getImportOrders);
+
+// Get valid status transitions - chỉ supervisor, representative và warehouse_manager
+router.get('/status-transitions', authorize(['supervisor', 'representative', 'warehouse_manager']), importOrderController.getValidStatusTransitions);
 
 // Get import orders by warehouse manager - warehouse manager chỉ xem orders của mình
 router.get('/warehouse-manager/:warehouseManagerId', authorize(['warehouse_manager', 'supervisor']), importOrderController.getImportOrdersByWarehouseManager);
@@ -43,15 +46,8 @@ router.delete('/:id', authorize(['supervisor', 'representative']), importOrderCo
 // Update order status - cho phép supervisor và warehouse manager (không phải warehouse staff)
 router.patch('/:id/status', authorize(['supervisor', 'warehouse_manager']), importOrderController.updateOrderStatus);
 
-// Get valid status transitions - chỉ supervisor, representative và warehouse_manager
-router.get('/status-transitions', authorize(['supervisor', 'representative', 'warehouse_manager']), importOrderController.getValidStatusTransitions);
-
 // Assign warehouse manager (chỉ supervisor được phép)
 router.patch('/:id/assign-warehouse-manager', authorize('supervisor'), importOrderController.assignWarehouseManager);
-
-// Get import orders by warehouse manager
-router.get('/warehouse-manager/:warehouseManagerId', importOrderController.getImportOrdersByWarehouseManager);
-
 
 module.exports = router;
 

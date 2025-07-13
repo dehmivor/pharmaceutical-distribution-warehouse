@@ -36,7 +36,7 @@ const getImportOrders = async (req, res) => {
   try {
     const { page = 1, limit = 10, status, search } = req.query;
     const userRole = req.user.role;
-    const userId = req.user.id ? req.user.id.toString() : null;
+    const userId = req.user._id ? req.user._id.toString() : null;
 
     let query = {};
     
@@ -222,7 +222,7 @@ const updateOrderStatus = async (req, res) => {
     
     // Check if user is supervisor and bypass validation
     const bypassValidation = req.user && req.user.role === 'supervisor';
-    const approvalBy = req.user ? req.user.id : null;
+    const approvalBy = req.user ? req.user._id : null;
     const userRole = req.user ? req.user.role : null;
 
 

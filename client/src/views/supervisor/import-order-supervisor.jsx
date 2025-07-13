@@ -33,7 +33,7 @@ import { Info as InfoIcon, Edit as EditIcon, ForkLeft as ForwardIcon } from '@mu
 import axios from 'axios';
 import useNotifications from '@/hooks/useNotification';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
@@ -43,9 +43,23 @@ const getAuthHeaders = () => {
 };
 
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: `${API_BASE_URL}/api`,
   withCredentials: true
 });
+
+// Add request interceptor to include auth token
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 function ImportOrderSupervisor() {
   const [orders, setOrders] = useState([]);
@@ -75,9 +89,7 @@ function ImportOrderSupervisor() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await axiosInstance.get('/import-orders', {
-        headers: getAuthHeaders()
-      });
+      const response = await axiosInstance.get('/import-orders');
       setOrders(response.data.data || []);
     } catch (error) {
       setError(error.response?.data?.error || error.message);
@@ -88,9 +100,7 @@ function ImportOrderSupervisor() {
 
   const fetchWarehouseManagers = async () => {
     try {
-      const response = await axiosInstance.get('/accounts?role=warehouse_manager', {
-        headers: getAuthHeaders()
-      });
+      const response = await axiosInstance.get('/accounts?role=warehouse_manager');
       setWarehouseManagers(response.data.data || []);
     } catch (error) {
       setWarehouseManagers([]);
@@ -99,11 +109,12 @@ function ImportOrderSupervisor() {
 
   const fetchStatusTransitions = async () => {
     try {
-      const response = await axiosInstance.get('/import-orders/status-transitions', {
-        headers: getAuthHeaders()
-      });
+      console.log('Fetching status transitions...');
+      const response = await axiosInstance.get('/import-orders/status-transitions');
+      console.log('Status transitions response:', response.data);
       setStatusTransitions(response.data.data || {});
     } catch (error) {
+      console.error('Error fetching status transitions:', error);
       setStatusTransitions({});
     }
   };
@@ -147,15 +158,14 @@ function ImportOrderSupervisor() {
 
       // Update status if changed
       if (editForm.status !== selectedOrder.status) {
-        await axiosInstance.patch(`/import-orders/${selectedOrder._id}/status`, { status: editForm.status }, { headers: getAuthHeaders() });
+        await axiosInstance.patch(`/import-orders/${selectedOrder._id}/status`, { status: editForm.status });
       }
 
       // Update warehouse manager if changed
       if (editForm.warehouse_manager_id !== (selectedOrder.warehouse_manager_id?._id || '')) {
         await axiosInstance.patch(
           `/import-orders/${selectedOrder._id}/assign-warehouse-manager`,
-          { warehouse_manager_id: editForm.warehouse_manager_id },
-          { headers: getAuthHeaders() }
+          { warehouse_manager_id: editForm.warehouse_manager_id }
         );
       }
 
@@ -184,12 +194,15 @@ function ImportOrderSupervisor() {
 
     // Tạo thông báo mới cho warehouse_manager
     try {
+      // Lấy thông tin user từ localStorage hoặc context
+      const userInfo = JSON.parse(localStorage.getItem('user-info') || '{}');
+      
       await createNotification({
-        recipient_id: order.warehouse_manager_id, // id của warehouse_manager nhận thông báo
-        sender_id: currentUser.id, // id của supervisor (người gửi)
+        recipient_id: order.warehouse_manager_id?._id, // id của warehouse_manager nhận thông báo
+        sender_id: userInfo._id, // id của supervisor (người gửi)
         type: 'import_order_assigned', // loại thông báo, bạn có thể đặt tên phù hợp
-        title: `Phiếu nhập số ${order.importOrderId} đã được giao`,
-        content: `Supervisor đã giao phiếu nhập số ${order.importOrderId} cho bạn.`,
+        title: `Phiếu nhập số ${order.import_order_code || order._id} đã được giao`,
+        content: `Supervisor đã giao phiếu nhập số ${order.import_order_code || order._id} cho bạn.`,
         status: 'unread',
         created_at: new Date().toISOString()
       });
@@ -264,7 +277,7 @@ function ImportOrderSupervisor() {
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       setActionLoading(true);
-      await axiosInstance.patch(`/import-orders/${orderId}/status`, { status: newStatus }, { headers: getAuthHeaders() });
+      await axiosInstance.patch(`/import-orders/${orderId}/status`, { status: newStatus });
       setEditingStatusOrderId(null);
       setSuccess('Status updated successfully');
       fetchOrders();
