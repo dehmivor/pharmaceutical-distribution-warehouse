@@ -280,9 +280,7 @@ export default function PurchaseOrderListTab() {
       )}
 
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-        <MenuItem>
-          Xem chi tiết
-        </MenuItem>
+        <MenuItem>Xem chi tiết</MenuItem>
         <MenuItem>Xuất PDF</MenuItem>
       </Menu>
     </Box>

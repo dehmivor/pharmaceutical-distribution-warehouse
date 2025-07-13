@@ -92,7 +92,7 @@ function ImportOrderPage() {
 
   const fetchSupplierContracts = async () => {
     try {
-      const response = await axiosInstance.get('/supplier-contracts', {
+      const response = await axios.get('/supplier-contracts', {
         headers: getAuthHeaders()
       });
       const activeContracts = (response.data.data.contracts || []).filter((c) => c.status === 'active');
