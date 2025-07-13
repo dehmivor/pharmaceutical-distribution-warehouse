@@ -1,5 +1,5 @@
-import RepresentativeManagerImportOrders from '@/views/representative-manager/manage-import-orders';
+import RepresentativeManagerImportOrders from '@/views/representative_manager/manage-import-orders';
 
-export default function Page() {
+export default function ImportOrdersApprovalPage() {
   return <RepresentativeManagerImportOrders />;
 } 

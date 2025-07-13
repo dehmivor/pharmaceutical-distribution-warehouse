@@ -36,9 +36,19 @@ import {
 } from '@mui/icons-material';
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import axiosInstance from '@/config/axios';
+import axios from 'axios';
 import StatusChangeDialog from '@/components/StatusChangeDialog';
 import { useRole } from '@/contexts/RoleContext';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
 
 const RepresentativeManagerImportOrders = () => {
   const { user, userRole, isLoading } = useRole();
@@ -58,10 +68,10 @@ const RepresentativeManagerImportOrders = () => {
       setLoading(true);
       setError('');
       
-      const response = await axiosInstance.get('/import-orders', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
-        }
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.get(`${backendUrl}/api/import-orders`, {
+        headers: getAuthHeaders(),
+        timeout: 10000 // 10 seconds timeout
       });
 
       if (response.data.success) {
@@ -71,7 +81,18 @@ const RepresentativeManagerImportOrders = () => {
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
-      const errorMsg = error?.response?.data?.error || error?.message || 'Failed to fetch orders';
+      let errorMsg = 'Failed to fetch orders';
+      
+      if (error.code === 'ECONNABORTED') {
+        errorMsg = 'Request timeout. Please try again.';
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMsg = 'Network error. Please check your connection.';
+      } else if (error.response) {
+        errorMsg = error.response.data?.error || error.response.statusText;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
       setError(errorMsg);
       setOrders([]);
     } finally {
@@ -81,10 +102,9 @@ const RepresentativeManagerImportOrders = () => {
 
   const fetchContracts = useCallback(async () => {
     try {
-      const response = await axiosInstance.get('/supplier-contracts', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
-        }
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.get(`${backendUrl}/api/supplier-contracts`, {
+        headers: getAuthHeaders()
       });
 
       if (response.data.success) {
@@ -100,20 +120,22 @@ const RepresentativeManagerImportOrders = () => {
     fetchContracts();
   }, [fetchOrders, fetchContracts]);
 
-  const handleStatusChange = useCallback(async (newStatus) => {
-    if (!selectedOrder) return;
+  const handleStatusChange = useCallback(async () => {
+    if (!selectedOrder || !selectedOrder._id || !selectedOrder.nextStatus) return;
+    
+    const newStatus = selectedOrder.nextStatus;
 
     try {
       setUpdatingStatus(true);
       setError('');
 
-      const response = await axiosInstance.patch(
-        `/import-orders/${selectedOrder._id}/status`,
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.patch(
+        `${backendUrl}/api/import-orders/${selectedOrder._id}/status`,
         { status: newStatus },
         {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
-          }
+          headers: getAuthHeaders(),
+          timeout: 10000 // 10 seconds timeout
         }
       );
 
@@ -127,7 +149,18 @@ const RepresentativeManagerImportOrders = () => {
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      const errorMsg = error?.response?.data?.error || error?.message || 'Failed to update status';
+      let errorMsg = 'Failed to update status';
+      
+      if (error.code === 'ECONNABORTED') {
+        errorMsg = 'Request timeout. Please try again.';
+      } else if (error.code === 'ERR_NETWORK') {
+        errorMsg = 'Network error. Please check your connection.';
+      } else if (error.response) {
+        errorMsg = error.response.data?.error || error.response.statusText;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      
       setError(errorMsg);
     } finally {
       setUpdatingStatus(false);
@@ -348,7 +381,11 @@ const RepresentativeManagerImportOrders = () => {
                                   size="small"
                                   color="success"
                                   variant="outlined"
-                                  onClick={() => handleOpenStatusDialog({ ...order, nextStatus: 'approved' })}
+                                  onClick={() => handleOpenStatusDialog({ 
+                                    _id: order._id, 
+                                    status: order.status, 
+                                    nextStatus: 'approved' 
+                                  })}
                                 >
                                   Approve
                                 </Button>
@@ -356,7 +393,11 @@ const RepresentativeManagerImportOrders = () => {
                                   size="small"
                                   color="error"
                                   variant="outlined"
-                                  onClick={() => handleOpenStatusDialog({ ...order, nextStatus: 'cancelled' })}
+                                  onClick={() => handleOpenStatusDialog({ 
+                                    _id: order._id, 
+                                    status: order.status, 
+                                    nextStatus: 'cancelled' 
+                                  })}
                                 >
                                   Cancel
                                 </Button>

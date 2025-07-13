@@ -91,7 +91,7 @@ importOrderSchema.pre('save', function(next) {
     const currentStatus = this._original?.status || this.status;
     
     // Kiểm tra nếu đang cố gắng sửa order đã được delivered trở lên
-    if (currentStatus === 'delivered' || currentStatus === 'checked' || 
+    if ( currentStatus === 'checked' || 
         currentStatus === 'arranged' || currentStatus === 'completed') {
       return next(new Error('Cannot edit import order after it has been delivered'));
     }

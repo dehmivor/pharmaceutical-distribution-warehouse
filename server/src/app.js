@@ -20,7 +20,7 @@ app.use(
   cors({
     origin: config.allowedOrigins,
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   }),
 );
@@ -59,7 +59,7 @@ app.use('/api/areas', route.areaRoutes);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
-app.use('/api/supplier-contracts', route.supplierContractRoutes);
+app.use('/api/supplier-contracts', authenticate, authorize(['supervisor', 'representative', 'representative_manager']), route.supplierContractRoutes);
 app.use(
   '/api/inspections',
   authenticate,

@@ -8,11 +8,13 @@ const createImportOrder = async (req, res) => {
     const { orderData, orderDetails } = req.body;
 
     // Add created_by from authenticated user if available
-    if (req.user && req.user._id) {
-      orderData.created_by = req.user._id;
+    if (req.user && req.user.userId) {
+      orderData.created_by = req.user.userId;
     } else {
-      // For testing purposes, use a default supervisor ID
-      orderData.created_by = '22ec4da883aa4736aa000001'; // Default supervisor ID
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required: cannot determine user creating order',
+      });
     }
 
     // Truyền user context vào service

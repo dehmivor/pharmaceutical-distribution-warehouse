@@ -1,5 +1,5 @@
 const { check, body } = require('express-validator');
-const { CONTRACT_STATUSES, PARTNER_TYPES } = require('../utils/constants');
+const { CONTRACT_STATUSES, PARTNER_TYPES, ANNEX_ACTIONS, ANNEX_STATUSES } = require('../utils/constants');
 
 // Reusable validation helpers
 const isMongoId = (field) => check(field).isMongoId().withMessage(`Invalid ${field} ID`);

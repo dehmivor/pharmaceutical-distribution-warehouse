@@ -86,6 +86,9 @@ function ImportOrderSupervisor() {
   const [editingStatusOrderId, setEditingStatusOrderId] = useState(null);
   const [editStatusValue, setEditStatusValue] = useState('');
 
+  // Thêm state cho dialog xác nhận đổi status
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, orderId: null, newStatus: '' });
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
@@ -274,7 +277,13 @@ function ImportOrderSupervisor() {
   const paginatedOrders = orders.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   // Thêm hàm handleStatusChange
-  const handleStatusChange = async (orderId, newStatus) => {
+  const handleStatusChange = (orderId, newStatus) => {
+    setConfirmDialog({ open: true, orderId, newStatus });
+  };
+
+  // Hàm xác nhận đổi status (chỉ gọi khi Yes)
+  const handleConfirmStatusChange = async () => {
+    const { orderId, newStatus } = confirmDialog;
     try {
       setActionLoading(true);
       await axiosInstance.patch(`/import-orders/${orderId}/status`, { status: newStatus });
@@ -285,7 +294,13 @@ function ImportOrderSupervisor() {
       setError(error.response?.data?.error || error.message);
     } finally {
       setActionLoading(false);
+      setConfirmDialog({ open: false, orderId: null, newStatus: '' });
     }
+  };
+
+  // Hàm hủy xác nhận
+  const handleCancelStatusChange = () => {
+    setConfirmDialog({ open: false, orderId: null, newStatus: '' });
   };
 
   if (loading) {
@@ -324,7 +339,7 @@ function ImportOrderSupervisor() {
                 <TableCell>{order.import_order_code || 'N/A'}</TableCell>
                 <TableCell>{order.supplier_contract_id?.contract_code || 'N/A'}</TableCell>
                 <TableCell>{order.supplier_contract_id?.supplier_id?.name || 'N/A'}</TableCell>
-                <TableCell>{order.created_by?.name || 'N/A'}</TableCell>
+                <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
                 <TableCell align="right">
                   {formatCurrency(order.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0) || 0)}
                 </TableCell>
@@ -333,17 +348,15 @@ function ImportOrderSupervisor() {
                     <FormControl size="small" fullWidth>
                       <Select
                         value={editStatusValue}
-                        onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                        onChange={(e) => {
+                          if (e.target.value === IMPORT_ORDER_STATUSES.DELIVERED) {
+                            handleStatusChange(order._id, e.target.value);
+                          }
+                        }}
                         onBlur={() => setEditingStatusOrderId(null)}
                         autoFocus
                       >
-                        <MenuItem value={IMPORT_ORDER_STATUSES.DRAFT}>Draft</MenuItem>
-                        <MenuItem value={IMPORT_ORDER_STATUSES.APPROVED}>Approved</MenuItem>
                         <MenuItem value={IMPORT_ORDER_STATUSES.DELIVERED}>Delivered</MenuItem>
-                        <MenuItem value={IMPORT_ORDER_STATUSES.CHECKED}>Checked</MenuItem>
-                        <MenuItem value={IMPORT_ORDER_STATUSES.ARRANGED}>Arranged</MenuItem>
-                        <MenuItem value={IMPORT_ORDER_STATUSES.COMPLETED}>Completed</MenuItem>
-                        <MenuItem value={IMPORT_ORDER_STATUSES.CANCELLED}>Cancelled</MenuItem>
                       </Select>
                     </FormControl>
                   ) : (
@@ -352,24 +365,30 @@ function ImportOrderSupervisor() {
                       color={getStatusColor(order.status)}
                       size="small"
                       onClick={() => {
-                        setEditingStatusOrderId(order._id);
-                        setEditStatusValue(order.status);
+                        // Chỉ cho phép edit nếu chưa delivered
+                        if (order.status !== IMPORT_ORDER_STATUSES.DELIVERED) {
+                          setEditingStatusOrderId(order._id);
+                          setEditStatusValue(order.status);
+                        }
                       }}
-                      style={{ cursor: 'pointer' }}
+                      style={{ cursor: order.status !== IMPORT_ORDER_STATUSES.DELIVERED ? 'pointer' : 'default' }}
                     />
                   )}
                 </TableCell>
                 <TableCell>{order.warehouse_manager_id?.email || 'Not Assigned'}</TableCell>
                 <TableCell>
                   <Box display="flex" gap={1}>
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleOpenEditDialog(order)}
-                      disabled={actionLoading}
-                      title="Assign warehouse manager"
-                    >
-                      <EditIcon />
-                    </IconButton>
+                    {/* Chỉ hiện nút giao warehouse manager khi đã delivered */}
+                    {order.status === IMPORT_ORDER_STATUSES.DELIVERED && (
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleOpenEditDialog(order)}
+                        disabled={actionLoading}
+                        title="Assign warehouse manager"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    )}
                     <IconButton color="info" onClick={() => handleOpenDetails(order)}>
                       <InfoIcon />
                     </IconButton>
@@ -526,7 +545,7 @@ function ImportOrderSupervisor() {
                         <Typography variant="subtitle2" color="textSecondary">
                           Created By
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.created_by?.name || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.created_by?.email || 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
@@ -606,6 +625,21 @@ function ImportOrderSupervisor() {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDetails}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog xác nhận đổi status */}
+      <Dialog open={confirmDialog.open} onClose={handleCancelStatusChange}>
+        <DialogTitle>Xác nhận đổi trạng thái</DialogTitle>
+        <DialogContent>
+          Bạn có chắc chắn muốn đổi trạng thái đơn hàng này? <br />
+          <b>Hành động này không thể hoàn tác.</b>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelStatusChange} color="secondary">No</Button>
+          <Button onClick={handleConfirmStatusChange} color="primary" autoFocus disabled={actionLoading}>
+            {actionLoading ? <CircularProgress size={20} /> : 'Yes'}
+          </Button>
         </DialogActions>
       </Dialog>
 
