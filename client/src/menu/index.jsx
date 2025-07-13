@@ -8,7 +8,7 @@ import supervisor from './supervisor';
 import warehouse from './warehouse';
 import representative from './representative';
 import warehouseManager from './warehouse-manager';
-import representativeManager from './representattive-manager';
+import representativeManager from './representative-manager';
 
 /***************************  MENU ITEMS  ***************************/
 
