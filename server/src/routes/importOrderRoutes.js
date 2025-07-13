@@ -10,8 +10,11 @@ router.use(authenticate);
 // Create new import order - chỉ representative và supervisor
 router.post('/', authorize(['representative', 'supervisor']), importOrderController.createImportOrder);
 
-// Get all import orders with filters - chỉ supervisor, representative và warehouse_manager
-router.get('/', authorize(['supervisor', 'representative', 'warehouse_manager', 'warehouse']), importOrderController.getImportOrders);
+// Get all import orders with filters - chỉ supervisor, representative, representative_manager và warehouse_manager
+router.get('/', authorize(['supervisor', 'representative', 'representative_manager', 'warehouse_manager', 'warehouse']), importOrderController.getImportOrders);
+
+// Get valid status transitions - chỉ supervisor, representative, representative_manager và warehouse_manager
+router.get('/status-transitions', authorize(['supervisor', 'representative', 'representative_manager', 'warehouse_manager']), importOrderController.getValidStatusTransitions);
 
 // Get import orders by warehouse manager - warehouse manager chỉ xem orders của mình
 router.get('/warehouse-manager/:warehouseManagerId', authorize(['warehouse_manager', 'supervisor']), importOrderController.getImportOrdersByWarehouseManager);
@@ -19,8 +22,8 @@ router.get('/warehouse-manager/:warehouseManagerId', authorize(['warehouse_manag
 // Get import orders by supplier contract - representative và supervisor
 router.get('/supplier-contract/:supplierContractId', authorize(['representative', 'supervisor']), importOrderController.getImportOrdersBySupplierContract);
 
-// Get import order by ID - chỉ supervisor, representative và warehouse_manager
-router.get('/:id', authorize(['supervisor', 'representative', 'warehouse_manager', 'warehouse']), importOrderController.getImportOrderById);
+// Get import order by ID - chỉ supervisor, representative, representative_manager và warehouse_manager
+router.get('/:id', authorize(['supervisor', 'representative', 'representative_manager', 'warehouse_manager', 'warehouse']), importOrderController.getImportOrderById);
 
 // Update import order - chỉ supervisor và representative
 router.put('/:id', authorize(['supervisor', 'representative']), importOrderController.updateImportOrder);
@@ -40,18 +43,11 @@ router.delete('/:id/details/:detailId', authorize(['supervisor', 'representative
 // Delete import order - chỉ supervisor và representative
 router.delete('/:id', authorize(['supervisor', 'representative']), importOrderController.deleteImportOrder);
 
-// Update order status - cho phép supervisor và warehouse manager (không phải warehouse staff)
-router.patch('/:id/status', authorize(['supervisor', 'warehouse_manager']), importOrderController.updateOrderStatus);
-
-// Get valid status transitions - chỉ supervisor, representative và warehouse_manager
-router.get('/status-transitions', authorize(['supervisor', 'representative', 'warehouse_manager']), importOrderController.getValidStatusTransitions);
+// Update order status - cho phép supervisor, representative_manager và warehouse manager (không phải warehouse staff)
+router.patch('/:id/status', authorize(['supervisor', 'representative_manager', 'warehouse_manager']), importOrderController.updateOrderStatus);
 
 // Assign warehouse manager (chỉ supervisor được phép)
 router.patch('/:id/assign-warehouse-manager', authorize('supervisor'), importOrderController.assignWarehouseManager);
-
-// Get import orders by warehouse manager
-router.get('/warehouse-manager/:warehouseManagerId', importOrderController.getImportOrdersByWarehouseManager);
-
 
 module.exports = router;
 
