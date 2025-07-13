@@ -1,0 +1,407 @@
+'use client';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Snackbar,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+  Alert,
+  IconButton
+} from '@mui/material';
+import {
+  Edit as EditIcon,
+  Visibility as ViewIcon,
+  Refresh as RefreshIcon,
+  CheckCircle as ApproveIcon,
+  Cancel as RejectIcon
+} from '@mui/icons-material';
+import { useState, useCallback, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import axiosInstance from '@/config/axios';
+import StatusChangeDialog from '@/components/StatusChangeDialog';
+import { useRole } from '@/contexts/RoleContext';
+
+const RepresentativeManagerImportOrders = () => {
+  const { user, userRole, isLoading } = useRole();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [statusDialog, setStatusDialog] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [contracts, setContracts] = useState([]);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await axiosInstance.get('/import-orders', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        }
+      });
+
+      if (response.data.success) {
+        setOrders(response.data.data || []);
+      } else {
+        throw new Error(response.data.error || 'Failed to fetch orders');
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      const errorMsg = error?.response?.data?.error || error?.message || 'Failed to fetch orders';
+      setError(errorMsg);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchContracts = useCallback(async () => {
+    try {
+      const response = await axiosInstance.get('/supplier-contracts', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+        }
+      });
+
+      if (response.data.success) {
+        setContracts(response.data.data?.contracts || []);
+      }
+    } catch (error) {
+      console.error('Error fetching contracts:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOrders();
+    fetchContracts();
+  }, [fetchOrders, fetchContracts]);
+
+  const handleStatusChange = useCallback(async (newStatus) => {
+    if (!selectedOrder) return;
+
+    try {
+      setUpdatingStatus(true);
+      setError('');
+
+      const response = await axiosInstance.patch(
+        `/import-orders/${selectedOrder._id}/status`,
+        { status: newStatus },
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setSuccess(`Order status updated to ${newStatus}`);
+        setStatusDialog(false);
+        setSelectedOrder(null);
+        fetchOrders(); // Refresh the list
+      } else {
+        throw new Error(response.data.error || 'Failed to update status');
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      const errorMsg = error?.response?.data?.error || error?.message || 'Failed to update status';
+      setError(errorMsg);
+    } finally {
+      setUpdatingStatus(false);
+    }
+  }, [selectedOrder, fetchOrders]);
+
+  const handleOpenStatusDialog = useCallback((orderWithNextStatus) => {
+    setSelectedOrder(orderWithNextStatus);
+    setStatusDialog(true);
+  }, []);
+
+  const handleCloseStatusDialog = useCallback(() => {
+    setStatusDialog(false);
+    setSelectedOrder(null);
+  }, []);
+
+  // Check if order can be edited by representative manager
+  const canEditOrder = (order) => {
+    // Representative Manager chỉ có thể edit draft orders
+    return order.status === 'draft';
+  };
+
+  // Check if order is locked (cannot be edited)
+  const isOrderLocked = (order) => {
+    // Orders bị khóa sau khi chuyển thành delivered hoặc các status sau đó
+    const lockedStatuses = ['delivered', 'checked', 'arranged', 'completed'];
+    return lockedStatuses.includes(order.status);
+  };
+
+  // Get status color
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'draft':
+        return 'default';
+      case 'approved':
+        return 'success';
+      case 'rejected':
+        return 'error';
+      case 'delivered':
+        return 'info';
+      case 'checked':
+        return 'warning';
+      case 'arranged':
+        return 'primary';
+      case 'completed':
+        return 'success';
+      case 'cancelled':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    } catch (error) {
+      return '-';
+    }
+  };
+
+  const formatCurrency = (value) => {
+    if (!value) return '-';
+    try {
+      return `${Number(value).toLocaleString('en-US')} VND`;
+    } catch (error) {
+      return '-';
+    }
+  };
+
+  // Filter orders based on search and status
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = searchTerm === '' || 
+      order._id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.supplier_contract_id?.supplier_id?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === '' || order.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  if (loading || isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  console.log('user.role:', user.role);
+  console.log('orders:', orders.map(o => ({id: o._id, status: o.status})));
+
+  return (
+    <Box>
+      <Typography variant="h4" gutterBottom>
+        Import Orders Management
+      </Typography>
+      <Typography variant="body1" color="text.secondary" gutterBottom>
+        Approve or reject draft import orders
+      </Typography>
+
+      {/* Search and Filter */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
+          <TextField
+            label="Search Orders"
+            variant="outlined"
+            size="small"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{ minWidth: 200 }}
+          />
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Status Filter</InputLabel>
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              label="Status Filter"
+            >
+              <MenuItem value="">All Status</MenuItem>
+              <MenuItem value="draft">Draft</MenuItem>
+              <MenuItem value="approved">Approved</MenuItem>
+              <MenuItem value="rejected">Rejected</MenuItem>
+              <MenuItem value="delivered">Delivered</MenuItem>
+              <MenuItem value="checked">Checked</MenuItem>
+              <MenuItem value="arranged">Arranged</MenuItem>
+              <MenuItem value="completed">Completed</MenuItem>
+              <MenuItem value="cancelled">Cancelled</MenuItem>
+            </Select>
+          </FormControl>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={fetchOrders}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+        </Box>
+      </Paper>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Success Alert */}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      )}
+
+      {/* Orders Table */}
+      <Card>
+        <CardContent>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell><strong>Order ID</strong></TableCell>
+                  <TableCell><strong>Supplier</strong></TableCell>
+                  <TableCell><strong>Status</strong></TableCell>
+                  <TableCell><strong>Created By</strong></TableCell>
+                  <TableCell><strong>Created Date</strong></TableCell>
+                  <TableCell><strong>Total Amount</strong></TableCell>
+                  <TableCell><strong>Actions</strong></TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredOrders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center">
+                      <Typography color="text.secondary">
+                        {loading ? 'Loading orders...' : 'No orders found'}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredOrders.map((order) => {
+                    console.log(order._id, order.status, user.role, canEditOrder(order));
+                    return (
+                      <TableRow key={order._id} hover>
+                        <TableCell>{order._id}</TableCell>
+                        <TableCell>
+                          {order.supplier_contract_id?.supplier_id?.name || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={order.status?.toUpperCase()}
+                            color={getStatusColor(order.status)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {order.created_by?.email || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {formatDate(order.createdAt)}
+                        </TableCell>
+                        <TableCell>
+                          {formatCurrency(order.total_amount)}
+                        </TableCell>
+                        <TableCell>
+                          <Box display="flex" gap={1}>
+                            {/* Chỉ representative_manager mới thấy nút Approve/Cancel khi order là draft */}
+                            {userRole === 'representative_manager' && canEditOrder(order) && (
+                              <>
+                                <Button
+                                  size="small"
+                                  color="success"
+                                  variant="outlined"
+                                  onClick={() => handleOpenStatusDialog({ ...order, nextStatus: 'approved' })}
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  variant="outlined"
+                                  onClick={() => handleOpenStatusDialog({ ...order, nextStatus: 'cancelled' })}
+                                >
+                                  Cancel
+                                </Button>
+                              </>
+                            )}
+                            {isOrderLocked(order) && (
+                              <Chip
+                                label="LOCKED"
+                                color="error"
+                                size="small"
+                                variant="outlined"
+                              />
+                            )}
+                            <IconButton
+                              size="small"
+                              color="info"
+                              title="View Details"
+                            >
+                              <ViewIcon />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+
+      {/* Status Change Dialog */}
+      <StatusChangeDialog
+        open={statusDialog}
+        onClose={handleCloseStatusDialog}
+        onConfirm={handleStatusChange}
+        currentStatus={selectedOrder?.status}
+        orderId={selectedOrder?._id}
+        userRole={userRole}
+        loading={updatingStatus}
+        nextStatus={selectedOrder?.nextStatus}
+      />
+    </Box>
+  );
+};
+
+export default RepresentativeManagerImportOrders; 
