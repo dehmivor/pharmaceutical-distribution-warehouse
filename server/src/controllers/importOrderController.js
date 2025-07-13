@@ -15,7 +15,9 @@ const createImportOrder = async (req, res) => {
       orderData.created_by = '22ec4da883aa4736aa000001'; // Default supervisor ID
     }
 
-    const newOrder = await importOrderService.createImportOrder(orderData, orderDetails);
+    // Truyền user context vào service
+    const userContext = req.user ? { role: req.user.role, id: req.user._id } : null;
+    const newOrder = await importOrderService.createImportOrder(orderData, orderDetails, userContext);
 
     res.status(201).json({
       success: true,
@@ -98,7 +100,11 @@ const updateImportOrder = async (req, res) => {
       ...orderData,
       details: orderDetails
     };
-    const updatedOrder = await importOrderService.updateImportOrder(id, updateData);
+    
+    // Truyền user context vào service
+    const userContext = req.user ? { role: req.user.role, id: req.user._id } : null;
+    const updatedOrder = await importOrderService.updateImportOrder(id, updateData, userContext);
+    
     res.status(200).json({
       success: true,
       data: updatedOrder,

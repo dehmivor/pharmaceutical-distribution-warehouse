@@ -41,7 +41,7 @@ app.use('/api/medicine', route.medicineRoutes);
 app.use('/api/import-inspections', route.importInspectionRoutes);
 app.use('/api/notifications', route.notificationRoutes);
 app.use('/api/import-orders', route.importOrderRoutes);
-app.use('api/thingsboard', route.thingsboardRoutes);
+app.use('/api/thingsboard', route.thingsboardRoutes);
 app.use('/api/batch', route.batchRoutes);
 app.use('/api/packages', route.packageRoutes);
 app.use('/api/areas', route.areaRoutes);
@@ -65,9 +65,6 @@ app.use(
 );
 app.use('/api/stripe', route.stripeRoutes);
 app.use('/api/bills', route.billRoutes);
-app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
-app.use('/api/accounts', authenticate, authorize('supervisor'), route.accountRoutes);
-app.use('/api/supplier-contract', route.supplierContractRoutes);
 app.use('/api/supplier', route.supplierRoutes);
 app.use('/api/economic-contracts', route.economicContractRoutes);
 

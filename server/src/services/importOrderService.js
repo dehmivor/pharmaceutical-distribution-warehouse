@@ -2,7 +2,7 @@ const ImportOrder = require('../models/ImportOrder');
 const { IMPORT_ORDER_STATUSES } = require('../utils/constants');
 
 // Create new import order
-const createImportOrder = async (orderData, orderDetails) => {
+const createImportOrder = async (orderData, orderDetails, userContext = null) => {
   try {
     const newOrderData = {
       ...orderData,
@@ -10,6 +10,12 @@ const createImportOrder = async (orderData, orderDetails) => {
     };
 
     const newOrder = new ImportOrder(newOrderData);
+    
+    // Truyền user context vào model để validation
+    if (userContext) {
+      newOrder._userContext = userContext;
+    }
+    
     const savedOrder = await newOrder.save();
 
     return await ImportOrder.findById(savedOrder._id)
@@ -127,7 +133,7 @@ const getImportOrderById = async (orderId) => {
 };
 
 // Update import order
-const updateImportOrder = async (orderId, updateData) => {
+const updateImportOrder = async (orderId, updateData, userContext = null) => {
   try {
     const order = await ImportOrder.findById(orderId);
     if (!order) {
@@ -139,18 +145,27 @@ const updateImportOrder = async (orderId, updateData) => {
       throw new Error('Cannot update completed order');
     }
 
-    const updatedOrder = await ImportOrder.findByIdAndUpdate(
-      orderId,
-      { $set: updateData },
-      { new: true, runValidators: true },
-    )
+    // Lưu trạng thái gốc để validation
+    order._original = { status: order.status };
+
+    // Truyền user context vào model để validation
+    if (userContext) {
+      order._userContext = userContext;
+    }
+
+    // Cập nhật từng field để trigger validation
+    Object.keys(updateData).forEach(key => {
+      order[key] = updateData[key];
+    });
+
+    const updatedOrder = await order.save();
+
+    return await ImportOrder.findById(updatedOrder._id)
       .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
       .populate('details.medicine_id', 'medicine_name license_code');
-
-    return updatedOrder;
   } catch (error) {
     throw error;
   }

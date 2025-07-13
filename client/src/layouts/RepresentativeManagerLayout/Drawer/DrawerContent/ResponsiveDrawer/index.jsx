@@ -9,7 +9,7 @@ import NavGroup from './NavGroup';
 /***************************  DRAWER CONTENT - RESPONSIVE DRAWER  ***************************/
 
 export default function ResponsiveDrawer() {
-  const navGroups = menuItems.representative.map((item, index) => {
+  const navGroups = menuItems.representativeManager.map((item, index) => {
     switch (item.type) {
       case 'group':
         return <NavGroup key={index} item={item} />;
