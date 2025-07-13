@@ -17,7 +17,7 @@ const supervisor = {
           type: 'item',
           url: '/sp-manage-users',
           icon: 'IconUser'
-        },
+        }
       ]
     },
     // 2. Quản lý đơn hàng
@@ -40,7 +40,7 @@ const supervisor = {
           type: 'item',
           url: '/sp-manage-stocks',
           icon: 'IconFileExport'
-          },
+        }
       ]
     },
     // 3. Quản lý sản phẩm (thuốc)
@@ -79,7 +79,7 @@ const supervisor = {
           type: 'item',
           url: '/sp-manage-bills',
           icon: 'IconReceipt'
-        },
+        }
       ]
     },
     {

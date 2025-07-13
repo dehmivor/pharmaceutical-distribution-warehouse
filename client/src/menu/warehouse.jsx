@@ -38,7 +38,7 @@ const warehouse = {
           type: 'item',
           url: '/wh-manage-location',
           icon: 'IconMapPin'
-        },
+        }
       ]
     }
   ]

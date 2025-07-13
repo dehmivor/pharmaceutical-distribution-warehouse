@@ -1,17 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Box,
-  Grid,
-  Paper,
-  Stack,
-  Typography,
-  Chip,
-  Button,
-  TextField,
-  MenuItem,
-} from '@mui/material';
+import { Box, Grid, Paper, Stack, Typography, Chip, Button, TextField, MenuItem } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { format } from 'date-fns';
 
@@ -24,7 +14,7 @@ const billsMock = [
     document: 'CT001',
     dueDate: '2025-07-20',
     amount: 1000000,
-    paid: false,
+    paid: false
   },
   {
     id: 'BILL002',
@@ -33,8 +23,8 @@ const billsMock = [
     document: 'CT002',
     dueDate: '2025-07-25',
     amount: 2000000,
-    paid: true,
-  },
+    paid: true
+  }
 ];
 
 const cardColors = ['#e3f2fd', '#e8f5e9', '#fff3e0', '#fce4ec'];
@@ -52,15 +42,15 @@ function StatCard({ title, value, color, chipLabel, chipColor }) {
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        alignItems: 'center',
+        alignItems: 'center'
       }}
     >
-      <Typography variant="subtitle2" color="text.secondary">{title}</Typography>
+      <Typography variant="subtitle2" color="text.secondary">
+        {title}
+      </Typography>
       <Stack direction="row" alignItems="center" spacing={1} mt={1}>
         <Typography variant="h5">{value}</Typography>
-        {chipLabel && (
-          <Chip label={chipLabel} color={chipColor || 'success'} size="small" />
-        )}
+        {chipLabel && <Chip label={chipLabel} color={chipColor || 'success'} size="small" />}
       </Stack>
     </Paper>
   );
@@ -71,11 +61,14 @@ export default function BillOverview() {
 
   // Thống kê nhanh
   const totalAmount = bills.reduce((sum, b) => sum + Number(b.amount), 0);
-  const unpaidCount = bills.filter(b => !b.paid).length;
+  const unpaidCount = bills.filter((b) => !b.paid).length;
 
   // Form
   const {
-    control, handleSubmit, reset, formState: { errors },
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors }
   } = useForm({
     defaultValues: {
       id: '',
@@ -83,17 +76,13 @@ export default function BillOverview() {
       contract: '',
       document: '',
       dueDate: '',
-      amount: '',
-    },
+      amount: ''
+    }
   });
 
   const onSubmit = (data) => {
-    const isDuplicate = bills.some(
-      (b) => b.id === data.id || (b.contract === data.contract && b.document === data.document)
-    );
-    const isPaid = bills.some(
-      (b) => b.contract === data.contract && b.document === data.document && b.paid
-    );
+    const isDuplicate = bills.some((b) => b.id === data.id || (b.contract === data.contract && b.document === data.document));
+    const isPaid = bills.some((b) => b.contract === data.contract && b.document === data.document && b.paid);
     if (isDuplicate) {
       alert('Công nợ đã tồn tại!');
       return;
@@ -145,17 +134,17 @@ export default function BillOverview() {
                     minHeight: 140,
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'center',
+                    justifyContent: 'center'
                   }}
                 >
                   <Stack spacing={0.5}>
-                    <Typography variant="subtitle2" color="text.secondary">Mã: {bill.id}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Mã: {bill.id}
+                    </Typography>
                     <Typography variant="body2">Loại: {bill.type}</Typography>
                     <Typography variant="body2">Hợp đồng: {bill.contract}</Typography>
                     <Typography variant="body2">Chứng từ: {bill.document}</Typography>
-                    <Typography variant="body2">
-                      Đáo hạn: {bill.dueDate ? format(new Date(bill.dueDate), 'dd/MM/yyyy') : '-'}
-                    </Typography>
+                    <Typography variant="body2">Đáo hạn: {bill.dueDate ? format(new Date(bill.dueDate), 'dd/MM/yyyy') : '-'}</Typography>
                     <Typography variant="body2">Số tiền: {Number(bill.amount).toLocaleString()}</Typography>
                     <Chip
                       label={bill.paid ? 'Đã thanh toán' : 'Chưa thanh toán'}
@@ -183,10 +172,12 @@ export default function BillOverview() {
               flexDirection: 'column',
               justifyContent: 'center',
               alignItems: 'center',
-              textAlign: 'center',
+              textAlign: 'center'
             }}
           >
-            <Typography variant="h6" mb={1}>Thông tin khác</Typography>
+            <Typography variant="h6" mb={1}>
+              Thông tin khác
+            </Typography>
             <Typography variant="body2" color="text.secondary">
               Bạn có thể hiển thị chi tiết hóa đơn, hướng dẫn, hoặc thông báo tại đây.
             </Typography>
@@ -207,13 +198,7 @@ export default function BillOverview() {
                     control={control}
                     rules={{ required: 'Mã công nợ bắt buộc' }}
                     render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Mã công nợ"
-                        fullWidth
-                        error={!!errors.id}
-                        helperText={errors.id?.message}
-                      />
+                      <TextField {...field} label="Mã công nợ" fullWidth error={!!errors.id} helperText={errors.id?.message} />
                     )}
                   />
                 </Grid>
@@ -223,14 +208,7 @@ export default function BillOverview() {
                     control={control}
                     rules={{ required: 'Loại phiếu bắt buộc' }}
                     render={({ field }) => (
-                      <TextField
-                        {...field}
-                        select
-                        label="Loại phiếu"
-                        fullWidth
-                        error={!!errors.type}
-                        helperText={errors.type?.message}
-                      >
+                      <TextField {...field} select label="Loại phiếu" fullWidth error={!!errors.type} helperText={errors.type?.message}>
                         <MenuItem value="Phiếu nhập">Phiếu nhập</MenuItem>
                         <MenuItem value="Phiếu xuất">Phiếu xuất</MenuItem>
                       </TextField>
@@ -242,7 +220,7 @@ export default function BillOverview() {
                     name="dueDate"
                     control={control}
                     rules={{
-                      required: 'Ngày đáo hạn bắt buộc',
+                      required: 'Ngày đáo hạn bắt buộc'
                     }}
                     render={({ field }) => (
                       <TextField
@@ -263,13 +241,7 @@ export default function BillOverview() {
                     control={control}
                     rules={{ required: 'Hợp đồng bắt buộc' }}
                     render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Hợp đồng"
-                        fullWidth
-                        error={!!errors.contract}
-                        helperText={errors.contract?.message}
-                      />
+                      <TextField {...field} label="Hợp đồng" fullWidth error={!!errors.contract} helperText={errors.contract?.message} />
                     )}
                   />
                 </Grid>
@@ -279,13 +251,7 @@ export default function BillOverview() {
                     control={control}
                     rules={{ required: 'Chứng từ bắt buộc' }}
                     render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Chứng từ"
-                        fullWidth
-                        error={!!errors.document}
-                        helperText={errors.document?.message}
-                      />
+                      <TextField {...field} label="Chứng từ" fullWidth error={!!errors.document} helperText={errors.document?.message} />
                     )}
                   />
                 </Grid>
@@ -296,7 +262,7 @@ export default function BillOverview() {
                     rules={{
                       required: 'Số tiền bắt buộc',
                       min: { value: 1, message: 'Số tiền phải lớn hơn 0' },
-                      validate: value => !isNaN(Number(value)) || 'Số tiền không hợp lệ',
+                      validate: (value) => !isNaN(Number(value)) || 'Số tiền không hợp lệ'
                     }}
                     render={({ field }) => (
                       <TextField
