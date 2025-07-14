@@ -18,13 +18,6 @@ const representativeManager = {
       url: '/manage-import-orders-approval',
       icon: 'IconFileImport' 
     },
-    {
-      id: 'create-bills',
-      title: 'Create Bills',
-      type: 'item',
-      url: '/rm-create-bills',
-      icon: 'IconReceipt' 
-    }
   ]
 };
 
