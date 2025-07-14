@@ -145,6 +145,27 @@ const ANNEX_STATUSES = {
   REJECTED: 'rejected',
 };
 
+const TASK_TYPES = {
+  PACKING: "packing",
+  QUALITY_CHECK: "quality_check",
+  INVENTORY_COUNT: "inventory_count",
+  LOCATION_UPDATE: "location_update",
+};
+
+const ASSIGNMENT_STATUSES = {
+  ASSIGNED: "assigned",
+  IN_PROGRESS: "in_progress",
+  COMPLETED: "completed",
+  CANCELLED: "cancelled",
+};
+
+const TASK_PRIORITIES = {
+  LOW: "low",
+  MEDIUM: "medium",
+  HIGH: "high",
+  URGENT: "urgent",
+};
+
 module.exports = {
   USER_ROLES,
   BASIC_STATUSES,
@@ -164,4 +185,7 @@ module.exports = {
   PARTNER_TYPES,
   ANNEX_ACTIONS,
   ANNEX_STATUSES,
+  TASK_TYPES,
+  ASSIGNMENT_STATUSES,
+  TASK_PRIORITIES,
 };

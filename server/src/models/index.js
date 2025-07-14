@@ -14,6 +14,7 @@ const LogLocationChange = require('./LogLocationChange');
 const Bill = require('./Bill');
 const EconomicContract = require('./EconomicContract');
 const Retailer = require('./Retailer');
+const WorkAssignment = require('./WorkAssignment');
 
 module.exports = {
   User,
@@ -33,4 +34,5 @@ module.exports = {
   EconomicContract,
   Supplier,
   Retailer,
+  WorkAssignment,
 };
