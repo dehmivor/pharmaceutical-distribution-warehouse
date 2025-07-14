@@ -1,8 +1,9 @@
 const ImportOrder = require('../models/ImportOrder');
-const { IMPORT_ORDER_STATUSES } = require('../utils/constants');
+const { IMPORT_ORDER_STATUSES, USER_ROLES } = require('../utils/constants');
+const { User, Notification } = require('../models');
 
 // Create new import order
-const createImportOrder = async (orderData, orderDetails) => {
+const createImportOrder = async (orderData, orderDetails, userContext = null) => {
   try {
     const newOrderData = {
       ...orderData,
@@ -10,6 +11,12 @@ const createImportOrder = async (orderData, orderDetails) => {
     };
 
     const newOrder = new ImportOrder(newOrderData);
+    
+    // Truyền user context vào model để validation
+    if (userContext) {
+      newOrder._userContext = userContext;
+    }
+    
     const savedOrder = await newOrder.save();
 
     return await ImportOrder.findById(savedOrder._id)
@@ -38,7 +45,7 @@ const getImportOrders = async (query = {}, page = 1, limit = 10) => {
       const orders = await ImportOrder.find({})
         .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
         .populate('warehouse_manager_id', 'name email role')
-        .populate('created_by', 'name email role')
+        .populate('created_by', ' email role')
         .populate('approval_by', 'name email role')
         .populate('details.medicine_id', 'medicine_name license_code');
 
@@ -127,7 +134,7 @@ const getImportOrderById = async (orderId) => {
 };
 
 // Update import order
-const updateImportOrder = async (orderId, updateData) => {
+const updateImportOrder = async (orderId, updateData, userContext = null) => {
   try {
     const order = await ImportOrder.findById(orderId);
     if (!order) {
@@ -139,18 +146,27 @@ const updateImportOrder = async (orderId, updateData) => {
       throw new Error('Cannot update completed order');
     }
 
-    const updatedOrder = await ImportOrder.findByIdAndUpdate(
-      orderId,
-      { $set: updateData },
-      { new: true, runValidators: true },
-    )
+    // Lưu trạng thái gốc để validation
+    order._original = { status: order.status };
+
+    // Truyền user context vào model để validation
+    if (userContext) {
+      order._userContext = userContext;
+    }
+
+    // Cập nhật từng field để trigger validation
+    Object.keys(updateData).forEach(key => {
+      order[key] = updateData[key];
+    });
+
+    const updatedOrder = await order.save();
+
+    return await ImportOrder.findById(updatedOrder._id)
       .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
       .populate('details.medicine_id', 'medicine_name license_code');
-
-    return updatedOrder;
   } catch (error) {
     throw error;
   }
@@ -477,10 +493,50 @@ const getAllStatusTransitions = () => {
 };
 
 const assignWarehouseManager = async (orderId, warehouseManagerId) => {
+  // 1. Check order exists
   const order = await ImportOrder.findById(orderId);
   if (!order) throw new Error('Import order not found');
+
+  // 2. Check order status is delivered
+  if (order.status !== IMPORT_ORDER_STATUSES.DELIVERED) {
+    throw new Error('Order must be in delivered status to assign a warehouse manager');
+  }
+
+  // 3. Check if already assigned
+  if (order.warehouse_manager_id) {
+    throw new Error('Warehouse manager has already been assigned to this order');
+  }
+
+  // 4. Validate warehouseManagerId is a valid user with correct role
+  const user = await User.findById(warehouseManagerId);
+  if (!user) {
+    throw new Error('Warehouse manager user not found');
+  }
+  if (user.role !== USER_ROLES.WAREHOUSEMANAGER) {
+    throw new Error('Assigned user is not a warehouse manager');
+  }
+  if (user.status !== 'active') {
+    throw new Error('Warehouse manager user is not active');
+  }
+
   order.warehouse_manager_id = warehouseManagerId;
   await order.save();
+
+  // Gửi notification cho tất cả warehouse
+  const warehouses = await User.find({ role: USER_ROLES.WAREHOUSE, status: 'active' });
+  const notifications = warehouses.map(wh => ({
+    recipient_id: wh._id,
+    sender_id: user._id, // warehouse manager vừa được gán
+    title: 'Phiếu nhập đã được giao cho warehouse manager',
+    message: `Phiếu nhập ${order._id} đã được giao cho warehouse manager ${user.email}.`,
+    type: 'system',
+    status: 'unread',
+    createdAt: new Date(),
+  }));
+  if (notifications.length > 0) {
+    await Notification.insertMany(notifications);
+  }
+
   return await ImportOrder.findById(orderId)
     .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
     .populate('warehouse_manager_id', 'name email role')

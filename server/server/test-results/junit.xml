@@ -1,72 +1,886 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="3" failures="3" errors="0" time="0.662">
-  <testsuite name="Stripe Service" errors="0" failures="3" skipped="0" timestamp="2025-06-25T20:30:26" time="0.59" tests="3">
-    <testcase classname="Stripe Service tạo payment intent thành công" name="Stripe Service tạo payment intent thành công" time="0.001">
-      <failure>TypeError: Cannot read properties of undefined (reading &apos;client_secret&apos;)
-    at client_secret (D:\end-iter1\pharmaceutical-distribution-warehouse\server\src\services\stripeService.js:10:24)
-    at Object.&lt;anonymous&gt; (D:\end-iter1\pharmaceutical-distribution-warehouse\server\src\services\stripeService.test.js:33:20)</failure>
+<testsuites name="jest tests" tests="78" failures="49" errors="0" time="6.463">
+  <testsuite name="cronController" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="1.965" tests="1">
+    <testcase classname="cronController should be defined" name="cronController should be defined" time="0.007">
     </testcase>
-    <testcase classname="Stripe Service xử lý lỗi khi tạo payment intent" name="Stripe Service xử lý lỗi khi tạo payment intent" time="0.022">
-      <failure>Error: expect(received).rejects.toThrow(expected)
-
-Expected substring: &quot;Stripe API error&quot;
-Received message:   &quot;Cannot read properties of undefined (reading &apos;client_secret&apos;)&quot;
-
-       8 |     currency,
-       9 |   });
-    &gt; 10 |   return paymentIntent.client_secret;
-         |                        ^
-      11 | }
-      12 |
-      13 | module.exports = { createPaymentIntent };
-
-      at client_secret (src/services/stripeService.js:10:24)
-      at Object.&lt;anonymous&gt; (src/services/stripeService.test.js:50:5)
-    at Object.toThrow (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\expect\build\index.js:2151:20)
-    at Object.toThrow (D:\end-iter1\pharmaceutical-distribution-warehouse\server\src\services\stripeService.test.js:50:65)
-    at Promise.finally.completed (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
-    at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
-    at _callCircusTest (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
-    at _runTest (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
-    at _runTestsForDescribeBlock (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
-    at _runTestsForDescribeBlock (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
-    at run (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
-    at runAndTransformResultsToJestFormat (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
-    at jestAdapter (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
-    at runTestInternal (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\index.js:272:16)
-    at runTest (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\index.js:340:7)</failure>
+  </testsuite>
+  <testsuite name="thingsboardController" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="2.136" tests="1">
+    <testcase classname="thingsboardController should be defined" name="thingsboardController should be defined" time="0.009">
     </testcase>
-    <testcase classname="Stripe Service kiểm tra xử lý currency không hợp lệ" name="Stripe Service kiểm tra xử lý currency không hợp lệ" time="0.004">
-      <failure>Error: expect(received).rejects.toThrow(expected)
-
-Expected substring: &quot;Invalid currency: usd&quot;
-Received message:   &quot;Cannot read properties of undefined (reading &apos;client_secret&apos;)&quot;
-
-       8 |     currency,
-       9 |   });
-    &gt; 10 |   return paymentIntent.client_secret;
-         |                        ^
-      11 | }
-      12 |
-      13 | module.exports = { createPaymentIntent };
-
-      at client_secret (src/services/stripeService.js:10:24)
-      at Object.&lt;anonymous&gt; (src/services/stripeService.test.js:62:5)
-    at Object.toThrow (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\expect\build\index.js:2151:20)
-    at Object.toThrow (D:\end-iter1\pharmaceutical-distribution-warehouse\server\src\services\stripeService.test.js:62:72)
-    at Promise.finally.completed (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+  </testsuite>
+  <testsuite name="authorize middleware" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="2.171" tests="1">
+    <testcase classname="authorize middleware should be defined" name="authorize middleware should be defined" time="0.007">
+    </testcase>
+  </testsuite>
+  <testsuite name="emailService" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="2.272" tests="1">
+    <testcase classname="emailService should be defined" name="emailService should be defined" time="0.045">
+    </testcase>
+  </testsuite>
+  <testsuite name="stripeController" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="2.059" tests="1">
+    <testcase classname="stripeController should be defined" name="stripeController should be defined" time="0.007">
+    </testcase>
+  </testsuite>
+  <testsuite name="errorMiddleware" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="2.135" tests="1">
+    <testcase classname="errorMiddleware should be defined" name="errorMiddleware should be defined" time="0.007">
+    </testcase>
+  </testsuite>
+  <testsuite name="stripeService" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="2.294" tests="1">
+    <testcase classname="stripeService should be defined" name="stripeService should be defined" time="0.009">
+    </testcase>
+  </testsuite>
+  <testsuite name="Helper Functions" errors="0" failures="24" skipped="0" timestamp="2025-07-03T07:13:42" time="2.448" tests="24">
+    <testcase classname="Helper Functions › generateRandomString should generate string with default length" name="Helper Functions › generateRandomString should generate string with default length" time="0.006">
+      <failure>TypeError: generateRandomString is not a function
+    at Object.generateRandomString (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:13:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
     at new Promise (&lt;anonymous&gt;)
-    at callAsyncCircusFn (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
-    at _callCircusTest (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
-    at _runTest (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
-    at _runTestsForDescribeBlock (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
-    at _runTestsForDescribeBlock (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
-    at run (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
-    at runAndTransformResultsToJestFormat (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
-    at jestAdapter (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
-    at runTestInternal (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\index.js:272:16)
-    at runTest (D:\end-iter1\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\index.js:340:7)</failure>
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › generateRandomString should generate string with custom length" name="Helper Functions › generateRandomString should generate string with custom length" time="0.001">
+      <failure>TypeError: generateRandomString is not a function
+    at Object.generateRandomString (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:20:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › generateRandomString should generate different strings on multiple calls" name="Helper Functions › generateRandomString should generate different strings on multiple calls" time="0.001">
+      <failure>TypeError: generateRandomString is not a function
+    at Object.generateRandomString (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:26:23)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › generateRandomString should handle zero length" name="Helper Functions › generateRandomString should handle zero length" time="0.001">
+      <failure>TypeError: generateRandomString is not a function
+    at Object.generateRandomString (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:32:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › validateEmail should validate correct email addresses" name="Helper Functions › validateEmail should validate correct email addresses" time="0">
+      <failure>TypeError: validateEmail is not a function
+    at validateEmail (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:47:16)
+    at Array.forEach (&lt;anonymous&gt;)
+    at Object.forEach (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:46:19)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › validateEmail should reject invalid email addresses" name="Helper Functions › validateEmail should reject invalid email addresses" time="0">
+      <failure>TypeError: validateEmail is not a function
+    at validateEmail (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:62:16)
+    at Array.forEach (&lt;anonymous&gt;)
+    at Object.forEach (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:61:21)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › validateEmail should handle empty or null input" name="Helper Functions › validateEmail should handle empty or null input" time="0.001">
+      <failure>TypeError: validateEmail is not a function
+    at Object.validateEmail (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:67:14)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › validatePhoneNumber should validate correct phone numbers" name="Helper Functions › validatePhoneNumber should validate correct phone numbers" time="0">
+      <failure>TypeError: validatePhoneNumber is not a function
+    at validatePhoneNumber (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:83:16)
+    at Array.forEach (&lt;anonymous&gt;)
+    at Object.forEach (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:82:19)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › validatePhoneNumber should reject invalid phone numbers" name="Helper Functions › validatePhoneNumber should reject invalid phone numbers" time="0">
+      <failure>TypeError: validatePhoneNumber is not a function
+    at validatePhoneNumber (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:97:16)
+    at Array.forEach (&lt;anonymous&gt;)
+    at Object.forEach (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:96:21)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › validatePhoneNumber should handle empty or null input" name="Helper Functions › validatePhoneNumber should handle empty or null input" time="0">
+      <failure>TypeError: validatePhoneNumber is not a function
+    at Object.validatePhoneNumber (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:102:14)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › formatDate should format date correctly" name="Helper Functions › formatDate should format date correctly" time="0">
+      <failure>TypeError: formatDate is not a function
+    at Object.formatDate (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:111:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › formatDate should handle date string input" name="Helper Functions › formatDate should handle date string input" time="0">
+      <failure>TypeError: formatDate is not a function
+    at Object.formatDate (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:120:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › formatDate should handle invalid date input" name="Helper Functions › formatDate should handle invalid date input" time="0">
+      <failure>TypeError: formatDate is not a function
+    at Object.formatDate (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:128:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › formatDate should use custom format when provided" name="Helper Functions › formatDate should use custom format when provided" time="0">
+      <failure>TypeError: formatDate is not a function
+    at Object.formatDate (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:136:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › calculatePagination should calculate pagination with default values" name="Helper Functions › calculatePagination should calculate pagination with default values" time="0.001">
+      <failure>TypeError: calculatePagination is not a function
+    at Object.calculatePagination (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:145:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › calculatePagination should calculate pagination with custom page and limit" name="Helper Functions › calculatePagination should calculate pagination with custom page and limit" time="0">
+      <failure>TypeError: calculatePagination is not a function
+    at Object.calculatePagination (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:162:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › calculatePagination should handle edge cases" name="Helper Functions › calculatePagination should handle edge cases" time="0">
+      <failure>TypeError: calculatePagination is not a function
+    at Object.calculatePagination (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:177:23)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › calculatePagination should handle invalid inputs" name="Helper Functions › calculatePagination should handle invalid inputs" time="0">
+      <failure>TypeError: calculatePagination is not a function
+    at Object.calculatePagination (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:194:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › sanitizeInput should sanitize string input" name="Helper Functions › sanitizeInput should sanitize string input" time="0">
+      <failure>TypeError: sanitizeInput is not a function
+    at Object.sanitizeInput (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:205:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › sanitizeInput should handle object input" name="Helper Functions › sanitizeInput should handle object input" time="0.001">
+      <failure>TypeError: sanitizeInput is not a function
+    at Object.sanitizeInput (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:218:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › sanitizeInput should handle array input" name="Helper Functions › sanitizeInput should handle array input" time="0.001">
+      <failure>TypeError: sanitizeInput is not a function
+    at Object.sanitizeInput (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:232:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › sanitizeInput should handle null and undefined" name="Helper Functions › sanitizeInput should handle null and undefined" time="0">
+      <failure>TypeError: sanitizeInput is not a function
+    at Object.sanitizeInput (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:240:14)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › sanitizeInput should handle non-string inputs" name="Helper Functions › sanitizeInput should handle non-string inputs" time="0">
+      <failure>TypeError: sanitizeInput is not a function
+    at Object.sanitizeInput (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:245:14)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="Helper Functions › sanitizeInput should remove dangerous HTML tags and attributes" name="Helper Functions › sanitizeInput should remove dangerous HTML tags and attributes" time="0.001">
+      <failure>TypeError: sanitizeInput is not a function
+    at Object.sanitizeInput (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\utils\__tests__\helpers.test.js:259:22)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="thingsboardService" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="2.381" tests="1">
+    <testcase classname="thingsboardService should be defined" name="thingsboardService should be defined" time="0.007">
+    </testcase>
+  </testsuite>
+  <testsuite name="cronService" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="2.479" tests="1">
+    <testcase classname="cronService should be defined" name="cronService should be defined" time="0.007">
+    </testcase>
+  </testsuite>
+  <testsuite name="mailtrapService" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="2.593" tests="1">
+    <testcase classname="mailtrapService should be defined" name="mailtrapService should be defined" time="0.024">
+    </testcase>
+  </testsuite>
+  <testsuite name="mailController" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="2.434" tests="1">
+    <testcase classname="mailController should be defined" name="mailController should be defined" time="0.009">
+    </testcase>
+  </testsuite>
+  <testsuite name="validate middleware" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="2.775" tests="1">
+    <testcase classname="validate middleware should be defined" name="validate middleware should be defined" time="0.013">
+    </testcase>
+  </testsuite>
+  <testsuite name="inspectionService" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:44" time="1.367" tests="1">
+    <testcase classname="inspectionService should be defined" name="inspectionService should be defined" time="0.003">
+    </testcase>
+  </testsuite>
+  <testsuite name="supplierContractService" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:44" time="1.566" tests="1">
+    <testcase classname="supplierContractService should be defined" name="supplierContractService should be defined" time="0.013">
+    </testcase>
+  </testsuite>
+  <testsuite name="supplierService" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:44" time="1.757" tests="1">
+    <testcase classname="supplierService should be defined" name="supplierService should be defined" time="0.004">
+    </testcase>
+  </testsuite>
+  <testsuite name="economicContractService" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:44" time="1.643" tests="1">
+    <testcase classname="economicContractService should be defined" name="economicContractService should be defined" time="0.009">
+    </testcase>
+  </testsuite>
+  <testsuite name="inspectionMiddleware" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="4.076" tests="1">
+    <testcase classname="inspectionMiddleware should be defined" name="inspectionMiddleware should be defined" time="0.031">
+    </testcase>
+  </testsuite>
+  <testsuite name="importOrderService" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:44" time="1.688" tests="1">
+    <testcase classname="importOrderService should be defined" name="importOrderService should be defined" time="0.005">
+    </testcase>
+  </testsuite>
+  <testsuite name="supplierController" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:42" time="4.299" tests="1">
+    <testcase classname="supplierController should be defined" name="supplierController should be defined" time="0.015">
+    </testcase>
+  </testsuite>
+  <testsuite name="accountService" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:44" time="1.779" tests="1">
+    <testcase classname="accountService should be defined" name="accountService should be defined" time="0.003">
+    </testcase>
+  </testsuite>
+  <testsuite name="AuthService" errors="0" failures="12" skipped="0" timestamp="2025-07-03T07:13:44" time="2.352" tests="12">
+    <testcase classname="AuthService › register should register a new user successfully" name="AuthService › register should register a new user successfully" time="0.159">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: true
+Received: false
+    at Object.toBe (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\services\__tests__\authService.test.js:37:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthService › register should return error if user already exists" name="AuthService › register should return error if user already exists" time="0.02">
+      <failure>Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: &quot;already exists&quot;
+Received string:    &quot;Lỗi server khi đăng ký&quot;
+    at Object.toContain (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\services\__tests__\authService.test.js:60:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthService › register should handle validation errors" name="AuthService › register should handle validation errors" time="0.069">
+      <failure>Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: &quot;validation&quot;
+Received string:    &quot;Lỗi server khi đăng ký&quot;
+    at Object.toContain (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\services\__tests__\authService.test.js:74:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthService › login should login user successfully with valid credentials" name="AuthService › login should login user successfully with valid credentials" time="0.001">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: true
+Received: false
+    at Object.toBe (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\services\__tests__\authService.test.js:104:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthService › login should return error for non-existent user" name="AuthService › login should return error for non-existent user" time="0.001">
+      <failure>Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: &quot;Invalid credentials&quot;
+Received string:    &quot;Email và mật khẩu là bắt buộc&quot;
+    at Object.toContain (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\services\__tests__\authService.test.js:123:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthService › login should return error for inactive user" name="AuthService › login should return error for inactive user" time="0.001">
+      <failure>Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: &quot;account is not active&quot;
+Received string:    &quot;Email và mật khẩu là bắt buộc&quot;
+    at Object.toContain (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\services\__tests__\authService.test.js:145:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthService › login should return error for invalid password" name="AuthService › login should return error for invalid password" time="0.001">
+      <failure>Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: &quot;Invalid credentials&quot;
+Received string:    &quot;Email và mật khẩu là bắt buộc&quot;
+    at Object.toContain (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\services\__tests__\authService.test.js:167:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthService › forgotPassword should send reset email for existing user" name="AuthService › forgotPassword should send reset email for existing user" time="0.003">
+      <failure>TypeError: authService.forgotPassword is not a function
+    at Object.forgotPassword (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\services\__tests__\authService.test.js:183:40)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="AuthService › forgotPassword should return error for non-existent user" name="AuthService › forgotPassword should return error for non-existent user" time="0">
+      <failure>TypeError: authService.forgotPassword is not a function
+    at Object.forgotPassword (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\services\__tests__\authService.test.js:195:40)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="AuthService › resetPassword should reset password successfully with valid token" name="AuthService › resetPassword should reset password successfully with valid token" time="0.006">
+      <failure>Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: true
+Received: false
+    at Object.toBe (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\services\__tests__\authService.test.js:222:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthService › resetPassword should return error for invalid token" name="AuthService › resetPassword should return error for invalid token" time="0.02">
+      <failure>Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: &quot;Invalid or expired token&quot;
+Received string:    &quot;Token và mật khẩu mới là bắt buộc&quot;
+    at Object.toContain (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\services\__tests__\authService.test.js:238:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthService › resetPassword should return error for expired token" name="AuthService › resetPassword should return error for expired token" time="0.011">
+      <failure>Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: &quot;Invalid or expired token&quot;
+Received string:    &quot;Token và mật khẩu mới là bắt buộc&quot;
+    at Object.toContain (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\services\__tests__\authService.test.js:258:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="authMiddleware" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:46" time="0.891" tests="1">
+    <testcase classname="authMiddleware should be defined" name="authMiddleware should be defined" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="accountMiddleware" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:46" time="0.908" tests="1">
+    <testcase classname="accountMiddleware should be defined" name="accountMiddleware should be defined" time="0.004">
+    </testcase>
+  </testsuite>
+  <testsuite name="userController" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:46" time="0.992" tests="1">
+    <testcase classname="userController should be defined" name="userController should be defined" time="0.006">
+    </testcase>
+  </testsuite>
+  <testsuite name="authenticate middleware" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:46" time="1.076" tests="1">
+    <testcase classname="authenticate middleware should be defined" name="authenticate middleware should be defined" time="0.007">
+    </testcase>
+  </testsuite>
+  <testsuite name="inspectionController" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:46" time="0.945" tests="1">
+    <testcase classname="inspectionController should be defined" name="inspectionController should be defined" time="0.003">
+    </testcase>
+  </testsuite>
+  <testsuite name="importOrderController" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:46" time="0.987" tests="1">
+    <testcase classname="importOrderController should be defined" name="importOrderController should be defined" time="0.008">
+    </testcase>
+  </testsuite>
+  <testsuite name="supplierContractController" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:46" time="1.314" tests="1">
+    <testcase classname="supplierContractController should be defined" name="supplierContractController should be defined" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="importInspectionController" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:47" time="0.747" tests="1">
+    <testcase classname="importInspectionController should be defined" name="importInspectionController should be defined" time="0.006">
+    </testcase>
+  </testsuite>
+  <testsuite name="economicContractController" errors="0" failures="0" skipped="0" timestamp="2025-07-03T07:13:47" time="0.803" tests="1">
+    <testcase classname="economicContractController should be defined" name="economicContractController should be defined" time="0.002">
+    </testcase>
+  </testsuite>
+  <testsuite name="AuthController" errors="0" failures="13" skipped="0" timestamp="2025-07-03T07:13:47" time="0.809" tests="13">
+    <testcase classname="AuthController › register should register user successfully" name="AuthController › register should register user successfully" time="0.003">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: {&quot;email&quot;: &quot;test@example.com&quot;, &quot;full_name&quot;: &quot;Test User&quot;, &quot;password&quot;: &quot;password123&quot;, &quot;role&quot;: &quot;user&quot;}
+
+Number of calls: 0
+    at Object.toHaveBeenCalledWith (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:47:36)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthController › register should handle registration failure" name="AuthController › register should handle registration failure" time="0">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: {&quot;email&quot;: &quot;existing@example.com&quot;, &quot;password&quot;: &quot;password123&quot;}
+
+Number of calls: 0
+    at Object.toHaveBeenCalledWith (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:69:36)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthController › register should handle service errors" name="AuthController › register should handle service errors" time="0.001">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: [Error: Database connection failed]
+
+Number of calls: 0
+    at Object.toHaveBeenCalledWith (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:83:24)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthController › login should login user successfully" name="AuthController › login should login user successfully" time="0.001">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: {&quot;email&quot;: &quot;test@example.com&quot;, &quot;password&quot;: &quot;password123&quot;}
+Received: &quot;test@example.com&quot;, &quot;password123&quot;
+
+Number of calls: 1
+    at Object.toHaveBeenCalledWith (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:109:33)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthController › login should handle login failure" name="AuthController › login should handle login failure" time="0.001">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: {&quot;email&quot;: &quot;test@example.com&quot;, &quot;password&quot;: &quot;wrongpassword&quot;}
+Received: &quot;test@example.com&quot;, &quot;wrongpassword&quot;
+
+Number of calls: 1
+    at Object.toHaveBeenCalledWith (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:131:33)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthController › forgotPassword should send reset email successfully" name="AuthController › forgotPassword should send reset email successfully" time="0">
+      <failure>TypeError: Cannot read properties of undefined (reading &apos;mockResolvedValue&apos;)
+    at Object.mockResolvedValue (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:147:34)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="AuthController › forgotPassword should handle non-existent email" name="AuthController › forgotPassword should handle non-existent email" time="0.001">
+      <failure>TypeError: Cannot read properties of undefined (reading &apos;mockResolvedValue&apos;)
+    at Object.mockResolvedValue (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:165:34)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="AuthController › resetPassword should reset password successfully" name="AuthController › resetPassword should reset password successfully" time="0">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: {&quot;password&quot;: &quot;newpassword123&quot;, &quot;token&quot;: &quot;valid-token&quot;}
+
+Number of calls: 0
+    at Object.toHaveBeenCalledWith (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:193:41)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthController › resetPassword should handle invalid token" name="AuthController › resetPassword should handle invalid token" time="0">
+      <failure>Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+Expected: {&quot;password&quot;: &quot;newpassword123&quot;, &quot;token&quot;: &quot;invalid-token&quot;}
+
+Number of calls: 0
+    at Object.toHaveBeenCalledWith (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:215:41)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="AuthController › getProfile should return user profile" name="AuthController › getProfile should return user profile" time="0.001">
+      <failure>TypeError: authController.getProfile is not a function
+    at Object.getProfile (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:232:28)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="AuthController › getProfile should handle missing user in request" name="AuthController › getProfile should handle missing user in request" time="0">
+      <failure>TypeError: authController.getProfile is not a function
+    at Object.getProfile (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:244:28)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="AuthController › updateProfile should update profile successfully" name="AuthController › updateProfile should update profile successfully" time="0.001">
+      <failure>TypeError: authController.updateProfile is not a function
+    at Object.updateProfile (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:272:28)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
+    </testcase>
+    <testcase classname="AuthController › updateProfile should handle update failure" name="AuthController › updateProfile should handle update failure" time="0">
+      <failure>TypeError: authController.updateProfile is not a function
+    at Object.updateProfile (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\src\controllers\__tests__\authController.test.js:291:28)
+    at Promise.finally.completed (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1559:28)
+    at new Promise (&lt;anonymous&gt;)
+    at callAsyncCircusFn (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1499:10)
+    at _callCircusTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1009:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:949:3)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:839:13)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at _runTestsForDescribeBlock (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:829:11)
+    at run (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:757:3)
+    at runAndTransformResultsToJestFormat (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\jestAdapterInit.js:1920:21)
+    at jestAdapter (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:272:16)
+    at runTest (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:340:7)
+    at Object.worker (A:\FULearning\SUMMER_2025\DoAn2025\pharmaceutical-distribution-warehouse\server\node_modules\jest-runner\build\testWorker.js:494:12)</failure>
     </testcase>
   </testsuite>
 </testsuites>
