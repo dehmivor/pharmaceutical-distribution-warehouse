@@ -9,14 +9,15 @@ import NavItem from './NavItem';
 
 /***************************  RESPONSIVE DRAWER - GROUP  ***************************/
 
-export default function NavGroup({ item }) {
+export default function NavGroup({ item, pathname }) {
   const renderNavItem = (menuItem) => {
-    // Render items based on the type
     switch (menuItem.type) {
       case 'collapse':
-        return <NavCollapse key={menuItem.id} item={menuItem} />;
+        // Truyền pathname cho NavCollapse để xử lý highlight con
+        return <NavCollapse key={menuItem.id} item={menuItem} pathname={pathname} />;
       case 'item':
-        return <NavItem key={menuItem.id} item={menuItem} />;
+        // Truyền pathname cho NavItem để xử lý highlight
+        return <NavItem key={menuItem.id} item={menuItem} pathname={pathname} />;
       default:
         return (
           <Typography key={menuItem.id} variant="h6" color="error" align="center">

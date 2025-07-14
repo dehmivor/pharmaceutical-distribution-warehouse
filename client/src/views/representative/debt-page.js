@@ -104,8 +104,8 @@ function DebtPage() {
 
   // Xử lý tạo phiếu thu/chi (demo)
   const handleCreateVoucher = (type, data) => {
-    router.push(`/rp-create-bills`)
-  };
+  router.push(`/rp-create-bills/${data.id}`);
+};
 
   return (
     <Box sx={{ p: 3 }}>
