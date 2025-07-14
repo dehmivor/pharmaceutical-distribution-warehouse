@@ -145,6 +145,18 @@ const ANNEX_STATUSES = {
   REJECTED: 'rejected',
 };
 
+const CONTRACT_TYPES = {
+  ECONOMIC: 'economic',
+  PRINCIPAL: 'principal',
+};
+
+const EXPORT_ORDER_STATUSES = {
+  DRAFT: 'draft',
+  APPROVED: 'approved',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+};
+
 module.exports = {
   USER_ROLES,
   BASIC_STATUSES,
@@ -164,4 +176,6 @@ module.exports = {
   PARTNER_TYPES,
   ANNEX_ACTIONS,
   ANNEX_STATUSES,
+  CONTRACT_TYPES,
+  EXPORT_ORDER_STATUSES,
 };
