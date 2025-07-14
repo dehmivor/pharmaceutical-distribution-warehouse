@@ -56,8 +56,6 @@ const getAuthHeaders = () => {
 function ImportOrderDetail() {
   const theme = useTheme();
   const { orderId } = useParams();
-  const router = useRouter();
-
   const [order, setOrder] = useState(null);
   const [inspections, setInspections] = useState([]);
   const [loading, setLoading] = useState(true);

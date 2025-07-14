@@ -54,6 +54,13 @@ const warehouse = {
       type: 'item',
       url: '/manage-packages',
       icon: 'IconPackage'
+    },
+    {
+      id: 'test',
+      title: 'test',
+      type: 'item',
+      url: '/warehouse-manage-import-order/68597d6929cc5b7ecb4fbd7d',
+      icon: 'IconPackage'
     }
   ]
 };
