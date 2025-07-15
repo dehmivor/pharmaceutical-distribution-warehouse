@@ -1,15 +1,14 @@
 const mongoose = require('mongoose');
 const { billDetailsSchema } = require('./subSchemas');
+
 const billSchema = new mongoose.Schema({
   import_order_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ImportOrder',
-    required: [true, 'Import order ID is required'],
   },
   export_order_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ExportOrder',
-    required: [true, 'Export order ID is required'],
   },
   type: {
     type: String,
@@ -20,6 +19,7 @@ const billSchema = new mongoose.Schema({
   voucher_code: {
     type: String,
     unique: true,
+    sparse: true,  
     required: function () {
       return this.type === 'PAYMENT_VOUCHER';
     },
@@ -30,13 +30,6 @@ const billSchema = new mongoose.Schema({
       return this.type === 'PAYMENT_VOUCHER';
     },
   },
-  items: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Item',
-      required: [true, 'Item ID is required'],
-    },
-  ],
   status: {
     type: String,
     required: [true, 'Status is required'],
@@ -49,14 +42,18 @@ const billSchema = new mongoose.Schema({
   details: [billDetailsSchema],
 });
 
-// Validation cho các trường tham chiếu
-billSchema.pre('validate', function (next) {
-  if (this.details.length === 0) {
-    return next(new Error('At least one bill detail is required'));
-  }
+billSchema.index({ voucher_code: 1 }, { unique: true, sparse: true });
 
+billSchema.pre('validate', function (next) {
+  if (!this.import_order_id && !this.export_order_id) {
+    return next(new Error('Either import_order_id or export_order_id is required'));
+  }
   if (this.import_order_id && this.export_order_id) {
     return next(new Error('Cannot have both import_order_id and export_order_id'));
+  }
+
+  if (!this.details || this.details.length === 0) {
+    return next(new Error('At least one bill detail is required'));
   }
 
   if (this.type === 'PAYMENT_VOUCHER') {
@@ -67,8 +64,8 @@ billSchema.pre('validate', function (next) {
       this.invalidate('voucher_code', 'Mã phiếu là bắt buộc');
     }
   }
+
   next();
 });
 
-// Thêm index để tối ưu truy vấn
 module.exports = mongoose.model('Bill', billSchema);
