@@ -403,7 +403,6 @@ const packageController = {
     }
     res.json({ success: true });
   },
-
 };
 
 module.exports = packageController;

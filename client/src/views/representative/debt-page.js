@@ -20,15 +20,16 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 
 function DebtPage() {
   const router = useRouter();
 
   const [bills, setBills] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState(null);
 
   const [tab, setTab] = useState(0);
@@ -38,6 +39,8 @@ function DebtPage() {
 
   const [openDetail, setOpenDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
+
+  const [loadingPayment, setLoadingPayment] = useState(false);
 
   const getQuarter = (dateStr) => {
     if (!dateStr) return '';
@@ -51,7 +54,7 @@ function DebtPage() {
   useEffect(() => {
     async function fetchBills() {
       try {
-        setLoading(true);
+        setLoadingData(true);
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || '';
         const res = await fetch(`${backendUrl}/api/bills`);
         if (!res.ok) throw new Error('Failed to fetch bills');
@@ -61,7 +64,7 @@ function DebtPage() {
       } catch (err) {
         setError(err.message);
       } finally {
-        setLoading(false);
+        setLoadingData(false);
       }
     }
     fetchBills();
@@ -101,11 +104,46 @@ function DebtPage() {
     setDetailData(null);
   };
 
-  const handleCreateVoucher = (type, data) => {
-    router.push(`/rp-create-bills/${data._id}`);
-  };
+  // Hàm xử lý thanh toán Stripe
+ const handleStripePayment = async (type, bill) => {
+  setLoadingPayment(true);
+  try {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || '';
 
-  if (loading) return <Typography>Đang tải dữ liệu...</Typography>;
+    const endpoint =
+      type === 'chi'
+        ? `/api/stripe/create-payment-import/${bill._id}`
+        : `/api/stripe/create-payment-export/${bill._id}`;
+
+    const amount = Math.round(calcAmount(bill.details));
+
+    const successUrl = window.location.origin + '/payment-success';
+    const cancelUrl = window.location.origin + '/payment-cancel';
+
+    // PHẢI gán kết quả trả về cho biến response
+    const response = await axios.post(`${backendUrl}${endpoint}`, {
+      amount,
+      successUrl,
+      cancelUrl,
+    });
+
+    const { url } = response.data; // Lấy url từ response
+
+    if (url) {
+      window.location.href = url;
+    } else {
+      alert('Không thể tạo phiên thanh toán Stripe');
+    }
+  } catch (error) {
+    console.error('Lỗi gọi Stripe:', error);
+    alert('Có lỗi khi kết nối thanh toán. Vui lòng thử lại sau.');
+  } finally {
+    setLoadingPayment(false);
+  }
+};
+
+
+  if (loadingData) return <Typography>Đang tải dữ liệu...</Typography>;
   if (error) return <Typography color="error">Lỗi: {error}</Typography>;
 
   return (
@@ -158,6 +196,7 @@ function DebtPage() {
               <TableCell align="center">Thao tác</TableCell>
             </TableRow>
           </TableHead>
+
           <TableBody>
             {filteredBills.length > 0 ? (
               filteredBills.map((bill) => (
@@ -165,11 +204,11 @@ function DebtPage() {
                   <TableCell>
                     {tab === 0
                       ? bill.import_order_id
-                        ? bill.import_order_id._id // Bạn có thể thay bằng tên nhà cung cấp nếu có trường tên
+                        ? bill.import_order_id._id
                         : 'N/A'
                       : bill.export_order_id
-                        ? bill.export_order_id._id // Bạn có thể thay bằng tên khách hàng nếu có trường tên
-                        : 'N/A'}
+                      ? bill.export_order_id._id
+                      : 'N/A'}
                   </TableCell>
 
                   <TableCell>{bill.voucher_code || 'N/A'}</TableCell>
@@ -188,10 +227,12 @@ function DebtPage() {
                       variant="contained"
                       color="primary"
                       sx={{ mr: 1 }}
-                      onClick={() => handleCreateVoucher(tab === 0 ? 'chi' : 'thu', bill)}
+                      onClick={() => handleStripePayment(tab === 0 ? 'chi' : 'thu', bill)}
+                      disabled={loadingPayment}
                     >
-                      {tab === 0 ? 'Tạo phiếu chi' : 'Tạo phiếu thu'}
+                      {loadingPayment ? 'Đang xử lý...' : 'Thanh toán'}
                     </Button>
+
                     <Button size="small" variant="outlined" onClick={() => handleOpenDetail(bill)}>
                       Xem chi tiết
                     </Button>

@@ -18,7 +18,7 @@ const packageSchema = new mongoose.Schema({
   import_order_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ImportOrder',
-  }
+  },
 });
 
 module.exports = mongoose.model('Package', packageSchema);

@@ -8,7 +8,7 @@ const medicineService = {
       const query = {};
 
       // Filter by category
-      if (filters.category){
+      if (filters.category) {
         query.category = filters.category;
       }
 
@@ -28,7 +28,10 @@ const medicineService = {
       const skip = (page - 1) * limit;
 
       // Execute query
-      const medicines = await Medicine.find(query).sort({ license_code: 1 }).skip(skip).limit(limit);
+      const medicines = await Medicine.find(query)
+        .sort({ license_code: 1 })
+        .skip(skip)
+        .limit(limit);
 
       // Get total count for pagination
       const total = await Medicine.countDocuments(query);

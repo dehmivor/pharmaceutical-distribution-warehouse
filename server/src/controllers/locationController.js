@@ -2,9 +2,7 @@ const Location = require('../models/Location');
 const Package = require('../models/Package');
 const Batch = require('../models/Batch');
 
-
 const locationController = {
-
   getLocationsWithBatches: async (req, res) => {
     try {
       const locations = await Location.aggregate([
@@ -13,10 +11,10 @@ const locationController = {
             from: 'batches',
             localField: 'position',
             foreignField: 'batch_code',
-            as: 'batch_info'
-          }
+            as: 'batch_info',
+          },
         },
-        { $match: { 'batch_info': { $ne: [] } } }
+        { $match: { batch_info: { $ne: [] } } },
       ]);
       res.json(locations);
     } catch (error) {
@@ -42,37 +40,36 @@ const locationController = {
       if (!batch) {
         return res.status(404).json({
           success: false,
-          message: 'Batch not found'
+          message: 'Batch not found',
         });
       }
 
       // 2) Gather all batch IDs with that medicine_id
-      const siblingBatches = await Batch
-        .find({ medicine_id: batch.medicine_id })
-        .select('_id');
-      const batchIds = siblingBatches.map(b => b._id);
+      const siblingBatches = await Batch.find({ medicine_id: batch.medicine_id }).select('_id');
+      const batchIds = siblingBatches.map((b) => b._id);
 
       // 3) Find distinct location_ids from Package
       const locationIds = await Package.distinct('location_id', {
         batch_id: { $in: batchIds },
-        location_id: { $ne: null }
+        location_id: { $ne: null },
       });
 
       // 4) Fetch full Location docs (populate area if desired)
-      const locations = await Location.find({ _id: { $in: locationIds } })
-        .populate('area_id', 'name');  // only bring back area name
+      const locations = await Location.find({ _id: { $in: locationIds } }).populate(
+        'area_id',
+        'name',
+      ); // only bring back area name
 
       return res.json({
         success: true,
-        data: locations
+        data: locations,
       });
-
     } catch (error) {
       console.error('Error in getLocationsByBatchMedicine:', error);
       return res.status(500).json({
         success: false,
         message: 'Server error fetching locations',
-        error: error.message
+        error: error.message,
       });
     }
   },
@@ -82,12 +79,14 @@ const locationController = {
       const { locationId } = req.params;
 
       // 1) Load the Location
-      const location = await Location.findById(locationId)
-        .populate('area_id', 'name storage_conditions');
+      const location = await Location.findById(locationId).populate(
+        'area_id',
+        'name storage_conditions',
+      );
       if (!location) {
         return res.status(404).json({
           success: false,
-          message: 'Location not found'
+          message: 'Location not found',
         });
       }
 
@@ -98,10 +97,10 @@ const locationController = {
           select: 'batch_code expiry_date quality_status',
           populate: {
             path: 'medicine_id',
-            select: 'medicine_name unit_of_measure'
-          }
+            select: 'medicine_name unit_of_measure',
+          },
         })
-        .populate('import_order_id', 'status')   // if you want import order info
+        .populate('import_order_id', 'status') // if you want import order info
         .sort({ _id: -1 });
 
       // 3) Return combined result
@@ -109,19 +108,18 @@ const locationController = {
         success: true,
         data: {
           location,
-          packages
-        }
+          packages,
+        },
       });
     } catch (error) {
       console.error('Error fetching location with packages:', error);
       return res.status(500).json({
         success: false,
         message: 'Server error fetching location and its packages',
-        error: error.message
+        error: error.message,
       });
     }
   },
+};
 
-}
-
-module.exports = locationController
+module.exports = locationController;
