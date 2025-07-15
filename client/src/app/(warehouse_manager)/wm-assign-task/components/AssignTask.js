@@ -14,18 +14,33 @@ export default function AssignTask() {
   const [packingDetails, setPackingDetails] = useState([])
   const [activeTab, setActiveTab] = useState("approved")
 
+  // Lấy token xác thực từ đâu đó (ví dụ: localStorage, context, Redux store)
+  // Bạn cần thay thế logic này bằng cách lấy token thực tế của mình
+  const getAuthToken = () => {
+    // Ví dụ: return localStorage.getItem('authToken');
+    return "YOUR_AUTH_TOKEN_HERE" // THAY THẾ BẰNG TOKEN XÁC THỰC THỰC TẾ CỦA BẠN
+  }
+
   // Fetch warehouse staff from backend
   const fetchWarehouseStaff = async () => {
     setStaffLoading(true)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-      const res = await fetch(`${backendUrl}/api/users?role=warehouse`)
-      if (!res.ok) throw new Error("Failed to fetch warehouse staff")
+      const res = await fetch(`${backendUrl}/api/users?role=warehouse`, {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      })
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || "Failed to fetch warehouse staff")
+      }
       const data = await res.json()
-      setWarehouseStaff(data)
+      setWarehouseStaff(data.data) // API trả về { success: true, data: [...] }
     } catch (error) {
       console.error("Error fetching warehouse staff:", error)
-      // Mock data for development
+      alert(`Không thể tải danh sách nhân viên kho: ${error.message}. Vui lòng thử lại.`)
+      // Fallback to mock data for development if API fails
       const mockStaff = [
         { _id: "s1", email: "staff1@company.com", role: "warehouse" },
         { _id: "s2", email: "staff2@company.com", role: "warehouse" },
@@ -42,13 +57,21 @@ export default function AssignTask() {
     setLoading(true)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-      const res = await fetch(`${backendUrl}/api/export-orders`)
-      if (!res.ok) throw new Error("Failed to fetch export orders")
+      const res = await fetch(`${backendUrl}/api/export-orders`, {
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      })
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || "Failed to fetch export orders")
+      }
       const data = await res.json()
-      setExportOrders(data)
+      setExportOrders(data.data) // API trả về { success: true, data: [...] }
     } catch (error) {
       console.error("Error fetching export orders:", error)
-      // Mock data for development
+      alert(`Không thể tải danh sách đơn hàng xuất kho: ${error.message}. Vui lòng thử lại.`)
+      // Fallback to mock data for development if API fails
       const mockData = [
         {
           _id: "1",
@@ -65,8 +88,8 @@ export default function AssignTask() {
             {
               medicine_id: {
                 _id: "m1",
-                name: "Paracetamol 500mg",
-                unit: "viên",
+                medicine_name: "Paracetamol 500mg", // Đã sửa: dùng medicine_name
+                unit_of_measure: "viên",
               },
               expected_quantity: 1000,
               actual_quantity: 0,
@@ -75,8 +98,8 @@ export default function AssignTask() {
             {
               medicine_id: {
                 _id: "m2",
-                name: "Amoxicillin 250mg",
-                unit: "viên",
+                medicine_name: "Amoxicillin 250mg", // Đã sửa: dùng medicine_name
+                unit_of_measure: "viên",
               },
               expected_quantity: 500,
               actual_quantity: 0,
@@ -104,8 +127,8 @@ export default function AssignTask() {
             {
               medicine_id: {
                 _id: "m3",
-                name: "Vitamin C 1000mg",
-                unit: "viên",
+                medicine_name: "Vitamin C 1000mg", // Đã sửa: dùng medicine_name
+                unit_of_measure: "viên",
               },
               expected_quantity: 200,
               actual_quantity: 180,
@@ -128,7 +151,7 @@ export default function AssignTask() {
 
   const handleOpenAssignDialog = (order) => {
     setSelectedOrder(order)
-    setSelectedStaffId(order.assigned_staff?._id || "")
+    setSelectedStaffId(order.warehouse_manager_id?._id || "") // Use warehouse_manager_id for assigned staff
     setAssignDialogOpen(true)
   }
 
@@ -166,7 +189,10 @@ export default function AssignTask() {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
       const res = await fetch(`${backendUrl}/api/export-orders/${selectedOrder._id}/assign-staff`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
         body: JSON.stringify({ staffId: selectedStaffId }),
       })
 
@@ -175,17 +201,9 @@ export default function AssignTask() {
         throw new Error(errorData.error || "Failed to assign staff")
       }
 
-      // Update local state
-      setExportOrders((prev) =>
-        prev.map((order) =>
-          order._id === selectedOrder._id
-            ? {
-                ...order,
-                assigned_staff: warehouseStaff.find((staff) => staff._id === selectedStaffId),
-              }
-            : order,
-        ),
-      )
+      const updatedOrder = await res.json()
+      // Update local state with the data returned from the API
+      setExportOrders((prev) => prev.map((order) => (order._id === selectedOrder._id ? updatedOrder.data : order)))
 
       handleCloseAssignDialog()
       alert("Phân công nhân viên thành công!")
@@ -204,7 +222,10 @@ export default function AssignTask() {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
       const res = await fetch(`${backendUrl}/api/export-orders/${selectedOrder._id}/update-packing`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
         body: JSON.stringify({ details: packingDetails }),
       })
 
@@ -213,10 +234,9 @@ export default function AssignTask() {
         throw new Error(errorData.error || "Failed to update packing")
       }
 
-      // Update local state
-      setExportOrders((prev) =>
-        prev.map((order) => (order._id === selectedOrder._id ? { ...order, details: packingDetails } : order)),
-      )
+      const updatedOrder = await res.json()
+      // Update local state with the data returned from the API
+      setExportOrders((prev) => prev.map((order) => (order._id === selectedOrder._id ? updatedOrder.data : order)))
 
       handleClosePackingDialog()
       alert("Cập nhật đóng gói thành công!")
@@ -231,59 +251,45 @@ export default function AssignTask() {
     const order = exportOrders.find((o) => o._id === orderId)
     if (!order) return
 
-    // Validate if all items have sufficient quantity
     const hasInsufficientQuantity = order.details.some((detail) => detail.actual_quantity < detail.expected_quantity)
+
+    let endpoint = ""
+    let successMessage = ""
+    let errorMessage = ""
 
     if (hasInsufficientQuantity) {
       const confirmCancel = window.confirm("Một số sản phẩm không đủ số lượng. Bạn có muốn hủy đơn hàng này không?")
-
-      if (confirmCancel) {
-        try {
-          const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-          const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/cancel`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-          })
-
-          if (!res.ok) throw new Error("Failed to cancel order")
-
-          setExportOrders((prev) =>
-            prev.map((order) => (order._id === orderId ? { ...order, status: "cancelled" } : order)),
-          )
-
-          alert("Đơn hàng đã được hủy!")
-        } catch (error) {
-          console.error("Error cancelling order:", error)
-          // Update local state even if API fails (for demo)
-          setExportOrders((prev) =>
-            prev.map((order) => (order._id === orderId ? { ...order, status: "cancelled" } : order)),
-          )
-          alert("Đơn hàng đã được hủy!")
-        }
-      }
+      if (!confirmCancel) return // User chose not to cancel
+      endpoint = `/api/export-orders/${orderId}/cancel`
+      successMessage = "Đơn hàng đã được hủy!"
+      errorMessage = "Hủy đơn hàng thất bại. Vui lòng thử lại."
     } else {
-      try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-        const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/complete`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-        })
+      endpoint = `/api/export-orders/${orderId}/complete`
+      successMessage = "Đơn hàng đã hoàn thành!"
+      errorMessage = "Hoàn thành đơn hàng thất bại. Vui lòng thử lại."
+    }
 
-        if (!res.ok) throw new Error("Failed to complete order")
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const res = await fetch(`${backendUrl}${endpoint}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+      })
 
-        setExportOrders((prev) =>
-          prev.map((order) => (order._id === orderId ? { ...order, status: "completed" } : order)),
-        )
-
-        alert("Đơn hàng đã hoàn thành!")
-      } catch (error) {
-        console.error("Error completing order:", error)
-        // Update local state even if API fails (for demo)
-        setExportOrders((prev) =>
-          prev.map((order) => (order._id === orderId ? { ...order, status: "completed" } : order)),
-        )
-        alert("Đơn hàng đã hoàn thành!")
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || "API call failed")
       }
+
+      const updatedOrder = await res.json()
+      setExportOrders((prev) => prev.map((order) => (order._id === orderId ? updatedOrder.data : order)))
+      alert(successMessage)
+    } catch (error) {
+      console.error(`Error ${endpoint.includes("cancel") ? "cancelling" : "completing"} order:`, error)
+      alert(`${errorMessage} ${error.message || ""}`)
     }
   }
 
@@ -363,7 +369,7 @@ export default function AssignTask() {
             <span>👥</span>
           </div>
           <div style={{ fontSize: "24px", fontWeight: "bold" }}>
-            {approvedOrders.filter((order) => order.assigned_staff).length}
+            {approvedOrders.filter((order) => order.warehouse_manager_id).length}
           </div>
         </div>
 
@@ -464,7 +470,7 @@ export default function AssignTask() {
                       <td style={{ padding: "12px", fontWeight: "500" }}>{order.contract_id.contract_number}</td>
                       <td style={{ padding: "12px" }}>{order.created_by.email}</td>
                       <td style={{ padding: "12px" }}>
-                        {order.assigned_staff ? order.assigned_staff.email : "Chưa phân công"}
+                        {order.warehouse_manager_id ? order.warehouse_manager_id.email : "Chưa phân công"}
                       </td>
                       <td style={{ padding: "12px" }}>{getStatusBadge(order.status)}</td>
                       <td style={{ padding: "12px" }}>{new Date(order.createdAt).toLocaleDateString("vi-VN")}</td>
@@ -481,33 +487,33 @@ export default function AssignTask() {
                               fontSize: "12px",
                             }}
                           >
-                            {order.assigned_staff ? "Thay đổi" : "Phân công"}
+                            {order.warehouse_manager_id ? "Thay đổi" : "Phân công"}
                           </button>
                           <button
                             onClick={() => handleOpenPackingDialog(order)}
-                            disabled={!order.assigned_staff}
+                            disabled={!order.warehouse_manager_id}
                             style={{
                               padding: "6px 12px",
                               border: "1px solid #d1d5db",
-                              backgroundColor: order.assigned_staff ? "white" : "#f3f4f6",
+                              backgroundColor: order.warehouse_manager_id ? "white" : "#f3f4f6",
                               borderRadius: "4px",
-                              cursor: order.assigned_staff ? "pointer" : "not-allowed",
+                              cursor: order.warehouse_manager_id ? "pointer" : "not-allowed",
                               fontSize: "12px",
-                              color: order.assigned_staff ? "black" : "#9ca3af",
+                              color: order.warehouse_manager_id ? "black" : "#9ca3af",
                             }}
                           >
                             Đóng gói
                           </button>
                           <button
                             onClick={() => handleCompleteOrder(order._id)}
-                            disabled={!order.assigned_staff}
+                            disabled={!order.warehouse_manager_id}
                             style={{
                               padding: "6px 12px",
                               border: "none",
-                              backgroundColor: order.assigned_staff ? "#3b82f6" : "#9ca3af",
+                              backgroundColor: order.warehouse_manager_id ? "#3b82f6" : "#9ca3af",
                               color: "white",
                               borderRadius: "4px",
-                              cursor: order.assigned_staff ? "pointer" : "not-allowed",
+                              cursor: order.warehouse_manager_id ? "pointer" : "not-allowed",
                               fontSize: "12px",
                             }}
                           >
@@ -717,10 +723,12 @@ export default function AssignTask() {
                     }}
                   >
                     <div>
-                      <div style={{ fontWeight: "500", marginBottom: "4px" }}>{detail.medicine_id.name}</div>
+                      <div style={{ fontWeight: "500", marginBottom: "4px" }}>{detail.medicine_id?.medicine_name}</div>{" "}
+                      {/* Đã thêm ?. */}
                       <div style={{ fontSize: "12px", color: "#666" }}>
-                        Yêu cầu: {detail.expected_quantity} {detail.medicine_id.unit}
-                      </div>
+                        Yêu cầu: {detail.expected_quantity} {detail.medicine_id?.unit_of_measure}
+                      </div>{" "}
+                      {/* Đã thêm ?. */}
                     </div>
 
                     <div>
@@ -743,7 +751,8 @@ export default function AssignTask() {
                     </div>
 
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "12px", fontWeight: "500" }}>{detail.medicine_id.unit}</div>
+                      <div style={{ fontSize: "12px", fontWeight: "500" }}>{detail.medicine_id?.unit_of_measure}</div>{" "}
+                      {/* Đã thêm ?. */}
                       {detail.actual_quantity < detail.expected_quantity && (
                         <div style={{ fontSize: "10px", color: "#ef4444" }}>
                           Thiếu {detail.expected_quantity - detail.actual_quantity}

@@ -13,6 +13,7 @@ const app = express();
 const errorHandler = require('./middlewares/errorMiddleware.js');
 const authenticate = require('./middlewares/authenticate');
 const authorize = require('./middlewares/authorize');
+const { USER_ROLES } = require('./utils/constants');
 
 // Middlewares
 app.use(helmet());
@@ -65,6 +66,20 @@ app.use(
   authenticate,
   authorize(['warehouse', 'warehouse_manager']),
   route.inspectionRoutes,
+);
+app.use(
+  '/api/users',
+  authenticate,
+  authorize([USER_ROLES.WAREHOUSEMANAGER, USER_ROLES.SUPERVISOR]), // Hoặc các vai trò khác có quyền xem danh sách người dùng
+  route.userRoutes
+);
+
+// ... (các protected routes khác, ví dụ: exportOrderRoutes)
+app.use(
+  '/api/export-orders',
+  authenticate,
+  authorize(USER_ROLES.WAREHOUSEMANAGER),
+  route.exportOrderRoutes
 );
 
 // Protected routes với role-based access

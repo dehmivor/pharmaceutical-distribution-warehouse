@@ -23,4 +23,6 @@ module.exports = {
   billRoutes: require('./billRoute'),
   batchRoutes: require('./batchRoute'),
   economicContractRoutes: require('./economicContractRoute'),
+  exportOrderRoutes: require('./exportOrderRoute'),
+  userRoutes: require('./userRoute'),
 };
