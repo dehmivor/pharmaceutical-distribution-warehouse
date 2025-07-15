@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 const PrincipalContract = require('../models/PrincipalContract');
-const { CONTRACT_STATUSES, PARTNER_TYPES, ANNEX_STATUSES, ANNEX_ACTIONS, USER_ROLES } = require('../utils/constants');
+const {
+  CONTRACT_STATUSES,
+  PARTNER_TYPES,
+  ANNEX_STATUSES,
+  ANNEX_ACTIONS,
+  USER_ROLES,
+} = require('../utils/constants');
 const { getValidItemsAtDate } = require('../utils/contractUtils');
 
 const principalContractService = {
@@ -325,7 +331,7 @@ const principalContractService = {
             'annexes.$.description': annexData.description,
           },
         },
-        { new: true, runValidators: true, session }
+        { new: true, runValidators: true, session },
       )
         .populate('created_by', 'name email')
         .populate('partner_id', 'name')
@@ -378,7 +384,7 @@ const principalContractService = {
       const updated = await PrincipalContract.findOneAndUpdate(
         { _id: id, 'annexes.annex_code': annex_code },
         { $set: { 'annexes.$.status': newStatus } },
-        { new: true, session }
+        { new: true, session },
       )
         .populate('created_by', 'name email')
         .populate('partner_id', 'name')

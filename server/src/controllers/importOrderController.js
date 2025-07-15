@@ -19,7 +19,11 @@ const createImportOrder = async (req, res) => {
 
     // Truyền user context vào service
     const userContext = req.user ? { role: req.user.role, id: req.user._id } : null;
-    const newOrder = await importOrderService.createImportOrder(orderData, orderDetails, userContext);
+    const newOrder = await importOrderService.createImportOrder(
+      orderData,
+      orderDetails,
+      userContext,
+    );
 
     res.status(201).json({
       success: true,
@@ -41,7 +45,7 @@ const getImportOrders = async (req, res) => {
     const userId = req.user._id ? req.user._id.toString() : null;
 
     let query = {};
-    
+
     // Warehouse manager chỉ xem orders được gán cho mình
     if (userRole === 'warehouse_manager') {
       if (mongoose.Types.ObjectId.isValid(userId)) {
@@ -55,7 +59,7 @@ const getImportOrders = async (req, res) => {
     if (search) {
       query.$or = [
         { _id: { $regex: search, $options: 'i' } },
-        { 'supplier_contract_id.contract_code': { $regex: search, $options: 'i' } }
+        { 'supplier_contract_id.contract_code': { $regex: search, $options: 'i' } },
       ];
     }
 
@@ -100,13 +104,13 @@ const updateImportOrder = async (req, res) => {
     // Gộp lại thành object đúng schema
     const updateData = {
       ...orderData,
-      details: orderDetails
+      details: orderDetails,
     };
-    
+
     // Truyền user context vào service
     const userContext = req.user ? { role: req.user.role, id: req.user._id } : null;
     const updatedOrder = await importOrderService.updateImportOrder(id, updateData, userContext);
-    
+
     res.status(200).json({
       success: true,
       data: updatedOrder,
@@ -221,12 +225,11 @@ const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    
+
     // Check if user is supervisor and bypass validation
     const bypassValidation = req.user && req.user.role === 'supervisor';
     const approvalBy = req.user ? req.user._id : null;
     const userRole = req.user ? req.user.role : null;
-
 
     // Kiểm tra quyền của warehouse manager (chỉ warehouse_manager mới được phép)
     if (userRole === 'warehouse_manager') {
@@ -235,30 +238,36 @@ const updateOrderStatus = async (req, res) => {
       if (!allowedStatuses.includes(status)) {
         return res.status(200).json({
           success: false,
-          error: `Warehouse manager can only change status to: ${allowedStatuses.join(', ')}`
+          error: `Warehouse manager can only change status to: ${allowedStatuses.join(', ')}`,
         });
       }
 
       // Kiểm tra xem order có được gán cho warehouse manager này không
       const order = await importOrderService.getImportOrderById(id);
       // So sánh quyền bằng email thay vì id
-      const managerEmail = order.warehouse_manager_id && order.warehouse_manager_id.email
-        ? order.warehouse_manager_id.email
-        : null;
+      const managerEmail =
+        order.warehouse_manager_id && order.warehouse_manager_id.email
+          ? order.warehouse_manager_id.email
+          : null;
       console.log('DEBUG so sánh quyền bằng email:', {
         orderId: id,
         warehouse_manager_email: managerEmail,
-        reqUserEmail: req.user.email
+        reqUserEmail: req.user.email,
       });
       if (!managerEmail || !req.user.email || managerEmail !== req.user.email) {
         return res.status(403).json({
           success: false,
-          error: 'You can only update orders assigned to you'
+          error: 'You can only update orders assigned to you',
         });
       }
     }
 
-    const updatedOrder = await importOrderService.updateOrderStatus(id, status, approvalBy, bypassValidation);
+    const updatedOrder = await importOrderService.updateOrderStatus(
+      id,
+      status,
+      approvalBy,
+      bypassValidation,
+    );
 
     res.status(200).json({
       success: true,
@@ -285,7 +294,7 @@ const getImportOrdersByWarehouseManager = async (req, res) => {
       warehouseManagerId,
       query,
       parseInt(page),
-      parseInt(limit)
+      parseInt(limit),
     );
 
     res.status(200).json({
@@ -324,7 +333,7 @@ const getImportOrdersBySupplierContract = async (req, res) => {
 const getValidStatusTransitions = async (req, res) => {
   try {
     const { currentStatus } = req.query;
-    
+
     if (currentStatus) {
       // Get valid transitions for specific status
       const validTransitions = importOrderService.getValidStatusTransitions(currentStatus);

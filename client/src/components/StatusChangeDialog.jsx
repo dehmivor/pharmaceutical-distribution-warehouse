@@ -1,33 +1,10 @@
 'use client';
 
 import React from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  Alert,
-  CircularProgress
-} from '@mui/material';
-import {
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
-  Warning as WarningIcon
-} from '@mui/icons-material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Alert, CircularProgress } from '@mui/material';
+import { CheckCircle as ApproveIcon, Cancel as RejectIcon, Warning as WarningIcon } from '@mui/icons-material';
 
-const StatusChangeDialog = ({
-  open,
-  onClose,
-  onConfirm,
-  currentStatus,
-  orderId,
-  userRole,
-  loading,
-  nextStatus
-}) => {
+const StatusChangeDialog = ({ open, onClose, onConfirm, currentStatus, orderId, userRole, loading, nextStatus }) => {
   const getStatusInfo = () => {
     switch (nextStatus) {
       case 'approved':
@@ -67,13 +44,13 @@ const StatusChangeDialog = ({
           <Typography variant="h6">{statusInfo.title}</Typography>
         </Box>
       </DialogTitle>
-      
+
       <DialogContent>
         <Box sx={{ mt: 1 }}>
           <Typography variant="body1" gutterBottom>
             {statusInfo.message}
           </Typography>
-          
+
           <Alert severity="info" sx={{ mt: 2 }}>
             <Typography variant="body2">
               <strong>Order ID:</strong> {orderId?.slice(-8)}
@@ -90,7 +67,7 @@ const StatusChangeDialog = ({
           </Alert>
         </Box>
       </DialogContent>
-      
+
       <DialogActions>
         <Button onClick={onClose} disabled={loading}>
           Cancel
@@ -109,4 +86,4 @@ const StatusChangeDialog = ({
   );
 };
 
-export default StatusChangeDialog; 
+export default StatusChangeDialog;

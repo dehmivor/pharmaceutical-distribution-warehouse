@@ -36,5 +36,5 @@ module.exports = {
   Supplier,
   Retailer,
   Contract,
-  ExportOrder
+  ExportOrder,
 };

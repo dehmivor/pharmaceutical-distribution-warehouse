@@ -18,18 +18,18 @@ import DynamicIcon from '@/components/DynamicIcon';
 
 /***************************  RESPONSIVE DRAWER - ITEM  ***************************/
 
-export default function NavItem({ item, level = 0 }) {
+export default function NavItem({ item, level = 0, pathname }) {
+  const isActive = pathname.startsWith(item.url);
   const theme = useTheme();
   const { menuMaster } = useGetMenuMaster();
   const openItem = menuMaster.openedItem;
 
   const downMD = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Active menu item on page load
-  const pathname = usePathname();
-
   useEffect(() => {
-    if (pathname === item.url) handlerActiveItem(item.id);
+    if (pathname.startsWith(item.url)) {
+      handlerActiveItem(item.id);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
@@ -45,7 +45,7 @@ export default function NavItem({ item, level = 0 }) {
       component={Link}
       href={item.url}
       {...(item?.target && { target: '_blank' })}
-      selected={openItem === item.id}
+      selected={isActive}
       disabled={item.disabled}
       onClick={itemHandler}
       sx={{

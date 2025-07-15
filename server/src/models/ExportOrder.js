@@ -2,37 +2,35 @@ const mongoose = require('mongoose');
 const { exportOrderDetailsSchema } = require('./subSchemas');
 const { EXPORT_ORDER_STATUSES } = require('../utils/constants');
 
-const exportOrderSchema = new mongoose.Schema(
-  {
-    contract_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Contract',
-      required: [true, 'Contract ID is required'],
+const exportOrderSchema = new mongoose.Schema({
+  contract_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Contract',
+    required: [true, 'Contract ID is required'],
+  },
+  warehouse_manager_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  status: {
+    type: String,
+    required: [true, 'Status is required'],
+    enum: {
+      values: Object.values(EXPORT_ORDER_STATUSES),
+      message: `Status must be one of: ${Object.values(EXPORT_ORDER_STATUSES).join(', ')}`,
     },
-    warehouse_manager_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
-    status: {
-      type: String,
-      required: [true, 'Status is required'],
-      enum: {
-        values: Object.values(EXPORT_ORDER_STATUSES),
-        message: `Status must be one of: ${Object.values(EXPORT_ORDER_STATUSES).join(', ')}`,
-      },
-      default: EXPORT_ORDER_STATUSES.DRAFT,
-    },
-    created_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'Created by is required'],
-    },
-    approval_by: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    },
-    details: [exportOrderDetailsSchema]
-  }
-);
+    default: EXPORT_ORDER_STATUSES.DRAFT,
+  },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Created by is required'],
+  },
+  approval_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  details: [exportOrderDetailsSchema],
+});
 
 module.exports = mongoose.model('ExportOrder', exportOrderSchema);

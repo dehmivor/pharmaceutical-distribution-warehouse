@@ -1,5 +1,10 @@
 const { check, body } = require('express-validator');
-const { CONTRACT_STATUSES, PARTNER_TYPES, ANNEX_ACTIONS, ANNEX_STATUSES } = require('../utils/constants');
+const {
+  CONTRACT_STATUSES,
+  PARTNER_TYPES,
+  ANNEX_ACTIONS,
+  ANNEX_STATUSES,
+} = require('../utils/constants');
 
 // Reusable validation helpers
 const isMongoId = (field) => check(field).isMongoId().withMessage(`Invalid ${field} ID`);
@@ -377,17 +382,27 @@ const principalContractValidator = {
       .isIn(Object.values(ANNEX_ACTIONS))
       .withMessage(`Action must be one of: ${Object.values(ANNEX_ACTIONS).join(', ')}`),
     check('items')
-      .if((value, { req }) => [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action))
+      .if((value, { req }) =>
+        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
+          req.body.action,
+        ),
+      )
       .isArray({ min: 1 })
       .withMessage('Items must be a non-empty array for add, remove, or update_price actions'),
     check('items.*.medicine_id')
-      .if((value, { req }) => [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action))
+      .if((value, { req }) =>
+        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
+          req.body.action,
+        ),
+      )
       .exists()
       .withMessage('Medicine ID is required')
       .isMongoId()
       .withMessage('Invalid medicine ID'),
     check('items.*.unit_price')
-      .if((value, { req }) => [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action))
+      .if((value, { req }) =>
+        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action),
+      )
       .exists()
       .withMessage('Unit price is required for add or update_price actions')
       .isFloat({ min: 0 })
@@ -419,17 +434,27 @@ const principalContractValidator = {
       .isIn(Object.values(ANNEX_ACTIONS))
       .withMessage(`Action must be one of: ${Object.values(ANNEX_ACTIONS).join(', ')}`),
     check('items')
-      .if((value, { req }) => [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action))
+      .if((value, { req }) =>
+        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
+          req.body.action,
+        ),
+      )
       .isArray({ min: 1 })
       .withMessage('Items must be a non-empty array for add, remove, or update_price actions'),
     check('items.*.medicine_id')
-      .if((value, { req }) => [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action))
+      .if((value, { req }) =>
+        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
+          req.body.action,
+        ),
+      )
       .exists()
       .withMessage('Medicine ID is required')
       .isMongoId()
       .withMessage('Invalid medicine ID'),
     check('items.*.unit_price')
-      .if((value, { req }) => [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action))
+      .if((value, { req }) =>
+        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action),
+      )
       .exists()
       .withMessage('Unit price is required for add or update_price actions')
       .isFloat({ min: 0 })

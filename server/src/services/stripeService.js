@@ -1,13 +1,68 @@
 const Stripe = require('stripe');
-const stripe = new Stripe(process.env.STRIPE_API_KEY);
+const stripe = new Stripe(process.env.STRIPE_API_KEY, { apiVersion: '2022-11-15' });
 
-async function createPaymentIntent(amount, currency) {
-  // amount tính bằng đơn vị nhỏ nhất (VND: 1000 = 1k VND)
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount,
-    currency,
+async function createCheckoutSession({
+  billId,
+  amount,
+  currency = 'vnd',
+  successUrl,
+  cancelUrl,
+  paymentType,
+}) {
+  if (!billId || !amount) {
+    throw new Error('Missing billId or amount');
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price_data: {
+          currency,
+          product_data: {
+            name: `Thanh toán công nợ (${paymentType === 'import' ? 'Nhập' : 'Xuất'}) - Phiếu ${billId}`,
+          },
+          unit_amount: amount, // Số tiền (đơn vị nhỏ nhất)
+        },
+        quantity: 1,
+      },
+    ],
+    mode: 'payment',
+    success_url: 'http://localhost:3000/success',
+    cancel_url: 'http://localhost:3000/not-found',
+    metadata: {
+      billId,
+      paymentType,
+    },
   });
-  return paymentIntent.client_secret;
+
+  return session.url; // trả về url checkout để redirect client
 }
 
-module.exports = { createPaymentIntent };
+async function createPaymentImport(billId, amount, successUrl, cancelUrl) {
+  return createCheckoutSession({
+    billId,
+    amount,
+    currency: 'vnd',
+    successUrl,
+    cancelUrl,
+    paymentType: 'import',
+  });
+}
+
+async function createPaymentExport(billId, amount, successUrl, cancelUrl) {
+  return createCheckoutSession({
+    billId,
+    amount,
+    currency: 'vnd',
+    successUrl,
+    cancelUrl,
+    paymentType: 'export',
+  });
+}
+
+module.exports = {
+  createCheckoutSession,
+  createPaymentExport,
+  createPaymentImport,
+};

@@ -9,7 +9,7 @@ const packageService = {
   getAllPackages: async (filters = {}) => {
     try {
       const { page = 1, limit = 10, status, location_id } = filters;
-      
+
       // Build query
       const query = {};
       if (status) query.status = status;
@@ -84,7 +84,7 @@ const packageService = {
       };
     } catch (error) {
       console.error('❌ Get package by ID service error:', error);
-      
+
       if (error.name === 'CastError') {
         return {
           success: false,
@@ -139,7 +139,7 @@ const packageService = {
       };
     } catch (error) {
       console.error('❌ Create package service error:', error);
-      
+
       if (error.name === 'ValidationError') {
         const messages = Object.values(error.errors).map((err) => err.message);
         return {
@@ -217,11 +217,7 @@ const packageService = {
       const oldLocationId = pkg.location_id;
 
       // Update package location
-      await Package.findByIdAndUpdate(
-        packageId,
-        { location_id: newLocationId },
-        { session }
-      );
+      await Package.findByIdAndUpdate(packageId, { location_id: newLocationId }, { session });
 
       // Update inventory - remove from old location if it exists
       if (oldLocationId) {
@@ -241,7 +237,7 @@ const packageService = {
             await Inventory.findOneAndUpdate(
               { batch_id: pkg.batch_id, location_id: oldLocationId },
               { $set: { quantity: updatedQuantity } },
-              { session }
+              { session },
             );
           }
         }
@@ -257,7 +253,7 @@ const packageService = {
         await Inventory.findOneAndUpdate(
           { batch_id: pkg.batch_id, location_id: newLocationId },
           { $inc: { quantity: pkg.quantity } },
-          { session }
+          { session },
         );
       } else {
         // Get batch info and validate
@@ -270,20 +266,21 @@ const packageService = {
           };
         }
 
-        await Inventory.create([{
-          medicine_id: batch.medicine_id,
-          batch_id: pkg.batch_id,
-          location_id: newLocationId,
-          quantity: pkg.quantity,
-        }], { session });
+        await Inventory.create(
+          [
+            {
+              medicine_id: batch.medicine_id,
+              batch_id: pkg.batch_id,
+              location_id: newLocationId,
+              quantity: pkg.quantity,
+            },
+          ],
+          { session },
+        );
       }
 
       // Update location's updated_by
-      await Location.findByIdAndUpdate(
-        newLocationId,
-        { updated_by: updatedBy },
-        { session }
-      );
+      await Location.findByIdAndUpdate(newLocationId, { updated_by: updatedBy }, { session });
 
       await session.commitTransaction();
 
@@ -431,7 +428,7 @@ const packageService = {
             model: 'Area',
           },
         })
-        .populate('batch_id')
+        .populate('batch_id');
 
       return {
         success: true,
@@ -452,7 +449,7 @@ const packageService = {
         return { success: false, message: 'packageId là bắt buộc' };
       }
       await Package.findByIdAndUpdate(packageId, {
-        $unset: { location_id: '' }
+        $unset: { location_id: '' },
       });
       return { success: true };
     } catch (err) {
@@ -460,7 +457,6 @@ const packageService = {
       return { success: false, message: 'Lỗi server khi xóa location' };
     }
   },
-
 };
 
-module.exports = packageService; 
+module.exports = packageService;

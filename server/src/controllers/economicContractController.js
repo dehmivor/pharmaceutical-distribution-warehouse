@@ -8,7 +8,15 @@ const getAllEconomicContracts = asyncHandler(async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { page = 1, limit = 10, created_by, partner_id, partner_type, status, contract_code } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    created_by,
+    partner_id,
+    partner_type,
+    status,
+    contract_code,
+  } = req.query;
 
   const filters = {
     page: parseInt(page),
@@ -26,7 +34,6 @@ const getAllEconomicContracts = asyncHandler(async (req, res) => {
     data: contracts,
   });
 });
-
 
 // GET /economic-contracts/detail/:id
 const getEconomicContractById = asyncHandler(async (req, res) => {
@@ -58,24 +65,24 @@ const createEconomicContract = asyncHandler(async (req, res) => {
 
 // GET /economic-contracts/filter-options
 const getFilterOptions = async (req, res) => {
-    try {
-      const options = {
-        status: Object.values(CONTRACT_STATUSES),
-        partner_type: Object.values(PARTNER_TYPES),
-      };
+  try {
+    const options = {
+      status: Object.values(CONTRACT_STATUSES),
+      partner_type: Object.values(PARTNER_TYPES),
+    };
 
-      res.status(200).json({
-        success: true,
-        message: 'Lấy tùy chọn bộ lọc thành công',
-        data: options,
-      });
-    } catch (error) {
-      console.error('Get filter options error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Lỗi server khi lấy tùy chọn bộ lọc',
-      });
-    }
+    res.status(200).json({
+      success: true,
+      message: 'Lấy tùy chọn bộ lọc thành công',
+      data: options,
+    });
+  } catch (error) {
+    console.error('Get filter options error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi server khi lấy tùy chọn bộ lọc',
+    });
+  }
 };
 
 // DELETE /economic-contracts/:id
@@ -87,10 +94,17 @@ const deleteEconomicContract = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'Contract not found' });
   }
   if (contract.created_by._id.toString() !== req.user.userId) {
-    return res.status(403).json({ success: false, message: 'You do not have permission to delete this contract' });
+    return res
+      .status(403)
+      .json({ success: false, message: 'You do not have permission to delete this contract' });
   }
-  if (contract.status !== CONTRACT_STATUSES.DRAFT && contract.status !== CONTRACT_STATUSES.REJECTED) {
-    return res.status(400).json({ success: false, message: 'Only draft and rejected contracts can be deleted' });
+  if (
+    contract.status !== CONTRACT_STATUSES.DRAFT &&
+    contract.status !== CONTRACT_STATUSES.REJECTED
+  ) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'Only draft and rejected contracts can be deleted' });
   }
 
   const result = await economicContractService.deleteEconomicContract(id);
@@ -110,10 +124,17 @@ const updateEconomicContract = asyncHandler(async (req, res) => {
   }
 
   if (contract.created_by._id.toString() !== req.user.userId) {
-    return res.status(403).json({ success: false, message: 'You do not have permission to update this contract' });
+    return res
+      .status(403)
+      .json({ success: false, message: 'You do not have permission to update this contract' });
   }
-  if (contract.status !== CONTRACT_STATUSES.DRAFT && contract.status !== CONTRACT_STATUSES.REJECTED) {
-    return res.status(400).json({ success: false, message: 'Only draft and rejected contracts can be updated' });
+  if (
+    contract.status !== CONTRACT_STATUSES.DRAFT &&
+    contract.status !== CONTRACT_STATUSES.REJECTED
+  ) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'Only draft and rejected contracts can be updated' });
   }
 
   const updatedContract = await economicContractService.updateEconomicContract(id, req.body);
@@ -121,7 +142,6 @@ const updateEconomicContract = asyncHandler(async (req, res) => {
 });
 
 const updateContractStatus = asyncHandler(async (req, res) => {
-
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
