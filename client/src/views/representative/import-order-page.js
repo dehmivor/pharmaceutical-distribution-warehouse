@@ -92,7 +92,7 @@ function ImportOrderPage() {
 
   const fetchSupplierContracts = async () => {
     try {
-     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const response = await axios.get(`${backendUrl}/api/supplier-contracts`, {
         headers: getAuthHeaders()
       });
@@ -263,9 +263,7 @@ function ImportOrderPage() {
       // Validate: số lượng nhập không vượt quá max_quantity hoặc 1000
       const maxQ = contractItem?.max_quantity || 1000;
       if (detail.quantity > maxQ) {
-        setError(
-          `Số lượng nhập cho thuốc "${contractItem?.medicine_id?.medicine_name || ''}" không được vượt quá ${maxQ}`
-        );
+        setError(`Số lượng nhập cho thuốc "${contractItem?.medicine_id?.medicine_name || ''}" không được vượt quá ${maxQ}`);
         setFormLoading(false);
         return;
       }

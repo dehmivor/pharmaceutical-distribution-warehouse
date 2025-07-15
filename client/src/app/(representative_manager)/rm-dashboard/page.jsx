@@ -8,4 +8,4 @@ const RepresentativeManagerDashboard = dynamic(() => import('@/views/representat
 
 export default function DashboardPage() {
   return <RepresentativeManagerDashboard />;
-} 
+}

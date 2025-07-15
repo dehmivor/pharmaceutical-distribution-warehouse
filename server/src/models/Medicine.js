@@ -46,7 +46,7 @@ const medicineSchema = new mongoose.Schema({
       message: `Status must be one of: ${Object.values(MEDICINE_STATUSES).join(', ')}`,
     },
     default: MEDICINE_STATUSES.ACTIVE,
-  }
+  },
 });
 
 // Thêm index cho các field thường được query

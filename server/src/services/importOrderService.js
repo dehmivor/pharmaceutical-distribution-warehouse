@@ -11,12 +11,12 @@ const createImportOrder = async (orderData, orderDetails, userContext = null) =>
     };
 
     const newOrder = new ImportOrder(newOrderData);
-    
+
     // Truyền user context vào model để validation
     if (userContext) {
       newOrder._userContext = userContext;
     }
-    
+
     const savedOrder = await newOrder.save();
 
     return await ImportOrder.findById(savedOrder._id)
@@ -34,41 +34,51 @@ const createImportOrder = async (orderData, orderDetails, userContext = null) =>
 const getImportOrders = async (query = {}, page = 1, limit = 10) => {
   try {
     const skip = (page - 1) * limit;
-    
+
     // Xử lý search query
     let searchQuery = { ...query };
     if (query.warehouse_manager_id) {
-      searchQuery.warehouse_manager_id = { $exists: true, $ne: null, $eq: query.warehouse_manager_id };
+      searchQuery.warehouse_manager_id = {
+        $exists: true,
+        $ne: null,
+        $eq: query.warehouse_manager_id,
+      };
     }
     if (query.$or) {
       // Nếu có search, cần populate trước khi search
       const orders = await ImportOrder.find({})
-        .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+        .populate({
+          path: 'supplier_contract_id',
+          populate: { path: 'supplier_id', select: 'name' },
+        })
         .populate('warehouse_manager_id', 'name email role')
         .populate('created_by', ' email role')
         .populate('approval_by', 'name email role')
         .populate('details.medicine_id', 'medicine_name license_code');
 
       // Filter theo search
-      const filteredOrders = orders.filter(order => {
-        return query.$or.some(condition => {
+      const filteredOrders = orders.filter((order) => {
+        return query.$or.some((condition) => {
           if (condition._id) {
             return order._id.toString().toLowerCase().includes(condition._id.$regex.toLowerCase());
           }
           if (condition['supplier_contract_id.contract_code']) {
-            return order.supplier_contract_id?.contract_code?.toLowerCase().includes(condition['supplier_contract_id.contract_code'].$regex.toLowerCase());
+            return order.supplier_contract_id?.contract_code
+              ?.toLowerCase()
+              .includes(condition['supplier_contract_id.contract_code'].$regex.toLowerCase());
           }
           return false;
         });
       });
 
       // Apply other filters
-      const finalFilteredOrders = filteredOrders.filter(order => {
+      const finalFilteredOrders = filteredOrders.filter((order) => {
         if (query.status && order.status !== query.status) return false;
         if (
           query.warehouse_manager_id &&
           getManagerId(order.warehouse_manager_id) !== query.warehouse_manager_id.toString()
-        ) return false;
+        )
+          return false;
         return true;
       });
 
@@ -155,7 +165,7 @@ const updateImportOrder = async (orderId, updateData, userContext = null) => {
     }
 
     // Cập nhật từng field để trigger validation
-    Object.keys(updateData).forEach(key => {
+    Object.keys(updateData).forEach((key) => {
       order[key] = updateData[key];
     });
 
@@ -400,7 +410,12 @@ const updateOrderStatus = async (orderId, status, approvalBy = null, bypassValid
 };
 
 // Get import orders by warehouse manager
-const getImportOrdersByWarehouseManager = async (warehouseManagerId, query = {}, page = 1, limit = 10) => {
+const getImportOrdersByWarehouseManager = async (
+  warehouseManagerId,
+  query = {},
+  page = 1,
+  limit = 10,
+) => {
   try {
     const searchQuery = { ...query, warehouse_manager_id: warehouseManagerId };
     return await getImportOrders(searchQuery, page, limit);
@@ -524,7 +539,7 @@ const assignWarehouseManager = async (orderId, warehouseManagerId) => {
 
   // Gửi notification cho tất cả warehouse
   const warehouses = await User.find({ role: USER_ROLES.WAREHOUSE, status: 'active' });
-  const notifications = warehouses.map(wh => ({
+  const notifications = warehouses.map((wh) => ({
     recipient_id: wh._id,
     sender_id: user._id, // warehouse manager vừa được gán
     title: 'Phiếu nhập đã được giao cho warehouse manager',

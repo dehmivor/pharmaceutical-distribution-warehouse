@@ -2,4 +2,4 @@ import RepresentativeManagerImportOrders from '@/views/representative_manager/ma
 
 export default function ImportOrdersApprovalPage() {
   return <RepresentativeManagerImportOrders />;
-} 
+}
