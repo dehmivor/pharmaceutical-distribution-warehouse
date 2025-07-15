@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Typography,
+  Typography
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -105,43 +105,39 @@ function DebtPage() {
   };
 
   // Hàm xử lý thanh toán Stripe
- const handleStripePayment = async (type, bill) => {
-  setLoadingPayment(true);
-  try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || '';
+  const handleStripePayment = async (type, bill) => {
+    setLoadingPayment(true);
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || '';
 
-    const endpoint =
-      type === 'chi'
-        ? `/api/stripe/create-payment-import/${bill._id}`
-        : `/api/stripe/create-payment-export/${bill._id}`;
+      const endpoint = type === 'chi' ? `/api/stripe/create-payment-import/${bill._id}` : `/api/stripe/create-payment-export/${bill._id}`;
 
-    const amount = Math.round(calcAmount(bill.details));
+      const amount = Math.round(calcAmount(bill.details));
 
-    const successUrl = window.location.origin + '/payment-success';
-    const cancelUrl = window.location.origin + '/payment-cancel';
+      const successUrl = window.location.origin + '/payment-success';
+      const cancelUrl = window.location.origin + '/payment-cancel';
 
-    // PHẢI gán kết quả trả về cho biến response
-    const response = await axios.post(`${backendUrl}${endpoint}`, {
-      amount,
-      successUrl,
-      cancelUrl,
-    });
+      // PHẢI gán kết quả trả về cho biến response
+      const response = await axios.post(`${backendUrl}${endpoint}`, {
+        amount,
+        successUrl,
+        cancelUrl
+      });
 
-    const { url } = response.data; // Lấy url từ response
+      const { url } = response.data; // Lấy url từ response
 
-    if (url) {
-      window.location.href = url;
-    } else {
-      alert('Không thể tạo phiên thanh toán Stripe');
+      if (url) {
+        window.location.href = url;
+      } else {
+        alert('Không thể tạo phiên thanh toán Stripe');
+      }
+    } catch (error) {
+      console.error('Lỗi gọi Stripe:', error);
+      alert('Có lỗi khi kết nối thanh toán. Vui lòng thử lại sau.');
+    } finally {
+      setLoadingPayment(false);
     }
-  } catch (error) {
-    console.error('Lỗi gọi Stripe:', error);
-    alert('Có lỗi khi kết nối thanh toán. Vui lòng thử lại sau.');
-  } finally {
-    setLoadingPayment(false);
-  }
-};
-
+  };
 
   if (loadingData) return <Typography>Đang tải dữ liệu...</Typography>;
   if (error) return <Typography color="error">Lỗi: {error}</Typography>;
@@ -207,8 +203,8 @@ function DebtPage() {
                         ? bill.import_order_id._id
                         : 'N/A'
                       : bill.export_order_id
-                      ? bill.export_order_id._id
-                      : 'N/A'}
+                        ? bill.export_order_id._id
+                        : 'N/A'}
                   </TableCell>
 
                   <TableCell>{bill.voucher_code || 'N/A'}</TableCell>
@@ -262,8 +258,7 @@ function DebtPage() {
                 <strong>Loại phiếu:</strong> {detailData.type}
               </Typography>
               <Typography>
-                <strong>Ngày thanh toán:</strong>{' '}
-                {detailData.payment_date ? new Date(detailData.payment_date).toLocaleDateString() : 'N/A'}
+                <strong>Ngày thanh toán:</strong> {detailData.payment_date ? new Date(detailData.payment_date).toLocaleDateString() : 'N/A'}
               </Typography>
               <Typography>
                 <strong>Trạng thái:</strong> {detailData.status}

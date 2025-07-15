@@ -2,14 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import {
-  Box,
-  Button,
-  TextField,
-  Typography,
-  Stack,
-  MenuItem,
-} from '@mui/material';
+import { Box, Button, TextField, Typography, Stack, MenuItem } from '@mui/material';
 import axios from 'axios';
 
 function CreateBillWithExistId() {
@@ -31,7 +24,7 @@ function CreateBillWithExistId() {
     item: '',
     amount: 0,
     dueDate: '',
-    description: '',
+    description: ''
   });
 
   const [billType, setBillType] = useState('chi');
@@ -68,20 +61,16 @@ function CreateBillWithExistId() {
 
         let supplierOrCustomer = '';
         if (data.type === 'IMPORT' && data.import_order_id) {
-          supplierOrCustomer =
-            data.import_order_id.supplier_contract_id?.contract_name || 'N/A nhà cung cấp';
+          supplierOrCustomer = data.import_order_id.supplier_contract_id?.contract_name || 'N/A nhà cung cấp';
           setBillType('chi');
         } else if (data.type === 'EXPORT' && data.export_order_id) {
-          supplierOrCustomer =
-            data.export_order_id.contract_id?.contract_name || 'N/A khách hàng';
+          supplierOrCustomer = data.export_order_id.contract_id?.contract_name || 'N/A khách hàng';
           setBillType('thu');
         }
 
         let itemList = [];
         if (data.import_order_id?.details?.length) {
-          itemList = data.import_order_id.details.map(
-            (d) => d.medicine_id?.medicine_name || ''
-          );
+          itemList = data.import_order_id.details.map((d) => d.medicine_id?.medicine_name || '');
         } else if (data.details?.length) {
           itemList = data.details.map((d) => d.medicine_lisence_code || '');
         }
@@ -100,7 +89,7 @@ function CreateBillWithExistId() {
           item,
           amount,
           dueDate: payment_date,
-          description: data.description || '',
+          description: data.description || ''
         });
 
         setLoading(false);
@@ -118,9 +107,8 @@ function CreateBillWithExistId() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
   };
 
   if (loading) return <Typography>Đang tải dữ liệu phiếu...</Typography>;
@@ -136,7 +124,7 @@ function CreateBillWithExistId() {
         mt: 4,
         backgroundColor: '#fafafa',
         borderRadius: 2,
-        boxShadow: 1,
+        boxShadow: 1
       }}
     >
       <Typography variant="h5" mb={3}>
@@ -145,30 +133,11 @@ function CreateBillWithExistId() {
 
       <form onSubmit={handleSubmit}>
         <Stack spacing={2}>
-          <TextField
-            label="Mã phiếu"
-            name="voucher_code"
-            value={formData.voucher_code}
-            onChange={handleChange}
-            fullWidth
-            disabled
-          />
+          <TextField label="Mã phiếu" name="voucher_code" value={formData.voucher_code} onChange={handleChange} fullWidth disabled />
 
-          <TextField
-            label="Loại phiếu"
-            name="type"
-            value={formData.type}
-            fullWidth
-            disabled
-          />
+          <TextField label="Loại phiếu" name="type" value={formData.type} fullWidth disabled />
 
-          <TextField
-            label="Trạng thái"
-            name="status"
-            value={formData.status}
-            fullWidth
-            disabled
-          />
+          <TextField label="Trạng thái" name="status" value={formData.status} fullWidth disabled />
 
           <TextField
             label={billType === 'chi' ? 'Nhà cung cấp' : 'Khách hàng'}
@@ -179,14 +148,7 @@ function CreateBillWithExistId() {
             fullWidth
           />
 
-          <TextField
-            label="Mặt hàng"
-            name="item"
-            value={formData.item}
-            onChange={handleChange}
-            required
-            fullWidth
-          />
+          <TextField label="Mặt hàng" name="item" value={formData.item} onChange={handleChange} required fullWidth />
 
           <TextField
             type="number"
@@ -210,15 +172,7 @@ function CreateBillWithExistId() {
             fullWidth
           />
 
-          <TextField
-            label="Mô tả"
-            name="description"
-            value={formData.description}
-            multiline
-            rows={3}
-            onChange={handleChange}
-            fullWidth
-          />
+          <TextField label="Mô tả" name="description" value={formData.description} multiline rows={3} onChange={handleChange} fullWidth />
 
           <Stack direction="row" spacing={2} justifyContent="flex-end" mt={2}>
             <Button variant="contained" type="submit">
