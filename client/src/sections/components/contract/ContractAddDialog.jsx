@@ -1,0 +1,1152 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+  Box,
+  Card,
+  CardContent,
+  Grid,
+  IconButton,
+  Tooltip,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Autocomplete,
+  FormHelperText,
+  Alert,
+  Chip,
+  Divider
+} from '@mui/material';
+import {
+  Close as CloseIcon,
+  ViewList as ViewIcon,
+  Description as ContractIcon,
+  LocalShipping as SupplierIcon,
+  Event as EventIcon,
+  Inventory as InventoryIcon,
+  Store as RetailerIcon,
+  Add as AddIcon,
+  Remove as RemoveIcon,
+  Business as BusinessIcon,
+  Description
+} from '@mui/icons-material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { vi } from 'date-fns/locale';
+import axios from 'axios';
+import useSWRMutation from 'swr/mutation';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
+
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true
+});
+
+const ANNEX_ACTIONS = {
+  ADD: 'add',
+  REMOVE: 'remove',
+  UPDATE_PRICE: 'update_price',
+  UPDATE_END_DATE: 'update_end_date',
+};
+
+const ANNEX_ACTION_LABELS = {
+  [ANNEX_ACTIONS.ADD]: 'Thêm thuốc mới',
+  [ANNEX_ACTIONS.REMOVE]: 'Loại bỏ thuốc',
+  [ANNEX_ACTIONS.UPDATE_PRICE]: 'Cập nhật giá thuốc',
+  [ANNEX_ACTIONS.UPDATE_END_DATE]: 'Cập nhật ngày kết thúc hợp đồng',
+};
+
+const InfoField = ({ label, value, icon: Icon, onChange, disabled = false, error = false, helperText = '' }) => (
+  <Box>
+    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+      {Icon && <Icon sx={{ fontSize: 20, color: 'text.secondary' }} />}
+      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+        {label}
+      </Typography>
+    </Box>
+    <Box
+      sx={{
+        border: '1px solid #e0e0e0',
+        borderRadius: 1,
+        padding: '8px 12px',
+        backgroundColor: disabled ? '#f5f5f5' : '#fafafa',
+        minHeight: 40,
+        display: 'flex',
+        alignItems: 'center',
+        borderColor: error ? 'red' : '#e0e0e0',
+      }}
+    >
+      <TextField
+        fullWidth
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        variant="standard"
+        error={error}
+        sx={{
+          '& .MuiInputBase-input': {
+            color: disabled ? 'text.disabled' : 'text.primary',
+          },
+        }}
+      />
+    </Box>
+    {error && helperText && (
+      <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+        {helperText}
+      </Typography>
+    )}
+  </Box>
+);
+
+async function createContract(url, { arg: payload }) {
+  const response = await axiosInstance.post(url, payload, {
+    headers: getAuthHeaders()
+  });
+  return response.data;
+}
+
+// Helper function để validate số nguyên strict
+const isValidInteger = (value) => {
+  const trimmed = value.toString().trim();
+  if (!/^\d+$/.test(trimmed)) return false;
+  const parsed = Number.parseInt(trimmed, 10);
+  return !isNaN(parsed) && parsed > 0 && parsed.toString() === trimmed;
+};
+
+// Helper function để validate số thực strict
+const isValidFloat = (value) => {
+  const trimmed = value.toString().trim();
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) return false;
+  const parsed = Number.parseFloat(trimmed);
+  return !isNaN(parsed) && parsed >= 0;
+};
+
+const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers = [], medicines = [] }) => {
+  const [formData, setFormData] = useState({
+    contract_code: '',
+    contract_type: 'economic',
+    partner_type: 'Supplier',
+    partner_id: '',
+    start_date: null,
+    end_date: null,
+    items: [{ medicine_id: '', quantity: '', unit_price: '' }],
+    annexes: []
+  });
+
+  const [errorValidate, setErrorValidate] = useState({});
+  const [errorApi, setErrorApi] = useState('');
+
+  const { trigger, isMutating } = useSWRMutation('/api/contract', createContract);
+
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        contract_code: '',
+        contract_type: 'economic',
+        partner_type: 'Supplier',
+        partner_id: '',
+        start_date: null,
+        end_date: null,
+        items: [{ medicine_id: '', quantity: '', unit_price: '' }],
+        annexes: []
+      });
+      setErrorValidate({});
+      setErrorApi('');
+    }
+  }, [open]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === 'partner_type' && { partner_id: '' }),
+      ...(name === 'contract_type' && { 
+        items: [{ medicine_id: '', quantity: '', unit_price: '' }],
+        annexes: []
+      })
+    }));
+    setErrorValidate((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const handleDateChange = (field) => (date) => {
+    setFormData((prev) => ({ ...prev, [field]: date }));
+    setErrorValidate((prev) => ({ ...prev, [field]: '' }));
+  };
+
+  const handleItemChange = (index, field, value) => {
+    const newItems = [...formData.items];
+    newItems[index][field] = value;
+    setFormData((prev) => ({ ...prev, items: newItems }));
+
+    setErrorValidate((prev) => {
+      const newErrors = { ...prev };
+      if (newErrors.items && Array.isArray(newErrors.items) && newErrors.items[index]) {
+        newErrors.items[index] = {
+          ...newErrors.items[index],
+          [field]: ''
+        };
+        if (Object.values(newErrors.items[index]).every((err) => !err)) {
+          newErrors.items[index] = null;
+        }
+      }
+      return newErrors;
+    });
+  };
+
+  const addItem = () => {
+    setFormData((prev) => ({
+      ...prev,
+      items: [...prev.items, { medicine_id: '', quantity: '', unit_price: '' }]
+    }));
+  };
+
+  const removeItem = (index) => {
+    if (formData.items.length > 1) {
+      const newItems = formData.items.filter((_, i) => i !== index);
+      setFormData((prev) => ({ ...prev, items: newItems }));
+
+      setErrorValidate((prev) => {
+        const newErrors = { ...prev };
+        if (newErrors.items && Array.isArray(newErrors.items)) {
+          newErrors.items = newErrors.items.filter((_, i) => i !== index);
+        }
+        return newErrors;
+      });
+    }
+  };
+
+  const addAnnex = () => {
+    setFormData((prev) => ({
+      ...prev,
+      annexes: [...(prev.annexes || []), { 
+        annex_code: '', 
+        action: '', 
+        description: '',
+        items: []
+      }]
+    }));
+  };
+
+  const removeAnnex = (index) => {
+    const newAnnexes = formData.annexes.filter((_, i) => i !== index);
+    setFormData((prev) => ({ ...prev, annexes: newAnnexes }));
+  };
+
+  const handleAnnexChange = (index, field, value) => {
+    const newAnnexes = [...formData.annexes];
+    newAnnexes[index] = { ...newAnnexes[index], [field]: value };
+    setFormData((prev) => ({ ...prev, annexes: newAnnexes }));
+  };
+
+  const addAnnexItem = (annexIndex) => {
+    const newAnnexes = [...formData.annexes];
+    newAnnexes[annexIndex].items = [...(newAnnexes[annexIndex].items || []), { 
+      medicine_id: '', 
+      unit_price: '' 
+    }];
+    setFormData((prev) => ({ ...prev, annexes: newAnnexes }));
+  };
+
+  const removeAnnexItem = (annexIndex, itemIndex) => {
+    const newAnnexes = [...formData.annexes];
+    newAnnexes[annexIndex].items = newAnnexes[annexIndex].items.filter((_, i) => i !== itemIndex);
+    setFormData((prev) => ({ ...prev, annexes: newAnnexes }));
+  };
+
+  const handleAnnexItemChange = (annexIndex, itemIndex, field, value) => {
+    const newAnnexes = [...formData.annexes];
+    newAnnexes[annexIndex].items[itemIndex] = { 
+      ...newAnnexes[annexIndex].items[itemIndex], 
+      [field]: value 
+    };
+    setFormData((prev) => ({ ...prev, annexes: newAnnexes }));
+  };
+
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.contract_code.trim()) {
+      errors.contract_code = 'Mã hợp đồng là bắt buộc';
+    }
+
+    if (!formData.partner_id) {
+      errors.partner_id = 'Vui lòng chọn đối tác';
+    }
+
+    if (!formData.start_date) {
+      errors.start_date = 'Ngày bắt đầu là bắt buộc';
+    }
+    if (!formData.end_date) {
+      errors.end_date = 'Ngày kết thúc là bắt buộc';
+    } else if (formData.start_date && formData.end_date && formData.end_date <= formData.start_date) {
+      errors.end_date = 'Ngày kết thúc phải sau ngày bắt đầu';
+    }
+
+    const itemErrors = [];
+    formData.items.forEach((item, index) => {
+      const itemError = {};
+
+      if (!item.medicine_id) {
+        itemError.medicine_id = 'Vui lòng chọn thuốc';
+      }
+
+      if (formData.contract_type === 'economic') {
+        if (!item.quantity) {
+          itemError.quantity = 'Số lượng là bắt buộc cho hợp đồng kinh tế';
+        } else if (!isValidInteger(item.quantity)) {
+          itemError.quantity = 'Số lượng phải là số nguyên dương';
+        }
+      } else if (formData.contract_type === 'principal') {
+        if (item.quantity) {
+          itemError.quantity = 'Số lượng không được phép cho hợp đồng nguyên tắc';
+        }
+      }
+
+      if (!item.unit_price) {
+        itemError.unit_price = 'Đơn giá là bắt buộc';
+      } else if (!isValidFloat(item.unit_price)) {
+        itemError.unit_price = 'Đơn giá phải là số không âm';
+      }
+
+      if (Object.keys(itemError).length > 0) {
+        itemErrors[index] = itemError;
+      }
+    });
+
+    if (itemErrors.length > 0) {
+      errors.items = itemErrors;
+    }
+
+    setErrorValidate(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      const isEconomic = formData.contract_type === 'economic';
+
+      const payload = {
+        ...formData,
+        start_date: formData.start_date.toISOString(),
+        end_date: formData.end_date.toISOString(),
+        items: formData.items.map(item => ({
+          medicine_id: item.medicine_id,
+          ...(isEconomic && { quantity: parseInt(item.quantity) }),
+          unit_price: parseFloat(item.unit_price)
+        })),
+        ...(formData.contract_type === 'principal' && {
+          annexes: formData.annexes.map((annex) => ({
+            ...annex,
+            items: annex.action === ANNEX_ACTIONS.UPDATE_END_DATE
+              ? []
+              : annex.items.map((item) => ({
+                  medicine_id: item.medicine_id,
+                  unit_price: parseFloat(item.unit_price),
+                })),
+          })),
+        }),
+      };
+
+      const result = await trigger(payload);
+      if (result.success) {
+        onSuccess();
+        onClose();
+      }
+    } catch (error) {
+      setErrorApi(error.response?.data?.message || 'Có lỗi xảy ra khi tạo hợp đồng');
+    }
+  };
+
+  const getPartners = () => {
+    return formData.partner_type === 'Supplier' ? suppliers : retailers;
+  };
+
+  const getContractTypeLabel = (type) => {
+    return type === 'economic' ? 'Kinh tế' : 'Nguyên tắc';
+  };
+
+  const isEconomic = formData.contract_type === 'economic';
+  const isPrincipal = formData.contract_type === 'principal';
+
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="lg" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          maxHeight: '90vh'
+        }
+      }}
+    >
+      <DialogTitle sx={{ 
+        background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
+        color: 'white',
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <ContractIcon />
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Thêm Hợp Đồng Mới
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              Tạo hợp đồng mới với đối tác
+            </Typography>
+          </Box>
+        </Box>
+        <Tooltip title="Đóng">
+          <IconButton onClick={onClose} sx={{ color: 'white' }}>
+            <CloseIcon />
+          </IconButton>
+        </Tooltip>
+      </DialogTitle>
+
+      <DialogContent sx={{ p: 3 }}>
+        {errorApi && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {errorApi}
+          </Alert>
+        )}
+
+        {/* Card 1: Thông tin chính */}
+        <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
+          <CardContent>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ContractIcon color="primary" /> Thông Tin Chung
+            </Typography>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={4}>
+                <InfoField
+                  label="Mã hợp đồng"
+                  value={formData.contract_code}
+                  onChange={(e) => handleChange({ target: { name: 'contract_code', value: e.target.value } })}
+                  icon={ContractIcon}
+                  error={!!errorValidate.contract_code}
+                  helperText={errorValidate.contract_code}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                    <BusinessIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                      Loại hợp đồng
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      border: '1px solid #e0e0e0',
+                      borderRadius: 1,
+                      padding: '8px 12px',
+                      backgroundColor: '#fafafa',
+                      minHeight: 40,
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <FormControl fullWidth>
+                      <Select
+                        name="contract_type"
+                        value={formData.contract_type}
+                        onChange={handleChange}
+                        variant="standard"
+                        sx={{
+                          '& .MuiSelect-select': { padding: 0 },
+                          '& .MuiInputBase-input': { padding: 0 },
+                          '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                          '& .MuiInput-underline:before': { borderBottom: 'none' },
+                          '& .MuiInput-underline:after': { borderBottom: 'none' },
+                          '& .MuiInput-underline:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
+                        }}
+                      >
+                        <MenuItem value="economic">
+                          <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                            Hợp đồng Kinh tế
+                          </Typography>
+                        </MenuItem>
+                        <MenuItem value="principal">
+                          <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                            Hợp đồng Nguyên tắc
+                          </Typography>
+                        </MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Box>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} md={4}>
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                    <SupplierIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                      Loại đối tác
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      border: '1px solid #e0e0e0',
+                      borderRadius: 1,
+                      padding: '8px 12px',
+                      backgroundColor: '#fafafa',
+                      minHeight: 40,
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: '100%',
+                      minWidth: 200,
+                    }}
+                  >
+                    <Autocomplete
+                      options={[
+                        { value: 'Supplier', label: 'Nhà cung cấp' },
+                        { value: 'Retailer', label: 'Nhà bán lẻ' },
+                      ]}
+                      getOptionLabel={(option) => option.label || ''}
+                      value={
+                        formData.partner_type
+                          ? [
+                              { value: 'Supplier', label: 'Nhà cung cấp' },
+                              { value: 'Retailer', label: 'Nhà bán lẻ' },
+                            ].find((opt) => opt.value === formData.partner_type)
+                          : { value: 'Supplier', label: 'Nhà cung cấp' }
+                      }
+                      onChange={(event, newValue) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          partner_type: newValue ? newValue.value : 'Supplier',
+                          partner_id: '',
+                        }));
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          variant="standard"
+                          placeholder="Chọn loại đối tác"
+                          InputProps={{
+                            ...params.InputProps,
+                            disableUnderline: true,
+                          }}
+                          sx={{ width: '100%' }}
+                        />
+                      )}
+                      sx={{ width: '100%' }}
+                    />
+                  </Box>
+                </Box>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                    {formData.partner_type === 'Supplier' ? (
+                      <SupplierIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    ) : (
+                      <RetailerIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    )}
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                      Đối tác
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      border: '1px solid #e0e0e0',
+                      borderRadius: 1,
+                      padding: '8px 12px',
+                      backgroundColor: '#fafafa',
+                      minHeight: 40,
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: '100%',
+                      minWidth: 250,
+                      borderColor: !!errorValidate.partner_id ? 'red' : '#e0e0e0',
+                    }}
+                  >
+                    <Autocomplete
+                      options={getPartners()}
+                      getOptionLabel={(option) => option.name || ''}
+                      value={getPartners().find(p => p._id === formData.partner_id) || null}
+                      onChange={(_, newValue) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          partner_id: newValue ? newValue._id : '',
+                        }));
+                        setErrorValidate((prev) => ({ ...prev, partner_id: '' }));
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          variant="standard"
+                          placeholder={formData.partner_type === 'Supplier' ? 'Chọn nhà cung cấp' : 'Chọn nhà bán lẻ'}
+                          error={!!errorValidate.partner_id}
+                          helperText={errorValidate.partner_id}
+                          InputProps={{
+                            ...params.InputProps,
+                            disableUnderline: true,
+                          }}
+                          sx={{ width: '100%' }}
+                        />
+                      )}
+                      filterOptions={(options, { inputValue }) =>
+                        options.filter((option) => option.name.toLowerCase().includes(inputValue.toLowerCase()))
+                      }
+                      sx={{ width: '100%' }}
+                    />
+                  </Box>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Card 2: Thời gian hiệu lực */}
+        <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
+          <CardContent>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <EventIcon color="success" /> Thời Gian Hiệu Lực
+            </Typography>
+            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth error={!!errorValidate.start_date}>
+                    <DatePicker
+                      label="Ngày bắt đầu"
+                      value={formData.start_date}
+                      onChange={handleDateChange('start_date')}
+                      format="dd/MM/yyyy"
+                      slotProps={{
+                        textField: {
+                          error: !!errorValidate.start_date,
+                          fullWidth: true,
+                        },
+                      }}
+                    />
+                    {errorValidate.start_date && (
+                      <FormHelperText sx={{ color: 'error.main' }}>{errorValidate.start_date}</FormHelperText>
+                    )}
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth error={!!errorValidate.end_date}>
+                    <DatePicker
+                      label="Ngày kết thúc"
+                      value={formData.end_date}
+                      onChange={handleDateChange('end_date')}
+                      format="dd/MM/yyyy"
+                      slotProps={{
+                        textField: {
+                          error: !!errorValidate.end_date,
+                          fullWidth: true,
+                        },
+                      }}
+                    />
+                    {errorValidate.end_date && (
+                      <FormHelperText sx={{ color: 'error.main' }}>{errorValidate.end_date}</FormHelperText>
+                    )}
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </LocalizationProvider>
+          </CardContent>
+        </Card>
+
+        {/* Card 3: Danh sách thuốc */}
+        <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <InventoryIcon color="secondary" /> Danh Sách Thuốc
+                <Chip 
+                  label={getContractTypeLabel(formData.contract_type)} 
+                  color={formData.contract_type === 'economic' ? 'primary' : 'secondary'}
+                  size="small"
+                />
+              </Typography>
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={addItem}
+                size="small"
+              >
+                Thêm thuốc
+              </Button>
+            </Box>
+
+            {formData.items.map((item, index) => (
+              <Box key={index} sx={{ mb: 3, p: 2, border: '1px dashed #ccc', borderRadius: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    Thuốc #{index + 1}
+                  </Typography>
+                  {formData.items.length > 1 && (
+                    <Button 
+                      size="small" 
+                      color="error" 
+                      onClick={() => removeItem(index)} 
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Xóa
+                    </Button>
+                  )}
+                </Box>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={isEconomic ? 3 : 6}>
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                        <InventoryIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                          Thuốc
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          border: '1px solid #e0e0e0',
+                          borderRadius: 1,
+                          padding: '8px 12px',
+                          backgroundColor: '#fafafa',
+                          minHeight: 40,
+                          display: 'flex',
+                          alignItems: 'center',
+                          width: '100%',
+                          minWidth: 200,
+                          borderColor:
+                            errorValidate.items &&
+                            Array.isArray(errorValidate.items) &&
+                            errorValidate.items[index]?.medicine_id
+                              ? 'red'
+                              : '#e0e0e0',
+                        }}
+                      >
+                        <Autocomplete
+                          options={medicines}
+                          getOptionLabel={(option) => `${option.license_code}`}
+                          value={medicines.find((m) => m._id === item.medicine_id) || null}
+                          onChange={(event, newValue) => {
+                            handleItemChange(index, 'medicine_id', newValue ? newValue._id : '');
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              variant="standard"
+                              placeholder="Chọn thuốc"
+                              error={
+                                !!(
+                                  errorValidate.items &&
+                                  Array.isArray(errorValidate.items) &&
+                                  errorValidate.items[index]?.medicine_id
+                                )
+                              }
+                              InputProps={{
+                                ...params.InputProps,
+                                disableUnderline: true,
+                              }}
+                              sx={{ width: '100%' }}
+                            />
+                          )}
+                          filterOptions={(options, { inputValue }) =>
+                            options.filter((option) =>
+                              `${option.license_code}`.toLowerCase().includes(inputValue.toLowerCase()),
+                            )
+                          }
+                          sx={{ width: '100%' }}
+                        />
+                      </Box>
+                      {errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.medicine_id && (
+                        <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                          {errorValidate.items[index].medicine_id}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Grid>
+
+                  {isEconomic && (
+                    <Grid item xs={12} sm={6} md={3}>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                            Số lượng
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            border: '1px solid #e0e0e0',
+                            borderRadius: 1,
+                            padding: '8px 12px',
+                            backgroundColor: '#fafafa',
+                            minHeight: 40,
+                            display: 'flex',
+                            alignItems: 'center',
+                            borderColor:
+                              errorValidate.items &&
+                              Array.isArray(errorValidate.items) &&
+                              errorValidate.items[index]?.quantity
+                                ? 'red'
+                                : '#e0e0e0',
+                          }}
+                        >
+                          <TextField
+                            fullWidth
+                            value={item.quantity}
+                            onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                            variant="standard"
+                            placeholder="Nhập số lượng"
+                            type="number"
+                            inputProps={{ min: 1 }}
+                            error={
+                              !!(
+                                errorValidate.items &&
+                                Array.isArray(errorValidate.items) &&
+                                errorValidate.items[index]?.quantity
+                              )
+                            }
+                            InputProps={{
+                              disableUnderline: true,
+                            }}
+                          />
+                        </Box>
+                        {errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.quantity && (
+                          <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                            {errorValidate.items[index].quantity}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Grid>
+                  )}
+
+                  <Grid item xs={12} sm={6} md={isEconomic ? 3 : 6}>
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                          Đơn giá (VNĐ)
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          border: '1px solid #e0e0e0',
+                          borderRadius: 1,
+                          padding: '8px 12px',
+                          backgroundColor: '#fafafa',
+                          minHeight: 40,
+                          display: 'flex',
+                          alignItems: 'center',
+                          borderColor:
+                            errorValidate.items &&
+                            Array.isArray(errorValidate.items) &&
+                            errorValidate.items[index]?.unit_price
+                              ? 'red'
+                              : '#e0e0e0',
+                        }}
+                      >
+                        <TextField
+                          fullWidth
+                          value={item.unit_price}
+                          onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
+                          variant="standard"
+                          placeholder="Nhập đơn giá"
+                          type="number"
+                          inputProps={{ min: 0, step: 0.01 }}
+                          error={
+                            !!(
+                              errorValidate.items &&
+                              Array.isArray(errorValidate.items) &&
+                              errorValidate.items[index]?.unit_price
+                            )
+                          }
+                          InputProps={{
+                            disableUnderline: true,
+                          }}
+                        />
+                      </Box>
+                      {errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.unit_price && (
+                        <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                          {errorValidate.items[index].unit_price}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Card 4: Phụ lục cho principal contract */}
+        {isPrincipal && (
+          <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Description color="secondary" /> Phụ Lục (Tùy chọn)
+                  <Chip 
+                    label="Nguyên tắc" 
+                    color="secondary"
+                    size="small"
+                  />
+                </Typography>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={addAnnex}
+                  size="small"
+                  color="secondary"
+                >
+                  Thêm phụ lục
+                </Button>
+              </Box>
+
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Phụ lục cho phép bạn thêm/bớt thuốc, cập nhật giá hoặc thời hạn hợp đồng sau khi hợp đồng được kích hoạt.
+              </Typography>
+
+              {formData.annexes && formData.annexes.map((annex, index) => (
+                <Box key={index} sx={{ mb: 3, p: 2, border: '1px dashed #ccc', borderRadius: 2, bgcolor: 'grey.50' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'secondary.main' }}>
+                      Phụ lục #{index + 1}
+                    </Typography>
+                    <Button 
+                      size="small" 
+                      color="error" 
+                      onClick={() => removeAnnex(index)} 
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Xóa
+                    </Button>
+                  </Box>
+
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                            Mã phụ lục
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            border: '1px solid #e0e0e0',
+                            borderRadius: 1,
+                            padding: '8px 12px',
+                            backgroundColor: '#fafafa',
+                            minHeight: 40,
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <TextField
+                            fullWidth
+                            value={annex.annex_code || ''}
+                            onChange={(e) => handleAnnexChange(index, 'annex_code', e.target.value)}
+                            variant="standard"
+                            placeholder="VD: PL001"
+                            InputProps={{
+                              disableUnderline: true,
+                            }}
+                          />
+                        </Box>
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                            Loại hành động
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            border: '1px solid #e0e0e0',
+                            borderRadius: 1,
+                            padding: '8px 12px',
+                            backgroundColor: '#fafafa',
+                            minHeight: 40,
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <FormControl fullWidth>
+                            <Select
+                              value={annex.action || ''}
+                              onChange={(e) => handleAnnexChange(index, 'action', e.target.value)}
+                              variant="standard"
+                              sx={{
+                                '& .MuiSelect-select': { padding: 0 },
+                                '& .MuiInputBase-input': { padding: 0 },
+                                '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                                '& .MuiInput-underline:before': { borderBottom: 'none' },
+                                '& .MuiInput-underline:after': { borderBottom: 'none' },
+                                '& .MuiInput-underline:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
+                              }}
+                            >
+                              <MenuItem value="add">Thêm thuốc mới</MenuItem>
+                              <MenuItem value="remove">Loại bỏ thuốc</MenuItem>
+                              <MenuItem value="update_price">Cập nhật giá thuốc</MenuItem>
+                              <MenuItem value="update_end_date">Cập nhật ngày kết thúc</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Box>
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12}>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                            Mô tả
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            border: '1px solid #e0e0e0',
+                            borderRadius: 1,
+                            padding: '8px 12px',
+                            backgroundColor: '#fafafa',
+                            minHeight: 40,
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <TextField
+                            fullWidth
+                            value={annex.description || ''}
+                            onChange={(e) => handleAnnexChange(index, 'description', e.target.value)}
+                            variant="standard"
+                            placeholder="Mô tả chi tiết về phụ lục này..."
+                            multiline
+                            rows={2}
+                            InputProps={{
+                              disableUnderline: true,
+                            }}
+                          />
+                        </Box>
+                      </Box>
+                    </Grid>
+
+                    {/* Items cho annex (chỉ hiển thị cho add, remove, update_price) */}
+                    {annex.action && annex.action !== 'update_end_date' && (
+                      <Grid item xs={12}>
+                        <Box sx={{ mt: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                              Danh sách thuốc
+                            </Typography>
+                            <Button
+                              variant="outlined"
+                              startIcon={<AddIcon />}
+                              onClick={() => addAnnexItem(index)}
+                              size="small"
+                              color="secondary"
+                            >
+                              Thêm thuốc
+                            </Button>
+                          </Box>
+
+                          {annex.items && annex.items.map((item, itemIndex) => (
+                            <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  Thuốc #{itemIndex + 1}
+                                </Typography>
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  onClick={() => removeAnnexItem(index, itemIndex)}
+                                  sx={{ textTransform: 'none' }}
+                                >
+                                  Xóa
+                                </Button>
+                              </Box>
+                              <Grid container spacing={2}>
+                                <Grid item xs={12} md={6}>
+                                  <Autocomplete
+                                    options={medicines}
+                                    getOptionLabel={(option) => `${option.license_code} - ${option.medicine_name}`}
+                                    value={medicines.find((m) => m._id === item.medicine_id) || null}
+                                    onChange={(event, newValue) => {
+                                      handleAnnexItemChange(index, itemIndex, 'medicine_id', newValue ? newValue._id : '');
+                                    }}
+                                    renderInput={(params) => (
+                                      <TextField
+                                        {...params}
+                                        label="Chọn thuốc"
+                                        fullWidth
+                                      />
+                                    )}
+                                  />
+                                </Grid>
+                                {(annex.action === 'add' || annex.action === 'update_price') && (
+                                  <Grid item xs={12} md={6}>
+                                    <TextField
+                                      fullWidth
+                                      label="Đơn giá (VNĐ)"
+                                      value={item.unit_price || ''}
+                                      onChange={(e) => handleAnnexItemChange(index, itemIndex, 'unit_price', e.target.value)}
+                                      type="number"
+                                      inputProps={{ min: 0, step: 0.01 }}
+                                    />
+                                  </Grid>
+                                )}
+                              </Grid>
+                            </Box>
+                          ))}
+                        </Box>
+                      </Grid>
+                    )}
+                  </Grid>
+                </Box>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+      </DialogContent>
+
+      <DialogActions sx={{ p: 3, borderTop: '1px solid #e0e0e0' }}>
+        <Button onClick={onClose} variant="outlined">
+          Hủy
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={isMutating}
+          sx={{
+            bgcolor: 'success.main',
+            '&:hover': { bgcolor: 'success.dark' }
+          }}
+        >
+          {isMutating ? 'Đang tạo...' : 'Tạo hợp đồng'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+export default ContractAddDialog; 

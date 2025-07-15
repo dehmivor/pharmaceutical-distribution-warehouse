@@ -191,9 +191,7 @@ const itemContractSchema = new mongoose.Schema({
   unit_price: {
     type: Number,
     min: [0, 'Unit price cannot be negative'],
-    required: function() {
-      return this.parent().contract_type === CONTRACT_TYPES.ECONOMIC;
-    },
+    required: [true, 'Unit price is required'],
   },
 }, { _id: false });
 
