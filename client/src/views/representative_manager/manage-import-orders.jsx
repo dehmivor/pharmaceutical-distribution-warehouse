@@ -67,7 +67,7 @@ const RepresentativeManagerImportOrders = () => {
     try {
       setLoading(true);
       setError('');
-      
+
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const response = await axios.get(`${backendUrl}/api/import-orders`, {
         headers: getAuthHeaders(),
@@ -82,7 +82,7 @@ const RepresentativeManagerImportOrders = () => {
     } catch (error) {
       console.error('Error fetching orders:', error);
       let errorMsg = 'Failed to fetch orders';
-      
+
       if (error.code === 'ECONNABORTED') {
         errorMsg = 'Request timeout. Please try again.';
       } else if (error.code === 'ERR_NETWORK') {
@@ -92,7 +92,7 @@ const RepresentativeManagerImportOrders = () => {
       } else if (error.message) {
         errorMsg = error.message;
       }
-      
+
       setError(errorMsg);
       setOrders([]);
     } finally {
@@ -122,7 +122,7 @@ const RepresentativeManagerImportOrders = () => {
 
   const handleStatusChange = useCallback(async () => {
     if (!selectedOrder || !selectedOrder._id || !selectedOrder.nextStatus) return;
-    
+
     const newStatus = selectedOrder.nextStatus;
 
     try {
@@ -150,7 +150,7 @@ const RepresentativeManagerImportOrders = () => {
     } catch (error) {
       console.error('Error updating status:', error);
       let errorMsg = 'Failed to update status';
-      
+
       if (error.code === 'ECONNABORTED') {
         errorMsg = 'Request timeout. Please try again.';
       } else if (error.code === 'ERR_NETWORK') {
@@ -160,7 +160,7 @@ const RepresentativeManagerImportOrders = () => {
       } else if (error.message) {
         errorMsg = error.message;
       }
-      
+
       setError(errorMsg);
     } finally {
       setUpdatingStatus(false);
@@ -238,13 +238,14 @@ const RepresentativeManagerImportOrders = () => {
   };
 
   // Filter orders based on search and status
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = searchTerm === '' || 
+  const filteredOrders = orders.filter((order) => {
+    const matchesSearch =
+      searchTerm === '' ||
       order._id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.supplier_contract_id?.supplier_id?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === '' || order.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -257,7 +258,10 @@ const RepresentativeManagerImportOrders = () => {
   }
 
   console.log('user.role:', user.role);
-  console.log('orders:', orders.map(o => ({id: o._id, status: o.status})));
+  console.log(
+    'orders:',
+    orders.map((o) => ({ id: o._id, status: o.status }))
+  );
 
   return (
     <Box>
@@ -281,11 +285,7 @@ const RepresentativeManagerImportOrders = () => {
           />
           <FormControl size="small" sx={{ minWidth: 150 }}>
             <InputLabel>Status Filter</InputLabel>
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              label="Status Filter"
-            >
+            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status Filter">
               <MenuItem value="">All Status</MenuItem>
               <MenuItem value="draft">Draft</MenuItem>
               <MenuItem value="approved">Approved</MenuItem>
@@ -297,12 +297,7 @@ const RepresentativeManagerImportOrders = () => {
               <MenuItem value="cancelled">Cancelled</MenuItem>
             </Select>
           </FormControl>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={fetchOrders}
-            disabled={loading}
-          >
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchOrders} disabled={loading}>
             Refresh
           </Button>
         </Box>
@@ -329,22 +324,34 @@ const RepresentativeManagerImportOrders = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell><strong>Order ID</strong></TableCell>
-                  <TableCell><strong>Supplier</strong></TableCell>
-                  <TableCell><strong>Status</strong></TableCell>
-                  <TableCell><strong>Created By</strong></TableCell>
-                  <TableCell><strong>Created Date</strong></TableCell>
-                  <TableCell><strong>Total Amount</strong></TableCell>
-                  <TableCell><strong>Actions</strong></TableCell>
+                  <TableCell>
+                    <strong>Order ID</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Supplier</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Status</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Created By</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Created Date</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Total Amount</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Actions</strong>
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredOrders.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} align="center">
-                      <Typography color="text.secondary">
-                        {loading ? 'Loading orders...' : 'No orders found'}
-                      </Typography>
+                      <Typography color="text.secondary">{loading ? 'Loading orders...' : 'No orders found'}</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -353,25 +360,13 @@ const RepresentativeManagerImportOrders = () => {
                     return (
                       <TableRow key={order._id} hover>
                         <TableCell>{order._id}</TableCell>
+                        <TableCell>{order.supplier_contract_id?.supplier_id?.name || 'N/A'}</TableCell>
                         <TableCell>
-                          {order.supplier_contract_id?.supplier_id?.name || 'N/A'}
+                          <Chip label={order.status?.toUpperCase()} color={getStatusColor(order.status)} size="small" />
                         </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={order.status?.toUpperCase()}
-                            color={getStatusColor(order.status)}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {order.created_by?.email || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(order.createdAt)}
-                        </TableCell>
-                        <TableCell>
-                          {formatCurrency(order.total_amount)}
-                        </TableCell>
+                        <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
+                        <TableCell>{formatDate(order.createdAt)}</TableCell>
+                        <TableCell>{formatCurrency(order.total_amount)}</TableCell>
                         <TableCell>
                           <Box display="flex" gap={1}>
                             {/* Chỉ representative_manager mới thấy nút Approve/Cancel khi order là draft */}
@@ -381,11 +376,13 @@ const RepresentativeManagerImportOrders = () => {
                                   size="small"
                                   color="success"
                                   variant="outlined"
-                                  onClick={() => handleOpenStatusDialog({ 
-                                    _id: order._id, 
-                                    status: order.status, 
-                                    nextStatus: 'approved' 
-                                  })}
+                                  onClick={() =>
+                                    handleOpenStatusDialog({
+                                      _id: order._id,
+                                      status: order.status,
+                                      nextStatus: 'approved'
+                                    })
+                                  }
                                 >
                                   Approve
                                 </Button>
@@ -393,29 +390,20 @@ const RepresentativeManagerImportOrders = () => {
                                   size="small"
                                   color="error"
                                   variant="outlined"
-                                  onClick={() => handleOpenStatusDialog({ 
-                                    _id: order._id, 
-                                    status: order.status, 
-                                    nextStatus: 'cancelled' 
-                                  })}
+                                  onClick={() =>
+                                    handleOpenStatusDialog({
+                                      _id: order._id,
+                                      status: order.status,
+                                      nextStatus: 'cancelled'
+                                    })
+                                  }
                                 >
                                   Cancel
                                 </Button>
                               </>
                             )}
-                            {isOrderLocked(order) && (
-                              <Chip
-                                label="LOCKED"
-                                color="error"
-                                size="small"
-                                variant="outlined"
-                              />
-                            )}
-                            <IconButton
-                              size="small"
-                              color="info"
-                              title="View Details"
-                            >
+                            {isOrderLocked(order) && <Chip label="LOCKED" color="error" size="small" variant="outlined" />}
+                            <IconButton size="small" color="info" title="View Details">
                               <ViewIcon />
                             </IconButton>
                           </Box>
@@ -445,4 +433,4 @@ const RepresentativeManagerImportOrders = () => {
   );
 };
 
-export default RepresentativeManagerImportOrders; 
+export default RepresentativeManagerImportOrders;

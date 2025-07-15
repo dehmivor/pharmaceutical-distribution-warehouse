@@ -53,13 +53,22 @@ logLocationChangeSchema.pre('save', function (next) {
 
 // Validation cho các trường tham chiếu
 logLocationChangeSchema.pre('validate', function (next) {
-  if (this.type === 'add' && (!this.import_order_id || this.export_order_id || this.inventory_check_order_id)) {
+  if (
+    this.type === 'add' &&
+    (!this.import_order_id || this.export_order_id || this.inventory_check_order_id)
+  ) {
     return next(new Error('For type "add", only import_order_id is allowed'));
   }
-  if (this.type === 'remove' && (this.import_order_id || !this.export_order_id || this.inventory_check_order_id)) {
+  if (
+    this.type === 'remove' &&
+    (this.import_order_id || !this.export_order_id || this.inventory_check_order_id)
+  ) {
     return next(new Error('For type "remove", only export_order_id is allowed'));
   }
-  if (this.type === 'adjust' && (this.import_order_id || this.export_order_id || !this.inventory_check_order_id)) {
+  if (
+    this.type === 'adjust' &&
+    (this.import_order_id || this.export_order_id || !this.inventory_check_order_id)
+  ) {
     return next(new Error('For type "adjust", only inventory_check_order_id is allowed'));
   }
   next();

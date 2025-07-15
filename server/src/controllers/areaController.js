@@ -17,11 +17,11 @@ const areaController = {
     try {
       const { id } = req.params;
       const area = await Area.findById(id);
-      
+
       if (!area) {
         return res.status(404).json({ error: 'Không tìm thấy khu vực' });
       }
-      
+
       res.json(area);
     } catch (error) {
       console.error('Error fetching area:', error);
@@ -35,10 +35,10 @@ const areaController = {
       const areaData = req.body;
       const area = new Area(areaData);
       await area.save();
-      
+
       res.status(201).json({
         message: 'Tạo khu vực thành công',
-        area
+        area,
       });
     } catch (error) {
       console.error('Error creating area:', error);
@@ -55,19 +55,19 @@ const areaController = {
     try {
       const { id } = req.params;
       const updateData = req.body;
-      
-      const area = await Area.findByIdAndUpdate(id, updateData, { 
-        new: true, 
-        runValidators: true 
+
+      const area = await Area.findByIdAndUpdate(id, updateData, {
+        new: true,
+        runValidators: true,
       });
-      
+
       if (!area) {
         return res.status(404).json({ error: 'Không tìm thấy khu vực' });
       }
-      
+
       res.json({
         message: 'Cập nhật khu vực thành công',
-        area
+        area,
       });
     } catch (error) {
       console.error('Error updating area:', error);
@@ -84,11 +84,11 @@ const areaController = {
     try {
       const { id } = req.params;
       const area = await Area.findByIdAndDelete(id);
-      
+
       if (!area) {
         return res.status(404).json({ error: 'Không tìm thấy khu vực' });
       }
-      
+
       res.json({ message: 'Xóa khu vực thành công' });
     } catch (error) {
       console.error('Error deleting area:', error);

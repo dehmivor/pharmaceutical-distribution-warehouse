@@ -37,13 +37,13 @@ app.get('/api/health', (req, res) => {
 
 // Test route để kiểm tra authentication
 app.get('/api/test-auth', authenticate, (req, res) => {
-  res.status(200).json({ 
+  res.status(200).json({
     message: 'Authentication working',
     user: {
       id: req.user._id,
       email: req.user.email,
-      role: req.user.role
-    }
+      role: req.user.role,
+    },
   });
 });
 
@@ -60,7 +60,12 @@ app.use('/api/areas', route.areaRoutes);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
-app.use('/api/supplier-contracts', authenticate, authorize(['supervisor', 'representative', 'representative_manager']), route.supplierContractRoutes);
+app.use(
+  '/api/supplier-contracts',
+  authenticate,
+  authorize(['supervisor', 'representative', 'representative_manager']),
+  route.supplierContractRoutes,
+);
 app.use(
   '/api/inspections',
   authenticate,
@@ -97,6 +102,7 @@ app.use('/api/stripe', route.stripeRoutes);
 app.use('/api/bills', route.billRoutes);
 app.use('/api/supplier', route.supplierRoutes);
 app.use('/api/economic-contracts', route.economicContractRoutes);
+app.use('/api/contract', route.contractRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 

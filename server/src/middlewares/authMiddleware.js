@@ -136,7 +136,8 @@ const optionalAuthMiddleware = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (decoded && decoded.id) {s
+    if (decoded && decoded.id) {
+      s;
       const user = await User.findById(decoded.id).select('-password -otp_login -otp_reset').lean();
 
       if (user && user.status === 'active') {
