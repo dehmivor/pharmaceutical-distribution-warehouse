@@ -68,7 +68,7 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
     setFormValues((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -82,7 +82,7 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
     }));
     // Clear error when user starts typing
     if (errors.storage_conditions?.[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         storage_conditions: {
           ...prev.storage_conditions,
@@ -116,7 +116,10 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
     // Storage conditions validation (optional)
     if (formValues.storage_conditions.temperature.trim()) {
       if (!/^\d+-\d+°C$|^-\d+°C$|^\d+°C$/.test(formValues.storage_conditions.temperature)) {
-        newErrors.storage_conditions = { ...newErrors.storage_conditions, temperature: 'Nhiệt độ phải có định dạng "X-Y°C", "-X°C" hoặc "X°C"' };
+        newErrors.storage_conditions = {
+          ...newErrors.storage_conditions,
+          temperature: 'Nhiệt độ phải có định dạng "X-Y°C", "-X°C" hoặc "X°C"'
+        };
       }
     }
 
@@ -144,8 +147,11 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
       newErrors.max_stock_threshold = 'Ngưỡng tối đa không được âm';
     }
 
-    if (formValues.min_stock_threshold !== '' && formValues.max_stock_threshold !== '' &&
-        parseFloat(formValues.max_stock_threshold) < parseFloat(formValues.min_stock_threshold)) {
+    if (
+      formValues.min_stock_threshold !== '' &&
+      formValues.max_stock_threshold !== '' &&
+      parseFloat(formValues.max_stock_threshold) < parseFloat(formValues.min_stock_threshold)
+    ) {
       newErrors.max_stock_threshold = 'Ngưỡng tối đa phải lớn hơn hoặc bằng ngưỡng tối thiểu';
     }
 
@@ -189,37 +195,41 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
       fullWidth
       PaperProps={{
         sx: {
           borderRadius: 2,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
         }
       }}
     >
       {/* Header */}
-      <DialogTitle sx={{ 
-        background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        py: 2,
-        px: 3
-      }}>
+      <DialogTitle
+        sx={{
+          background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          py: 2,
+          px: 3
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ 
-            bgcolor: 'rgba(255,255,255,0.2)', 
-            borderRadius: '50%', 
-            p: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
+          <Box
+            sx={{
+              bgcolor: 'rgba(255,255,255,0.2)',
+              borderRadius: '50%',
+              p: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
             <EditIcon sx={{ fontSize: 24 }} />
           </Box>
           <Box>
@@ -232,9 +242,9 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
           </Box>
         </Box>
         <Tooltip title="Đóng">
-          <IconButton 
-            onClick={onClose} 
-            sx={{ 
+          <IconButton
+            onClick={onClose}
+            sx={{
               color: 'white',
               '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
             }}
@@ -255,7 +265,7 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
                   Thông Tin Cơ Bản
                 </Typography>
               </Box>
-              
+
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -290,9 +300,9 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth error={!!errors.category} size="medium">
                     <InputLabel>Danh mục *</InputLabel>
-                    <Select 
-                      value={formValues.category} 
-                      label="Danh mục *" 
+                    <Select
+                      value={formValues.category}
+                      label="Danh mục *"
                       onChange={(e) => handleChange('category', e.target.value)}
                       startAdornment={<CategoryIcon sx={{ mr: 1, color: 'text.secondary' }} />}
                       MenuProps={{ variant: 'menu' }}
@@ -341,7 +351,7 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
                   Điều Kiện Bảo Quản (Tùy chọn)
                 </Typography>
               </Box>
-              
+
               <Grid container spacing={3}>
                 <Grid item xs={12} md={4}>
                   <TextField
@@ -410,7 +420,7 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
                   Quản Lý Tồn Kho
                 </Typography>
               </Box>
-              
+
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -451,14 +461,16 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
           </Card>
 
           {/* Required fields note */}
-          <Box sx={{ 
-            mt: 3, 
-            p: 2, 
-            bgcolor: 'primary.50', 
-            borderRadius: 2,
-            border: '1px solid',
-            borderColor: 'primary.200'
-          }}>
+          <Box
+            sx={{
+              mt: 3,
+              p: 2,
+              bgcolor: 'primary.50',
+              borderRadius: 2,
+              border: '1px solid',
+              borderColor: 'primary.200'
+            }}
+          >
             <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
               <strong>Lưu ý:</strong> Các trường có dấu * là bắt buộc phải nhập.
             </Typography>
@@ -466,17 +478,19 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ 
-        p: 3, 
-        pt: 2,
-        borderTop: '1px solid #e0e0e0',
-        bgcolor: 'grey.50'
-      }}>
-        <Button 
-          onClick={onClose} 
+      <DialogActions
+        sx={{
+          p: 3,
+          pt: 2,
+          borderTop: '1px solid #e0e0e0',
+          bgcolor: 'grey.50'
+        }}
+      >
+        <Button
+          onClick={onClose}
           variant="outlined"
           disabled={loading}
-          sx={{ 
+          sx={{
             px: 3,
             py: 1.5,
             borderRadius: 2,
@@ -486,12 +500,12 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
         >
           Hủy
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
           startIcon={<EditIcon />}
           disabled={loading}
-          sx={{ 
+          sx={{
             px: 4,
             py: 1.5,
             borderRadius: 2,

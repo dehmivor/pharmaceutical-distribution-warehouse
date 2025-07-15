@@ -112,7 +112,7 @@ function EnhancedWarehousePage() {
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
             <Tab label="Quy trình nhập hàng" />
-            <Tab label="Danh sách phiếu nhập" />
+            <Tab label="Danh sách phiếu kiểm nhập" />
           </Tabs>
         </Box>
 

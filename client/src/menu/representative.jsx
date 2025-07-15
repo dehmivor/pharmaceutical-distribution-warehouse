@@ -8,7 +8,7 @@ const representative = {
       id: 'manage-contracts',
       title: 'Manage Contracts',
       type: 'item',
-      url: '/manage-contracts',
+      url: '/rp-manage-contracts',
       icon: 'IconFileInvoice'
     },
     {
@@ -21,22 +21,22 @@ const representative = {
           id: 'manage-supplier-contracts',
           title: 'Supplier Contracts',
           type: 'item',
-          url: '/manage-supplier-contracts',
-          icon: 'IconFileInvoice'
+          url: '/rp-manage-supplier-contracts',
+          icon: 'IconTruckDelivery'
         },
         {
-          id: 'manage-reatailer-contracts',
+          id: 'manage-retailer-contracts',
           title: 'Retailer Contracts',
           type: 'item',
-          url: '/manage-retailer-contracts',
-          icon: 'IconFileInvoice'
+          url: '/rp-manage-retailer-contracts',
+          icon: 'IconBuildingStore'
         },
         {
-          id: 'manage-economic-contracts',
+          id: 'economic-contracts',
           title: 'Economic Contracts',
           type: 'item',
-          url: '/manage-economic-contracts',
-          icon: 'IconFileInvoice'
+          url: '/rp-economic-contracts',
+          icon: 'IconCurrencyDollar'
         }
       ]
     },
@@ -44,14 +44,28 @@ const representative = {
       id: 'manage-licenses',
       title: 'Manage Licenses',
       type: 'item',
-      url: '/manage-licenses',
+      url: '/rp-manage-licenses',
       icon: 'IconCertificate'
+    },
+    {
+      id: 'create-contract',
+      title: 'Create Contract',
+      type: 'item',
+      url: '/rp-create-contract',
+      icon: 'IconFilePlus'
+    },
+    {
+      id: 'manage-debt',
+      title: 'Manage Debt',
+      type: 'item',
+      url: '/rp-manage-debt',
+      icon: 'IconCreditCard'
     },
     {
       id: 'manage-import-orders',
       title: 'Manage Import Orders',
       type: 'item',
-      url: '/manage-import-orders',
+      url: '/rp-import-orders',
       icon: 'IconShoppingCart'
     }
   ]

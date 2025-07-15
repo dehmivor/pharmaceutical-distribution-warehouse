@@ -1,8 +1,8 @@
 require('dotenv').config();
 
 const allowedOrigins = [
+  'https://pharmaceutical-distribution-warehou.vercel.app',
   'http://localhost:3000',
-  'https://pharmaceutical-distribution-warehou.vercel.app'
 ];
 
 module.exports = {

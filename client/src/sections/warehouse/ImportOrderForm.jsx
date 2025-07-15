@@ -17,7 +17,7 @@ import {
   TableRow,
   MenuItem,
   Alert,
-  Snackbar,
+  Snackbar
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -31,7 +31,7 @@ const ImportOrderForm = ({ order, onClose }) => {
     supplier_id: '',
     warehouse_id: '',
     import_date: new Date(),
-    total_value: 0,
+    total_value: 0
   });
 
   const [orderDetails, setOrderDetails] = useState([
@@ -39,8 +39,8 @@ const ImportOrderForm = ({ order, onClose }) => {
       medicine_id: '',
       batch_id: '',
       quantity: 0,
-      unit_price: 0,
-    },
+      unit_price: 0
+    }
   ]);
 
   const [contracts, setContracts] = useState([]);
@@ -59,7 +59,7 @@ const ImportOrderForm = ({ order, onClose }) => {
           fetch('/api/contracts'),
           fetch('/api/users?role=supplier'),
           fetch('/api/users?role=warehouse'),
-          fetch('/api/medicines'),
+          fetch('/api/medicines')
         ]);
 
         if (!contractsRes.ok || !suppliersRes.ok || !warehousesRes.ok || !medicinesRes.ok) {
@@ -70,7 +70,7 @@ const ImportOrderForm = ({ order, onClose }) => {
           contractsRes.json(),
           suppliersRes.json(),
           warehousesRes.json(),
-          medicinesRes.json(),
+          medicinesRes.json()
         ]);
 
         setContracts(contractsData.data);
@@ -116,21 +116,21 @@ const ImportOrderForm = ({ order, onClose }) => {
         supplier_id: order.supplier_id._id,
         warehouse_id: order.warehouse_id._id,
         import_date: new Date(order.import_date),
-        total_value: order.total_value,
+        total_value: order.total_value
       });
 
       // Fetch order details
       fetch(`/api/import-orders/${order._id}`)
-        .then(response => {
+        .then((response) => {
           if (!response.ok) {
             throw new Error('Failed to fetch order details');
           }
           return response.json();
         })
-        .then(data => {
+        .then((data) => {
           setOrderDetails(data.data.details);
         })
-        .catch(error => {
+        .catch((error) => {
           console.error('Error fetching order details:', error);
           setError('Failed to load order details');
         });
@@ -141,7 +141,7 @@ const ImportOrderForm = ({ order, onClose }) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: value
     }));
   };
 
@@ -149,7 +149,7 @@ const ImportOrderForm = ({ order, onClose }) => {
     const newDetails = [...orderDetails];
     newDetails[index] = {
       ...newDetails[index],
-      [field]: value,
+      [field]: value
     };
 
     // If medicine changes, reset batch
@@ -161,12 +161,12 @@ const ImportOrderForm = ({ order, onClose }) => {
 
     // Calculate total value
     const total = newDetails.reduce((sum, detail) => {
-      return sum + (detail.quantity * detail.unit_price);
+      return sum + detail.quantity * detail.unit_price;
     }, 0);
 
     setFormData((prev) => ({
       ...prev,
-      total_value: total,
+      total_value: total
     }));
   };
 
@@ -177,8 +177,8 @@ const ImportOrderForm = ({ order, onClose }) => {
         medicine_id: '',
         batch_id: '',
         quantity: 0,
-        unit_price: 0,
-      },
+        unit_price: 0
+      }
     ]);
   };
 
@@ -188,12 +188,12 @@ const ImportOrderForm = ({ order, onClose }) => {
 
     // Recalculate total
     const total = newDetails.reduce((sum, detail) => {
-      return sum + (detail.quantity * detail.unit_price);
+      return sum + detail.quantity * detail.unit_price;
     }, 0);
 
     setFormData((prev) => ({
       ...prev,
-      total_value: total,
+      total_value: total
     }));
   };
 
@@ -205,12 +205,12 @@ const ImportOrderForm = ({ order, onClose }) => {
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           orderData: formData,
-          orderDetails,
-        }),
+          orderDetails
+        })
       });
 
       if (!response.ok) {
@@ -260,15 +260,7 @@ const ImportOrderForm = ({ order, onClose }) => {
           />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <TextField
-            select
-            fullWidth
-            label="Contract"
-            name="contract_id"
-            value={formData.contract_id}
-            onChange={handleFormChange}
-            required
-          >
+          <TextField select fullWidth label="Contract" name="contract_id" value={formData.contract_id} onChange={handleFormChange} required>
             {contracts.map((contract) => (
               <MenuItem key={contract._id} value={contract._id}>
                 {contract.contract_code}
@@ -277,15 +269,7 @@ const ImportOrderForm = ({ order, onClose }) => {
           </TextField>
         </Grid>
         <Grid item xs={12} sm={6}>
-          <TextField
-            select
-            fullWidth
-            label="Supplier"
-            name="supplier_id"
-            value={formData.supplier_id}
-            onChange={handleFormChange}
-            required
-          >
+          <TextField select fullWidth label="Supplier" name="supplier_id" value={formData.supplier_id} onChange={handleFormChange} required>
             {suppliers.map((supplier) => (
               <MenuItem key={supplier._id} value={supplier._id}>
                 {supplier.full_name}
@@ -318,7 +302,7 @@ const ImportOrderForm = ({ order, onClose }) => {
               onChange={(newValue) => {
                 setFormData((prev) => ({
                   ...prev,
-                  import_date: newValue,
+                  import_date: newValue
                 }));
               }}
               renderInput={(params) => <TextField {...params} fullWidth required />}
@@ -332,7 +316,7 @@ const ImportOrderForm = ({ order, onClose }) => {
             name="total_value"
             value={formData.total_value}
             InputProps={{
-              readOnly: true,
+              readOnly: true
             }}
           />
         </Grid>
@@ -365,9 +349,7 @@ const ImportOrderForm = ({ order, onClose }) => {
                         select
                         fullWidth
                         value={detail.medicine_id}
-                        onChange={(e) =>
-                          handleDetailChange(index, 'medicine_id', e.target.value)
-                        }
+                        onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
                         required
                       >
                         {medicines.map((medicine) => (
@@ -382,9 +364,7 @@ const ImportOrderForm = ({ order, onClose }) => {
                         select
                         fullWidth
                         value={detail.batch_id}
-                        onChange={(e) =>
-                          handleDetailChange(index, 'batch_id', e.target.value)
-                        }
+                        onChange={(e) => handleDetailChange(index, 'batch_id', e.target.value)}
                         required
                       >
                         {batches.map((batch) => (
@@ -399,13 +379,7 @@ const ImportOrderForm = ({ order, onClose }) => {
                         type="number"
                         fullWidth
                         value={detail.quantity}
-                        onChange={(e) =>
-                          handleDetailChange(
-                            index,
-                            'quantity',
-                            parseInt(e.target.value)
-                          )
-                        }
+                        onChange={(e) => handleDetailChange(index, 'quantity', parseInt(e.target.value))}
                         required
                         inputProps={{ min: 0 }}
                       />
@@ -415,26 +389,14 @@ const ImportOrderForm = ({ order, onClose }) => {
                         type="number"
                         fullWidth
                         value={detail.unit_price}
-                        onChange={(e) =>
-                          handleDetailChange(
-                            index,
-                            'unit_price',
-                            parseInt(e.target.value)
-                          )
-                        }
+                        onChange={(e) => handleDetailChange(index, 'unit_price', parseInt(e.target.value))}
                         required
                         inputProps={{ min: 0 }}
                       />
                     </TableCell>
+                    <TableCell>{(detail.quantity * detail.unit_price).toLocaleString()}</TableCell>
                     <TableCell>
-                      {(detail.quantity * detail.unit_price).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <IconButton
-                        color="error"
-                        onClick={() => removeDetail(index)}
-                        disabled={orderDetails.length === 1}
-                      >
+                      <IconButton color="error" onClick={() => removeDetail(index)} disabled={orderDetails.length === 1}>
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>
@@ -451,28 +413,15 @@ const ImportOrderForm = ({ order, onClose }) => {
             <Button variant="outlined" onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={loading}
-            >
-              {loading
-                ? 'Saving...'
-                : order
-                ? 'Update Order'
-                : 'Create Order'}
+            <Button type="submit" variant="contained" disabled={loading}>
+              {loading ? 'Saving...' : order ? 'Update Order' : 'Create Order'}
             </Button>
           </Box>
         </Grid>
       </Grid>
 
       {/* Error Snackbar */}
-      <Snackbar
-        open={!!error}
-        autoHideDuration={6000}
-        onClose={handleCloseError}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseError} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
         <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
           {error}
         </Alert>
@@ -493,4 +442,4 @@ const ImportOrderForm = ({ order, onClose }) => {
   );
 };
 
-export default ImportOrderForm; 
+export default ImportOrderForm;

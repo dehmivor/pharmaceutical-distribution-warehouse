@@ -28,24 +28,21 @@ import {
 const STORAGE_LABELS = {
   temperature: 'Nhiệt độ',
   humidity: 'Độ ẩm',
-  light: 'Ánh sáng',
+  light: 'Ánh sáng'
 };
 
 const LIGHT_LABELS = {
   none: 'Không ánh sáng',
   low: 'Ánh sáng yếu',
   medium: 'Ánh sáng trung bình',
-  high: 'Ánh sáng mạnh',
+  high: 'Ánh sáng mạnh'
 };
 
 const InfoField = ({ label, value, icon: Icon }) => (
   <Box>
     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
       {Icon && <Icon sx={{ fontSize: 20, color: 'text.secondary' }} />}
-      <Typography
-        variant="subtitle2"
-        sx={{ fontWeight: 600, color: 'text.secondary' }}
-      >
+      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
         {label}
       </Typography>
     </Box>
@@ -71,37 +68,41 @@ const MedicineDetailDialog = ({ open, onClose, medicine }) => {
   if (!medicine) return null;
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="md" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
       fullWidth
       PaperProps={{
         sx: {
           borderRadius: 2,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
         }
       }}
     >
       {/* Header */}
-      <DialogTitle sx={{ 
-        background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        py: 2,
-        px: 3
-      }}>
+      <DialogTitle
+        sx={{
+          background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          py: 2,
+          px: 3
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box sx={{ 
-            bgcolor: 'rgba(255,255,255,0.2)', 
-            borderRadius: '50%', 
-            p: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
+          <Box
+            sx={{
+              bgcolor: 'rgba(255,255,255,0.2)',
+              borderRadius: '50%',
+              p: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
             <ViewIcon sx={{ fontSize: 24 }} />
           </Box>
           <Box>
@@ -114,9 +115,9 @@ const MedicineDetailDialog = ({ open, onClose, medicine }) => {
           </Box>
         </Box>
         <Tooltip title="Đóng">
-          <IconButton 
-            onClick={onClose} 
-            sx={{ 
+          <IconButton
+            onClick={onClose}
+            sx={{
               color: 'white',
               '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
             }}
@@ -137,7 +138,7 @@ const MedicineDetailDialog = ({ open, onClose, medicine }) => {
                   Thông Tin Cơ Bản
                 </Typography>
               </Box>
-              
+
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <InfoField label="Tên thuốc" value={medicine.medicine_name} icon={MedicationIcon} />
@@ -164,29 +165,31 @@ const MedicineDetailDialog = ({ open, onClose, medicine }) => {
                   Điều Kiện Bảo Quản
                 </Typography>
               </Box>
-              
+
               {medicine.storage_conditions ? (
                 <Grid container spacing={3}>
                   {Object.entries(medicine.storage_conditions)
                     .filter(([_, value]) => value !== undefined && value !== '')
                     .map(([key, value]) => (
                       <Grid item xs={12} md={4} key={key}>
-                        <InfoField 
-                          label={STORAGE_LABELS[key]} 
-                          value={key === 'light' ? LIGHT_LABELS[value] || value : value} 
-                          icon={StorageIcon} 
+                        <InfoField
+                          label={STORAGE_LABELS[key]}
+                          value={key === 'light' ? LIGHT_LABELS[value] || value : value}
+                          icon={StorageIcon}
                         />
                       </Grid>
                     ))}
                 </Grid>
               ) : (
-                <Box sx={{ 
-                  p: 2, 
-                  bgcolor: 'grey.50', 
-                  borderRadius: 1, 
-                  border: '1px dashed #ccc',
-                  textAlign: 'center'
-                }}>
+                <Box
+                  sx={{
+                    p: 2,
+                    bgcolor: 'grey.50',
+                    borderRadius: 1,
+                    border: '1px dashed #ccc',
+                    textAlign: 'center'
+                  }}
+                >
                   <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
                     Không có thông tin điều kiện bảo quản
                   </Typography>
@@ -204,20 +207,20 @@ const MedicineDetailDialog = ({ open, onClose, medicine }) => {
                   Quản Lý Tồn Kho
                 </Typography>
               </Box>
-              
+
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
-                  <InfoField 
-                    label="Ngưỡng tồn kho tối thiểu" 
-                    value={medicine.min_stock_threshold !== undefined ? medicine.min_stock_threshold : '—'} 
-                    icon={InventoryIcon} 
+                  <InfoField
+                    label="Ngưỡng tồn kho tối thiểu"
+                    value={medicine.min_stock_threshold !== undefined ? medicine.min_stock_threshold : '—'}
+                    icon={InventoryIcon}
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <InfoField 
-                    label="Ngưỡng tồn kho tối đa" 
-                    value={medicine.max_stock_threshold !== undefined ? medicine.max_stock_threshold : '—'} 
-                    icon={InventoryIcon} 
+                  <InfoField
+                    label="Ngưỡng tồn kho tối đa"
+                    value={medicine.max_stock_threshold !== undefined ? medicine.max_stock_threshold : '—'}
+                    icon={InventoryIcon}
                   />
                 </Grid>
               </Grid>
@@ -226,16 +229,18 @@ const MedicineDetailDialog = ({ open, onClose, medicine }) => {
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ 
-        p: 3, 
-        pt: 2,
-        borderTop: '1px solid #e0e0e0',
-        bgcolor: 'grey.50'
-      }}>
-        <Button 
-          onClick={onClose} 
-          variant="contained" 
-          sx={{ 
+      <DialogActions
+        sx={{
+          p: 3,
+          pt: 2,
+          borderTop: '1px solid #e0e0e0',
+          bgcolor: 'grey.50'
+        }}
+      >
+        <Button
+          onClick={onClose}
+          variant="contained"
+          sx={{
             px: 3,
             py: 1.5,
             borderRadius: 2,

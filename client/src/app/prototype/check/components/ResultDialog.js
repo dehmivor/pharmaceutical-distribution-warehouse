@@ -71,7 +71,6 @@ export default function ResultDialog({ open, onClose, data, onUpdate }) {
           Phiếu: {data.drugName} - {data.batchCode}
         </Typography>
 
-
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -102,11 +101,7 @@ export default function ResultDialog({ open, onClose, data, onUpdate }) {
         {resultImage && (
           <div style={{ marginBottom: 16 }}>
             <Typography variant="subtitle2">Ảnh kết quả kiểm định:</Typography>
-            <img
-              src={resultImage}
-              alt="phiếu kết quả"
-              style={{ width: 240, borderRadius: 6, marginTop: 8 }}
-            />
+            <img src={resultImage} alt="phiếu kết quả" style={{ width: 240, borderRadius: 6, marginTop: 8 }} />
           </div>
         )}
 
@@ -118,7 +113,6 @@ export default function ResultDialog({ open, onClose, data, onUpdate }) {
             </Button>
           </div>
         )}
-
       </DialogContent>
 
       <DialogActions>

@@ -23,7 +23,7 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem,
+  MenuItem
 } from '@mui/material';
 import { Add as AddIcon, Visibility as VisibilityIcon, Check as CheckIcon } from '@mui/icons-material';
 import axios from 'axios';
@@ -45,7 +45,7 @@ export default function CycleCountPage() {
     area: '',
     location: '',
     startTime: '',
-    endTime: '',
+    endTime: ''
   });
 
   // Load danh sách khu vực
@@ -56,7 +56,7 @@ export default function CycleCountPage() {
       console.log('Areas response:', response.data);
 
       if (response.data.success && Array.isArray(response.data.data)) {
-        const validAreas = response.data.data.filter(area => area && area._id && area.name);
+        const validAreas = response.data.data.filter((area) => area && area._id && area.name);
         setAreas(validAreas);
         console.log('Valid areas loaded:', validAreas);
       } else {
@@ -124,14 +124,14 @@ export default function CycleCountPage() {
       }
 
       // Kiểm tra area có tồn tại trong danh sách không
-      const selectedArea = areas.find(a => a._id === newCycleCount.area);
+      const selectedArea = areas.find((a) => a._id === newCycleCount.area);
       if (!selectedArea) {
         console.error('Khu vực không hợp lệ');
         return;
       }
 
       // Kiểm tra location có tồn tại trong danh sách không
-      const selectedLocation = locations.find(l => l._id === newCycleCount.location);
+      const selectedLocation = locations.find((l) => l._id === newCycleCount.location);
       if (!selectedLocation) {
         console.error('Vị trí không hợp lệ');
         return;
@@ -161,7 +161,7 @@ export default function CycleCountPage() {
           area: '',
           location: '',
           startTime: '',
-          endTime: '',
+          endTime: ''
         });
         loadCycleCounts();
       }
@@ -204,7 +204,7 @@ export default function CycleCountPage() {
       in_progress: { color: 'info', label: 'Đang thực hiện' },
       waiting_approval: { color: 'primary', label: 'Chờ phê duyệt' },
       completed: { color: 'success', label: 'Hoàn thành' },
-      rejected: { color: 'error', label: 'Từ chối' },
+      rejected: { color: 'error', label: 'Từ chối' }
     };
 
     const config = statusConfig[status] || { color: 'default', label: status };
@@ -217,11 +217,7 @@ export default function CycleCountPage() {
         <Typography variant="h4" component="h1">
           Quản lý đợt kiểm kê
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setOpenCreateDialog(true)}
-        >
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenCreateDialog(true)}>
           Tạo đợt kiểm kê mới
         </Button>
       </Box>
@@ -243,12 +239,8 @@ export default function CycleCountPage() {
               <TableRow key={cycleCount._id}>
                 <TableCell>{cycleCount._id}</TableCell>
                 <TableCell>{cycleCount.team?.manager?.name || '-'}</TableCell>
-                <TableCell>
-                  {cycleCount.startTime ? format(new Date(cycleCount.startTime), 'dd/MM/yyyy HH:mm') : '-'}
-                </TableCell>
-                <TableCell>
-                  {cycleCount.endTime ? format(new Date(cycleCount.endTime), 'dd/MM/yyyy HH:mm') : '-'}
-                </TableCell>
+                <TableCell>{cycleCount.startTime ? format(new Date(cycleCount.startTime), 'dd/MM/yyyy HH:mm') : '-'}</TableCell>
+                <TableCell>{cycleCount.endTime ? format(new Date(cycleCount.endTime), 'dd/MM/yyyy HH:mm') : '-'}</TableCell>
                 <TableCell>{renderStatus(cycleCount.status)}</TableCell>
                 <TableCell>
                   <Tooltip title="Xem chi tiết">
@@ -318,9 +310,7 @@ export default function CycleCountPage() {
                       </MenuItem>
                     ))
                   ) : (
-                    <MenuItem disabled>
-                      {newCycleCount.area ? 'Không có vị trí trong khu vực này' : 'Vui lòng chọn khu vực trước'}
-                    </MenuItem>
+                    <MenuItem disabled>{newCycleCount.area ? 'Không có vị trí trong khu vực này' : 'Vui lòng chọn khu vực trước'}</MenuItem>
                   )}
                 </Select>
               </FormControl>
@@ -349,23 +339,14 @@ export default function CycleCountPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenCreateDialog(false)}>Hủy</Button>
-          <Button 
-            onClick={handleCreate} 
-            variant="contained"
-            disabled={loading || !newCycleCount.area || !newCycleCount.location}
-          >
+          <Button onClick={handleCreate} variant="contained" disabled={loading || !newCycleCount.area || !newCycleCount.location}>
             Tạo
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog chi tiết đợt kiểm kê */}
-      <Dialog
-        open={openDetailDialog}
-        onClose={() => setOpenDetailDialog(false)}
-        maxWidth="md"
-        fullWidth
-      >
+      <Dialog open={openDetailDialog} onClose={() => setOpenDetailDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>Chi tiết đợt kiểm kê</DialogTitle>
         <DialogContent>
           {selectedCycleCount && (
@@ -381,9 +362,7 @@ export default function CycleCountPage() {
                       </TableRow>
                       <TableRow>
                         <TableCell>Thành viên:</TableCell>
-                        <TableCell>
-                          {selectedCycleCount.team?.members?.map(member => member?.name || '-').join(', ') || '-'}
-                        </TableCell>
+                        <TableCell>{selectedCycleCount.team?.members?.map((member) => member?.name || '-').join(', ') || '-'}</TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Trạng thái:</TableCell>
@@ -393,7 +372,9 @@ export default function CycleCountPage() {
                   </Table>
                 </Grid>
                 <Grid item xs={12}>
-                  <Typography variant="subtitle1" sx={{ mt: 2 }}>Kết quả kiểm kê</Typography>
+                  <Typography variant="subtitle1" sx={{ mt: 2 }}>
+                    Kết quả kiểm kê
+                  </Typography>
                   <Table>
                     <TableHead>
                       <TableRow>
@@ -407,11 +388,7 @@ export default function CycleCountPage() {
                       {selectedCycleCount.content?.map((item, index) => (
                         <TableRow key={index}>
                           <TableCell>
-                            {item.location ? (
-                              `${item.location.row}-${item.location.bay}-${item.location.level}`
-                            ) : (
-                              'Chưa có vị trí'
-                            )}
+                            {item.location ? `${item.location.row}-${item.location.bay}-${item.location.level}` : 'Chưa có vị trí'}
                           </TableCell>
                           <TableCell>
                             {item.verified ? (
@@ -421,34 +398,30 @@ export default function CycleCountPage() {
                             )}
                           </TableCell>
                           <TableCell>
+                            <Typography variant="body2">Trưởng nhóm: {selectedCycleCount.team?.manager?.name || '-'}</Typography>
                             <Typography variant="body2">
-                              Trưởng nhóm: {selectedCycleCount.team?.manager?.name || '-'}
-                            </Typography>
-                            <Typography variant="body2">
-                              Thành viên: {selectedCycleCount.team?.members?.map(member => member?.name || '-').join(', ') || '-'}
+                              Thành viên: {selectedCycleCount.team?.members?.map((member) => member?.name || '-').join(', ') || '-'}
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            {item.result?.length > 0 ? (
-                              item.result.map((result, idx) => (
-                                <Box key={idx} sx={{ mb: 1 }}>
-                                  <Typography variant="body2">
-                                    {result.Package?.name || 'Chưa có tên package'}: {result.Status || 'pending'}
-                                  </Typography>
-                                </Box>
-                              ))
-                            ) : (
-                              'Chưa có kết quả'
-                            )}
+                            {item.result?.length > 0
+                              ? item.result.map((result, idx) => (
+                                  <Box key={idx} sx={{ mb: 1 }}>
+                                    <Typography variant="body2">
+                                      {result.Package?.name || 'Chưa có tên package'}: {result.Status || 'pending'}
+                                    </Typography>
+                                  </Box>
+                                ))
+                              : 'Chưa có kết quả'}
                           </TableCell>
                         </TableRow>
                       )) || (
-                          <TableRow>
-                            <TableCell colSpan={4} align="center">
-                              Không có dữ liệu kiểm kê
-                            </TableCell>
-                          </TableRow>
-                        )}
+                        <TableRow>
+                          <TableCell colSpan={4} align="center">
+                            Không có dữ liệu kiểm kê
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </Grid>

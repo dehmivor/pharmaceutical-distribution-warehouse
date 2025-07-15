@@ -3,7 +3,6 @@ const Bill = require('../models');
 const getAllBills = async () => async (req, res) => {
   try {
     const bills = await Bill.find();
-
     res.json({
       success: true,
       data: bills,

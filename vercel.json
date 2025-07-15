@@ -1,13 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm run build",
-  "outputDirectory": "client/.next",
-  "installCommand": "cd client && npm install",
-  "framework": "nextjs",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "/client/$1"
+      "source": "/api/:path*",
+      "destination": "https://anyf.onrender.com/api/:path*"
     }
   ]
-} 
+}

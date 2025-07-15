@@ -17,7 +17,7 @@ import {
   Alert,
   Tabs,
   Tab,
-  Button,
+  Button
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
@@ -37,9 +37,7 @@ function ManageInboundOrders() {
   const [activeTab, setActiveTab] = useState(0);
 
   // Grab user from localStorage
-  const userData = typeof window !== 'undefined'
-    ? JSON.parse(localStorage.getItem('user') || '{}')
-    : {};
+  const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const userId = userData.userId;
 
   useEffect(() => {
@@ -52,7 +50,8 @@ function ManageInboundOrders() {
     (async () => {
       try {
         setLoading(true);
-        const resp = await axios.get(`/api/import-orders/warehouse-manager/${userId}`, {
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const resp = await axios.get(`${backendUrl}/api/import-orders/warehouse-manager/${userId}`, {
           headers: getAuthHeaders()
         });
         if (resp.data.success) {
@@ -62,10 +61,7 @@ function ManageInboundOrders() {
         }
       } catch (err) {
         console.error(err);
-        setError(
-          err.response?.data?.message ||
-          'Lỗi khi kết nối tới server để lấy import orders'
-        );
+        setError(err.response?.data?.message || 'Lỗi khi kết nối tới server để lấy import orders');
       } finally {
         setLoading(false);
       }
@@ -77,7 +73,7 @@ function ManageInboundOrders() {
   };
 
   // activeTab 0 = Pending, 1 = Completed
-  const filtered = orders.filter(o => {
+  const filtered = orders.filter((o) => {
     if (activeTab === 0) {
       // Pending = not completed AND not cancelled
       return o.status !== 'completed' && o.status !== 'cancelled';
@@ -91,7 +87,7 @@ function ManageInboundOrders() {
       sx={{
         minHeight: '100vh',
         backgroundColor: theme.palette.background.default,
-        pt: 4,
+        pt: 4
       }}
     >
       <Container maxWidth="lg">
@@ -99,11 +95,7 @@ function ManageInboundOrders() {
           Inbound Order List
         </Typography>
 
-        <Tabs
-          value={activeTab}
-          onChange={handleTabChange}
-          sx={{ mb: 2 }}
-        >
+        <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 2 }}>
           <Tab label="Pending" />
           <Tab label="Completed" />
         </Tabs>
@@ -115,11 +107,7 @@ function ManageInboundOrders() {
         ) : error ? (
           <Alert severity="error">{error}</Alert>
         ) : filtered.length === 0 ? (
-          <Alert severity="info">
-            {activeTab === 0
-              ? 'No pending orders.'
-              : 'No completed orders.'}
-          </Alert>
+          <Alert severity="info">{activeTab === 0 ? 'No pending orders.' : 'No completed orders.'}</Alert>
         ) : (
           <Paper>
             <Table>
@@ -134,27 +122,15 @@ function ManageInboundOrders() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filtered.map(order => (
+                {filtered.map((order) => (
                   <TableRow key={order._id}>
                     <TableCell>{order._id}</TableCell>
+                    <TableCell>{order.supplier_contract_id.contract_code}</TableCell>
+                    <TableCell>{order.supplier_contract_id.supplier_id?.name || '—'}</TableCell>
+                    <TableCell>{order.status.toUpperCase()}</TableCell>
+                    <TableCell align="right">{order.details.length}</TableCell>
                     <TableCell>
-                      {order.supplier_contract_id.contract_code}
-                    </TableCell>
-                    <TableCell>
-                      {order.supplier_contract_id.supplier_id?.name || '—'}
-                    </TableCell>
-                    <TableCell>
-                      {order.status.toUpperCase()}
-                    </TableCell>
-                    <TableCell align="right">
-                      {order.details.length}
-                    </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/assigned-inbound-order/${order._id}`}
-                        passHref
-                        legacyBehavior
-                      >
+                      <Link href={`/assigned-inbound-order/${order._id}`} passHref legacyBehavior>
                         <Button variant="contained" size="small">
                           View Details
                         </Button>

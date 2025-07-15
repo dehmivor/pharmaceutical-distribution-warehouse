@@ -8,14 +8,18 @@ const createImportOrder = async (req, res) => {
     const { orderData, orderDetails } = req.body;
 
     // Add created_by from authenticated user if available
-    if (req.user && req.user._id) {
-      orderData.created_by = req.user._id;
+    if (req.user && req.user.userId) {
+      orderData.created_by = req.user.userId;
     } else {
-      // For testing purposes, use a default supervisor ID
-      orderData.created_by = '22ec4da883aa4736aa000001'; // Default supervisor ID
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required: cannot determine user creating order',
+      });
     }
 
-    const newOrder = await importOrderService.createImportOrder(orderData, orderDetails);
+    // Truyền user context vào service
+    const userContext = req.user ? { role: req.user.role, id: req.user._id } : null;
+    const newOrder = await importOrderService.createImportOrder(orderData, orderDetails, userContext);
 
     res.status(201).json({
       success: true,
@@ -34,7 +38,7 @@ const getImportOrders = async (req, res) => {
   try {
     const { page = 1, limit = 10, status, search } = req.query;
     const userRole = req.user.role;
-    const userId = req.user.id ? req.user.id.toString() : null;
+    const userId = req.user._id ? req.user._id.toString() : null;
 
     let query = {};
     
@@ -98,7 +102,11 @@ const updateImportOrder = async (req, res) => {
       ...orderData,
       details: orderDetails
     };
-    const updatedOrder = await importOrderService.updateImportOrder(id, updateData);
+    
+    // Truyền user context vào service
+    const userContext = req.user ? { role: req.user.role, id: req.user._id } : null;
+    const updatedOrder = await importOrderService.updateImportOrder(id, updateData, userContext);
+    
     res.status(200).json({
       success: true,
       data: updatedOrder,
@@ -216,7 +224,7 @@ const updateOrderStatus = async (req, res) => {
     
     // Check if user is supervisor and bypass validation
     const bypassValidation = req.user && req.user.role === 'supervisor';
-    const approvalBy = req.user ? req.user.id : null;
+    const approvalBy = req.user ? req.user._id : null;
     const userRole = req.user ? req.user.role : null;
 
 

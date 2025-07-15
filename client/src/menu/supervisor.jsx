@@ -15,15 +15,8 @@ const supervisor = {
           id: 'manage-users',
           title: 'Manage Users',
           type: 'item',
-          url: '/manage-users',
+          url: '/sp-manage-users',
           icon: 'IconUser'
-        },
-        {
-          id: 'manage-roles',
-          title: 'Manage Roles',
-          type: 'item',
-          url: '/manage-roles',
-          icon: 'IconShield'
         }
       ]
     },
@@ -38,14 +31,14 @@ const supervisor = {
           id: 'manage-import-orders',
           title: 'Import Orders',
           type: 'item',
-          url: '/import-orders',
+          url: '/sp-import-orders',
           icon: 'IconFileImport'
         },
         {
           id: 'manage-export-orders',
           title: 'Export Orders',
           type: 'item',
-          url: '/manage-export-orders',
+          url: '/sp-manage-stocks',
           icon: 'IconFileExport'
         }
       ]
@@ -61,7 +54,7 @@ const supervisor = {
           id: 'manage-medicines',
           title: 'Manage Medicines',
           type: 'item',
-          url: '/manage-medicines',
+          url: '/sp-manage-medicines',
           icon: 'IconPill'
         }
       ]
@@ -77,29 +70,15 @@ const supervisor = {
           id: 'manage-contracts',
           title: 'Manage Contracts',
           type: 'item',
-          url: '/manage-contracts',
+          url: '/sp-manage-contract',
           icon: 'IconFileContract'
-        },
-        {
-          id: 'manage-licenses',
-          title: 'Manage Licenses',
-          type: 'item',
-          url: '/manage-licenses',
-          icon: 'IconCertificate'
         },
         {
           id: 'manage-bills',
           title: 'Manage Bills',
           type: 'item',
-          url: '/manage-bills',
+          url: '/sp-manage-bills',
           icon: 'IconReceipt'
-        },
-        {
-          id: 'manage-system',
-          title: 'System Settings',
-          type: 'item',
-          url: '/manage-system',
-          icon: 'IconSettings'
         }
       ]
     },
@@ -113,7 +92,7 @@ const supervisor = {
           id: 'manage-economic-contracts',
           title: 'Economic Contracts',
           type: 'item',
-          url: '/manage-economic-contracts',
+          url: '/sp-manage-economic-contracts',
           icon: 'IconFileInvoice'
         }
       ]

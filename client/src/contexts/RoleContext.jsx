@@ -31,7 +31,6 @@ export const RoleProvider = ({ children }) => {
           setUserRole(result.data.role);
           localStorage.setItem('user', JSON.stringify(result.data));
         } else {
-          console.log('Auth failed:', response.status);
           localStorage.removeItem('auth-token');
           localStorage.removeItem('user');
           setUser(null);
@@ -64,6 +63,7 @@ export const RoleProvider = ({ children }) => {
     const rolePermissions = {
       supervisor: ['manage-users'],
       representative: ['manage-license', 'view-clients'],
+      representative_manager: ['create-bills', 'approve-import-orders'],
       warehouse: ['create-inspections', 'manage-import-orders', 'manage-location'],
       warehouse_manager: ['approve-inspections', 'manage-inventory']
     };

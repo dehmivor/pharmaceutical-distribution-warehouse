@@ -1,66 +1,45 @@
 const warehouse = {
   id: 'group-manage',
-  title: 'Manage',
+  title: 'Warehouse Management',
   icon: 'IconBrandAsana',
   type: 'group',
   children: [
     {
-      id: 'view-import-orders',
-      title: 'View Import Orders',
-      type: 'item',
-      url: '/warehouse-import-orders',
-      icon: 'IconFileImport'
-    },
-    {
-      id: 'inspection',
-      title: 'Manage Inspections',
+      id: 'import-orders',
+      title: 'Import',
       type: 'collapse',
-      icon: 'IconChecklist',
+      icon: 'IconFileImport',
       children: [
         {
-          id: 'create-inspection',
-          title: 'Create Inspections',
+          id: 'view-import-orders',
+          title: 'Import Orders List',
           type: 'item',
-          url: '/create-inspections',
-          matchPattern: '/create-inspections/*',
-          icon: 'IconMapPin'
+          url: '/wh-import-orders',
+          icon: 'IconList'
         },
         {
-          id: 'approve-inspections',
-          title: 'Approve Inspections',
+          id: 'import-inspections',
+          title: 'Import Inspections',
           type: 'item',
-          url: '/approve-inspections',
-          icon: 'IconBoxMultiple'
+          url: '/wh-create-inspections',
+          icon: 'IconChecklist'
         }
       ]
     },
     {
-      id: 'manage-inventory',
-      title: 'Manage Inventory',
-      type: 'item',
-      url: '/manage-inventory',
-      icon: 'IconBoxMultiple'
-    },
-    {
-      id: 'manage-locations',
-      title: 'Manage Locations',
-      type: 'item',
-      url: '/manage-locations',
-      icon: 'IconMapPin'
-    },
-    {
-      id: 'manage-packages',
-      title: 'Manage Packages',
-      type: 'item',
-      url: '/manage-packages',
-      icon: 'IconPackage'
-    },
-    {
-      id: 'test',
-      title: 'test',
-      type: 'item',
-      url: '/warehouse-manage-import-order/68597d6929cc5b7ecb4fbd7d',
-      icon: 'IconPackage'
+      id: 'management',
+      title: 'Management',
+      type: 'collapse',
+      icon: 'IconBriefcase',
+      children: [
+        {
+          id: 'manage-locations',
+          title: 'Location Management',
+          type: 'item',
+          url: '/wh-manage-location',
+          icon: 'IconMapPin'
+        }
+      ]
     }
   ]
 };

@@ -1,4 +1,4 @@
-import MedicineManagement from "@/sections/supervisor/medicine/MedicineManagement";
+import MedicineManagement from '@/sections/supervisor/medicine/MedicineManagement';
 
 function ManageMedicine() {
   return <MedicineManagement />;

@@ -388,10 +388,11 @@ const authController = {
 
 function getRedirectByRole(role) {
   const roleRoutes = {
-    supervisor: '/manage-users',
-    warehouse_manager: '/approve-inspections',
-    warehouse: '/create-inspections',
-    representative: '/manage-contracts',
+    supervisor: '/sp-import-orders',
+    warehouse_manager: '/wm-import-orders',
+    warehouse: '/wh-dashboard-import',
+    representative: '/rp-import-orders',
+    representative_manager: '/rm-create-bills',
   };
 
   return roleRoutes[role] || '/dashboard';

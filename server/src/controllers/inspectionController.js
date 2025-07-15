@@ -20,11 +20,10 @@ const createInspection = async (req, res) => {
 // Lấy danh sách phiếu kiểm tra
 const getInspections = async (req, res) => {
   try {
-    const { page = 1, limit = 10, import_order_id, batch_id } = req.query;
+    const { page = 1, limit = 10, import_order_id } = req.query;
 
     const filters = {};
     if (import_order_id) filters.import_order_id = import_order_id;
-    if (batch_id) filters.batch_id = batch_id;
 
     const result = await importInspectionService.getInspections({
       page: parseInt(page),

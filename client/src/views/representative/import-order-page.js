@@ -41,7 +41,7 @@ const getAuthHeaders = () => {
 };
 
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: `${API_BASE_URL}/api`,
   withCredentials: true
 });
 
@@ -77,7 +77,8 @@ function ImportOrderPage() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await axiosInstance.get('/import-orders', {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.get(`${backendUrl}/api/import-orders`, {
         headers: getAuthHeaders()
       });
       setOrders(response.data.data || []);
@@ -91,7 +92,8 @@ function ImportOrderPage() {
 
   const fetchSupplierContracts = async () => {
     try {
-      const response = await axiosInstance.get('/supplier-contracts', {
+     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.get(`${backendUrl}/api/supplier-contracts`, {
         headers: getAuthHeaders()
       });
       const activeContracts = (response.data.data.contracts || []).filter((c) => c.status === 'active');
@@ -254,6 +256,15 @@ function ImportOrderPage() {
       if (contractItem && detail.quantity < contractItem.min_order_quantity) {
         setError(
           `Số lượng nhập cho thuốc "${contractItem.medicine_id.medicine_name}" phải tối thiểu là ${contractItem.min_order_quantity}`
+        );
+        setFormLoading(false);
+        return;
+      }
+      // Validate: số lượng nhập không vượt quá max_quantity hoặc 1000
+      const maxQ = contractItem?.max_quantity || 1000;
+      if (detail.quantity > maxQ) {
+        setError(
+          `Số lượng nhập cho thuốc "${contractItem?.medicine_id?.medicine_name || ''}" không được vượt quá ${maxQ}`
         );
         setFormLoading(false);
         return;
@@ -477,8 +488,8 @@ function ImportOrderPage() {
               {formData.details.map((detail, index) => (
                 <Grid item xs={12} key={index}>
                   <Paper sx={{ p: 2 }}>
-                    <Grid container spacing={2} alignItems="center">
-                      <Grid item xs={12} md={4}>
+                    <Grid container spacing={2} alignItems="center" justifyContent="center">
+                      <Grid item xs={12} md={3}>
                         <FormControl fullWidth>
                           <InputLabel>Medicine</InputLabel>
                           <Select
@@ -501,8 +512,30 @@ function ImportOrderPage() {
                           label="Quantity"
                           type="number"
                           value={detail.quantity}
-                          onChange={(e) => handleDetailChange(index, 'quantity', parseInt(e.target.value) || 0)}
+                          onChange={(e) => {
+                            // Lấy min/max từ contract
+                            const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
+                            let val = parseInt(e.target.value) || 0;
+                            const minQ = contractItem?.min_order_quantity || 1;
+                            const maxQ = contractItem?.max_quantity || 1000;
+                            if (val < minQ) val = minQ;
+                            if (val > maxQ) val = maxQ;
+                            handleDetailChange(index, 'quantity', val);
+                          }}
                           required
+                          inputProps={{
+                            min: contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id)?.min_order_quantity || 1,
+                            max: contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id)?.max_quantity || 1000
+                          }}
+                          helperText={(() => {
+                            const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
+                            if (contractItem) {
+                              let text = `Tối thiểu: ${contractItem.min_order_quantity}`;
+                              text += `, Tối đa: ${contractItem.max_quantity || 1000}`;
+                              return text;
+                            }
+                            return '';
+                          })()}
                         />
                       </Grid>
                       <Grid item xs={6} md={2}>
@@ -511,7 +544,7 @@ function ImportOrderPage() {
                           label="Unit Price"
                           type="number"
                           value={detail.unit_price}
-                          onChange={(e) => handleDetailChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                          InputProps={{ readOnly: true }}
                           required
                         />
                       </Grid>
@@ -523,7 +556,7 @@ function ImportOrderPage() {
                           InputProps={{ readOnly: true }}
                         />
                       </Grid>
-                      <Grid item xs={6} md={2}>
+                      <Grid item xs={6} md={1} sx={{ display: 'flex', justifyContent: 'center' }}>
                         <IconButton color="error" onClick={() => removeDetail(index)} disabled={formData.details.length === 1}>
                           <DeleteIcon />
                         </IconButton>
@@ -535,7 +568,9 @@ function ImportOrderPage() {
 
               <Grid item xs={12}>
                 <Divider sx={{ my: 2 }} />
-                <Typography variant="h6">Total Amount: ${calculateTotal().toLocaleString()}</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+                  <Typography variant="h6">Total Amount: ${calculateTotal().toLocaleString()}</Typography>
+                </Box>
               </Grid>
             </Grid>
           </Box>

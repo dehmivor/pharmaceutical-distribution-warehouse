@@ -8,16 +8,18 @@ import supervisor from './supervisor';
 import warehouse from './warehouse';
 import representative from './representative';
 import warehouseManager from './warehouse-manager';
+import representativeManager from './representative-manager';
 
 /***************************  MENU ITEMS  ***************************/
 
 const menuItems = {
   items: [manage, uiElements, pages, other],
   prototype: [prototype],
-  supervisor: [supervisor, pages, other],
-  warehouse: [warehouse, pages, other],
-  warehouseManager: [warehouseManager, pages, other],
-  representative: [representative, pages, other]
+  supervisor: [supervisor ],
+  warehouse: [warehouse],
+  warehouseManager: [warehouseManager],
+  representative: [representative],
+  representativeManager: [representativeManager]
 };
 
 export default menuItems;

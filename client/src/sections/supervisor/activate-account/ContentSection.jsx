@@ -61,10 +61,7 @@ function ContentSection({ activeTab, onOpenAddUser }) {
       <ComponentsWrapper title="System Administration">
         <PresentationCard title={activeTab === 1 ? 'Permission Management' : ''}>
           {activeTab === 0 ? (
-            <UserManagement
-              onOpenPermissionDialog={handleOpenPermissionDialog}
-              onOpenAddUser={onOpenAddUser}
-            />
+            <UserManagement onOpenPermissionDialog={handleOpenPermissionDialog} onOpenAddUser={onOpenAddUser} />
           ) : (
             <PermissionManagement onOpenPermissionDialog={handleOpenPermissionDialog} />
           )}

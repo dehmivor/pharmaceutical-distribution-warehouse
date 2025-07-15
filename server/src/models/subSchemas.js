@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { ANNEX_ACTIONS,ANNEX_STATUSES } = require('../utils/constants');
+const { ANNEX_ACTIONS,ANNEX_STATUSES, CONTRACT_TYPES } = require('../utils/constants');
 
 // Sub-schema cho storage_conditions
 const storageConditionsSchema = new mongoose.Schema({
@@ -47,30 +47,6 @@ const kpiSchema = new mongoose.Schema({
     min: [0, 'Profit percentage cannot be negative'],
     max: [100, 'Profit percentage cannot exceed 100'],
   },
-});
-
-// Sub-schema cho item_contract
-const itemContractSchema = new mongoose.Schema({
-  medicine_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Medicine',
-    required: [true, 'Medicine ID is required'],
-  },
-  quantity: {
-    type: Number,
-    required: [true, 'Quantity is required'],
-    min: [0, 'Quantity cannot be negative'],
-  },
-  min_order_quantity: {
-    type: Number,
-    required: [true, 'Minimum order quantity is required'],
-    min: [0, 'Minimum order quantity cannot be negative'],
-  },
-  unit_price: {
-    type: Number,
-    min: [0, 'Unit price cannot be negative'],
-  },
-  kpi_details: [kpiSchema],
 });
 
 // Sub-schema cho import order details
@@ -198,15 +174,61 @@ const annexSchema = new mongoose.Schema({
   },
 }, { _id: false });
 
+// Sub-schema cho item trong hợp đồng
+const itemContractSchema = new mongoose.Schema({
+  medicine_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Medicine',
+    required: [true, 'Medicine ID is required'],
+  },
+  quantity: {
+    type: Number,
+    min: [1, 'Quantity must be a positive integer'],
+    required: function() {
+      return this.parent().contract_type === CONTRACT_TYPES.ECONOMIC;
+    },
+  },
+  unit_price: {
+    type: Number,
+    min: [0, 'Unit price cannot be negative'],
+    required: function() {
+      return this.parent().contract_type === CONTRACT_TYPES.ECONOMIC;
+    },
+  },
+}, { _id: false });
+
+// Sub-schema cho export order details
+const exportOrderDetailsSchema = new mongoose.Schema({
+  medicine_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Medicine',
+    required: [true, 'Medicine ID is required'],
+  },
+  expected_quantity: {
+    type: Number,
+    required: [true, 'Quantity is required'],
+    min: [0, 'Quantity cannot be negative'],
+  },
+  actual_quantity: {
+    type: Number,
+    default: 0,
+    min: [0, 'Actual quantity cannot be negative'],
+  },
+  unit_price: {
+    type: Number,
+    min: [0, 'Unit price cannot be negative'],
+  },
+});
 
 // Xuất sub-schema để sử dụng ở các file khác
 module.exports = {
   storageConditionsSchema,
   otpSchema,
-  itemContractSchema,
   importOrderDetailsSchema,
   billDetailsSchema,
   itemEconomicContractSchema,
   itemPrincipleContractSchema,
-  annexSchema
+  annexSchema,
+  itemContractSchema,
+  exportOrderDetailsSchema
 };

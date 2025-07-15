@@ -1,5 +1,5 @@
 const { check, body } = require('express-validator');
-const { CONTRACT_STATUSES, PARTNER_TYPES } = require('../utils/constants');
+const { CONTRACT_STATUSES, PARTNER_TYPES, ANNEX_ACTIONS, ANNEX_STATUSES } = require('../utils/constants');
 
 // Reusable validation helpers
 const isMongoId = (field) => check(field).isMongoId().withMessage(`Invalid ${field} ID`);
@@ -246,7 +246,221 @@ const economicContractValidator = {
   ],
 };
 
+const principalContractValidator = {
+  validateGetAllContracts: [
+    isPositiveInt('page').optional(),
+    isPositiveInt('limit').optional(),
+    isMongoId('created_by').optional(),
+    isMongoId('partner_id').optional(),
+    check('partner_type')
+      .optional()
+      .isIn(Object.values(PARTNER_TYPES))
+      .withMessage(`Partner type must be one of: ${Object.values(PARTNER_TYPES).join(', ')}`),
+    check('status')
+      .optional()
+      .isIn(Object.values(CONTRACT_STATUSES))
+      .withMessage(`Status must be one of: ${Object.values(CONTRACT_STATUSES).join(', ')}`),
+    check('contract_code')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ min: 1 })
+      .withMessage('Contract code must be a non-empty string'),
+  ],
+
+  validateGetPrincipalContractById: [isMongoId('id').withMessage('Invalid contract ID')],
+
+  validateCreatePrincipalContract: [
+    check('contract_code')
+      .isString()
+      .withMessage('Contract code must be a string')
+      .notEmpty()
+      .withMessage('Contract code is required'),
+    isMongoId('partner_id'),
+    check('partner_type')
+      .isIn(Object.values(PARTNER_TYPES))
+      .withMessage(`Partner type must be one of: ${Object.values(PARTNER_TYPES).join(', ')}`),
+    check('start_date')
+      .exists()
+      .withMessage('Start date is required')
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid start date'),
+    check('end_date')
+      .exists()
+      .withMessage('End date is required')
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid end date'),
+    body('end_date').custom((endDate, { req }) => {
+      if (new Date(endDate) < new Date(req.body.start_date)) {
+        throw new Error('End date must be after or equal to start date');
+      }
+      return true;
+    }),
+    check('items').isArray({ min: 1 }).withMessage('Items must be a non-empty array'),
+    check('items.*.medicine_id')
+      .exists()
+      .withMessage('Medicine ID is required')
+      .isMongoId()
+      .withMessage('Invalid medicine ID'),
+    check('items.*.unit_price')
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage('Unit price must be a non-negative number'),
+    check('status')
+      .optional()
+      .isIn(Object.values(CONTRACT_STATUSES))
+      .withMessage(`Status must be one of: ${Object.values(CONTRACT_STATUSES).join(', ')}`),
+  ],
+
+  validateUpdatePrincipalContract: [
+    isMongoId('id').withMessage('Invalid contract ID'),
+    check('contract_code')
+      .isString()
+      .withMessage('Contract code must be a string')
+      .notEmpty()
+      .withMessage('Contract code is required'),
+    isMongoId('partner_id'),
+    check('partner_type')
+      .isIn(Object.values(PARTNER_TYPES))
+      .withMessage(`Partner type must be one of: ${Object.values(PARTNER_TYPES).join(', ')}`),
+    check('start_date')
+      .exists()
+      .withMessage('Start date is required')
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid start date'),
+    check('end_date')
+      .exists()
+      .withMessage('End date is required')
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid end date'),
+    body('end_date').custom((endDate, { req }) => {
+      if (new Date(endDate) < new Date(req.body.start_date)) {
+        throw new Error('End date must be after or equal to start date');
+      }
+      return true;
+    }),
+    check('items').isArray({ min: 1 }).withMessage('Items must be a non-empty array'),
+    check('items.*.medicine_id')
+      .exists()
+      .withMessage('Medicine ID is required')
+      .isMongoId()
+      .withMessage('Invalid medicine ID'),
+    check('items.*.unit_price')
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage('Unit price must be a non-negative number'),
+  ],
+
+  validateUpdateContractStatus: [
+    isMongoId('id').withMessage('Invalid contract ID'),
+    check('status')
+      .exists()
+      .withMessage('Status is required')
+      .isIn(Object.values(CONTRACT_STATUSES))
+      .withMessage(`Status must be one of: ${Object.values(CONTRACT_STATUSES).join(', ')}`),
+  ],
+
+  validateCreateAnnex: [
+    isMongoId('id').withMessage('Invalid contract ID'),
+    check('annex_code')
+      .isString()
+      .withMessage('Annex code must be a string')
+      .notEmpty()
+      .withMessage('Annex code is required'),
+    check('action')
+      .exists()
+      .withMessage('Action is required')
+      .isIn(Object.values(ANNEX_ACTIONS))
+      .withMessage(`Action must be one of: ${Object.values(ANNEX_ACTIONS).join(', ')}`),
+    check('items')
+      .if((value, { req }) => [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action))
+      .isArray({ min: 1 })
+      .withMessage('Items must be a non-empty array for add, remove, or update_price actions'),
+    check('items.*.medicine_id')
+      .if((value, { req }) => [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action))
+      .exists()
+      .withMessage('Medicine ID is required')
+      .isMongoId()
+      .withMessage('Invalid medicine ID'),
+    check('items.*.unit_price')
+      .if((value, { req }) => [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action))
+      .exists()
+      .withMessage('Unit price is required for add or update_price actions')
+      .isFloat({ min: 0 })
+      .withMessage('Unit price must be a non-negative number'),
+    check('end_date')
+      .if((value, { req }) => req.body.action === ANNEX_ACTIONS.UPDATE_END_DATE)
+      .exists()
+      .withMessage('End date is required for update_end_date action')
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid end date'),
+    check('description').optional().isString().withMessage('Description must be a string'),
+    check('status')
+      .optional()
+      .isIn(Object.values(ANNEX_STATUSES))
+      .withMessage(`Annex status must be one of: ${Object.values(ANNEX_STATUSES).join(', ')}`),
+  ],
+
+  validateUpdateAnnex: [
+    isMongoId('id').withMessage('Invalid contract ID'),
+    check('annex_code')
+      .isString()
+      .withMessage('Annex code must be a string')
+      .notEmpty()
+      .withMessage('Annex code is required'),
+    check('action')
+      .exists()
+      .withMessage('Action is required')
+      .isIn(Object.values(ANNEX_ACTIONS))
+      .withMessage(`Action must be one of: ${Object.values(ANNEX_ACTIONS).join(', ')}`),
+    check('items')
+      .if((value, { req }) => [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action))
+      .isArray({ min: 1 })
+      .withMessage('Items must be a non-empty array for add, remove, or update_price actions'),
+    check('items.*.medicine_id')
+      .if((value, { req }) => [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action))
+      .exists()
+      .withMessage('Medicine ID is required')
+      .isMongoId()
+      .withMessage('Invalid medicine ID'),
+    check('items.*.unit_price')
+      .if((value, { req }) => [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action))
+      .exists()
+      .withMessage('Unit price is required for add or update_price actions')
+      .isFloat({ min: 0 })
+      .withMessage('Unit price must be a non-negative number'),
+    check('end_date')
+      .if((value, { req }) => req.body.action === ANNEX_ACTIONS.UPDATE_END_DATE)
+      .exists()
+      .withMessage('End date is required for update_end_date action')
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid end date'),
+    check('description').optional().isString().withMessage('Description must be a string'),
+  ],
+
+  validateUpdateAnnexStatus: [
+    isMongoId('id').withMessage('Invalid contract ID'),
+    check('annex_code')
+      .isString()
+      .withMessage('Annex code must be a string')
+      .notEmpty()
+      .withMessage('Annex code is required'),
+    check('status')
+      .exists()
+      .withMessage('Annex status is required')
+      .isIn(Object.values(ANNEX_STATUSES))
+      .withMessage(`Annex status must be one of: ${Object.values(ANNEX_STATUSES).join(', ')}`),
+  ],
+};
+
 module.exports = {
   supplierContract,
   economicContractValidator,
+  principalContractValidator,
 };

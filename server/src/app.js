@@ -20,7 +20,7 @@ app.use(
   cors({
     origin: config.allowedOrigins,
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   }),
 );
@@ -34,14 +34,25 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ message: 'OK ✅ Server running' });
 });
 
+// Test route để kiểm tra authentication
+app.get('/api/test-auth', authenticate, (req, res) => {
+  res.status(200).json({ 
+    message: 'Authentication working',
+    user: {
+      id: req.user._id,
+      email: req.user.email,
+      role: req.user.role
+    }
+  });
+});
+
 // Public routes
 app.use('/api/auth', route.authRoutes);
 app.use('/api/cron', route.cronRoutes);
 app.use('/api/medicine', route.medicineRoutes);
 app.use('/api/import-inspections', route.importInspectionRoutes);
 app.use('/api/notifications', route.notificationRoutes);
-app.use('/api/import-orders', route.importOrderRoutes);
-app.use('api/thingsboard', route.thingsboardRoutes);
+app.use('/api/thingsboard', route.thingsboardRoutes);
 app.use('/api/batch', route.batchRoutes);
 app.use('/api/packages', route.packageRoutes);
 app.use('/api/areas', route.areaRoutes);
@@ -49,7 +60,7 @@ app.use('/api/locations', route.locationRoutes);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
-app.use('/api/supplier-contracts', route.supplierContractRoutes);
+app.use('/api/supplier-contracts', authenticate, authorize(['supervisor', 'representative', 'representative_manager']), route.supplierContractRoutes);
 app.use(
   '/api/inspections',
   authenticate,
@@ -64,11 +75,12 @@ app.use(
   authorize(['supervisor', 'representative']),
   route.accountRoutes,
 );
+
+// Import orders - protected route
+app.use('/api/import-orders', route.importOrderRoutes);
+
 app.use('/api/stripe', route.stripeRoutes);
 app.use('/api/bills', route.billRoutes);
-app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
-app.use('/api/accounts', authenticate, authorize('supervisor'), route.accountRoutes);
-app.use('/api/supplier-contract', route.supplierContractRoutes);
 app.use('/api/supplier', route.supplierRoutes);
 app.use('/api/economic-contracts', route.economicContractRoutes);
 

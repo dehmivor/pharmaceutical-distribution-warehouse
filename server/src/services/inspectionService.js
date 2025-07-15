@@ -31,7 +31,6 @@ const getInspections = async ({ page, limit, filters }) => {
 
   const inspections = await ImportInspection.find(filters)
     .populate('import_order_id', 'order_code status')
-    .populate('batch_id', 'batch_code production_date expiry_date')
     .populate('created_by', 'name email')
     .sort({ createdAt: -1 })
     .skip(skip)
@@ -81,7 +80,6 @@ const getInspectionsForApprove = async ({ page, limit, filters, populateOptions 
 const getInspectionById = async (id) => {
   const inspection = await ImportInspection.findById(id)
     .populate('import_order_id')
-    .populate('batch_id')
     .populate('created_by', 'name email');
 
   if (!inspection) {

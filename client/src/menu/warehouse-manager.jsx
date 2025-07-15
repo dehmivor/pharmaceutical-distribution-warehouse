@@ -4,23 +4,20 @@ const warehouseManager = {
   icon: 'IconBrandAsana',
   type: 'group',
   children: [
-    // 1. Quản lý import orders (chính)
     {
       id: 'manage-import-orders',
       title: 'Import Orders Management',
       type: 'item',
-      url: '/warehouse-import-orders',
+      url: '/wm-import-orders',
       icon: 'IconFileImport'
     },
-    // 2. Quản lý inventory
     {
-      id: 'manage-inventory',
+      id: 'inventory-management',
       title: 'Inventory Management',
       type: 'item',
-      url: '/inventory',
+      url: '/wm-dashboard-import',
       icon: 'IconBoxMultiple'
     },
-    // 3. Quản lý đơn nhập (inbound)
     {
       id: 'inbound-order-management',
       title: 'Inbound Orders',
@@ -28,41 +25,26 @@ const warehouseManager = {
       icon: 'IconFileImport',
       children: [
         {
-          id: 'waiting-for-inbound-approval',
-          title: 'Pending Approval',
-          type: 'item',
-          url: '/inbound-orders/approval',
-          icon: 'IconClock'
-        },
-        {
-          id: 'waiting-for-packetization',
-          title: 'Pending Packetization',
-          type: 'item',
-          url: '/waiting-for-packetization',
-          icon: 'IconFileExport'
-        },
-        {
           id: 'assigned-inbound-order',
-          title: 'Assigned inbound order',
+          title: 'Assigned Inbound Order',
           type: 'item',
-          url: '/assigned-inbound-order',
+          url: '/wm-assigned-inbound-order',
           icon: 'IconFileImport'
-        },
+        }
       ]
     },
-    // 4. Quản lý đơn xuất (outbound)
     {
-      id: 'outbound-order-management',
-      title: 'Outbound Orders',
+      id: 'checking',
+      title: 'Checking',
       type: 'collapse',
       icon: 'IconFileExport',
       children: [
         {
-          id: 'waiting-for-outbound-approval',
-          title: 'Pending Approval',
+          id: 'manage-inventory-checking',
+          title: 'Manage Inventory',
           type: 'item',
-          url: '/outbound-orders/approval',
-          icon: 'IconClock'
+          url: '/wm-manage-inventory',
+          icon: 'IconFileExport'
         }
       ]
     }
