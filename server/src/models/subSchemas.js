@@ -213,6 +213,7 @@ const itemContractSchema = new mongoose.Schema({
     min: [0, 'Unit price cannot be negative'],
     required: [true, 'Unit price is required'],
   },
+  },
   { _id: false },
 );
 
