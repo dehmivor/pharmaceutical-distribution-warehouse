@@ -27,12 +27,11 @@ export default function NavItem({ item, level = 0, pathname }) {
   const downMD = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
-  if (pathname.startsWith(item.url)) {
-    handlerActiveItem(item.id);
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [pathname]);
-
+    if (pathname.startsWith(item.url)) {
+      handlerActiveItem(item.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const iconcolor = theme.palette.text.primary;
 
@@ -42,35 +41,34 @@ export default function NavItem({ item, level = 0, pathname }) {
 
   return (
     <ListItemButton
-    id={`${item.id}-btn`}
-    component={Link}
-    href={item.url}
-    {...(item?.target && { target: '_blank' })}
-    selected={isActive}
-    disabled={item.disabled}
-    onClick={itemHandler}
-    sx={{
-      color: 'text.primary',
-      ...(level === 0 && { my: 0.25, '&.Mui-selected.Mui-focusVisible': { bgcolor: 'primary.light' } }),
-      ...(level > 0 && {
-        '&.Mui-selected': {
-          color: 'primary.main',
-          bgcolor: 'transparent',
-          '&:hover': { bgcolor: 'action.hover' },
-          '&.Mui-focusVisible': { bgcolor: 'action.focus' },
-          '& .MuiTypography-root': { fontWeight: 600 }
-        }
-      })
-    }}
-  >
-    {level === 0 && (
-      <ListItemIcon>
-        <DynamicIcon name={item.icon} color={iconcolor} size={18} stroke={1.5} />
-      </ListItemIcon>
-    )}
-    <ListItemText primary={item.title} sx={{ mb: '-1px' }} />
-  </ListItemButton>
-
+      id={`${item.id}-btn`}
+      component={Link}
+      href={item.url}
+      {...(item?.target && { target: '_blank' })}
+      selected={isActive}
+      disabled={item.disabled}
+      onClick={itemHandler}
+      sx={{
+        color: 'text.primary',
+        ...(level === 0 && { my: 0.25, '&.Mui-selected.Mui-focusVisible': { bgcolor: 'primary.light' } }),
+        ...(level > 0 && {
+          '&.Mui-selected': {
+            color: 'primary.main',
+            bgcolor: 'transparent',
+            '&:hover': { bgcolor: 'action.hover' },
+            '&.Mui-focusVisible': { bgcolor: 'action.focus' },
+            '& .MuiTypography-root': { fontWeight: 600 }
+          }
+        })
+      }}
+    >
+      {level === 0 && (
+        <ListItemIcon>
+          <DynamicIcon name={item.icon} color={iconcolor} size={18} stroke={1.5} />
+        </ListItemIcon>
+      )}
+      <ListItemText primary={item.title} sx={{ mb: '-1px' }} />
+    </ListItemButton>
   );
 }
 

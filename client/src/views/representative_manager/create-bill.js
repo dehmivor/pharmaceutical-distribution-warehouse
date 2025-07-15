@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import React, { useState } from 'react';
 import { Box, TextField, Button, Typography } from '@mui/material';
 
@@ -6,13 +6,13 @@ function CreateBill() {
   const [billData, setBillData] = useState({
     customerName: '',
     amount: '',
-    description: '',
+    description: ''
   });
 
   const handleChange = (e) => {
     setBillData({
       ...billData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: e.target.value
     });
   };
 
@@ -31,37 +31,19 @@ function CreateBill() {
         mt: 4,
         display: 'flex',
         flexDirection: 'column',
-        gap: 2,
+        gap: 2
       }}
       onSubmit={handleSubmit}
     >
-      <Typography variant="h5" align="center">Tạo Hóa Đơn</Typography>
+      <Typography variant="h5" align="center">
+        Tạo Hóa Đơn
+      </Typography>
 
-      <TextField
-        label="Tên khách hàng"
-        name="customerName"
-        value={billData.customerName}
-        onChange={handleChange}
-        required
-      />
+      <TextField label="Tên khách hàng" name="customerName" value={billData.customerName} onChange={handleChange} required />
 
-      <TextField
-        label="Số tiền"
-        name="amount"
-        type="number"
-        value={billData.amount}
-        onChange={handleChange}
-        required
-      />
+      <TextField label="Số tiền" name="amount" type="number" value={billData.amount} onChange={handleChange} required />
 
-      <TextField
-        label="Mô tả"
-        name="description"
-        multiline
-        rows={3}
-        value={billData.description}
-        onChange={handleChange}
-      />
+      <TextField label="Mô tả" name="description" multiline rows={3} value={billData.description} onChange={handleChange} />
 
       <Button variant="contained" type="submit">
         Tạo hóa đơn

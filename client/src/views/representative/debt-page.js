@@ -1,5 +1,5 @@
-'use client'
-import React, { useState, useMemo } from 'react';
+'use client';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Tabs,
@@ -20,45 +20,27 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Typography,
+  Typography
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 
 function DebtPage() {
   const router = useRouter();
-  // Dữ liệu công nợ nhập
-  const [debtIn] = useState([
-    { id: 1, supplier: 'Nhà cung cấp A', amount: 1000000, dueDate: '2025-07-20', item: 'Mặt hàng 1', description: 'Công nợ nhập tháng 7' },
-    { id: 2, supplier: 'Nhà cung cấp B', amount: 2000000, dueDate: '2025-04-15', item: 'Mặt hàng 2', description: 'Công nợ nhập tháng 4' },
-    { id: 3, supplier: 'Nhà cung cấp A', amount: 1500000, dueDate: '2025-01-10', item: 'Mặt hàng 3', description: 'Công nợ nhập tháng 1' },
-  ]);
 
-  // Dữ liệu công nợ xuất
-  const [debtOut] = useState([
-    { id: 1, customer: 'Khách hàng X', amount: 1500000, dueDate: '2025-07-22', item: 'Mặt hàng 1', description: 'Công nợ xuất tháng 7' },
-    { id: 2, customer: 'Khách hàng Y', amount: 2500000, dueDate: '2025-10-28', item: 'Mặt hàng 2', description: 'Công nợ xuất tháng 10' },
-    { id: 3, customer: 'Khách hàng X', amount: 1800000, dueDate: '2025-02-15', item: 'Mặt hàng 3', description: 'Công nợ xuất tháng 2' },
-  ]);
+  const [bills, setBills] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Tab hiện tại
   const [tab, setTab] = useState(0);
 
-  // Bộ lọc công nợ nhập
-  const [filterSupplier, setFilterSupplier] = useState('');
-  const [filterQuarterIn, setFilterQuarterIn] = useState('');
-  const [filterItemIn, setFilterItemIn] = useState('');
+  const [filterQuarter, setFilterQuarter] = useState('');
+  const [filterMedicineCode, setFilterMedicineCode] = useState('');
 
-  // Bộ lọc công nợ xuất
-  const [filterCustomer, setFilterCustomer] = useState('');
-  const [filterQuarterOut, setFilterQuarterOut] = useState('');
-  const [filterItemOut, setFilterItemOut] = useState('');
-
-  // Modal chi tiết
   const [openDetail, setOpenDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
 
-  // Hàm lấy quý từ tháng
   const getQuarter = (dateStr) => {
+    if (!dateStr) return '';
     const month = new Date(dateStr).getMonth() + 1;
     if (month >= 1 && month <= 3) return 'Quý 1';
     if (month >= 4 && month <= 6) return 'Quý 2';
@@ -66,32 +48,49 @@ function DebtPage() {
     return 'Quý 4';
   };
 
-  // Lọc công nợ nhập
-  const filteredDebtIn = useMemo(() => {
-    return debtIn.filter(d =>
-      (!filterSupplier || d.supplier === filterSupplier) &&
-      (!filterQuarterIn || getQuarter(d.dueDate) === filterQuarterIn) &&
-      (!filterItemIn || d.item === filterItemIn)
-    );
-  }, [debtIn, filterSupplier, filterQuarterIn, filterItemIn]);
+  useEffect(() => {
+    async function fetchBills() {
+      try {
+        setLoading(true);
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || '';
+        const res = await fetch(`${backendUrl}/api/bills`);
+        if (!res.ok) throw new Error('Failed to fetch bills');
+        const data = await res.json();
+        setBills(data.data || []);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchBills();
+  }, []);
 
-  // Lọc công nợ xuất
-  const filteredDebtOut = useMemo(() => {
-    return debtOut.filter(d =>
-      (!filterCustomer || d.customer === filterCustomer) &&
-      (!filterQuarterOut || getQuarter(d.dueDate) === filterQuarterOut) &&
-      (!filterItemOut || d.item === filterItemOut)
-    );
-  }, [debtOut, filterCustomer, filterQuarterOut, filterItemOut]);
+  const calcAmount = (details) => {
+    if (!details || details.length === 0) return 0;
+    return details.reduce((sum, d) => sum + d.quantity * d.unit_price, 0);
+  };
 
-  // Options bộ lọc
-  const suppliers = [...new Set(debtIn.map(d => d.supplier))];
-  const customers = [...new Set(debtOut.map(d => d.customer))];
+  const filteredBills = useMemo(() => {
+    let filtered = bills;
+    filtered = filtered.filter((b) => (tab === 0 ? b.type === 'IMPORT' : b.type === 'EXPORT'));
+
+    if (filterQuarter) {
+      filtered = filtered.filter((b) => getQuarter(b.payment_date) === filterQuarter);
+    }
+
+    if (filterMedicineCode) {
+      filtered = filtered.filter((b) =>
+        b.details.some((d) => d.medicine_lisence_code.toLowerCase().includes(filterMedicineCode.toLowerCase()))
+      );
+    }
+
+    return filtered;
+  }, [bills, tab, filterQuarter, filterMedicineCode]);
+
   const quarters = ['Quý 1', 'Quý 2', 'Quý 3', 'Quý 4'];
-  const itemsIn = [...new Set(debtIn.map(d => d.item))];
-  const itemsOut = [...new Set(debtOut.map(d => d.item))];
 
-  // Xử lý mở modal chi tiết
   const handleOpenDetail = (data) => {
     setDetailData(data);
     setOpenDetail(true);
@@ -102,164 +101,193 @@ function DebtPage() {
     setDetailData(null);
   };
 
-  // Xử lý tạo phiếu thu/chi (demo)
   const handleCreateVoucher = (type, data) => {
-  router.push(`/rp-create-bills/${data.id}`);
-};
+    router.push(`/rp-create-bills/${data._id}`);
+  };
+
+  if (loading) return <Typography>Đang tải dữ liệu...</Typography>;
+  if (error) return <Typography color="error">Lỗi: {error}</Typography>;
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>Quản lý công nợ</Typography>
+      <Typography variant="h4" gutterBottom>
+        Quản lý công nợ
+      </Typography>
 
       <Tabs value={tab} onChange={(e, newVal) => setTab(newVal)} sx={{ mb: 3 }}>
         <Tab label="Công nợ nhập" />
         <Tab label="Công nợ xuất" />
       </Tabs>
 
-      {tab === 0 && (
-        <>
-          {/* Bộ lọc công nợ nhập */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-            <FormControl sx={{ minWidth: 160 }}>
-              <InputLabel>Nhà cung cấp</InputLabel>
-              <Select value={filterSupplier} label="Nhà cung cấp" onChange={e => setFilterSupplier(e.target.value)}>
-                <MenuItem value="">Tất cả</MenuItem>
-                {suppliers.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-              </Select>
-            </FormControl>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+        <FormControl sx={{ minWidth: 120 }}>
+          <InputLabel>Quý</InputLabel>
+          <Select value={filterQuarter} label="Quý" onChange={(e) => setFilterQuarter(e.target.value)}>
+            <MenuItem value="">Tất cả</MenuItem>
+            {quarters.map((q) => (
+              <MenuItem key={q} value={q}>
+                {q}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-            <FormControl sx={{ minWidth: 120 }}>
-              <InputLabel>Quý</InputLabel>
-              <Select value={filterQuarterIn} label="Quý" onChange={e => setFilterQuarterIn(e.target.value)}>
-                <MenuItem value="">Tất cả</MenuItem>
-                {quarters.map(q => <MenuItem key={q} value={q}>{q}</MenuItem>)}
-              </Select>
-            </FormControl>
+        <FormControl sx={{ minWidth: 200 }}>
+          <InputLabel>Mã thuốc</InputLabel>
+          <Select value={filterMedicineCode} label="Mã thuốc" onChange={(e) => setFilterMedicineCode(e.target.value)} displayEmpty>
+            <MenuItem value="">Tất cả</MenuItem>
+            {[...new Set(bills.flatMap((b) => b.details.map((d) => d.medicine_lisence_code)))].map((code) => (
+              <MenuItem key={code} value={code}>
+                {code}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
 
-            <FormControl sx={{ minWidth: 160 }}>
-              <InputLabel>Mặt hàng</InputLabel>
-              <Select value={filterItemIn} label="Mặt hàng" onChange={e => setFilterItemIn(e.target.value)}>
-                <MenuItem value="">Tất cả</MenuItem>
-                {itemsIn.map(i => <MenuItem key={i} value={i}>{i}</MenuItem>)}
-              </Select>
-            </FormControl>
-          </Box>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>{tab === 0 ? 'Nhà cung cấp' : 'Khách hàng'}</TableCell>
+              <TableCell>Mã phiếu</TableCell>
+              <TableCell>Mã thuốc</TableCell>
+              <TableCell align="right">Tổng tiền (VNĐ)</TableCell>
+              <TableCell>Ngày thanh toán</TableCell>
+              <TableCell>Trạng thái</TableCell>
+              <TableCell align="center">Thao tác</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredBills.length > 0 ? (
+              filteredBills.map((bill) => (
+                <TableRow key={bill._id}>
+                  <TableCell>
+                    {tab === 0
+                      ? bill.import_order_id
+                        ? bill.import_order_id._id // Bạn có thể thay bằng tên nhà cung cấp nếu có trường tên
+                        : 'N/A'
+                      : bill.export_order_id
+                        ? bill.export_order_id._id // Bạn có thể thay bằng tên khách hàng nếu có trường tên
+                        : 'N/A'}
+                  </TableCell>
 
-          {/* Bảng công nợ nhập */}
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Nhà cung cấp</TableCell>
-                  <TableCell>Mặt hàng</TableCell>
-                  <TableCell align="right">Số tiền (VNĐ)</TableCell>
-                  <TableCell>Ngày đến hạn</TableCell>
-                  <TableCell align="center">Thao tác</TableCell>
+                  <TableCell>{bill.voucher_code || 'N/A'}</TableCell>
+
+                  <TableCell>{bill.details.map((d) => d.medicine_lisence_code).join(', ')}</TableCell>
+
+                  <TableCell align="right">{calcAmount(bill.details).toLocaleString()}</TableCell>
+
+                  <TableCell>{bill.payment_date ? new Date(bill.payment_date).toLocaleDateString() : 'N/A'}</TableCell>
+
+                  <TableCell>{bill.status}</TableCell>
+
+                  <TableCell align="center">
+                    <Button
+                      size="small"
+                      variant="contained"
+                      color="primary"
+                      sx={{ mr: 1 }}
+                      onClick={() => handleCreateVoucher(tab === 0 ? 'chi' : 'thu', bill)}
+                    >
+                      {tab === 0 ? 'Tạo phiếu chi' : 'Tạo phiếu thu'}
+                    </Button>
+                    <Button size="small" variant="outlined" onClick={() => handleOpenDetail(bill)}>
+                      Xem chi tiết
+                    </Button>
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredDebtIn.length > 0 ? filteredDebtIn.map(row => (
-                  <TableRow key={row.id}>
-                    <TableCell>{row.supplier}</TableCell>
-                    <TableCell>{row.item}</TableCell>
-                    <TableCell align="right">{row.amount.toLocaleString()}</TableCell>
-                    <TableCell>{row.dueDate}</TableCell>
-                    <TableCell align="center">
-                      <Button size="small" variant="contained" color="primary" sx={{ mr: 1 }}
-                        onClick={() => handleCreateVoucher('in', row)}>Tạo phiếu chi</Button>
-                      <Button size="small" variant="outlined" onClick={() => handleOpenDetail(row)}>Xem chi tiết</Button>
-                    </TableCell>
-                  </TableRow>
-                )) : (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center">Không có dữ liệu phù hợp</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </>
-      )}
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} align="center">
+                  Không có dữ liệu phù hợp
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-      {tab === 1 && (
-        <>
-          {/* Bộ lọc công nợ xuất */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-            <FormControl sx={{ minWidth: 160 }}>
-              <InputLabel>Khách hàng</InputLabel>
-              <Select value={filterCustomer} label="Khách hàng" onChange={e => setFilterCustomer(e.target.value)}>
-                <MenuItem value="">Tất cả</MenuItem>
-                {customers.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-              </Select>
-            </FormControl>
-
-            <FormControl sx={{ minWidth: 120 }}>
-              <InputLabel>Quý</InputLabel>
-              <Select value={filterQuarterOut} label="Quý" onChange={e => setFilterQuarterOut(e.target.value)}>
-                <MenuItem value="">Tất cả</MenuItem>
-                {quarters.map(q => <MenuItem key={q} value={q}>{q}</MenuItem>)}
-              </Select>
-            </FormControl>
-
-            <FormControl sx={{ minWidth: 160 }}>
-              <InputLabel>Mặt hàng</InputLabel>
-              <Select value={filterItemOut} label="Mặt hàng" onChange={e => setFilterItemOut(e.target.value)}>
-                <MenuItem value="">Tất cả</MenuItem>
-                {itemsOut.map(i => <MenuItem key={i} value={i}>{i}</MenuItem>)}
-              </Select>
-            </FormControl>
-          </Box>
-
-          {/* Bảng công nợ xuất */}
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Khách hàng</TableCell>
-                  <TableCell>Mặt hàng</TableCell>
-                  <TableCell align="right">Số tiền (VNĐ)</TableCell>
-                  <TableCell>Ngày đến hạn</TableCell>
-                  <TableCell align="center">Thao tác</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredDebtOut.length > 0 ? filteredDebtOut.map(row => (
-                  <TableRow key={row.id}>
-                    <TableCell>{row.customer}</TableCell>
-                    <TableCell>{row.item}</TableCell>
-                    <TableCell align="right">{row.amount.toLocaleString()}</TableCell>
-                    <TableCell>{row.dueDate}</TableCell>
-                    <TableCell align="center">
-                      <Button size="small" variant="contained" color="primary" sx={{ mr: 1 }}
-                        onClick={() => handleCreateVoucher('out', row)}>Tạo phiếu thu</Button>
-                      <Button size="small" variant="outlined" onClick={() => handleOpenDetail(row)}>Xem chi tiết</Button>
-                    </TableCell>
-                  </TableRow>
-                )) : (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center">Không có dữ liệu phù hợp</TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </>
-      )}
-
-      {/* Modal chi tiết */}
-      <Dialog open={openDetail} onClose={handleCloseDetail} maxWidth="sm" fullWidth>
+      <Dialog open={openDetail} onClose={handleCloseDetail} maxWidth="md" fullWidth>
         <DialogTitle>Chi tiết công nợ</DialogTitle>
         <DialogContent dividers>
           {detailData && (
             <>
-              <Typography><strong>{detailData.supplier ? 'Nhà cung cấp' : 'Khách hàng'}:</strong> {detailData.supplier || detailData.customer}</Typography>
-              <Typography><strong>Mặt hàng:</strong> {detailData.item}</Typography>
-              <Typography><strong>Số tiền:</strong> {detailData.amount.toLocaleString()} VNĐ</Typography>
-              <Typography><strong>Ngày đến hạn:</strong> {detailData.dueDate}</Typography>
-              <Typography><strong>Mô tả:</strong> {detailData.description}</Typography>
+              <Typography>
+                <strong>Mã phiếu:</strong> {detailData.voucher_code || 'N/A'}
+              </Typography>
+              <Typography>
+                <strong>Loại phiếu:</strong> {detailData.type}
+              </Typography>
+              <Typography>
+                <strong>Ngày thanh toán:</strong>{' '}
+                {detailData.payment_date ? new Date(detailData.payment_date).toLocaleDateString() : 'N/A'}
+              </Typography>
+              <Typography>
+                <strong>Trạng thái:</strong> {detailData.status}
+              </Typography>
+
+              {detailData.import_order_id && detailData.import_order_id.details && (
+                <>
+                  <Typography sx={{ mt: 2 }}>
+                    <strong>Chi tiết thuốc trong đơn nhập:</strong>
+                  </Typography>
+                  <Table size="small" sx={{ mb: 2 }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Mã thuốc</TableCell>
+                        <TableCell>Tên thuốc</TableCell>
+                        <TableCell>Số lượng</TableCell>
+                        <TableCell>Đơn giá (VNĐ)</TableCell>
+                        <TableCell>Thành tiền (VNĐ)</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {detailData.import_order_id.details.map((d) => (
+                        <TableRow key={d._id}>
+                          <TableCell>{d.medicine_id?.license_code || 'N/A'}</TableCell>
+                          <TableCell>{d.medicine_id?.medicine_name || 'N/A'}</TableCell>
+                          <TableCell>{d.quantity}</TableCell>
+                          <TableCell>{d.unit_price.toLocaleString()}</TableCell>
+                          <TableCell>{(d.quantity * d.unit_price).toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </>
+              )}
+
+              <Typography sx={{ mt: 2 }}>
+                <strong>Chi tiết thuốc trong phiếu:</strong>
+              </Typography>
+              <Table size="small" sx={{ mb: 2 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Mã thuốc</TableCell>
+                    <TableCell>Số lượng</TableCell>
+                    <TableCell>Đơn giá (VNĐ)</TableCell>
+                    <TableCell>Thành tiền (VNĐ)</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {detailData.details.map((d) => (
+                    <TableRow key={d._id}>
+                      <TableCell>{d.medicine_lisence_code}</TableCell>
+                      <TableCell>{d.quantity}</TableCell>
+                      <TableCell>{d.unit_price.toLocaleString()}</TableCell>
+                      <TableCell>{(d.quantity * d.unit_price).toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <Typography>
+                <strong>Tổng tiền:</strong> {calcAmount(detailData.details).toLocaleString()} VNĐ
+              </Typography>
             </>
           )}
         </DialogContent>
+
         <DialogActions>
           <Button onClick={handleCloseDetail}>Đóng</Button>
         </DialogActions>

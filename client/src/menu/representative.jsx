@@ -66,7 +66,7 @@ const representative = {
       title: 'Create Bills',
       type: 'item',
       url: '/rp-create-bills',
-      icon: 'IconReceipt' 
+      icon: 'IconReceipt'
     }
   ]
 };

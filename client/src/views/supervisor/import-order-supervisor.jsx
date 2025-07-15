@@ -166,10 +166,9 @@ function ImportOrderSupervisor() {
 
       // Update warehouse manager if changed
       if (editForm.warehouse_manager_id !== (selectedOrder.warehouse_manager_id?._id || '')) {
-        await axiosInstance.patch(
-          `/import-orders/${selectedOrder._id}/assign-warehouse-manager`,
-          { warehouse_manager_id: editForm.warehouse_manager_id }
-        );
+        await axiosInstance.patch(`/import-orders/${selectedOrder._id}/assign-warehouse-manager`, {
+          warehouse_manager_id: editForm.warehouse_manager_id
+        });
       }
 
       setSuccess('Order updated successfully');
@@ -199,7 +198,7 @@ function ImportOrderSupervisor() {
     try {
       // Lấy thông tin user từ localStorage hoặc context
       const userInfo = JSON.parse(localStorage.getItem('user-info') || '{}');
-      
+
       await createNotification({
         recipient_id: order.warehouse_manager_id?._id, // id của warehouse_manager nhận thông báo
         sender_id: userInfo._id, // id của supervisor (người gửi)
@@ -636,7 +635,9 @@ function ImportOrderSupervisor() {
           <b>Hành động này không thể hoàn tác.</b>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelStatusChange} color="secondary">No</Button>
+          <Button onClick={handleCancelStatusChange} color="secondary">
+            No
+          </Button>
           <Button onClick={handleConfirmStatusChange} color="primary" autoFocus disabled={actionLoading}>
             {actionLoading ? <CircularProgress size={20} /> : 'Yes'}
           </Button>
