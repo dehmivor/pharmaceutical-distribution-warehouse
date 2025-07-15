@@ -4,7 +4,7 @@ const { EXPORT_ORDER_STATUSES, USER_ROLES } = require("../utils/constants")
 
 // Helper function for population to ensure consistent data structure
 const populateOptions = [
-  { path: "contract_id", select: "contract_number" },
+  { path: "contract_id", select: "contract_code" }, // Đã sửa từ contract_number sang contract_code
   { path: "created_by", select: "email" },
   { path: "warehouse_manager_id", select: "email" }, // Populating assigned staff's email
   { path: "details.medicine_id", select: "medicine_name unit_of_measure" }, // Populating medicine details

@@ -7,18 +7,16 @@ export default function AssignTask() {
   const [warehouseStaff, setWarehouseStaff] = useState([])
   const [loading, setLoading] = useState(true)
   const [staffLoading, setStaffLoading] = useState(false)
-  const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false) // Giữ lại state này nếu có thể dùng ở nơi khác
   const [packingDialogOpen, setPackingDialogOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
-  const [selectedStaffId, setSelectedStaffId] = useState("")
+  const [selectedStaffId, setSelectedStaffId] = useState("") // Giữ lại state này nếu có thể dùng ở nơi khác
   const [packingDetails, setPackingDetails] = useState([])
   const [activeTab, setActiveTab] = useState("approved")
 
-  // Lấy token xác thực từ đâu đó (ví dụ: localStorage, context, Redux store)
-  // Bạn cần thay thế logic này bằng cách lấy token thực tế của mình
+  // Lấy token xác thực từ localStorage
   const getAuthToken = () => {
-    // Ví dụ: return localStorage.getItem('authToken');
-    return "YOUR_AUTH_TOKEN_HERE" // THAY THẾ BẰNG TOKEN XÁC THỰC THỰC TẾ CỦA BẠN
+    return localStorage.getItem("auth-token") // Lấy token đã lưu
   }
 
   // Fetch warehouse staff from backend
@@ -26,9 +24,16 @@ export default function AssignTask() {
     setStaffLoading(true)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const token = getAuthToken() // Lấy token
+      if (!token) {
+        console.warn("No auth token found. Redirecting to login or showing error.")
+        setLoading(false) // Dừng loading nếu không có token
+        return
+      }
+
       const res = await fetch(`${backendUrl}/api/users?role=warehouse`, {
         headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
+          Authorization: `Bearer ${token}`, // Sử dụng token
         },
       })
       if (!res.ok) {
@@ -39,7 +44,7 @@ export default function AssignTask() {
       setWarehouseStaff(data.data) // API trả về { success: true, data: [...] }
     } catch (error) {
       console.error("Error fetching warehouse staff:", error)
-      alert(`Không thể tải danh sách nhân viên kho: ${error.message}. Vui lòng thử lại.`)
+      // alert(`Không thể tải danh sách nhân viên kho: ${error.message}. Vui lòng thử lại.`) // Bỏ thông báo này
       // Fallback to mock data for development if API fails
       const mockStaff = [
         { _id: "s1", email: "staff1@company.com", role: "warehouse" },
@@ -57,9 +62,17 @@ export default function AssignTask() {
     setLoading(true)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const token = getAuthToken() // Lấy token
+      if (!token) {
+        console.warn("No auth token found. Redirecting to login or showing error.")
+        setLoading(false) // Dừng loading nếu không có token
+        return
+      }
+
       const res = await fetch(`${backendUrl}/api/export-orders`, {
         headers: {
-          Authorization: `Bearer ${getAuthToken()}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Sử dụng token
         },
       })
       if (!res.ok) {
@@ -70,14 +83,14 @@ export default function AssignTask() {
       setExportOrders(data.data) // API trả về { success: true, data: [...] }
     } catch (error) {
       console.error("Error fetching export orders:", error)
-      alert(`Không thể tải danh sách đơn hàng xuất kho: ${error.message}. Vui lòng thử lại.`)
+      // alert(`Không thể tải danh sách đơn hàng xuất kho: ${error.message}. Vui lòng thử lại.`) // Bỏ thông báo này
       // Fallback to mock data for development if API fails
       const mockData = [
         {
           _id: "1",
           contract_id: {
             _id: "c1",
-            contract_number: "HD001",
+            contract_code: "HD001",
           },
           status: "approved",
           created_by: {
@@ -88,7 +101,7 @@ export default function AssignTask() {
             {
               medicine_id: {
                 _id: "m1",
-                medicine_name: "Paracetamol 500mg", // Đã sửa: dùng medicine_name
+                medicine_name: "Paracetamol 500mg",
                 unit_of_measure: "viên",
               },
               expected_quantity: 1000,
@@ -98,7 +111,7 @@ export default function AssignTask() {
             {
               medicine_id: {
                 _id: "m2",
-                medicine_name: "Amoxicillin 250mg", // Đã sửa: dùng medicine_name
+                medicine_name: "Amoxicillin 250mg",
                 unit_of_measure: "viên",
               },
               expected_quantity: 500,
@@ -112,7 +125,7 @@ export default function AssignTask() {
           _id: "2",
           contract_id: {
             _id: "c2",
-            contract_number: "HD002",
+            contract_code: "HD002",
           },
           status: "approved",
           created_by: {
@@ -127,7 +140,7 @@ export default function AssignTask() {
             {
               medicine_id: {
                 _id: "m3",
-                medicine_name: "Vitamin C 1000mg", // Đã sửa: dùng medicine_name
+                medicine_name: "Vitamin C 1000mg",
                 unit_of_measure: "viên",
               },
               expected_quantity: 200,
@@ -149,9 +162,10 @@ export default function AssignTask() {
     fetchWarehouseStaff()
   }, [])
 
+  // handleOpenAssignDialog và handleCloseAssignDialog không còn được sử dụng trực tiếp trên UI này
   const handleOpenAssignDialog = (order) => {
     setSelectedOrder(order)
-    setSelectedStaffId(order.warehouse_manager_id?._id || "") // Use warehouse_manager_id for assigned staff
+    setSelectedStaffId(order.warehouse_manager_id?._id || "")
     setAssignDialogOpen(true)
   }
 
@@ -180,18 +194,24 @@ export default function AssignTask() {
     )
   }
 
-  // Assign staff to order
+  // handleAssignStaff không còn được gọi từ UI này
   const handleAssignStaff = async (e) => {
     e.preventDefault()
     if (!selectedOrder || !selectedStaffId) return
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const token = getAuthToken()
+      if (!token) {
+        alert("Không có token xác thực. Vui lòng đăng nhập lại.")
+        return
+      }
+
       const res = await fetch(`${backendUrl}/api/export-orders/${selectedOrder._id}/assign-staff`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getAuthToken()}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ staffId: selectedStaffId }),
       })
@@ -202,14 +222,13 @@ export default function AssignTask() {
       }
 
       const updatedOrder = await res.json()
-      // Update local state with the data returned from the API
       setExportOrders((prev) => prev.map((order) => (order._id === selectedOrder._id ? updatedOrder.data : order)))
 
       handleCloseAssignDialog()
-      alert("Phân công nhân viên thành công!")
+      // alert("Phân công nhân viên thành công!") // Bỏ thông báo này
     } catch (error) {
       console.error("Error assigning staff:", error)
-      alert(`Phân công nhân viên thất bại: ${error.message || "Vui lòng thử lại."}`)
+      // alert(`Phân công nhân viên thất bại: ${error.message || "Vui lòng thử lại."}`) // Bỏ thông báo này
     }
   }
 
@@ -220,11 +239,17 @@ export default function AssignTask() {
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const token = getAuthToken()
+      if (!token) {
+        alert("Không có token xác thực. Vui lòng đăng nhập lại.")
+        return
+      }
+
       const res = await fetch(`${backendUrl}/api/export-orders/${selectedOrder._id}/update-packing`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getAuthToken()}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ details: packingDetails }),
       })
@@ -235,14 +260,13 @@ export default function AssignTask() {
       }
 
       const updatedOrder = await res.json()
-      // Update local state with the data returned from the API
       setExportOrders((prev) => prev.map((order) => (order._id === selectedOrder._id ? updatedOrder.data : order)))
 
       handleClosePackingDialog()
-      alert("Cập nhật đóng gói thành công!")
+      // alert("Cập nhật đóng gói thành công!") // Bỏ thông báo này
     } catch (error) {
       console.error("Error updating packing:", error)
-      alert(`Cập nhật đóng gói thất bại: ${error.message || "Vui lòng thử lại."}`)
+      // alert(`Cập nhật đóng gói thất bại: ${error.message || "Vui lòng thử lại."}`) // Bỏ thông báo này
     }
   }
 
@@ -271,11 +295,17 @@ export default function AssignTask() {
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const token = getAuthToken()
+      if (!token) {
+        alert("Không có token xác thực. Vui lòng đăng nhập lại.")
+        return
+      }
+
       const res = await fetch(`${backendUrl}${endpoint}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getAuthToken()}`,
+          Authorization: `Bearer ${token}`,
         },
       })
 
@@ -286,10 +316,10 @@ export default function AssignTask() {
 
       const updatedOrder = await res.json()
       setExportOrders((prev) => prev.map((order) => (order._id === orderId ? updatedOrder.data : order)))
-      alert(successMessage)
+      alert(successMessage) // Giữ lại thông báo này
     } catch (error) {
       console.error(`Error ${endpoint.includes("cancel") ? "cancelling" : "completing"} order:`, error)
-      alert(`${errorMessage} ${error.message || ""}`)
+      alert(`${errorMessage} ${error.message || ""}`) // Giữ lại thông báo này
     }
   }
 
@@ -457,72 +487,78 @@ export default function AssignTask() {
                     <th style={{ padding: "12px", textAlign: "left", fontWeight: "600" }}>STT</th>
                     <th style={{ padding: "12px", textAlign: "left", fontWeight: "600" }}>Số hợp đồng</th>
                     <th style={{ padding: "12px", textAlign: "left", fontWeight: "600" }}>Người tạo</th>
-                    <th style={{ padding: "12px", textAlign: "left", fontWeight: "600" }}>Nhân viên phụ trách</th>
+                    {/* <th style={{ padding: "12px", textAlign: "left", fontWeight: "600" }}>Nhân viên phụ trách</th> */}
                     <th style={{ padding: "12px", textAlign: "left", fontWeight: "600" }}>Trạng thái</th>
                     <th style={{ padding: "12px", textAlign: "left", fontWeight: "600" }}>Ngày tạo</th>
                     <th style={{ padding: "12px", textAlign: "left", fontWeight: "600" }}>Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {approvedOrders.map((order, idx) => (
-                    <tr key={order._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                      <td style={{ padding: "12px" }}>{idx + 1}</td>
-                      <td style={{ padding: "12px", fontWeight: "500" }}>{order.contract_id.contract_number}</td>
-                      <td style={{ padding: "12px" }}>{order.created_by.email}</td>
-                      <td style={{ padding: "12px" }}>
-                        {order.warehouse_manager_id ? order.warehouse_manager_id.email : "Chưa phân công"}
-                      </td>
-                      <td style={{ padding: "12px" }}>{getStatusBadge(order.status)}</td>
-                      <td style={{ padding: "12px" }}>{new Date(order.createdAt).toLocaleDateString("vi-VN")}</td>
-                      <td style={{ padding: "12px" }}>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <button
-                            onClick={() => handleOpenAssignDialog(order)}
-                            style={{
-                              padding: "6px 12px",
-                              border: "1px solid #d1d5db",
-                              backgroundColor: "white",
-                              borderRadius: "4px",
-                              cursor: "pointer",
-                              fontSize: "12px",
-                            }}
-                          >
-                            {order.warehouse_manager_id ? "Thay đổi" : "Phân công"}
-                          </button>
-                          <button
-                            onClick={() => handleOpenPackingDialog(order)}
-                            disabled={!order.warehouse_manager_id}
-                            style={{
-                              padding: "6px 12px",
-                              border: "1px solid #d1d5db",
-                              backgroundColor: order.warehouse_manager_id ? "white" : "#f3f4f6",
-                              borderRadius: "4px",
-                              cursor: order.warehouse_manager_id ? "pointer" : "not-allowed",
-                              fontSize: "12px",
-                              color: order.warehouse_manager_id ? "black" : "#9ca3af",
-                            }}
-                          >
-                            Đóng gói
-                          </button>
-                          <button
-                            onClick={() => handleCompleteOrder(order._id)}
-                            disabled={!order.warehouse_manager_id}
-                            style={{
-                              padding: "6px 12px",
-                              border: "none",
-                              backgroundColor: order.warehouse_manager_id ? "#3b82f6" : "#9ca3af",
-                              color: "white",
-                              borderRadius: "4px",
-                              cursor: order.warehouse_manager_id ? "pointer" : "not-allowed",
-                              fontSize: "12px",
-                            }}
-                          >
-                            Hoàn thành
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {approvedOrders.map((order, idx) => {
+                    // Log the order object to inspect its structure
+                    console.log("Current Approved Order:", order)
+                    return (
+                      <tr key={order._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                        <td style={{ padding: "12px" }}>{idx + 1}</td>
+                        <td style={{ padding: "12px", fontWeight: "500" }}>
+                          {order.contract_id?.contract_code || "N/A"} {/* Added optional chaining and fallback */}
+                        </td>
+                        <td style={{ padding: "12px" }}>{order.created_by.email}</td>
+                        {/* <td style={{ padding: "12px" }}>
+                          {order.warehouse_manager_id ? order.warehouse_manager_id.email : "Chưa phân công"}
+                        </td> */}
+                        <td style={{ padding: "12px" }}>{getStatusBadge(order.status)}</td>
+                        <td style={{ padding: "12px" }}>{new Date(order.createdAt).toLocaleDateString("vi-VN")}</td>
+                        <td style={{ padding: "12px" }}>
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            {/* <button
+                              onClick={() => handleOpenAssignDialog(order)}
+                              style={{
+                                padding: "6px 12px",
+                                border: "1px solid #d1d5db",
+                                backgroundColor: "white",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                fontSize: "12px",
+                              }}
+                            >
+                              {order.warehouse_manager_id ? "Thay đổi" : "Phân công"}
+                            </button> */}
+                            <button
+                              onClick={() => handleOpenPackingDialog(order)}
+                              disabled={!order.warehouse_manager_id}
+                              style={{
+                                padding: "6px 12px",
+                                border: "1px solid #d1d5db",
+                                backgroundColor: order.warehouse_manager_id ? "white" : "#f3f4f6",
+                                borderRadius: "4px",
+                                cursor: order.warehouse_manager_id ? "pointer" : "not-allowed",
+                                fontSize: "12px",
+                                color: order.warehouse_manager_id ? "black" : "#9ca3af",
+                              }}
+                            >
+                              Đóng gói
+                            </button>
+                            <button
+                              onClick={() => handleCompleteOrder(order._id)}
+                              disabled={!order.warehouse_manager_id}
+                              style={{
+                                padding: "6px 12px",
+                                border: "none",
+                                backgroundColor: order.warehouse_manager_id ? "#3b82f6" : "#9ca3af",
+                                color: "white",
+                                borderRadius: "4px",
+                                cursor: order.warehouse_manager_id ? "pointer" : "not-allowed",
+                                fontSize: "12px",
+                              }}
+                            >
+                              Hoàn thành
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -541,15 +577,20 @@ export default function AssignTask() {
                   </tr>
                 </thead>
                 <tbody>
-                  {completedOrders.map((order, idx) => (
-                    <tr key={order._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                      <td style={{ padding: "12px" }}>{idx + 1}</td>
-                      <td style={{ padding: "12px", fontWeight: "500" }}>{order.contract_id.contract_number}</td>
-                      <td style={{ padding: "12px" }}>{order.created_by.email}</td>
-                      <td style={{ padding: "12px" }}>{getStatusBadge(order.status)}</td>
-                      <td style={{ padding: "12px" }}>{new Date(order.createdAt).toLocaleDateString("vi-VN")}</td>
-                    </tr>
-                  ))}
+                  {completedOrders.map((order, idx) => {
+                    console.log("Current Completed Order:", order) // Log for debugging
+                    return (
+                      <tr key={order._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                        <td style={{ padding: "12px" }}>{idx + 1}</td>
+                        <td style={{ padding: "12px", fontWeight: "500" }}>
+                          {order.contract_id?.contract_code || "N/A"} {/* Added optional chaining and fallback */}
+                        </td>
+                        <td style={{ padding: "12px" }}>{order.created_by.email}</td>
+                        <td style={{ padding: "12px" }}>{getStatusBadge(order.status)}</td>
+                        <td style={{ padding: "12px" }}>{new Date(order.createdAt).toLocaleDateString("vi-VN")}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -568,15 +609,20 @@ export default function AssignTask() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cancelledOrders.map((order, idx) => (
-                    <tr key={order._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                      <td style={{ padding: "12px" }}>{idx + 1}</td>
-                      <td style={{ padding: "12px", fontWeight: "500" }}>{order.contract_id.contract_number}</td>
-                      <td style={{ padding: "12px" }}>{order.created_by.email}</td>
-                      <td style={{ padding: "12px" }}>{getStatusBadge(order.status)}</td>
-                      <td style={{ padding: "12px" }}>{new Date(order.createdAt).toLocaleDateString("vi-VN")}</td>
-                    </tr>
-                  ))}
+                  {cancelledOrders.map((order, idx) => {
+                    console.log("Current Cancelled Order:", order) // Log for debugging
+                    return (
+                      <tr key={order._id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                        <td style={{ padding: "12px" }}>{idx + 1}</td>
+                        <td style={{ padding: "12px", fontWeight: "500" }}>
+                          {order.contract_id?.contract_code || "N/A"} {/* Added optional chaining and fallback */}
+                        </td>
+                        <td style={{ padding: "12px" }}>{order.created_by.email}</td>
+                        <td style={{ padding: "12px" }}>{getStatusBadge(order.status)}</td>
+                        <td style={{ padding: "12px" }}>{new Date(order.createdAt).toLocaleDateString("vi-VN")}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -584,96 +630,7 @@ export default function AssignTask() {
         </div>
       </div>
 
-      {/* Assign Staff Dialog */}
-      {assignDialogOpen && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "white",
-              padding: "24px",
-              borderRadius: "8px",
-              width: "90%",
-              maxWidth: "500px",
-              maxHeight: "90vh",
-              overflow: "auto",
-            }}
-          >
-            <h2 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "600" }}>Phân công nhân viên</h2>
-            <p style={{ margin: "0 0 20px 0", color: "#666", fontSize: "14px" }}>
-              Chọn nhân viên kho để phụ trách đơn hàng {selectedOrder?.contract_id.contract_number}
-            </p>
-
-            <form onSubmit={handleAssignStaff}>
-              <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", marginBottom: "8px", fontWeight: "500" }}>Nhân viên</label>
-                <select
-                  value={selectedStaffId}
-                  onChange={(e) => setSelectedStaffId(e.target.value)}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "8px 12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "4px",
-                    fontSize: "14px",
-                  }}
-                >
-                  <option value="">Chọn nhân viên...</option>
-                  {warehouseStaff.map((staff) => (
-                    <option key={staff._id} value={staff._id}>
-                      {staff.email}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
-                <button
-                  type="button"
-                  onClick={handleCloseAssignDialog}
-                  style={{
-                    padding: "8px 16px",
-                    border: "1px solid #d1d5db",
-                    backgroundColor: "white",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={staffLoading || !selectedStaffId}
-                  style={{
-                    padding: "8px 16px",
-                    border: "none",
-                    backgroundColor: !staffLoading && selectedStaffId ? "#3b82f6" : "#9ca3af",
-                    color: "white",
-                    borderRadius: "4px",
-                    cursor: !staffLoading && selectedStaffId ? "pointer" : "not-allowed",
-                  }}
-                >
-                  Phân công
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
+      {/* Assign Staff Dialog - Đã loại bỏ hoàn toàn khỏi JSX */}
       {/* Packing Dialog */}
       {packingDialogOpen && (
         <div
@@ -703,7 +660,7 @@ export default function AssignTask() {
           >
             <h2 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "600" }}>Cập nhật số lượng đóng gói</h2>
             <p style={{ margin: "0 0 20px 0", color: "#666", fontSize: "14px" }}>
-              Nhập số lượng thực tế đã đóng gói cho đơn hàng {selectedOrder?.contract_id.contract_number}
+              Nhập số lượng thực tế đã đóng gói cho đơn hàng {selectedOrder?.contract_id?.contract_code || "N/A"}
             </p>
 
             <form onSubmit={handleUpdatePacking}>
@@ -723,12 +680,10 @@ export default function AssignTask() {
                     }}
                   >
                     <div>
-                      <div style={{ fontWeight: "500", marginBottom: "4px" }}>{detail.medicine_id?.medicine_name}</div>{" "}
-                      {/* Đã thêm ?. */}
+                      <div style={{ fontWeight: "500", marginBottom: "4px" }}>{detail.medicine_id?.medicine_name}</div>
                       <div style={{ fontSize: "12px", color: "#666" }}>
                         Yêu cầu: {detail.expected_quantity} {detail.medicine_id?.unit_of_measure}
-                      </div>{" "}
-                      {/* Đã thêm ?. */}
+                      </div>
                     </div>
 
                     <div>
@@ -751,8 +706,7 @@ export default function AssignTask() {
                     </div>
 
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "12px", fontWeight: "500" }}>{detail.medicine_id?.unit_of_measure}</div>{" "}
-                      {/* Đã thêm ?. */}
+                      <div style={{ fontSize: "12px", fontWeight: "500" }}>{detail.medicine_id?.unit_of_measure}</div>
                       {detail.actual_quantity < detail.expected_quantity && (
                         <div style={{ fontSize: "10px", color: "#ef4444" }}>
                           Thiếu {detail.expected_quantity - detail.actual_quantity}
