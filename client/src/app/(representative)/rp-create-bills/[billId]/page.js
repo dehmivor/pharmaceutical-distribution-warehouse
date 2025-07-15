@@ -8,4 +8,4 @@ const CreateBillWithExistId = dynamic(() => import('@/views/representative_manag
 
 export default function DashboardPage() {
   return <CreateBillWithExistId />;
-} 
+}
