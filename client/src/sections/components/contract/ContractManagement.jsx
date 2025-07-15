@@ -40,7 +40,7 @@ import {
 import axios from 'axios';
 import { useRole } from '@/contexts/RoleContext';
 import EconomicContractEditDialog from './EconomicContractEditDialog'; // Import the edit dialog component
-import EconomicContractAddDialog from './EconomicContractAddDialog'; // Import the add dialog component
+import ContractAddDialog from './ContractAddDialog'; // Import the new unified add dialog component
 import StatusActionDialog from './StatusActionDialog';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -57,7 +57,7 @@ const axiosInstance = axios.create({
   withCredentials: true
 });
 
-const EconomicContractManagement = () => {
+const ContractManagement = () => {
   const { userRole, user, isLoading } = useRole();
   const [contracts, setContracts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -71,12 +71,16 @@ const EconomicContractManagement = () => {
   // Filter states
   const [filters, setFilters] = useState({
     contract_code: '',
-    status: ''
+    status: '',
+    partner_type: '',
+    contract_type: ''
   });
 
   // Filter options
   const [filterOptions, setFilterOptions] = useState({
-    status: []
+    status: [],
+    partner_type: [],
+    contract_type: []
   });
 
   // Dialog states
@@ -106,7 +110,7 @@ const EconomicContractManagement = () => {
       if (userRole === 'representative') {
         params.append('created_by', user.userId ?? user.id); //TODO : fix bug /auth/me + permissions
       }
-      const response = await axiosInstance.get(`/api/economic-contracts?${params}`, {
+      const response = await axiosInstance.get(`/api/contract?${params}`, {
         headers: getAuthHeaders()
       });
 
@@ -176,7 +180,7 @@ const EconomicContractManagement = () => {
   // Fetch filter options
   const fetchFilterOptions = async () => {
     try {
-      const response = await axiosInstance.get(`/api/economic-contracts/filter-options`, {
+      const response = await axiosInstance.get(`/api/contract/filter-options`, {
         headers: getAuthHeaders()
       });
       if (response.data.success) {
@@ -205,7 +209,7 @@ const EconomicContractManagement = () => {
     // setOpenDeleteDialog(false);
     setSelectedContract(null);
     try {
-      const response = await axiosInstance.delete(`/api/economic-contracts/${selectedContract._id}`, {
+      const response = await axiosInstance.delete(`/api/contract/${selectedContract._id}`, {
         headers: getAuthHeaders()
       });
 
@@ -296,7 +300,7 @@ const EconomicContractManagement = () => {
       }
 
       const response = await axiosInstance.put(
-        `/api/economic-contracts/${selectedContract._id}/status`,
+        `/api/contract/${selectedContract._id}/status`,
         { status: newStatus },
         { headers: getAuthHeaders() }
       );
@@ -327,7 +331,7 @@ const EconomicContractManagement = () => {
       if (userRole === 'representative') {
         fetchFilterOptions();
         fetchSuppliers();
-        // fetchRetailers();
+        fetchRetailers();
         fetchMedicines();
       }
     }
@@ -355,7 +359,7 @@ const EconomicContractManagement = () => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-          Quản Lý Hợp đồng Kinh tế
+          Quản Lý Hợp đồng
         </Typography>
         <Typography variant="body1" color="text.secondary">
           Quản lý danh sách hợp đồng và thông tin chi tiết
@@ -388,7 +392,7 @@ const EconomicContractManagement = () => {
               <TextField
                 fullWidth
                 label="Mã hợp đồng"
-                value={filters.license_code}
+                value={filters.contract_code}
                 onChange={(e) => handleFilterChange('contract_code', e.target.value)}
                 variant="outlined"
                 size="medium"
@@ -403,11 +407,11 @@ const EconomicContractManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 150 }}>
-                <InputLabel>Trạng thái</InputLabel>
+                <InputLabel>Loại hợp đồng</InputLabel>
                 <Select
-                  value={filters.status}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
-                  label="Trạng thái"
+                  value={filters.contract_type}
+                  onChange={(e) => handleFilterChange('contract_type', e.target.value)}
+                  label="Loại hợp đồng"
                   renderValue={(selected) => (
                     <Tooltip title={selected}>
                       <span
@@ -418,7 +422,7 @@ const EconomicContractManagement = () => {
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {selected || 'Tất cả'}
+                        {selected === 'economic' ? 'Kinh tế' : selected === 'principal' ? 'Nguyên tắc' : selected || 'Tất cả'}
                       </span>
                     </Tooltip>
                   )}
@@ -427,9 +431,9 @@ const EconomicContractManagement = () => {
                   }}
                 >
                   <MenuItem value="">Tất cả</MenuItem>
-                  {filterOptions?.status?.map((sta) => (
-                    <MenuItem key={sta} value={sta} title={sta}>
-                      {sta}
+                  {filterOptions?.contract_type?.map((type) => (
+                    <MenuItem key={type} value={type} title={type}>
+                      {type === 'economic' ? 'Kinh tế' : type === 'principal' ? 'Nguyên tắc' : type}
                     </MenuItem>
                   ))}
                 </Select>
@@ -464,6 +468,40 @@ const EconomicContractManagement = () => {
                   {filterOptions?.partner_type?.map((type) => (
                     <MenuItem key={type} value={type} title={type}>
                       {type}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={4}>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 150 }}>
+                <InputLabel>Trạng thái</InputLabel>
+                <Select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  label="Trạng thái"
+                  renderValue={(selected) => (
+                    <Tooltip title={selected}>
+                      <span
+                        style={{
+                          display: 'block',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {selected || 'Tất cả'}
+                      </span>
+                    </Tooltip>
+                  )}
+                  sx={{
+                    width: 150
+                  }}
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  {filterOptions?.status?.map((sta) => (
+                    <MenuItem key={sta} value={sta} title={sta}>
+                      {sta}
                     </MenuItem>
                   ))}
                 </Select>
@@ -517,6 +555,7 @@ const EconomicContractManagement = () => {
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
                 <TableCell sx={{ fontWeight: 600 }}>Mã hợp đồng</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Loại hợp đồng</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Người tạo</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Đối tác</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
@@ -529,6 +568,14 @@ const EconomicContractManagement = () => {
               {contracts.map((contract) => (
                 <TableRow key={contract._id} hover>
                   <TableCell sx={{ fontWeight: 500 }}>{contract.contract_code}</TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={contract.contract_type === 'economic' ? 'Kinh tế' : 'Nguyên tắc'} 
+                      size="small" 
+                      variant="outlined" 
+                      color={contract.contract_type === 'economic' ? 'primary' : 'secondary'}
+                    />
+                  </TableCell>
                   <TableCell>
                     <Chip label={contract.created_by.email} size="small" variant="outlined" color="primary" />
                   </TableCell>
@@ -706,7 +753,7 @@ const EconomicContractManagement = () => {
         viewDetail={true}
       />
 
-      <EconomicContractAddDialog
+      <ContractAddDialog
         open={openAddDialog}
         onClose={() => setOpenAddDialog(false)}
         onSuccess={handleAddContractSuccess}
@@ -727,4 +774,4 @@ const EconomicContractManagement = () => {
   );
 };
 
-export default EconomicContractManagement;
+export default ContractManagement;

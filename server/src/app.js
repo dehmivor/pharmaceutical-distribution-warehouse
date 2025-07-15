@@ -87,6 +87,7 @@ app.use('/api/stripe', route.stripeRoutes);
 app.use('/api/bills', route.billRoutes);
 app.use('/api/supplier', route.supplierRoutes);
 app.use('/api/economic-contracts', route.economicContractRoutes);
+app.use('/api/contract', route.contractRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 

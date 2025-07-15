@@ -195,27 +195,23 @@ const annexSchema = new mongoose.Schema(
 );
 
 // Sub-schema cho item trong hợp đồng
-const itemContractSchema = new mongoose.Schema(
-  {
-    medicine_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Medicine',
-      required: [true, 'Medicine ID is required'],
+const itemContractSchema = new mongoose.Schema({
+  medicine_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Medicine',
+    required: [true, 'Medicine ID is required'],
+  },
+  quantity: {
+    type: Number,
+    min: [1, 'Quantity must be a positive integer'],
+    required: function() {
+      return this.parent().contract_type === CONTRACT_TYPES.ECONOMIC;
     },
-    quantity: {
-      type: Number,
-      min: [1, 'Quantity must be a positive integer'],
-      required: function () {
-        return this.parent().contract_type === CONTRACT_TYPES.ECONOMIC;
-      },
-    },
-    unit_price: {
-      type: Number,
-      min: [0, 'Unit price cannot be negative'],
-      required: function () {
-        return this.parent().contract_type === CONTRACT_TYPES.ECONOMIC;
-      },
-    },
+  },
+  unit_price: {
+    type: Number,
+    min: [0, 'Unit price cannot be negative'],
+    required: [true, 'Unit price is required'],
   },
   { _id: false },
 );
