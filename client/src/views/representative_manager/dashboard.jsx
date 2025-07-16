@@ -1,18 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Grid,
-  Paper,
-  Typography,
-  Card,
-  CardContent,
-  Chip,
-  Stack,
-  Button,
-  Alert
-} from '@mui/material';
+import { Box, Grid, Paper, Typography, Card, CardContent, Chip, Stack, Button, Alert } from '@mui/material';
 import {
   FileDownload as IconFileImport,
   Receipt as IconReceipt,
@@ -76,9 +65,7 @@ const RecentOrderCard = ({ order }) => (
         <Chip
           label={order.status?.toUpperCase()}
           color={
-            order.status === 'approved' ? 'success' :
-            order.status === 'draft' ? 'default' :
-            order.status === 'cancelled' ? 'error' : 'info'
+            order.status === 'approved' ? 'success' : order.status === 'draft' ? 'default' : order.status === 'cancelled' ? 'error' : 'info'
           }
           size="small"
         />
@@ -109,13 +96,13 @@ export default function RepresentativeManagerDashboard() {
       });
 
       const orders = response.data.data || [];
-      
+
       // Calculate stats
       const statsData = {
         totalOrders: orders.length,
-        pendingApproval: orders.filter(o => o.status === 'draft').length,
-        approvedOrders: orders.filter(o => o.status === 'approved').length,
-        cancelledOrders: orders.filter(o => o.status === 'cancelled').length
+        pendingApproval: orders.filter((o) => o.status === 'draft').length,
+        approvedOrders: orders.filter((o) => o.status === 'approved').length,
+        cancelledOrders: orders.filter((o) => o.status === 'cancelled').length
       };
 
       setStats(statsData);
@@ -158,37 +145,16 @@ export default function RepresentativeManagerDashboard() {
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Orders"
-            value={stats.totalOrders}
-            icon={IconFileImport}
-            color="#1976d2"
-          />
+          <StatCard title="Total Orders" value={stats.totalOrders} icon={IconFileImport} color="#1976d2" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Pending Approval"
-            value={stats.pendingApproval}
-            icon={IconClock}
-            color="#ed6c02"
-            subtitle="Draft orders"
-          />
+          <StatCard title="Pending Approval" value={stats.pendingApproval} icon={IconClock} color="#ed6c02" subtitle="Draft orders" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Approved"
-            value={stats.approvedOrders}
-            icon={IconCheckCircle}
-            color="#2e7d32"
-          />
+          <StatCard title="Approved" value={stats.approvedOrders} icon={IconCheckCircle} color="#2e7d32" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Cancelled"
-            value={stats.cancelledOrders}
-            icon={IconXCircle}
-            color="#d32f2f"
-          />
+          <StatCard title="Cancelled" value={stats.cancelledOrders} icon={IconXCircle} color="#d32f2f" />
         </Grid>
       </Grid>
 
@@ -198,23 +164,17 @@ export default function RepresentativeManagerDashboard() {
           <Paper sx={{ p: 3 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
               <Typography variant="h6">Recent Import Orders</Typography>
-              <Button
-                variant="outlined"
-                startIcon={<IconFileImport />}
-                href="/manage-import-orders-approval"
-              >
+              <Button variant="outlined" startIcon={<IconFileImport />} href="/manage-import-orders-approval">
                 View All Orders
               </Button>
             </Stack>
-            
+
             {recentOrders.length === 0 ? (
               <Typography color="text.secondary" textAlign="center" py={4}>
                 No orders found
               </Typography>
             ) : (
-              recentOrders.map((order) => (
-                <RecentOrderCard key={order._id} order={order} />
-              ))
+              recentOrders.map((order) => <RecentOrderCard key={order._id} order={order} />)
             )}
           </Paper>
         </Grid>
@@ -225,20 +185,10 @@ export default function RepresentativeManagerDashboard() {
               Quick Actions
             </Typography>
             <Stack spacing={2}>
-              <Button
-                variant="contained"
-                startIcon={<IconFileImport />}
-                href="/manage-import-orders-approval"
-                fullWidth
-              >
+              <Button variant="contained" startIcon={<IconFileImport />} href="/manage-import-orders-approval" fullWidth>
                 Review Import Orders
               </Button>
-              <Button
-                variant="outlined"
-                startIcon={<IconReceipt />}
-                href="/rm-create-bills"
-                fullWidth
-              >
+              <Button variant="outlined" startIcon={<IconReceipt />} href="/rm-create-bills" fullWidth>
                 Create Bills
               </Button>
             </Stack>
@@ -247,4 +197,4 @@ export default function RepresentativeManagerDashboard() {
       </Grid>
     </Box>
   );
-} 
+}

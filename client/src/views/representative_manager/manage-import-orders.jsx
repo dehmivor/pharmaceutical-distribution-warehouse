@@ -67,7 +67,7 @@ const RepresentativeManagerImportOrders = () => {
     try {
       setLoading(true);
       setError('');
-      
+
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const response = await axios.get(`${backendUrl}/api/import-orders`, {
         headers: getAuthHeaders(),
@@ -82,7 +82,7 @@ const RepresentativeManagerImportOrders = () => {
     } catch (error) {
       console.error('Error fetching orders:', error);
       let errorMsg = 'Failed to fetch orders';
-      
+
       if (error.code === 'ECONNABORTED') {
         errorMsg = 'Request timeout. Please try again.';
       } else if (error.code === 'ERR_NETWORK') {
@@ -92,7 +92,7 @@ const RepresentativeManagerImportOrders = () => {
       } else if (error.message) {
         errorMsg = error.message;
       }
-      
+
       setError(errorMsg);
       setOrders([]);
     } finally {
@@ -103,12 +103,12 @@ const RepresentativeManagerImportOrders = () => {
   const fetchContracts = useCallback(async () => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const response = await axios.get(`${backendUrl}/api/supplier-contracts`, {
+      const response = await axios.get(`${backendUrl}/api/contract?partner_type=Supplier&status=active`, {
         headers: getAuthHeaders()
       });
 
       if (response.data.success) {
-        setContracts(response.data.data?.contracts || []);
+        setContracts(response.data.data.contracts || []);
       }
     } catch (error) {
       console.error('Error fetching contracts:', error);
@@ -122,7 +122,7 @@ const RepresentativeManagerImportOrders = () => {
 
   const handleStatusChange = useCallback(async () => {
     if (!selectedOrder || !selectedOrder._id || !selectedOrder.nextStatus) return;
-    
+
     const newStatus = selectedOrder.nextStatus;
 
     try {
@@ -150,7 +150,7 @@ const RepresentativeManagerImportOrders = () => {
     } catch (error) {
       console.error('Error updating status:', error);
       let errorMsg = 'Failed to update status';
-      
+
       if (error.code === 'ECONNABORTED') {
         errorMsg = 'Request timeout. Please try again.';
       } else if (error.code === 'ERR_NETWORK') {
@@ -160,7 +160,7 @@ const RepresentativeManagerImportOrders = () => {
       } else if (error.message) {
         errorMsg = error.message;
       }
-      
+
       setError(errorMsg);
     } finally {
       setUpdatingStatus(false);
@@ -238,13 +238,14 @@ const RepresentativeManagerImportOrders = () => {
   };
 
   // Filter orders based on search and status
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = searchTerm === '' || 
+  const filteredOrders = orders.filter((order) => {
+    const matchesSearch =
+      searchTerm === '' ||
       order._id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.supplier_contract_id?.supplier_id?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+      order.contract_id?.partner_id?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesStatus = statusFilter === '' || order.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -257,94 +258,94 @@ const RepresentativeManagerImportOrders = () => {
   }
 
   console.log('user.role:', user.role);
-  console.log('orders:', orders.map(o => ({id: o._id, status: o.status})));
+  console.log(
+    'orders:',
+    orders.map((o) => ({ id: o._id, status: o.status }))
+  );
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
+      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', fontWeight: 600 }}>
         Import Orders Management
       </Typography>
-      <Typography variant="body1" color="text.secondary" gutterBottom>
+      <Typography variant="body1" color="text.secondary" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
         Approve or reject draft import orders
       </Typography>
-
       {/* Search and Filter */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
-          <TextField
-            label="Search Orders"
-            variant="outlined"
-            size="small"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ minWidth: 200 }}
-          />
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Status Filter</InputLabel>
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              label="Status Filter"
-            >
-              <MenuItem value="">All Status</MenuItem>
-              <MenuItem value="draft">Draft</MenuItem>
-              <MenuItem value="approved">Approved</MenuItem>
-              <MenuItem value="rejected">Rejected</MenuItem>
-              <MenuItem value="delivered">Delivered</MenuItem>
-              <MenuItem value="checked">Checked</MenuItem>
-              <MenuItem value="arranged">Arranged</MenuItem>
-              <MenuItem value="completed">Completed</MenuItem>
-              <MenuItem value="cancelled">Cancelled</MenuItem>
-            </Select>
-          </FormControl>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={fetchOrders}
-            disabled={loading}
-          >
-            Refresh
-          </Button>
-        </Box>
+      <Paper sx={{ p: 2, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'center' }}>
+        <TextField
+          label="Search Orders"
+          variant="outlined"
+          size="small"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ minWidth: 200 }}
+        />
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Status Filter</InputLabel>
+          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status Filter">
+            <MenuItem value="">All Status</MenuItem>
+            <MenuItem value="draft">Draft</MenuItem>
+            <MenuItem value="approved">Approved</MenuItem>
+            <MenuItem value="rejected">Rejected</MenuItem>
+            <MenuItem value="delivered">Delivered</MenuItem>
+            <MenuItem value="checked">Checked</MenuItem>
+            <MenuItem value="arranged">Arranged</MenuItem>
+            <MenuItem value="completed">Completed</MenuItem>
+            <MenuItem value="cancelled">Cancelled</MenuItem>
+          </Select>
+        </FormControl>
+        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchOrders} disabled={loading} sx={{ height: 40 }}>
+          Refresh
+        </Button>
       </Paper>
-
       {/* Error Alert */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+        <Alert severity="error" sx={{ mb: 2, maxWidth: 600, mx: 'auto' }} onClose={() => setError('')}>
           {error}
         </Alert>
       )}
-
       {/* Success Alert */}
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+        <Alert severity="success" sx={{ mb: 2, maxWidth: 600, mx: 'auto' }} onClose={() => setSuccess('')}>
           {success}
         </Alert>
       )}
-
       {/* Orders Table */}
-      <Card>
+      <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
         <CardContent>
           <TableContainer>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell><strong>Order ID</strong></TableCell>
-                  <TableCell><strong>Supplier</strong></TableCell>
-                  <TableCell><strong>Status</strong></TableCell>
-                  <TableCell><strong>Created By</strong></TableCell>
-                  <TableCell><strong>Created Date</strong></TableCell>
-                  <TableCell><strong>Total Amount</strong></TableCell>
-                  <TableCell><strong>Actions</strong></TableCell>
+                  <TableCell>
+                    <strong>Order ID</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Supplier</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Status</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Created By</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Created Date</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Total Amount</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Actions</strong>
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredOrders.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} align="center">
-                      <Typography color="text.secondary">
-                        {loading ? 'Loading orders...' : 'No orders found'}
-                      </Typography>
+                      <Typography color="text.secondary">{loading ? 'Loading orders...' : 'No orders found'}</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -353,25 +354,13 @@ const RepresentativeManagerImportOrders = () => {
                     return (
                       <TableRow key={order._id} hover>
                         <TableCell>{order._id}</TableCell>
+                        <TableCell>{order.contract_id?.partner_id?.name || 'N/A'}</TableCell>
                         <TableCell>
-                          {order.supplier_contract_id?.supplier_id?.name || 'N/A'}
+                          <Chip label={order.status?.toUpperCase()} color={getStatusColor(order.status)} size="small" />
                         </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={order.status?.toUpperCase()}
-                            color={getStatusColor(order.status)}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {order.created_by?.email || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(order.createdAt)}
-                        </TableCell>
-                        <TableCell>
-                          {formatCurrency(order.total_amount)}
-                        </TableCell>
+                        <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
+                        <TableCell>{formatDate(order.createdAt)}</TableCell>
+                        <TableCell>{formatCurrency(order.total_amount)}</TableCell>
                         <TableCell>
                           <Box display="flex" gap={1}>
                             {/* Chỉ representative_manager mới thấy nút Approve/Cancel khi order là draft */}
@@ -381,11 +370,13 @@ const RepresentativeManagerImportOrders = () => {
                                   size="small"
                                   color="success"
                                   variant="outlined"
-                                  onClick={() => handleOpenStatusDialog({ 
-                                    _id: order._id, 
-                                    status: order.status, 
-                                    nextStatus: 'approved' 
-                                  })}
+                                  onClick={() =>
+                                    handleOpenStatusDialog({
+                                      _id: order._id,
+                                      status: order.status,
+                                      nextStatus: 'approved'
+                                    })
+                                  }
                                 >
                                   Approve
                                 </Button>
@@ -393,29 +384,20 @@ const RepresentativeManagerImportOrders = () => {
                                   size="small"
                                   color="error"
                                   variant="outlined"
-                                  onClick={() => handleOpenStatusDialog({ 
-                                    _id: order._id, 
-                                    status: order.status, 
-                                    nextStatus: 'cancelled' 
-                                  })}
+                                  onClick={() =>
+                                    handleOpenStatusDialog({
+                                      _id: order._id,
+                                      status: order.status,
+                                      nextStatus: 'rejected' // Đảm bảo luôn là 'rejected'
+                                    })
+                                  }
                                 >
-                                  Cancel
+                                  Reject
                                 </Button>
                               </>
                             )}
-                            {isOrderLocked(order) && (
-                              <Chip
-                                label="LOCKED"
-                                color="error"
-                                size="small"
-                                variant="outlined"
-                              />
-                            )}
-                            <IconButton
-                              size="small"
-                              color="info"
-                              title="View Details"
-                            >
+                            {isOrderLocked(order) && <Chip label="LOCKED" color="error" size="small" variant="outlined" />}
+                            <IconButton size="small" color="info" title="View Details">
                               <ViewIcon />
                             </IconButton>
                           </Box>
@@ -429,7 +411,6 @@ const RepresentativeManagerImportOrders = () => {
           </TableContainer>
         </CardContent>
       </Card>
-
       {/* Status Change Dialog */}
       <StatusChangeDialog
         open={statusDialog}
@@ -445,4 +426,4 @@ const RepresentativeManagerImportOrders = () => {
   );
 };
 
-export default RepresentativeManagerImportOrders; 
+export default RepresentativeManagerImportOrders;

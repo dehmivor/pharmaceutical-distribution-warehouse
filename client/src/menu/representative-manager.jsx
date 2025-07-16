@@ -1,7 +1,7 @@
 const representativeManager = {
   id: 'group-manage',
   title: 'Manage',
-  icon: 'IconBrandAsana',  
+  icon: 'IconBrandAsana',
   type: 'group',
   children: [
     {
@@ -9,21 +9,21 @@ const representativeManager = {
       title: 'Dashboard',
       type: 'item',
       url: '/rm-dashboard',
-      icon: 'IconDashboard' 
+      icon: 'IconDashboard'
     },
     {
       id: 'manage-import-orders-approval',
       title: 'Import Orders Approval',
       type: 'item',
       url: '/manage-import-orders-approval',
-      icon: 'IconFileImport' 
+      icon: 'IconFileImport'
     },
     {
-      id: 'create-bills',
-      title: 'Create Bills',
+      id: 'manage-export-orders-approval',
+      title: 'Export Orders Approval',
       type: 'item',
-      url: '/rm-create-bills',
-      icon: 'IconReceipt' 
+      url: '/manage-export-orders-approval',
+      icon: 'IconFileExport'
     }
   ]
 };

@@ -3,7 +3,6 @@ const Location = require('../models/Location');
 const mongoose = require('mongoose');
 
 const batchController = {
-
   assignBatch: async (req, res) => {
     const { locationId, batchCode, quantity } = req.body;
     try {
@@ -44,7 +43,8 @@ const batchController = {
           },
         },
       ]);
-      const availableCapacity = (totalCapacity[0]?.totalArea || 0) - (usedCapacity[0]?.usedArea || 0);
+      const availableCapacity =
+        (totalCapacity[0]?.totalArea || 0) - (usedCapacity[0]?.usedArea || 0);
       const requiredCapacity = quantity * 0.1; // Giả định mỗi đơn vị hàng chiếm 0.1 đơn vị diện tích
 
       if (requiredCapacity <= availableCapacity) {
@@ -72,19 +72,14 @@ const batchController = {
 
   createBatch: async (req, res) => {
     try {
-      const {
-        medicine_id,
-        batch_code,
-        production_date,
-        expiry_date,
-        supplier_id
-      } = req.body;
+      const { medicine_id, batch_code, production_date, expiry_date, supplier_id } = req.body;
 
       // 1) Validate presence
       if (!medicine_id || !batch_code || !production_date || !expiry_date || !supplier_id) {
         return res.status(400).json({
           success: false,
-          message: 'medicine_id, batch_code, production_date, expiry_date, and supplier_id are all required'
+          message:
+            'medicine_id, batch_code, production_date, expiry_date, and supplier_id are all required',
         });
       }
 
@@ -94,12 +89,12 @@ const batchController = {
         batch_code,
         production_date,
         expiry_date,
-        supplier_id
+        supplier_id,
       });
 
       return res.status(201).json({
         success: true,
-        data: batch
+        data: batch,
       });
     } catch (err) {
       console.error('❌ Error creating batch:', err);
@@ -107,22 +102,22 @@ const batchController = {
       if (err.code === 11000 && err.keyPattern && err.keyPattern.batch_code) {
         return res.status(409).json({
           success: false,
-          message: `Batch code "${err.keyValue.batch_code}" already exists`
+          message: `Batch code "${err.keyValue.batch_code}" already exists`,
         });
       }
       // 4) Validation error?
       if (err.name === 'ValidationError') {
-        const messages = Object.values(err.errors).map(e => e.message);
+        const messages = Object.values(err.errors).map((e) => e.message);
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
-          errors: messages
+          errors: messages,
         });
       }
       // 5) Other server error
       return res.status(500).json({
         success: false,
-        message: 'Server error creating batch'
+        message: 'Server error creating batch',
       });
     }
   },
@@ -163,4 +158,3 @@ const batchController = {
 }
 
 module.exports = batchController;
-

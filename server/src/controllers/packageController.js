@@ -2,7 +2,7 @@ const packageService = require('../services/packageService');
 const Package = require('../models/Package');
 const Area = require('../models/Area');
 const Location = require('../models/Location');
-const Batch    = require('../models/Batch');
+const Batch = require('../models/Batch');
 
 const packageController = {
   // ✅ Get all packages
@@ -425,11 +425,11 @@ const packageController = {
         { location_id },
         { new: true }       // return the updated doc
       )
-      .populate({
-        path: 'location_id',
-        populate: { path: 'area_id', model: 'Area' }
-      })
-      .populate('batch_id');
+        .populate({
+          path: 'location_id',
+          populate: { path: 'area_id', model: 'Area' }
+        })
+        .populate('batch_id');
 
       if (!updated) {
         return res.status(404).json({
@@ -496,7 +496,7 @@ const packageController = {
 
       // 3) Find all location_ids for packages with the same batch
       const sameBatchLocationIds = await Package.distinct('location_id', {
-        batch_id:    batchId,
+        batch_id: batchId,
         location_id: { $exists: true, $ne: null }
       });
 
@@ -506,7 +506,7 @@ const packageController = {
 
       // 5) Find all location_ids for packages with those batch IDs
       const sameMedicineLocationIds = await Package.distinct('location_id', {
-        batch_id:    { $in: sameMedicineBatchIds },
+        batch_id: { $in: sameMedicineBatchIds },
         location_id: { $exists: true, $ne: null }
       });
 

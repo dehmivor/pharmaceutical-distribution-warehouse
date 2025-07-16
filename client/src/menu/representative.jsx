@@ -41,13 +41,6 @@ const representative = {
       ]
     },
     {
-      id: 'manage-licenses',
-      title: 'Manage Licenses',
-      type: 'item',
-      url: '/rp-manage-licenses',
-      icon: 'IconCertificate'
-    },
-    {
       id: 'create-contract',
       title: 'Create Contract',
       type: 'item',
@@ -67,6 +60,20 @@ const representative = {
       type: 'item',
       url: '/rp-import-orders',
       icon: 'IconShoppingCart'
+    },
+    {
+      id: 'manage-export-orders',
+      title: 'Manage Export Orders',
+      type: 'item',
+      url: '/rp-export-orders',
+      icon: 'IconFileExport'
+    },
+    {
+      id: 'create-bills',
+      title: 'Create Bills',
+      type: 'item',
+      url: '/rp-create-bills',
+      icon: 'IconReceipt'
     }
   ]
 };

@@ -166,10 +166,9 @@ function ImportOrderSupervisor() {
 
       // Update warehouse manager if changed
       if (editForm.warehouse_manager_id !== (selectedOrder.warehouse_manager_id?._id || '')) {
-        await axiosInstance.patch(
-          `/import-orders/${selectedOrder._id}/assign-warehouse-manager`,
-          { warehouse_manager_id: editForm.warehouse_manager_id }
-        );
+        await axiosInstance.patch(`/import-orders/${selectedOrder._id}/assign-warehouse-manager`, {
+          warehouse_manager_id: editForm.warehouse_manager_id
+        });
       }
 
       setSuccess('Order updated successfully');
@@ -199,7 +198,7 @@ function ImportOrderSupervisor() {
     try {
       // Lấy thông tin user từ localStorage hoặc context
       const userInfo = JSON.parse(localStorage.getItem('user-info') || '{}');
-      
+
       await createNotification({
         recipient_id: order.warehouse_manager_id?._id, // id của warehouse_manager nhận thông báo
         sender_id: userInfo._id, // id của supervisor (người gửi)
@@ -317,104 +316,114 @@ function ImportOrderSupervisor() {
         <Typography variant="h4">Supervisor - Import Orders Management</Typography>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ minWidth: 120 }}>Order Code</TableCell>
-              <TableCell sx={{ minWidth: 120 }}>Contract Code</TableCell>
-              <TableCell sx={{ minWidth: 150 }}>Supplier</TableCell>
-              <TableCell sx={{ minWidth: 120 }}>Created By</TableCell>
-              <TableCell align="right" sx={{ minWidth: 120 }}>
-                Total Amount
-              </TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
-              <TableCell sx={{ minWidth: 150 }}>Warehouse Manager</TableCell>
-              <TableCell sx={{ minWidth: 120 }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {paginatedOrders.map((order) => (
-              <TableRow key={order._id} hover>
-                <TableCell>{order.import_order_code || 'N/A'}</TableCell>
-                <TableCell>{order.supplier_contract_id?.contract_code || 'N/A'}</TableCell>
-                <TableCell>{order.supplier_contract_id?.supplier_id?.name || 'N/A'}</TableCell>
-                <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
-                <TableCell align="right">
-                  {formatCurrency(order.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0) || 0)}
+      <Box sx={{ width: '100%', overflowX: 'auto' }}>
+        <TableContainer component={Paper} sx={{ minWidth: 900 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ minWidth: 120, maxWidth: 180, whiteSpace: 'nowrap' }}>Order Code</TableCell>
+                <TableCell sx={{ minWidth: 100, maxWidth: 120, whiteSpace: 'nowrap' }}>Contract Code</TableCell>
+                <TableCell sx={{ minWidth: 120, maxWidth: 180, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Supplier</TableCell>
+                <TableCell sx={{ minWidth: 120, maxWidth: 180, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Created By</TableCell>
+                <TableCell align="right" sx={{ minWidth: 100, maxWidth: 120, whiteSpace: 'nowrap' }}>
+                  Total Amount
                 </TableCell>
-                <TableCell>
-                  {editingStatusOrderId === order._id ? (
-                    <FormControl size="small" fullWidth>
-                      <Select
-                        value={editStatusValue}
-                        onChange={(e) => {
-                          if (e.target.value === IMPORT_ORDER_STATUSES.DELIVERED) {
-                            handleStatusChange(order._id, e.target.value);
+                <TableCell sx={{ minWidth: 90, maxWidth: 100, whiteSpace: 'nowrap' }}>Status</TableCell>
+                <TableCell sx={{ minWidth: 150, maxWidth: 200, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>Warehouse Manager</TableCell>
+                <TableCell sx={{ minWidth: 90, maxWidth: 120, whiteSpace: 'nowrap' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {paginatedOrders.map((order) => (
+                <TableRow key={order._id} hover>
+                  <TableCell sx={{ maxWidth: 180, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                    {/* Rút gọn Order Code: 6 ký tự đầu ... 4 ký tự cuối */}
+                    {order._id ? `${order._id.slice(0, 6)}...${order._id.slice(-4)}` : 'N/A'}
+                  </TableCell>
+                  <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
+                  <TableCell>{order.contract_id?.partner_id?.name || 'N/A'}</TableCell>
+                  <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
+                  <TableCell align="right">
+                    {formatCurrency(order.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0) || 0)}
+                  </TableCell>
+                  <TableCell>
+                    {editingStatusOrderId === order._id ? (
+                      <FormControl size="small" fullWidth>
+                        <Select
+                          value={editStatusValue}
+                          onChange={(e) => {
+                            if (
+                              order.status === IMPORT_ORDER_STATUSES.APPROVED &&
+                              e.target.value === IMPORT_ORDER_STATUSES.DELIVERED
+                            ) {
+                              handleStatusChange(order._id, e.target.value);
+                            }
+                          }}
+                          onBlur={() => setEditingStatusOrderId(null)}
+                          autoFocus
+                        >
+                          {order.status === IMPORT_ORDER_STATUSES.APPROVED && (
+                            <MenuItem value={IMPORT_ORDER_STATUSES.DELIVERED}>Delivered</MenuItem>
+                          )}
+                        </Select>
+                      </FormControl>
+                    ) : (
+                      <Chip
+                        label={order.status}
+                        color={getStatusColor(order.status)}
+                        size="small"
+                        onClick={() => {
+                          // Chỉ cho phép edit nếu đang ở trạng thái approved
+                          if (order.status === IMPORT_ORDER_STATUSES.APPROVED) {
+                            setEditingStatusOrderId(order._id);
+                            setEditStatusValue(order.status);
                           }
                         }}
-                        onBlur={() => setEditingStatusOrderId(null)}
-                        autoFocus
-                      >
-                        <MenuItem value={IMPORT_ORDER_STATUSES.DELIVERED}>Delivered</MenuItem>
-                      </Select>
-                    </FormControl>
-                  ) : (
-                    <Chip
-                      label={order.status}
-                      color={getStatusColor(order.status)}
-                      size="small"
-                      onClick={() => {
-                        // Chỉ cho phép edit nếu chưa delivered
-                        if (order.status !== IMPORT_ORDER_STATUSES.DELIVERED) {
-                          setEditingStatusOrderId(order._id);
-                          setEditStatusValue(order.status);
-                        }
-                      }}
-                      style={{ cursor: order.status !== IMPORT_ORDER_STATUSES.DELIVERED ? 'pointer' : 'default' }}
-                    />
-                  )}
-                </TableCell>
-                <TableCell>{order.warehouse_manager_id?.email || 'Not Assigned'}</TableCell>
-                <TableCell>
-                  <Box display="flex" gap={1}>
-                    {/* Chỉ hiện nút giao warehouse manager khi đã delivered */}
-                    {order.status === IMPORT_ORDER_STATUSES.DELIVERED && (
-                      <IconButton
-                        color="primary"
-                        onClick={() => handleOpenEditDialog(order)}
-                        disabled={actionLoading}
-                        title="Assign warehouse manager"
-                      >
-                        <EditIcon />
-                      </IconButton>
+                        style={{ cursor: order.status === IMPORT_ORDER_STATUSES.APPROVED ? 'pointer' : 'default' }}
+                      />
                     )}
-                    <IconButton color="info" onClick={() => handleOpenDetails(order)}>
-                      <InfoIcon />
-                    </IconButton>
-                    <IconButton
-                      color="secondary"
-                      onClick={() => window.location.href('https://localhost:3000/manage-bills')}
-                      title="Tạo công nợ"
-                    >
-                      <ForwardIcon />
-                    </IconButton>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={orders.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </TableContainer>
+                  </TableCell>
+                  <TableCell>{order.warehouse_manager_id?.email || 'Not Assigned'}</TableCell>
+                  <TableCell>
+                    <Box display="flex" gap={1}>
+                      {/* Chỉ hiện nút giao warehouse manager khi đã delivered */}
+                      {order.status === IMPORT_ORDER_STATUSES.DELIVERED && (
+                        <IconButton
+                          color="primary"
+                          onClick={() => handleOpenEditDialog(order)}
+                          disabled={actionLoading}
+                          title="Assign warehouse manager"
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      )}
+                      <IconButton color="info" onClick={() => handleOpenDetails(order)}>
+                        <InfoIcon />
+                      </IconButton>
+                      <IconButton
+                        color="secondary"
+                        onClick={() => window.location.href('https://localhost:3000/manage-bills')}
+                        title="Tạo công nợ"
+                      >
+                        <ForwardIcon />
+                      </IconButton>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25]}
+            component="div"
+            count={orders.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </TableContainer>
+      </Box>
 
       {/* Edit Dialog */}
       <Dialog open={openEditDialog} onClose={handleCloseEditDialog} maxWidth="sm" fullWidth>
@@ -466,6 +475,12 @@ function ImportOrderSupervisor() {
                     <Grid container spacing={2}>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
+                          Order ID
+                        </Typography>
+                        <Typography variant="body1">{selectedOrder._id}</Typography>
+                      </Grid>
+                      <Grid item xs={6} md={12}>
+                        <Typography variant="subtitle2" color="textSecondary">
                           Order Code
                         </Typography>
                         <Typography variant="body1">{selectedOrder.import_order_code || 'N/A'}</Typography>
@@ -489,13 +504,13 @@ function ImportOrderSupervisor() {
                         <Typography variant="subtitle2" color="textSecondary">
                           Contract Code
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.supplier_contract_id?.contract_code || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.contract_id?.contract_code || 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
                           Supplier
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.supplier_contract_id?.supplier_id?.name || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.contract_id?.partner_id?.name || 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
@@ -636,7 +651,9 @@ function ImportOrderSupervisor() {
           <b>Hành động này không thể hoàn tác.</b>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancelStatusChange} color="secondary">No</Button>
+          <Button onClick={handleCancelStatusChange} color="secondary">
+            No
+          </Button>
           <Button onClick={handleConfirmStatusChange} color="primary" autoFocus disabled={actionLoading}>
             {actionLoading ? <CircularProgress size={20} /> : 'Yes'}
           </Button>

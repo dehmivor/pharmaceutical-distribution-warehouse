@@ -7,17 +7,13 @@ const authenticate = require('../middlewares/authenticate'); // Giả sử bạn
 // === MEDICINE ROUTES ===
 
 router.use(authenticate);
-router.get('/',medicineController.getMedicinesPaging);
-
+router.get('/', medicineController.getMedicinesPaging);
 
 router.get('/filter-options', medicineController.getFilterOptions);
 
-
 router.get('/detail/:id', medicineController.getMedicineById);
 
-
 router.post('/', medicineController.createMedicine);
-
 
 router.put('/:id', medicineController.updateMedicine);
 

@@ -22,7 +22,7 @@ router.post('/', packageController.createPackage);
 router.patch('/:packageId/clear-location', packageController.clearLocation);
 
 //Get by import location
-router.get("/import-order/:importOrderId", packageController.getPackagesForOrder)
+router.get('/import-order/:importOrderId', packageController.getPackagesForOrder);
 
 router.patch('/:packageId/location', packageController.addLocationToPackage);
 

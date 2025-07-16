@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const { itemContractSchema, annexSchema } = require('./subSchemas');
 const { CONTRACT_STATUSES, PARTNER_TYPES, CONTRACT_TYPES } = require('../utils/constants');
 
-
 // Schema chính cho hợp đồng
 const contractSchema = new mongoose.Schema({
   contract_code: {
@@ -45,7 +44,7 @@ const contractSchema = new mongoose.Schema({
     type: Date,
     required: [true, 'End date is required'],
     validate: {
-      validator: function(value) {
+      validator: function (value) {
         return value >= this.start_date;
       },
       message: 'End date must be after start date',
@@ -56,7 +55,7 @@ const contractSchema = new mongoose.Schema({
     type: [annexSchema],
     default: [],
     validate: {
-      validator: function(value) {
+      validator: function (value) {
         return this.contract_type === CONTRACT_TYPES.PRINCIPAL || value.length === 0;
       },
       message: 'Annexes are only allowed for principal contracts',

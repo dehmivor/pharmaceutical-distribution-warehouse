@@ -51,12 +51,14 @@ const ContractManager = () => {
   const updateStatus = async (id, status) => {
     setUpdatingId(id);
     try {
-      await axios.patch(`${backendUrl}/api/contracts/${id}/status`, { status }, {
-        headers: getAuthHeaders()
-      });
-      setContracts((prev) =>
-        prev.map((c) => (c._id === id ? { ...c, status } : c))
+      await axios.patch(
+        `${backendUrl}/api/contracts/${id}/status`,
+        { status },
+        {
+          headers: getAuthHeaders()
+        }
       );
+      setContracts((prev) => prev.map((c) => (c._id === id ? { ...c, status } : c)));
       setError(null);
     } catch (err) {
       setError(err.response?.data?.message || 'Error updating status');

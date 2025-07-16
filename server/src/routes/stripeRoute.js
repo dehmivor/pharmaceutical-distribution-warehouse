@@ -1,8 +1,10 @@
 // payment.route.js
 const express = require('express');
-const { createPaymentIntentController } = require('../controllers/stripeController');
+const stripeController = require('../controllers/stripeController');
 const router = express.Router();
 
-router.post('/create-payment-intent', createPaymentIntentController);
+router.post('/create-payment-intent', stripeController.createPaymentIntentController);
+router.post('/create-payment-import/:paymentId', stripeController.createPaymentImport);
+router.post('/create-payment-export/:paymentId', stripeController.createPaymentExport);
 
 module.exports = router;
