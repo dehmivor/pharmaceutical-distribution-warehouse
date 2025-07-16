@@ -474,6 +474,20 @@ function ImportOrderDetail() {
     }
   };
 
+  const handleArrival = async () => {
+    try {
+      await axios.patch(
+        `/api/import-orders/${orderId}/status`,
+        { status: 'delivered' }
+      );
+      setOrder(prev => ({ ...prev, status: 'delivered' }));
+      enableAccordion('delivered')
+    } catch (err) {
+      console.error('Error updating status:', err);
+      setError('Lỗi khi cập nhật trạng thái đơn');
+    }
+  };
+
   const handleFinishInspection = async () => {
     try {
       await axios.patch(
@@ -625,10 +639,10 @@ function ImportOrderDetail() {
               <strong>Status:</strong> {order.status}
             </Typography>
             <Typography>
-              <strong>Contract:</strong> {order.supplier_contract_id.contract_code}
+              <strong>Contract:</strong> {order.contract_id.contract_code}
             </Typography>
             <Typography>
-              <strong>Supplier:</strong> {order.supplier_contract_id.supplier_id.name}
+              <strong>Supplier:</strong> {order.contract_id.partner_id.name}
             </Typography>
             <Divider sx={{ my: 2 }} />
             <Typography>

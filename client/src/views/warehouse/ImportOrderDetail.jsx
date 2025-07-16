@@ -346,10 +346,10 @@ function ImportOrderDetail() {
           <AccordionDetails>
             <Typography><strong>Status:</strong> {order.status}</Typography>
             <Typography>
-              <strong>Contract:</strong> {order.supplier_contract_id.contract_code}
+              <strong>Contract:</strong> {order.contract_id.contract_code}
             </Typography>
             <Typography>
-              <strong>Supplier:</strong> {order.supplier_contract_id.supplier_id.name}
+              <strong>Supplier:</strong> {order.contract_id.partner_id.name}
             </Typography>
             <Divider sx={{ my: 2 }} />
             <Typography><strong>Items:</strong></Typography>
