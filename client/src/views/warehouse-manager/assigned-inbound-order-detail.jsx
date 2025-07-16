@@ -79,6 +79,9 @@ function ImportOrderDetail() {
 
   const [newBatches, setNewBatches] = useState([]);
 
+  const [validBatchOptions, setValidBatchOptions] = useState([]);
+
+
   // Initial fetch: order + inspections + initial packages
   useEffect(() => {
     if (!orderId) return;
@@ -101,13 +104,6 @@ function ImportOrderDetail() {
         const insps = inspResp.inspections || [];
         setInspections(insps);
 
-        // 3) Prefill packages with NET quantities (actual - rejected)
-        const prefillPackages = insps.map((i) => ({
-          batch_id: i.batch_id?._id || '',
-          quantity: i.actual_quantity - i.rejected_quantity
-        }));
-
-        setPackages(prefillPackages);
 
         // 4) Fetch any existing “put away” packages
         await fetchPutAway();
@@ -134,6 +130,76 @@ function ImportOrderDetail() {
     })();
   }, [orderId]);
 
+  useEffect(() => {
+    // whenever `inspections` changes, recalculate `packages`
+    if (inspections.length) {
+      const pre = inspections.map(i => ({
+        batch_id: i.batch_id?._id || '',
+        quantity: i.actual_quantity - i.rejected_quantity,
+      }));
+      setPackages(pre);
+    }
+  }, [inspections]);
+
+  useEffect(() => {
+    // build a set of all medicineIds in the inspections
+    const meds = Array.from(
+      new Set(inspections
+        .map(i => i.medicine_id?._id)
+        .filter(Boolean))
+    );
+    if (meds.length === 0) {
+      setValidBatchOptions([]);
+      return;
+    }
+
+    (async () => {
+      try {
+        // fetch valid batches for each medicine
+        const results = await Promise.all(
+          meds.map(mid =>
+            axios.get(`/api/batch/valid/${mid}`, { headers: getAuthHeaders() })
+          )
+        );
+        // flatten into { id, label } shape
+        const serverOpts = results.flatMap(r =>
+          (r.data.data || []).map(b => ({
+            id: b._id,
+            label: b.batch_code,
+          }))
+        );
+        setValidBatchOptions(serverOpts);
+      } catch (err) {
+        console.error('Failed to load valid batches:', err);
+        setValidBatchOptions([]);
+      }
+    })();
+  }, [newBatches]);
+
+
+  const prefillPackages = (insps) => {
+    const pre = insps.map(i => ({
+      batch_id: i.batch_id?._id || '',
+      quantity: i.actual_quantity - i.rejected_quantity,
+    }));
+    setPackages(pre);
+  };
+
+  const fetchInspection = async () => {
+    try {
+      const { data: inspResp } = await axios.get(`/api/import-inspections/import-orders/${orderId}/inspections`, {
+        headers: getAuthHeaders()
+      });
+      const insps = inspResp.inspections || [];
+      setInspections(insps);
+      prefillPackages(insps);
+    } catch (err) {
+      console.error(err);
+      setPutAway([]);
+    }
+  };
+
+
   const fetchPutAway = async () => {
     try {
       setLoadingPutAway(true);
@@ -151,18 +217,6 @@ function ImportOrderDetail() {
     }
   };
 
-  const fetchInspection = async () => {
-    try {
-      const { data: inspResp } = await axios.get(`/api/import-inspections/import-orders/${orderId}/inspections`, {
-        headers: getAuthHeaders()
-      });
-      const insps = inspResp.inspections || [];
-      setInspections(insps);
-    } catch (err) {
-      console.error(err);
-      setPutAway([]);
-    }
-  };
 
   const handleClearLocation = async (pkgId) => {
     try {
@@ -250,31 +304,45 @@ function ImportOrderDetail() {
     .filter((i) => i.medicine_id && i.medicine_id._id)
     .filter((i, idx, arr) => arr.findIndex((j) => j.medicine_id._id === i.medicine_id._id) === idx);
 
+
+  // 1) Build a map: medicineId → net quantity across all inspections
+  const netByMedicine = inspections.reduce((acc, ins) => {
+    const medId = ins.batch_id?.medicine_id?._id;
+    if (!medId) return acc;
+    const net = ins.actual_quantity - ins.rejected_quantity;
+    acc[medId] = (acc[medId] || 0) + net;
+    return acc;
+  }, {});
+
+
+  // 2) Build a lookup from batchId → medicineId
+  const batchToMed = inspections.reduce((acc, ins) => {
+    const bid = ins.batch_id?._id;
+    const mid = ins.batch_id?.medicine_id?._id;
+    if (bid && mid) acc[bid] = mid;
+    return acc;
+  }, {});
+
+  // 3) Build a map: medicineId → total quantity from your package rows
+  const packedByMedicine = packages.reduce((acc, pkg) => {
+    const medId = batchToMed[pkg.batch_id];
+    if (!medId) return acc;
+    acc[medId] = (acc[medId] || 0) + Number(pkg.quantity || 0);
+    return acc;
+  }, {});
+
+  // 4) Now check
   const isValid =
-    // 1) Must have at least one package row
+    // must have at least one package row
     packages.length > 0 &&
-    // 2) Every row must have selected a batch
-    packages.every((p) => Boolean(p.batch_id)) &&
-    // 3) Package sums must exactly match each inspection’s net quantity
-    inspections.every((ins) => {
-      // If inspection has no batch_id, skip it
-      if (!ins.batch_id?._id) return true;
 
-      const net = ins.actual_quantity - ins.rejected_quantity;
-      const sum = packages
-        .filter((p) => String(p.batch_id) === String(ins.batch_id._id))
-        .reduce((total, p) => total + Number(p.quantity || 0), 0);
+    // every row has a batch
+    packages.every(p => Boolean(p.batch_id)) &&
 
-      return sum === net;
-    });
-
-  const handlePkgChange = (idx, field, value) => {
-    setPackages((pkgs) => {
-      const next = [...pkgs];
-      next[idx] = { ...next[idx], [field]: value };
-      return next;
-    });
-  };
+    // for *every* medicine in netByMedicine, the packed total matches the net
+    Object.entries(netByMedicine).every(
+      ([medId, net]) => packedByMedicine[medId] === net
+    );
 
   const addPackageRow = () => {
     setPackages((pkgs) => [...pkgs, { batch_id: batchOptions[0]?.id || '', quantity: 0 }]);
@@ -282,6 +350,26 @@ function ImportOrderDetail() {
 
   const removePackageRow = (idx) => {
     setPackages((pkgs) => pkgs.filter((_, i) => i !== idx));
+  };
+
+
+  const allBatchOptions = [
+    ...validBatchOptions,
+    ...newBatches.map(nb => ({
+      id: nb.batch_code,
+      label: nb.batch_code + ' (new)'
+    }))
+  ].reduce((acc, opt) => {
+    if (!acc.find(o => o.id === opt.id)) acc.push(opt);
+    return acc;
+  }, []);
+
+  const handlePkgChange = (idx, field, value) => {
+    setPackages((pkgs) => {
+      const next = [...pkgs];
+      next[idx] = { ...next[idx], [field]: value };
+      return next;
+    });
   };
 
   const handleDeleteInspection = async (inspectionId) => {
@@ -293,32 +381,39 @@ function ImportOrderDetail() {
 
       // Remove it directly from the inspections array
       setInspections((prev) => prev.filter((insp) => insp._id !== inspectionId));
+      fetchInspection()
 
-      setSnackbar({
-        open: true,
-        message: 'Đã xóa phiếu kiểm nhập thành công!',
-        severity: 'success'
-      });
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error.response?.data?.message || 'Lỗi xóa phiếu kiểm nhập!',
-        severity: 'error'
-      });
+
     }
   };
 
   const handlePrintLabel = async (pkg) => {
     try {
-      // 1) Gather data
-      const pkgId = pkg._id;
-      const medicineName = pkg.batch_id.medicine_id.medicine_name;
-      const batchId = pkg.batch_id._id;
-      const expDate = pkg.batch_id.expiry_date.slice(0, 10); // YYYY-MM-DD
-      const orderIdStr = order._id;
-      const supplierName = order.supplier_contract_id.supplier_id.name;
+      console.log(pkg);
 
-      // 2) Render barcode to offscreen canvas
+      const pkgId = pkg._id;
+      const batchId = pkg.batch_id._id;
+      const batchCode = pkg.batch_id.batch_code;
+      const expDate = pkg.batch_id.expiry_date?.slice(0, 10) || 'N/A';
+      const orderIdStr = order._id;
+      const supplierName = order.supplier_contract_id?.supplier_id?.name || 'N/A';
+
+      // Fetch medicine details
+      const medId = pkg.batch_id?.medicine_id;
+      let medicineLabel = 'Unknown Medicine';
+      console.log(medId);
+      if (medId) {
+        const { data: medResp } = await axios.get(`/api/medicine/detail/${medId}`, {
+          headers: getAuthHeaders(),
+        });
+        if (medResp.success) {
+          const med = medResp.data.medicine;
+          medicineLabel = `${med.medicine_name} (${med.license_code})`;
+        }
+      }
+
+      // Render barcode to offscreen canvas
       const canvas = document.createElement('canvas');
       await bwipjs.toCanvas(canvas, {
         bcid: 'code128',
@@ -326,11 +421,11 @@ function ImportOrderDetail() {
         scale: 3,
         includetext: true,
         textxalign: 'center',
-        textsize: 10
+        textsize: 10,
       });
       const barcodeDataUrl = canvas.toDataURL('image/png');
 
-      // 3) Create hidden iframe
+      // Create hidden iframe
       const iframe = document.createElement('iframe');
       iframe.style.position = 'fixed';
       iframe.style.right = '0';
@@ -340,7 +435,7 @@ function ImportOrderDetail() {
       iframe.style.border = '0';
       document.body.appendChild(iframe);
 
-      // 4) Write label HTML into it
+      // Write label HTML into it
       const doc = iframe.contentDocument || iframe.contentWindow.document;
       doc.open();
       doc.write(`
@@ -357,8 +452,8 @@ function ImportOrderDetail() {
           <img src="${barcodeDataUrl}" alt="Barcode" />
           <br/>
           <div class="field"><span class="label">Package ID:</span> ${pkgId}</div>
-          <div class="field"><span class="label">Medicine:</span> ${medicineName}</div>
-          <div class="field"><span class="label">Batch ID:</span> ${batchId}</div>
+          <div class="field"><span class="label">Medicine:</span> ${medicineLabel}</div>
+          <div class="field"><span class="label">Batch:</span> ${batchCode}</div>
           <div class="field"><span class="label">EXP:</span> ${expDate}</div>
           <div class="field"><span class="label">Import Order:</span> ${orderIdStr}</div>
           <div class="field"><span class="label">Supplier:</span> ${supplierName}</div>
@@ -367,7 +462,7 @@ function ImportOrderDetail() {
     `);
       doc.close();
 
-      // 5) When ready, trigger print and clean up
+      // Trigger print and cleanup
       iframe.onload = () => {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
@@ -376,24 +471,6 @@ function ImportOrderDetail() {
     } catch (err) {
       console.error('Error printing label', err);
       setError('Không thể tạo nhãn mã vạch.');
-    }
-  };
-
-  const handleArrival = async () => {
-    try {
-      console.log('auth headers:', getAuthHeaders());
-      await axios.patch(
-        `/api/import-orders/${orderId}/status`,
-        { status: 'delivered' },
-        {
-          headers: getAuthHeaders()
-        }
-      );
-      setOrder((prev) => ({ ...prev, status: 'delivered' }));
-      enableAccordion('delivered');
-    } catch (err) {
-      console.error('Error updating status:', err);
-      setError('Lỗi khi cập nhật trạng thái đơn');
     }
   };
 
@@ -643,8 +720,12 @@ function ImportOrderDetail() {
                   <Stack key={idx} direction="row" spacing={2} alignItems="center">
                     <FormControl sx={{ flex: 1 }} disabled={packagesDone}>
                       <InputLabel>Batch</InputLabel>
-                      <Select size="small" value={p.batch_id} onChange={(e) => handlePkgChange(idx, 'batch_id', e.target.value)}>
-                        {batchOptions.map((opt) => (
+                      <Select
+                        size="small"
+                        value={p.batch_id}
+                        onChange={e => handlePkgChange(idx, 'batch_id', e.target.value)}
+                      >
+                        {allBatchOptions.map(opt => (
                           <MenuItem key={opt.id} value={opt.id}>
                             {opt.label}
                           </MenuItem>

@@ -1,7 +1,6 @@
 const Batch = require('../models/Batch');
 const Location = require('../models/Location');
-
-
+const mongoose = require('mongoose');
 
 const batchController = {
 
@@ -126,7 +125,40 @@ const batchController = {
         message: 'Server error creating batch'
       });
     }
-  }
+  },
+
+  getValidBatches: async (req, res) => {
+    try {
+      const { medicineId } = req.params;
+
+      // 1) Validate
+      if (!medicineId || !mongoose.Types.ObjectId.isValid(medicineId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'A valid medicineId URL parameter is required',
+        });
+      }
+
+      // 2) Find all batches for that medicine whose expiry_date is still in the future
+      const today = new Date();
+      const validBatches = await Batch.find({
+        medicine_id: medicineId,
+        expiry_date: { $gt: today },
+      }).sort({ expiry_date: 1 });
+
+      // 3) Return
+      return res.json({
+        success: true,
+        data: validBatches,
+      });
+    } catch (err) {
+      console.error('❌ Error fetching valid batches:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error fetching valid batches',
+      });
+    }
+  },
 
 }
 

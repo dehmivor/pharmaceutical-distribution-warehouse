@@ -141,9 +141,6 @@ function ImportOrderDetail() {
           case 'delivered':
             enableAccordion('delivered');
             break;
-          case 'checked':
-            enableAccordion('checked');
-            break;
           case 'arranged':
             enableAccordion('packaged');
             break;
@@ -174,17 +171,6 @@ function ImportOrderDetail() {
       setPutAwayDone(false);
     }
   }
-
-  const handleClearLocation = async (pkgId) => {
-    try {
-      await axios.patch(`/api/packages/${pkgId}/clear-location`, {
-        headers: getAuthHeaders()
-      });
-      await fetchPutAway();
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const handleShowRelated = async (pkg) => {
     try {
@@ -219,10 +205,10 @@ function ImportOrderDetail() {
       const loc = r.data.data;
       setLocForm({
         location_id,
-        area_id: loc.area,
+        area_id: loc.area_id._id,
         bay: loc.bay,
         row: loc.row,
-        level: loc.level,
+        level: loc.column,
       });
     } catch (err) {
       setLocError(err.response?.data?.message || err.message);
@@ -254,15 +240,30 @@ function ImportOrderDetail() {
 
   const handlePrintLabel = async (pkg) => {
     try {
-      // 1) Gather data
-      const pkgId = pkg._id;
-      const medicineName = pkg.batch_id.medicine_id.medicine_name;
-      const batchId = pkg.batch_id._id;
-      const expDate = pkg.batch_id.expiry_date.slice(0, 10); // YYYY-MM-DD
-      const orderIdStr = order._id;
-      const supplierName = order.supplier_contract_id.supplier_id.name;
+      console.log(pkg);
 
-      // 2) Render barcode to offscreen canvas
+      const pkgId = pkg._id;
+      const batchId = pkg.batch_id._id;
+      const batchCode = pkg.batch_id.batch_code;
+      const expDate = pkg.batch_id.expiry_date?.slice(0, 10) || 'N/A';
+      const orderIdStr = order._id;
+      const supplierName = order.supplier_contract_id?.supplier_id?.name || 'N/A';
+
+      // Fetch medicine details
+      const medId = pkg.batch_id?.medicine_id;
+      let medicineLabel = 'Unknown Medicine';
+      console.log(medId);
+      if (medId) {
+        const { data: medResp } = await axios.get(`/api/medicine/detail/${medId}`, {
+          headers: getAuthHeaders(),
+        });
+        if (medResp.success) {
+          const med = medResp.data.medicine;
+          medicineLabel = `${med.medicine_name} (${med.license_code})`;
+        }
+      }
+
+      // Render barcode to offscreen canvas
       const canvas = document.createElement('canvas');
       await bwipjs.toCanvas(canvas, {
         bcid: 'code128',
@@ -274,7 +275,7 @@ function ImportOrderDetail() {
       });
       const barcodeDataUrl = canvas.toDataURL('image/png');
 
-      // 3) Create hidden iframe
+      // Create hidden iframe
       const iframe = document.createElement('iframe');
       iframe.style.position = 'fixed';
       iframe.style.right = '0';
@@ -284,7 +285,7 @@ function ImportOrderDetail() {
       iframe.style.border = '0';
       document.body.appendChild(iframe);
 
-      // 4) Write label HTML into it
+      // Write label HTML into it
       const doc = iframe.contentDocument || iframe.contentWindow.document;
       doc.open();
       doc.write(`
@@ -301,8 +302,8 @@ function ImportOrderDetail() {
           <img src="${barcodeDataUrl}" alt="Barcode" />
           <br/>
           <div class="field"><span class="label">Package ID:</span> ${pkgId}</div>
-          <div class="field"><span class="label">Medicine:</span> ${medicineName}</div>
-          <div class="field"><span class="label">Batch ID:</span> ${batchId}</div>
+          <div class="field"><span class="label">Medicine:</span> ${medicineLabel}</div>
+          <div class="field"><span class="label">Batch:</span> ${batchCode}</div>
           <div class="field"><span class="label">EXP:</span> ${expDate}</div>
           <div class="field"><span class="label">Import Order:</span> ${orderIdStr}</div>
           <div class="field"><span class="label">Supplier:</span> ${supplierName}</div>
@@ -311,7 +312,7 @@ function ImportOrderDetail() {
     `);
       doc.close();
 
-      // 5) When ready, trigger print and clean up
+      // Trigger print and cleanup
       iframe.onload = () => {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
@@ -468,19 +469,11 @@ function ImportOrderDetail() {
                               <TableCell>{pkg.quantity}</TableCell>
                               <TableCell>
                                 {pkg.location_id
-                                  ? `${pkg.location_id.area_id?.name || '—'} • Bay ${pkg.location_id.bay}, Row ${pkg.location_id.row}, Level ${pkg.location_id.level}`
+                                  ? `${pkg.location_id.area_id?.name || '—'} • Bay ${pkg.location_id.bay}, Row ${pkg.location_id.row}, Level ${pkg.location_id.column}`
                                   : '—'
                                 }
                               </TableCell>
                               <TableCell>
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => handleClearLocation(pkg._id)}
-                                  disabled={putAwayDone}
-                                >
-                                  <DeleteForeverIcon fontSize="small" />
-                                </IconButton>
                                 <IconButton
                                   size="small"
                                   color="primary"
