@@ -4,10 +4,10 @@ const { IMPORT_ORDER_STATUSES } = require('../utils/constants');
 
 const importOrderSchema = new mongoose.Schema(
   {
-    supplier_contract_id: {
+    contract_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'SupplierContract',
-      required: [true, 'Supplier contract ID is required'],
+      ref: 'Contract',
+      required: [true, 'Contract ID is required'],
     },
     warehouse_manager_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -51,15 +51,20 @@ importOrderSchema.pre('save', function (next) {
   next();
 });
 
-// Validation: Kiểm tra số lượng từ supplier contract
+// Validation: Kiểm tra số lượng từ contract
 importOrderSchema.pre('save', async function (next) {
-  if (this.details && this.details.length > 0 && this.supplier_contract_id) {
+  if (this.details && this.details.length > 0 && this.contract_id) {
     try {
-      const SupplierContract = mongoose.model('SupplierContract');
-      const contract = await SupplierContract.findById(this.supplier_contract_id);
+      const Contract = mongoose.model('Contract');
+      const contract = await Contract.findById(this.contract_id);
 
       if (!contract) {
-        return next(new Error('Supplier contract not found'));
+        return next(new Error('Contract not found'));
+      }
+
+      // Chỉ validate cho contract với partner_type là 'Supplier'
+      if (contract.partner_type !== 'Supplier') {
+        return next(new Error('Import orders can only be created for supplier contracts'));
       }
 
       // Kiểm tra từng detail với contract
@@ -110,10 +115,10 @@ importOrderSchema.pre('save', function (next) {
     const userRole = this._userContext.role;
     const isNewOrder = this.isNew;
 
-    // Representative chỉ có thể tạo mới hoặc edit draft orders
+    // Representative chỉ có thể tạo mới hoặc edit draft hoặc rejected orders
     if (userRole === 'representative') {
-      if (!isNewOrder && this.status !== 'draft') {
-        return next(new Error('Representative can only edit draft orders'));
+      if (!isNewOrder && this.status !== 'draft' && this.status !== 'rejected') {
+        return next(new Error('Representative can only edit draft or rejected orders'));
       }
     }
 
@@ -138,10 +143,22 @@ importOrderSchema.pre('save', function (next) {
       arranged: ['checked', 'completed', 'cancelled'],
       completed: [],
       cancelled: [],
+      // Cho phép chuyển từ rejected về draft nếu là representative
+      rejected: ['draft'],
     };
 
     const currentStatus = this._original?.status || 'draft';
     const newStatus = this.status;
+
+    // Nếu là representative và chuyển từ rejected về draft thì cho phép
+    if (
+      this._userContext &&
+      this._userContext.role === 'representative' &&
+      currentStatus === 'rejected' &&
+      newStatus === 'draft'
+    ) {
+      return next();
+    }
 
     if (!validTransitions[currentStatus]?.includes(newStatus)) {
       return next(new Error(`Invalid status transition from ${currentStatus} to ${newStatus}`));

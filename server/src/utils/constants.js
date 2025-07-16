@@ -4,6 +4,7 @@ const USER_ROLES = {
   SUPERVISOR: 'supervisor',
   REPRESENTATIVE: 'representative',
   WAREHOUSEMANAGER: 'warehouse_manager',
+  REPRESENTATIVEMANAGER: 'representative_manager',
 };
 
 const USER_STATUSES = {
@@ -96,6 +97,7 @@ const CONTRACT_STATUSES = {
 const IMPORT_ORDER_STATUSES = {
   DRAFT: 'draft',
   APPROVED: 'approved',
+  REJECTED: 'rejected',
   DELIVERED: 'delivered',
   CHECKED: 'checked',
   ARRANGED: 'arranged',

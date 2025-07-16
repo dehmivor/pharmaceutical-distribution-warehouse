@@ -1,6 +1,7 @@
 const ExportOrder = require("../models/ExportOrder")
 const User = require("../models/User")
 const { EXPORT_ORDER_STATUSES, USER_ROLES } = require("../utils/constants")
+const exportOrderService = require('../services/exportOrderService');
 
 // Helper function for population to ensure consistent data structure
 const populateOptions = [
@@ -23,7 +24,7 @@ exports.getAllExportOrders = async (req, res, next) => {
     next(error)
   }
 }
-
+ 
 /**
  * @desc    Assign staff to an export order
  * @route   PUT /api/export-orders/:id/assign-staff
@@ -145,3 +146,56 @@ exports.cancelExportOrder = async (req, res, next) => {
     next(error)
   }
 }
+
+/**
+ * @desc    Representative tạo export order (trạng thái draft)
+ * @route   POST /api/export-orders
+ * @access  Private (Representative)
+ */
+exports.createExportOrder = async (req, res, next) => {
+  try {
+    const userId = req.user.userId; // Lấy từ middleware xác thực, dạng string
+    console.log('POST /api/export-orders body:', req.body); // Log dữ liệu nhận được
+    const order = await exportOrderService.createExportOrder(req.body, userId);
+    res.status(201).json({ success: true, data: order });
+  } catch (error) {
+    console.error('Create export order error:', error); // Log lỗi chi tiết
+    next(error);
+  }
+};
+
+/**
+ * @desc    RM duyệt và gán warehouse manager cho export order
+ * @route   PUT /api/export-orders/:id/approve
+ * @access  Private (Representative Manager)
+ */
+exports.approveExportOrder = async (req, res, next) => {
+  try {
+    const rmId = req.user._id; // Lấy từ middleware xác thực
+    const { warehouse_manager_id } = req.body;
+    const { id } = req.params;
+    const order = await exportOrderService.approveExportOrder(id, rmId, warehouse_manager_id);
+    res.status(200).json({ success: true, data: order });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Gán warehouse manager cho export order
+ * @route   PUT /api/export-orders/:id/assign-warehouse-manager
+ * @access  Private (Representative Manager)
+ */
+exports.assignWarehouseManager = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { warehouse_manager_id } = req.body;
+    if (!warehouse_manager_id) {
+      return res.status(400).json({ success: false, error: 'warehouse_manager_id is required' });
+    }
+    const updatedOrder = await exportOrderService.assignWarehouseManager(id, warehouse_manager_id);
+    res.status(200).json({ success: true, data: updatedOrder });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
