@@ -25,7 +25,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Stack,
+  Stack
 } from '@mui/material';
 import axios from 'axios';
 
@@ -33,7 +33,7 @@ const getAuthHeaders = () => {
   const token = localStorage.getItem('auth-token');
   return {
     'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
+    ...(token && { Authorization: `Bearer ${token}` })
   };
 };
 
@@ -61,7 +61,7 @@ function ManageBills() {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/';
       const response = await axios.get(`${backendUrl}/api/bills`, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       setBills(response.data.data || []);
       setError(null);
@@ -91,9 +91,9 @@ function ManageBills() {
     switch (status) {
       case 'PENDING':
         return 'warning';
-      case 'COMPLETED':
+      case 'PAID':
         return 'success';
-      case 'CANCELED':
+      case 'OVERDUE':
         return 'error';
       default:
         return 'default';
@@ -125,9 +125,7 @@ function ManageBills() {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || '';
       const endpoint =
-        bill.type === 'IMPORT'
-          ? `/api/stripe/create-payment-import/${bill._id}`
-          : `/api/stripe/create-payment-export/${bill._id}`;
+        bill.type === 'IMPORT' ? `/api/stripe/create-payment-import/${bill._id}` : `/api/stripe/create-payment-export/${bill._id}`;
 
       const amount = Math.round(calcAmount(bill.details));
       const successUrl = window.location.origin + '/payment-success';
@@ -136,7 +134,7 @@ function ManageBills() {
       const response = await axios.post(`${backendUrl}${endpoint}`, {
         amount,
         successUrl,
-        cancelUrl,
+        cancelUrl
       });
 
       const { url } = response.data;
@@ -170,9 +168,7 @@ function ManageBills() {
       if (searchText.trim() !== '') {
         const lowerSearch = searchText.toLowerCase();
         const voucherMatch = bill.voucher_code?.toLowerCase().includes(lowerSearch);
-        const medicineMatch = bill.details?.some((d) =>
-          d.medicine_lisence_code?.toLowerCase().includes(lowerSearch)
-        );
+        const medicineMatch = bill.details?.some((d) => d.medicine_lisence_code?.toLowerCase().includes(lowerSearch));
         if (!voucherMatch && !medicineMatch) return false;
       }
       return true;
@@ -249,37 +245,35 @@ function ManageBills() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredBills
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((bill) => (
-                  <TableRow key={bill._id}>
-                    <TableCell>{bill.type === 'IMPORT' ? 'IMPORT' : bill.type === 'EXPORT' ? 'EXPORT' : 'N/A'}</TableCell>
-                    <TableCell>{bill.voucher_code || 'N/A'}</TableCell>
-                    <TableCell>{bill.type || 'N/A'}</TableCell>
-                    <TableCell>
-                      <Chip label={bill.status} color={getStatusColor(bill.status)} />
-                    </TableCell>
-                    <TableCell>{formatDate(bill.createdAt)}</TableCell>
-                    <TableCell>{bill.details?.map((d) => d.medicine_lisence_code).join(', ') || 'N/A'}</TableCell>
-                    <TableCell align="right">{calcAmount(bill.details).toLocaleString()}</TableCell>
-                    <TableCell align="center">
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="primary"
-                        sx={{ mr: 1 }}
-                        onClick={() => handleStripePayment(bill)}
-                        disabled={loadingPaymentId === bill._id}
-                      >
-                        {loadingPaymentId === bill._id ? 'Đang xử lý...' : 'Thanh toán'}
-                      </Button>
+              filteredBills.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((bill) => (
+                <TableRow key={bill._id}>
+                  <TableCell>{bill.type === 'IMPORT' ? 'IMPORT' : bill.type === 'EXPORT' ? 'EXPORT' : 'N/A'}</TableCell>
+                  <TableCell>{bill.voucher_code || 'N/A'}</TableCell>
+                  <TableCell>{bill.type || 'N/A'}</TableCell>
+                  <TableCell>
+                    <Chip label={bill.status} color={getStatusColor(bill.status)} />
+                  </TableCell>
+                  <TableCell>{formatDate(bill.createdAt)}</TableCell>
+                  <TableCell>{bill.details?.map((d) => d.medicine_lisence_code).join(', ') || 'N/A'}</TableCell>
+                  <TableCell align="right">{calcAmount(bill.details).toLocaleString()}</TableCell>
+                  <TableCell align="center">
+                    <Button
+                      size="small"
+                      variant="contained"
+                      color="primary"
+                      sx={{ mr: 1 }}
+                      onClick={() => handleStripePayment(bill)}
+                      disabled={loadingPaymentId === bill._id}
+                    >
+                      {loadingPaymentId === bill._id ? 'Đang xử lý...' : 'Thanh toán'}
+                    </Button>
 
-                      <Button size="small" variant="outlined" onClick={() => handleOpenDetail(bill)}>
-                        Xem chi tiết
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                    <Button size="small" variant="outlined" onClick={() => handleOpenDetail(bill)}>
+                      Xem chi tiết
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>

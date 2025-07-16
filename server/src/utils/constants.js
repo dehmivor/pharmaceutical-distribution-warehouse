@@ -157,6 +157,17 @@ const EXPORT_ORDER_STATUSES = {
   CANCELLED: 'cancelled',
 };
 
+const BILL_STATUSES = {
+  DRAFT: 'draft',
+  PENDING: 'pending',
+  PAID: 'paid',
+  OVERDUE: 'overdue',
+  CANCELLED: 'cancelled',
+  PARTIAL: 'partial',
+  COMPLETED: 'completed',
+  UNPAID: 'unpaid',
+};
+
 module.exports = {
   USER_ROLES,
   BASIC_STATUSES,
@@ -178,4 +189,5 @@ module.exports = {
   ANNEX_STATUSES,
   CONTRACT_TYPES,
   EXPORT_ORDER_STATUSES,
+  BILL_STATUSES,
 };
