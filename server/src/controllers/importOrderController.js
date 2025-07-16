@@ -231,6 +231,29 @@ const updateOrderStatus = async (req, res) => {
     const approvalBy = req.user ? req.user._id : null;
     const userRole = req.user ? req.user.role : null;
 
+    // Chỉ cho phép RM chuyển sang approved hoặc rejected
+    if (userRole === 'representative_manager') {
+      const allowedStatuses = ['approved', 'rejected'];
+      if (!allowedStatuses.includes(status)) {
+        return res.status(403).json({
+          success: false,
+          error: `Representative Manager can only change status to: ${allowedStatuses.join(', ')}`,
+        });
+      }
+    }
+
+    // Representative chỉ được chuyển từ rejected về draft
+    if (userRole === 'representative') {
+      // Lấy order hiện tại để kiểm tra trạng thái
+      const order = await importOrderService.getImportOrderById(id);
+      if (!(order.status === 'rejected' && status === 'draft')) {
+        return res.status(403).json({
+          success: false,
+          error: 'Representative can only change status from rejected to draft',
+        });
+      }
+    }
+
     // Kiểm tra quyền của warehouse manager (chỉ warehouse_manager mới được phép)
     if (userRole === 'warehouse_manager') {
       // Warehouse manager chỉ có thể thay đổi sang checked và arranged
@@ -310,12 +333,12 @@ const getImportOrdersByWarehouseManager = async (req, res) => {
   }
 };
 
-// Get import orders by supplier contract
-const getImportOrdersBySupplierContract = async (req, res) => {
+// Get import orders by contract
+const getImportOrdersByContract = async (req, res) => {
   try {
-    const { supplierContractId } = req.params;
+    const { contractId } = req.params;
 
-    const orders = await importOrderService.getImportOrdersBySupplierContract(supplierContractId);
+    const orders = await importOrderService.getImportOrdersByContract(contractId);
 
     res.status(200).json({
       success: true,
@@ -387,7 +410,7 @@ module.exports = {
   deleteImportOrder,
   updateOrderStatus,
   getImportOrdersByWarehouseManager,
-  getImportOrdersBySupplierContract,
+  getImportOrdersByContract,
   getValidStatusTransitions,
   assignWarehouseManager,
 };

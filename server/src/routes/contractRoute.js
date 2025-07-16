@@ -6,6 +6,8 @@ const authenticate = require('../middlewares/authenticate');
 
 router.get('/', contractValidator.validateGetAllContracts, contractController.getAllContracts);
 
+router.get('/:id', authenticate, contractValidator.validateGetContractById, contractController.getContractById);
+
 router.get('/detail/:id', authenticate, contractValidator.validateGetContractById, contractController.getContractById);
 
 router.get('/filter-options', authenticate, contractController.getFilterOptions);

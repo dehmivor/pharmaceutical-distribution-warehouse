@@ -208,6 +208,11 @@ const itemContractSchema = new mongoose.Schema({
       return this.parent().contract_type === CONTRACT_TYPES.ECONOMIC;
     },
   },
+  min_order_quantity: {
+    type: Number,
+    min: [1, 'Minimum order quantity must be a positive integer'],
+    
+  },
   unit_price: {
     type: Number,
     min: [0, 'Unit price cannot be negative'],

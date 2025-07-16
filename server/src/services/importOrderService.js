@@ -20,7 +20,7 @@ const createImportOrder = async (orderData, orderDetails, userContext = null) =>
     const savedOrder = await newOrder.save();
 
     return await ImportOrder.findById(savedOrder._id)
-      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+      .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -48,8 +48,8 @@ const getImportOrders = async (query = {}, page = 1, limit = 10) => {
       // Nếu có search, cần populate trước khi search
       const orders = await ImportOrder.find({})
         .populate({
-          path: 'supplier_contract_id',
-          populate: { path: 'supplier_id', select: 'name' },
+          path: 'contract_id',
+          populate: { path: 'partner_id', select: 'name' },
         })
         .populate('warehouse_manager_id', 'name email role')
         .populate('created_by', ' email role')
@@ -62,10 +62,10 @@ const getImportOrders = async (query = {}, page = 1, limit = 10) => {
           if (condition._id) {
             return order._id.toString().toLowerCase().includes(condition._id.$regex.toLowerCase());
           }
-          if (condition['supplier_contract_id.contract_code']) {
-            return order.supplier_contract_id?.contract_code
+          if (condition['contract_id.contract_code']) {
+            return order.contract_id?.contract_code
               ?.toLowerCase()
-              .includes(condition['supplier_contract_id.contract_code'].$regex.toLowerCase());
+              .includes(condition['contract_id.contract_code'].$regex.toLowerCase());
           }
           return false;
         });
@@ -98,7 +98,7 @@ const getImportOrders = async (query = {}, page = 1, limit = 10) => {
 
     // Nếu không có search, sử dụng query bình thường
     const orders = await ImportOrder.find(searchQuery)
-      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+      .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -127,7 +127,7 @@ const getImportOrders = async (query = {}, page = 1, limit = 10) => {
 const getImportOrderById = async (orderId) => {
   try {
     const order = await ImportOrder.findById(orderId)
-      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+      .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -162,6 +162,13 @@ const updateImportOrder = async (orderId, updateData, userContext = null) => {
     // Truyền user context vào model để validation
     if (userContext) {
       order._userContext = userContext;
+      // Nếu là representative và order đang rejected, chuyển về draft
+      if (
+        userContext.role === 'representative' &&
+        order.status === IMPORT_ORDER_STATUSES.REJECTED
+      ) {
+        order.status = IMPORT_ORDER_STATUSES.DRAFT;
+      }
     }
 
     // Cập nhật từng field để trigger validation
@@ -172,7 +179,7 @@ const updateImportOrder = async (orderId, updateData, userContext = null) => {
     const updatedOrder = await order.save();
 
     return await ImportOrder.findById(updatedOrder._id)
-      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+      .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -200,7 +207,7 @@ const updateImportOrderDetails = async (orderId, orderDetails) => {
       { $set: { details: orderDetails } },
       { new: true, runValidators: true },
     )
-      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+      .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -235,7 +242,7 @@ const addImportOrderDetail = async (orderId, detailItem) => {
       { $push: { details: detailItem } },
       { new: true, runValidators: true },
     )
-      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+      .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -277,7 +284,7 @@ const updateImportOrderDetail = async (orderId, detailId, updateData) => {
       { $set: updateFields },
       { new: true, runValidators: true },
     )
-      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+      .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -307,7 +314,7 @@ const removeImportOrderDetail = async (orderId, detailId) => {
       { $pull: { details: { _id: detailId } } },
       { new: true, runValidators: true },
     )
-      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+      .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -356,6 +363,7 @@ const updateOrderStatus = async (orderId, status, approvalBy = null, bypassValid
       const validTransitions = {
         [IMPORT_ORDER_STATUSES.DRAFT]: [
           IMPORT_ORDER_STATUSES.APPROVED,
+          IMPORT_ORDER_STATUSES.REJECTED, // Cho phép chuyển sang rejected
           IMPORT_ORDER_STATUSES.CANCELLED,
         ],
         [IMPORT_ORDER_STATUSES.APPROVED]: [
@@ -397,7 +405,7 @@ const updateOrderStatus = async (orderId, status, approvalBy = null, bypassValid
       { $set: updateData },
       { new: true, runValidators: true },
     )
-      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+      .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -424,11 +432,11 @@ const getImportOrdersByWarehouseManager = async (
   }
 };
 
-// Get import orders by supplier contract
-const getImportOrdersBySupplierContract = async (supplierContractId) => {
+// Get import orders by contract
+const getImportOrdersByContract = async (contractId) => {
   try {
-    const orders = await ImportOrder.find({ supplier_contract_id: supplierContractId })
-      .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+    const orders = await ImportOrder.find({ contract_id: contractId })
+      .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
@@ -446,6 +454,7 @@ const getValidStatusTransitions = (currentStatus) => {
   const validTransitions = {
     [IMPORT_ORDER_STATUSES.DRAFT]: [
       IMPORT_ORDER_STATUSES.APPROVED,
+      IMPORT_ORDER_STATUSES.REJECTED, // Cho phép chuyển sang rejected
       IMPORT_ORDER_STATUSES.CANCELLED,
     ],
     [IMPORT_ORDER_STATUSES.APPROVED]: [
@@ -480,6 +489,7 @@ const getAllStatusTransitions = () => {
   return {
     [IMPORT_ORDER_STATUSES.DRAFT]: [
       IMPORT_ORDER_STATUSES.APPROVED,
+      IMPORT_ORDER_STATUSES.REJECTED, // Cho phép chuyển sang rejected
       IMPORT_ORDER_STATUSES.CANCELLED,
     ],
     [IMPORT_ORDER_STATUSES.APPROVED]: [
@@ -553,7 +563,7 @@ const assignWarehouseManager = async (orderId, warehouseManagerId) => {
   }
 
   return await ImportOrder.findById(orderId)
-    .populate({ path: 'supplier_contract_id', populate: { path: 'supplier_id', select: 'name' } })
+    .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
     .populate('warehouse_manager_id', 'name email role')
     .populate('created_by', 'name email role')
     .populate('approval_by', 'name email role')
@@ -585,7 +595,7 @@ module.exports = {
   deleteImportOrder,
   updateOrderStatus,
   getImportOrdersByWarehouseManager,
-  getImportOrdersBySupplierContract,
+  getImportOrdersByContract,
   getValidStatusTransitions,
   getAllStatusTransitions,
   assignWarehouseManager,

@@ -75,7 +75,7 @@ app.use(
 app.use(
   '/api/users',
   authenticate,
-  authorize([USER_ROLES.WAREHOUSEMANAGER, USER_ROLES.SUPERVISOR]), // Hoặc các vai trò khác có quyền xem danh sách người dùng
+  authorize([USER_ROLES.WAREHOUSEMANAGER, USER_ROLES.SUPERVISOR, USER_ROLES.REPRESENTATIVEMANAGER]), // Hoặc các vai trò khác có quyền xem danh sách người dùng
   route.userRoutes
 );
 
@@ -83,7 +83,6 @@ app.use(
 app.use(
   '/api/export-orders',
   authenticate,
-  authorize(USER_ROLES.WAREHOUSEMANAGER),
   route.exportOrderRoutes
 );
 
@@ -91,7 +90,7 @@ app.use(
 app.use(
   '/api/accounts',
   authenticate,
-  authorize(['supervisor', 'representative']),
+  authorize(['supervisor', 'representative', 'representative_manager']),
   route.accountRoutes,
 );
 

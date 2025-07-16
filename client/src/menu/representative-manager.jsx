@@ -17,6 +17,13 @@ const representativeManager = {
       type: 'item',
       url: '/manage-import-orders-approval',
       icon: 'IconFileImport'
+    },
+    {
+      id: 'manage-export-orders-approval',
+      title: 'Export Orders Approval',
+      type: 'item',
+      url: '/manage-export-orders-approval',
+      icon: 'IconFileExport'
     }
   ]
 };
