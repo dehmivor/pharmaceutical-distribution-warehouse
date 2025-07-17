@@ -16,13 +16,6 @@ const warehouse = {
           type: 'item',
           url: '/wh-import-orders',
           icon: 'IconList'
-        },
-        {
-          id: 'import-inspections',
-          title: 'Import Inspections',
-          type: 'item',
-          url: '/wh-create-inspections',
-          icon: 'IconChecklist'
         }
       ]
     },
