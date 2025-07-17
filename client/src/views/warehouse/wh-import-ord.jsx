@@ -35,15 +35,16 @@ const getAuthHeaders = () => {
   };
 };
 
-const getStatusColor = status => ({
-  draft: 'default',
-  approved: 'success',
-  delivered: 'info',
-  checked: 'warning',
-  arranged: 'primary',
-  completed: 'success',
-  cancelled: 'error'
-}[status] || 'default');
+const getStatusColor = (status) =>
+  ({
+    draft: 'default',
+    approved: 'success',
+    delivered: 'info',
+    checked: 'warning',
+    arranged: 'primary',
+    completed: 'success',
+    cancelled: 'error'
+  })[status] || 'default';
 
 export default function ManageImportOrders() {
   const router = useRouter();
@@ -53,68 +54,68 @@ export default function ManageImportOrders() {
   const [error, setError] = useState(null);
 
   const [filterDate, setFilterDate] = useState('');
-  const [filterAssigned, setFilterAssigned] = useState('all');     // 'self' | 'unassigned'
+  const [filterAssigned, setFilterAssigned] = useState('all'); // 'self' | 'unassigned'
   const [filterStatus, setFilterStatus] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOrder, setMenuOrder] = useState(null);
 
   // paging
-  const [page, setPage] = useState(1);   // 1-based
+  const [page, setPage] = useState(1); // 1-based
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
 
-  const handleMenuOpen = (e, order) => { setAnchorEl(e.currentTarget); setMenuOrder(order); };
-  const handleMenuClose = () => { setAnchorEl(null); setMenuOrder(null); };
+  const handleMenuOpen = (e, order) => {
+    setAnchorEl(e.currentTarget);
+    setMenuOrder(order);
+  };
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMenuOrder(null);
+  };
 
   const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const userId = userData.userId;
 
+  const fetchOrders = useCallback(
+    async (opts) => {
+      const { page: p = 1, limit: l = rowsPerPage, importDate, assigned, status } = opts;
 
-  const fetchOrders = useCallback(async (opts) => {
-    const {
-      page: p = 1,
-      limit: l = rowsPerPage,
-      importDate,
-      assigned,
-      status,
-    } = opts;
+      setLoading(true);
+      setError(null);
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const params = { page: p, limit: l };
+        if (importDate) params.createdAt = importDate;
+        if (status) params.status = status;
 
-    setLoading(true);
-    setError(null);
-    try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const params = { page: p, limit: l };
-      if (importDate) params.createdAt = importDate;
-      if (status) params.status = status;
+        // map our “Assigned To” dropdown into the back‑end’s warehouse_manager_id param:
+        if (assigned === 'unassigned') {
+          params.warehouse_manager_id = '0';
+        } else if (assigned === 'self') {
+          console.log(userId);
+          params.warehouse_manager_id = userId;
+        }
 
-      // map our “Assigned To” dropdown into the back‑end’s warehouse_manager_id param:
-      if (assigned === 'unassigned') {
-        params.warehouse_manager_id = '0';
-      } else if (assigned === 'self') {
-        console.log(userId)
-        params.warehouse_manager_id = userId
+        const resp = await axios.get(`${backendUrl}/api/import-orders`, {
+          headers: getAuthHeaders(),
+          params
+        });
+
+        if (resp.data.success) {
+          setOrders(resp.data.data);
+          // your API should return pagination.total
+          setTotalCount(resp.data.pagination?.total ?? resp.data.data.length);
+        } else {
+          throw new Error(resp.data.error || 'Failed to load orders');
+        }
+      } catch (err) {
+        setError(err.response?.data?.error || err.message);
+        setOrders([]);
+        setTotalCount(0);
+      } finally {
+        setLoading(false);
       }
-
-      const resp = await axios.get(`${backendUrl}/api/import-orders`, {
-        headers: getAuthHeaders(),
-        params,
-      });
-
-      if (resp.data.success) {
-        setOrders(resp.data.data);
-        // your API should return pagination.total
-        setTotalCount(resp.data.pagination?.total ?? resp.data.data.length);
-      } else {
-        throw new Error(resp.data.error || 'Failed to load orders');
-      }
-    } catch (err) {
-      setError(err.response?.data?.error || err.message);
-      setOrders([]);
-      setTotalCount(0);
-    } finally {
-      setLoading(false);
-    }
-  },
+    },
     [page, rowsPerPage, filterDate, filterAssigned, filterStatus]
   );
 
@@ -124,7 +125,7 @@ export default function ManageImportOrders() {
       limit: rowsPerPage,
       importDate: filterDate,
       assigned: filterAssigned,
-      status: filterStatus,
+      status: filterStatus
     });
   }, [page, rowsPerPage]);
 
@@ -132,7 +133,7 @@ export default function ManageImportOrders() {
   const handleChangePage = (_e, newZero) => {
     setPage(newZero + 1);
   };
-  const handleChangeRowsPerPage = e => {
+  const handleChangeRowsPerPage = (e) => {
     setRowsPerPage(+e.target.value);
     setPage(1);
   };
@@ -143,7 +144,7 @@ export default function ManageImportOrders() {
       limit: rowsPerPage,
       importDate: filterDate,
       assigned: filterAssigned,
-      status: filterStatus,
+      status: filterStatus
     });
   };
 
@@ -181,30 +182,18 @@ export default function ManageImportOrders() {
             label="Import Date"
             type="date"
             value={filterDate}
-            onChange={e => setFilterDate(e.target.value)}
+            onChange={(e) => setFilterDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
             size="small"
           />
-          <TextField
-            select
-            label="Status"
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            size="small"
-          >
-            {[
-              'draft', 'approved', 'rejected',
-              'delivered', 'checked',
-              'arranged', 'completed', 'cancelled'
-            ].map(s => (
-              <MenuItem key={s} value={s}>{s}</MenuItem>
+          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+            {['draft', 'approved', 'rejected', 'delivered', 'checked', 'arranged', 'completed', 'cancelled'].map((s) => (
+              <MenuItem key={s} value={s}>
+                {s}
+              </MenuItem>
             ))}
           </TextField>
-          <Button
-            variant="contained"
-            onClick={handleSearchClick}
-            startIcon={<SearchIcon />}
-          >
+          <Button variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
             Search
           </Button>
           <Button
@@ -221,7 +210,6 @@ export default function ManageImportOrders() {
           </Button>
         </Stack>
       </Box>
-
 
       {/* table */}
       <TableContainer component={Paper} elevation={2}>
@@ -245,22 +233,24 @@ export default function ManageImportOrders() {
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : orders.map(o => (
-              <TableRow key={o._id} hover>
-                <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
-                <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
-                <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
-                <TableCell>{o.warehouse_manager_id?.email || '—'}</TableCell>
-                <TableCell>
-                  <Chip label={o.status} color={getStatusColor(o.status)} size="small" />
-                </TableCell>
-                <TableCell>
-                  <IconButton onClick={e => handleMenuOpen(e, o)}>
-                    <MoreVertIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+            ) : (
+              orders.map((o) => (
+                <TableRow key={o._id} hover>
+                  <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
+                  <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
+                  <TableCell>{o.warehouse_manager_id?.email || '—'}</TableCell>
+                  <TableCell>
+                    <Chip label={o.status} color={getStatusColor(o.status)} size="small" />
+                  </TableCell>
+                  <TableCell>
+                    <IconButton onClick={(e) => handleMenuOpen(e, o)}>
+                      <MoreVertIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
 
@@ -283,13 +273,28 @@ export default function ManageImportOrders() {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <MenuItem onClick={() => { router.push(`/create-inspections/${menuOrder?._id}`); handleMenuClose(); }}>
+        <MenuItem
+          onClick={() => {
+            router.push(`/wh-create-inspections/${menuOrder?._id}`);
+            handleMenuClose();
+          }}
+        >
           Create Inspection
         </MenuItem>
-        <MenuItem onClick={() => { router.push(`/update-location/${menuOrder?._id}`); handleMenuClose(); }}>
+        <MenuItem
+          onClick={() => {
+            router.push(`/update-location/${menuOrder?._id}`);
+            handleMenuClose();
+          }}
+        >
           Update Location
         </MenuItem>
-        <MenuItem onClick={() => { router.push(`/wh-import-orders/${menuOrder?._id}`); handleMenuClose(); }}>
+        <MenuItem
+          onClick={() => {
+            router.push(`/wh-import-orders/${menuOrder?._id}`);
+            handleMenuClose();
+          }}
+        >
           Detail
         </MenuItem>
       </Menu>
