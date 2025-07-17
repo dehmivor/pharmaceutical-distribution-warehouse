@@ -169,8 +169,19 @@ const createBill = async (billData) => {
     throw error;
   }
 };
+
+const deleteBill = async (billId) => {
+  try {
+    const bill = await Bill.findByIdAndDelete(billId);
+    return bill;
+    } catch (error) {
+      throw error;
+      }
+      };
+
 module.exports = {
   getAllBills,
   getBillById,
   createBill,
+  deleteBill
 };
