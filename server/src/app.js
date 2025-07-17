@@ -15,6 +15,30 @@ const authenticate = require('./middlewares/authenticate');
 const authorize = require('./middlewares/authorize');
 const { USER_ROLES } = require('./utils/constants');
 
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    if (config.allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    try {
+      const url = new URL(origin);
+      if (url.hostname.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+    } catch (err) {
+      return callback(new Error('Not allowed by CORS'));
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
 // Middlewares
 app.use(helmet());
 app.use(
@@ -57,6 +81,7 @@ app.use('/api/thingsboard', route.thingsboardRoutes);
 app.use('/api/batch', route.batchRoutes);
 app.use('/api/packages', route.packageRoutes);
 app.use('/api/areas', route.areaRoutes);
+app.use('/api/locations', route.locationRoutes);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
@@ -75,23 +100,17 @@ app.use(
 app.use(
   '/api/users',
   authenticate,
-  authorize([USER_ROLES.WAREHOUSEMANAGER, USER_ROLES.SUPERVISOR]), // Hoặc các vai trò khác có quyền xem danh sách người dùng
-  route.userRoutes
+  authorize([USER_ROLES.WAREHOUSEMANAGER, USER_ROLES.SUPERVISOR, USER_ROLES.REPRESENTATIVEMANAGER]),
+  route.userRoutes,
 );
 
-// ... (các protected routes khác, ví dụ: exportOrderRoutes)
-app.use(
-  '/api/export-orders',
-  authenticate,
-  authorize(USER_ROLES.WAREHOUSEMANAGER),
-  route.exportOrderRoutes
-);
+app.use('/api/export-orders', authenticate, route.exportOrderRoutes);
 
 // Protected routes với role-based access
 app.use(
   '/api/accounts',
   authenticate,
-  authorize(['supervisor', 'representative']),
+  authorize(['supervisor', 'representative', 'representative_manager']),
   route.accountRoutes,
 );
 
@@ -131,14 +150,7 @@ app.use(
 const startAllCrons = require('./cron');
 startAllCrons();
 
-app.use(
-  cors({
-    origin: config.clientUrl,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  }),
-);
+app.use(cors(corsOptions));
 
 app.use((req, res, next) => {
   res.status(404).json({ message: 'Not Found' });

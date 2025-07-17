@@ -4,7 +4,7 @@ const USER_ROLES = {
   SUPERVISOR: 'supervisor',
   REPRESENTATIVE: 'representative',
   WAREHOUSEMANAGER: 'warehouse_manager',
-  REPRESENTATIVE_MANAGER: 'representative_manager',
+  REPRESENTATIVEMANAGER: 'representative_manager',
 };
 
 const USER_STATUSES = {
@@ -97,6 +97,7 @@ const CONTRACT_STATUSES = {
 const IMPORT_ORDER_STATUSES = {
   DRAFT: 'draft',
   APPROVED: 'approved',
+  REJECTED: 'rejected',
   DELIVERED: 'delivered',
   CHECKED: 'checked',
   ARRANGED: 'arranged',
@@ -158,6 +159,17 @@ const EXPORT_ORDER_STATUSES = {
   CANCELLED: 'cancelled',
 };
 
+const BILL_STATUSES = {
+  DRAFT: 'draft',
+  PENDING: 'pending',
+  PAID: 'paid',
+  OVERDUE: 'overdue',
+  CANCELLED: 'cancelled',
+  PARTIAL: 'partial',
+  COMPLETED: 'completed',
+  UNPAID: 'unpaid',
+};
+
 module.exports = {
   USER_ROLES,
   BASIC_STATUSES,
@@ -179,4 +191,5 @@ module.exports = {
   ANNEX_STATUSES,
   CONTRACT_TYPES,
   EXPORT_ORDER_STATUSES,
+  BILL_STATUSES,
 };

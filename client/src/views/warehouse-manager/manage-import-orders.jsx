@@ -1,5 +1,5 @@
 'use client';
-import { Info as InfoIcon, Refresh as RefreshIcon, Search as SearchIcon, Update as UpdateIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Search as SearchIcon } from '@mui/icons-material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
   Alert,
@@ -7,17 +7,9 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  Grid,
   IconButton,
-  InputLabel,
   MenuItem,
   Paper,
-  Select,
   Snackbar,
   Table,
   TableBody,
@@ -27,13 +19,13 @@ import {
   TablePagination,
   TableRow,
   TextField,
-  Typography
+  Typography,
+  Stack
 } from '@mui/material';
 import Menu from '@mui/material/Menu';
 import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import { useRouter } from 'next/navigation';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -43,181 +35,121 @@ const getAuthHeaders = () => {
   };
 };
 
-const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  withCredentials: true
-});
+const getStatusColor = status => ({
+  draft: 'default',
+  approved: 'success',
+  delivered: 'info',
+  checked: 'warning',
+  arranged: 'primary',
+  completed: 'success',
+  cancelled: 'error'
+}[status] || 'default');
 
-// Status color mapping
-const getStatusColor = (status) => {
-  const statusColors = {
-    draft: 'default',
-    approved: 'success',
-    delivered: 'info',
-    checked: 'warning',
-    arranged: 'primary',
-    completed: 'success',
-    cancelled: 'error'
-  };
-  return statusColors[status] || 'default';
-};
+export default function ManageImportOrders() {
+  const router = useRouter();
 
-// Allowed statuses for warehouse manager
-const ALLOWED_STATUSES = ['checked', 'arranged'];
-
-const ManageImportOrders = () => {
-  // State management
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [openDetails, setOpenDetails] = useState(false);
-  const [openStatusDialog, setOpenStatusDialog] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [newStatus, setNewStatus] = useState('');
-  const [updatingStatus, setUpdatingStatus] = useState(false);
 
+  const [filterDate, setFilterDate] = useState('');
+  const [filterAssigned, setFilterAssigned] = useState('self');     // 'self' | 'unassigned'
+  const [filterStatus, setFilterStatus] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOrder, setMenuOrder] = useState(null);
 
-  const handleMenuOpen = (event, order) => {
-    setAnchorEl(event.currentTarget);
-    setMenuOrder(order);
-  };
+  // paging
+  const [page, setPage] = useState(1);   // 1-based
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setMenuOrder(null);
-  };
+  const handleMenuOpen = (e, order) => { setAnchorEl(e.currentTarget); setMenuOrder(order); };
+  const handleMenuClose = () => { setAnchorEl(null); setMenuOrder(null); };
 
-  // Fetch orders from API
-  const fetchOrders = useCallback(async () => {
+  const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+  const userId = userData.userId;
+
+
+  const fetchOrders = useCallback(async (opts) => {
+    const {
+      page: p = 1,
+      limit: l = rowsPerPage,
+      importDate,
+      assigned,
+      status,
+    } = opts;
+
     setLoading(true);
     setError(null);
-
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      const response = await axios.get(`${backendUrl}/api/import-orders`, {
-        headers: getAuthHeaders()
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const params = { page: p, limit: l };
+      if (importDate) params.createdAt = importDate;
+      if (status) params.status = status;
+
+      // map our “Assigned To” dropdown into the back‑end’s warehouse_manager_id param:
+      if (assigned === 'unassigned') {
+        params.warehouse_manager_id = '0';
+      } else if (assigned === 'self') {
+        console.log(userId)
+        params.warehouse_manager_id = userId
+      }
+
+      const resp = await axios.get(`${backendUrl}/api/import-orders`, {
+        headers: getAuthHeaders(),
+        params,
       });
 
-      // Kiểm tra dữ liệu trả về
-      if (response?.data?.success && Array.isArray(response.data.data)) {
-        setOrders(response.data.data);
+      if (resp.data.success) {
+        setOrders(resp.data.data);
+        // your API should return pagination.total
+        setTotalCount(resp.data.pagination?.total ?? resp.data.data.length);
       } else {
-        const errorMsg = response?.data?.error || 'Không thể lấy danh sách đơn hàng';
-        setOrders([]); // Đảm bảo reset danh sách nếu lỗi
-        setError(errorMsg);
+        throw new Error(resp.data.error || 'Failed to load orders');
       }
-    } catch (error) {
-      // Xử lý lỗi chi tiết hơn
-      const errorMsg = error?.response?.data?.error || error?.message || 'Không thể lấy đơn hàng. Vui lòng thử lại.';
-      setOrders([]); // Đảm bảo reset danh sách nếu lỗi
-      setError(errorMsg);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message);
+      setOrders([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
-  }, []);
+  },
+    [page, rowsPerPage, filterDate, filterAssigned, filterStatus]
+  );
 
-  // Load orders on component mount
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    fetchOrders({
+      page,
+      limit: rowsPerPage,
+      importDate: filterDate,
+      assigned: filterAssigned,
+      status: filterStatus,
+    });
+  }, [page, rowsPerPage]);
 
-  // Handle status change
-  const handleStatusChange = useCallback(
-    async (id, status) => {
-      try {
-        setUpdatingStatus(true);
-        setError(null);
-
-        const response = await axiosInstance.patch(`/import-orders/${id}/status`, { status }, { headers: getAuthHeaders() });
-
-        if (response.data.success) {
-          setSuccess('Order status updated successfully');
-          setOpenStatusDialog(false);
-          setSelectedOrder(null);
-          setNewStatus('');
-          fetchOrders(); // Refresh the list
-        } else {
-          throw new Error(response.data.error || 'Failed to update order status');
-        }
-      } catch (error) {
-        console.log('Lỗi BE trả về:', error.response?.data);
-        setError(error.response?.data?.error || error.message);
-      } finally {
-        setUpdatingStatus(false);
-      }
-    },
-    [fetchOrders]
-  );
-
-  // Dialog handlers
-  const handleOpenStatusDialog = useCallback((order) => {
-    setSelectedOrder(order);
-    const allowedStatuses = ['checked', 'arranged'];
-    setNewStatus(allowedStatuses.includes(order.status) ? order.status : allowedStatuses[0]);
-    setOpenStatusDialog(true);
-  }, []);
-
-  const handleCloseStatusDialog = useCallback(() => {
-    setOpenStatusDialog(false);
-    setSelectedOrder(null);
-    setNewStatus('');
-  }, []);
-
-  const handleOpenDetails = useCallback((order) => {
-    setSelectedOrder(order);
-    setOpenDetails(true);
-  }, []);
-
-  const handleCloseDetails = useCallback(() => {
-    setSelectedOrder(null);
-    setOpenDetails(false);
-  }, []);
-
-  // Notification handlers
-  const handleCloseError = useCallback(() => setError(null), []);
-  const handleCloseSuccess = useCallback(() => setSuccess(null), []);
-
-  // Pagination handlers
-  const handleChangePage = useCallback((event, newPage) => {
-    setPage(newPage);
-  }, []);
-
-  const handleChangeRowsPerPage = useCallback((event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  }, []);
-
-  // Search handler
-  const handleSearch = useCallback((event) => {
-    setSearchTerm(event.target.value);
-    setPage(0);
-  }, []);
-
-  // Filter orders based on search term
-  const filteredOrders = orders.filter(
-    (order) =>
-      order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.supplier_contract_id?.contract_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.warehouse_manager_id?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Paginate orders
-  const paginatedOrders = filteredOrders.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
-  // Check if order can be updated
-  const canUpdateStatus = (order) => {
-    return ['delivered', 'checked', 'arranged'].includes(order.status);
+  // … your handlers …
+  const handleChangePage = (_e, newZero) => {
+    setPage(newZero + 1);
+  };
+  const handleChangeRowsPerPage = e => {
+    setRowsPerPage(+e.target.value);
+    setPage(1);
+  };
+  const handleSearchClick = () => {
+    setPage(1);
+    fetchOrders({
+      page: 1,
+      limit: rowsPerPage,
+      importDate: filterDate,
+      assigned: filterAssigned,
+      status: filterStatus,
+    });
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', height: '50vh', alignItems: 'center' }}>
         <CircularProgress />
       </Box>
     );
@@ -225,264 +157,136 @@ const ManageImportOrders = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header Section */}
+      {/* Header + Refresh */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
             Import Orders Management
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Warehouse managers can update order status to "Checked" or "Arranged"
-          </Typography>
         </Box>
-        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchOrders} disabled={loading}>
+        <Button
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={() => fetchOrders({ page: 1, limit: rowsPerPage })}
+          disabled={loading}
+        >
           Refresh
         </Button>
       </Box>
 
-      {/* Search Section */}
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          fullWidth
-          label="Search Orders"
-          variant="outlined"
-          value={searchTerm}
-          onChange={handleSearch}
-          InputProps={{
-            startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
-          }}
-          placeholder="Search by order ID, contract code, or manager name..."
-        />
+      {/* ─── Filters ───────────────────────────────────── */}
+      <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+          <TextField
+            label="Import Date"
+            type="date"
+            value={filterDate}
+            onChange={e => setFilterDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            size="small"
+          />
+          <TextField
+            select
+            label="Assigned To"
+            value={filterAssigned}
+            onChange={e => setFilterAssigned(e.target.value)}
+            size="small"
+          >
+            <MenuItem value="self">My Orders</MenuItem>
+            <MenuItem value="unassigned">Unassigned</MenuItem>
+            <MenuItem value="all">All</MenuItem>
+          </TextField>
+          <TextField
+            select
+            label="Status"
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            size="small"
+          >
+            {[
+              'draft', 'approved', 'rejected',
+              'delivered', 'checked',
+              'arranged', 'completed', 'cancelled'
+            ].map(s => (
+              <MenuItem key={s} value={s}>{s}</MenuItem>
+            ))}
+          </TextField>
+          <Button
+            variant="contained"
+            onClick={handleSearchClick}
+            startIcon={<SearchIcon />}
+          >
+            Search
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setFilterDate('');
+              setFilterAssigned('all');
+              setFilterStatus('');
+              setPage(1);
+              fetchOrders({ page: 1, limit: rowsPerPage });
+            }}
+          >
+            Reset
+          </Button>
+        </Stack>
       </Box>
 
-      {/* Orders Table */}
+
+      {/* table */}
       <TableContainer component={Paper} elevation={2}>
         <Table>
           <TableHead>
-            <TableRow sx={{ backgroundColor: 'primary.light' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>Manager</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Manager Email</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Import Date</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Supplier Contract</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
+            <TableRow>
+              <TableCell>Import Date</TableCell>
+              <TableCell>Contract Code</TableCell>
+              <TableCell>Supplier</TableCell>
+              <TableCell>Manager Email</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedOrders.length === 0 ? (
+            {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
-                    {searchTerm ? 'No orders found matching your search.' : 'No orders available.'}
+                    No orders available.
                   </Typography>
                 </TableCell>
               </TableRow>
-            ) : (
-              paginatedOrders.map((order) => (
-                <TableRow key={order._id} hover>
-                  <TableCell>{order.warehouse_manager_id?.name || 'N/A'}</TableCell>
-                  <TableCell>{order.warehouse_manager_id?.email || 'N/A'}</TableCell>
-                  <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell>{order.supplier_contract_id?.contract_code || 'N/A'}</TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      color="warning"
-                      onClick={() => handleOpenStatusDialog(order)}
-                      disabled={!canUpdateStatus(order)}
-                      title={canUpdateStatus(order) ? 'Update Status' : 'Cannot update this status'}
-                      sx={{ mr: 1 }}
-                    >
-                      <UpdateIcon />
-                    </IconButton>
-                    <IconButton color="info" onClick={() => handleOpenDetails(order)} title="View Details" sx={{ mr: 1 }}>
-                      <InfoIcon />
-                    </IconButton>
-                    {/* Icon 3 chấm */}
-                    <IconButton aria-label="more actions" onClick={(event) => handleMenuOpen(event, order)}>
-                      <MoreVertIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
+            ) : orders.map(o => (
+              <TableRow key={o._id} hover>
+                <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
+                <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
+                <TableCell>{o.warehouse_manager_id?.email || '—'}</TableCell>
+                <TableCell>
+                  <Chip label={o.status} color={getStatusColor(o.status)} size="small" />
+                </TableCell>
+                <TableCell>
+                  <IconButton onClick={e => handleMenuOpen(e, o)}>
+                    <MoreVertIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
+
         <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
-          count={filteredOrders.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
+          count={totalCount}
+          page={page - 1}
           onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Rows per page:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count}`}
+          rowsPerPageOptions={[5, 10, 25, 50]}
         />
       </TableContainer>
 
-      {/* Status Update Dialog */}
-      <Dialog open={openStatusDialog} onClose={handleCloseStatusDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          Update Order Status
-          {selectedOrder && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Order ID: {selectedOrder._id}
-            </Typography>
-          )}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Current Status: <strong>{selectedOrder?.status}</strong>
-            </Typography>
-            <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel>New Status</InputLabel>
-              <Select value={newStatus} onChange={(e) => setNewStatus(e.target.value)} label="New Status" disabled={updatingStatus}>
-                {ALLOWED_STATUSES.map((status) => (
-                  <MenuItem key={status} value={status}>
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              Warehouse managers can only change status to "Checked" or "Arranged"
-            </Typography>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseStatusDialog} disabled={updatingStatus}>
-            Cancel
-          </Button>
-          <Button
-            onClick={() => handleStatusChange(selectedOrder._id, newStatus)}
-            variant="contained"
-            disabled={!newStatus || newStatus === selectedOrder?.status || updatingStatus}
-            startIcon={updatingStatus ? <CircularProgress size={16} /> : null}
-          >
-            {updatingStatus ? 'Updating...' : 'Update Status'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Details Dialog - UI tối ưu */}
-      <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="md" fullWidth>
-        <DialogTitle>Import Order Details</DialogTitle>
-        <DialogContent sx={{ p: 3 }}>
-          {selectedOrder && (
-            <Box>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <Paper sx={{ p: 2, mb: 2 }}>
-                    <Typography variant="h6" gutterBottom>
-                      Basic Info
-                    </Typography>
-                    <Typography>
-                      <b>Order Code:</b> {selectedOrder.import_order_code || 'N/A'}
-                    </Typography>
-                    <Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography component="span">
-                          <b>Status:</b>
-                        </Typography>
-                        <Chip label={selectedOrder.status} color={getStatusColor(selectedOrder.status)} size="small" />
-                      </Box>
-                    </Typography>
-                    <Typography>
-                      <b>Created At:</b> {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString() : 'N/A'}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Paper sx={{ p: 2, mb: 2 }}>
-                    <Typography variant="h6" gutterBottom>
-                      Contract & Supplier
-                    </Typography>
-                    <Typography>
-                      <b>Contract Code:</b> {selectedOrder.supplier_contract_id?.contract_code || 'N/A'}
-                    </Typography>
-                    <Typography>
-                      <b>Supplier:</b> {selectedOrder.supplier_contract_id?.supplier_id?.name || 'N/A'}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Paper sx={{ p: 2, mb: 2 }}>
-                    <Typography variant="h6" gutterBottom>
-                      Warehouse Manager
-                    </Typography>
-                    <Typography>
-                      <b>Name:</b> {selectedOrder.warehouse_manager_id?.name || 'N/A'}
-                    </Typography>
-                    <Typography>
-                      <b>Email:</b> {selectedOrder.warehouse_manager_id?.email || 'N/A'}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12}>
-                  <Paper sx={{ p: 2, mb: 2 }}>
-                    <Typography variant="h6" gutterBottom>
-                      Order Details
-                    </Typography>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Medicine Name</TableCell>
-                          <TableCell>License Code</TableCell>
-                          <TableCell align="right">Quantity</TableCell>
-                          <TableCell align="right">Unit Price</TableCell>
-                          <TableCell align="right">Total</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {selectedOrder.details?.map((detail, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
-                            <TableCell>{detail.medicine_id?.license_code || 'N/A'}</TableCell>
-                            <TableCell align="right">{detail.quantity || 0}</TableCell>
-                            <TableCell align="right">{detail.unit_price?.toLocaleString() || 0}</TableCell>
-                            <TableCell align="right">{((detail.quantity || 0) * (detail.unit_price || 0)).toLocaleString()}</TableCell>
-                          </TableRow>
-                        ))}
-                        <TableRow>
-                          <TableCell colSpan={4}>
-                            <b>Total Amount</b>
-                          </TableCell>
-                          <TableCell align="right">
-                            <b>
-                              {selectedOrder.details?.reduce((sum, d) => sum + (d.quantity || 0) * (d.unit_price || 0), 0).toLocaleString()}{' '}
-                              VND
-                            </b>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </Paper>
-                </Grid>
-                {selectedOrder.notes && (
-                  <Grid item xs={12}>
-                    <Paper sx={{ p: 2, mb: 2 }}>
-                      <Typography variant="h6" gutterBottom>
-                        Notes
-                      </Typography>
-                      <Typography>{selectedOrder.notes}</Typography>
-                    </Paper>
-                  </Grid>
-                )}
-              </Grid>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDetails}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
+      {/* actions menu */}
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -490,55 +294,10 @@ const ManageImportOrders = () => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <MenuItem
-          onClick={() => {
-            // TODO: Xử lý xem danh sách inspection cho menuOrder
-            alert(`View List Inspection for order ${menuOrder?._id}`);
-            handleMenuClose();
-          }}
-        >
-          View List Inspection
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            // TODO: Xử lý xem vị trí cho menuOrder
-            alert(`View Location for order ${menuOrder?._id}`);
-            handleMenuClose();
-          }}
-        >
-          View Location
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            // TODO: Xử lý xem batch cho menuOrder
-            alert(`View Batch for order ${menuOrder?._id}`);
-            handleMenuClose();
-          }}
-        >
-          View Batch
+        <MenuItem onClick={() => { router.push(`/wm-import-orders/${menuOrder?._id}`); handleMenuClose(); }}>
+          Order detail
         </MenuItem>
       </Menu>
-
-      {/* Error Snackbar */}
-      <Snackbar open={!!error} autoHideDuration={6000} onClose={handleCloseError} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-        <Alert onClose={handleCloseError} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
-      </Snackbar>
-
-      {/* Success Snackbar */}
-      <Snackbar
-        open={!!success}
-        autoHideDuration={4000}
-        onClose={handleCloseSuccess}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert onClose={handleCloseSuccess} severity="success" sx={{ width: '100%' }}>
-          {success}
-        </Alert>
-      </Snackbar>
     </Box>
   );
-};
-
-export default ManageImportOrders;
+}

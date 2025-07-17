@@ -33,6 +33,13 @@ const representative = {
       icon: 'IconShoppingCart'
     },
     {
+      id: 'manage-export-orders',
+      title: 'Manage Export Orders',
+      type: 'item',
+      url: '/rp-export-orders',
+      icon: 'IconFileExport'
+    },
+    {
       id: 'create-bills',
       title: 'Create Bills',
       type: 'item',

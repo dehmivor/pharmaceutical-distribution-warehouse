@@ -6,6 +6,8 @@ const authenticate = require('../middlewares/authenticate');
 
 // API cơ bản
 router.get('/', contractValidator.validateGetAllContracts, contractController.getAllContracts);
+router.get('/:id', authenticate, contractValidator.validateGetContractById, contractController.getContractById);
+
 router.get('/detail/:id', authenticate, contractValidator.validateGetContractById, contractController.getContractById);
 router.post('/', authenticate, contractValidator.validateCreateContract, contractController.createContract);
 router.put('/:id', authenticate, contractValidator.validateUpdateContract, contractController.updateContract);

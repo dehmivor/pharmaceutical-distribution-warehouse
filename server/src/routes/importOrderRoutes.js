@@ -41,11 +41,11 @@ router.get(
   importOrderController.getImportOrdersByWarehouseManager,
 );
 
-// Get import orders by supplier contract - representative và supervisor
+// Get import orders by contract - representative và supervisor
 router.get(
-  '/supplier-contract/:supplierContractId',
+  '/contract/:contractId',
   authorize(['representative', 'supervisor']),
-  importOrderController.getImportOrdersBySupplierContract,
+  importOrderController.getImportOrdersByContract,
 );
 
 // Get import order by ID - chỉ supervisor, representative, representative_manager và warehouse_manager
@@ -103,10 +103,10 @@ router.delete(
   importOrderController.deleteImportOrder,
 );
 
-// Update order status - cho phép supervisor, representative_manager và warehouse manager (không phải warehouse staff)
+// Update order status - cho phép supervisor, representative_manager, warehouse manager và representative
 router.patch(
   '/:id/status',
-  authorize(['supervisor', 'representative_manager', 'warehouse_manager']),
+  authorize(['supervisor', 'representative_manager', 'warehouse_manager', 'representative']),
   importOrderController.updateOrderStatus,
 );
 
