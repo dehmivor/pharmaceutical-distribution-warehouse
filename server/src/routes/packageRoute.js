@@ -24,4 +24,9 @@ router.patch('/:packageId/clear-location', packageController.clearLocation);
 //Get by import location
 router.get('/import-order/:importOrderId', packageController.getPackagesForOrder);
 
+router.patch('/:packageId/location', packageController.addLocationToPackage);
+
+router.get('/:packageId/related-locations', packageController.getRelatedLocations);
+
+
 module.exports = router;

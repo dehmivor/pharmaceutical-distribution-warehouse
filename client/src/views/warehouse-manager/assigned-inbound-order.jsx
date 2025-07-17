@@ -130,7 +130,7 @@ function ManageInboundOrders() {
                     <TableCell>{order.status.toUpperCase()}</TableCell>
                     <TableCell align="right">{order.details.length}</TableCell>
                     <TableCell>
-                      <Link href={`/assigned-inbound-order/${order._id}`} passHref legacyBehavior>
+                      <Link href={`/wm-assigned-inbound-order/${order._id}`} passHref >
                         <Button variant="contained" size="small">
                           View Details
                         </Button>
