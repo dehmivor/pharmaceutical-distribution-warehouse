@@ -1,4 +1,4 @@
- 'use client';
+'use client';
 
 import { useState } from 'react';
 
@@ -135,7 +135,7 @@ export default function ProfileSection() {
                       <ListItemIcon>
                         <IconSunMoon size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Dark Theme" />
+                      <ListItemText primary="Chế độ quét" />
                     </ListItem>
                     <ListItem
                       secondaryAction={<Switch size="small" checked={false} onChange={() => enqueueSnackbar('Upgrade to pro for RTL')} />}
@@ -144,7 +144,7 @@ export default function ProfileSection() {
                       <ListItemIcon>
                         <IconTextDirectionLtr size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="RTL" />
+                      <ListItemText primary="Đơn vị tính" />
                     </ListItem>
                     <ListItemButton sx={buttonStyle} onClick={handleInnerActionClick}>
                       <ListItemIcon>
