@@ -67,33 +67,11 @@ const supervisor = {
       icon: 'IconFileContract',
       children: [
         {
-          id: 'manage-contracts',
-          title: 'Manage Contracts',
-          type: 'item',
-          url: '/sp-manage-contract',
-          icon: 'IconFileContract'
-        },
-        {
           id: 'manage-bills',
           title: 'Manage Bills',
           type: 'item',
           url: '/sp-manage-bills',
           icon: 'IconReceipt'
-        }
-      ]
-    },
-    {
-      id: 'contract-management',
-      title: 'Contract Management',
-      type: 'collapse',
-      icon: 'IconFileInvoice',
-      children: [
-        {
-          id: 'manage-economic-contracts',
-          title: 'Economic Contracts',
-          type: 'item',
-          url: '/sp-manage-economic-contracts',
-          icon: 'IconFileInvoice'
         }
       ]
     }

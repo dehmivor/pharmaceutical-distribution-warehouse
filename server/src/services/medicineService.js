@@ -99,6 +99,21 @@ const medicineService = {
     }
   },
 
+  // ✅ Find medicine by ID (returns medicine object or null)
+  findMedicineById: async (medicineId) => {
+    try {
+      if (!medicineId) {
+        return null;
+      }
+
+      const medicine = await Medicine.findById(medicineId);
+      return medicine;
+    } catch (error) {
+      console.error('Find medicine by ID service error:', error);
+      return null;
+    }
+  },
+
   // ✅ Create new medicine
   createMedicine: async (medicineData) => {
     try {
