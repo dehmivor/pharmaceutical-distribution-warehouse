@@ -76,7 +76,7 @@ function ManageExportOrdersApproval() {
     try {
       await axios.put(
         `${API_BASE_URL}/export-orders/${orderToApprove._id}/approve`,
-        { status: 'approved' },
+        {}, // Không gửi status nữa, chỉ gửi body rỗng
         { headers: getAuthHeaders() }
       );
       setSuccess('Order approved!');
