@@ -1,4 +1,4 @@
-// components/warehouse/QuickActionsCard.jsx
+'use client';
 import React from 'react';
 import { Box, Typography, Button, Card, CardContent, Stack } from '@mui/material';
 import { useTheme } from '@mui/material/styles';

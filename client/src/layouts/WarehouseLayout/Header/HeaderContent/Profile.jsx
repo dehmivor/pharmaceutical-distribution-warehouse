@@ -1,4 +1,4 @@
- 'use client';
+'use client';
 
 import { useState } from 'react';
 
@@ -33,18 +33,23 @@ import useConfig from '@/hooks/useConfig';
 // @assets
 import { IconChevronRight, IconLanguage, IconLogout, IconSettings, IconSunMoon, IconTextDirectionLtr } from '@tabler/icons-react';
 
-// Import hook useRole
-import { useRole } from '@/contexts/RoleContext';
+/***************************  HEADER - PROFILE DATA  ***************************/
+
+const profileData = {
+  avatar: { src: '/assets/images/users/avatar-1.png', size: AvatarSize.XS },
+  title: 'Erika Collins',
+  caption: 'Super Admin'
+};
 
 const languageList = [
   { key: ThemeI18n.EN, value: 'English' },
   { key: ThemeI18n.VN, value: 'Vietnam' }
 ];
 
+/***************************  HEADER - PROFILE  ***************************/
 export default function ProfileSection() {
   const theme = useTheme();
   const { i18n } = useConfig();
-  const { user, userRole, isLoading, updateUserRole } = useRole();
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [innerAnchorEl, setInnerAnchorEl] = useState(null);
@@ -54,8 +59,6 @@ export default function ProfileSection() {
   const id = open ? 'profile-action-popper' : undefined;
   const innerId = innerOpen ? 'profile-inner-popper' : undefined;
   const buttonStyle = { borderRadius: 2, p: 1 };
-
-  if (isLoading) return null; // hoặc hiện loading spinner
 
   const handleActionClick = (event) => {
     setAnchorEl(anchorEl ? null : event.currentTarget);
@@ -67,6 +70,7 @@ export default function ProfileSection() {
 
   const logoutAccount = async () => {
     setAnchorEl(null);
+
     try {
       localStorage.removeItem('auth-token');
       localStorage.removeItem('user');
@@ -81,14 +85,7 @@ export default function ProfileSection() {
 
   const i18nHandler = (event, key) => {
     handleInnerActionClick(event);
-    if (key !== i18n) enqueueSnackbar('Upgrade to pro for language change');
-  };
-
-  // Chuẩn bị dữ liệu profile lấy từ context
-  const profileData = {
-    avatar: { src: user?.avatar || '/assets/images/users/avatar-1.png', size: AvatarSize.XS },
-    title: user?.email || 'Email',
-    caption: userRole || 'User Role'
+    if (key != i18n) enqueueSnackbar('Upgrade to pro for language change');
   };
 
   return (
@@ -135,7 +132,7 @@ export default function ProfileSection() {
                       <ListItemIcon>
                         <IconSunMoon size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Dark Theme" />
+                      <ListItemText primary="Chế độ Kho" />
                     </ListItem>
                     <ListItem
                       secondaryAction={<Switch size="small" checked={false} onChange={() => enqueueSnackbar('Upgrade to pro for RTL')} />}
@@ -144,15 +141,15 @@ export default function ProfileSection() {
                       <ListItemIcon>
                         <IconTextDirectionLtr size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="RTL" />
+                      <ListItemText primary="Chế độ quét" />
                     </ListItem>
                     <ListItemButton sx={buttonStyle} onClick={handleInnerActionClick}>
                       <ListItemIcon>
                         <IconLanguage size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Language" />
+                      <ListItemText primary="Đơn vị tính" />
                       <Chip
-                        label={languageList.find((item) => item.key === i18n)?.value.slice(0, 3)}
+                        label={languageList.filter((item) => item.key === i18n)[0]?.value.slice(0, 3)}
                         variant="text"
                         size="small"
                         color="secondary"

@@ -30,6 +30,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ReceiptStatistics from '../dashboard-import/ReceiptStatistics';
 import { useRouter } from 'next/navigation';
+import { enqueueSnackbar } from 'notistack';
 
 const UNIT_CONVERSIONS = {
   kg: { g: 1000, tấn: 0.001 },
@@ -320,8 +321,8 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       const response = await createInspection(inspectionData);
 
       console.log('✅ Tạo phiếu thành công:', response);
-      showAlert(`Tạo phiếu kiểm nhập ${response.receipt_id || receiptData.receiptId} thành công!`, 'success');
-      router.push('/create-inspections');
+      enqueueSnackbar(`Tạo phiếu kiểm nhập ${response.receipt_id || receiptData.receiptId} thành công!`, { variant: 'success' });
+      router.push('/wh-import-orders');
       if (onReceiptCreate) {
         onReceiptCreate({
           ...response,

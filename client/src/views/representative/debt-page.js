@@ -21,54 +21,163 @@ import {
   DialogContent,
   DialogActions,
   Typography,
-  Chip, // Added Chip for colored status
-  TextField, // Added TextField for search
-  TableSortLabel // Added TableSortLabel for sorting
+  Chip,
+  TextField,
+  TableSortLabel,
+  Stack
 } from '@mui/material';
-import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import ModalConfirm from '../general/ModalConfirm';
+import { enqueueSnackbar } from 'notistack';
 
-// Helper function to get status color
 const getStatusColor = (status) => {
   switch (status) {
     case 'OVERDUE':
       return 'error';
     case 'PAID':
+    case 'COMPLETED':
       return 'success';
     case 'PENDING':
       return 'warning';
+    case 'CANCELED':
+      return 'default';
     default:
-      return 'CANCELLED' ? 'default' : 'primary';
+      return 'default';
   }
 };
 
-function DebtPage() {
-  const router = useRouter();
+const calcAmount = (details) => {
+  if (!details || details.length === 0) return 0;
+  return details.reduce((sum, d) => sum + d.quantity * d.unit_price, 0);
+};
 
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const d = new Date(dateString);
+  return d.toLocaleDateString();
+};
+
+// Lấy chuỗi mã thuốc ( ưu tiên import_order_id.details, export_order_id.details, fallback bill.details )
+const getMedicineDetailsString = (bill, maxLength = 100) => {
+  let medArr = [];
+  if (bill.import_order_id?.details?.length) {
+    medArr = bill.import_order_id.details.map((d) =>
+      d.medicine_id ? `${d.medicine_id.medicine_name || 'N/A'} (${d.medicine_id.license_code || 'N/A'})` : 'N/A'
+    );
+  } else if (bill.export_order_id?.details?.length) {
+    medArr = bill.export_order_id.details.map((d) =>
+      d.medicine_id ? `${d.medicine_id.medicine_name || 'N/A'} (${d.medicine_id.license_code || 'N/A'})` : 'N/A'
+    );
+  } else if (bill.details?.length) {
+    medArr = bill.details.map((d) => d.medicine_lisence_code || 'N/A');
+  }
+
+  const fullString = medArr.join(', ');
+  if (fullString.length > maxLength) return fullString.slice(0, maxLength) + '...';
+  return fullString || 'N/A';
+};
+
+// Hiển thị chi tiết thuốc trong dialog
+const renderDetailMedicines = (detailData) => {
+  if (!detailData) return null;
+
+  if (detailData.import_order_id?.details?.length > 0) {
+    return detailData.import_order_id.details.map((d) => {
+      const med = d.medicine_id;
+      return (
+        <TableRow key={d._id}>
+          <TableCell>{med?.medicine_name || 'N/A'}</TableCell>
+          <TableCell>{med?.license_code || 'N/A'}</TableCell>
+          <TableCell>{d.quantity}</TableCell>
+          <TableCell>{d.unit_price?.toLocaleString() || 'N/A'}</TableCell>
+          <TableCell>{(d.quantity * (d.unit_price || 0)).toLocaleString()}</TableCell>
+        </TableRow>
+      );
+    });
+  }
+  if (detailData.export_order_id?.details?.length > 0) {
+    return detailData.export_order_id.details.map((d) => {
+      const med = d.medicine_id;
+      return (
+        <TableRow key={d._id}>
+          <TableCell>{med?.medicine_name || 'N/A'}</TableCell>
+          <TableCell>{med?.license_code || 'N/A'}</TableCell>
+          <TableCell>{d.quantity}</TableCell>
+          <TableCell>{d.unit_price?.toLocaleString() || 'N/A'}</TableCell>
+          <TableCell>{(d.quantity * (d.unit_price || 0)).toLocaleString()}</TableCell>
+        </TableRow>
+      );
+    });
+  }
+  if (detailData.details?.length > 0) {
+    return detailData.details.map((d) => (
+      <TableRow key={d._id}>
+        <TableCell>{d.medicine_lisence_code || 'N/A'}</TableCell>
+        <TableCell>-</TableCell>
+        <TableCell>{d.quantity}</TableCell>
+        <TableCell>{d.unit_price?.toLocaleString() || 'N/A'}</TableCell>
+        <TableCell>{(d.quantity * (d.unit_price || 0)).toLocaleString()}</TableCell>
+      </TableRow>
+    ));
+  }
+  return (
+    <TableRow>
+      <TableCell colSpan={5} align="center">
+        Không có chi tiết thuốc
+      </TableCell>
+    </TableRow>
+  );
+};
+
+const DebtPage = () => {
   const [bills, setBills] = useState([]);
-  const [loadingData, setLoadingData] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [tab, setTab] = useState(0);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [billIdToDelete, setBillIdToDelete] = useState(null);
 
+  // Filters
   const [filterQuarter, setFilterQuarter] = useState('');
+  const [filterVoucherCode, setFilterVoucherCode] = useState('');
   const [filterMedicineCode, setFilterMedicineCode] = useState('');
-  const [filterVoucherCode, setFilterVoucherCode] = useState(''); // New filter for voucher code
-  const [filterStatus, setFilterStatus] = useState(''); // New filter for status
+  const [filterStatus, setFilterStatus] = useState('');
 
+  // Sorting
+  const [orderBy, setOrderBy] = useState('payment_date');
+  const [order, setOrder] = useState('desc');
+
+  // Detail dialog
   const [openDetail, setOpenDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
 
-  const [loadingPayment, setLoadingPayment] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
 
-  // Sorting state
-  const [orderBy, setOrderBy] = useState('');
-  const [order, setOrder] = useState('asc');
+  useEffect(() => {
+    const fetchBills = async () => {
+      setLoading(true);
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const res = await axios.get(`${backendUrl}/api/bills`, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+        setBills(res.data.data || []);
+        setError(null);
+      } catch (err) {
+        setError(err.response?.data?.error || err.message || 'Lỗi khi tải dữ liệu hóa đơn');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBills();
+  }, []);
 
   const getQuarter = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return ''; // Handle invalid date strings
+    if (isNaN(date)) return '';
     const month = date.getMonth() + 1;
     if (month >= 1 && month <= 3) return 'Quý 1';
     if (month >= 4 && month <= 6) return 'Quý 2';
@@ -76,53 +185,54 @@ function DebtPage() {
     return 'Quý 4';
   };
 
-  const handleDelete = async (billId) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa hóa đơn này?')) {
-      return;
-    }
-    try {
-      setLoadingPayment(true);
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const res = await axios.delete(`${backendUrl}/api/bills/delete/${billId}`);
-      if (res.status === 200) {
-        setBills((prevBills) => prevBills.filter((b) => b._id !== billId));
-        alert('Xóa bill thành công!');
-      } else {
-        alert('Xóa bill thất bại');
-      }
-    } catch (error) {
-      alert('Lỗi khi xóa bill: ' + (error.response?.data?.message || error.message));
-    } finally {
-      setLoadingPayment(false);
-    }
-  };
+  // Filters applied on bills with memoization
+  const filteredBills = useMemo(() => {
+    return bills
+      .filter((b) => (tab === 0 ? b.type === 'IMPORT' : b.type === 'EXPORT'))
+      .filter((b) => (filterQuarter ? getQuarter(b.payment_date) === filterQuarter : true))
+      .filter((b) => (filterVoucherCode ? b.voucher_code?.toLowerCase().includes(filterVoucherCode.toLowerCase()) : true))
+      .filter((b) =>
+        filterMedicineCode ? b.details.some((d) => d.medicine_lisence_code?.toLowerCase().includes(filterMedicineCode.toLowerCase())) : true
+      )
+      .filter((b) => (filterStatus ? b.status === filterStatus : true));
+  }, [bills, tab, filterQuarter, filterVoucherCode, filterMedicineCode, filterStatus]);
 
-  useEffect(() => {
-    async function fetchBills() {
-      try {
-        setLoadingData(true);
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${backendUrl}/api/bills`);
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message || 'Failed to fetch bills');
-        }
-        const data = await res.json();
-        setBills(data.data || []);
-        setError(null);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoadingData(false);
+  // Sorting
+  const sortedBills = useMemo(() => {
+    const sorted = [...filteredBills];
+    sorted.sort((a, b) => {
+      let aValue, bValue;
+      switch (orderBy) {
+        case 'party_name':
+          aValue = tab === 0 ? a.import_order_id?.supplier_name || '' : a.export_order_id?.customer_name || '';
+          bValue = tab === 0 ? b.import_order_id?.supplier_name || '' : b.export_order_id?.customer_name || '';
+          break;
+        case 'voucher_code':
+          aValue = a.voucher_code || '';
+          bValue = b.voucher_code || '';
+          break;
+        case 'total_amount':
+          aValue = calcAmount(a.details);
+          bValue = calcAmount(b.details);
+          break;
+        case 'payment_date':
+          aValue = a.payment_date ? new Date(a.payment_date).getTime() : 0;
+          bValue = b.payment_date ? new Date(b.payment_date).getTime() : 0;
+          break;
+        case 'status':
+          aValue = a.status || '';
+          bValue = b.status || '';
+          break;
+        default:
+          aValue = '';
+          bValue = '';
       }
-    }
-    fetchBills();
-  }, []);
-
-  const calcAmount = (details) => {
-    if (!details || details.length === 0) return 0;
-    return details.reduce((sum, d) => sum + d.quantity * d.unit_price, 0);
-  };
+      if (aValue < bValue) return order === 'asc' ? -1 : 1;
+      if (aValue > bValue) return order === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [filteredBills, orderBy, order, tab]);
 
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -130,80 +240,8 @@ function DebtPage() {
     setOrderBy(property);
   };
 
-  const filteredBills = useMemo(() => {
-    let filtered = bills;
-    filtered = filtered.filter((b) => (tab === 0 ? b.type === 'IMPORT' : b.type === 'EXPORT'));
-
-    if (filterQuarter) {
-      filtered = filtered.filter((b) => getQuarter(b.payment_date) === filterQuarter);
-    }
-
-    if (filterMedicineCode) {
-      filtered = filtered.filter((b) =>
-        b.details.some((d) => d.medicine_lisence_code?.toLowerCase().includes(filterMedicineCode.toLowerCase()))
-      );
-    }
-
-    if (filterVoucherCode) {
-      filtered = filtered.filter((b) => b.voucher_code?.toLowerCase().includes(filterVoucherCode.toLowerCase()));
-    }
-
-    if (filterStatus) {
-      filtered = filtered.filter((b) => b.status === filterStatus);
-    }
-
-    return filtered;
-  }, [bills, tab, filterQuarter, filterMedicineCode, filterVoucherCode, filterStatus]);
-
-  const sortedBills = useMemo(() => {
-    let sortableBills = [...filteredBills];
-    if (orderBy) {
-      sortableBills.sort((a, b) => {
-        let aValue;
-        let bValue;
-
-        switch (orderBy) {
-          case 'party_name':
-            aValue = tab === 0 ? a.import_order_id?._id : a.export_order_id?._id;
-            bValue = tab === 0 ? b.import_order_id?._id : b.export_order_id?._id;
-            break;
-          case 'voucher_code':
-            aValue = a.voucher_code || '';
-            bValue = b.voucher_code || '';
-            break;
-          case 'total_amount':
-            aValue = calcAmount(a.details);
-            bValue = calcAmount(b.details);
-            break;
-          case 'payment_date':
-            aValue = a.payment_date ? new Date(a.payment_date).getTime() : 0;
-            bValue = b.payment_date ? new Date(b.payment_date).getTime() : 0;
-            break;
-          case 'status':
-            aValue = a.status || '';
-            bValue = b.status || '';
-            break;
-          default:
-            return 0;
-        }
-
-        if (aValue < bValue) {
-          return order === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return order === 'asc' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sortableBills;
-  }, [filteredBills, orderBy, order, tab]);
-
-  const quarters = ['Quý 1', 'Quý 2', 'Quý 3', 'Quý 4'];
-  const statusOptions = ['Chưa thanh toán', 'Đã thanh toán', 'Thanh toán một phần'];
-
-  const handleOpenDetail = (data) => {
-    setDetailData(data);
+  const handleOpenDetail = (bill) => {
+    setDetailData(bill);
     setOpenDetail(true);
   };
 
@@ -212,8 +250,47 @@ function DebtPage() {
     setDetailData(null);
   };
 
-  if (loadingData) return <Typography>Đang tải dữ liệu...</Typography>;
+  // Lấy toàn bộ mã thuốc có trong bills để dùng cho filter
+  const allMedicineCodes = useMemo(() => {
+    const codes = bills.flatMap((b) => b.details.map((d) => d.medicine_lisence_code));
+    return [...new Set(codes.filter((c) => c))];
+  }, [bills]);
+
+  const quarters = ['Quý 1', 'Quý 2', 'Quý 3', 'Quý 4'];
+  // Lấy trạng thái có trong dữ liệu bills hoặc bạn có thể dùng cố định danh sách này
+  const statusOptions = [...new Set(bills.map((b) => b.status).filter(Boolean))];
+
+  if (loading) return <Typography>Đang tải dữ liệu...</Typography>;
   if (error) return <Typography color="error">Lỗi: {error}</Typography>;
+
+  const openDeleteConfirm = (id) => {
+    setBillIdToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!billIdToDelete) return;
+    setLoadingDelete(true);
+    try {
+      // gọi API xóa
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const res = await axios.delete(`${backendUrl}/api/bills/${billIdToDelete}`, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.status === 200) {
+        setBills((prev) => prev.filter((b) => b._id !== billIdToDelete));
+        enqueueSnackbar('Xóa hóa đơn thành công!', { variant: 'success' });
+      } else {
+        enqueueSnackbar('Xóa hóa đơn thất bại!', { variant: 'error' });
+      }
+    } catch (error) {
+      enqueueSnackbar('Lỗi khi xóa hóa đơn: ' + (error.response?.data?.error || error.message), { variant: 'error' });
+    } finally {
+      setLoadingDelete(false);
+      setDeleteConfirmOpen(false);
+      setBillIdToDelete(null);
+    }
+  };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -226,11 +303,11 @@ function DebtPage() {
         <Tab label="Công nợ xuất" />
       </Tabs>
 
-      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
-        <FormControl sx={{ minWidth: 120 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap" mb={2}>
+        <FormControl size="small" sx={{ minWidth: 120 }}>
           <InputLabel>Quý</InputLabel>
           <Select value={filterQuarter} label="Quý" onChange={(e) => setFilterQuarter(e.target.value)}>
-            <MenuItem value="">Tất cả</MenuItem>
+            <MenuItem value="Tất cả">Tất cả</MenuItem>
             {quarters.map((q) => (
               <MenuItem key={q} value={q}>
                 {q}
@@ -239,12 +316,11 @@ function DebtPage() {
           </Select>
         </FormControl>
 
-        <FormControl sx={{ minWidth: 200 }}>
+        <FormControl size="small" sx={{ minWidth: 140 }}>
           <InputLabel>Mã thuốc</InputLabel>
           <Select value={filterMedicineCode} label="Mã thuốc" onChange={(e) => setFilterMedicineCode(e.target.value)} displayEmpty>
-            <MenuItem value="">Tất cả</MenuItem>
-            {/* Flatten and get unique medicine codes from all bills' details */}
-            {[...new Set(bills.flatMap((b) => b.details.map((d) => d.medicine_lisence_code)))].map((code) => (
+            <MenuItem value="Tất cả">Tất cả</MenuItem>
+            {allMedicineCodes.map((code) => (
               <MenuItem key={code} value={code}>
                 {code}
               </MenuItem>
@@ -253,24 +329,25 @@ function DebtPage() {
         </FormControl>
 
         <TextField
+          size="small"
           label="Mã phiếu"
           value={filterVoucherCode}
           onChange={(e) => setFilterVoucherCode(e.target.value)}
           sx={{ minWidth: 150 }}
         />
 
-        <FormControl sx={{ minWidth: 150 }}>
+        <FormControl size="small" sx={{ minWidth: 150 }}>
           <InputLabel>Trạng thái</InputLabel>
           <Select value={filterStatus} label="Trạng thái" onChange={(e) => setFilterStatus(e.target.value)}>
-            <MenuItem value="">Tất cả</MenuItem>
-            {statusOptions.map((status) => (
-              <MenuItem key={status} value={status}>
-                {status}
+            <MenuItem value="Tất cả">Tất cả</MenuItem>
+            {statusOptions.map((st) => (
+              <MenuItem key={st} value={st}>
+                {st}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
-      </Box>
+      </Stack>
 
       <TableContainer component={Paper}>
         <Table>
@@ -294,7 +371,7 @@ function DebtPage() {
                   Mã phiếu
                 </TableSortLabel>
               </TableCell>
-              <TableCell>Mã thuốc</TableCell>
+              <TableCell sx={{ whiteSpace: 'normal', maxWidth: 200, wordBreak: 'break-word' }}>Mã thuốc</TableCell>
               <TableCell align="right">
                 <TableSortLabel
                   active={orderBy === 'total_amount'}
@@ -331,39 +408,44 @@ function DebtPage() {
               sortedBills.map((bill) => (
                 <TableRow key={bill._id}>
                   <TableCell>
-                    {
-                      tab === 0
-                        ? bill.import_order_id?.supplier_name || 'N/A' // Assuming supplier_name is available
-                        : bill.export_order_id?.customer_name || 'N/A' // Assuming customer_name is available
-                    }
+                    {tab === 0 ? bill.import_order_id?.supplier_name || 'N/A' : bill.export_order_id?.customer_name || 'N/A'}
                   </TableCell>
 
-                  <TableCell>{bill.voucher_code || 'N/A'}</TableCell>
+                  <TableCell title={bill.voucher_code || bill._id}>
+                    {bill.voucher_code?.length > 10 ? bill.voucher_code.slice(0, 10) + '...' : bill.voucher_code || bill._id.slice(0, 10)}
+                  </TableCell>
 
-                  <TableCell>{bill.details.map((d) => d.medicine_lisence_code).join(', ')}</TableCell>
+                  <TableCell sx={{ whiteSpace: 'normal', maxWidth: 250, wordBreak: 'break-word' }} title={getMedicineDetailsString(bill)}>
+                    {getMedicineDetailsString(bill, 80)}
+                  </TableCell>
 
                   <TableCell align="right">{calcAmount(bill.details).toLocaleString()}</TableCell>
 
-                  <TableCell>{bill.payment_date ? new Date(bill.payment_date).toLocaleDateString() : 'N/A'}</TableCell>
+                  <TableCell>{bill.payment_date ? formatDate(bill.payment_date) : 'N/A'}</TableCell>
 
                   <TableCell>
                     <Chip label={bill.status} color={getStatusColor(bill.status)} size="small" />
                   </TableCell>
 
                   <TableCell align="center">
-                    <Button
-                      size="small"
-                      variant="contained"
-                      color="error" // Changed color to error for delete
-                      sx={{ mr: 1 }}
-                      disabled={loadingPayment}
-                      onClick={() => handleDelete(bill._id)}
-                    >
-                      Xóa
-                    </Button>
-                    <Button size="small" variant="outlined" onClick={() => handleOpenDetail(bill)}>
-                      Xem chi tiết
-                    </Button>
+                    <Stack direction="row" spacing={1} justifyContent="center" flexWrap="wrap">
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="error"
+                        onClick={() => {
+                          setBillIdToDelete(bill._id);
+                          setDeleteConfirmOpen(true);
+                        }}
+                        disabled={loadingDelete}
+                      >
+                        Xóa
+                      </Button>
+
+                      <Button size="small" variant="outlined" onClick={() => handleOpenDetail(bill)}>
+                        Xem chi tiết
+                      </Button>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))
@@ -384,25 +466,24 @@ function DebtPage() {
           {detailData && (
             <>
               <Typography>
-                <strong>Mã phiếu:</strong> {detailData.voucher_code || 'N/A'}
+                <strong>Mã phiếu:</strong> {detailData.voucher_code || detailData._id}
               </Typography>
               <Typography>
                 <strong>Loại phiếu:</strong> {detailData.type}
               </Typography>
               <Typography>
-                <strong>Ngày thanh toán:</strong> {detailData.payment_date ? new Date(detailData.payment_date).toLocaleDateString() : 'N/A'}
+                <strong>Ngày thanh toán:</strong> {detailData.payment_date ? formatDate(detailData.payment_date) : 'N/A'}
               </Typography>
               <Typography>
                 <strong>Trạng thái:</strong> <Chip label={detailData.status} color={getStatusColor(detailData.status)} size="small" />
               </Typography>
 
-              {/* Display details based on bill type */}
               {detailData.type === 'IMPORT' && detailData.import_order_id && (
                 <>
                   <Typography sx={{ mt: 2 }}>
                     <strong>Thông tin nhà cung cấp:</strong> {detailData.import_order_id.supplier_name || 'N/A'}
                   </Typography>
-                  {detailData.import_order_id.details && detailData.import_order_id.details.length > 0 && (
+                  {detailData.import_order_id.details?.length > 0 && (
                     <>
                       <Typography sx={{ mt: 2 }}>
                         <strong>Chi tiết thuốc trong đơn nhập:</strong>
@@ -439,7 +520,7 @@ function DebtPage() {
                   <Typography sx={{ mt: 2 }}>
                     <strong>Thông tin khách hàng:</strong> {detailData.export_order_id.customer_name || 'N/A'}
                   </Typography>
-                  {detailData.export_order_id.details && detailData.export_order_id.details.length > 0 && (
+                  {detailData.export_order_id.details?.length > 0 && (
                     <>
                       <Typography sx={{ mt: 2 }}>
                         <strong>Chi tiết thuốc trong đơn xuất:</strong>
@@ -484,12 +565,12 @@ function DebtPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {detailData.details.map((d) => (
+                  {detailData.details?.map((d) => (
                     <TableRow key={d._id}>
-                      <TableCell>{d.medicine_lisence_code}</TableCell>
+                      <TableCell>{d.medicine_lisence_code || 'N/A'}</TableCell>
                       <TableCell>{d.quantity}</TableCell>
-                      <TableCell>{d.unit_price.toLocaleString()}</TableCell>
-                      <TableCell>{(d.quantity * d.unit_price).toLocaleString()}</TableCell>
+                      <TableCell>{d.unit_price?.toLocaleString() || 'N/A'}</TableCell>
+                      <TableCell>{(d.quantity * (d.unit_price || 0)).toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -500,13 +581,21 @@ function DebtPage() {
             </>
           )}
         </DialogContent>
-
         <DialogActions>
           <Button onClick={handleCloseDetail}>Đóng</Button>
         </DialogActions>
       </Dialog>
+
+      <ModalConfirm
+        open={deleteConfirmOpen}
+        title="Xác nhận xóa hóa đơn"
+        content="Bạn có chắc chắn muốn xóa hóa đơn này?"
+        onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        loading={loadingDelete}
+      />
     </Box>
   );
-}
+};
 
 export default DebtPage;
