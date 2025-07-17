@@ -168,9 +168,9 @@ const debtOverview = [
     chip: {
       label: '8.2%',
       color: 'error',
-      avatar: <TrendingUp size={16} />
+      avatar: <TrendingUpIcon size={16} />
     },
-    icon: <CreditCard size={24} />
+    icon: <CreditCardIcon size={24} />
   },
   {
     title: 'Công Nợ Quá Hạn',
@@ -179,9 +179,9 @@ const debtOverview = [
     chip: {
       label: '12.5%',
       color: 'error',
-      avatar: <TrendingUp size={16} />
+      avatar: <TrendingUpIcon size={16} />
     },
-    icon: <Warning size={24} />
+    icon: <WarningIcon size={24} />
   },
   {
     title: 'Đã Thanh Toán',
@@ -190,9 +190,9 @@ const debtOverview = [
     chip: {
       label: '15.3%',
       color: 'success',
-      avatar: <TrendingUp size={16} />
+      avatar: <TrendingUpIcon size={16} />
     },
-    icon: <CheckCircle size={24} />
+    icon: <CheckCircleIcon size={24} />
   },
   {
     title: 'Sắp Đến Hạn',
@@ -201,9 +201,9 @@ const debtOverview = [
     chip: {
       label: '5.1%',
       color: 'warning',
-      avatar: <TrendingDown size={16} />
+      avatar: <TrendingDownIcon size={16} />
     },
-    icon: <AccessTime size={24} />
+    icon: <AccessTimeIcon size={24} />
   }
 ];
 
