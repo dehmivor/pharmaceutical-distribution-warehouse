@@ -5,7 +5,8 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// Đảm bảo API_BASE_URL không lặp /api, và mọi endpoint đều có /api/export-orders
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
@@ -75,8 +76,8 @@ function ManageExportOrdersApproval() {
     setApproveLoading(true);
     try {
       await axios.put(
-        `${API_BASE_URL}/export-orders/${orderToApprove._id}/approve`,
-        { status: 'approved' },
+        `${API_BASE_URL}/api/export-orders/${orderToApprove._id}/approve`,
+        {}, // Không gửi status nữa, chỉ gửi body rỗng
         { headers: getAuthHeaders() }
       );
       setSuccess('Order approved!');
