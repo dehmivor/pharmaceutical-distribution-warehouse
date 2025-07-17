@@ -23,9 +23,19 @@ const getAllContracts = asyncHandler(async (req, res) => {
   };
 
   const contracts = await contractService.getAllContracts(filters);
+  
+  // Thêm filter options vào response
+  const filterOptions = {
+    status: Object.values(CONTRACT_STATUSES),
+    partner_type: Object.values(PARTNER_TYPES),
+    contract_type: Object.values(CONTRACT_TYPES),
+    annex_status: Object.values(ANNEX_STATUSES),
+  };
+
   res.status(200).json({
     success: true,
     data: contracts,
+    filterOptions,
   });
 });
 
@@ -37,7 +47,17 @@ const getContractById = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'Contract not found' });
   }
 
-  res.status(200).json({ success: true, data: contract });
+  // Nếu là principal contract, thêm current state
+  let currentState = null;
+  if (contract.contract_type === CONTRACT_TYPES.PRINCIPAL) {
+    currentState = await contractService.getCurrentContractState(id);
+  }
+
+  res.status(200).json({ 
+    success: true, 
+    data: contract,
+    currentState 
+  });
 });
 
 const createContract = asyncHandler(async (req, res) => {
@@ -51,31 +71,19 @@ const createContract = asyncHandler(async (req, res) => {
     created_by: req.user.userId,
   };
 
+  // Nếu có annexes, validate trước khi tạo
+  if (contractData.annexes && contractData.annexes.length > 0) {
+    const validation = await contractService.validateExistingContractWithAnnexes(contractData);
+    if (!validation.isValid) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Contract validation failed: ${validation.errors.join(', ')}` 
+      });
+    }
+  }
+
   const newContract = await contractService.createContract(contractData);
   res.status(201).json({ success: true, data: newContract });
-});
-
-const getFilterOptions = asyncHandler(async (req, res) => {
-  try {
-    const options = {
-      status: Object.values(CONTRACT_STATUSES),
-      partner_type: Object.values(PARTNER_TYPES),
-      contract_type: Object.values(CONTRACT_TYPES),
-      annex_status: Object.values(ANNEX_STATUSES),
-    };
-
-    res.status(200).json({
-      success: true,
-      message: 'Lấy tùy chọn bộ lọc thành công',
-      data: options,
-    });
-  } catch (error) {
-    console.error('Get filter options error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi server khi lấy tùy chọn bộ lọc',
-    });
-  }
 });
 
 const deleteContract = asyncHandler(async (req, res) => {
@@ -101,21 +109,34 @@ const deleteContract = asyncHandler(async (req, res) => {
 });
 
 const updateContract = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      message: errors.array()[0].msg,
+    });
+  }
+  
   const { id } = req.params;
 
   const contract = await contractService.getContractById(id);
+  
   if (!contract) {
     return res.status(404).json({ success: false, message: 'Contract not found' });
   }
 
+  
   if (contract.created_by._id.toString() !== req.user.userId) {
     return res.status(403).json({ success: false, message: 'You do not have permission to update this contract' });
   }
+  
+  
   if (contract.status !== CONTRACT_STATUSES.DRAFT && contract.status !== CONTRACT_STATUSES.CANCELLED) {
     return res.status(400).json({ success: false, message: 'Only draft and cancelled contracts can be updated' });
   }
 
   const updatedContract = await contractService.updateContract(id, req.body);
+  
   res.status(200).json({ success: true, data: updatedContract });
 });
 
@@ -147,6 +168,15 @@ const createAnnex = asyncHandler(async (req, res) => {
     created_by: req.user.userId,
   };
 
+  // Validate ngày ký phụ lục trước khi tạo
+  const dateValidation = await contractService.validateAnnexSignedDate(id, annexData);
+  if (!dateValidation.isValid) {
+    return res.status(400).json({ 
+      success: false, 
+      message: `Invalid signed date: ${dateValidation.errors.join(', ')}` 
+    });
+  }
+
   const updatedContract = await contractService.createAnnex(id, annexData);
   res.status(201).json({ success: true, data: updatedContract });
 });
@@ -159,6 +189,15 @@ const updateAnnex = asyncHandler(async (req, res) => {
 
   const { id, annex_code } = req.params;
   const annexData = req.body;
+
+  // Kiểm tra có thể chỉnh sửa phụ lục không
+  const canEdit = await contractService.canEditAnnex(id, annex_code);
+  if (!canEdit.canEdit) {
+    return res.status(400).json({ 
+      success: false, 
+      message: canEdit.message 
+    });
+  }
 
   const updatedContract = await contractService.updateAnnex(id, annex_code, annexData, req.user);
   res.status(200).json({ success: true, data: updatedContract });
@@ -177,15 +216,23 @@ const updateAnnexStatus = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: updatedContract });
 });
 
+// UC6: Lấy lịch sử thay đổi hợp đồng
+const getContractHistory = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  const history = await contractService.getContractHistory(id);
+  res.status(200).json({ success: true, data: history });
+});
+
 module.exports = {
   getAllContracts,
   getContractById,
   createContract,
-  getFilterOptions,
   deleteContract,
   updateContract,
   updateContractStatus,
   createAnnex,
   updateAnnex,
   updateAnnexStatus,
+  getContractHistory,
 };

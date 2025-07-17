@@ -145,7 +145,7 @@ const EconomicContractEditDialog = ({
   suppliers = [],
   retailers = [],
   medicines = [],
-  viewDetail = false,
+  isViewMode = false,
 }) => {
   const [formData, setFormData] = useState({
     contract_code: "",
@@ -163,7 +163,7 @@ const EconomicContractEditDialog = ({
 
   // useSWRMutation for update
   const { trigger, isMutating } = useSWRMutation(
-    contract?._id ? `/api/economic-contracts/${contract._id}` : null,
+    contract?._id ? `/api/contract/${contract._id}` : null,
     updateContract,
   )
 
@@ -452,7 +452,7 @@ const EconomicContractEditDialog = ({
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle
         sx={{
-          background: viewDetail
+          background: isViewMode
             ? "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)"
             : "linear-gradient(135deg, #ed6c02 0%, #ff9800 100%)",
           color: "white",
@@ -462,14 +462,14 @@ const EconomicContractEditDialog = ({
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          {viewDetail ? <ViewIcon /> : <EditIcon />}
+          {isViewMode ? <ViewIcon /> : <EditIcon />}
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {viewDetail ? "Chi Tiết Hợp Đồng" : "Chỉnh Sửa Hợp Đồng"}
+              {isViewMode ? "Chi Tiết Hợp Đồng" : "Chỉnh Sửa Hợp Đồng"}
               {isEconomic ? " Kinh tế" : " Nguyên tắc"}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              {viewDetail ? "Xem thông tin hợp đồng: " : "Cập nhật thông tin hợp đồng: "}
+              {isViewMode ? "Xem thông tin hợp đồng: " : "Cập nhật thông tin hợp đồng: "}
               {contract.contract_code}
             </Typography>
           </Box>
@@ -502,7 +502,7 @@ const EconomicContractEditDialog = ({
                   onChange={(e) => handleChange({ target: { name: "contract_code", value: e.target.value } })}
                   error={!!errorValidate.contract_code}
                   helperText={errorValidate.contract_code}
-                  disabled={viewDetail}
+                  disabled={isViewMode}
                 />
               </Grid>
 
@@ -568,7 +568,7 @@ const EconomicContractEditDialog = ({
                           : { value: "Supplier", label: "Nhà cung cấp" }
                       }
                       onChange={(event, newValue) => {
-                        if (!viewDetail) {
+                        if (!isViewMode) {
                           setFormData((prev) => ({
                             ...prev,
                             partner_type: newValue ? newValue.value : "Supplier",
@@ -576,7 +576,7 @@ const EconomicContractEditDialog = ({
                           }))
                         }
                       }}
-                      disabled={viewDetail}
+                      disabled={isViewMode}
                       renderInput={(params) => (
                         <TextField
                           {...params}
@@ -630,7 +630,7 @@ const EconomicContractEditDialog = ({
                           : retailers.find((r) => r._id === formData.partner_id)) || null
                       }
                       onChange={(event, newValue) => {
-                        if (!viewDetail) {
+                        if (!isViewMode) {
                           setFormData((prev) => ({
                             ...prev,
                             partner_id: newValue ? newValue._id : "",
@@ -638,14 +638,14 @@ const EconomicContractEditDialog = ({
                           setErrorValidate((prev) => ({ ...prev, partner_id: "" }))
                         }
                       }}
-                      disabled={viewDetail}
+                      disabled={isViewMode}
                       renderInput={(params) => (
                         <TextField
                           {...params}
                           variant="standard"
                           placeholder={formData.partner_type === "Supplier" ? "Chọn nhà cung cấp" : "Chọn nhà bán lẻ"}
-                          error={!viewDetail && !!errorValidate.partner_id}
-                          helperText={!viewDetail ? errorValidate.partner_id : ""}
+                          error={!isViewMode && !!errorValidate.partner_id}
+                          helperText={!isViewMode ? errorValidate.partner_id : ""}
                           InputProps={{
                             ...params.InputProps,
                             disableUnderline: true,
@@ -678,12 +678,12 @@ const EconomicContractEditDialog = ({
                     <DatePicker
                       label="Ngày bắt đầu"
                       value={formData.start_date}
-                      onChange={viewDetail ? () => {} : handleDateChange("start_date")}
+                      onChange={isViewMode ? () => {} : handleDateChange("start_date")}
                       format="dd/MM/yyyy"
-                      disabled={viewDetail}
+                      disabled={isViewMode}
                       slotProps={{
                         textField: {
-                          error: !viewDetail && !!errorValidate.start_date,
+                          error: !isViewMode && !!errorValidate.start_date,
                           fullWidth: true,
                         },
                       }}
@@ -698,12 +698,12 @@ const EconomicContractEditDialog = ({
                     <DatePicker
                       label="Ngày kết thúc"
                       value={formData.end_date}
-                      onChange={viewDetail ? () => {} : handleDateChange("end_date")}
+                      onChange={isViewMode ? () => {} : handleDateChange("end_date")}
                       format="dd/MM/yyyy"
-                      disabled={viewDetail}
+                      disabled={isViewMode}
                       slotProps={{
                         textField: {
-                          error: !viewDetail && !!errorValidate.end_date,
+                          error: !isViewMode && !!errorValidate.end_date,
                           fullWidth: true,
                         },
                       }}
@@ -730,7 +730,7 @@ const EconomicContractEditDialog = ({
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                     Thuốc #{index + 1}
                   </Typography>
-                  {formData.items.length > 1 && !viewDetail && (
+                  {formData.items.length > 1 && !isViewMode && (
                     <Button size="small" color="error" onClick={() => removeItem(index)} sx={{ textTransform: "none" }}>
                       Xóa
                     </Button>
@@ -769,18 +769,18 @@ const EconomicContractEditDialog = ({
                           getOptionLabel={(option) => option.license_code || ""}
                           value={medicines.find((m) => m._id === item.medicine_id) || null}
                           onChange={(event, newValue) => {
-                            if (!viewDetail) {
+                            if (!isViewMode) {
                               handleItemChange(index, "medicine_id", newValue ? newValue._id : "")
                             }
                           }}
-                          disabled={viewDetail}
+                          disabled={isViewMode}
                           renderInput={(params) => (
                             <TextField
                               {...params}
                               variant="standard"
                               placeholder="Chọn thuốc"
                               error={
-                                !viewDetail &&
+                                !isViewMode &&
                                 !!(
                                   errorValidate.items &&
                                   Array.isArray(errorValidate.items) &&
@@ -802,7 +802,7 @@ const EconomicContractEditDialog = ({
                           sx={{ width: "100%" }}
                         />
                       </Box>
-                      {!viewDetail &&
+                      {!isViewMode &&
                         errorValidate.items &&
                         Array.isArray(errorValidate.items) &&
                         errorValidate.items[index]?.medicine_id && (
@@ -819,10 +819,10 @@ const EconomicContractEditDialog = ({
                       <InfoField
                         label="Số lượng đặt"
                         value={item.quantity}
-                        onChange={(e) => !viewDetail && handleItemChange(index, "quantity", e.target.value)}
-                        disabled={viewDetail}
+                        onChange={(e) => !isViewMode && handleItemChange(index, "quantity", e.target.value)}
+                        disabled={isViewMode}
                         error={
-                          !viewDetail &&
+                          !isViewMode &&
                           !!(
                             errorValidate.items &&
                             Array.isArray(errorValidate.items) &&
@@ -830,7 +830,7 @@ const EconomicContractEditDialog = ({
                           )
                         }
                         helperText={
-                          !viewDetail &&
+                          !isViewMode &&
                           errorValidate.items &&
                           Array.isArray(errorValidate.items) &&
                           errorValidate.items[index]?.quantity
@@ -845,10 +845,10 @@ const EconomicContractEditDialog = ({
                     <InfoField
                       label="Đơn giá"
                       value={item.unit_price}
-                      onChange={(e) => !viewDetail && handleItemChange(index, "unit_price", e.target.value)}
-                      disabled={viewDetail}
+                      onChange={(e) => !isViewMode && handleItemChange(index, "unit_price", e.target.value)}
+                      disabled={isViewMode}
                       error={
-                        !viewDetail &&
+                        !isViewMode &&
                         !!(
                           errorValidate.items &&
                           Array.isArray(errorValidate.items) &&
@@ -856,7 +856,7 @@ const EconomicContractEditDialog = ({
                         )
                       }
                       helperText={
-                        !viewDetail &&
+                        !isViewMode &&
                         errorValidate.items &&
                         Array.isArray(errorValidate.items) &&
                         errorValidate.items[index]?.unit_price
@@ -875,7 +875,7 @@ const EconomicContractEditDialog = ({
               </Typography>
             )}
 
-            {!viewDetail && (
+            {!isViewMode && (
               <Box sx={{ mt: 2 }}>
                 <Button variant="outlined" onClick={addItem} sx={{ textTransform: "none", fontWeight: 600 }}>
                   Thêm thuốc
@@ -902,7 +902,7 @@ const EconomicContractEditDialog = ({
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.main" }}>
                       Phụ lục #{annexIndex + 1}
                     </Typography>
-                    {!viewDetail && (
+                    {!isViewMode && (
                       <Button
                         size="small"
                         color="error"
@@ -919,8 +919,8 @@ const EconomicContractEditDialog = ({
                       <InfoField
                         label="Mã phụ lục"
                         value={annex.annex_code}
-                        onChange={(e) => !viewDetail && handleAnnexChange(annexIndex, "annex_code", e.target.value)}
-                        disabled={viewDetail}
+                        onChange={(e) => !isViewMode && handleAnnexChange(annexIndex, "annex_code", e.target.value)}
+                        disabled={isViewMode}
                       />
                     </Grid>
 
@@ -931,10 +931,10 @@ const EconomicContractEditDialog = ({
                             Loại thao tác
                           </Typography>
                         </Box>
-                        <FormControl fullWidth disabled={viewDetail}>
+                        <FormControl fullWidth disabled={isViewMode}>
                           <Select
                             value={annex.action}
-                            onChange={(e) => !viewDetail && handleAnnexChange(annexIndex, "action", e.target.value)}
+                            onChange={(e) => !isViewMode && handleAnnexChange(annexIndex, "action", e.target.value)}
                             size="small"
                           >
                             {Object.entries(ANNEX_ACTION_LABELS).map(([value, label]) => (
@@ -966,8 +966,8 @@ const EconomicContractEditDialog = ({
                       <InfoField
                         label="Mô tả"
                         value={annex.description}
-                        onChange={(e) => !viewDetail && handleAnnexChange(annexIndex, "description", e.target.value)}
-                        disabled={viewDetail}
+                        onChange={(e) => !isViewMode && handleAnnexChange(annexIndex, "description", e.target.value)}
+                        disabled={isViewMode}
                       />
                     </Grid>
                   </Grid>
@@ -986,7 +986,7 @@ const EconomicContractEditDialog = ({
                             <Typography variant="caption" sx={{ fontWeight: 600 }}>
                               Thuốc #{itemIndex + 1}
                             </Typography>
-                            {annex.items.length > 1 && !viewDetail && (
+                            {annex.items.length > 1 && !isViewMode && (
                               <Button
                                 size="small"
                                 color="error"
@@ -1025,7 +1025,7 @@ const EconomicContractEditDialog = ({
                                     getOptionLabel={(option) => option.license_code || ""}
                                     value={medicines.find((m) => m._id === annexItem.medicine_id) || null}
                                     onChange={(event, newValue) => {
-                                      if (!viewDetail) {
+                                      if (!isViewMode) {
                                         handleAnnexItemChange(
                                           annexIndex,
                                           itemIndex,
@@ -1034,7 +1034,7 @@ const EconomicContractEditDialog = ({
                                         )
                                       }
                                     }}
-                                    disabled={viewDetail}
+                                    disabled={isViewMode}
                                     size="small"
                                     renderInput={(params) => (
                                       <TextField
@@ -1071,7 +1071,7 @@ const EconomicContractEditDialog = ({
                                     border: "1px solid #e0e0e0",
                                     borderRadius: 1,
                                     padding: "6px 10px",
-                                    backgroundColor: viewDetail ? "#f5f5f5" : "#fafafa",
+                                    backgroundColor: isViewMode ? "#f5f5f5" : "#fafafa",
                                     minHeight: 35,
                                     display: "flex",
                                     alignItems: "center",
@@ -1081,15 +1081,15 @@ const EconomicContractEditDialog = ({
                                     fullWidth
                                     value={annexItem.unit_price}
                                     onChange={(e) =>
-                                      !viewDetail &&
+                                      !isViewMode &&
                                       handleAnnexItemChange(annexIndex, itemIndex, "unit_price", e.target.value)
                                     }
-                                    disabled={viewDetail}
+                                    disabled={isViewMode}
                                     variant="standard"
                                     size="small"
                                     sx={{
                                       "& .MuiInputBase-input": {
-                                        color: viewDetail ? "text.disabled" : "text.primary",
+                                        color: isViewMode ? "text.disabled" : "text.primary",
                                       },
                                     }}
                                   />
@@ -1100,7 +1100,7 @@ const EconomicContractEditDialog = ({
                         </Box>
                       ))}
 
-                      {!viewDetail && (
+                      {!isViewMode && (
                         <Button
                           size="small"
                           variant="outlined"
@@ -1115,7 +1115,7 @@ const EconomicContractEditDialog = ({
                 </Box>
               ))}
 
-              {!viewDetail && (
+              {!isViewMode && (
                 <Box sx={{ mt: 2 }}>
                   <Button
                     variant="outlined"
@@ -1136,23 +1136,23 @@ const EconomicContractEditDialog = ({
       <DialogActions sx={{ p: 3, pt: 2, bgcolor: "grey.50", borderTop: "1px solid #e0e0e0" }}>
         <Button
           onClick={onClose}
-          variant={viewDetail ? "contained" : "outlined"}
+          variant={isViewMode ? "contained" : "outlined"}
           sx={{
             px: 3,
             py: 1.5,
             borderRadius: 2,
             textTransform: "none",
             fontWeight: 600,
-            ...(viewDetail && {
+            ...(isViewMode && {
               background: "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)",
               "&:hover": { background: "linear-gradient(135deg, #1565c0 0%, #1976d2 100%)" },
             }),
           }}
-          disabled={!viewDetail && isMutating}
+          disabled={!isViewMode && isMutating}
         >
-          {viewDetail ? "Đóng" : "Hủy"}
+          {isViewMode ? "Đóng" : "Hủy"}
         </Button>
-        {!viewDetail && (
+        {!isViewMode && (
           <Button
             onClick={handleSubmit}
             variant="contained"

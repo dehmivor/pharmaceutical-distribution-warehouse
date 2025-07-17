@@ -11,6 +11,8 @@ module.exports = {
   thingsboardController: require('./thingsboardController'),
   importInspectionController: require('./importInspectionController'),
   areaController: require('./areaController'),
+  supplierController: require('./supplierController'),
+  retailerController: require('./retailerController'),
   stripeController: require('./stripeController'),
   packageController: require('./packageController'),
   billController: require('./billController'),

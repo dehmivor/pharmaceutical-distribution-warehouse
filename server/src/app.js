@@ -120,6 +120,7 @@ app.use('/api/import-orders', route.importOrderRoutes);
 app.use('/api/stripe', route.stripeRoutes);
 app.use('/api/bills', route.billRoutes);
 app.use('/api/supplier', route.supplierRoutes);
+app.use('/api/retailer', route.retailerRoutes);
 app.use('/api/economic-contracts', route.economicContractRoutes);
 app.use('/api/contract', route.contractRoutes);
 

@@ -45,7 +45,12 @@ const contractSchema = new mongoose.Schema({
     required: [true, 'End date is required'],
     validate: {
       validator: function (value) {
-        return value >= this.start_date;
+        // Sử dụng this.start_date nếu có, nếu không thì lấy từ update data
+        const startDate = this.start_date || (this._update && this._update.$set && this._update.$set.start_date);
+        if (!startDate) {
+          return true; // Skip validation if we can't determine start_date
+        }
+        return value >= startDate;
       },
       message: 'End date must be after start date',
     },
