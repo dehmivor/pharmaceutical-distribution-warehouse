@@ -414,7 +414,7 @@ const contractService = {
     }
 
     // Kiểm tra quyền
-    if (newStatus === CONTRACT_STATUSES.ACTIVE && user.role !== USER_ROLES.REPRESENTATIVE_MANAGER) {
+    if (newStatus === CONTRACT_STATUSES.ACTIVE && user.role !== USER_ROLES.REPRESENTATIVEMANAGER) {
       throw new Error('Only representative managers can approve contracts');
     }
 
