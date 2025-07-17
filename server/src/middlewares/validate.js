@@ -377,49 +377,63 @@ const principalContractValidator = {
       .withMessage('Annex code must be a string')
       .notEmpty()
       .withMessage('Annex code is required'),
-    check('action')
+    check('signed_date')
       .exists()
-      .withMessage('Action is required')
-      .isIn(Object.values(ANNEX_ACTIONS))
-      .withMessage(`Action must be one of: ${Object.values(ANNEX_ACTIONS).join(', ')}`),
-    check('items')
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
-          req.body.action,
-        ),
-      )
-      .isArray({ min: 1 })
-      .withMessage('Items must be a non-empty array for add, remove, or update_price actions'),
-    check('items.*.medicine_id')
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
-          req.body.action,
-        ),
-      )
-      .exists()
-      .withMessage('Medicine ID is required')
-      .isMongoId()
-      .withMessage('Invalid medicine ID'),
-    check('items.*.unit_price')
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action),
-      )
-      .exists()
-      .withMessage('Unit price is required for add or update_price actions')
-      .isFloat({ min: 0 })
-      .withMessage('Unit price must be a non-negative number'),
-    check('end_date')
-      .if((value, { req }) => req.body.action === ANNEX_ACTIONS.UPDATE_END_DATE)
-      .exists()
-      .withMessage('End date is required for update_end_date action')
+      .withMessage('Signed date is required')
       .isISO8601()
       .toDate()
-      .withMessage('Invalid end date'),
+      .withMessage('Invalid signed date'),
     check('description').optional().isString().withMessage('Description must be a string'),
     check('status')
       .optional()
       .isIn(Object.values(ANNEX_STATUSES))
       .withMessage(`Annex status must be one of: ${Object.values(ANNEX_STATUSES).join(', ')}`),
+    
+    // Validate medicine_changes
+    check('medicine_changes').optional().isObject().withMessage('Medicine changes must be an object'),
+    check('medicine_changes.add_items').optional().isArray().withMessage('Add items must be an array'),
+    check('medicine_changes.add_items.*.medicine_id')
+      .if((value, { req }) => req.body.medicine_changes?.add_items?.length > 0)
+      .exists()
+      .withMessage('Medicine ID is required in add items')
+      .isMongoId()
+      .withMessage('Invalid medicine ID in add items'),
+    check('medicine_changes.add_items.*.unit_price')
+      .if((value, { req }) => req.body.medicine_changes?.add_items?.length > 0)
+      .exists()
+      .withMessage('Unit price is required in add items')
+      .isFloat({ min: 0.01 })
+      .withMessage('Unit price must be a positive number in add items'),
+    
+    check('medicine_changes.remove_items').optional().isArray().withMessage('Remove items must be an array'),
+    check('medicine_changes.remove_items.*.medicine_id')
+      .if((value, { req }) => req.body.medicine_changes?.remove_items?.length > 0)
+      .exists()
+      .withMessage('Medicine ID is required in remove items')
+      .isMongoId()
+      .withMessage('Invalid medicine ID in remove items'),
+    
+    check('medicine_changes.update_prices').optional().isArray().withMessage('Update prices must be an array'),
+    check('medicine_changes.update_prices.*.medicine_id')
+      .if((value, { req }) => req.body.medicine_changes?.update_prices?.length > 0)
+      .exists()
+      .withMessage('Medicine ID is required in update prices')
+      .isMongoId()
+      .withMessage('Invalid medicine ID in update prices'),
+    check('medicine_changes.update_prices.*.unit_price')
+      .if((value, { req }) => req.body.medicine_changes?.update_prices?.length > 0)
+      .exists()
+      .withMessage('Unit price is required in update prices')
+      .isFloat({ min: 0.01 })
+      .withMessage('Unit price must be a positive number in update prices'),
+    
+    // Validate end_date_change
+    check('end_date_change').optional().isObject().withMessage('End date change must be an object'),
+    check('end_date_change.new_end_date')
+      .if((value, { req }) => req.body.end_date_change?.new_end_date !== undefined)
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid new end date'),
   ],
 
   validateUpdateAnnex: [
@@ -429,45 +443,53 @@ const principalContractValidator = {
       .withMessage('Annex code must be a string')
       .notEmpty()
       .withMessage('Annex code is required'),
-    check('action')
+    check('description').optional().isString().withMessage('Description must be a string'),
+    
+    // Validate medicine_changes
+    check('medicine_changes').optional().isObject().withMessage('Medicine changes must be an object'),
+    check('medicine_changes.add_items').optional().isArray().withMessage('Add items must be an array'),
+    check('medicine_changes.add_items.*.medicine_id')
+      .if((value, { req }) => req.body.medicine_changes?.add_items?.length > 0)
       .exists()
-      .withMessage('Action is required')
-      .isIn(Object.values(ANNEX_ACTIONS))
-      .withMessage(`Action must be one of: ${Object.values(ANNEX_ACTIONS).join(', ')}`),
-    check('items')
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
-          req.body.action,
-        ),
-      )
-      .isArray({ min: 1 })
-      .withMessage('Items must be a non-empty array for add, remove, or update_price actions'),
-    check('items.*.medicine_id')
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
-          req.body.action,
-        ),
-      )
-      .exists()
-      .withMessage('Medicine ID is required')
+      .withMessage('Medicine ID is required in add items')
       .isMongoId()
-      .withMessage('Invalid medicine ID'),
-    check('items.*.unit_price')
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action),
-      )
+      .withMessage('Invalid medicine ID in add items'),
+    check('medicine_changes.add_items.*.unit_price')
+      .if((value, { req }) => req.body.medicine_changes?.add_items?.length > 0)
       .exists()
-      .withMessage('Unit price is required for add or update_price actions')
-      .isFloat({ min: 0 })
-      .withMessage('Unit price must be a non-negative number'),
-    check('end_date')
-      .if((value, { req }) => req.body.action === ANNEX_ACTIONS.UPDATE_END_DATE)
+      .withMessage('Unit price is required in add items')
+      .isFloat({ min: 0.01 })
+      .withMessage('Unit price must be a positive number in add items'),
+    
+    check('medicine_changes.remove_items').optional().isArray().withMessage('Remove items must be an array'),
+    check('medicine_changes.remove_items.*.medicine_id')
+      .if((value, { req }) => req.body.medicine_changes?.remove_items?.length > 0)
       .exists()
-      .withMessage('End date is required for update_end_date action')
+      .withMessage('Medicine ID is required in remove items')
+      .isMongoId()
+      .withMessage('Invalid medicine ID in remove items'),
+    
+    check('medicine_changes.update_prices').optional().isArray().withMessage('Update prices must be an array'),
+    check('medicine_changes.update_prices.*.medicine_id')
+      .if((value, { req }) => req.body.medicine_changes?.update_prices?.length > 0)
+      .exists()
+      .withMessage('Medicine ID is required in update prices')
+      .isMongoId()
+      .withMessage('Invalid medicine ID in update prices'),
+    check('medicine_changes.update_prices.*.unit_price')
+      .if((value, { req }) => req.body.medicine_changes?.update_prices?.length > 0)
+      .exists()
+      .withMessage('Unit price is required in update prices')
+      .isFloat({ min: 0.01 })
+      .withMessage('Unit price must be a positive number in update prices'),
+    
+    // Validate end_date_change
+    check('end_date_change').optional().isObject().withMessage('End date change must be an object'),
+    check('end_date_change.new_end_date')
+      .if((value, { req }) => req.body.end_date_change?.new_end_date !== undefined)
       .isISO8601()
       .toDate()
-      .withMessage('Invalid end date'),
-    check('description').optional().isString().withMessage('Description must be a string'),
+      .withMessage('Invalid new end date'),
   ],
 
   validateUpdateAnnexStatus: [
@@ -626,7 +648,7 @@ const contractValidator = {
       .exists()
       .withMessage('Quantity is required for economic contracts')
       .isInt({ min: 1 })
-      .withMessage('Quantity must be a positive integer'),
+      .withMessage('Quantity must be a positive integer for economic contracts'),
     check('items.*.quantity')
       .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL)
       .not()
@@ -644,6 +666,73 @@ const contractValidator = {
       )
       .isArray({ max: 0 })
       .withMessage('Annexes are not allowed for economic contracts'),
+    // Validate annexes for principal contracts
+    check('annexes')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .isArray()
+      .withMessage('Annexes must be an array'),
+    check('annexes.*.annex_code')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .isString()
+      .withMessage('Annex code must be a string')
+      .notEmpty()
+      .withMessage('Annex code is required'),
+    check('annexes.*.signed_date')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .optional()
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid signed date'),
+    check('annexes.*.description')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .optional()
+      .isString()
+      .withMessage('Description must be a string'),
+    check('annexes.*.medicine_changes')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .optional()
+      .isObject()
+      .withMessage('Medicine changes must be an object'),
+    check('annexes.*.medicine_changes.add_items')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .optional()
+      .isArray()
+      .withMessage('Add items must be an array'),
+    check('annexes.*.medicine_changes.add_items.*.medicine_id')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .optional()
+      .isMongoId()
+      .withMessage('Invalid medicine ID in add items'),
+    check('annexes.*.medicine_changes.add_items.*.unit_price')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .optional()
+      .isFloat({ min: 0.01 })
+      .withMessage('Unit price must be a positive number in add items'),
+    check('annexes.*.medicine_changes.remove_items')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .optional()
+      .isArray()
+      .withMessage('Remove items must be an array'),
+    check('annexes.*.medicine_changes.remove_items.*.medicine_id')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .optional()
+      .isMongoId()
+      .withMessage('Invalid medicine ID in remove items'),
+    check('annexes.*.medicine_changes.update_prices')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .optional()
+      .isArray()
+      .withMessage('Update prices must be an array'),
+    check('annexes.*.medicine_changes.update_prices.*.medicine_id')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .optional()
+      .isMongoId()
+      .withMessage('Invalid medicine ID in update prices'),
+    check('annexes.*.medicine_changes.update_prices.*.unit_price')
+      .if((value, { req }) => req.body.contract_type === CONTRACT_TYPES.PRINCIPAL && req.body.annexes !== undefined)
+      .optional()
+      .isFloat({ min: 0.01 })
+      .withMessage('Unit price must be a positive number in update prices'),
   ],
 
   validateUpdateContractStatus: [
@@ -662,57 +751,63 @@ const contractValidator = {
       .withMessage('Annex code must be a string')
       .notEmpty()
       .withMessage('Annex code is required'),
-    check('action')
+    check('signed_date')
       .exists()
-      .withMessage('Action is required')
-      .isIn(Object.values(ANNEX_ACTIONS))
-      .withMessage(`Action must be one of: ${Object.values(ANNEX_ACTIONS).join(', ')}`),
-    check('items')
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
-          req.body.action,
-        ),
-      )
-      .isArray({ min: 1 })
-      .withMessage('Items must be a non-empty array for add, remove, or update_price actions'),
-    check('items.*.medicine_id')
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
-          req.body.action,
-        ),
-      )
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
-          req.body.action,
-        ),
-      )
-      .exists()
-      .withMessage('Medicine ID is required')
-      .isMongoId()
-      .withMessage('Invalid medicine ID'),
-    check('items.*.unit_price')
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action),
-      )
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action),
-      )
-      .exists()
-      .withMessage('Unit price is required for add or update_price actions')
-      .isFloat({ min: 0 })
-      .withMessage('Unit price must be a non-negative number'),
-    check('end_date')
-      .if((value, { req }) => req.body.action === ANNEX_ACTIONS.UPDATE_END_DATE)
-      .exists()
-      .withMessage('End date is required for update_end_date action')
+      .withMessage('Signed date is required')
       .isISO8601()
       .toDate()
-      .withMessage('Invalid end date'),
+      .withMessage('Invalid signed date'),
     check('description').optional().isString().withMessage('Description must be a string'),
     check('status')
       .optional()
       .isIn(Object.values(ANNEX_STATUSES))
       .withMessage(`Annex status must be one of: ${Object.values(ANNEX_STATUSES).join(', ')}`),
+    
+    // Validate medicine_changes
+    check('medicine_changes').optional().isObject().withMessage('Medicine changes must be an object'),
+    check('medicine_changes.add_items').optional().isArray().withMessage('Add items must be an array'),
+    check('medicine_changes.add_items.*.medicine_id')
+      .if((value, { req }) => req.body.medicine_changes?.add_items?.length > 0)
+      .exists()
+      .withMessage('Medicine ID is required in add items')
+      .isMongoId()
+      .withMessage('Invalid medicine ID in add items'),
+    check('medicine_changes.add_items.*.unit_price')
+      .if((value, { req }) => req.body.medicine_changes?.add_items?.length > 0)
+      .exists()
+      .withMessage('Unit price is required in add items')
+      .isFloat({ min: 0.01 })
+      .withMessage('Unit price must be a positive number in add items'),
+    
+    check('medicine_changes.remove_items').optional().isArray().withMessage('Remove items must be an array'),
+    check('medicine_changes.remove_items.*.medicine_id')
+      .if((value, { req }) => req.body.medicine_changes?.remove_items?.length > 0)
+      .exists()
+      .withMessage('Medicine ID is required in remove items')
+      .isMongoId()
+      .withMessage('Invalid medicine ID in remove items'),
+    
+    check('medicine_changes.update_prices').optional().isArray().withMessage('Update prices must be an array'),
+    check('medicine_changes.update_prices.*.medicine_id')
+      .if((value, { req }) => req.body.medicine_changes?.update_prices?.length > 0)
+      .exists()
+      .withMessage('Medicine ID is required in update prices')
+      .isMongoId()
+      .withMessage('Invalid medicine ID in update prices'),
+    check('medicine_changes.update_prices.*.unit_price')
+      .if((value, { req }) => req.body.medicine_changes?.update_prices?.length > 0)
+      .exists()
+      .withMessage('Unit price is required in update prices')
+      .isFloat({ min: 0.01 })
+      .withMessage('Unit price must be a positive number in update prices'),
+    
+    // Validate end_date_change
+    check('end_date_change').optional().isObject().withMessage('End date change must be an object'),
+    check('end_date_change.new_end_date')
+      .if((value, { req }) => req.body.end_date_change?.new_end_date !== undefined)
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid new end date'),
   ],
 
   validateUpdateAnnex: [
@@ -722,58 +817,53 @@ const contractValidator = {
       .withMessage('Annex code must be a string')
       .notEmpty()
       .withMessage('Annex code is required'),
-    check('action')
+    check('description').optional().isString().withMessage('Description must be a string'),
+    
+    // Validate medicine_changes
+    check('medicine_changes').optional().isObject().withMessage('Medicine changes must be an object'),
+    check('medicine_changes.add_items').optional().isArray().withMessage('Add items must be an array'),
+    check('medicine_changes.add_items.*.medicine_id')
+      .if((value, { req }) => req.body.medicine_changes?.add_items?.length > 0)
       .exists()
-      .withMessage('Action is required')
-      .isIn(Object.values(ANNEX_ACTIONS))
-      .withMessage(`Action must be one of: ${Object.values(ANNEX_ACTIONS).join(', ')}`),
-    check('items')
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
-          req.body.action,
-        ),
-      )
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
-          req.body.action,
-        ),
-      )
-      .isArray({ min: 1 })
-      .withMessage('Items must be a non-empty array for add, remove, or update_price actions'),
-    check('items.*.medicine_id')
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
-          req.body.action,
-        ),
-      )
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.REMOVE, ANNEX_ACTIONS.UPDATE_PRICE].includes(
-          req.body.action,
-        ),
-      )
-      .exists()
-      .withMessage('Medicine ID is required')
+      .withMessage('Medicine ID is required in add items')
       .isMongoId()
-      .withMessage('Invalid medicine ID'),
-    check('items.*.unit_price')
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action),
-      )
-      .if((value, { req }) =>
-        [ANNEX_ACTIONS.ADD, ANNEX_ACTIONS.UPDATE_PRICE].includes(req.body.action),
-      )
+      .withMessage('Invalid medicine ID in add items'),
+    check('medicine_changes.add_items.*.unit_price')
+      .if((value, { req }) => req.body.medicine_changes?.add_items?.length > 0)
       .exists()
-      .withMessage('Unit price is required for add or update_price actions')
-      .isFloat({ min: 0 })
-      .withMessage('Unit price must be a non-negative number'),
-    check('end_date')
-      .if((value, { req }) => req.body.action === ANNEX_ACTIONS.UPDATE_END_DATE)
+      .withMessage('Unit price is required in add items')
+      .isFloat({ min: 0.01 })
+      .withMessage('Unit price must be a positive number in add items'),
+    
+    check('medicine_changes.remove_items').optional().isArray().withMessage('Remove items must be an array'),
+    check('medicine_changes.remove_items.*.medicine_id')
+      .if((value, { req }) => req.body.medicine_changes?.remove_items?.length > 0)
       .exists()
-      .withMessage('End date is required for update_end_date action')
+      .withMessage('Medicine ID is required in remove items')
+      .isMongoId()
+      .withMessage('Invalid medicine ID in remove items'),
+    
+    check('medicine_changes.update_prices').optional().isArray().withMessage('Update prices must be an array'),
+    check('medicine_changes.update_prices.*.medicine_id')
+      .if((value, { req }) => req.body.medicine_changes?.update_prices?.length > 0)
+      .exists()
+      .withMessage('Medicine ID is required in update prices')
+      .isMongoId()
+      .withMessage('Invalid medicine ID in update prices'),
+    check('medicine_changes.update_prices.*.unit_price')
+      .if((value, { req }) => req.body.medicine_changes?.update_prices?.length > 0)
+      .exists()
+      .withMessage('Unit price is required in update prices')
+      .isFloat({ min: 0.01 })
+      .withMessage('Unit price must be a positive number in update prices'),
+    
+    // Validate end_date_change
+    check('end_date_change').optional().isObject().withMessage('End date change must be an object'),
+    check('end_date_change.new_end_date')
+      .if((value, { req }) => req.body.end_date_change?.new_end_date !== undefined)
       .isISO8601()
       .toDate()
-      .withMessage('Invalid end date'),
-    check('description').optional().isString().withMessage('Description must be a string'),
+      .withMessage('Invalid new end date'),
   ],
 
   validateUpdateAnnexStatus: [

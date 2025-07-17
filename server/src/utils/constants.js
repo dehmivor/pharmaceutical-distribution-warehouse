@@ -4,6 +4,7 @@ const USER_ROLES = {
   SUPERVISOR: 'supervisor',
   REPRESENTATIVE: 'representative',
   WAREHOUSEMANAGER: 'warehouse_manager',
+  REPRESENTATIVE_MANAGER: 'representative_manager',
 };
 
 const USER_STATUSES = {

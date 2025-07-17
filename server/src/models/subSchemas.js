@@ -142,43 +142,56 @@ const annexSchema = new mongoose.Schema(
     description: {
       type: String,
     },
-    action: {
-      type: String,
-      required: [true, 'Action is required'],
-      enum: {
-        values: Object.values(ANNEX_ACTIONS),
-        message: `Action must be one of: ${Object.values(ANNEX_ACTIONS).join(', ')}`,
-      },
-    },
-    items: [
-      {
-        medicine_id: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'Medicine',
-          required: [true, 'Medicine ID is required'],
-        },
-        unit_price: {
-          type: Number,
-          min: [0, 'Unit price cannot be negative'],
-          required: function () {
-            return (
-              this.parent().action === ANNEX_ACTIONS.ADD ||
-              this.parent().action === ANNEX_ACTIONS.UPDATE_PRICE
-            );
+    // Thay đổi thuốc (thêm, bớt, cập nhật giá)
+    medicine_changes: {
+      add_items: [
+        {
+          medicine_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Medicine',
+            required: [true, 'Medicine ID is required'],
+          },
+          unit_price: {
+            type: Number,
+            min: [0, 'Unit price cannot be negative'],
+            required: [true, 'Unit price is required for new medicines'],
           },
         },
-      },
-    ],
-    end_date: {
-      type: Date,
-      validate: {
-        validator: function (value) {
-          return !this.parent().start_date || value >= this.parent().start_date;
+      ],
+      remove_items: [
+        {
+          medicine_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Medicine',
+            required: [true, 'Medicine ID is required'],
+          },
         },
-        message: 'Annex end date must be after contract start date',
-      },
-      required: function () {
-        return this.action === ANNEX_ACTIONS.UPDATE_END_DATE;
+      ],
+      update_prices: [
+        {
+          medicine_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Medicine',
+            required: [true, 'Medicine ID is required'],
+          },
+          unit_price: {
+            type: Number,
+            min: [0, 'Unit price cannot be negative'],
+            required: [true, 'Unit price is required'],
+          },
+        },
+      ],
+    },
+    // Thay đổi thời hạn hợp đồng
+    end_date_change: {
+      new_end_date: {
+        type: Date,
+        validate: {
+          validator: function (value) {
+            return !this.parent().start_date || value >= this.parent().start_date;
+          },
+          message: 'New end date must be after contract start date',
+        },
       },
     },
     status: {
@@ -189,6 +202,21 @@ const annexSchema = new mongoose.Schema(
         message: `Status must be one of: ${Object.values(ANNEX_STATUSES).join(', ')}`,
       },
       default: ANNEX_STATUSES.DRAFT,
+    },
+    signed_date: {
+      type: Date,
+      required: [true, 'Signed date is required'],
+      validate: {
+        validator: function(value) {
+          // Ngày ký phải sau ngày tạo hợp đồng
+          return value >= this.parent().start_date;
+        },
+        message: 'Signed date must be after contract start date'
+      }
+    },
+    created_at: {
+      type: Date,
+      default: Date.now,
     },
   },
   { _id: false },
