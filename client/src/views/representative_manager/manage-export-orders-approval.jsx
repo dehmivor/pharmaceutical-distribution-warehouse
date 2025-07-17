@@ -33,6 +33,7 @@ function ManageExportOrdersApproval() {
   const [orderToAssignWM, setOrderToAssignWM] = useState(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [orderToView, setOrderToView] = useState(null);
+  const [selectedApproveWM, setSelectedApproveWM] = useState(''); // Thêm state cho approve dialog
 
   useEffect(() => {
     fetchOrders();
@@ -64,6 +65,8 @@ function ManageExportOrdersApproval() {
 
   const handleOpenApproveDialog = (order) => {
     setOrderToApprove(order);
+    setSelectedApproveWM(''); // Reset khi mở dialog
+    fetchWarehouseManagers(); // Đảm bảo có danh sách WM
     setApproveDialogOpen(true);
   };
   const handleCloseApproveDialog = () => {
@@ -71,12 +74,12 @@ function ManageExportOrdersApproval() {
     setOrderToApprove(null);
   };
   const handleApprove = async () => {
-    if (!orderToApprove) return;
+    if (!orderToApprove || !selectedApproveWM) return;
     setApproveLoading(true);
     try {
       await axios.put(
         `${API_BASE_URL}/export-orders/${orderToApprove._id}/approve`,
-        { status: 'approved' },
+        { warehouse_manager_id: selectedApproveWM },
         { headers: getAuthHeaders() }
       );
       setSuccess('Order approved!');
@@ -195,10 +198,23 @@ function ManageExportOrdersApproval() {
         <DialogTitle>Approve Export Order</DialogTitle>
         <DialogContent>
           <Typography>Bạn có chắc chắn muốn duyệt đơn xuất này?</Typography>
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel>Warehouse Manager</InputLabel>
+            <Select
+              value={selectedApproveWM}
+              onChange={(e) => setSelectedApproveWM(e.target.value)}
+              label="Warehouse Manager"
+              required
+            >
+              {warehouseManagers.map((wm) => (
+                <MenuItem key={wm._id} value={wm._id}>{wm.email}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseApproveDialog}>Cancel</Button>
-          <Button onClick={handleApprove} color="success" variant="contained" disabled={approveLoading}>
+          <Button onClick={handleApprove} color="success" variant="contained" disabled={approveLoading || !selectedApproveWM}>
             {approveLoading ? 'Approving...' : 'Approve'}
           </Button>
         </DialogActions>
