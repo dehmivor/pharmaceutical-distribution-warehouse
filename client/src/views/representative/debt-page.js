@@ -27,6 +27,8 @@ import {
   Stack
 } from '@mui/material';
 import axios from 'axios';
+import ModalConfirm from '../general/ModalConfirm';
+import { enqueueSnackbar } from 'notistack';
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -133,6 +135,8 @@ const DebtPage = () => {
   const [error, setError] = useState(null);
 
   const [tab, setTab] = useState(0);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [billIdToDelete, setBillIdToDelete] = useState(null);
 
   // Filters
   const [filterQuarter, setFilterQuarter] = useState('');
@@ -246,27 +250,6 @@ const DebtPage = () => {
     setDetailData(null);
   };
 
-  const handleDelete = async (billId) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa hóa đơn này?')) return;
-    setLoadingDelete(true);
-    try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const res = await axios.delete(`${backendUrl}/api/bills/delete/${billId}`, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (res.status === 200) {
-        setBills((prev) => prev.filter((b) => b._id !== billId));
-        alert('Xóa hóa đơn thành công!');
-      } else {
-        alert('Xóa hóa đơn thất bại!');
-      }
-    } catch (error) {
-      alert('Lỗi khi xóa hóa đơn: ' + (error.response?.data?.error || error.message));
-    } finally {
-      setLoadingDelete(false);
-    }
-  };
-
   // Lấy toàn bộ mã thuốc có trong bills để dùng cho filter
   const allMedicineCodes = useMemo(() => {
     const codes = bills.flatMap((b) => b.details.map((d) => d.medicine_lisence_code));
@@ -279,6 +262,35 @@ const DebtPage = () => {
 
   if (loading) return <Typography>Đang tải dữ liệu...</Typography>;
   if (error) return <Typography color="error">Lỗi: {error}</Typography>;
+
+  const openDeleteConfirm = (id) => {
+    setBillIdToDelete(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!billIdToDelete) return;
+    setLoadingDelete(true);
+    try {
+      // gọi API xóa
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const res = await axios.delete(`${backendUrl}/api/bills/${billIdToDelete}`, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.status === 200) {
+        setBills((prev) => prev.filter((b) => b._id !== billIdToDelete));
+        enqueueSnackbar('Xóa hóa đơn thành công!', { variant: 'success' });
+      } else {
+        enqueueSnackbar('Xóa hóa đơn thất bại!', { variant: 'error' });
+      }
+    } catch (error) {
+      enqueueSnackbar('Lỗi khi xóa hóa đơn: ' + (error.response?.data?.error || error.message), { variant: 'error' });
+    } finally {
+      setLoadingDelete(false);
+      setDeleteConfirmOpen(false);
+      setBillIdToDelete(null);
+    }
+  };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -421,11 +433,15 @@ const DebtPage = () => {
                         size="small"
                         variant="contained"
                         color="error"
-                        onClick={() => handleDelete(bill._id)}
+                        onClick={() => {
+                          setBillIdToDelete(bill._id);
+                          setDeleteConfirmOpen(true);
+                        }}
                         disabled={loadingDelete}
                       >
                         Xóa
                       </Button>
+
                       <Button size="small" variant="outlined" onClick={() => handleOpenDetail(bill)}>
                         Xem chi tiết
                       </Button>
@@ -569,6 +585,15 @@ const DebtPage = () => {
           <Button onClick={handleCloseDetail}>Đóng</Button>
         </DialogActions>
       </Dialog>
+
+      <ModalConfirm
+        open={deleteConfirmOpen}
+        title="Xác nhận xóa hóa đơn"
+        content="Bạn có chắc chắn muốn xóa hóa đơn này?"
+        onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        loading={loadingDelete}
+      />
     </Box>
   );
 };
