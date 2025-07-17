@@ -19,21 +19,20 @@ async function createExportOrder(data, userId) {
 }
 
 /**
- * RM duyệt và gán warehouse manager cho export order
+ * RM duyệt export order (chỉ chuyển trạng thái sang approved)
  * @param {String} orderId - ID export order
  * @param {String} rmId - ID RM duyệt
- * @param {String} warehouseManagerId - ID warehouse manager được gán
  * @returns {Promise<ExportOrder>}
  */
-async function approveExportOrder(orderId, rmId, warehouseManagerId) {
+async function approveExportOrder(orderId, rmId) {
   const order = await ExportOrder.findById(orderId);
   if (!order) throw new Error('Export order not found');
   if (order.status !== 'draft') {
-    throw new Error('Only draft orders can be approved and assigned a warehouse manager');
+    throw new Error('Only draft orders can be approved');
   }
   order.status = EXPORT_ORDER_STATUSES.APPROVED;
   order.approval_by = rmId;
-  order.warehouse_manager_id = warehouseManagerId;
+  // Không gán order.warehouse_manager_id ở đây!
   return await order.save();
 }
 
