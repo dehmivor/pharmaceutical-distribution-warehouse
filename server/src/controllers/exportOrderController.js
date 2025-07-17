@@ -172,9 +172,8 @@ exports.createExportOrder = async (req, res, next) => {
 exports.approveExportOrder = async (req, res, next) => {
   try {
     const rmId = req.user._id; // Lấy từ middleware xác thực
-    const { warehouse_manager_id } = req.body;
     const { id } = req.params;
-    const order = await exportOrderService.approveExportOrder(id, rmId, warehouse_manager_id);
+    const order = await exportOrderService.approveExportOrder(id, rmId);
     res.status(200).json({ success: true, data: order });
   } catch (error) {
     next(error);
