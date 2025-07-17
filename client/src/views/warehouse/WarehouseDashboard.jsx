@@ -10,17 +10,17 @@ import React, { useState } from 'react';
 /***************************  DASHBOARD - MAIN CONTAINER  ***************************/
 
 export default function WarehouseDashboard() {
+  // ban đầu hiển thị dashboard
   const [showActivityTabs, setShowActivityTabs] = useState(false);
 
   const handleStartInspection = () => {
-    setShowActivityTabs(true);
+    setShowActivityTabs(true); // chuyển sang inspection mode
   };
 
   const handleBackToDashboard = () => {
-    setShowActivityTabs(false);
+    setShowActivityTabs(false); // quay lại dashboard
   };
 
-  // Conditional rendering based on current view
   if (showActivityTabs) {
     return <InspectionModeView isVisible={showActivityTabs} onBackToDashboard={handleBackToDashboard} />;
   }

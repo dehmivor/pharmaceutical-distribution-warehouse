@@ -390,9 +390,9 @@ function getRedirectByRole(role) {
   const roleRoutes = {
     supervisor: '/sp-import-orders',
     warehouse_manager: '/wm-import-orders',
-    warehouse: '/wh-dashboard-import',
+    warehouse: '/wh-manage-location',
     representative: '/rp-import-orders',
-    representative_manager: '/rm-create-bills',
+    representative_manager: '/rm-dashboard',
   };
 
   return roleRoutes[role] || '/dashboard';
