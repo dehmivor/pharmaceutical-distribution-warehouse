@@ -81,6 +81,7 @@ app.use('/api/thingsboard', route.thingsboardRoutes);
 app.use('/api/batch', route.batchRoutes);
 app.use('/api/packages', route.packageRoutes);
 app.use('/api/areas', route.areaRoutes);
+app.use('/api/locations', route.locationRoutes);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
@@ -99,23 +100,17 @@ app.use(
 app.use(
   '/api/users',
   authenticate,
-  authorize([USER_ROLES.WAREHOUSEMANAGER, USER_ROLES.SUPERVISOR]), // Hoặc các vai trò khác có quyền xem danh sách người dùng
+  authorize([USER_ROLES.WAREHOUSEMANAGER, USER_ROLES.SUPERVISOR, USER_ROLES.REPRESENTATIVEMANAGER]),
   route.userRoutes,
 );
 
-// ... (các protected routes khác, ví dụ: exportOrderRoutes)
-app.use(
-  '/api/export-orders',
-  authenticate,
-  authorize(USER_ROLES.WAREHOUSEMANAGER),
-  route.exportOrderRoutes,
-);
+app.use('/api/export-orders', authenticate, route.exportOrderRoutes);
 
 // Protected routes với role-based access
 app.use(
   '/api/accounts',
   authenticate,
-  authorize(['supervisor', 'representative']),
+  authorize(['supervisor', 'representative', 'representative_manager']),
   route.accountRoutes,
 );
 

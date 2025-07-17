@@ -2,6 +2,7 @@ const packageService = require('../services/packageService');
 const Package = require('../models/Package');
 const Area = require('../models/Area');
 const Location = require('../models/Location');
+const Batch = require('../models/Batch');
 
 const packageController = {
   // ✅ Get all packages
@@ -403,6 +404,143 @@ const packageController = {
     }
     res.json({ success: true });
   },
+
+  // add location to packages using location's object id
+  addLocationToPackage: async (req, res) => {
+    try {
+      const { packageId } = req.params;
+      const { location_id } = req.body;
+
+      // 1) Validate presence
+      if (!packageId || !location_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'packageId (param) and location_id (body) are required',
+        });
+      }
+
+      // 2) Update the package
+      const updated = await Package.findByIdAndUpdate(
+        packageId,
+        { location_id },
+        { new: true }       // return the updated doc
+      )
+        .populate({
+          path: 'location_id',
+          populate: { path: 'area_id', model: 'Area' }
+        })
+        .populate('batch_id');
+
+      if (!updated) {
+        return res.status(404).json({
+          success: false,
+          message: `No package found with id ${packageId}`
+        });
+      }
+
+      // 3) Return success
+      return res.json({
+        success: true,
+        data: updated
+      });
+    } catch (err) {
+      console.error('❌ Error assigning location to package:', err);
+      if (err.kind === 'ObjectId') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid packageId or location_id format'
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        message: 'Server error updating package'
+      });
+    }
+  },
+
+  getRelatedLocations: async (req, res) => {
+    try {
+      const { packageId } = req.params;
+      if (!packageId) {
+        return res.status(400).json({
+          success: false,
+          message: 'packageId parameter is required',
+        });
+      }
+
+      // 1) Load the package to get its batch_id
+      const pkg = await Package.findById(packageId);
+      if (!pkg) {
+        return res.status(404).json({
+          success: false,
+          message: `No package found with id ${packageId}`,
+        });
+      }
+      const batchId = pkg.batch_id;
+      if (!batchId) {
+        return res.status(400).json({
+          success: false,
+          message: 'This package has no batch_id assigned',
+        });
+      }
+
+      // 2) Get the medicine_id from that batch
+      const batch = await Batch.findById(batchId);
+      if (!batch) {
+        return res.status(404).json({
+          success: false,
+          message: `Batch ${batchId} not found`,
+        });
+      }
+      const medicineId = batch.medicine_id;
+
+      // 3) Find all location_ids for packages with the same batch
+      const sameBatchLocationIds = await Package.distinct('location_id', {
+        batch_id: batchId,
+        location_id: { $exists: true, $ne: null }
+      });
+
+      // 4) Find all batch IDs for this medicine
+      const sameMedicineBatchIds = await Batch.find({ medicine_id: medicineId })
+        .distinct('_id');
+
+      // 5) Find all location_ids for packages with those batch IDs
+      const sameMedicineLocationIds = await Package.distinct('location_id', {
+        batch_id: { $in: sameMedicineBatchIds },
+        location_id: { $exists: true, $ne: null }
+      });
+
+      // 6) Load full Location docs, populating area
+      const sameBatchLocations = await Location.find({
+        _id: { $in: sameBatchLocationIds }
+      }).populate('area_id');
+
+      const sameMedicineLocations = await Location.find({
+        _id: { $in: sameMedicineLocationIds }
+      }).populate('area_id');
+
+      return res.json({
+        success: true,
+        data: {
+          sameBatchLocations,
+          sameMedicineLocations,
+        }
+      });
+    } catch (err) {
+      console.error('❌ Error in getRelatedLocations:', err);
+      if (err.kind === 'ObjectId') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid packageId format',
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        message: 'Server error fetching related locations',
+      });
+    }
+  }
+
 };
 
 module.exports = packageController;

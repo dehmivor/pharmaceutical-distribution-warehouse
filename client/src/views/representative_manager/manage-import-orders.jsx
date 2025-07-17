@@ -103,12 +103,12 @@ const RepresentativeManagerImportOrders = () => {
   const fetchContracts = useCallback(async () => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const response = await axios.get(`${backendUrl}/api/supplier-contracts`, {
+      const response = await axios.get(`${backendUrl}/api/contract?partner_type=Supplier&status=active`, {
         headers: getAuthHeaders()
       });
 
       if (response.data.success) {
-        setContracts(response.data.data?.contracts || []);
+        setContracts(response.data.data.contracts || []);
       }
     } catch (error) {
       console.error('Error fetching contracts:', error);
@@ -242,7 +242,7 @@ const RepresentativeManagerImportOrders = () => {
     const matchesSearch =
       searchTerm === '' ||
       order._id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.supplier_contract_id?.supplier_id?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      order.contract_id?.partner_id?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === '' || order.status === statusFilter;
 
@@ -264,61 +264,55 @@ const RepresentativeManagerImportOrders = () => {
   );
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
+      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', fontWeight: 600 }}>
         Import Orders Management
       </Typography>
-      <Typography variant="body1" color="text.secondary" gutterBottom>
+      <Typography variant="body1" color="text.secondary" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
         Approve or reject draft import orders
       </Typography>
-
       {/* Search and Filter */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
-          <TextField
-            label="Search Orders"
-            variant="outlined"
-            size="small"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ minWidth: 200 }}
-          />
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Status Filter</InputLabel>
-            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status Filter">
-              <MenuItem value="">All Status</MenuItem>
-              <MenuItem value="draft">Draft</MenuItem>
-              <MenuItem value="approved">Approved</MenuItem>
-              <MenuItem value="rejected">Rejected</MenuItem>
-              <MenuItem value="delivered">Delivered</MenuItem>
-              <MenuItem value="checked">Checked</MenuItem>
-              <MenuItem value="arranged">Arranged</MenuItem>
-              <MenuItem value="completed">Completed</MenuItem>
-              <MenuItem value="cancelled">Cancelled</MenuItem>
-            </Select>
-          </FormControl>
-          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchOrders} disabled={loading}>
-            Refresh
-          </Button>
-        </Box>
+      <Paper sx={{ p: 2, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'center' }}>
+        <TextField
+          label="Search Orders"
+          variant="outlined"
+          size="small"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ minWidth: 200 }}
+        />
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel>Status Filter</InputLabel>
+          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status Filter">
+            <MenuItem value="">All Status</MenuItem>
+            <MenuItem value="draft">Draft</MenuItem>
+            <MenuItem value="approved">Approved</MenuItem>
+            <MenuItem value="rejected">Rejected</MenuItem>
+            <MenuItem value="delivered">Delivered</MenuItem>
+            <MenuItem value="checked">Checked</MenuItem>
+            <MenuItem value="arranged">Arranged</MenuItem>
+            <MenuItem value="completed">Completed</MenuItem>
+            <MenuItem value="cancelled">Cancelled</MenuItem>
+          </Select>
+        </FormControl>
+        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchOrders} disabled={loading} sx={{ height: 40 }}>
+          Refresh
+        </Button>
       </Paper>
-
       {/* Error Alert */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+        <Alert severity="error" sx={{ mb: 2, maxWidth: 600, mx: 'auto' }} onClose={() => setError('')}>
           {error}
         </Alert>
       )}
-
       {/* Success Alert */}
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+        <Alert severity="success" sx={{ mb: 2, maxWidth: 600, mx: 'auto' }} onClose={() => setSuccess('')}>
           {success}
         </Alert>
       )}
-
       {/* Orders Table */}
-      <Card>
+      <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
         <CardContent>
           <TableContainer>
             <Table>
@@ -360,7 +354,7 @@ const RepresentativeManagerImportOrders = () => {
                     return (
                       <TableRow key={order._id} hover>
                         <TableCell>{order._id}</TableCell>
-                        <TableCell>{order.supplier_contract_id?.supplier_id?.name || 'N/A'}</TableCell>
+                        <TableCell>{order.contract_id?.partner_id?.name || 'N/A'}</TableCell>
                         <TableCell>
                           <Chip label={order.status?.toUpperCase()} color={getStatusColor(order.status)} size="small" />
                         </TableCell>
@@ -394,11 +388,11 @@ const RepresentativeManagerImportOrders = () => {
                                     handleOpenStatusDialog({
                                       _id: order._id,
                                       status: order.status,
-                                      nextStatus: 'cancelled'
+                                      nextStatus: 'rejected' // Đảm bảo luôn là 'rejected'
                                     })
                                   }
                                 >
-                                  Cancel
+                                  Reject
                                 </Button>
                               </>
                             )}
@@ -417,7 +411,6 @@ const RepresentativeManagerImportOrders = () => {
           </TableContainer>
         </CardContent>
       </Card>
-
       {/* Status Change Dialog */}
       <StatusChangeDialog
         open={statusDialog}

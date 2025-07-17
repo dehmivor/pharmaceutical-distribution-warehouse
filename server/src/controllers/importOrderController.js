@@ -40,41 +40,39 @@ const createImportOrder = async (req, res) => {
 // Get all import orders with filters
 const getImportOrders = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, search } = req.query;
-    const userRole = req.user.role;
-    const userId = req.user._id ? req.user._id.toString() : null;
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      createdAt,
+      contract_code,
+      supplier,
+      warehouse_manager_id,
+    } = req.query;
 
-    let query = {};
 
-    // Warehouse manager chỉ xem orders được gán cho mình
-    if (userRole === 'warehouse_manager') {
-      if (mongoose.Types.ObjectId.isValid(userId)) {
-        query.warehouse_manager_id = userId;
-        query.status = 'delivered'; // Chỉ lấy order đã giao
-        console.log('DEBUG getImportOrders:', { userRole, userId, query });
-      }
-    }
+    const params = {
+      status,
+      createdAt: createdAt || undefined,
+      contract_code: contract_code || undefined,
+      supplier: supplier || undefined,
+      warehouse_manager_id: warehouse_manager_id || undefined,
+    };
 
-    if (status) query.status = status;
-    if (search) {
-      query.$or = [
-        { _id: { $regex: search, $options: 'i' } },
-        { 'supplier_contract_id.contract_code': { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    const result = await importOrderService.getImportOrders(query, parseInt(page), parseInt(limit));
+    const result = await importOrderService.getImportOrders(
+      params,
+      parseInt(page, 10),
+      parseInt(limit, 10)
+    );
 
     res.status(200).json({
       success: true,
       data: result.orders,
       pagination: result.pagination,
     });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message,
-    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
@@ -231,6 +229,29 @@ const updateOrderStatus = async (req, res) => {
     const approvalBy = req.user ? req.user._id : null;
     const userRole = req.user ? req.user.role : null;
 
+    // Chỉ cho phép RM chuyển sang approved hoặc rejected
+    if (userRole === 'representative_manager') {
+      const allowedStatuses = ['approved', 'rejected'];
+      if (!allowedStatuses.includes(status)) {
+        return res.status(403).json({
+          success: false,
+          error: `Representative Manager can only change status to: ${allowedStatuses.join(', ')}`,
+        });
+      }
+    }
+
+    // Representative chỉ được chuyển từ rejected về draft
+    if (userRole === 'representative') {
+      // Lấy order hiện tại để kiểm tra trạng thái
+      const order = await importOrderService.getImportOrderById(id);
+      if (!(order.status === 'rejected' && status === 'draft')) {
+        return res.status(403).json({
+          success: false,
+          error: 'Representative can only change status from rejected to draft',
+        });
+      }
+    }
+
     // Kiểm tra quyền của warehouse manager (chỉ warehouse_manager mới được phép)
     if (userRole === 'warehouse_manager') {
       // Warehouse manager chỉ có thể thay đổi sang checked và arranged
@@ -310,12 +331,12 @@ const getImportOrdersByWarehouseManager = async (req, res) => {
   }
 };
 
-// Get import orders by supplier contract
-const getImportOrdersBySupplierContract = async (req, res) => {
+// Get import orders by contract
+const getImportOrdersByContract = async (req, res) => {
   try {
-    const { supplierContractId } = req.params;
+    const { contractId } = req.params;
 
-    const orders = await importOrderService.getImportOrdersBySupplierContract(supplierContractId);
+    const orders = await importOrderService.getImportOrdersByContract(contractId);
 
     res.status(200).json({
       success: true,
@@ -387,7 +408,7 @@ module.exports = {
   deleteImportOrder,
   updateOrderStatus,
   getImportOrdersByWarehouseManager,
-  getImportOrdersBySupplierContract,
+  getImportOrdersByContract,
   getValidStatusTransitions,
   assignWarehouseManager,
 };
