@@ -6,7 +6,7 @@ import Success from '@/components/Success';
 /***************************  ERROR 500 - DATA  ***************************/
 
 const data = {
-  primaryBtn: { children: 'Back to Home Page' },
+  primaryBtn: { children: 'Back to Manage Bills', href: '/sp-manage-bills' },
   heading: 'You have successfully completed transaction payment'
 };
 

@@ -13,9 +13,11 @@ export default function CheckoutForm({ clientSecret }) {
 
     if (!stripe || !elements) return;
 
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+
     const { error } = await stripe.confirmPayment({
       elements,
-      confirmParams: { return_url: 'http://localhost:3000/success' }
+      confirmParams: { return_url: `${backendUrl}/success` }
     });
 
     if (error) alert(error.message);
