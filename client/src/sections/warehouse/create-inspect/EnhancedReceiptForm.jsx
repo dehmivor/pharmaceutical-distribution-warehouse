@@ -1,10 +1,8 @@
 'use client';
 
-import { useAlert } from '@/hooks/useAlert';
 import useInspection from '@/hooks/useInspection';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -80,8 +78,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
   const { createInspection, loading, error } = useInspection();
-
-  const { alert, showAlert, hideAlert } = useAlert();
 
   useEffect(() => {
     const currentOrderId = orderData?.orderId;
@@ -193,6 +189,13 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
   // Cập nhật thông tin sản phẩm - FIX: Sử dụng useCallback
   const updateReceiptItem = useCallback(
     (id, field, value) => {
+      if (field === 'actualQuantity') {
+        const qty = parseFloat(value);
+        if (isNaN(qty) || qty <= 0) {
+          enqueueSnackbar('Số lượng thực nhận phải lớn hơn 0', { variant: 'warning' });
+          return;
+        }
+      }
       setReceiptItems((prev) =>
         prev.map((item) => {
           if (item.id === id) {
@@ -298,7 +301,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
 
   const handleCreateReceipt = useCallback(async () => {
     if (receiptItems.length === 0) {
-      showAlert('Vui lòng thêm ít nhất một sản phẩm', 'warning');
+      enqueueSnackbar('Vui lòng thêm ít nhất một sản phẩm', { variant: 'warning' });
       return;
     }
 
@@ -332,14 +335,13 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
         });
       }
     } catch (error) {
-      console.error('❌ Lỗi tạo phiếu:', error);
       const errorMessage = error?.message || 'Có lỗi xảy ra khi tạo phiếu nhập kho';
       setCreateError(errorMessage);
-      showAlert(errorMessage, 'error');
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setIsCreating(false);
     }
-  }, [receiptItems, receiptData, orderData, statistics, createInspection, showAlert, onReceiptCreate]);
+  }, [receiptItems, receiptData, orderData, statistics, createInspection, onReceiptCreate]);
 
   return (
     <Box>
@@ -491,17 +493,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       {/* Thống kê */}
       <ReceiptStatistics statistics={statistics} items={receiptItems} />
 
-      {/* Hiển thị lỗi nếu có */}
-      {createError && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          <Typography variant="subtitle2">Lỗi tạo phiếu nhập kho:</Typography>
-          <Typography variant="body2">{createError}</Typography>
-          <Button size="small" onClick={() => setCreateError(null)} sx={{ mt: 1 }} color="inherit">
-            Đóng
-          </Button>
-        </Alert>
-      )}
-
       {/* Nút tạo phiếu - UPDATED */}
       <Box display="flex" justifyContent="center" gap={2} mt={3}>
         <Button
@@ -515,12 +506,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
         >
           {isCreating ? 'Đang tạo phiếu...' : 'Tạo Phiếu Nhập Kho'}
         </Button>
-
-        <Snackbar open={alert.open} autoHideDuration={6000} onClose={hideAlert} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-          <Alert onClose={hideAlert} severity={alert.severity} sx={{ width: '100%' }}>
-            {alert.message}
-          </Alert>
-        </Snackbar>
       </Box>
     </Box>
   );
