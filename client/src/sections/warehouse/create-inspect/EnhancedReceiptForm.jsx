@@ -429,6 +429,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                           value={item.expectedQuantity}
                           onChange={(e) => updateReceiptItem(item.id, 'expectedQuantity', e.target.value)}
                           sx={{ width: 80 }}
+                          disabled
                         />
                         <FormControl size="small" sx={{ minWidth: 60 }}>
                           <Select value={item.expectedUnit} onChange={(e) => updateReceiptItem(item.id, 'expectedUnit', e.target.value)}>
