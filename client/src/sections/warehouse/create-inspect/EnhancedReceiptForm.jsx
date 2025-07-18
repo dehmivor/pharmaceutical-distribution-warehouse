@@ -91,10 +91,11 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
           id: index + 1,
           productCode: item.productCode || '',
           productName: item.productName || '',
-          expectedQuantity: parseFloat(item.orderedQuantity) || 0, // Fix: sử dụng orderedQuantity
+          expectedQuantity: parseFloat(item.orderedQuantity) || 0,
           expectedUnit: item.unit || 'viên',
           actualQuantity: 0,
           actualUnit: item.unit || 'viên',
+          rejectedQuantity: 0, // <-- thêm mặc định rejectedQuantity
           unitPrice: parseFloat(item.unitPrice) || 0,
           lotNumber: '',
           expiryDate: '',
@@ -141,16 +142,18 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     const totalExpected = receiptItems.reduce((sum, item) => sum + (parseFloat(item.expectedQuantity) || 0), 0);
 
     const totalReceived = receiptItems.reduce((sum, item) => {
+      // actualQuantity đã nhập
       const actualQty = parseFloat(item.actualQuantity) || 0;
       const convertedQty = convertUnit(actualQty, item.actualUnit, item.expectedUnit);
       return sum + convertedQty;
     }, 0);
 
     const totalReturned = receiptItems.reduce((sum, item) => {
-      const expected = parseFloat(item.expectedQuantity) || 0;
-      const actualQty = parseFloat(item.actualQuantity) || 0;
-      const convertedQty = convertUnit(actualQty, item.actualUnit, item.expectedUnit);
-      return sum + Math.max(0, expected - convertedQty);
+      // Dùng rejectedQuantity thay vì tính actual vs expected
+      const rejectedQty = parseFloat(item.rejectedQuantity) || 0;
+      const convertedRejectedQty = convertUnit(rejectedQty, item.expectedUnit, item.expectedUnit);
+      // Đơn vị rejected phải trùng đơn vị expected, nếu dùng đơn vị khác thì phải convert
+      return sum + convertedRejectedQty;
     }, 0);
 
     const receivedPercentage = totalExpected > 0 ? Math.round((totalReceived / totalExpected) * 100) : 0;
@@ -186,38 +189,50 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     });
   }, [calculateStatistics]); // Chỉ phụ thuộc vào memoized function
 
-  // Cập nhật thông tin sản phẩm - FIX: Sử dụng useCallback
   const updateReceiptItem = useCallback(
     (id, field, value) => {
-      if (field === 'actualQuantity') {
-        const qty = parseFloat(value);
-        if (isNaN(qty) || qty <= 0) {
-          enqueueSnackbar('Số lượng thực nhận phải lớn hơn 0', { variant: 'warning' });
-          return;
-        }
-      }
       setReceiptItems((prev) =>
         prev.map((item) => {
           if (item.id === id) {
-            const updatedItem = { ...item, [field]: value };
-
-            // Cập nhật trạng thái dựa trên số lượng nhận
-            if (field === 'actualQuantity' || field === 'actualUnit') {
-              const actualQty = parseFloat(field === 'actualQuantity' ? value : updatedItem.actualQuantity) || 0;
-              const expectedQty = parseFloat(updatedItem.expectedQuantity) || 0;
-              const convertedQty = convertUnit(actualQty, updatedItem.actualUnit, updatedItem.expectedUnit);
-
-              if (convertedQty === 0) {
-                updatedItem.status = 'pending';
-              } else if (convertedQty >= expectedQty) {
-                updatedItem.status = 'received';
-              } else if (convertedQty < expectedQty) {
-                updatedItem.status = 'shortage';
+            // Chuyển value về số (nếu làm số lượng)
+            let newValue = value;
+            if (['actualQuantity', 'rejectedQuantity', 'expectedQuantity'].includes(field)) {
+              newValue = parseFloat(value);
+              if (isNaN(newValue) || newValue < 0) {
+                enqueueSnackbar('Số lượng phải lớn hơn hoặc bằng 0', { variant: 'warning' });
+                return item; // giữ nguyên không update nếu invalid
               }
+            }
 
-              if (convertedQty > 0 && convertedQty < expectedQty) {
-                updatedItem.status = 'partial';
-              }
+            // Tính giá trị mới của actualQuantity và rejectedQuantity
+            const updatedItem = { ...item, [field]: newValue };
+
+            const currentActualQty = field === 'actualQuantity' ? newValue : parseFloat(item.actualQuantity) || 0;
+            const currentRejectedQty = field === 'rejectedQuantity' ? newValue : parseFloat(item.rejectedQuantity) || 0;
+            const expectedQty = parseFloat(item.expectedQuantity) || 0;
+
+            // Kiểm tra tổng không vượt dự kiến
+            if (currentActualQty + currentRejectedQty > expectedQty) {
+              enqueueSnackbar('Tổng số lượng thực nhận và từ chối không được vượt quá số lượng dự kiến', { variant: 'error' });
+              return item; // không update nếu vượt
+            }
+
+            // Chuyển lại updatedItem sang dùng giá trị mới đúng
+            updatedItem.actualQuantity = currentActualQty;
+            updatedItem.rejectedQuantity = currentRejectedQty;
+
+            // Cập nhật trạng thái dựa trên số lượng nhận và từ chối
+            const convertedActualQty = convertUnit(currentActualQty, updatedItem.actualUnit, updatedItem.expectedUnit);
+            const convertedRejectedQty = convertUnit(currentRejectedQty, updatedItem.expectedUnit, updatedItem.expectedUnit);
+
+            if (convertedActualQty === 0 && convertedRejectedQty === 0) {
+              updatedItem.status = 'pending';
+            } else if (convertedActualQty + convertedRejectedQty >= expectedQty) {
+              updatedItem.status = 'received';
+            } else if (convertedActualQty > 0 && convertedActualQty < expectedQty) {
+              updatedItem.status = 'partial';
+            } else if (convertedActualQty === 0 && convertedRejectedQty > 0) {
+              updatedItem.status = 'shortage';
             }
 
             return updatedItem;
@@ -229,28 +244,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     [convertUnit]
   );
 
-  // Thêm sản phẩm mới - FIX: Sử dụng useCallback
-  const addNewItem = useCallback(() => {
-    setReceiptItems((prev) => {
-      const newItem = {
-        id: prev.length + 1,
-        productCode: '',
-        productName: '',
-        expectedQuantity: 0,
-        expectedUnit: 'viên',
-        actualQuantity: 0,
-        actualUnit: 'viên',
-        unitPrice: 0,
-        lotNumber: '',
-        expiryDate: '',
-        notes: '',
-        status: 'pending'
-      };
-      return [...prev, newItem];
-    });
-  }, []);
-
-  // Xóa sản phẩm - FIX: Sử dụng useCallback
   const removeItem = useCallback((id) => {
     setReceiptItems((prev) => prev.filter((item) => item.id !== id));
   }, []);
@@ -312,7 +305,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       console.log('📦 Order data:', orderData);
 
       const inspectionData = {
-        import_order_id: '6859812162c95723b56b32a9',
+        import_order_id: orderData?.orderId || 'unknown',
         actual_quantity: statistics.totalReceived,
         rejected_quantity: statistics.totalReturned,
         note: receiptData.notes || '',
@@ -398,7 +391,8 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                   <TableCell>Mã SP</TableCell>
                   <TableCell>Tên sản phẩm</TableCell>
                   <TableCell>SL dự kiến</TableCell>
-                  <TableCell>SL thực nhận</TableCell>
+                  <TableCell>SL từ chối</TableCell>
+                  <TableCell>SL thực nhận</TableCell> {/* Thay đổi thứ tự */}
                   <TableCell>Trạng thái</TableCell>
                   <TableCell>Ghi chú</TableCell>
                   <TableCell>Thao tác</TableCell>
@@ -432,6 +426,27 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                           onChange={(e) => updateReceiptItem(item.id, 'expectedQuantity', e.target.value)}
                           sx={{ width: 80 }}
                           disabled
+                        />
+                        <FormControl size="small" sx={{ minWidth: 60 }}>
+                          <Select value={item.expectedUnit} onChange={(e) => updateReceiptItem(item.id, 'expectedUnit', e.target.value)}>
+                            {Object.keys(UNIT_CONVERSIONS).map((unit) => (
+                              <MenuItem key={unit} value={unit}>
+                                {unit}
+                              </MenuItem>
+                            ))}
+                            <MenuItem value="viên">viên</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={1}>
+                        <TextField
+                          size="small"
+                          type="number"
+                          value={item.rejectedQuantity || 0}
+                          onChange={(e) => updateReceiptItem(item.id, 'rejectedQuantity', e.target.value)}
+                          sx={{ width: 80 }}
                         />
                         <FormControl size="small" sx={{ minWidth: 60 }}>
                           <Select value={item.expectedUnit} onChange={(e) => updateReceiptItem(item.id, 'expectedUnit', e.target.value)}>
