@@ -64,7 +64,7 @@ const getImportOrders = async (params = {}, page = 1, limit = 10) => {
     ImportOrder.find(query)
       .populate({
         path: 'contract_id',
-        populate: { path: 'partner_id', select: 'name' }
+        populate: { path: 'partner_id', select: 'name' },
       })
       .populate('warehouse_manager_id', 'email name role')
       .populate('created_by', 'email name role')
@@ -75,17 +75,16 @@ const getImportOrders = async (params = {}, page = 1, limit = 10) => {
       .limit(limit)
       .exec(),
 
-    ImportOrder.countDocuments(query)
+    ImportOrder.countDocuments(query),
   ]);
 
   const totalPages = Math.ceil(total / limit);
 
   return {
     orders,
-    pagination: { total, page, limit, totalPages }
+    pagination: { total, page, limit, totalPages },
   };
 };
-
 
 const getImportOrderById = async (orderId) => {
   try {
@@ -100,7 +99,7 @@ const getImportOrderById = async (orderId) => {
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
       .populate('approval_by', 'name email role')
-      .populate('details.medicine_id', 'medicine_name license_code');
+      .populate('details.medicine_id', 'medicine_name license_code unit_of_measure');
 
     if (!order) {
       throw new Error('Import order not found');

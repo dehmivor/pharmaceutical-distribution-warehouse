@@ -103,6 +103,7 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
         });
 
         const order = response.data.data || response.data;
+        console.log('🔍 Fetched import order:', order);
 
         if (!order?._id) throw new Error('Không tìm thấy đơn hàng hợp lệ');
 
@@ -122,9 +123,9 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
             productCode: item.medicine_id?.license_code || '',
             productName: item.medicine_id?.medicine_name || '',
             expectedQuantity: parseFloat(item.quantity) || 0,
-            expectedUnit: 'viên',
+            expectedUnit: item.medicine_id?.unit_of_measure || 'viên',
             actualQuantity: 0,
-            actualUnit: 'viên',
+            actualUnit: item.medicine_id?.unit_of_measure || 'viên',
             rejectedQuantity: 0,
             unitPrice: parseFloat(item.unit_price) || 0,
             notes: '',
@@ -156,9 +157,9 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
           productCode: item.medicine_id?.license_code || '',
           productName: item.medicine_id?.medicine_name || '',
           expectedQuantity: parseFloat(item.quantity) || 0,
-          expectedUnit: 'viên',
+          expectedUnit: item.medicine_id?.unit_of_measure || 'viên',
           actualQuantity: 0,
-          actualUnit: 'viên',
+          actualUnit: item.medicine_id?.unit_of_measure || 'viên',
           rejectedQuantity: 0,
           unitPrice: parseFloat(item.unit_price) || 0,
           lotNumber: '',
@@ -477,7 +478,11 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
                           disabled
                         />
                         <FormControl size="small" sx={{ minWidth: 60 }}>
-                          <Select value={item.expectedUnit} onChange={(e) => updateReceiptItem(item.id, 'expectedUnit', e.target.value)}>
+                          <Select
+                            disabled
+                            value={item.expectedUnit}
+                            onChange={(e) => updateReceiptItem(item.id, 'expectedUnit', e.target.value)}
+                          >
                             {Object.keys(UNIT_CONVERSIONS).map((unit) => (
                               <MenuItem key={unit} value={unit}>
                                 {unit}
@@ -498,7 +503,11 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
                           sx={{ width: 80 }}
                         />
                         <FormControl size="small" sx={{ minWidth: 60 }}>
-                          <Select value={item.expectedUnit} onChange={(e) => updateReceiptItem(item.id, 'expectedUnit', e.target.value)}>
+                          <Select
+                            disabled
+                            value={item.expectedUnit}
+                            onChange={(e) => updateReceiptItem(item.id, 'expectedUnit', e.target.value)}
+                          >
                             {Object.keys(UNIT_CONVERSIONS).map((unit) => (
                               <MenuItem key={unit} value={unit}>
                                 {unit}
@@ -519,7 +528,11 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
                           sx={{ width: 80 }}
                         />
                         <FormControl size="small" sx={{ minWidth: 60 }}>
-                          <Select value={item.actualUnit} onChange={(e) => updateReceiptItem(item.id, 'actualUnit', e.target.value)}>
+                          <Select
+                            disabled
+                            value={item.actualUnit}
+                            onChange={(e) => updateReceiptItem(item.id, 'actualUnit', e.target.value)}
+                          >
                             {Object.keys(UNIT_CONVERSIONS).map((unit) => (
                               <MenuItem key={unit} value={unit}>
                                 {unit}
