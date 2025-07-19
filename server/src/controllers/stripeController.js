@@ -1,3 +1,4 @@
+const { Bill } = require('../models');
 const stripeService = require('../services/stripeService');
 
 // Controller tạo PaymentIntent (nếu cần giữ)
@@ -29,12 +30,9 @@ const createPaymentExport = async (req, res) => {
 
 // Controller tạo thanh toán công nợ nhập
 const createPaymentImport = async (req, res) => {
-  // Lấy paymentId từ params (URL)
   const { paymentId } = req.params;
-  // Lấy amount, successUrl, cancelUrl từ body
   const { amount, successUrl, cancelUrl } = req.body;
 
-  // Kiểm tra tham số bắt buộc
   if (!paymentId) {
     return res.status(400).json({ error: 'Missing paymentId in URL params' });
   }
@@ -44,10 +42,10 @@ const createPaymentImport = async (req, res) => {
   }
 
   try {
-    // Gọi service tạo Stripe checkout session
     const url = await stripeService.createPaymentImport(paymentId, amount, successUrl, cancelUrl);
 
-    // Trả về url cho frontend redirect
+    await Bill.findByIdAndUpdate(paymentId, { status: 'COMPLETED' });
+
     res.json({ url });
   } catch (err) {
     console.error('Error in createPaymentImport:', err);

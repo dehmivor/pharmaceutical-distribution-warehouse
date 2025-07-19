@@ -179,6 +179,7 @@ export default function ManageImportOrders() {
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
+            fullWidth
             label="Import Date"
             type="date"
             value={filterDate}
@@ -186,17 +187,27 @@ export default function ManageImportOrders() {
             InputLabelProps={{ shrink: true }}
             size="small"
           />
-          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
-            {['draft', 'approved', 'rejected', 'delivered', 'checked', 'arranged', 'completed', 'cancelled'].map((s) => (
+          <TextField
+            fullWidth
+            select
+            label="Trạng thái"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            size="small"
+          >
+            <MenuItem value="">Tất cả</MenuItem> {/* value rỗng nghĩa là không lọc trạng thái */}
+            {['delivered', 'checked'].map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
               </MenuItem>
             ))}
           </TextField>
-          <Button variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
+
+          <Button fullWidth variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
             Search
           </Button>
           <Button
+            fullWidth
             variant="outlined"
             onClick={() => {
               setFilterDate('');
@@ -225,31 +236,33 @@ export default function ManageImportOrders() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {orders.length === 0 ? (
+            {orders.filter((o) => o.status === 'delivered' || o.status === 'checked').length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
                     No orders available.
                   </Typography>
                 </TableCell>
               </TableRow>
             ) : (
-              orders.map((o) => (
-                <TableRow key={o._id} hover>
-                  <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
-                  <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
-                  <TableCell>{o.warehouse_manager_id?.email || '—'}</TableCell>
-                  <TableCell>
-                    <Chip label={o.status} color={getStatusColor(o.status)} size="small" />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton onClick={(e) => handleMenuOpen(e, o)}>
-                      <MoreVertIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
+              orders
+                .filter((o) => o.status === 'delivered' || o.status === 'checked')
+                .map((o) => (
+                  <TableRow key={o._id} hover>
+                    <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
+                    <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
+                    <TableCell>{o.warehouse_manager_id?.email || '—'}</TableCell>
+                    <TableCell>
+                      <Chip label={o.status} color={getStatusColor(o.status)} size="small" />
+                    </TableCell>
+                    <TableCell>
+                      <IconButton onClick={(e) => handleMenuOpen(e, o)}>
+                        <MoreVertIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
             )}
           </TableBody>
         </Table>

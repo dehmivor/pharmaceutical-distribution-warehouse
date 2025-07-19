@@ -13,9 +13,9 @@ import Typography from '@mui/material/Typography';
 // @assets
 import Success200 from '@/images/maintenance/Success200';
 
-/***************************  ERROR 404 - PAGES  ***************************/
+/***************************  Success 200 - PAGES  ***************************/
 
-export default function Error404Page({ primaryBtn, heading }) {
+export default function SuccessPage({ primaryBtn, heading }) {
   const theme = useTheme();
   const upMD = useMediaQuery(theme.breakpoints.up('md'));
   const upXL = useMediaQuery(theme.breakpoints.up('xl'));
@@ -49,4 +49,4 @@ export default function Error404Page({ primaryBtn, heading }) {
   );
 }
 
-Error404Page.propTypes = { primaryBtn: PropTypes.any, heading: PropTypes.string };
+SuccessPage.propTypes = { primaryBtn: PropTypes.any, heading: PropTypes.string };

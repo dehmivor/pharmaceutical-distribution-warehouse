@@ -1,18 +1,22 @@
 const importInspectionService = require('../services/inspectionService');
 
 // Tạo phiếu kiểm tra mới
-const createInspection = async (req, res) => {
+const createMultipleInspections = async (req, res) => {
   try {
-    const inspectionData = {
-      ...req.body,
-    };
+    const inspectionDataList = req.body; // Đây là mảng các phiếu nhập
 
-    const inspection = await importInspectionService.createInspection(inspectionData);
+    const createdInspections =
+      await importInspectionService.createMultipleInspections(inspectionDataList);
 
-    return res.status(201).json(inspection);
+    return res.status(201).json({
+      success: true,
+      data: createdInspections,
+      message: `Created ${createdInspections.length} import inspections successfully`,
+    });
   } catch (error) {
     return res.status(error.statusCode || 500).json({
-      message: error.message,
+      success: false,
+      message: error.message || 'Server error',
     });
   }
 };
@@ -142,7 +146,7 @@ const getInspectionStatistics = async (req, res) => {
 };
 
 module.exports = {
-  createInspection,
+  createMultipleInspections,
   getInspections,
   getInspectionById,
   updateInspection,
