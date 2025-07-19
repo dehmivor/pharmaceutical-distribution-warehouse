@@ -1,7 +1,10 @@
 'use client';
 
+import { useParams, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import axios from 'axios';
+import { enqueueSnackbar } from 'notistack';
 import useInspection from '@/hooks/useInspection';
-import { Delete as DeleteIcon } from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -15,7 +18,6 @@ import {
   MenuItem,
   Paper,
   Select,
-  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -25,10 +27,8 @@ import {
   TextField,
   Typography
 } from '@mui/material';
-import { useCallback, useEffect, useRef, useState } from 'react';
 import ReceiptStatistics from '../dashboard-import/ReceiptStatistics';
-import { useRouter } from 'next/navigation';
-import { enqueueSnackbar } from 'notistack';
+import { Delete as DeleteIcon } from '@mui/icons-material';
 
 const UNIT_CONVERSIONS = {
   kg: { g: 1000, tấn: 0.001 },
@@ -42,16 +42,24 @@ const UNIT_CONVERSIONS = {
   gallon: { lít: 3.78541, ml: 3785.41 },
   viên: { gói: 10, hộp: 100 }
 };
-function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) {
+
+function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
+  const router = useRouter();
+  const params = useParams();
+  const importOrderId = params.importOrderId;
+
+  const [orderData, setOrderData] = useState(null);
+  const [loadingOrder, setLoadingOrder] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+
   const [receiptData, setReceiptData] = useState({
     receiptId: `PN${Date.now()}`,
     date: new Date().toISOString().split('T')[0],
-    orderId: orderData?.orderId || '',
-    supplier: orderData?.supplier || '',
+    orderId: '',
+    supplier: '',
     warehouse: 'Kho chính',
     notes: ''
   });
-  const router = useRouter();
 
   const [receiptItems, setReceiptItems] = useState([]);
   const [statistics, setStatistics] = useState({
@@ -80,27 +88,84 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
   const { createInspection, loading, error } = useInspection();
 
   useEffect(() => {
-    const currentOrderId = orderData?.orderId;
+    if (!importOrderId) return;
+
+    const fetchImportOrder = async () => {
+      try {
+        setLoadingOrder(true);
+        setLoadError(null);
+
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const response = await axios.get(`${backendUrl}/api/import-orders/${importOrderId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('auth-token') || ''}`
+          }
+        });
+
+        const order = response.data.data || response.data;
+
+        if (!order?._id) throw new Error('Không tìm thấy đơn hàng hợp lệ');
+
+        setOrderData(order);
+
+        setReceiptData((prev) => ({
+          ...prev,
+          orderId: order._id,
+          supplier: order?.contract_id?.partner_id?.name || order?.partner_id?.name || ''
+        }));
+
+        let items = [];
+        if (Array.isArray(order.details)) {
+          items = order.details.map((item, i) => ({
+            id: i + 1,
+            medicineId: item.medicine_id?._id || item.medicine_id || null,
+            productCode: item.medicine_id?.license_code || '',
+            productName: item.medicine_id?.medicine_name || '',
+            expectedQuantity: parseFloat(item.quantity) || 0,
+            expectedUnit: 'viên',
+            actualQuantity: 0,
+            actualUnit: 'viên',
+            rejectedQuantity: 0,
+            unitPrice: parseFloat(item.unit_price) || 0,
+            notes: '',
+            status: 'pending'
+          }));
+        }
+        setReceiptItems(items);
+      } catch (e) {
+        setLoadError(e.message || 'Lỗi khi tải đơn hàng');
+        enqueueSnackbar(e.message || 'Lỗi khi tải đơn hàng', { variant: 'error' });
+      } finally {
+        setLoadingOrder(false);
+      }
+    };
+
+    fetchImportOrder();
+  }, [importOrderId]);
+
+  useEffect(() => {
+    const currentOrderId = orderData?._id;
     const currentCheckedItemsLength = checkedItems.length;
 
     if (!isInitialized.current || lastOrderId.current !== currentOrderId || lastCheckedItemsLength.current !== currentCheckedItemsLength) {
       let initialItems = [];
 
-      if (orderData?.items?.length > 0) {
-        initialItems = orderData.items.map((item, index) => ({
+      if (Array.isArray(orderData?.details) && orderData.details.length > 0) {
+        initialItems = orderData.details.map((item, index) => ({
           id: index + 1,
-          productCode: item.productCode || '',
-          productName: item.productName || '',
-          expectedQuantity: parseFloat(item.orderedQuantity) || 0,
-          expectedUnit: item.unit || 'viên',
+          productCode: item.medicine_id?.license_code || '',
+          productName: item.medicine_id?.medicine_name || '',
+          expectedQuantity: parseFloat(item.quantity) || 0,
+          expectedUnit: 'viên',
           actualQuantity: 0,
-          actualUnit: item.unit || 'viên',
-          rejectedQuantity: 0, // <-- thêm mặc định rejectedQuantity
-          unitPrice: parseFloat(item.unitPrice) || 0,
+          actualUnit: 'viên',
+          rejectedQuantity: 0,
+          unitPrice: parseFloat(item.unit_price) || 0,
           lotNumber: '',
           expiryDate: '',
           notes: '',
-          status: 'pending'
+          status: 'pending',
+          medicineId: item.medicine_id?._id || item.medicine_id || null
         }));
       } else if (checkedItems.length > 0) {
         initialItems = checkedItems.map((item, index) => ({
@@ -115,66 +180,46 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
         setReceiptItems(initialItems);
       }
 
-      // Update refs
       isInitialized.current = true;
       lastOrderId.current = currentOrderId;
       lastCheckedItemsLength.current = currentCheckedItemsLength;
 
-      // Update receipt data khi orderData thay đổi
       if (currentOrderId !== receiptData.orderId) {
         setReceiptData((prev) => ({
           ...prev,
-          orderId: orderData?.orderId || '',
-          supplier: orderData?.supplier || ''
+          orderId: orderData?._id || '',
+          supplier: orderData?.contract_id?.partner_id?.name || orderData?.partner_id?.name || ''
         }));
       }
     }
-  }, [
-    orderData?.orderId, // Chỉ phụ thuộc vào orderId thay vì toàn bộ orderData object
-    orderData?.supplier,
-    orderData?.items?.length, // Chỉ phụ thuộc vào length thay vì toàn bộ items array
-    checkedItems.length, // Chỉ phụ thuộc vào length
-    receiptData.orderId
-  ]);
+  }, [orderData, checkedItems]);
 
-  // Tính toán thống kê - FIX: Sử dụng useCallback và tối ưu dependencies
   const calculateStatistics = useCallback(() => {
     const totalExpected = receiptItems.reduce((sum, item) => sum + (parseFloat(item.expectedQuantity) || 0), 0);
 
     const totalReceived = receiptItems.reduce((sum, item) => {
-      // actualQuantity đã nhập
       const actualQty = parseFloat(item.actualQuantity) || 0;
       const convertedQty = convertUnit(actualQty, item.actualUnit, item.expectedUnit);
       return sum + convertedQty;
     }, 0);
 
     const totalReturned = receiptItems.reduce((sum, item) => {
-      // Dùng rejectedQuantity thay vì tính actual vs expected
       const rejectedQty = parseFloat(item.rejectedQuantity) || 0;
       const convertedRejectedQty = convertUnit(rejectedQty, item.expectedUnit, item.expectedUnit);
-      // Đơn vị rejected phải trùng đơn vị expected, nếu dùng đơn vị khác thì phải convert
       return sum + convertedRejectedQty;
     }, 0);
 
     const receivedPercentage = totalExpected > 0 ? Math.round((totalReceived / totalExpected) * 100) : 0;
+
     const totalValue = receiptItems.reduce((sum, item) => {
       return sum + (parseFloat(item.actualQuantity) || 0) * (parseFloat(item.unitPrice) || 0);
     }, 0);
 
-    return {
-      totalExpected,
-      totalReceived,
-      totalReturned,
-      receivedPercentage,
-      totalValue
-    };
+    return { totalExpected, totalReceived, totalReturned, receivedPercentage, totalValue };
   }, [receiptItems, convertUnit]);
 
-  // Update statistics khi receiptItems thay đổi - FIX: Sử dụng functional update
   useEffect(() => {
     const newStats = calculateStatistics();
-
-    // Chỉ update khi statistics thực sự thay đổi
     setStatistics((prevStats) => {
       if (
         prevStats.totalExpected !== newStats.totalExpected ||
@@ -187,41 +232,36 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       }
       return prevStats;
     });
-  }, [calculateStatistics]); // Chỉ phụ thuộc vào memoized function
+  }, [calculateStatistics]);
 
   const updateReceiptItem = useCallback(
     (id, field, value) => {
       setReceiptItems((prev) =>
         prev.map((item) => {
           if (item.id === id) {
-            // Chuyển value về số (nếu làm số lượng)
             let newValue = value;
             if (['actualQuantity', 'rejectedQuantity', 'expectedQuantity'].includes(field)) {
               newValue = parseFloat(value);
               if (isNaN(newValue) || newValue < 0) {
                 enqueueSnackbar('Số lượng phải lớn hơn hoặc bằng 0', { variant: 'warning' });
-                return item; // giữ nguyên không update nếu invalid
+                return item;
               }
             }
 
-            // Tính giá trị mới của actualQuantity và rejectedQuantity
             const updatedItem = { ...item, [field]: newValue };
 
             const currentActualQty = field === 'actualQuantity' ? newValue : parseFloat(item.actualQuantity) || 0;
             const currentRejectedQty = field === 'rejectedQuantity' ? newValue : parseFloat(item.rejectedQuantity) || 0;
             const expectedQty = parseFloat(item.expectedQuantity) || 0;
 
-            // Kiểm tra tổng không vượt dự kiến
             if (currentActualQty + currentRejectedQty > expectedQty) {
               enqueueSnackbar('Tổng số lượng thực nhận và từ chối không được vượt quá số lượng dự kiến', { variant: 'error' });
-              return item; // không update nếu vượt
+              return item;
             }
 
-            // Chuyển lại updatedItem sang dùng giá trị mới đúng
             updatedItem.actualQuantity = currentActualQty;
             updatedItem.rejectedQuantity = currentRejectedQty;
 
-            // Cập nhật trạng thái dựa trên số lượng nhận và từ chối
             const convertedActualQty = convertUnit(currentActualQty, updatedItem.actualUnit, updatedItem.expectedUnit);
             const convertedRejectedQty = convertUnit(currentRejectedQty, updatedItem.expectedUnit, updatedItem.expectedUnit);
 
@@ -248,7 +288,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     setReceiptItems((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
-  // Lấy màu sắc cho trạng thái
   const getStatusColor = useCallback((status) => {
     switch (status) {
       case 'received':
@@ -262,7 +301,6 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     }
   }, []);
 
-  // Lấy text cho trạng thái
   const getStatusText = useCallback((status) => {
     switch (status) {
       case 'received':
@@ -276,65 +314,76 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
     }
   }, []);
 
-  const handleSubmit = useCallback(
-    (e) => {
-      e.preventDefault();
-      const receipt = {
-        ...receiptData,
-        items: receiptItems,
-        statistics,
-        totalItems: receiptItems.length,
-        createdAt: new Date().toISOString(),
-        status: 'draft'
-      };
-      onReceiptCreate?.(receipt);
-    },
-    [receiptData, receiptItems, statistics, onReceiptCreate]
-  );
+  const getCurrentUserId = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return 'defaultUserIdMongoObjectId';
+
+      const userObj = JSON.parse(userStr);
+      return userObj.userId || userObj.id || 'defaultUserIdMongoObjectId';
+    } catch (err) {
+      // Nếu parse lỗi hoặc không có userId
+      return 'defaultUserIdMongoObjectId';
+    }
+  };
 
   const handleCreateReceipt = useCallback(async () => {
     if (receiptItems.length === 0) {
       enqueueSnackbar('Vui lòng thêm ít nhất một sản phẩm', { variant: 'warning' });
       return;
     }
-
+    if (!orderData?._id) {
+      enqueueSnackbar('Chưa có dữ liệu đơn hàng hợp lệ.', { variant: 'error' });
+      return;
+    }
     setIsCreating(true);
-    setCreateError(null);
 
     try {
-      console.log('📦 Order data:', orderData);
+      const inspectionsPayload = receiptItems.map((item) => ({
+        import_order_id: orderData._id,
+        medicine_id: item.medicineId,
+        actual_quantity: parseFloat(item.actualQuantity) || 0,
+        rejected_quantity: parseFloat(item.rejectedQuantity) || 0,
+        note: item.notes || receiptData.notes || '',
+        created_by: getCurrentUserId()
+      }));
 
-      const inspectionData = {
-        import_order_id: orderData?.orderId || 'unknown',
-        actual_quantity: statistics.totalReceived,
-        rejected_quantity: statistics.totalReturned,
-        note: receiptData.notes || '',
-        created_by: '685aba038d7e1e2eb3d86bd1'
-      };
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const res = await axios.post(
+        `${backendUrl}/api/inspections`,
+        { inspections: inspectionsPayload },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('auth-token') || ''}`
+          }
+        }
+      );
 
-      console.log('📝 Tạo phiếu nhập kho:', inspectionData);
-
-      const response = await createInspection(inspectionData);
-
-      console.log('✅ Tạo phiếu thành công:', response);
-      enqueueSnackbar(`Tạo phiếu kiểm nhập ${response.receipt_id || receiptData.receiptId} thành công!`, { variant: 'success' });
+      enqueueSnackbar(`Tạo phiếu kiểm nhập thành công với ${res.data.length} sản phẩm!`, { variant: 'success' });
+      if (onReceiptCreate) onReceiptCreate(res.data);
       router.push('/wh-import-orders');
-      if (onReceiptCreate) {
-        onReceiptCreate({
-          ...response,
-          receiptData,
-          items: receiptItems,
-          statistics
-        });
-      }
     } catch (error) {
-      const errorMessage = error?.message || 'Có lỗi xảy ra khi tạo phiếu nhập kho';
-      setCreateError(errorMessage);
-      enqueueSnackbar(errorMessage, { variant: 'error' });
+      enqueueSnackbar(error.response?.data?.message || error.message || 'Lỗi khi tạo phiếu kiểm nhập', { variant: 'error' });
     } finally {
       setIsCreating(false);
     }
-  }, [receiptItems, receiptData, orderData, statistics, createInspection, onReceiptCreate]);
+  }, [receiptItems, orderData, receiptData.notes, onReceiptCreate, router]);
+
+  if (loadingOrder) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Box sx={{ m: 2 }}>
+        <Typography color="error">{loadError}</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -344,7 +393,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
           <Typography variant="h6" gutterBottom>
             Tạo Phiếu Kiểm Tra Nhập
           </Typography>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={(e) => e.preventDefault()}>
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -392,7 +441,7 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
                   <TableCell>Tên sản phẩm</TableCell>
                   <TableCell>SL dự kiến</TableCell>
                   <TableCell>SL từ chối</TableCell>
-                  <TableCell>SL thực nhận</TableCell> {/* Thay đổi thứ tự */}
+                  <TableCell>SL thực nhận</TableCell>
                   <TableCell>Trạng thái</TableCell>
                   <TableCell>Ghi chú</TableCell>
                   <TableCell>Thao tác</TableCell>
@@ -508,14 +557,14 @@ function EnhancedReceiptForm({ orderData, checkedItems = [], onReceiptCreate }) 
       {/* Thống kê */}
       <ReceiptStatistics statistics={statistics} items={receiptItems} />
 
-      {/* Nút tạo phiếu - UPDATED */}
+      {/* Nút tạo phiếu */}
       <Box display="flex" justifyContent="center" gap={2} mt={3}>
         <Button
           variant="contained"
           color="primary"
           size="large"
           onClick={handleCreateReceipt}
-          disabled={receiptItems.length === 0 || isCreating}
+          disabled={receiptItems.length === 0 || isCreating || loadingOrder}
           startIcon={isCreating ? <CircularProgress size={20} /> : null}
           sx={{ minWidth: 200 }}
         >

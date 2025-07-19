@@ -3,7 +3,7 @@ const router = express.Router();
 const importInspectionController = require('../controllers/inspectionController');
 const authorize = require('../middlewares/authorize');
 
-router.post('/', authorize(['warehouse']), importInspectionController.createInspection);
+router.post('/', authorize(['warehouse']), importInspectionController.createMultipleInspections);
 
 router.get('/', importInspectionController.getInspections);
 
