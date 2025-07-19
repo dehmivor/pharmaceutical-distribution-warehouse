@@ -359,7 +359,7 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
         }
       );
 
-      enqueueSnackbar(`Tạo phiếu kiểm nhập thành công với ${res.data.length} sản phẩm!`, { variant: 'success' });
+      enqueueSnackbar(res.data.message, { variant: 'success' });
       if (onReceiptCreate) onReceiptCreate(res.data);
       router.push('/wh-import-orders');
     } catch (error) {

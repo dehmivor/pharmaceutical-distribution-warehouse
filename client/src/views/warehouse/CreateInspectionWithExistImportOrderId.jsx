@@ -57,16 +57,16 @@ export default function CreateInspectionWithExistImportOrderId() {
 
     return {
       orderId: selectedOrder._id?.slice(-8).toUpperCase() || selectedOrder._id,
-      orderCode: selectedOrder.supplier_contract_id?.contract_code || 'N/A',
-      supplier: selectedOrder.supplier_contract_id?.supplier_id?.name || 'Unknown Supplier',
-      orderDate: selectedOrder.order_date || selectedOrder.createdAt || new Date().toISOString(),
+      orderCode: selectedOrder.contract_id?.contract_code || 'N/A',
+      supplier: selectedOrder.contract_id?.partner_id?.name || 'Unknown Supplier',
+      orderDate: selectedOrder.createdAt || new Date().toISOString(),
       status: selectedOrder.status,
       totalItems: selectedOrder.details?.length || 0,
       totalAmount: totalAmount,
       contractInfo: {
-        contractCode: selectedOrder.supplier_contract_id?.contract_code,
-        startDate: selectedOrder.supplier_contract_id?.start_date,
-        endDate: selectedOrder.supplier_contract_id?.end_date
+        contractCode: selectedOrder.contract_id?.contract_code,
+        startDate: selectedOrder.contract_id?.start_date,
+        endDate: selectedOrder.contract_id?.end_date
       },
       items:
         selectedOrder.details?.map((detail) => ({
