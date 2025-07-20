@@ -49,20 +49,19 @@ function ReceiptStatistics({ inspections = [] }) {
 
   // Xử lý từng inspection để lấy thông tin mặt hàng, số lượng dự kiến, đơn giá...
   const processedItems = inspections.map((inspection) => {
-    // Tìm detail tương ứng (medicine_id khớp) trong đơn hàng import_order_id.details
-    let detail = inspection.import_order_id?.details.find((d) => d.medicine_id.toString() === inspection.medicine_id.toString()) || {};
+    // Tìm detail tương ứng trong details của import_order_id
+    const detail = inspection.import_order_id?.details.find((d) => d.medicine_id === inspection.medicine_id._id) || {};
 
     const expectedQty = parseFloat(detail.quantity) || 0;
     const unitPrice = parseFloat(detail.unit_price) || 0;
 
+    // Lấy số lượng thực nhận và từ chối từ inspection
     const actualQty = parseFloat(inspection.actual_quantity) || 0;
     const rejectedQty = parseFloat(inspection.rejected_quantity) || 0;
 
-    // Giả định đơn vị đo lấy từ một trường mặc định hoặc chưa có thì dùng 'viên'
-    const expectedUnit = detail.unit_of_measure || 'viên';
-    const actualUnit = expectedUnit;
+    const expectedUnit = inspection.medicine_id.unit_of_measure || 'viên';
 
-    const convertedActualQty = convertUnit(actualQty, actualUnit, expectedUnit);
+    const convertedActualQty = convertUnit(actualQty, expectedUnit, expectedUnit);
     const totalInspectedQty = convertedActualQty + convertUnit(rejectedQty, expectedUnit, expectedUnit);
 
     let status = 'pending';
@@ -72,16 +71,15 @@ function ReceiptStatistics({ inspections = [] }) {
     else if (actualQty === 0 && rejectedQty > 0) status = 'shortage';
 
     const returnedQty = Math.max(0, expectedQty - totalInspectedQty);
-
     const receivedPercentage = calculatePercentage(convertedActualQty, expectedQty);
     const totalAmount = actualQty * unitPrice;
 
     return {
       id: inspection._id,
-      productCode: 'N/A', // Nếu cần bạn có thể map thêm từ một bảng thuốc hoặc thêm vào data backend
-      productName: 'Sản phẩm ID: ' + inspection.medicine_id, // Hoặc truyền sâu thêm tên thuốc ở backend
+      productCode: inspection.medicine_id._id,
+      productName: inspection.medicine_id.medicine_name,
       expectedUnit,
-      actualUnit,
+      actualUnit: expectedUnit,
       expectedQty,
       actualQty,
       rejectedQty,

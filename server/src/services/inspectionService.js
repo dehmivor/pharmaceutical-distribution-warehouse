@@ -197,6 +197,10 @@ const getInspectionByImportOrderId = async (importOrderId) => {
   const inspections = await ImportInspection.find({ import_order_id: importOrderId })
     .populate('import_order_id')
     .populate('created_by', 'name email')
+    .populate({
+      path: 'medicine_id',
+      select: '_id unit_of_measure medicine_name',
+    })
     .sort({ createdAt: -1 });
 
   if (!inspections || inspections.length === 0) {
