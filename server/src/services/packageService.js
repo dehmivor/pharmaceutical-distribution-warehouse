@@ -412,36 +412,44 @@ const packageService = {
   },
 
   getPackagesByImportOrder: async (importOrderId) => {
-    try {
-      if (!importOrderId) {
-        return {
-          success: false,
-          message: 'importOrderId là bắt buộc',
-        };
-      }
-
-      const packages = await Package.find({ import_order_id: importOrderId })
-        .populate({
-          path: 'location_id',
-          populate: {
-            path: 'area_id',
-            model: 'Area',
-          },
-        })
-        .populate('batch_id');
-
-      return {
-        success: true,
-        packages,
-      };
-    } catch (error) {
-      console.error('❌ Get packages by import order service error:', error);
+  try {
+    if (!importOrderId) {
       return {
         success: false,
-        message: 'Lỗi server khi lấy packages theo import order',
+        message: 'importOrderId là bắt buộc',
       };
     }
-  },
+
+    // Find packages for the given import order, populate related docs
+    const packages = await Package.find({ import_order_id: importOrderId })
+      // Populate location → area
+      .populate({
+        path: 'location_id',
+        populate: { path: 'area_id', model: 'Area' },
+      })
+      // Populate batch → and within batch, populate medicine
+      .populate({
+        path: 'batch_id',
+        populate: {
+          path: 'medicine_id',
+          model: 'Medicine',
+          select: 'medicine_name license_code', // only needed fields
+        },
+      });
+
+    return {
+      success: true,
+      packages,
+    };
+  } catch (error) {
+    console.error('❌ Get packages by import order service error:', error);
+    return {
+      success: false,
+      message: 'Lỗi server khi lấy packages theo import order',
+    };
+  }
+},
+
 
   clearPackageLocation: async (packageId) => {
     try {

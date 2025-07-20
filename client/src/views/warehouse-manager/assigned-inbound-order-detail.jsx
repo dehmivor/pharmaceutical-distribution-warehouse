@@ -165,7 +165,9 @@ function ImportOrderDetail() {
         const serverOpts = results.flatMap(r =>
           (r.data.data || []).map(b => ({
             id: b._id,
-            label: b.batch_code,
+            // combine batch code + medicine name + license code
+            label: `${b.batch_code} - ${b.medicine_id.medicine_name} (${b.medicine_id.license_code})`,
+            max: b.quantity,    // if you still need max
           }))
         );
         setValidBatchOptions(serverOpts);
@@ -174,7 +176,7 @@ function ImportOrderDetail() {
         setValidBatchOptions([]);
       }
     })();
-  }, [newBatches]);
+  }, [inspections, newBatches]);
 
 
   const prefillPackages = (insps) => {
@@ -253,6 +255,7 @@ function ImportOrderDetail() {
   };
 
   const [batchOptions, setBatchOptions] = useState([]);
+
   useEffect(() => {
     const opts = inspections
       // only keep inspections with a real batch_id
@@ -285,18 +288,35 @@ function ImportOrderDetail() {
       setBatchError('All fields are required');
       return;
     }
+
+    // Lookup the medicine object so we can grab name & license
+    const medDoc = uniqueInspections.find(
+      (i) => i.medicine_id._id === newMedicineId
+    )?.medicine_id;
+
     // stash locally
     setNewBatches((list) => [
       ...list,
       {
         medicine_id: newMedicineId,
+        medicine_name: medDoc?.medicine_name || '—',
+        license_code: medDoc?.license_code || '—',
         batch_code: newBatchCode,
         production_date: newProdDate,
         expiry_date: newExpiryDate
       }
     ]);
     // add a temp option so users can pick it immediately
-    setBatchOptions((opts) => [...opts, { id: newBatchCode, label: newBatchCode, max: 0 }]);
+    setBatchOptions((opts) => [
+      ...opts,
+      {
+        id: newBatchCode,
+        label: `${newBatchCode} – ${medDoc?.medicine_name || ''} (${medDoc?.license_code || ''})`,
+        max: 0
+      }
+    ]);
+
+
     closeBatchDialog();
   };
 
@@ -355,10 +375,11 @@ function ImportOrderDetail() {
 
   const allBatchOptions = [
     ...validBatchOptions,
-    ...newBatches.map(nb => ({
+    ...newBatches.map((nb) => ({
       id: nb.batch_code,
-      label: nb.batch_code + ' (new)'
-    }))
+      label: `${nb.batch_code} – ${nb.medicine_name} (${nb.license_code})`,
+      max: 0,
+    })),
   ].reduce((acc, opt) => {
     if (!acc.find(o => o.id === opt.id)) acc.push(opt);
     return acc;
@@ -397,31 +418,23 @@ function ImportOrderDetail() {
       const batchCode = pkg.batch_id.batch_code;
       const expDate = pkg.batch_id.expiry_date?.slice(0, 10) || 'N/A';
       const orderIdStr = order._id;
-      const supplierName = order.supplier_contract_id?.supplier_id?.name || 'N/A';
+      const supplierName = order.contract_id?.partner_id?.name || 'N/A';
 
       // Fetch medicine details
-      const medId = pkg.batch_id?.medicine_id;
-      let medicineLabel = 'Unknown Medicine';
-      console.log(medId);
-      if (medId) {
-        const { data: medResp } = await axios.get(`/api/medicine/detail/${medId}`, {
-          headers: getAuthHeaders(),
-        });
-        if (medResp.success) {
-          const med = medResp.data.medicine;
-          medicineLabel = `${med.medicine_name} (${med.license_code})`;
-        }
-      }
+      const med = pkg.batch_id?.medicine_id;
+      const medicineLabel = med
+        ? `${med.medicine_name} (${med.license_code})`
+        : 'Unknown Medicine';
 
       // Render barcode to offscreen canvas
       const canvas = document.createElement('canvas');
       await bwipjs.toCanvas(canvas, {
-        bcid: 'code128',
-        text: pkgId,
-        scale: 3,
-        includetext: true,
-        textxalign: 'center',
-        textsize: 10,
+        bcid: 'qrcode',         // use the QR‑code generator
+        text: pkgId,            // data to encode
+        scale: 6,               // how many pixels per “module”
+        version: 5,             // 1–40, controls size; omit to auto‑fit
+        eclevel: 'M',           // error‑correction: L, M, Q, H
+        includeMargin: true,    // add a quiet zone around the code
       });
       const barcodeDataUrl = canvas.toDataURL('image/png');
 
@@ -478,7 +491,10 @@ function ImportOrderDetail() {
     try {
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
-        { status: 'delivered' }
+        { status: 'delivered' },
+        {
+          headers: getAuthHeaders()
+        }
       );
       setOrder(prev => ({ ...prev, status: 'delivered' }));
       enableAccordion('delivered')
@@ -520,7 +536,7 @@ function ImportOrderDetail() {
             batch_code: spec.batch_code,
             production_date: spec.production_date,
             expiry_date: spec.expiry_date,
-            supplier_id: order.supplier_contract_id.supplier_id._id
+            supplier_id: order.contract_id.partner_id._id
           },
           {
             headers: getAuthHeaders()
@@ -650,7 +666,7 @@ function ImportOrderDetail() {
             </Typography>
             {order.details.map((d) => (
               <Typography key={d._id}>
-                • {d.medicine_id.medicine_name}: {d.quantity} @ {d.unit_price}
+                • {d.medicine_id.medicine_name} ({d.medicine_id.license_code}): {d.quantity}
               </Typography>
             ))}
             <Divider sx={{ my: 2 }} />
@@ -686,7 +702,7 @@ function ImportOrderDetail() {
                         <TableCell>
                           <Tooltip title={insp._id}>
                             <Typography variant="body2" fontWeight="bold">
-                              {insp.medicine_id?.medicine_name || ''}
+                              {insp.medicine_id?.medicine_name || ''} ({insp.medicine_id?.license_code || ''})
                             </Typography>
                           </Tooltip>
                         </TableCell>
@@ -803,7 +819,9 @@ function ImportOrderDetail() {
                     <TableBody>
                       {putAway.map((pkg) => (
                         <TableRow key={pkg._id}>
-                          <TableCell>{pkg.batch_id.batch_code}</TableCell>
+                          <TableCell>
+                            {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
+                          </TableCell>
                           <TableCell>{pkg.quantity}</TableCell>
                           <TableCell>{pkg.location_id ? 'Arranged' : 'Unarranged'}</TableCell>
                           <TableCell>
