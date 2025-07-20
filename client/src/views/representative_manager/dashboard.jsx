@@ -1,15 +1,38 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Box, Grid, Paper, Typography, Card, CardContent, Chip, Stack, Button, Alert } from '@mui/material';
+import { 
+  Box, 
+  Grid, 
+  Paper, 
+  Typography, 
+  Card, 
+  CardContent, 
+  Chip, 
+  Stack, 
+  Button, 
+  Alert,
+  Tabs,
+  Tab,
+  List,
+  ListItem,
+  ListItemText,
+  LinearProgress,
+  CircularProgress
+} from '@mui/material';
 import {
   FileDownload as IconFileImport,
   Receipt as IconReceipt,
   CheckCircle as IconCheckCircle,
   Cancel as IconXCircle,
   Schedule as IconClock,
-  TrendingUp as IconTrendingUp
+  TrendingUp as IconTrendingUp,
+  Visibility as IconVisibility,
+  LocalShipping as IconShipping,
+  Inventory as IconInventory,
+  Business as IconBusiness
 } from '@mui/icons-material';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -47,33 +70,46 @@ const StatCard = ({ title, value, icon: Icon, color, subtitle }) => (
   </Card>
 );
 
-const RecentOrderCard = ({ order }) => (
-  <Paper sx={{ p: 2, mb: 2 }}>
-    <Stack direction="row" justifyContent="space-between" alignItems="center">
-      <Box>
-        <Typography variant="subtitle1" fontWeight="bold">
-          Order #{order._id?.slice(-8)}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {order.supplier_contract_id?.supplier_id?.name || 'N/A'}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Created: {new Date(order.createdAt).toLocaleDateString()}
-        </Typography>
+const DataSummaryCard = ({ title, tabs, activeTab, onTabChange, data, maxValue, loading }) => (
+  <Paper sx={{ p: 3, height: '100%' }}>
+    <Typography variant="h6" gutterBottom>
+      {title}
+    </Typography>
+    
+    <Tabs 
+      value={activeTab} 
+      onChange={(e, newValue) => onTabChange(newValue)}
+      sx={{ mb: 2 }}
+    >
+      {tabs.map((tab, index) => (
+        <Tab key={index} label={tab} />
+      ))}
+    </Tabs>
+
+    {loading ? (
+      <Box display="flex" justifyContent="center" alignItems="center" height={200}>
+        <CircularProgress />
       </Box>
-      <Box>
-        <Chip
-          label={order.status?.toUpperCase()}
-          color={
-            order.status === 'approved' ? 'success' : order.status === 'draft' ? 'default' : order.status === 'cancelled' ? 'error' : 'info'
-          }
-          size="small"
-        />
-        <Typography variant="body2" sx={{ mt: 1, textAlign: 'right' }}>
-          ${order.total_amount?.toLocaleString() || 0}
-        </Typography>
-      </Box>
-    </Stack>
+    ) : (
+      <List sx={{ p: 0 }}>
+        {data.map((item, index) => (
+          <ListItem key={index} sx={{ px: 0, py: 1 }}>
+            <ListItemText
+              primary={item.name}
+              secondary={`${item.value.toLocaleString()}`}
+              sx={{ flex: 1 }}
+            />
+            <Box sx={{ width: 100, mr: 2 }}>
+              <LinearProgress
+                variant="determinate"
+                value={maxValue > 0 ? (item.value / maxValue) * 100 : 0}
+                sx={{ height: 8, borderRadius: 4 }}
+              />
+            </Box>
+          </ListItem>
+        ))}
+      </List>
+    )}
   </Paper>
 );
 
@@ -84,18 +120,33 @@ export default function RepresentativeManagerDashboard() {
     approvedOrders: 0,
     cancelledOrders: 0
   });
-  const [recentOrders, setRecentOrders] = useState([]);
+  const [chartData, setChartData] = useState([]);
+  const [topSuppliersData, setTopSuppliersData] = useState([]);
+  const [topStatusData, setTopStatusData] = useState([]);
+  const [topContractsData, setTopContractsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Tab states for summary cards
+  const [topSuppliersTab, setTopSuppliersTab] = useState(0);
+  const [topStatusTab, setTopStatusTab] = useState(0);
+  const [topContractsTab, setTopContractsTab] = useState(0);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/api/import-orders`, {
+      
+      // Fetch import orders
+      const ordersResponse = await axios.get(`${API_BASE_URL}/api/import-orders`, {
         headers: getAuthHeaders()
       });
+      const orders = ordersResponse.data.data || [];
 
-      const orders = response.data.data || [];
+      // Fetch contracts
+      const contractsResponse = await axios.get(`${API_BASE_URL}/api/contract`, {
+        headers: getAuthHeaders()
+      });
+      const contracts = contractsResponse.data.data?.contracts || [];
 
       // Calculate stats
       const statsData = {
@@ -106,7 +157,70 @@ export default function RepresentativeManagerDashboard() {
       };
 
       setStats(statsData);
-      setRecentOrders(orders.slice(0, 5)); // Get 5 most recent orders
+
+      // Generate chart data (last 6 months)
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const currentMonth = new Date().getMonth();
+      const chartDataArray = [];
+      
+      for (let i = 5; i >= 0; i--) {
+        const monthIndex = (currentMonth - i + 12) % 12;
+        const monthOrders = orders.filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate.getMonth() === monthIndex && orderDate.getFullYear() === new Date().getFullYear();
+        });
+        
+        chartDataArray.push({
+          month: months[monthIndex],
+          orders: monthOrders.length,
+          approvals: monthOrders.filter(o => o.status === 'approved').length
+        });
+      }
+      
+      setChartData(chartDataArray);
+
+      // Generate top suppliers data
+      const supplierStats = {};
+      orders.forEach(order => {
+        const supplierName = order.contract_id?.partner_id?.name || 'Unknown Supplier';
+        supplierStats[supplierName] = (supplierStats[supplierName] || 0) + 1;
+      });
+      
+      const topSuppliers = Object.entries(supplierStats)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 5);
+      
+      setTopSuppliersData(topSuppliers);
+
+      // Generate top status data
+      const statusStats = {};
+      orders.forEach(order => {
+        const status = order.status || 'unknown';
+        statusStats[status] = (statusStats[status] || 0) + 1;
+      });
+      
+      const topStatus = Object.entries(statusStats)
+        .map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 5);
+      
+      setTopStatusData(topStatus);
+
+      // Generate top contracts data
+      const contractStats = {};
+      orders.forEach(order => {
+        const contractCode = order.contract_id?.contract_code || 'Unknown Contract';
+        contractStats[contractCode] = (contractStats[contractCode] || 0) + 1;
+      });
+      
+      const topContracts = Object.entries(contractStats)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 5);
+      
+      setTopContractsData(topContracts);
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       setError('Failed to load dashboard data');
@@ -122,7 +236,7 @@ export default function RepresentativeManagerDashboard() {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <Typography>Loading dashboard...</Typography>
+        <CircularProgress />
       </Box>
     );
   }
@@ -133,7 +247,7 @@ export default function RepresentativeManagerDashboard() {
         Representative Manager Dashboard
       </Typography>
       <Typography variant="body1" color="text.secondary" gutterBottom>
-        Overview of import orders and approval status
+        Pharmaceutical Distribution Warehouse Management
       </Typography>
 
       {error && (
@@ -141,6 +255,41 @@ export default function RepresentativeManagerDashboard() {
           {error}
         </Alert>
       )}
+
+      {/* Line Chart Section */}
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          Import Orders Overview (Last 6 Months)
+        </Typography>
+        <Box sx={{ height: 400 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Area 
+                type="monotone" 
+                dataKey="orders" 
+                stackId="1" 
+                stroke="#1976d2" 
+                fill="#1976d2" 
+                fillOpacity={0.6}
+                name="Total Orders"
+              />
+              <Area 
+                type="monotone" 
+                dataKey="approvals" 
+                stackId="1" 
+                stroke="#2e7d32" 
+                fill="#2e7d32" 
+                fillOpacity={0.6}
+                name="Approved Orders"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </Box>
+      </Paper>
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -158,43 +307,63 @@ export default function RepresentativeManagerDashboard() {
         </Grid>
       </Grid>
 
-      {/* Recent Orders */}
+      {/* Summary Cards */}
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-              <Typography variant="h6">Recent Import Orders</Typography>
-              <Button variant="outlined" startIcon={<IconFileImport />} href="/manage-import-orders-approval">
-                View All Orders
-              </Button>
-            </Stack>
-
-            {recentOrders.length === 0 ? (
-              <Typography color="text.secondary" textAlign="center" py={4}>
-                No orders found
-              </Typography>
-            ) : (
-              recentOrders.map((order) => <RecentOrderCard key={order._id} order={order} />)
-            )}
-          </Paper>
-        </Grid>
-
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Quick Actions
-            </Typography>
-            <Stack spacing={2}>
-              <Button variant="contained" startIcon={<IconFileImport />} href="/manage-import-orders-approval" fullWidth>
-                Review Import Orders
-              </Button>
-              <Button variant="outlined" startIcon={<IconReceipt />} href="/rm-create-bills" fullWidth>
-                Create Bills
-              </Button>
-            </Stack>
-          </Paper>
+          <DataSummaryCard
+            title="Top Suppliers"
+            tabs={['Last 7 days', 'Last Month', 'Last Year']}
+            activeTab={topSuppliersTab}
+            onTabChange={setTopSuppliersTab}
+            data={topSuppliersData}
+            maxValue={topSuppliersData.length > 0 ? Math.max(...topSuppliersData.map(item => item.value)) : 0}
+            loading={loading}
+          />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <DataSummaryCard
+            title="Order Status"
+            tabs={['Status', 'Priority']}
+            activeTab={topStatusTab}
+            onTabChange={setTopStatusTab}
+            data={topStatusData}
+            maxValue={topStatusData.length > 0 ? Math.max(...topStatusData.map(item => item.value)) : 0}
+            loading={loading}
+          />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <DataSummaryCard
+            title="Top Contracts"
+            tabs={['Active', 'Expired']}
+            activeTab={topContractsTab}
+            onTabChange={setTopContractsTab}
+            data={topContractsData}
+            maxValue={topContractsData.length > 0 ? Math.max(...topContractsData.map(item => item.value)) : 0}
+            loading={loading}
+          />
         </Grid>
       </Grid>
+
+      {/* Quick Actions */}
+      <Paper sx={{ p: 3, mt: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          Quick Actions
+        </Typography>
+        <Stack direction="row" spacing={2} flexWrap="wrap">
+          <Button variant="contained" startIcon={<IconFileImport />} href="/manage-import-orders-approval">
+            Review Import Orders
+          </Button>
+          <Button variant="outlined" startIcon={<IconReceipt />} href="/rm-create-bills">
+            Create Bills
+          </Button>
+          <Button variant="outlined" startIcon={<IconBusiness />} href="/rm-manage-contracts">
+            Manage Contracts
+          </Button>
+          <Button variant="outlined" startIcon={<IconInventory />} href="/statistics">
+            View Statistics
+          </Button>
+        </Stack>
+      </Paper>
     </Box>
   );
 }

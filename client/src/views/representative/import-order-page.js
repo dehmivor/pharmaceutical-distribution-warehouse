@@ -194,12 +194,14 @@ function ImportOrderPage() {
       [field]: value
     };
 
-    // If medicine changes, get unit price from contract
+    // If medicine changes, get unit price and quantity from contract
     if (field === 'medicine_id') {
       const selectedMedicine = contractMedicines.find((med) => med.medicine_id._id === value);
       if (selectedMedicine) {
         newDetails[index].unit_price = selectedMedicine.unit_price || 0;
-        console.log('Selected medicine:', selectedMedicine.medicine_id.medicine_name, 'Unit price:', selectedMedicine.unit_price);
+        // Tự động set số lượng bằng với số lượng trong contract
+        newDetails[index].quantity = selectedMedicine.quantity || selectedMedicine.min_order_quantity || 1;
+        console.log('Selected medicine:', selectedMedicine.medicine_id.medicine_name, 'Unit price:', selectedMedicine.unit_price, 'Quantity:', newDetails[index].quantity);
       }
     }
 
@@ -544,27 +546,12 @@ function ImportOrderPage() {
                           label="Quantity"
                           type="number"
                           value={detail.quantity}
-                          onChange={(e) => {
-                            // Lấy min/max từ contract
-                            const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
-                            let val = parseInt(e.target.value) || 0;
-                            const minQ = contractItem?.min_order_quantity || 1;
-                            const maxQ = contractItem?.max_quantity || 1000;
-                            if (val < minQ) val = minQ;
-                            if (val > maxQ) val = maxQ;
-                            handleDetailChange(index, 'quantity', val);
-                          }}
+                          InputProps={{ readOnly: true }}
                           required
-                          inputProps={{
-                            min: contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id)?.min_order_quantity || 1,
-                            max: contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id)?.max_quantity || 1000
-                          }}
                           helperText={(() => {
                             const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
                             if (contractItem) {
-                              let text = `Tối thiểu: ${contractItem.min_order_quantity}`;
-                              text += `, Tối đa: ${contractItem.max_quantity || 1000}`;
-                              return text;
+                              return `Từ hợp đồng: ${contractItem.quantity || contractItem.min_order_quantity || 1}`;
                             }
                             return '';
                           })()}
@@ -604,7 +591,7 @@ function ImportOrderPage() {
             {/* Total Amount bottom right */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 4, mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Total Amount: ${calculateTotal().toLocaleString()}
+                Total Amount: {calculateTotal().toLocaleString()} VND
               </Typography>
             </Box>
           </Box>
@@ -643,31 +630,31 @@ function ImportOrderPage() {
                     </Box>
                   </Paper>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="h6">Order Details</Typography>
-                  <TableContainer component={Paper}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Medicine</TableCell>
-                          <TableCell align="right">Quantity</TableCell>
-                          <TableCell align="right">Unit Price</TableCell>
-                          <TableCell align="right">Total</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {selectedOrder.details?.map((detail, index) => (
-                          <TableRow key={index}>
-                            <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
-                            <TableCell align="right">{detail.quantity}</TableCell>
-                            <TableCell align="right">${detail.unit_price?.toLocaleString()}</TableCell>
-                            <TableCell align="right">${((detail.quantity || 0) * (detail.unit_price || 0)).toLocaleString()}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Grid>
+                                      <Grid item xs={12} md={6}>
+                        <Typography variant="h6">Order Details</Typography>
+                        <TableContainer component={Paper}>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Medicine</TableCell>
+                                <TableCell align="right">Quantity</TableCell>
+                                <TableCell align="right">Unit Price</TableCell>
+                                <TableCell align="right">Total</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {selectedOrder.details?.map((detail, index) => (
+                                <TableRow key={index}>
+                                  <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
+                                  <TableCell align="right">{detail.quantity}</TableCell>
+                                  <TableCell align="right">{detail.unit_price?.toLocaleString()} VND</TableCell>
+                                  <TableCell align="right">{((detail.quantity || 0) * (detail.unit_price || 0)).toLocaleString()} VND</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Grid>
               </Grid>
             </Box>
           )}
