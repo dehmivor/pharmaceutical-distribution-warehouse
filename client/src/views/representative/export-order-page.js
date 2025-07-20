@@ -1,9 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Chip, TextField, Grid, MenuItem, FormControl, InputLabel, Select
+  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Chip, TextField, Grid, MenuItem, FormControl, InputLabel, Select, IconButton, Menu
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Add as AddIcon, MoreVert as MoreVertIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -25,6 +25,11 @@ function ExportOrderPage() {
   const [contracts, setContracts] = useState([]);
   const [contractMedicines, setContractMedicines] = useState([]);
   const [formLoading, setFormLoading] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [openDetails, setOpenDetails] = useState(false);
+  const [openEditForm, setOpenEditForm] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedOrderForAction, setSelectedOrderForAction] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -100,6 +105,88 @@ function ExportOrderPage() {
     setFormData((prev) => ({ ...prev, details: prev.details.filter((_, i) => i !== index) }));
   };
 
+  // Action handlers
+  const handleActionMenuOpen = (event, order) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedOrderForAction(order);
+  };
+
+  const handleActionMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedOrderForAction(null);
+  };
+
+  const handleViewDetails = (order) => {
+    setSelectedOrder(order);
+    setOpenDetails(true);
+    handleActionMenuClose();
+  };
+
+  const handleEditOrder = (order) => {
+    setFormData({
+      contract_id: order.contract_id._id || order.contract_id,
+      details: order.details.map((d) => ({
+        medicine_id: typeof d.medicine_id === 'object' ? d.medicine_id._id : d.medicine_id,
+        expected_quantity: d.expected_quantity,
+        unit_price: d.unit_price
+      }))
+    });
+    setSelectedOrder(order);
+    setOpenEditForm(true);
+    handleActionMenuClose();
+  };
+
+  const handleDeleteOrder = async (order) => {
+    if (!window.confirm('Are you sure you want to delete this order?')) {
+      handleActionMenuClose();
+      return;
+    }
+
+    try {
+      await axios.delete(`${API_BASE_URL}/api/export-orders/${order._id}`, {
+        headers: getAuthHeaders()
+      });
+      setSuccess('Order deleted successfully');
+      fetchOrders();
+    } catch (error) {
+      setError(error.response?.data?.error || error.message);
+    } finally {
+      handleActionMenuClose();
+    }
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedOrder(null);
+    setOpenDetails(false);
+  };
+
+  const handleCloseEditForm = () => {
+    setSelectedOrder(null);
+    setOpenEditForm(false);
+    setFormData({ contract_id: '', details: [] });
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'draft':
+        return 'default';
+      case 'approved':
+        return 'success';
+      case 'delivered':
+        return 'info';
+      case 'checked':
+        return 'warning';
+      case 'arranged':
+        return 'primary';
+      case 'completed':
+        return 'success';
+      case 'cancelled':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormLoading(true);
@@ -111,14 +198,22 @@ function ExportOrderPage() {
         expected_quantity: Number(d.expected_quantity),
         unit_price: Number(d.unit_price)
       }));
-      await axios.post(
-        `${API_BASE_URL}/api/export-orders`,
-        payload,
-        { headers: getAuthHeaders() }
-      );
-      setSuccess('Export order created successfully');
+
+      const url = selectedOrder ? `${API_BASE_URL}/api/export-orders/${selectedOrder._id}` : `${API_BASE_URL}/api/export-orders`;
+      const method = selectedOrder ? 'PUT' : 'POST';
+
+      await axios({
+        method,
+        url,
+        data: payload,
+        headers: getAuthHeaders()
+      });
+
+      setSuccess(selectedOrder ? 'Export order updated successfully' : 'Export order created successfully');
       setOpenForm(false);
+      setOpenEditForm(false);
       setFormData({ contract_id: '', details: [] });
+      setSelectedOrder(null);
       fetchOrders();
     } catch (error) {
       setError(error.response?.data?.error || error.message);
@@ -143,15 +238,24 @@ function ExportOrderPage() {
               <TableCell>Status</TableCell>
               <TableCell>Created By</TableCell>
               <TableCell>Warehouse Manager</TableCell>
+              <TableCell align="center">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order._id} hover>
                 <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
-                <TableCell><Chip label={order.status} size="small" /></TableCell>
+                <TableCell><Chip label={order.status} color={getStatusColor(order.status)} size="small" /></TableCell>
                 <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
                 <TableCell>{order.warehouse_manager_id?.email || 'N/A'}</TableCell>
+                <TableCell align="center">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => handleActionMenuOpen(e, order)}
+                  >
+                    <MoreVertIcon />
+                  </IconButton>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -236,6 +340,172 @@ function ExportOrderPage() {
       <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}>
         <Alert severity="success" onClose={() => setSuccess(null)}>{success}</Alert>
       </Snackbar>
+
+      {/* Action Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleActionMenuClose}
+      >
+        <MenuItem onClick={() => handleViewDetails(selectedOrderForAction)}>
+          <VisibilityIcon sx={{ mr: 1 }} />
+          View Details
+        </MenuItem>
+        <MenuItem onClick={() => handleEditOrder(selectedOrderForAction)}>
+          <EditIcon sx={{ mr: 1 }} />
+          Edit
+        </MenuItem>
+        <MenuItem onClick={() => handleDeleteOrder(selectedOrderForAction)}>
+          <DeleteIcon sx={{ mr: 1 }} />
+          Delete
+        </MenuItem>
+      </Menu>
+
+      {/* Details Dialog */}
+      <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>Export Order Details</DialogTitle>
+        <DialogContent>
+          {selectedOrder && (
+            <Box sx={{ mt: 2 }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6">Basic Information</Typography>
+                  <Paper sx={{ p: 2 }}>
+                    <Typography>
+                      <strong>Contract:</strong> {selectedOrder.contract_id?.contract_code}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <Typography component="span">
+                        <strong>Status:</strong>
+                      </Typography>
+                      <Chip label={selectedOrder.status} color={getStatusColor(selectedOrder.status)} size="small" sx={{ ml: 1 }} />
+                    </Box>
+                    <Typography>
+                      <strong>Created By:</strong> {selectedOrder.created_by?.email}
+                    </Typography>
+                    <Typography>
+                      <strong>Warehouse Manager:</strong> {selectedOrder.warehouse_manager_id?.email}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6">Order Details</Typography>
+                  <TableContainer component={Paper}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Medicine</TableCell>
+                          <TableCell align="right">Expected Quantity</TableCell>
+                          <TableCell align="right">Unit Price</TableCell>
+                          <TableCell align="right">Total</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {selectedOrder.details?.map((detail, index) => (
+                          <TableRow key={index}>
+                            <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
+                            <TableCell align="right">{detail.expected_quantity}</TableCell>
+                            <TableCell align="right">{detail.unit_price?.toLocaleString()} VND</TableCell>
+                            <TableCell align="right">{((detail.expected_quantity || 0) * (detail.unit_price || 0)).toLocaleString()} VND</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
+          <Button onClick={handleCloseDetails} variant="outlined" sx={{ minWidth: 120 }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={openEditForm} onClose={handleCloseEditForm} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Export Order</DialogTitle>
+        <DialogContent>
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Contract</InputLabel>
+              <Select
+                name="contract_id"
+                value={formData.contract_id}
+                onChange={handleFormChange}
+                label="Contract"
+                required
+                disabled
+              >
+                {contracts.map((contract) => (
+                  <MenuItem key={contract._id} value={contract._id}>
+                    {contract.contract_code}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>Order Details</Typography>
+            {formData.details.map((detail, index) => (
+              <Grid container spacing={2} key={index} alignItems="center">
+                <Grid item xs={12} sm={4}>
+                  <FormControl fullWidth>
+                    <InputLabel>Medicine</InputLabel>
+                    <Select
+                      value={detail.medicine_id}
+                      onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
+                      label="Medicine"
+                      required
+                    >
+                      {contractMedicines.map((med) => (
+                        <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
+                          {med.medicine_id.medicine_name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    label="Quantity"
+                    type="number"
+                    value={detail.expected_quantity}
+                    onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <TextField
+                    label="Unit Price"
+                    type="number"
+                    value={detail.unit_price}
+                    onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={2}>
+                  <Button 
+                    color="error" 
+                    onClick={() => removeDetail(index)} 
+                    disabled={formData.details.length === 1}
+                    fullWidth
+                  >
+                    X
+                  </Button>
+                </Grid>
+              </Grid>
+            ))}
+            <Button onClick={addDetail} sx={{ mt: 2 }}>Add Medicine</Button>
+            <DialogActions>
+              <Button onClick={handleCloseEditForm} disabled={formLoading}>Cancel</Button>
+              <Button type="submit" variant="contained" disabled={formLoading}>{formLoading ? 'Saving...' : 'Update'}</Button>
+            </DialogActions>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }
