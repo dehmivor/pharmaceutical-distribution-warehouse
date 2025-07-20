@@ -17,21 +17,49 @@ const createMultipleInspections = async (listInspectionData) => {
     throw error;
   }
 
-  // Validate từng phiếu trước khi lưu
-  for (const data of listInspectionData) {
+  // Lấy import_order_id từ đoạn data, giả định tất cả cùng một import_order_id
+  // Hoặc lấy tất cả import_order_id nếu đa order, thay đổi phù hợp yêu cầu
+  const importOrderIds = [...new Set(listInspectionData.map((d) => d.import_order_id.toString()))];
+
+  for (const importOrderId of importOrderIds) {
     // Kiểm tra import order tồn tại
-    const importOrder = await ImportOrder.findById(data.import_order_id);
+    const importOrder = await ImportOrder.findById(importOrderId);
     if (!importOrder) {
-      const error = new Error(`Import order ${data.import_order_id} not found`);
+      const error = new Error(`Import order ${importOrderId} not found`);
       error.statusCode = 404;
       throw error;
     }
 
-    // Kiểm tra rejected không vượt actual
-    if (data.rejected_quantity > data.actual_quantity) {
-      const error = new Error('Rejected quantity cannot exceed actual quantity');
+    // Lấy toàn bộ các medicine_id đã có inspection trong importOrder này
+    const existingInspections = await ImportInspection.find({ import_order_id: importOrderId });
+    const existingMedicineIds = existingInspections.map((ins) => ins.medicine_id.toString());
+
+    // Lọc những inspection data trong listInspectionData thuộc importOrder này
+    const newInspections = listInspectionData.filter(
+      (d) => d.import_order_id.toString() === importOrderId,
+    );
+
+    // Xác định những thuốc đã có inspect trong danh sách mới
+    const duplicateMedicines = newInspections.filter((d) =>
+      existingMedicineIds.includes(d.medicine_id.toString()),
+    );
+
+    if (duplicateMedicines.length > 0) {
+      // Tạo danh sách tên thuốc đã duplicate (nếu cần truy vấn thêm tên thuốc)
+      // Ở đây chỉ trả id ra thôi, truyền thêm hoặc sửa lại theo yêu cầu
+      const medicineListStr = duplicateMedicines.map((d) => d.medicine_id.toString()).join(', ');
+      const error = new Error(`Inspections already exist for medicine(s): ${medicineListStr}`);
       error.statusCode = 400;
       throw error;
+    }
+
+    // Kiểm tra rejected không vượt actual trong những inspection mới
+    for (const data of newInspections) {
+      if (data.rejected_quantity > data.actual_quantity) {
+        const error = new Error('Rejected quantity cannot exceed actual quantity');
+        error.statusCode = 400;
+        throw error;
+      }
     }
   }
 
