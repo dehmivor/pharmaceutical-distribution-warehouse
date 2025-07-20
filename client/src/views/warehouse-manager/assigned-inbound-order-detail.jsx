@@ -81,6 +81,9 @@ function ImportOrderDetail() {
 
   const [validBatchOptions, setValidBatchOptions] = useState([]);
 
+  const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+  const userId = userData.userId;
+
 
   // Initial fetch: order + inspections + initial packages
   useEffect(() => {
@@ -221,15 +224,23 @@ function ImportOrderDetail() {
 
 
   const handleClearLocation = async (pkgId) => {
-    try {
-      await axios.patch(`/api/packages/${pkgId}/clear-location`, {
-        headers: getAuthHeaders()
-      });
-      await fetchPutAway();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+   try {
+     const ware_house_id   = userId;
+     const import_order_id = orderId;
+
+     await axios.patch(
+       `/api/packages/${pkgId}/clear-location`,
+       { 
+         ware_house_id,
+         import_order_id,
+       },
+       { headers: getAuthHeaders() }
+     );
+     await fetchPutAway();
+   } catch (err) {
+     console.error(err);
+   }
+ };
 
   const enableAccordion = async (orderState) => {
     if (orderState == 'other') {

@@ -54,6 +54,8 @@ const getAuthHeaders = () => {
   };
 };
 
+const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+const userId = userData.userId;
 
 
 function ImportOrderDetail() {
@@ -232,9 +234,19 @@ function ImportOrderDetail() {
   const handleSubmitPutAway = async () => {
     try {
       const { location_id } = locForm;
-      await axios.patch(`/api/packages/${currentPkg._id}/location`, {
-        location_id
-      }, { headers: getAuthHeaders() });
+      // Grab the current warehouse user and the import‑order ID
+      const ware_house_id    = userId;       // or wherever you keep the logged‑in user’s ID
+      const import_order_id  = order._id;
+
+      await axios.patch(
+        `/api/packages/${currentPkg._id}/location`,
+        {
+          location_id,
+          ware_house_id,
+          import_order_id,
+        },
+        { headers: getAuthHeaders() }
+      );
       await fetchPutAway();
       closePutAwayModal();
     } catch (err) {
