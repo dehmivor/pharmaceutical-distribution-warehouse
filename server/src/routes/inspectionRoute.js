@@ -9,6 +9,8 @@ router.get('/', importInspectionController.getInspections);
 
 router.get('/inspection-for-approve', importInspectionController.getInspectionForApprove);
 
+router.get('/by-import-ord/:id', importInspectionController.getInspectionByImportOrderId);
+
 router.get('/:id', importInspectionController.getInspectionById);
 
 router.put('/:id', importInspectionController.updateInspection);

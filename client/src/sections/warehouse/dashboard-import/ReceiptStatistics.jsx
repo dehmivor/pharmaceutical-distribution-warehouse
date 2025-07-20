@@ -7,7 +7,6 @@ import {
   CardContent,
   Typography,
   Box,
-  Divider,
   LinearProgress,
   Table,
   TableBody,
@@ -20,81 +19,110 @@ import {
   Alert
 } from '@mui/material';
 
-function ReceiptStatistics({ statistics, items = [] }) {
-  // Fallback data nếu không có statistics
-  const stats = statistics || {
-    totalExpected: 0,
-    totalReceived: 0,
-    totalReturned: 0,
-    receivedPercentage: 0,
-    totalValue: 0
+// Đơn giản hóa bảng chuyển đổi đơn vị (nếu cần)
+const UNIT_CONVERSIONS = {
+  kg: { g: 1000, tấn: 0.001 },
+  g: { kg: 0.001, tấn: 0.000001 },
+  tấn: { kg: 1000, g: 1000000 },
+  thùng: { hộp: 12, cái: 144 },
+  hộp: { thùng: 1 / 12, cái: 12 },
+  cái: { hộp: 1 / 12, thùng: 1 / 144 },
+  lít: { ml: 1000, gallon: 0.264172 },
+  ml: { lít: 0.001, gallon: 0.000264172 },
+  gallon: { lít: 3.78541, ml: 3785.41 },
+  viên: { gói: 10, hộp: 100 }
+};
+
+function ReceiptStatistics({ inspections = [] }) {
+  const convertUnit = (quantity, fromUnit, toUnit) => {
+    if (fromUnit === toUnit) return quantity;
+    const conversions = UNIT_CONVERSIONS[fromUnit];
+    if (conversions && conversions[toUnit]) {
+      return quantity * conversions[toUnit];
+    }
+    return quantity;
   };
 
   const calculatePercentage = (received, expected) => {
     return expected > 0 ? Math.round((received / expected) * 100) : 0;
   };
 
-  const convertUnit = (quantity, fromUnit, toUnit) => {
-    // Đơn giản hóa - trong thực tế cần logic chuyển đổi phức tạp hơn
-    if (fromUnit === toUnit) return quantity;
-    return quantity; // Tạm thời return như cũ
-  };
+  // Xử lý từng inspection để lấy thông tin mặt hàng, số lượng dự kiến, đơn giá...
+  const processedItems = inspections.map((inspection) => {
+    // Tìm detail tương ứng (medicine_id khớp) trong đơn hàng import_order_id.details
+    let detail = inspection.import_order_id?.details.find((d) => d.medicine_id.toString() === inspection.medicine_id.toString()) || {};
 
-  // Tính toán chi tiết cho từng mặt hàng
-  const processedItems = items.map((item, index) => {
-    const expectedQty = parseFloat(item.expectedQuantity) || 0;
-    const actualQty = parseFloat(item.actualQuantity) || 0;
-    const unitPrice = parseFloat(item.unitPrice) || 0;
+    const expectedQty = parseFloat(detail.quantity) || 0;
+    const unitPrice = parseFloat(detail.unit_price) || 0;
 
-    // Chuyển đổi đơn vị nếu khác nhau
-    const convertedActualQty = convertUnit(actualQty, item.actualUnit || item.expectedUnit, item.expectedUnit);
+    const actualQty = parseFloat(inspection.actual_quantity) || 0;
+    const rejectedQty = parseFloat(inspection.rejected_quantity) || 0;
 
-    // Tính số lượng trả lại (nếu dự kiến > thực nhận)
-    const returnedQty = Math.max(0, expectedQty - convertedActualQty);
+    // Giả định đơn vị đo lấy từ một trường mặc định hoặc chưa có thì dùng 'viên'
+    const expectedUnit = detail.unit_of_measure || 'viên';
+    const actualUnit = expectedUnit;
 
-    // Tính tỷ lệ nhận hàng
+    const convertedActualQty = convertUnit(actualQty, actualUnit, expectedUnit);
+    const totalInspectedQty = convertedActualQty + convertUnit(rejectedQty, expectedUnit, expectedUnit);
+
+    let status = 'pending';
+    if (totalInspectedQty === 0) status = 'pending';
+    else if (totalInspectedQty >= expectedQty) status = 'received';
+    else if (actualQty > 0 && totalInspectedQty < expectedQty) status = 'partial';
+    else if (actualQty === 0 && rejectedQty > 0) status = 'shortage';
+
+    const returnedQty = Math.max(0, expectedQty - totalInspectedQty);
+
     const receivedPercentage = calculatePercentage(convertedActualQty, expectedQty);
-
-    // Tính thành tiền (dựa trên số lượng thực nhận)
     const totalAmount = actualQty * unitPrice;
 
     return {
-      ...item,
-      id: index + 1,
+      id: inspection._id,
+      productCode: 'N/A', // Nếu cần bạn có thể map thêm từ một bảng thuốc hoặc thêm vào data backend
+      productName: 'Sản phẩm ID: ' + inspection.medicine_id, // Hoặc truyền sâu thêm tên thuốc ở backend
+      expectedUnit,
+      actualUnit,
       expectedQty,
       actualQty,
+      rejectedQty,
       convertedActualQty,
       returnedQty,
       receivedPercentage,
+      unitPrice,
       totalAmount,
-      unitPrice
+      status
     };
   });
 
-  // Tính lại totals từ processed items (để đảm bảo consistency)
   const recalculatedStats = {
     totalExpected: processedItems.reduce((sum, item) => sum + item.expectedQty, 0),
-    totalReceived: processedItems.reduce((sum, item) => sum + item.convertedActualQty, 0),
-    totalReturned: processedItems.reduce((sum, item) => sum + item.returnedQty, 0),
+    totalReceived: processedItems.reduce((sum, item) => sum + item.actualQty, 0),
+    totalRejected: processedItems.reduce((sum, item) => sum + item.rejectedQty, 0),
+    totalShortage: processedItems.reduce((sum, item) => sum + item.returnedQty, 0),
     totalValue: processedItems.reduce((sum, item) => sum + item.totalAmount, 0)
   };
 
-  const overallPercentage = calculatePercentage(recalculatedStats.totalReceived, recalculatedStats.totalExpected);
+  const overallReceivedPercentage = calculatePercentage(recalculatedStats.totalReceived, recalculatedStats.totalExpected);
 
-  // Trạng thái tổng quan
   const getOverallStatus = () => {
-    if (overallPercentage >= 100) return { status: 'success', text: 'Hoàn thành' };
-    if (overallPercentage >= 80) return { status: 'warning', text: 'Gần hoàn thành' };
-    if (overallPercentage > 0) return { status: 'info', text: 'Đang thực hiện' };
+    if (processedItems.length === 0) return { status: 'default', text: 'Chưa có dữ liệu' };
+    const allReceived = processedItems.every((item) => item.status === 'received');
+    const anyPartial = processedItems.some((item) => item.status === 'partial');
+    const anyShortage = processedItems.some((item) => item.status === 'shortage');
+
+    if (allReceived) return { status: 'success', text: 'Hoàn thành' };
+    if (anyPartial && !anyShortage) return { status: 'warning', text: 'Nhận một phần' };
+    if (anyShortage) return { status: 'error', text: 'Có thiếu hụt' };
+    if (overallReceivedPercentage > 0) return { status: 'info', text: 'Đang thực hiện' };
     return { status: 'default', text: 'Chưa bắt đầu' };
   };
 
   const overallStatus = getOverallStatus();
 
-  if (items.length === 0) {
+  if (inspections.length === 0) {
     return (
       <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">Chưa có mặt hàng nào để hiển thị thống kê. Vui lòng thêm sản phẩm vào phiếu nhập.</Typography>
+        <Typography variant="body2">Chưa có phiếu kiểm nhập nào được tạo cho đơn hàng này.</Typography>
       </Alert>
     );
   }
@@ -103,7 +131,7 @@ function ReceiptStatistics({ statistics, items = [] }) {
     <Box>
       {/* Thống kê tổng quan */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={3}>
+        <Grid item xs={12} sm={4}>
           <Card variant="outlined">
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="h4" color="primary.main">
@@ -116,42 +144,29 @@ function ReceiptStatistics({ statistics, items = [] }) {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={3}>
+        <Grid item xs={12} sm={4}>
           <Card variant="outlined">
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="h4" color="error.main">
-                {recalculatedStats.totalReturned.toLocaleString()}
+                {recalculatedStats.totalRejected.toLocaleString()}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Tổng thiếu hụt
+                Tổng từ chối
               </Typography>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={3}>
+        <Grid item xs={12} sm={4}>
           <Card variant="outlined">
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="h4" color="success.main">
-                {overallPercentage}%
+                {overallReceivedPercentage}%
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Tỷ lệ hoàn thành
               </Typography>
               <Chip label={overallStatus.text} color={overallStatus.status} size="small" sx={{ mt: 1 }} />
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={3}>
-          <Card variant="outlined">
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" color="info.main">
-                {recalculatedStats.totalValue.toLocaleString()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Tổng giá trị (₫)
-              </Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -161,51 +176,52 @@ function ReceiptStatistics({ statistics, items = [] }) {
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Tiến Độ Nhận Hàng
+            Tiến Độ Kiểm Nhập
           </Typography>
           <Box sx={{ mb: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2">
-                Đã nhận: {recalculatedStats.totalReceived.toLocaleString()}/{recalculatedStats.totalExpected.toLocaleString()} đơn vị
+                Đã kiểm: {recalculatedStats.totalReceived.toLocaleString()}/{recalculatedStats.totalExpected.toLocaleString()} đơn vị
               </Typography>
               <Typography variant="body2" fontWeight="medium">
-                {overallPercentage}%
+                {overallReceivedPercentage}%
               </Typography>
             </Box>
             <LinearProgress
               variant="determinate"
-              value={overallPercentage}
+              value={overallReceivedPercentage}
               sx={{
                 height: 12,
                 borderRadius: 6,
                 backgroundColor: 'grey.200',
                 '& .MuiLinearProgress-bar': {
                   borderRadius: 6,
-                  backgroundColor: overallPercentage >= 100 ? 'success.main' : overallPercentage >= 80 ? 'warning.main' : 'primary.main'
+                  backgroundColor:
+                    overallReceivedPercentage >= 100 ? 'success.main' : overallReceivedPercentage >= 80 ? 'warning.main' : 'primary.main'
                 }
               }}
             />
           </Box>
 
-          {recalculatedStats.totalReturned > 0 && (
+          {recalculatedStats.totalShortage > 0 && (
             <Box sx={{ mt: 2, p: 2, bgcolor: 'error.50', borderRadius: 1 }}>
               <Typography variant="body2" color="error.main" fontWeight="medium">
-                ⚠️ Thiếu hụt: {recalculatedStats.totalReturned.toLocaleString()} đơn vị (
-                {Math.round((recalculatedStats.totalReturned / recalculatedStats.totalExpected) * 100)}%)
+                ⚠️ Tổng thiếu hụt: {recalculatedStats.totalShortage.toLocaleString()} đơn vị (
+                {Math.round((recalculatedStats.totalShortage / recalculatedStats.totalExpected) * 100)}%)
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Cần liên hệ nhà cung cấp để bổ sung hàng hóa
+                Tổng số lượng còn thiếu so với dự kiến.
               </Typography>
             </Box>
           )}
         </CardContent>
       </Card>
 
-      {/* Chi tiết từng mặt hàng */}
+      {/* Chi tiết từng mặt hàng đã kiểm */}
       <Card variant="outlined">
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Chi Tiết Từng Mặt Hàng ({processedItems.length} sản phẩm)
+            Chi Tiết Các Mặt Hàng Đã Kiểm ({processedItems.length} sản phẩm)
           </Typography>
 
           <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 400 }}>
@@ -217,8 +233,8 @@ function ReceiptStatistics({ statistics, items = [] }) {
                   <TableCell>Đơn vị</TableCell>
                   <TableCell>Dự kiến</TableCell>
                   <TableCell>Thực nhận</TableCell>
-                  <TableCell>Thiếu hụt</TableCell>
-                  <TableCell>Tỷ lệ</TableCell>
+                  <TableCell>Từ chối</TableCell>
+                  <TableCell>Tỷ lệ nhận</TableCell>
                   <TableCell>Đơn giá</TableCell>
                   <TableCell>Thành tiền</TableCell>
                   <TableCell>Trạng thái</TableCell>
@@ -229,12 +245,12 @@ function ReceiptStatistics({ statistics, items = [] }) {
                   <TableRow>
                     <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
                       <Typography variant="body2" color="text.secondary">
-                        Chưa có sản phẩm nào
+                        Chưa có sản phẩm nào được kiểm tra.
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  processedItems.map((item, index) => {
+                  processedItems.map((item) => {
                     const getStatusColor = (status) => {
                       switch (status) {
                         case 'received':
@@ -251,32 +267,27 @@ function ReceiptStatistics({ statistics, items = [] }) {
                     const getStatusText = (status) => {
                       switch (status) {
                         case 'received':
-                          return 'Đã nhận đủ';
+                          return 'Đã đủ';
                         case 'partial':
-                          return 'Nhận một phần';
+                          return 'Một phần';
                         case 'shortage':
-                          return 'Thiếu hàng';
+                          return 'Thiếu';
                         default:
-                          return 'Chờ nhận';
+                          return 'Chờ kiểm';
                       }
                     };
 
                     return (
-                      <TableRow key={item.id || index} hover>
+                      <TableRow key={item.id} hover>
                         <TableCell>
                           <Typography variant="body2" fontWeight="medium">
-                            {item.productCode || 'N/A'}
+                            {item.productCode}
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2">{item.productName || 'Chưa nhập tên'}</Typography>
-                          {item.lotNumber && (
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Lô: {item.lotNumber}
-                            </Typography>
-                          )}
+                          <Typography variant="body2">{item.productName}</Typography>
                         </TableCell>
-                        <TableCell>{item.expectedUnit || 'N/A'}</TableCell>
+                        <TableCell>{item.expectedUnit}</TableCell>
                         <TableCell>
                           <Typography variant="body2" fontWeight="medium">
                             {item.expectedQty.toLocaleString()}
@@ -284,21 +295,12 @@ function ReceiptStatistics({ statistics, items = [] }) {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="primary.main" fontWeight="medium">
-                            {item.convertedActualQty.toLocaleString()}
+                            {item.actualQty.toLocaleString()}
                           </Typography>
-                          {item.actualUnit !== item.expectedUnit && (
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              ({item.actualQty} {item.actualUnit})
-                            </Typography>
-                          )}
                         </TableCell>
                         <TableCell>
-                          <Typography
-                            variant="body2"
-                            color={item.returnedQty > 0 ? 'error.main' : 'text.secondary'}
-                            fontWeight={item.returnedQty > 0 ? 'medium' : 'normal'}
-                          >
-                            {item.returnedQty.toLocaleString()}
+                          <Typography variant="body2" color="error.main" fontWeight="medium">
+                            {item.rejectedQty.toLocaleString()}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -343,29 +345,6 @@ function ReceiptStatistics({ statistics, items = [] }) {
               </TableBody>
             </Table>
           </TableContainer>
-
-          {processedItems.length > 0 && (
-            <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>Tổng số mặt hàng:</strong> {processedItems.length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>Đã hoàn thành:</strong> {processedItems.filter((item) => item.status === 'received').length}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>Nhận một phần:</strong> {processedItems.filter((item) => item.status === 'partial').length}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>Chưa nhận:</strong> {processedItems.filter((item) => item.status === 'pending').length}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Box>
-          )}
         </CardContent>
       </Card>
     </Box>

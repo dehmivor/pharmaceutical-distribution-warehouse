@@ -193,6 +193,21 @@ const getAvailableQuantityForImport = async (importOrderId) => {
   }, 0);
 };
 
+const getInspectionByImportOrderId = async (importOrderId) => {
+  const inspections = await ImportInspection.find({ import_order_id: importOrderId })
+    .populate('import_order_id')
+    .populate('created_by', 'name email')
+    .sort({ createdAt: -1 });
+
+  if (!inspections || inspections.length === 0) {
+    const error = new Error('No inspections found for this import order');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return inspections;
+};
+
 module.exports = {
   createMultipleInspections,
   getInspections,
@@ -202,4 +217,5 @@ module.exports = {
   getInspectionStatistics,
   getAvailableQuantityForImport,
   getInspectionsForApprove,
+  getInspectionByImportOrderId,
 };
