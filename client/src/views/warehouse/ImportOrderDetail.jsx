@@ -43,6 +43,7 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import SearchIcon from '@mui/icons-material/Search';
 import { useTheme } from '@mui/material/styles';
 
 const getAuthHeaders = () => {
@@ -53,6 +54,8 @@ const getAuthHeaders = () => {
   };
 };
 
+const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+const userId = userData.userId;
 
 
 function ImportOrderDetail() {
@@ -89,6 +92,10 @@ function ImportOrderDetail() {
   const [relatedBatchLocs, setRelatedBatchLocs] = useState([]);
   const [relatedMedLocs, setRelatedMedLocs] = useState([]);
   const [relatedError, setRelatedError] = useState(null);
+
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [searchPackageId, setSearchPackageId] = useState('');
+  const [highlightedPkgId, setHighlightedPkgId] = useState(null);
 
   const fetchPutAway = async () => {
     try {
@@ -227,9 +234,19 @@ function ImportOrderDetail() {
   const handleSubmitPutAway = async () => {
     try {
       const { location_id } = locForm;
-      await axios.patch(`/api/packages/${currentPkg._id}/location`, {
-        location_id
-      }, { headers: getAuthHeaders() });
+      // Grab the current warehouse user and the import‑order ID
+      const ware_house_id    = userId;       // or wherever you keep the logged‑in user’s ID
+      const import_order_id  = order._id;
+
+      await axios.patch(
+        `/api/packages/${currentPkg._id}/location`,
+        {
+          location_id,
+          ware_house_id,
+          import_order_id,
+        },
+        { headers: getAuthHeaders() }
+      );
       await fetchPutAway();
       closePutAwayModal();
     } catch (err) {
@@ -247,31 +264,23 @@ function ImportOrderDetail() {
       const batchCode = pkg.batch_id.batch_code;
       const expDate = pkg.batch_id.expiry_date?.slice(0, 10) || 'N/A';
       const orderIdStr = order._id;
-      const supplierName = order.supplier_contract_id?.supplier_id?.name || 'N/A';
+      const supplierName = order.contract_id?.partner_id?.name || 'N/A';
 
       // Fetch medicine details
-      const medId = pkg.batch_id?.medicine_id;
-      let medicineLabel = 'Unknown Medicine';
-      console.log(medId);
-      if (medId) {
-        const { data: medResp } = await axios.get(`/api/medicine/detail/${medId}`, {
-          headers: getAuthHeaders(),
-        });
-        if (medResp.success) {
-          const med = medResp.data.medicine;
-          medicineLabel = `${med.medicine_name} (${med.license_code})`;
-        }
-      }
+      const med = pkg.batch_id?.medicine_id;
+      const medicineLabel = med
+        ? `${med.medicine_name} (${med.license_code})`
+        : 'Unknown Medicine';
 
       // Render barcode to offscreen canvas
       const canvas = document.createElement('canvas');
       await bwipjs.toCanvas(canvas, {
-        bcid: 'code128',
-        text: pkgId,
-        scale: 3,
-        includetext: true,
-        textxalign: 'center',
-        textsize: 10,
+        bcid: 'qrcode',         // use the QR‑code generator
+        text: pkgId,            // data to encode
+        scale: 6,               // how many pixels per “module”
+        version: 5,             // 1–40, controls size; omit to auto‑fit
+        eclevel: 'M',           // error‑correction: L, M, Q, H
+        includeMargin: true,    // add a quiet zone around the code
       });
       const barcodeDataUrl = canvas.toDataURL('image/png');
 
@@ -327,6 +336,14 @@ function ImportOrderDetail() {
   const unarranged = putAway.filter(p => !p.location_id);
   const arranged = putAway.filter(p => !!p.location_id);
 
+  const openSearchModal = () => { setSearchPackageId(''); setSearchModalOpen(true); };
+  const closeSearchModal = () => { setSearchModalOpen(false); };
+  const handleSearchSubmit = () => {
+    const exists = putAway.some(p => p._id === searchPackageId);
+    setHighlightedPkgId(exists ? searchPackageId : null);
+    closeSearchModal();
+  };
+
   if (loading) return <Box textAlign="center" py={8}><CircularProgress /></Box>;
   if (error) return <Alert severity="error" sx={{ m: 4 }}>{error}</Alert>;
   if (!order) return <Alert severity="info" sx={{ m: 4 }}>Order not found</Alert>;
@@ -355,7 +372,7 @@ function ImportOrderDetail() {
             <Typography><strong>Items:</strong></Typography>
             {order.details.map(d => (
               <Typography key={d._id}>
-                • {d.medicine_id.medicine_name}: {d.quantity} @ {d.unit_price}
+                • {d.medicine_id.medicine_name} ({d.medicine_id.license_code}): {d.quantity}
               </Typography>
             ))}
           </AccordionDetails>
@@ -386,6 +403,12 @@ function ImportOrderDetail() {
               <IconButton onClick={fetchPutAway} size="small" sx={{ ml: 2 }} disabled={putAwayDone}>
                 <RefreshIcon />
               </IconButton>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 2 }}>
+                <IconButton onClick={openSearchModal} size="small">
+                  <SearchIcon />
+                </IconButton>
+                <Typography variant="body2">Find by package ID</Typography>
+              </Stack>
               {loadingPutAway ? (
                 <CircularProgress />
               ) : (
@@ -409,8 +432,15 @@ function ImportOrderDetail() {
                         </TableHead>
                         <TableBody>
                           {unarranged.map(pkg => (
-                            <TableRow key={pkg._id}>
-                              <TableCell>{pkg.batch_id.batch_code}</TableCell>
+                            <TableRow
+                              key={pkg._id}
+                              sx={pkg._id === highlightedPkgId
+                                ? { backgroundColor: 'rgba(255,255,0,0.3)' }
+                                : {}}
+                            >
+                              <TableCell>
+                                {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
+                              </TableCell>
                               <TableCell>{pkg.quantity}</TableCell>
                               <TableCell>
                                 <IconButton
@@ -464,8 +494,15 @@ function ImportOrderDetail() {
                         </TableHead>
                         <TableBody>
                           {arranged.map(pkg => (
-                            <TableRow key={pkg._id}>
-                              <TableCell>{pkg.batch_id.batch_code}</TableCell>
+                            <TableRow
+                              key={pkg._id}
+                              sx={pkg._id === highlightedPkgId
+                                ? { backgroundColor: 'rgba(255,255,0,0.3)' }
+                                : {}}
+                            >
+                              <TableCell>
+                                {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
+                              </TableCell>
                               <TableCell>{pkg.quantity}</TableCell>
                               <TableCell>
                                 {pkg.location_id
@@ -598,6 +635,32 @@ function ImportOrderDetail() {
             <Button onClick={() => setRelatedModalOpen(false)}>Close</Button>
           </DialogActions>
         </Dialog>
+        {/* 3) The Search Modal */}
+        <Dialog open={searchModalOpen} onClose={closeSearchModal}>
+          <DialogTitle>Find Package</DialogTitle>
+          <DialogContent>
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                handleSearchSubmit();
+              }}
+            >
+              <Stack spacing={2} sx={{ mt: 1, minWidth: 300 }}>
+                <TextField
+                  label="Package ID"
+                  fullWidth
+                  value={searchPackageId}
+                  onChange={e => setSearchPackageId(e.target.value)}
+                  autoFocus
+                />
+                <Button type="submit" variant="contained">
+                  Search
+                </Button>
+              </Stack>
+            </form>
+          </DialogContent>
+        </Dialog>
+
       </Container>
     </Box>
   );
