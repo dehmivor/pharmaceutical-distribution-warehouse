@@ -145,6 +145,19 @@ const getInspectionStatistics = async (req, res) => {
   }
 };
 
+const getInspectionByImportOrderId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const inspections = await importInspectionService.getInspectionByImportOrderId(id);
+
+    return res.json(inspections);
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createMultipleInspections,
   getInspections,
@@ -153,4 +166,5 @@ module.exports = {
   deleteInspection,
   getInspectionStatistics,
   getInspectionForApprove,
+  getInspectionByImportOrderId,
 };

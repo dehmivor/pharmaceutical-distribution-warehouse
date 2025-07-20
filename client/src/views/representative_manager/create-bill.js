@@ -42,6 +42,29 @@ export default function CreateDebtNoteTab() {
     setOrderDialog((prev) => ({ ...prev, open: true, currentPage: 1 }));
   };
 
+  const createBill = async (billData) => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      const response = await fetch(`${backendUrl}/api/bills`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(billData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create bill');
+      }
+
+      const data = await response.json();
+      return data.data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const handleCloseOrderDialog = () => {
     setOrderDialog((prev) => ({
       ...prev,
@@ -148,9 +171,16 @@ export default function CreateDebtNoteTab() {
       {orderData._id && (
         <PaymentVoucherForm
           orderData={orderData}
-          onSubmit={(billData) => {
-            console.log('Phiếu công nợ được tạo:', billData);
-            showAlert('Tạo phiếu công nợ thành công!', 'success');
+          onSubmit={async (billData) => {
+            try {
+              const createdBill = await createBill(billData);
+              console.log('Phiếu công nợ được tạo:', createdBill);
+              showAlert('Tạo phiếu công nợ thành công!', 'success');
+              setOrderData({});
+            } catch (error) {
+              console.error('Lỗi tạo phiếu công nợ:', error);
+              showAlert(`Tạo phiếu công nợ thất bại: ${error.message}`, 'error');
+            }
           }}
         />
       )}

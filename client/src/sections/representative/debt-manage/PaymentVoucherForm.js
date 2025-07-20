@@ -3,11 +3,13 @@ import { Box, TextField, Button, Typography } from '@mui/material';
 import { format } from 'date-fns';
 
 export default function PaymentVoucherForm({ orderData, onSubmit }) {
+  // Lấy id import hoặc export order từ orderData
   const importOrderId = orderData._id || orderData.import_order_id || null;
+  const exportOrderId = orderData.export_order_id || null;
 
   const [formData, setFormData] = useState({
     voucher_code: '',
-    payment_date: format(new Date(), 'yyyy-MM-dd'), // dùng date-fns thay cho dayjs
+    payment_date: format(new Date(), 'yyyy-MM-dd'), // Mặc định ngày hiện tại
     status: 'PENDING',
     amountOwed: '',
     description: ''
@@ -17,7 +19,6 @@ export default function PaymentVoucherForm({ orderData, onSubmit }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({
       ...prev,
       [name]: value
@@ -39,7 +40,7 @@ export default function PaymentVoucherForm({ orderData, onSubmit }) {
 
     setErrors(newErrors);
 
-    // return true nếu không có lỗi
+    // Trả về true nếu không có lỗi
     return Object.keys(newErrors).length === 0;
   };
 
@@ -48,20 +49,31 @@ export default function PaymentVoucherForm({ orderData, onSubmit }) {
 
     if (!validate()) return;
 
+    // Tạo mảng details từ orderData.items
+    const detailsFromOrder = (orderData.items || []).map((item) => ({
+      medicine_lisence_code: item.productCode || '',
+      quantity: item.orderedQuantity || 0,
+      unit_price: item.unitPrice || 0
+    }));
+
+    // Detail phần công nợ thanh toán
+    const debtDetail = {
+      medicine_lisence_code: 'DEBT',
+      quantity: 1,
+      unit_price: Number(formData.amountOwed)
+    };
+
     const billData = {
-      import_order_id: importOrderId,
       type: 'PAYMENT_VOUCHER',
       voucher_code: formData.voucher_code.trim(),
-      payment_date: new Date(formData.payment_date), // giữ nguyên như cũ
+      payment_date: new Date(formData.payment_date),
       status: formData.status,
-      details: [
-        {
-          medicine_lisence_code: 'DEBT',
-          quantity: 1,
-          unit_price: Number(formData.amountOwed)
-        }
-      ]
+      details: [...detailsFromOrder, debtDetail]
     };
+
+    // Gán import_order_id hoặc export_order_id nếu có
+    if (importOrderId) billData.import_order_id = importOrderId;
+    else if (exportOrderId) billData.export_order_id = exportOrderId;
 
     if (formData.description.trim()) {
       billData.description = formData.description.trim();
