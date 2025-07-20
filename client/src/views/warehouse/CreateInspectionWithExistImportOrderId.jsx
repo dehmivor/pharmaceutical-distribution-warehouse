@@ -3,7 +3,8 @@ import { useParams } from 'next/navigation';
 import { useAlert } from '@/hooks/useAlert';
 import { useEffect, useState } from 'react';
 import EnhancedReceiptForm from '@/sections/warehouse/create-inspect/EnhancedReceiptForm';
-import { Alert, Box, CircularProgress, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
+import { enqueueSnackbar } from 'notistack';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -121,10 +122,13 @@ export default function CreateInspectionWithExistImportOrderId() {
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
-        Tạo Phiếu Kiểm Tra Đơn Nhập
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Typography variant="h4">Tạo Phiếu Kiểm Tra Đơn Nhập</Typography>
 
+        <Button variant="outlined" onClick={() => enqueueSnackbar('You have sent require to warehouse manager', { variant: 'info' })}>
+          Ask for Warehouse Manager to create inspect
+        </Button>
+      </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Tạo phiếu kiểm nhập từ đơn đặt hàng đã chọn
       </Typography>
