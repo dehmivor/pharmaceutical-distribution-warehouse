@@ -4,7 +4,6 @@ const supervisor = {
   icon: 'IconBrandAsana',
   type: 'group',
   children: [
-    // 1. Quản lý người dùng & quyền
     {
       id: 'user-management',
       title: 'User & Role',
@@ -20,7 +19,6 @@ const supervisor = {
         }
       ]
     },
-    // 2. Quản lý đơn hàng
     {
       id: 'order-management',
       title: 'Order Management',
@@ -43,7 +41,6 @@ const supervisor = {
         }
       ]
     },
-    // 3. Quản lý sản phẩm (thuốc)
     {
       id: 'medicine-management',
       title: 'Medicine Management',
@@ -59,7 +56,6 @@ const supervisor = {
         }
       ]
     },
-    // 4. Quản lý tài liệu & hệ thống
     {
       id: 'document-system-management',
       title: 'Document & System',
@@ -67,33 +63,11 @@ const supervisor = {
       icon: 'IconFileContract',
       children: [
         {
-          id: 'manage-contracts',
-          title: 'Manage Contracts',
-          type: 'item',
-          url: '/sp-manage-contract',
-          icon: 'IconFileContract'
-        },
-        {
           id: 'manage-bills',
           title: 'Manage Bills',
           type: 'item',
           url: '/sp-manage-bills',
           icon: 'IconReceipt'
-        }
-      ]
-    },
-    {
-      id: 'contract-management',
-      title: 'Contract Management',
-      type: 'collapse',
-      icon: 'IconFileInvoice',
-      children: [
-        {
-          id: 'manage-economic-contracts',
-          title: 'Economic Contracts',
-          type: 'item',
-          url: '/sp-manage-economic-contracts',
-          icon: 'IconFileInvoice'
         }
       ]
     }

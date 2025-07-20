@@ -2,27 +2,44 @@ const ImportInspection = require('../models/ImportInspection');
 const ImportOrder = require('../models/ImportOrder');
 const Batch = require('../models/Batch');
 
-// Tạo phiếu kiểm tra mới
-const createInspection = async (inspectionData) => {
-  // Kiểm tra import order tồn tại
-  const importOrder = await ImportOrder.findById(inspectionData.import_order_id);
-  if (!importOrder) {
-    const error = new Error('Import order not found');
-    error.statusCode = 404;
-    throw error;
+const createMultipleInspections = async (listInspectionData) => {
+  if (
+    listInspectionData &&
+    !Array.isArray(listInspectionData) &&
+    Array.isArray(listInspectionData.inspections)
+  ) {
+    listInspectionData = listInspectionData.inspections;
   }
 
-  // Kiểm tra logic nghiệp vụ
-  if (inspectionData.rejected_quantity > inspectionData.actual_quantity) {
-    const error = new Error('Rejected quantity cannot exceed actual quantity');
+  if (listInspectionData.length === 0) {
+    const error = new Error('Input data must be a non-empty array');
     error.statusCode = 400;
     throw error;
   }
 
-  const inspection = new ImportInspection(inspectionData);
-  await inspection.save();
+  // Validate từng phiếu trước khi lưu
+  for (const data of listInspectionData) {
+    // Kiểm tra import order tồn tại
+    const importOrder = await ImportOrder.findById(data.import_order_id);
+    if (!importOrder) {
+      const error = new Error(`Import order ${data.import_order_id} not found`);
+      error.statusCode = 404;
+      throw error;
+    }
 
-  return await getInspectionById(inspection._id);
+    // Kiểm tra rejected không vượt actual
+    if (data.rejected_quantity > data.actual_quantity) {
+      const error = new Error('Rejected quantity cannot exceed actual quantity');
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
+  // Tạo nhiều bản ghi cùng lúc
+  const inspections = await ImportInspection.insertMany(listInspectionData);
+
+  // Optional: lấy chi tiết từng phiếu sau khi tạo
+  return inspections;
 };
 
 // Lấy danh sách phiếu kiểm tra với phân trang
@@ -177,7 +194,7 @@ const getAvailableQuantityForImport = async (importOrderId) => {
 };
 
 module.exports = {
-  createInspection,
+  createMultipleInspections,
   getInspections,
   getInspectionById,
   updateInspection,

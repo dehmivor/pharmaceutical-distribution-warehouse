@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  Grid,
   InputLabel,
   MenuItem,
   Paper,
@@ -62,6 +63,8 @@ const RepresentativeManagerImportOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [contracts, setContracts] = useState([]);
+  const [detailsDialog, setDetailsDialog] = useState(false);
+  const [selectedOrderForDetails, setSelectedOrderForDetails] = useState(null);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -175,6 +178,16 @@ const RepresentativeManagerImportOrders = () => {
   const handleCloseStatusDialog = useCallback(() => {
     setStatusDialog(false);
     setSelectedOrder(null);
+  }, []);
+
+  const handleViewDetails = useCallback((order) => {
+    setSelectedOrderForDetails(order);
+    setDetailsDialog(true);
+  }, []);
+
+  const handleCloseDetailsDialog = useCallback(() => {
+    setDetailsDialog(false);
+    setSelectedOrderForDetails(null);
   }, []);
 
   // Check if order can be edited by representative manager
@@ -397,7 +410,12 @@ const RepresentativeManagerImportOrders = () => {
                               </>
                             )}
                             {isOrderLocked(order) && <Chip label="LOCKED" color="error" size="small" variant="outlined" />}
-                            <IconButton size="small" color="info" title="View Details">
+                            <IconButton 
+                              size="small" 
+                              color="info" 
+                              title="View Details"
+                              onClick={() => handleViewDetails(order)}
+                            >
                               <ViewIcon />
                             </IconButton>
                           </Box>
@@ -422,6 +440,191 @@ const RepresentativeManagerImportOrders = () => {
         loading={updatingStatus}
         nextStatus={selectedOrder?.nextStatus}
       />
+
+      {/* Details Dialog */}
+      <Dialog open={detailsDialog} onClose={handleCloseDetailsDialog} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>
+          Import Order Details
+        </DialogTitle>
+        <DialogContent>
+          {selectedOrderForDetails && (
+            <Box sx={{ mt: 2 }}>
+              {/* Basic Info */}
+              <Paper sx={{ p: 2, mb: 3 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="subtitle2" color="text.secondary">Order ID</Typography>
+                    <Typography variant="body2">{selectedOrderForDetails._id}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="subtitle2" color="text.secondary">Contract</Typography>
+                    <Typography variant="body2">{selectedOrderForDetails.contract_id?.contract_code}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="subtitle2" color="text.secondary">Status</Typography>
+                    <Chip 
+                      label={selectedOrderForDetails.status?.toUpperCase()} 
+                      color={getStatusColor(selectedOrderForDetails.status)} 
+                      size="small" 
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Typography variant="subtitle2" color="text.secondary">Total Amount</Typography>
+                    <Typography variant="body2">{formatCurrency(selectedOrderForDetails.total_amount)}</Typography>
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* Comparison Tables */}
+              <Grid container spacing={3}>
+                {/* Import Order Table */}
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" gutterBottom>Import Order Items</Typography>
+                  <TableContainer component={Paper}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Medicine</TableCell>
+                          <TableCell align="right">Quantity</TableCell>
+                          <TableCell align="right">Unit Price</TableCell>
+                          <TableCell align="right">Total</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {selectedOrderForDetails.details?.map((detail, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              {detail.medicine_id?.medicine_name || 'N/A'}
+                              <br />
+                              <Typography variant="caption" color="text.secondary">
+                                {detail.medicine_id?.license_code || 'N/A'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">{detail.quantity}</TableCell>
+                            <TableCell align="right">{formatCurrency(detail.unit_price)}</TableCell>
+                            <TableCell align="right">{formatCurrency((detail.quantity || 0) * (detail.unit_price || 0))}</TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow sx={{ backgroundColor: 'grey.100' }}>
+                          <TableCell colSpan={3}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                              Total
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                              {formatCurrency(
+                                selectedOrderForDetails.details?.reduce(
+                                  (sum, detail) => sum + ((detail.quantity || 0) * (detail.unit_price || 0)),
+                                  0
+                                )
+                              )}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Grid>
+
+                {/* Contract Table */}
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" gutterBottom>Contract Items</Typography>
+                  <TableContainer component={Paper}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Medicine</TableCell>
+                          <TableCell align="right">Quantity</TableCell>
+                          <TableCell align="right">Unit Price</TableCell>
+                          <TableCell align="right">Status</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {selectedOrderForDetails.contract_id?.items?.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              {item.medicine_id?.medicine_name || 'N/A'}
+                              <br />
+                              <Typography variant="caption" color="text.secondary">
+                                {item.medicine_id?.license_code || 'N/A'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">{item.quantity || 'N/A'}</TableCell>
+                            <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
+                            <TableCell align="center">
+                              <Chip 
+                                label="ACTIVE" 
+                                color="success" 
+                                size="small" 
+                                variant="outlined"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {(!selectedOrderForDetails.contract_id?.items || selectedOrderForDetails.contract_id?.items.length === 0) && (
+                          <TableRow>
+                            <TableCell colSpan={4} align="center">
+                              <Typography color="text.secondary">No contract items found</Typography>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Grid>
+              </Grid>
+
+              {/* Validation Summary */}
+              <Paper sx={{ p: 2, mt: 3 }}>
+                <Typography variant="h6" gutterBottom>Validation Summary</Typography>
+                <Grid container spacing={2}>
+                                      {selectedOrderForDetails.details?.map((detail, index) => {
+                      const contractItem = selectedOrderForDetails.contract_id?.items?.find(
+                        item => item.medicine_id?._id === detail.medicine_id?._id
+                      );
+                      
+                      const isQuantityValid = contractItem ? detail.quantity >= contractItem.quantity : false;
+                      const isPriceValid = contractItem ? detail.unit_price === contractItem.unit_price : false;
+                      
+                      return (
+                        <Grid item xs={12} sm={6} md={4} key={index}>
+                          <Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                              {detail.medicine_id?.medicine_name}
+                            </Typography>
+                            <Typography variant="body2">
+                              Quantity: {detail.quantity} 
+                              <span style={{ color: isQuantityValid ? 'green' : 'red', marginLeft: 8 }}>
+                                {isQuantityValid ? '✓ Valid' : `✗ Contract: ${contractItem?.quantity || 'N/A'}`}
+                              </span>
+                            </Typography>
+                            <Typography variant="body2">
+                              Price: {formatCurrency(detail.unit_price)}
+                              <span style={{ color: isPriceValid ? 'green' : 'red', marginLeft: 8 }}>
+                                {isPriceValid ? '✓ Match' : '✗ Mismatch'}
+                              </span>
+                            </Typography>
+                            {!contractItem && (
+                              <Typography variant="body2" color="error">
+                                ⚠️ Not in contract
+                              </Typography>
+                            )}
+                          </Box>
+                        </Grid>
+                      );
+                    })}
+                </Grid>
+              </Paper>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
+          <Button onClick={handleCloseDetailsDialog} variant="outlined" sx={{ minWidth: 120 }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

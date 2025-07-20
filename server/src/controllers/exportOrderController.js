@@ -1,11 +1,10 @@
 const ExportOrder = require("../models/ExportOrder")
 const User = require("../models/User")
 const { EXPORT_ORDER_STATUSES, USER_ROLES } = require("../utils/constants")
-const exportOrderService = require('../services/exportOrderService');
 
 // Helper function for population to ensure consistent data structure
 const populateOptions = [
-  { path: "contract_id", select: "contract_code" }, // Đã sửa từ contract_number sang contract_code
+  { path: "contract_id", select: "contract_code" },
   { path: "created_by", select: "email" },
   { path: "warehouse_manager_id", select: "email" }, // Populating assigned staff's email
   { path: "details.medicine_id", select: "medicine_name unit_of_measure" }, // Populating medicine details
@@ -14,7 +13,7 @@ const populateOptions = [
 /**
  * @desc    Get all export orders
  * @route   GET /api/export-orders
- * @access  Private (Warehouse Manager)
+ * @access  Private (Warehouse Manager, Warehouse)
  */
 exports.getAllExportOrders = async (req, res, next) => {
   try {
@@ -24,7 +23,7 @@ exports.getAllExportOrders = async (req, res, next) => {
     next(error)
   }
 }
- 
+
 /**
  * @desc    Assign staff to an export order
  * @route   PUT /api/export-orders/:id/assign-staff
@@ -60,7 +59,7 @@ exports.assignStaffToExportOrder = async (req, res, next) => {
 /**
  * @desc    Update packing details for an export order
  * @route   PUT /api/export-orders/:id/update-packing
- * @access  Private (Warehouse Manager)
+ * @access  Private (Warehouse Manager, Warehouse)
  */
 exports.updatePackingDetails = async (req, res, next) => {
   try {
@@ -102,17 +101,7 @@ exports.completeExportOrder = async (req, res, next) => {
       return res.status(404).json({ success: false, error: "Export Order not found" })
     }
 
-    // Check if all actual quantities meet expected quantities
-    const hasInsufficientQuantity = order.details.some((detail) => detail.actual_quantity < detail.expected_quantity)
-
-    if (hasInsufficientQuantity) {
-      // If quantities are insufficient, return an error or prompt for cancellation
-      return res.status(400).json({
-        success: false,
-        error: "Cannot complete: Some items have insufficient actual quantity. Consider cancelling the order.",
-      })
-    }
-
+    // Loại bỏ kiểm tra số lượng khi hoàn thành đơn hàng cho warehouse_manager
     order.status = EXPORT_ORDER_STATUSES.COMPLETED
     await order.save()
 
@@ -146,56 +135,3 @@ exports.cancelExportOrder = async (req, res, next) => {
     next(error)
   }
 }
-
-/**
- * @desc    Representative tạo export order (trạng thái draft)
- * @route   POST /api/export-orders
- * @access  Private (Representative)
- */
-exports.createExportOrder = async (req, res, next) => {
-  try {
-    const userId = req.user.userId; // Lấy từ middleware xác thực, dạng string
-    console.log('POST /api/export-orders body:', req.body); // Log dữ liệu nhận được
-    const order = await exportOrderService.createExportOrder(req.body, userId);
-    res.status(201).json({ success: true, data: order });
-  } catch (error) {
-    console.error('Create export order error:', error); // Log lỗi chi tiết
-    next(error);
-  }
-};
-
-/**
- * @desc    RM duyệt và gán warehouse manager cho export order
- * @route   PUT /api/export-orders/:id/approve
- * @access  Private (Representative Manager)
- */
-exports.approveExportOrder = async (req, res, next) => {
-  try {
-    const rmId = req.user._id; // Lấy từ middleware xác thực
-    const { warehouse_manager_id } = req.body;
-    const { id } = req.params;
-    const order = await exportOrderService.approveExportOrder(id, rmId, warehouse_manager_id);
-    res.status(200).json({ success: true, data: order });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * @desc    Gán warehouse manager cho export order
- * @route   PUT /api/export-orders/:id/assign-warehouse-manager
- * @access  Private (Representative Manager)
- */
-exports.assignWarehouseManager = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { warehouse_manager_id } = req.body;
-    if (!warehouse_manager_id) {
-      return res.status(400).json({ success: false, error: 'warehouse_manager_id is required' });
-    }
-    const updatedOrder = await exportOrderService.assignWarehouseManager(id, warehouse_manager_id);
-    res.status(200).json({ success: true, data: updatedOrder });
-  } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
-  }
-};

@@ -42,6 +42,7 @@ import { useRole } from '@/contexts/RoleContext';
 import EconomicContractEditDialog from './EconomicContractEditDialog'; // Import the edit dialog component
 import ContractAddDialog from './ContractAddDialog'; // Import the new unified add dialog component
 import StatusActionDialog from './StatusActionDialog';
+import PrincipalContractEditDialog from './PrincipalContractEditDialog'; // Import the unified principal contract dialog
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => {
@@ -116,6 +117,7 @@ const ContractManagement = () => {
 
       if (response.data.success) {
         setContracts(response.data.data.contracts);
+        setFilterOptions(response.data.filterOptions);
         setTotalCount(response.data.data.pagination.total);
       }
     } catch (error) {
@@ -174,20 +176,6 @@ const ContractManagement = () => {
       console.error('Error fetching medicines:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Fetch filter options
-  const fetchFilterOptions = async () => {
-    try {
-      const response = await axiosInstance.get(`/api/contract/filter-options`, {
-        headers: getAuthHeaders()
-      });
-      if (response.data.success) {
-        setFilterOptions(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching filter options:', error);
     }
   };
 
@@ -304,7 +292,6 @@ const ContractManagement = () => {
         { status: newStatus },
         { headers: getAuthHeaders() }
       );
-
       if (response.data.success) {
         const actionMessages = {
           confirm: 'Xác nhận',
@@ -314,28 +301,26 @@ const ContractManagement = () => {
         };
 
         setSuccess(`${actionMessages[actionType]} hợp đồng thành công`);
-        setOpenActionDialog(false);
-        setSelectedContract(null);
-        fetchContracts();
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Có lỗi xảy ra');
     } finally {
       setActionLoading(false);
+      setOpenActionDialog(false);
+      setSelectedContract(null);
+      fetchContracts();
     }
   };
 
   useEffect(() => {
     if (!isLoading) {
-      console.log('Role', userRole);
       if (userRole === 'representative') {
-        fetchFilterOptions();
         fetchSuppliers();
         fetchRetailers();
         fetchMedicines();
       }
     }
-  }, []);
+  }, [isLoading, userRole]);
 
   useEffect(() => {
     fetchContracts();
@@ -610,6 +595,21 @@ const ContractManagement = () => {
                             <ViewIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        {contract.status === 'rejected' && (
+                          <Tooltip title="Chuyển về nháp">
+                            <IconButton
+                              color="primary"
+                              size="small"
+                              onClick={() => openDraftDialog(contract)}
+                              sx={{
+                                bgcolor: 'primary.50',
+                                '&:hover': { bgcolor: 'primary.100' }
+                              }}
+                            >
+                              <RestoreIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         {(contract.status === 'draft' || contract.status === 'rejected') && (
                           <>
                             <Tooltip title="Chỉnh sửa">
@@ -646,24 +646,10 @@ const ContractManagement = () => {
                             </Tooltip>
                           </>
                         )}
-                        {contract.status === 'rejected' && (
-                          <Tooltip title="Chuyển về nháp">
-                            <IconButton
-                              color="primary"
-                              size="small"
-                              onClick={() => openDraftDialog(contract)}
-                              sx={{
-                                bgcolor: 'primary.50',
-                                '&:hover': { bgcolor: 'primary.100' }
-                              }}
-                            >
-                              <RestoreIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
+                      
                       </Box>
                     )}
-                    {userRole === 'supervisor' && (
+                    {userRole === 'representative_manager' && (
                       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-start' }}>
                         <Tooltip title="Xem chi tiết">
                           <IconButton
@@ -729,30 +715,7 @@ const ContractManagement = () => {
         />
       </Card>
 
-      <EconomicContractEditDialog
-        open={openEditDialog}
-        onClose={() => {
-          setOpenEditDialog(false);
-        }}
-        contract={selectedContract}
-        onSuccess={handleUpdateContractSuccess}
-        suppliers={suppliers}
-        retailers={retailers}
-        medicines={medicines}
-      />
-
-      <EconomicContractEditDialog
-        open={openViewDialog}
-        onClose={() => {
-          setOpenViewDialog(false);
-        }}
-        contract={selectedContract}
-        suppliers={suppliers}
-        retailers={retailers}
-        medicines={medicines}
-        viewDetail={true}
-      />
-
+      {/* Dialogs */}
       <ContractAddDialog
         open={openAddDialog}
         onClose={() => setOpenAddDialog(false)}
@@ -762,12 +725,65 @@ const ContractManagement = () => {
         medicines={medicines}
       />
 
+      {/* View Dialog - Economic Contract */}
+      {selectedContract && selectedContract.contract_type === 'economic' && (
+        <EconomicContractEditDialog
+          open={openViewDialog}
+          onClose={() => setOpenViewDialog(false)}
+          contract={selectedContract}
+          suppliers={suppliers}
+          retailers={retailers}
+          medicines={medicines}
+          isViewMode={true}
+        />
+      )}
+
+      {/* View Dialog - Principal Contract */}
+      {selectedContract && selectedContract.contract_type === 'principal' && (
+        <PrincipalContractEditDialog
+          open={openViewDialog}
+          onClose={() => setOpenViewDialog(false)}
+          contract={selectedContract}
+          suppliers={suppliers}
+          retailers={retailers}
+          medicines={medicines}
+          isViewMode={true}
+        />
+      )}
+
+      {/* Edit Dialog - Economic Contract */}
+      {selectedContract && selectedContract.contract_type === 'economic' && (
+        <EconomicContractEditDialog
+          open={openEditDialog}
+          onClose={() => setOpenEditDialog(false)}
+          contract={selectedContract}
+          suppliers={suppliers}
+          retailers={retailers}
+          medicines={medicines}
+          onSuccess={handleUpdateContractSuccess}
+        />
+      )}
+
+      {/* Edit Dialog - Principal Contract */}
+      {selectedContract && selectedContract.contract_type === 'principal' && (
+        <PrincipalContractEditDialog
+          open={openEditDialog}
+          onClose={() => setOpenEditDialog(false)}
+          contract={selectedContract}
+          suppliers={suppliers}
+          retailers={retailers}
+          medicines={medicines}
+          onSuccess={handleUpdateContractSuccess}
+        />
+      )}
+
+      {/* Status Action Dialog */}
       <StatusActionDialog
         open={openActionDialog}
         onClose={() => setOpenActionDialog(false)}
-        onConfirm={handleStatusAction}
-        contract={selectedContract}
         actionType={actionType}
+        contract={selectedContract}
+        onConfirm={handleStatusAction}
         loading={actionLoading}
       />
     </Box>

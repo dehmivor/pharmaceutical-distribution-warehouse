@@ -53,8 +53,6 @@ const useInspection = () => {
       setError(null);
 
       try {
-        console.log('🔍 Raw inspection data:', inspectionData);
-
         if (userLoading) {
           throw new Error('Đang tải thông tin người dùng, vui lòng thử lại');
         }
@@ -65,33 +63,61 @@ const useInspection = () => {
           throw new Error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
         }
 
-        if (!inspectionData.import_order_id) {
-          throw new Error('Import Order ID is required');
+        // Kiểm tra dữ liệu đầu vào
+        // Nếu inspectionData là mảng thì xử lý theo mảng
+        let payload = [];
+
+        if (Array.isArray(inspectionData)) {
+          payload = inspectionData.map((item) => ({
+            import_order_id: item.import_order_id,
+            medicine_id: item.medicine_id,
+            actual_quantity: Number(item.actual_quantity || 0),
+            rejected_quantity: Number(item.rejected_quantity || 0),
+            note: item.note || '',
+            created_by: currentUserId
+          }));
+        } else if (typeof inspectionData === 'object' && inspectionData !== null) {
+          // Nếu là object đơn, chuyển về mảng 1 phần tử
+          payload = [
+            {
+              import_order_id: inspectionData.import_order_id,
+              medicine_id: inspectionData.medicine_id || null,
+              actual_quantity: Number(inspectionData.actual_quantity || 0),
+              rejected_quantity: Number(inspectionData.rejected_quantity || 0),
+              note: inspectionData.note || '',
+              created_by: currentUserId
+            }
+          ];
+        } else {
+          throw new Error('Dữ liệu phiếu nhập không hợp lệ (phải là đối tượng hoặc mảng).');
         }
 
-        // ✅ Sử dụng user ID thực tế thay vì hardcode
-        const transformedData = {
-          import_order_id: inspectionData.import_order_id, // ✅ Sử dụng giá trị thực
-          actual_quantity: Number(inspectionData.total_received || inspectionData.actual_quantity || 0),
-          rejected_quantity: Number(inspectionData.total_returned || inspectionData.rejected_quantity || 0),
-          note: String(inspectionData.notes || inspectionData.note || ''),
-          created_by: currentUserId // ✅ Sử dụng user ID thực tế
-        };
-
-        console.log('📤 Transformed data:', transformedData);
-        console.log('👤 Current user:', { id: currentUserId, name: user?.name || 'Unknown' });
-
-        if (transformedData.actual_quantity < 0 || transformedData.rejected_quantity < 0) {
-          throw new Error('Số lượng không được âm');
+        // Validate số lượng không âm và rejected <= actual cho từng phần tử
+        for (const item of payload) {
+          if (item.actual_quantity < 0 || item.rejected_quantity < 0) {
+            throw new Error('Số lượng không được âm');
+          }
+          if (item.rejected_quantity > item.actual_quantity) {
+            throw new Error('Số lượng từ chối không được vượt quá số lượng thực nhận');
+          }
+          if (!item.import_order_id) {
+            throw new Error('Import Order ID là bắt buộc');
+          }
+          if (!item.medicine_id) {
+            throw new Error('Medicine ID là bắt buộc');
+          }
         }
 
         const headers = getAuthHeaders();
-        const response = await axios.post('/api/inspections', transformedData, {
+
+        // Gọi API POST mảng
+        const response = await axios.post('/api/inspections', payload, {
           headers,
           baseURL: backendUrl
         });
 
         console.log('✅ Create inspection success:', response.data);
+
         return response.data;
       } catch (error) {
         console.error('❌ Create inspection error:', {

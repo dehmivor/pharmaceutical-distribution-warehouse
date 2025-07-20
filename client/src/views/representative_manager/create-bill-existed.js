@@ -61,7 +61,7 @@ function CreateBillWithExistId() {
 
         let supplierOrCustomer = '';
         if (data.type === 'IMPORT' && data.import_order_id) {
-          supplierOrCustomer = data.import_order_id.supplier_contract_id?.contract_name || 'N/A nhà cung cấp';
+          // supplierOrCustomer = data.import_order_id.supplier_contract_id?.contract_name || 'N/A nhà cung cấp';
           setBillType('chi');
         } else if (data.type === 'EXPORT' && data.export_order_id) {
           supplierOrCustomer = data.export_order_id.contract_id?.contract_name || 'N/A khách hàng';

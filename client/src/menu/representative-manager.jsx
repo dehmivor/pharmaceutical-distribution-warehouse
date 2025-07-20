@@ -24,7 +24,14 @@ const representativeManager = {
       type: 'item',
       url: '/manage-export-orders-approval',
       icon: 'IconFileExport'
-    }
+    },
+    {
+      id: 'rm-manage-contracts',
+      title: 'Manage Contracts',
+      type: 'item',
+      url: '/rm-manage-contracts',
+      icon: 'IconFileInvoice'
+    },
   ]
 };
 

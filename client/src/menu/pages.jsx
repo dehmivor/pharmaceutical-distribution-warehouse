@@ -10,7 +10,7 @@ const pages = {
       id: 'dashboard',
       title: 'Overview',
       type: 'item',
-      url: '/dashboard',
+      url: '/dashboard-debt',
       icon: 'IconLayoutDashboard'
     },
     {
