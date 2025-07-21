@@ -12,7 +12,6 @@ const exportOrderSchema = new mongoose.Schema(
       required: [true, "Contract ID is required"],
     },
     warehouse_manager_id: {
-      // This field will be used for the assigned warehouse staff
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
