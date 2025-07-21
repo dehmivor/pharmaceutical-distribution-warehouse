@@ -155,7 +155,10 @@ const CONTRACT_TYPES = {
 const EXPORT_ORDER_STATUSES = {
   DRAFT: 'draft',
   APPROVED: 'approved',
+  PACKING: 'packing',
+  DELIVERED: 'delivered',
   COMPLETED: 'completed',
+  RETURNED: 'returned',
   CANCELLED: 'cancelled',
 };
 
