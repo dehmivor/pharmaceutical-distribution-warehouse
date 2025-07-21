@@ -8,7 +8,7 @@ const logLocationChangeSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['add', 'remove', 'adjust'],
+    enum: ['add', 'remove'],
     required: [true, 'Change type is required'],
   },
   batch_id: {
@@ -19,6 +19,7 @@ const logLocationChangeSchema = new mongoose.Schema({
   quantity: {
     type: Number,
     required: [true, 'Quantity is required'],
+    min: [1, 'Quantity must be greater than 0'],
   },
   import_order_id: {
     type: mongoose.Schema.Types.ObjectId,

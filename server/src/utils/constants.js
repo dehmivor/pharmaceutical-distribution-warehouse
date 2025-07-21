@@ -170,6 +170,20 @@ const BILL_STATUSES = {
   UNPAID: 'unpaid',
 };
 
+const INVENTORY_CHECK_ORDER_STATUSES = {
+  PENDING: 'pending',
+  CHECKING: 'checking',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+};
+
+const INVENTORY_CHECK_INSPECTION_STATUSES = {
+  PENDING: 'pending',
+  CHECKING: 'checking',
+  CHECKED: 'checked',
+  WARNING: 'warning',
+};
+
 module.exports = {
   USER_ROLES,
   BASIC_STATUSES,
@@ -192,4 +206,6 @@ module.exports = {
   CONTRACT_TYPES,
   EXPORT_ORDER_STATUSES,
   BILL_STATUSES,
+  INVENTORY_CHECK_ORDER_STATUSES,
+  INVENTORY_CHECK_INSPECTION_STATUSES,
 };
