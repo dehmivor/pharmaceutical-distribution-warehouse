@@ -47,6 +47,9 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
   const router = useRouter();
   const params = useParams();
   const importOrderId = params.importOrderId;
+  const [inspections, setInspections] = useState([]);
+  const [loadingInspections, setLoadingInspections] = useState(false);
+  const [inspectionsError, setInspectionsError] = useState(null);
 
   const [orderData, setOrderData] = useState(null);
   const [loadingOrder, setLoadingOrder] = useState(true);
@@ -194,6 +197,33 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
       }
     }
   }, [orderData, checkedItems]);
+
+  useEffect(() => {
+    if (!importOrderId) return;
+
+    const fetchInspections = async () => {
+      setLoadingInspections(true);
+      setInspectionsError(null);
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const response = await axios.get(`${backendUrl}/api/inspections/by-import-ord/${importOrderId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('auth-token') || ''}`
+          }
+        });
+
+        setInspections(response.data || response.data || []);
+        console.log(response.data);
+      } catch (error) {
+        setInspectionsError(error.message || 'Lỗi khi tải phiếu kiểm nhập');
+        enqueueSnackbar(error.message || 'Lỗi khi tải phiếu kiểm nhập', { variant: 'error' });
+      } finally {
+        setLoadingInspections(false);
+      }
+    };
+
+    fetchInspections();
+  }, [importOrderId]);
 
   const calculateStatistics = useCallback(() => {
     const totalExpected = receiptItems.reduce((sum, item) => sum + (parseFloat(item.expectedQuantity) || 0), 0);
@@ -568,7 +598,19 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
       </Card>
 
       {/* Thống kê */}
-      <ReceiptStatistics statistics={statistics} items={receiptItems} />
+      {!loadingInspections && <ReceiptStatistics statistics={statistics} items={receiptItems} inspections={inspections} />}
+
+      {loadingInspections && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <CircularProgress size={24} />
+        </Box>
+      )}
+
+      {/* {inspectionsError && (
+        <Typography color="error" sx={{ mt: 2 }}>
+          {inspectionsError}
+        </Typography>
+      )} */}
 
       {/* Nút tạo phiếu */}
       <Box display="flex" justifyContent="center" gap={2} mt={3}>
