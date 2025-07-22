@@ -173,16 +173,15 @@ const BILL_STATUSES = {
 
 const INVENTORY_CHECK_ORDER_STATUSES = {
   PENDING: 'pending',
-  CHECKING: 'checking',
+  PROCESSING: 'processing',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
 };
 
 const INVENTORY_CHECK_INSPECTION_STATUSES = {
-  PENDING: 'pending',
+  DRAFT: 'draft',
   CHECKING: 'checking',
   CHECKED: 'checked',
-  WARNING: 'warning',
 };
 
 module.exports = {
