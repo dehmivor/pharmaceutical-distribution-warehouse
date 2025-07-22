@@ -110,7 +110,7 @@ app.use(
 
 // Import orders - protected route
 app.use('/api/import-orders', route.importOrderRoutes);
-
+app.use('/api/export-orders', route.exportOrderRoutes);
 app.use('/api/stripe', route.stripeRoutes);
 app.use('/api/bills', route.billRoutes);
 app.use('/api/supplier', route.supplierRoutes);

@@ -224,23 +224,23 @@ function ImportOrderDetail() {
 
 
   const handleClearLocation = async (pkgId) => {
-   try {
-     const ware_house_id   = userId;
-     const import_order_id = orderId;
+    try {
+      const ware_house_id = userId;
+      const import_order_id = orderId;
 
-     await axios.patch(
-       `/api/packages/${pkgId}/clear-location`,
-       { 
-         ware_house_id,
-         import_order_id,
-       },
-       { headers: getAuthHeaders() }
-     );
-     await fetchPutAway();
-   } catch (err) {
-     console.error(err);
-   }
- };
+      await axios.patch(
+        `/api/packages/${pkgId}/clear-location`,
+        {
+          ware_house_id,
+          import_order_id,
+        },
+        { headers: getAuthHeaders() }
+      );
+      await fetchPutAway();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const enableAccordion = async (orderState) => {
     if (orderState == 'other') {
@@ -336,9 +336,23 @@ function ImportOrderDetail() {
     .filter((i, idx, arr) => arr.findIndex((j) => j.medicine_id._id === i.medicine_id._id) === idx);
 
 
-  // 1) Build a map: medicineId → net quantity across all inspections
+
+  const allBatchOptions = [
+    ...validBatchOptions,
+    ...newBatches.map((nb) => ({
+      id: nb.batch_code,
+      label: `(new) ${nb.batch_code} – ${nb.medicine_name} (${nb.license_code})`,
+      max: 0,
+    })),
+  ].reduce((acc, opt) => {
+    if (!acc.find(o => o.id === opt.id)) acc.push(opt);
+    return acc;
+  }, []);
+
+
+  // 1) Build map: medicineId → net inspected quantity
   const netByMedicine = inspections.reduce((acc, ins) => {
-    const medId = ins.batch_id?.medicine_id?._id;
+    const medId = ins.medicine_id?.license_code;
     if (!medId) return acc;
     const net = ins.actual_quantity - ins.rejected_quantity;
     acc[medId] = (acc[medId] || 0) + net;
@@ -346,31 +360,37 @@ function ImportOrderDetail() {
   }, {});
 
 
-  // 2) Build a lookup from batchId → medicineId
-  const batchToMed = inspections.reduce((acc, ins) => {
-    const bid = ins.batch_id?._id;
-    const mid = ins.batch_id?.medicine_id?._id;
-    if (bid && mid) acc[bid] = mid;
-    return acc;
-  }, {});
+  function getLicenseCodeById(id, array) {
+    const item = array.find(el => el.id === id);
+    if (!item) return null;
 
-  // 3) Build a map: medicineId → total quantity from your package rows
+    const match = item.label.match(/\(([^)]+)\)$/); // extract text inside the last parentheses
+    return match ? match[1] : null;
+  }
+
+  // 3) Build map: medicineId → total packaged quantity
   const packedByMedicine = packages.reduce((acc, pkg) => {
-    const medId = batchToMed[pkg.batch_id];
+    const medId = getLicenseCodeById(pkg.batch_id, allBatchOptions);
     if (!medId) return acc;
     acc[medId] = (acc[medId] || 0) + Number(pkg.quantity || 0);
     return acc;
   }, {});
 
-  // 4) Now check
+  // 4) Validation: non‑empty, every row has a batch, and the two maps match exactly
   const isValid =
     // must have at least one package row
     packages.length > 0 &&
 
-    // every row has a batch
+    // every row has a selected batch
     packages.every(p => Boolean(p.batch_id)) &&
 
-    // for *every* medicine in netByMedicine, the packed total matches the net
+    // every row has a quantity 
+    packages.every(p => Boolean(p.quantity)) &&
+
+    // same number of distinct medicines
+    Object.keys(netByMedicine).length === Object.keys(packedByMedicine).length &&
+
+    // every medicine’s net inspected qty equals packaged qty
     Object.entries(netByMedicine).every(
       ([medId, net]) => packedByMedicine[medId] === net
     );
@@ -384,17 +404,7 @@ function ImportOrderDetail() {
   };
 
 
-  const allBatchOptions = [
-    ...validBatchOptions,
-    ...newBatches.map((nb) => ({
-      id: nb.batch_code,
-      label: `${nb.batch_code} – ${nb.medicine_name} (${nb.license_code})`,
-      max: 0,
-    })),
-  ].reduce((acc, opt) => {
-    if (!acc.find(o => o.id === opt.id)) acc.push(opt);
-    return acc;
-  }, []);
+
 
   const handlePkgChange = (idx, field, value) => {
     setPackages((pkgs) => {
@@ -498,8 +508,26 @@ function ImportOrderDetail() {
     }
   };
 
+  const handleSelfAssign = async () => {
+    try {
+      await axios.patch(
+        `/api/import-orders/${orderId}/assign-warehouse-manager`,
+        { warehouse_manager_id: userId },
+        {
+          headers: getAuthHeaders()
+        }
+      );
+    } catch (err) {
+      console.error('Error assign self:', err);
+      setError('Lỗi khi assign đơn');
+    }
+  };
+
+
+
   const handleArrival = async () => {
     try {
+      await handleSelfAssign()
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
         { status: 'delivered' },

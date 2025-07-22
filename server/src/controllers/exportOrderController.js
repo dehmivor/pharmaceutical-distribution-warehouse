@@ -10,12 +10,8 @@ const populateOptions = [
   { path: "details.medicine_id", select: "medicine_name unit_of_measure" }, // Populating medicine details
 ]
 
-/**
- * @desc    Get all export orders
- * @route   GET /api/export-orders
- * @access  Private (Warehouse Manager, Warehouse)
- */
-exports.getAllExportOrders = async (req, res, next) => {
+
+const getAllExportOrders = async (req, res, next) => {
   try {
     const orders = await ExportOrder.find().populate(populateOptions).sort({ createdAt: -1 })
     res.status(200).json({ success: true, data: orders })
@@ -24,12 +20,8 @@ exports.getAllExportOrders = async (req, res, next) => {
   }
 }
 
-/**
- * @desc    Assign staff to an export order
- * @route   PUT /api/export-orders/:id/assign-staff
- * @access  Private (Warehouse Manager)
- */
-exports.assignStaffToExportOrder = async (req, res, next) => {
+
+const assignStaffToExportOrder = async (req, res, next) => {
   try {
     const { id } = req.params
     const { staffId } = req.body
@@ -56,12 +48,8 @@ exports.assignStaffToExportOrder = async (req, res, next) => {
   }
 }
 
-/**
- * @desc    Update packing details for an export order
- * @route   PUT /api/export-orders/:id/update-packing
- * @access  Private (Warehouse Manager, Warehouse)
- */
-exports.updatePackingDetails = async (req, res, next) => {
+
+const updatePackingDetails = async (req, res, next) => {
   try {
     const { id } = req.params
     const { details } = req.body // Array of { medicine_id, expected_quantity, actual_quantity, unit_price }
@@ -87,12 +75,8 @@ exports.updatePackingDetails = async (req, res, next) => {
   }
 }
 
-/**
- * @desc    Complete an export order
- * @route   PUT /api/export-orders/:id/complete
- * @access  Private (Warehouse Manager)
- */
-exports.completeExportOrder = async (req, res, next) => {
+
+const completeExportOrder = async (req, res, next) => {
   try {
     const { id } = req.params
     const order = await ExportOrder.findById(id)
@@ -112,12 +96,8 @@ exports.completeExportOrder = async (req, res, next) => {
   }
 }
 
-/**
- * @desc    Cancel an export order
- * @route   PUT /api/export-orders/:id/cancel
- * @access  Private (Warehouse Manager)
- */
-exports.cancelExportOrder = async (req, res, next) => {
+
+const cancelExportOrder = async (req, res, next) => {
   try {
     const { id } = req.params
     const order = await ExportOrder.findById(id)
@@ -134,4 +114,48 @@ exports.cancelExportOrder = async (req, res, next) => {
   } catch (error) {
     next(error)
   }
+}
+
+const getExportOrderDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find export order by ID and populate references
+    const exportOrder = await ExportOrder.findById(id)
+      .populate("contract_id", "contract_code")
+      .populate("warehouse_manager_id", "email")
+      .populate("created_by", "email")
+      .populate("approval_by", "email")
+      // If your details include a product or medicine reference, adjust accordingly:
+      .populate("details.medicine_id", "medicine_name license_code")
+      .populate("details.actual_item");
+
+    if (!exportOrder) {
+      return res.status(404).json({
+        success: false,
+        message: `Export order with ID ${id} not found`,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: exportOrder,
+    });
+  } catch (error) {
+    console.error("Error fetching export order:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while retrieving export order",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = {
+  getAllExportOrders,
+  assignStaffToExportOrder,
+  updatePackingDetails,
+  completeExportOrder,
+  cancelExportOrder,
+  getExportOrderDetail,
 }
