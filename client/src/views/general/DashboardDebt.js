@@ -21,6 +21,10 @@ import CreditCardIcon from '@mui/icons-material/CreditCard';
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import { BarChart } from '@mui/x-charts';
+import { useRouter } from 'next/navigation';
+import { Fab } from '@mui/material';
+import { ArrowBackIosNewOutlined, ArrowCircleRight } from '@mui/icons-material';
 
 // Utility function for radius styles
 const getRadiusStyles = (radius, ...corners) => {
@@ -97,47 +101,6 @@ const OverviewCard = ({ title, value, compare, chip, icon, cardProps = {} }) => 
         </Stack>
       </CardContent>
     </Card>
-  );
-};
-
-// Progress Card Component
-const ProgressCard = ({ title, value, progress }) => {
-  const theme = useTheme();
-
-  return (
-    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ py: 1 }}>
-      <Stack spacing={0.5}>
-        <Typography variant="body2" fontWeight="medium">
-          {title}
-        </Typography>
-        <Typography variant="h6" color="primary.main">
-          {value}
-        </Typography>
-      </Stack>
-      <Stack alignItems="flex-end" spacing={0.5}>
-        <Typography variant="caption" color="text.secondary">
-          {progress.value}%
-        </Typography>
-        <Box
-          sx={{
-            width: 60,
-            height: 4,
-            bgcolor: 'grey.200',
-            borderRadius: 2,
-            overflow: 'hidden'
-          }}
-        >
-          <Box
-            sx={{
-              width: `${progress.value}%`,
-              height: '100%',
-              bgcolor: progress.value > 70 ? 'success.main' : progress.value > 40 ? 'warning.main' : 'error.main',
-              transition: 'width 0.3s ease'
-            }}
-          />
-        </Box>
-      </Stack>
-    </Stack>
   );
 };
 
@@ -279,6 +242,51 @@ const DebtOverviewCards = () => {
   );
 };
 
+const HistoricalDebtCard = () => {
+  const theme = useTheme();
+
+  // Giả sử dùng dữ liệu tháng
+  const series = [
+    {
+      id: 'total_debt',
+      data: monthlyData.totalDebt,
+      label: 'Tổng Công Nợ',
+      color: theme.palette.error.main
+    }
+  ];
+
+  return (
+    <MainCard sx={{ height: '100%' }}>
+      <Stack spacing={2} height="100%">
+        <Typography variant="subtitle1">Lịch Sử Công Nợ</Typography>
+        <LineChart
+          series={series}
+          height={250}
+          xAxis={[
+            {
+              data: monthlyPoints,
+              scaleType: 'point',
+              valueFormatter: (date) => date.toLocaleDateString('vi-VN', { month: 'short' })
+            }
+          ]}
+          yAxis={[
+            {
+              scaleType: 'linear',
+              label: 'Số tiền (₫)',
+              valueFormatter: (value) => `₫${(value / 1000).toFixed(0)}K`
+            }
+          ]}
+          slotProps={{ legend: { hidden: false } }}
+          sx={{
+            '& .MuiLineElement-root': { strokeWidth: 2 },
+            '& .MuiMarkElement-root': { strokeWidth: 2 }
+          }}
+        />
+      </Stack>
+    </MainCard>
+  );
+};
+
 // Debt Chart Component
 const DebtChart = () => {
   const theme = useTheme();
@@ -365,6 +373,127 @@ const DebtChart = () => {
 };
 
 // Debt Analysis Component
+
+// Trong thực tế bạn sẽ lấy dữ liệu thật, mình tạo mock như sau:
+
+const debtReceivableData = {
+  monthly: [1200, 1100, 1150, 1250, 1300, 1200, 1190, 1180, 1150, 1170, 1200, 1220],
+  quarterly: [3450, 3800, 3500, 3800]
+};
+
+const debtPayableData = {
+  monthly: [900, 850, 870, 910, 930, 890, 860, 820, 800, 810, 830, 840],
+  quarterly: [2600, 2750, 2500, 2550]
+};
+const DebtReceivableChart = () => {
+  const theme = useTheme();
+  const [view, setView] = useState('monthly');
+
+  const handleViewChange = (event, newValue) => {
+    setView(newValue);
+  };
+
+  const data = view === 'monthly' ? debtReceivableData.monthly : debtReceivableData.quarterly;
+  const points = view === 'monthly' ? monthlyPoints : quarterlyPoints;
+
+  return (
+    <MainCard>
+      <Stack spacing={2}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6">Công Nợ Cần Thu</Typography>
+          <Tabs value={view} onChange={handleViewChange} aria-label="debt receivable view tabs" size="small">
+            <Tab label="Theo Tháng" value="monthly" />
+            <Tab label="Theo Quý" value="quarterly" />
+          </Tabs>
+        </Stack>
+
+        <LineChart
+          series={[
+            {
+              id: 'receivable',
+              data: data,
+              color: theme.palette.warning.main,
+              label: 'Công Nợ Cần Thu'
+            }
+          ]}
+          height={250}
+          xAxis={[
+            {
+              data: points,
+              scaleType: 'point',
+              valueFormatter: (date) =>
+                view === 'monthly' ? date.toLocaleDateString('vi-VN', { month: 'short' }) : `Q${Math.floor(date.getMonth() / 3) + 1}`
+            }
+          ]}
+          yAxis={[
+            {
+              scaleType: 'linear',
+              label: 'Số tiền (₫)',
+              valueFormatter: (val) => `₫${(val / 1000).toFixed(0)}K`
+            }
+          ]}
+          slotProps={{ legend: { hidden: false } }}
+          sx={{ '& .MuiLineElement-root': { strokeWidth: 2 } }}
+        />
+      </Stack>
+    </MainCard>
+  );
+};
+const DebtPayableChart = () => {
+  const theme = useTheme();
+  const [view, setView] = useState('monthly');
+
+  const handleViewChange = (event, newValue) => {
+    setView(newValue);
+  };
+
+  const data = view === 'monthly' ? debtPayableData.monthly : debtPayableData.quarterly;
+  const points = view === 'monthly' ? monthlyPoints : quarterlyPoints;
+
+  return (
+    <MainCard>
+      <Stack spacing={2}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6">Công Nợ Cần Thanh Toán</Typography>
+          <Tabs value={view} onChange={handleViewChange} aria-label="debt payable view tabs" size="small">
+            <Tab label="Theo Tháng" value="monthly" />
+            <Tab label="Theo Quý" value="quarterly" />
+          </Tabs>
+        </Stack>
+
+        <LineChart
+          series={[
+            {
+              id: 'payable',
+              data: data,
+              color: theme.palette.error.main,
+              label: 'Công Nợ Cần Thanh Toán'
+            }
+          ]}
+          height={250}
+          xAxis={[
+            {
+              data: points,
+              scaleType: 'point',
+              valueFormatter: (date) =>
+                view === 'monthly' ? date.toLocaleDateString('vi-VN', { month: 'short' }) : `Q${Math.floor(date.getMonth() / 3) + 1}`
+            }
+          ]}
+          yAxis={[
+            {
+              scaleType: 'linear',
+              label: 'Số tiền (₫)',
+              valueFormatter: (val) => `₫${(val / 1000).toFixed(0)}K`
+            }
+          ]}
+          slotProps={{ legend: { hidden: false } }}
+          sx={{ '& .MuiLineElement-root': { strokeWidth: 2 } }}
+        />
+      </Stack>
+    </MainCard>
+  );
+};
+
 const DebtAnalysis = () => {
   const theme = useTheme();
   const [period, setPeriod] = useState('monthly');
@@ -373,63 +502,44 @@ const DebtAnalysis = () => {
     setPeriod(newValue);
   };
 
+  const currentData = debtAnalysisData[period];
+  const series = [
+    {
+      id: 'debt',
+      data: currentData.map((item) => Number(item.value.replace(/[₫,]/g, '')) / 1000),
+      label: 'Công Nợ (nghìn VND)',
+      color: theme.palette.primary.main
+    }
+  ];
+  const categories = currentData.map((item) => item.title);
+
   return (
-    <Grid container sx={{ borderRadius: 4, boxShadow: theme.shadows[1], ...applyBorderWithRadius(16, theme) }}>
-      <Grid size={{ xs: 12, md: 6 }}>
-        <Stack sx={{ gap: 2.5, p: 3 }}>
-          <Typography variant="subtitle1">Top Công Nợ Khách Hàng</Typography>
-          <Box>
-            <Tabs variant="fullWidth" value={period} onChange={handlePeriodChange} aria-label="period tabs">
-              <Tab label="Tháng" value="monthly" />
-              <Tab label="Quý" value="quarterly" />
-            </Tabs>
-            <TabPanel value={period} index="monthly">
-              <Stack sx={{ gap: 1.25 }}>
-                {debtAnalysisData.monthly.map((item, index) => (
-                  <ProgressCard key={index} {...item} />
-                ))}
-              </Stack>
-            </TabPanel>
-            <TabPanel value={period} index="quarterly">
-              <Stack sx={{ gap: 1.25 }}>
-                {debtAnalysisData.quarterly.map((item, index) => (
-                  <ProgressCard key={index} {...item} />
-                ))}
-              </Stack>
-            </TabPanel>
-          </Box>
-        </Stack>
+    <Grid container spacing={3}>
+      <Grid item xs={12} md={4}>
+        <DebtReceivableChart />
       </Grid>
-      <Grid size={{ xs: 12, md: 6 }}>
-        <Stack sx={{ gap: 2.5, p: 3 }}>
-          <Typography variant="subtitle1">Thống Kê Thanh Toán</Typography>
-          <Stack spacing={2}>
-            <Box>
-              <Typography variant="body2" color="text.secondary">
-                Tỷ lệ thanh toán đúng hạn
-              </Typography>
-              <Typography variant="h5" color="success.main">
-                78.5%
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="body2" color="text.secondary">
-                Thời gian thanh toán trung bình
-              </Typography>
-              <Typography variant="h5" color="warning.main">
-                12.3 ngày
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="body2" color="text.secondary">
-                Tổng số khách hàng nợ
-              </Typography>
-              <Typography variant="h5" color="error.main">
-                24 khách hàng
-              </Typography>
-            </Box>
+      <Grid item xs={12} md={4}>
+        <DebtPayableChart />
+      </Grid>
+      <Grid item xs={12} md={4}>
+        <MainCard>
+          <Stack>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="h6">Phân Tích Công Nợ</Typography>
+              <Tabs value={period} onChange={handlePeriodChange} aria-label="debt analysis period tabs" size="small">
+                <Tab label="Theo Tháng" value="monthly" />
+                <Tab label="Theo Quý" value="quarterly" />
+              </Tabs>
+            </Stack>
+            <BarChart
+              series={series}
+              height={300}
+              xAxis={[{ data: categories, scaleType: 'band' }]}
+              yAxis={[{ scaleType: 'linear', label: 'Số tiền (₫)', valueFormatter: (val) => `₫${(val / 1000).toFixed(0)}K` }]}
+              slotProps={{ legend: { hidden: false } }}
+            />
           </Stack>
-        </Stack>
+        </MainCard>
       </Grid>
     </Grid>
   );
@@ -437,17 +547,35 @@ const DebtAnalysis = () => {
 
 // Main Dashboard Component
 export default function DashboardDebt() {
+  const router = useRouter();
+  const handleReportClick = () => {
+    router.push('/sp-report'); // đường dẫn màn báo cáo thống kê
+  };
   return (
-    <Grid container spacing={{ xs: 2, md: 3 }}>
-      <Grid size={12}>
-        <DebtOverviewCards />
+    <>
+      <Grid container spacing={3}>
+        <Grid size={12}>
+          <DebtOverviewCards />
+        </Grid>
+        <Grid size={12}>
+          <DebtChart />
+        </Grid>
       </Grid>
-      <Grid size={12}>
-        <DebtChart />
-      </Grid>
-      <Grid size={12}>
-        <DebtAnalysis />
-      </Grid>
-    </Grid>
+
+      <Fab
+        color="primary"
+        size="large"
+        aria-label="add"
+        onClick={handleReportClick}
+        sx={{
+          position: 'fixed',
+          bottom: 26,
+          right: 26,
+          zIndex: (theme) => theme.zIndex.tooltip + 1
+        }}
+      >
+        <ArrowCircleRight />
+      </Fab>
+    </>
   );
 }

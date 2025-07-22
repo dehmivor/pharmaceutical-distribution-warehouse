@@ -295,12 +295,12 @@ const DebtPage = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Quản lý công nợ
+        Quản lý hóa đơn tạo từ phiếu xuất
       </Typography>
 
       <Tabs value={tab} onChange={(e, newVal) => setTab(newVal)} sx={{ mb: 3 }}>
-        <Tab label="Công nợ nhập" />
-        <Tab label="Công nợ xuất" />
+        <Tab label="Hóa đơn nhập" />
+        <Tab label="Hóa đơn xuất" />
       </Tabs>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} flexWrap="wrap" mb={2}>

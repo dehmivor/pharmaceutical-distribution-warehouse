@@ -25,7 +25,8 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Stack
+  Stack,
+  Checkbox
 } from '@mui/material';
 import axios from 'axios';
 
@@ -43,6 +44,7 @@ function ManageBills() {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [selectedBills, setSelectedBills] = useState([]);
 
   const [openDetail, setOpenDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
@@ -76,6 +78,19 @@ function ManageBills() {
   useEffect(() => {
     fetchBills();
   }, []);
+
+  const handleSelectBill = (billId) => {
+    setSelectedBills((prev) => (prev.includes(billId) ? prev.filter((id) => id !== billId) : [...prev, billId]));
+  };
+
+  const handleSelectAll = (event) => {
+    if (event.target.checked) {
+      const allIds = filteredBills.map((bill) => bill._id);
+      setSelectedBills(allIds);
+    } else {
+      setSelectedBills([]);
+    }
+  };
 
   // Tính tổng tiền theo danh sách chi tiết
   const calcAmount = (details) => {
@@ -275,6 +290,48 @@ function ManageBills() {
       </Box>
     );
   }
+  const handleMultiStripePayment = async () => {
+    setLoadingPaymentId('multi'); // có thể đặt là 'multi' đại diện
+
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const redirectUrls = {
+        successUrl: window.location.origin + '/payment-success',
+        cancelUrl: window.location.origin + '/payment-cancel'
+      };
+
+      for (const billId of selectedBills) {
+        const bill = bills.find((b) => b._id === billId);
+        if (!bill) continue;
+
+        const endpoint =
+          bill.type === 'IMPORT' ? `/api/stripe/create-payment-import/${bill._id}` : `/api/stripe/create-payment-export/${bill._id}`;
+
+        const amount = Math.round(calcAmount(bill.details));
+
+        // Gọi API tạo phiên thanh toán stripe, giả sử API trả về url
+        const response = await axios.post(`${backendUrl}${endpoint}`, {
+          amount,
+          successUrl: redirectUrls.successUrl,
+          cancelUrl: redirectUrls.cancelUrl
+        });
+
+        const { url } = response.data;
+        if (url) {
+          // Chuyển đến lần lượt
+          window.location.href = url;
+          return; // thoát để chỉ redirect 1 lần (Stripe lúc payment cửa sổ mới)
+        } else {
+          alert(`Không thể tạo phiên thanh toán cho hóa đơn ${bill.voucher_code || bill._id}`);
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi thanh toán nhiều hóa đơn:', error);
+      alert('Có lỗi khi kết nối thanh toán nhiều hóa đơn. Vui lòng thử lại sau.');
+    } finally {
+      setLoadingPaymentId(null);
+    }
+  };
 
   return (
     <Box sx={{ p: 2 }}>
@@ -320,12 +377,27 @@ function ManageBills() {
             <MenuItem value="asc">Cũ nhất trước</MenuItem>
           </Select>
         </FormControl>
+        <Button
+          variant="contained"
+          color="secondary"
+          disabled={selectedBills.length === 0 || loadingPaymentId !== null}
+          onClick={handleMultiStripePayment}
+        >
+          {loadingPaymentId ? 'Đang xử lý...' : `Thanh toán (${selectedBills.length}) hóa đơn`}
+        </Button>
       </Stack>
 
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell padding="checkbox">
+                <Checkbox
+                  indeterminate={selectedBills.length > 0 && selectedBills.length < filteredBills.length}
+                  checked={filteredBills.length > 0 && selectedBills.length === filteredBills.length}
+                  onChange={handleSelectAll}
+                />
+              </TableCell>
               <TableCell>Label</TableCell>
               <TableCell>Mã hóa đơn</TableCell>
               <TableCell>Loại</TableCell>
@@ -346,7 +418,10 @@ function ManageBills() {
             ) : (
               filteredBills.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((bill) => (
                 <TableRow key={bill._id}>
-                  <TableCell>{bill.type || 'N/A'}</TableCell>
+                  <TableCell padding="checkbox">
+                    <Checkbox checked={selectedBills.includes(bill._id)} onChange={() => handleSelectBill(bill._id)} />
+                  </TableCell>
+                  <TableCell>{bill.type.slice(0, 3) || 'N/A'}</TableCell>
                   <TableCell>{bill.voucher_code ? bill.voucher_code.slice(0, 6) : bill._id ? bill._id.slice(0, 6) : 'N/A'}</TableCell>
                   <TableCell>{bill.type || 'N/A'}</TableCell>
                   <TableCell>

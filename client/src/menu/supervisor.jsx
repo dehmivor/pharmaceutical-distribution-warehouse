@@ -68,6 +68,13 @@ const supervisor = {
           type: 'item',
           url: '/sp-manage-bills',
           icon: 'IconReceipt'
+        },
+        {
+          id: 'sp-view-dashboard-bills',
+          title: 'View Dashboard Bills',
+          type: 'item',
+          url: '/sp-view-dashboard-bills',
+          icon: 'IconReceipt'
         }
       ]
     }

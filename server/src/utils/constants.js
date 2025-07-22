@@ -157,6 +157,7 @@ const EXPORT_ORDER_STATUSES = {
   APPROVED: 'approved',
   REJECTED: 'rejected',
   COMPLETED: 'completed',
+  RETURNED: 'returned',
   CANCELLED: 'cancelled',
 };
 
