@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   Box,
@@ -43,71 +43,20 @@ import {
   Search as SearchIcon,
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
-
-// Mock data
-const mockBills = [
-  {
-    id: 1,
-    billNumber: 'INV-2024-001',
-    customerName: 'Nguyễn Văn A',
-    amount: 1500000,
-    status: 'paid',
-    dueDate: '2024-12-30',
-    createdDate: '2024-11-15',
-    description: 'Hóa đơn dịch vụ tháng 11'
-  },
-  {
-    id: 2,
-    billNumber: 'INV-2024-002',
-    customerName: 'Trần Thị B',
-    amount: 2300000,
-    status: 'pending',
-    dueDate: '2024-12-25',
-    createdDate: '2024-11-20',
-    description: 'Hóa đơn sản phẩm ABC'
-  },
-  {
-    id: 3,
-    billNumber: 'INV-2024-003',
-    customerName: 'Lê Văn C',
-    amount: 890000,
-    status: 'overdue',
-    dueDate: '2024-11-30',
-    createdDate: '2024-11-10',
-    description: 'Hóa đơn bảo trì thiết bị'
-  },
-  {
-    id: 4,
-    billNumber: 'INV-2024-004',
-    customerName: 'Phạm Thị D',
-    amount: 3200000,
-    status: 'cancelled',
-    dueDate: '2024-12-20',
-    createdDate: '2024-11-25',
-    description: 'Hóa đơn dự án XYZ'
-  },
-  {
-    id: 5,
-    billNumber: 'INV-2024-005',
-    customerName: 'Hoàng Văn E',
-    amount: 750000,
-    status: 'draft',
-    dueDate: '2024-12-31',
-    createdDate: '2024-11-28',
-    description: 'Hóa đơn tư vấn'
-  }
-];
+import axios from 'axios';
+import { enqueueSnackbar } from 'notistack';
 
 const statusConfig = {
-  paid: { label: 'Đã thanh toán', color: 'success', icon: <CheckIcon fontSize="small" /> },
-  pending: { label: 'Chờ thanh toán', color: 'warning', icon: <HourglassEmptyIcon fontSize="small" /> },
-  overdue: { label: 'Quá hạn', color: 'error', icon: <CancelIcon fontSize="small" /> },
-  cancelled: { label: 'Đã hủy', color: 'default', icon: <CancelIcon fontSize="small" /> },
-  draft: { label: 'Nháp', color: 'info', icon: <EditIcon fontSize="small" /> }
+  PAID: { label: 'Đã thanh toán', color: 'success', icon: <CheckIcon fontSize="small" /> },
+  PENDING: { label: 'Chờ thanh toán', color: 'warning', icon: <HourglassEmptyIcon fontSize="small" /> },
+  OVERDUE: { label: 'Quá hạn', color: 'error', icon: <CancelIcon fontSize="small" /> },
+  CANCELLED: { label: 'Đã hủy', color: 'default', icon: <CancelIcon fontSize="small" /> },
+  DRAFT: { label: 'Nháp', color: 'info', icon: <EditIcon fontSize="small" /> },
+  COMPLETED: { label: 'Hoàn thành', color: 'primary', icon: <CheckIcon fontSize="small" /> }
 };
 
 function HandleBill() {
-  const [bills, setBills] = useState(mockBills);
+  const [bills, setBills] = useState([]);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
@@ -175,11 +124,6 @@ function HandleBill() {
 
     return filtered;
   }, [bills, searchTerm, statusFilter, sortField, sortDirection]);
-
-  const paginatedBills = useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    return filteredAndSortedBills.slice(start, start + rowsPerPage);
-  }, [filteredAndSortedBills, page, rowsPerPage]);
 
   const totalPages = Math.ceil(filteredAndSortedBills.length / rowsPerPage);
 
@@ -272,12 +216,23 @@ function HandleBill() {
     handleCloseMenu();
   };
 
-  const handleStatusChange = (billId, newStatus) => {
-    setBills((prev) => prev.map((bill) => (bill.id === billId ? { ...bill, status: newStatus } : bill)));
-    showSnackbar(`Trạng thái hóa đơn đã được cập nhật thành ${statusConfig[newStatus].label}!`);
-    handleCloseMenu();
-  };
+  const handleStatusChange = async (billId, newStatus) => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'localhost:5000';
+      await axios.patch(`${backendUrl}/api/bills/${billId}`, {
+        getAuthHeader: () => `Bearer ${localStorage.getItem('auth-token')}`,
+        status: newStatus
+      });
+      setBills((prev) => prev.map((bill) => (bill.id === billId ? { ...bill, status: newStatus } : bill)));
 
+      enqueueSnackbar(`Trạng thái hóa đơn đã được cập nhật ${status}!`, { variant: 'success' });
+    } catch (error) {
+      console.error('Failed to update status:', error);
+      enqueueSnackbar('Cập nhật trạng thái hóa đơn thất bại', { variant: 'error' });
+    } finally {
+      handleCloseMenu();
+    }
+  };
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -295,7 +250,77 @@ function HandleBill() {
     setMenuBillId(null);
   };
 
-  const isOverdue = (dueDate, status) => new Date(dueDate) < new Date() && status !== 'paid';
+  const isOverdue = (dueDate, status) => new Date(dueDate) < new Date() && status !== 'PAID';
+
+  // Fetch bills from backend on mount
+  useEffect(() => {
+    async function fetchBills() {
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'localhost:5000';
+        const response = await axios.get(`${backendUrl}/api/bills`);
+        const data = response.data.data;
+
+        // Map backend data structure to frontend "bill" objects
+        const mappedBills = data.map((item) => {
+          // Get bill number / voucher code / generate fallback
+          let billNumber =
+            item.voucher_code || (item.import_order_id ? `IMP-${item._id.substring(0, 6)}` : `EXP-${item._id.substring(0, 6)}`);
+
+          // Customer name: from import_order_id?.warehouse_manager_id?.email or fallback
+          let customerName = item.import_order_id?.warehouse_manager_id?.email || 'N/A';
+
+          // Calculate amount = sum of details quantity * unit price
+          const amount = item.details.reduce((sum, detail) => sum + detail.quantity * detail.unit_price, 0);
+
+          // Status in uppercase in backend, map to uppercase keys of statusConfig or fallback to 'DRAFT'
+          const status = item.status ? item.status.toUpperCase() : 'DRAFT';
+
+          // Due date: use payment_date or createdAt or today fallback
+          let dueDate = '';
+          if (item.payment_date) {
+            dueDate = item.payment_date.substring(0, 10);
+          } else if (item.createdAt) {
+            dueDate = item.createdAt.substring(0, 10);
+          } else {
+            dueDate = new Date().toISOString().substring(0, 10);
+          }
+
+          // Created date: using createdAt or today fallback
+          let createdDate = item.createdAt ? item.createdAt.substring(0, 10) : new Date().toISOString().substring(0, 10);
+
+          // Description: join medicine names and quantities from import_order_id or details
+          let description = 'No description';
+          if (item.import_order_id?.details?.length) {
+            description = item.import_order_id.details.map((d) => `${d.medicine_id?.medicine_name || ''} x${d.quantity}`).join(', ');
+          } else if (item.details?.length) {
+            description = item.details.map((d) => `${d.medicine_lisence_code} x${d.quantity}`).join(', ');
+          }
+
+          return {
+            id: item._id,
+            billNumber,
+            customerName,
+            amount,
+            status,
+            dueDate,
+            createdDate,
+            description
+          };
+        });
+
+        setBills(mappedBills);
+      } catch (error) {
+        console.error('Failed to fetch bills:', error);
+        setSnackbar({ open: true, message: 'Không thể tải dữ liệu hóa đơn', severity: 'error' });
+      }
+    }
+
+    fetchBills();
+  }, []);
+  const paginatedBills = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    return filteredAndSortedBills.slice(start, start + rowsPerPage);
+  }, [filteredAndSortedBills, page, rowsPerPage]);
 
   return (
     <Box p={4} minHeight="100vh">
@@ -459,7 +484,7 @@ function HandleBill() {
                         </MenuItem>
                         <MenuItem
                           onClick={() => {
-                            handleStatusChange(bill.id, 'paid');
+                            handleStatusChange(bill.id, 'PAID');
                           }}
                         >
                           <CheckIcon fontSize="small" sx={{ mr: 1 }} />
@@ -467,7 +492,7 @@ function HandleBill() {
                         </MenuItem>
                         <MenuItem
                           onClick={() => {
-                            handleStatusChange(bill.id, 'pending');
+                            handleStatusChange(bill.id, 'PENDING');
                           }}
                         >
                           <HourglassEmptyIcon fontSize="small" sx={{ mr: 1 }} />
@@ -475,7 +500,7 @@ function HandleBill() {
                         </MenuItem>
                         <MenuItem
                           onClick={() => {
-                            handleStatusChange(bill.id, 'cancelled');
+                            handleStatusChange(bill.id, 'CANCELLED');
                           }}
                         >
                           <CancelIcon fontSize="small" sx={{ mr: 1 }} />
