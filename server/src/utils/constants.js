@@ -155,8 +155,7 @@ const CONTRACT_TYPES = {
 const EXPORT_ORDER_STATUSES = {
   DRAFT: 'draft',
   APPROVED: 'approved',
-  PACKING: 'packing',
-  DELIVERED: 'delivered',
+  REJECTED: 'rejected',
   COMPLETED: 'completed',
   RETURNED: 'returned',
   CANCELLED: 'cancelled',
@@ -175,16 +174,15 @@ const BILL_STATUSES = {
 
 const INVENTORY_CHECK_ORDER_STATUSES = {
   PENDING: 'pending',
-  CHECKING: 'checking',
+  PROCESSING: 'processing',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
 };
 
 const INVENTORY_CHECK_INSPECTION_STATUSES = {
-  PENDING: 'pending',
+  DRAFT: 'draft',
   CHECKING: 'checking',
   CHECKED: 'checked',
-  WARNING: 'warning',
 };
 
 module.exports = {
