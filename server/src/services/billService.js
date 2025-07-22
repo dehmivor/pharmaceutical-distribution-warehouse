@@ -180,9 +180,19 @@ const deleteBill = async (billId) => {
   }
 };
 
+const updateBillStatus = async (billId, status) => {
+  try {
+    const bill = await Bill.findByIdAndUpdate(billId, { status }, { new: true });
+    return bill;
+  } catch (error) {
+    throw error;
+  }
+};
+
 module.exports = {
   getAllBills,
   getBillById,
   createBill,
   deleteBill,
+  updateBillStatus,
 };

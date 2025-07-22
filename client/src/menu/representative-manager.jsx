@@ -32,6 +32,13 @@ const representativeManager = {
       url: '/rm-manage-contracts',
       icon: 'IconFileInvoice'
     },
+    {
+      id: 'rm-handle-bill',
+      title: 'Handle Bill',
+      type: 'item',
+      url: '/rm-handle-bill',
+      icon: 'IconList'
+    }
   ]
 };
 

@@ -5,6 +5,7 @@ const router = express.Router();
 router.get('/', billController.getAllBills);
 router.get('/:id', billController.getBillById);
 router.post('/', billController.createBill);
-router.delete('/:id', billController.deleteBill)
+router.delete('/:id', billController.deleteBill);
+router.patch('/:id', billController.updateBillStatus);
 
 module.exports = router;
