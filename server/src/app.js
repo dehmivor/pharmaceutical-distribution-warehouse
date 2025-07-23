@@ -86,12 +86,6 @@ app.use('/api/locations', route.locationRoutes);
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
 app.use(
-  '/api/supplier-contracts',
-  authenticate,
-  authorize(['supervisor', 'representative', 'representative_manager']),
-  route.supplierContractRoutes,
-);
-app.use(
   '/api/inspections',
   authenticate,
   authorize(['warehouse', 'warehouse_manager']),
@@ -116,12 +110,11 @@ app.use(
 
 // Import orders - protected route
 app.use('/api/import-orders', route.importOrderRoutes);
-
+app.use('/api/export-orders', route.exportOrderRoutes);
 app.use('/api/stripe', route.stripeRoutes);
 app.use('/api/bills', route.billRoutes);
 app.use('/api/supplier', route.supplierRoutes);
 app.use('/api/retailer', route.retailerRoutes);
-app.use('/api/economic-contracts', route.economicContractRoutes);
 app.use('/api/contract', route.contractRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);

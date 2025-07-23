@@ -81,6 +81,9 @@ function ImportOrderDetail() {
 
   const [validBatchOptions, setValidBatchOptions] = useState([]);
 
+  const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+  const userId = userData.userId;
+
 
   // Initial fetch: order + inspections + initial packages
   useEffect(() => {
@@ -165,7 +168,9 @@ function ImportOrderDetail() {
         const serverOpts = results.flatMap(r =>
           (r.data.data || []).map(b => ({
             id: b._id,
-            label: b.batch_code,
+            // combine batch code + medicine name + license code
+            label: `${b.batch_code} - ${b.medicine_id.medicine_name} (${b.medicine_id.license_code})`,
+            max: b.quantity,    // if you still need max
           }))
         );
         setValidBatchOptions(serverOpts);
@@ -174,7 +179,7 @@ function ImportOrderDetail() {
         setValidBatchOptions([]);
       }
     })();
-  }, [newBatches]);
+  }, [inspections, newBatches]);
 
 
   const prefillPackages = (insps) => {
@@ -220,9 +225,17 @@ function ImportOrderDetail() {
 
   const handleClearLocation = async (pkgId) => {
     try {
-      await axios.patch(`/api/packages/${pkgId}/clear-location`, {
-        headers: getAuthHeaders()
-      });
+      const ware_house_id = userId;
+      const import_order_id = orderId;
+
+      await axios.patch(
+        `/api/packages/${pkgId}/clear-location`,
+        {
+          ware_house_id,
+          import_order_id,
+        },
+        { headers: getAuthHeaders() }
+      );
       await fetchPutAway();
     } catch (err) {
       console.error(err);
@@ -253,6 +266,7 @@ function ImportOrderDetail() {
   };
 
   const [batchOptions, setBatchOptions] = useState([]);
+
   useEffect(() => {
     const opts = inspections
       // only keep inspections with a real batch_id
@@ -285,18 +299,35 @@ function ImportOrderDetail() {
       setBatchError('All fields are required');
       return;
     }
+
+    // Lookup the medicine object so we can grab name & license
+    const medDoc = uniqueInspections.find(
+      (i) => i.medicine_id._id === newMedicineId
+    )?.medicine_id;
+
     // stash locally
     setNewBatches((list) => [
       ...list,
       {
         medicine_id: newMedicineId,
+        medicine_name: medDoc?.medicine_name || '—',
+        license_code: medDoc?.license_code || '—',
         batch_code: newBatchCode,
         production_date: newProdDate,
         expiry_date: newExpiryDate
       }
     ]);
     // add a temp option so users can pick it immediately
-    setBatchOptions((opts) => [...opts, { id: newBatchCode, label: newBatchCode, max: 0 }]);
+    setBatchOptions((opts) => [
+      ...opts,
+      {
+        id: newBatchCode,
+        label: `${newBatchCode} – ${medDoc?.medicine_name || ''} (${medDoc?.license_code || ''})`,
+        max: 0
+      }
+    ]);
+
+
     closeBatchDialog();
   };
 
@@ -305,9 +336,23 @@ function ImportOrderDetail() {
     .filter((i, idx, arr) => arr.findIndex((j) => j.medicine_id._id === i.medicine_id._id) === idx);
 
 
-  // 1) Build a map: medicineId → net quantity across all inspections
+
+  const allBatchOptions = [
+    ...validBatchOptions,
+    ...newBatches.map((nb) => ({
+      id: nb.batch_code,
+      label: `(new) ${nb.batch_code} – ${nb.medicine_name} (${nb.license_code})`,
+      max: 0,
+    })),
+  ].reduce((acc, opt) => {
+    if (!acc.find(o => o.id === opt.id)) acc.push(opt);
+    return acc;
+  }, []);
+
+
+  // 1) Build map: medicineId → net inspected quantity
   const netByMedicine = inspections.reduce((acc, ins) => {
-    const medId = ins.batch_id?.medicine_id?._id;
+    const medId = ins.medicine_id?.license_code;
     if (!medId) return acc;
     const net = ins.actual_quantity - ins.rejected_quantity;
     acc[medId] = (acc[medId] || 0) + net;
@@ -315,31 +360,37 @@ function ImportOrderDetail() {
   }, {});
 
 
-  // 2) Build a lookup from batchId → medicineId
-  const batchToMed = inspections.reduce((acc, ins) => {
-    const bid = ins.batch_id?._id;
-    const mid = ins.batch_id?.medicine_id?._id;
-    if (bid && mid) acc[bid] = mid;
-    return acc;
-  }, {});
+  function getLicenseCodeById(id, array) {
+    const item = array.find(el => el.id === id);
+    if (!item) return null;
 
-  // 3) Build a map: medicineId → total quantity from your package rows
+    const match = item.label.match(/\(([^)]+)\)$/); // extract text inside the last parentheses
+    return match ? match[1] : null;
+  }
+
+  // 3) Build map: medicineId → total packaged quantity
   const packedByMedicine = packages.reduce((acc, pkg) => {
-    const medId = batchToMed[pkg.batch_id];
+    const medId = getLicenseCodeById(pkg.batch_id, allBatchOptions);
     if (!medId) return acc;
     acc[medId] = (acc[medId] || 0) + Number(pkg.quantity || 0);
     return acc;
   }, {});
 
-  // 4) Now check
+  // 4) Validation: non‑empty, every row has a batch, and the two maps match exactly
   const isValid =
     // must have at least one package row
     packages.length > 0 &&
 
-    // every row has a batch
+    // every row has a selected batch
     packages.every(p => Boolean(p.batch_id)) &&
 
-    // for *every* medicine in netByMedicine, the packed total matches the net
+    // every row has a quantity 
+    packages.every(p => Boolean(p.quantity)) &&
+
+    // same number of distinct medicines
+    Object.keys(netByMedicine).length === Object.keys(packedByMedicine).length &&
+
+    // every medicine’s net inspected qty equals packaged qty
     Object.entries(netByMedicine).every(
       ([medId, net]) => packedByMedicine[medId] === net
     );
@@ -353,16 +404,7 @@ function ImportOrderDetail() {
   };
 
 
-  const allBatchOptions = [
-    ...validBatchOptions,
-    ...newBatches.map(nb => ({
-      id: nb.batch_code,
-      label: nb.batch_code + ' (new)'
-    }))
-  ].reduce((acc, opt) => {
-    if (!acc.find(o => o.id === opt.id)) acc.push(opt);
-    return acc;
-  }, []);
+
 
   const handlePkgChange = (idx, field, value) => {
     setPackages((pkgs) => {
@@ -397,31 +439,23 @@ function ImportOrderDetail() {
       const batchCode = pkg.batch_id.batch_code;
       const expDate = pkg.batch_id.expiry_date?.slice(0, 10) || 'N/A';
       const orderIdStr = order._id;
-      const supplierName = order.supplier_contract_id?.supplier_id?.name || 'N/A';
+      const supplierName = order.contract_id?.partner_id?.name || 'N/A';
 
       // Fetch medicine details
-      const medId = pkg.batch_id?.medicine_id;
-      let medicineLabel = 'Unknown Medicine';
-      console.log(medId);
-      if (medId) {
-        const { data: medResp } = await axios.get(`/api/medicine/detail/${medId}`, {
-          headers: getAuthHeaders(),
-        });
-        if (medResp.success) {
-          const med = medResp.data.medicine;
-          medicineLabel = `${med.medicine_name} (${med.license_code})`;
-        }
-      }
+      const med = pkg.batch_id?.medicine_id;
+      const medicineLabel = med
+        ? `${med.medicine_name} (${med.license_code})`
+        : 'Unknown Medicine';
 
       // Render barcode to offscreen canvas
       const canvas = document.createElement('canvas');
       await bwipjs.toCanvas(canvas, {
-        bcid: 'code128',
-        text: pkgId,
-        scale: 3,
-        includetext: true,
-        textxalign: 'center',
-        textsize: 10,
+        bcid: 'qrcode',         // use the QR‑code generator
+        text: pkgId,            // data to encode
+        scale: 6,               // how many pixels per “module”
+        version: 5,             // 1–40, controls size; omit to auto‑fit
+        eclevel: 'M',           // error‑correction: L, M, Q, H
+        includeMargin: true,    // add a quiet zone around the code
       });
       const barcodeDataUrl = canvas.toDataURL('image/png');
 
@@ -474,11 +508,32 @@ function ImportOrderDetail() {
     }
   };
 
-  const handleArrival = async () => {
+  const handleSelfAssign = async () => {
     try {
       await axios.patch(
+        `/api/import-orders/${orderId}/assign-warehouse-manager`,
+        { warehouse_manager_id: userId },
+        {
+          headers: getAuthHeaders()
+        }
+      );
+    } catch (err) {
+      console.error('Error assign self:', err);
+      setError('Lỗi khi assign đơn');
+    }
+  };
+
+
+
+  const handleArrival = async () => {
+    try {
+      await handleSelfAssign()
+      await axios.patch(
         `/api/import-orders/${orderId}/status`,
-        { status: 'delivered' }
+        { status: 'delivered' },
+        {
+          headers: getAuthHeaders()
+        }
       );
       setOrder(prev => ({ ...prev, status: 'delivered' }));
       enableAccordion('delivered')
@@ -520,7 +575,7 @@ function ImportOrderDetail() {
             batch_code: spec.batch_code,
             production_date: spec.production_date,
             expiry_date: spec.expiry_date,
-            supplier_id: order.supplier_contract_id.supplier_id._id
+            supplier_id: order.contract_id.partner_id._id
           },
           {
             headers: getAuthHeaders()
@@ -650,7 +705,7 @@ function ImportOrderDetail() {
             </Typography>
             {order.details.map((d) => (
               <Typography key={d._id}>
-                • {d.medicine_id.medicine_name}: {d.quantity} @ {d.unit_price}
+                • {d.medicine_id.medicine_name} ({d.medicine_id.license_code}): {d.quantity}
               </Typography>
             ))}
             <Divider sx={{ my: 2 }} />
@@ -686,7 +741,7 @@ function ImportOrderDetail() {
                         <TableCell>
                           <Tooltip title={insp._id}>
                             <Typography variant="body2" fontWeight="bold">
-                              {insp.medicine_id?.medicine_name || ''}
+                              {insp.medicine_id?.medicine_name || ''} ({insp.medicine_id?.license_code || ''})
                             </Typography>
                           </Tooltip>
                         </TableCell>
@@ -803,7 +858,9 @@ function ImportOrderDetail() {
                     <TableBody>
                       {putAway.map((pkg) => (
                         <TableRow key={pkg._id}>
-                          <TableCell>{pkg.batch_id.batch_code}</TableCell>
+                          <TableCell>
+                            {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
+                          </TableCell>
                           <TableCell>{pkg.quantity}</TableCell>
                           <TableCell>{pkg.location_id ? 'Arranged' : 'Unarranged'}</TableCell>
                           <TableCell>

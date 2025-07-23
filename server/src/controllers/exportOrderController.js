@@ -1,6 +1,14 @@
 const ExportOrder = require("../models/ExportOrder")
 const User = require("../models/User")
 const { EXPORT_ORDER_STATUSES, USER_ROLES } = require("../utils/constants")
+
+// Helper function for population to ensure consistent data structure
+const populateOptions = [
+  { path: "contract_id", select: "contract_code" },
+  { path: "created_by", select: "email" },
+  { path: "warehouse_manager_id", select: "email" }, // Populating assigned staff's email
+  { path: "details.medicine_id", select: "medicine_name unit_of_measure" }, // Populating medicine details
+]
 const exportOrderService = require('../services/exportOrderService');
 
 /**
@@ -8,7 +16,7 @@ const exportOrderService = require('../services/exportOrderService');
  * @route   GET /api/export-orders
  * @access  Private (Representative, Representative Manager, Warehouse Manager)
  */
-exports.getAllExportOrders = async (req, res, next) => {
+const getAllExportOrders = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, status, warehouse_manager_id, created_by } = req.query;
     const result = await exportOrderService.getExportOrders(
@@ -20,14 +28,14 @@ exports.getAllExportOrders = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-};
- 
+}
+
 /**
  * @desc    Assign staff to an export order
  * @route   PUT /api/export-orders/:id/assign-staff
  * @access  Private (Warehouse Manager)
  */
-exports.assignStaffToExportOrder = async (req, res, next) => {
+const assignStaffToExportOrder = async (req, res, next) => {
   try {
     const { id } = req.params
     const { staffId } = req.body
@@ -54,12 +62,7 @@ exports.assignStaffToExportOrder = async (req, res, next) => {
   }
 }
 
-/**
- * @desc    Update packing details for an export order
- * @route   PUT /api/export-orders/:id/update-packing
- * @access  Private (Warehouse Manager)
- */
-exports.updatePackingDetails = async (req, res, next) => {
+const updatePackingDetails = async (req, res, next) => {
   try {
     const { id } = req.params
     const { details } = req.body // Array of { medicine_id, expected_quantity, actual_quantity, unit_price }
@@ -85,12 +88,7 @@ exports.updatePackingDetails = async (req, res, next) => {
   }
 }
 
-/**
- * @desc    Complete an export order
- * @route   PUT /api/export-orders/:id/complete
- * @access  Private (Warehouse Manager)
- */
-exports.completeExportOrder = async (req, res, next) => {
+const completeExportOrder = async (req, res, next) => {
   try {
     const { id } = req.params
     const order = await ExportOrder.findById(id)
@@ -99,17 +97,7 @@ exports.completeExportOrder = async (req, res, next) => {
       return res.status(404).json({ success: false, error: "Export Order not found" })
     }
 
-    // Check if all actual quantities meet expected quantities
-    const hasInsufficientQuantity = order.details.some((detail) => detail.actual_quantity < detail.expected_quantity)
-
-    if (hasInsufficientQuantity) {
-      // If quantities are insufficient, return an error or prompt for cancellation
-      return res.status(400).json({
-        success: false,
-        error: "Cannot complete: Some items have insufficient actual quantity. Consider cancelling the order.",
-      })
-    }
-
+    // Loại bỏ kiểm tra số lượng khi hoàn thành đơn hàng cho warehouse_manager
     order.status = EXPORT_ORDER_STATUSES.COMPLETED
     await order.save()
 
@@ -120,12 +108,7 @@ exports.completeExportOrder = async (req, res, next) => {
   }
 }
 
-/**
- * @desc    Cancel an export order
- * @route   PUT /api/export-orders/:id/cancel
- * @access  Private (Warehouse Manager)
- */
-exports.cancelExportOrder = async (req, res, next) => {
+const cancelExportOrder = async (req, res, next) => {
   try {
     const { id } = req.params
     const order = await ExportOrder.findById(id)
@@ -144,54 +127,46 @@ exports.cancelExportOrder = async (req, res, next) => {
   }
 }
 
-/**
- * @desc    Representative tạo export order (trạng thái draft)
- * @route   POST /api/export-orders
- * @access  Private (Representative)
- */
-exports.createExportOrder = async (req, res, next) => {
-  try {
-    const userId = req.user.userId; // Lấy từ middleware xác thực, dạng string
-    console.log('POST /api/export-orders body:', req.body); // Log dữ liệu nhận được
-    const order = await exportOrderService.createExportOrder(req.body, userId);
-    res.status(201).json({ success: true, data: order });
-  } catch (error) {
-    console.error('Create export order error:', error); // Log lỗi chi tiết
-    next(error);
-  }
-};
-
-/**
- * @desc    RM duyệt và gán warehouse manager cho export order
- * @route   PUT /api/export-orders/:id/approve
- * @access  Private (Representative Manager)
- */
-exports.approveExportOrder = async (req, res, next) => {
-  try {
-    const rmId = req.user._id; // Lấy từ middleware xác thực
-    const { id } = req.params;
-    const order = await exportOrderService.approveExportOrder(id, rmId);
-    res.status(200).json({ success: true, data: order });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * @desc    Gán warehouse manager cho export order
- * @route   PUT /api/export-orders/:id/assign-warehouse-manager
- * @access  Private (Representative Manager)
- */
-exports.assignWarehouseManager = async (req, res) => {
+const getExportOrderDetail = async (req, res) => {
   try {
     const { id } = req.params;
-    const { warehouse_manager_id } = req.body;
-    if (!warehouse_manager_id) {
-      return res.status(400).json({ success: false, error: 'warehouse_manager_id is required' });
+
+    // Find export order by ID and populate references
+    const exportOrder = await ExportOrder.findById(id)
+      .populate("contract_id", "contract_code")
+      .populate("warehouse_manager_id", "email")
+      .populate("created_by", "email")
+      .populate("approval_by", "email")
+      // If your details include a product or medicine reference, adjust accordingly:
+      .populate("details.medicine_id", "medicine_name license_code")
+      .populate("details.actual_item");
+
+    if (!exportOrder) {
+      return res.status(404).json({
+        success: false,
+        message: `Export order with ID ${id} not found`,
+      });
     }
-    const updatedOrder = await exportOrderService.assignWarehouseManager(id, warehouse_manager_id);
-    res.status(200).json({ success: true, data: updatedOrder });
+
+    res.status(200).json({
+      success: true,
+      data: exportOrder,
+    });
   } catch (error) {
-    res.status(400).json({ success: false, error: error.message });
+    console.error("Error fetching export order:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while retrieving export order",
+      error: error.message,
+    });
   }
 };
+
+module.exports = {
+  getAllExportOrders,
+  assignStaffToExportOrder,
+  updatePackingDetails,
+  completeExportOrder,
+  cancelExportOrder,
+  getExportOrderDetail
+}

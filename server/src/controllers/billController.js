@@ -53,21 +53,39 @@ const billController = {
     }
   },
   deleteBill: async (req, res) => {
-  try {
-    const billId = req.params.id;
-    await billService.deleteBill(billId);
-    res.status(200).json({
-      success: true,
-      message: 'Bill deleted successfully',
-    });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      message: 'Bill not found',
-      error: error.message,
-    });
-  }
-},
+    try {
+      const billId = req.params.id;
+      await billService.deleteBill(billId);
+      res.status(200).json({
+        success: true,
+        message: 'Bill deleted successfully',
+      });
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        message: 'Bill not found',
+        error: error.message,
+      });
+    }
+  },
+  updateBillStatus: async (req, res) => {
+    try {
+      const billId = req.params.id;
+      const statusData = req.body;
+      const updatedBill = await billService.updateBillStatus(billId, statusData.status);
+      res.status(200).json({
+        success: true,
+        data: updatedBill,
+        message: 'Bill status updated successfully',
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update bill status',
+        error: error.message,
+      });
+    }
+  },
 };
 
 module.exports = billController;

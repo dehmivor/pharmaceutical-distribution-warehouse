@@ -3,6 +3,7 @@ const Package = require('../models/Package');
 const Area = require('../models/Area');
 const Location = require('../models/Location');
 const Batch = require('../models/Batch');
+const LogLocationChange = require('../models/LogLocationChange');
 
 const packageController = {
   // ✅ Get all packages
@@ -396,64 +397,117 @@ const packageController = {
     return res.json({ success: true, data: result.packages });
   },
 
+  // clear location from package and log the removal
   clearLocation: async (req, res) => {
-    const { packageId } = req.params;
-    const result = await packageService.clearPackageLocation(packageId);
-    if (!result.success) {
-      return res.status(400).json({ success: false, message: result.message });
-    }
-    res.json({ success: true });
-  },
-
-  // add location to packages using location's object id
-  addLocationToPackage: async (req, res) => {
     try {
       const { packageId } = req.params;
-      const { location_id } = req.body;
+      const { ware_house_id, import_order_id, export_order_id, inventory_check_order_id } = req.body;
 
-      // 1) Validate presence
-      if (!packageId || !location_id) {
+      if (!packageId || !ware_house_id) {
         return res.status(400).json({
           success: false,
-          message: 'packageId (param) and location_id (body) are required',
+          message: 'packageId (param) and ware_house_id (body) are required',
         });
       }
 
-      // 2) Update the package
+      // 1) Fetch the current package to get batch and quantity
+      const pkg = await Package.findById(packageId);
+      if (!pkg) {
+        return res.status(404).json({ success: false, message: `No package found with id ${packageId}` });
+      }
+
+      const { batch_id, quantity, location_id } = pkg;
+
+      // 2) Clear the location
+      await Package.findByIdAndUpdate(packageId, { location_id: null });
+
+      // 3) Create a location removal log entry
+      const log = await LogLocationChange.create({
+        location_id: location_id,                 // indicate removal
+        type: 'remove',                    // removal type
+        batch_id: batch_id,
+        quantity: quantity,
+        ware_house_id,
+        import_order_id,
+        export_order_id,
+        inventory_check_order_id,
+      });
+
+      // 4) Return success
+      return res.json({ success: true, log });
+    } catch (err) {
+      console.error('❌ Error clearing location and logging:', err);
+      if (err.kind === 'ObjectId') {
+        return res.status(400).json({ success: false, message: 'Invalid packageId format' });
+      }
+      return res.status(500).json({ success: false, message: 'Server error clearing package location' });
+    }
+  },
+
+  // add location to package and log the change
+  addLocationToPackage: async (req, res) => {
+    try {
+      const { packageId } = req.params;
+      const {
+        location_id,
+        ware_house_id,
+        import_order_id,
+        export_order_id,
+        inventory_check_order_id,
+      } = req.body;
+
+      // 1) Validate presence
+      if (!packageId || !location_id || !ware_house_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'packageId (param), location_id (body) and ware_house_id (body) are required',
+        });
+      }
+
+      // 2) Update the package's location
       const updated = await Package.findByIdAndUpdate(
         packageId,
         { location_id },
-        { new: true }       // return the updated doc
+        { new: true }
       )
-        .populate({
-          path: 'location_id',
-          populate: { path: 'area_id', model: 'Area' }
-        })
-        .populate('batch_id');
+        .populate({ path: 'location_id', populate: { path: 'area_id', model: 'Area' } })
+        .populate({ path: 'batch_id', populate: { path: 'medicine_id', model: 'Medicine' } });
 
       if (!updated) {
         return res.status(404).json({
           success: false,
-          message: `No package found with id ${packageId}`
+          message: `No package found with id ${packageId}`,
         });
       }
 
-      // 3) Return success
+      // 3) Create a location log entry
+      const log = await LogLocationChange.create({
+        location_id,
+        type: 'add',                        // adding to location
+        batch_id: updated.batch_id._id,
+        quantity: updated.quantity,
+        ware_house_id,                      // user performing the action
+        import_order_id,                    // may be undefined
+        export_order_id,
+        inventory_check_order_id,
+      });
+
+      // 4) Return success with both updated package and log
       return res.json({
         success: true,
-        data: updated
+        data: { package: updated, log },
       });
     } catch (err) {
-      console.error('❌ Error assigning location to package:', err);
+      console.error('❌ Error assigning location to package and logging:', err);
       if (err.kind === 'ObjectId') {
         return res.status(400).json({
           success: false,
-          message: 'Invalid packageId or location_id format'
+          message: 'Invalid packageId or location_id format',
         });
       }
       return res.status(500).json({
         success: false,
-        message: 'Server error updating package'
+        message: 'Server error updating package',
       });
     }
   },

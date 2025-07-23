@@ -250,6 +250,26 @@ const itemContractSchema = new mongoose.Schema({
   { _id: false },
 );
 
+// Sub-schema cho export inspection
+const exportInspectionSchema = new mongoose.Schema({
+  package_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Package',
+    required: [true, 'Package ID is required'],
+  },
+  quantity: {
+    type: Number, 
+    required: [true, 'Quantity is required'],
+    min: [1, 'Quantity must be a positive integer'],
+  },
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'Created by is required'],
+  },
+}, { _id: false });
+
+
 // Sub-schema cho export order details
 const exportOrderDetailsSchema = new mongoose.Schema({
   medicine_id: {
@@ -262,11 +282,7 @@ const exportOrderDetailsSchema = new mongoose.Schema({
     required: [true, 'Quantity is required'],
     min: [0, 'Quantity cannot be negative'],
   },
-  actual_quantity: {
-    type: Number,
-    default: 0,
-    min: [0, 'Actual quantity cannot be negative'],
-  },
+  actual_item: [exportInspectionSchema],
   unit_price: {
     type: Number,
     min: [0, 'Unit price cannot be negative'],
@@ -283,5 +299,5 @@ module.exports = {
   itemPrincipleContractSchema,
   annexSchema,
   itemContractSchema,
-  exportOrderDetailsSchema,
+  exportOrderDetailsSchema
 };

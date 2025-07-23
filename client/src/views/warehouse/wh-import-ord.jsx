@@ -196,7 +196,7 @@ export default function ManageImportOrders() {
             size="small"
           >
             <MenuItem value="">Tất cả</MenuItem> {/* value rỗng nghĩa là không lọc trạng thái */}
-            {['delivered', 'checked'].map((s) => (
+            {['delivered', 'arranged'].map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
               </MenuItem>

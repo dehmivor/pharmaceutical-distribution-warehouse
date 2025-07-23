@@ -1,81 +1,34 @@
 const express = require("express")
-const {
-  getAllExportOrders,
-  assignStaffToExportOrder,
-  updatePackingDetails,
-  completeExportOrder,
-  cancelExportOrder,
-  createExportOrder,
-  approveExportOrder,
-} = require("../controllers/exportOrderController")
-const authenticate = require("../middlewares/authenticate")
+const authenticate = require("../middlewares/authenticate") 
 const authorize = require("../middlewares/authorize")
-
+const exportOrderController = require("../controllers/exportOrderController")
 const router = express.Router()
 
-// Apply authentication middleware to all routes
-router.use(authenticate)
 
-// Create new export order - chỉ representative và supervisor
-router.post(
-  '/',
-  authorize(['representative', 'supervisor']),
-  createExportOrder,
-)
+router.use(authenticate) // Tất cả các route đều yêu cầu xác thực
 
-// Get all export orders - supervisor, representative, representative_manager, warehouse_manager, warehouse
+// Lấy tất cả đơn hàng xuất kho - có thể truy cập bởi cả warehouse và warehouse_manager
+router.route("/").get(authorize(['warehouse_manager', 'warehouse']), exportOrderController.getAllExportOrders);
+
+// Phân công nhân viên cho đơn hàng xuất kho - chỉ warehouse_manager
+router.route("/:id/assign-staff").put(authorize('warehouse_manager'), exportOrderController.assignStaffToExportOrder);
+
+// Cập nhật chi tiết đóng gói - có thể truy cập bởi cả warehouse và warehouse_manager
+router
+  .route("/:id/update-packing")
+  .put(authorize(['warehouse_manager', 'warehouse']), exportOrderController.updatePackingDetails);
+
+// Hoàn thành đơn hàng xuất kho - chỉ warehouse_manager
+router.route("/:id/complete").put(authorize('warehouse_manager'), exportOrderController.completeExportOrder);
+
+// Hủy đơn hàng xuất kho - chỉ warehouse_manager
+router.route("/:id/cancel").put(authorize('warehouse_manager'), exportOrderController.cancelExportOrder);
+
 router.get(
-  '/',
-  authorize([
-    'supervisor',
-    'representative',
-    'representative_manager',
-    'warehouse_manager',
-    'warehouse',
-  ]),
-  getAllExportOrders,
-)
-
-// RM duyệt và gán warehouse manager
-router.put(
-  '/:id/approve',
-  authorize(['representative_manager', 'supervisor']),
-  approveExportOrder,
-)
-
-// Assign staff to export order - warehouse_manager, supervisor
-router.put(
-  '/:id/assign-staff',
-  authorize(['warehouse_manager', 'supervisor']),
-  assignStaffToExportOrder,
-)
-
-// Assign warehouse manager to export order - representative_manager, supervisor
-router.put(
-  '/:id/assign-warehouse-manager',
-  authorize(['representative_manager', 'supervisor']),
-  require('../controllers/exportOrderController').assignWarehouseManager,
+  '/:id',
+  authorize(['warehouse', 'warehouse_manager']),
+  exportOrderController.getExportOrderDetail,
 );
 
-// Update packing details - warehouse_manager, supervisor
-router.put(
-  '/:id/update-packing',
-  authorize(['warehouse_manager', 'supervisor']),
-  updatePackingDetails,
-)
-
-// Complete export order - warehouse_manager, supervisor
-router.put(
-  '/:id/complete',
-  authorize(['warehouse_manager', 'supervisor']),
-  completeExportOrder,
-)
-
-// Cancel export order - warehouse_manager, supervisor
-router.put(
-  '/:id/cancel',
-  authorize(['warehouse_manager', 'supervisor']),
-  cancelExportOrder,
-)
 
 module.exports = router
