@@ -3,27 +3,24 @@ const User = require("../models/User")
 const { EXPORT_ORDER_STATUSES, USER_ROLES } = require("../utils/constants")
 const exportOrderService = require('../services/exportOrderService');
 
-// Helper function for population to ensure consistent data structure
-const populateOptions = [
-  { path: "contract_id", select: "contract_code" }, // Đã sửa từ contract_number sang contract_code
-  { path: "created_by", select: "email" },
-  { path: "warehouse_manager_id", select: "email" }, // Populating assigned staff's email
-  { path: "details.medicine_id", select: "medicine_name unit_of_measure" }, // Populating medicine details
-]
-
 /**
  * @desc    Get all export orders
  * @route   GET /api/export-orders
- * @access  Private (Warehouse Manager)
+ * @access  Private (Representative, Representative Manager, Warehouse Manager)
  */
 exports.getAllExportOrders = async (req, res, next) => {
   try {
-    const orders = await ExportOrder.find().populate(populateOptions).sort({ createdAt: -1 })
-    res.status(200).json({ success: true, data: orders })
+    const { page = 1, limit = 10, status, warehouse_manager_id, created_by } = req.query;
+    const result = await exportOrderService.getExportOrders(
+      { status, warehouse_manager_id, created_by },
+      parseInt(page),
+      parseInt(limit)
+    );
+    res.status(200).json({ success: true, data: result.orders, pagination: result.pagination });
   } catch (error) {
-    next(error)
+    next(error);
   }
-}
+};
  
 /**
  * @desc    Assign staff to an export order
