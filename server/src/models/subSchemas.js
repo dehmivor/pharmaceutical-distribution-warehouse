@@ -289,6 +289,24 @@ const exportOrderDetailsSchema = new mongoose.Schema({
   },
 });
 
+const checkItemSchema = new mongoose.Schema({
+  medicine_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Medicine',
+    required: [true, 'Medicine ID is required'],
+  },
+  expected_quantity: {
+    type: Number,
+    required: [true, 'Quantity is required'],
+    min: [0, 'Quantity cannot be negative'],
+  },
+  actual_quantity: {
+    type: Number,
+    required: [true, 'Quantity is required'],
+    min: [0, 'Quantity cannot be negative'],
+  }
+}, { _id: false } );
+
 // Xuất sub-schema để sử dụng ở các file khác
 module.exports = {
   storageConditionsSchema,
@@ -299,5 +317,6 @@ module.exports = {
   itemPrincipleContractSchema,
   annexSchema,
   itemContractSchema,
-  exportOrderDetailsSchema
+  exportOrderDetailsSchema,
+  checkItemSchema
 };
