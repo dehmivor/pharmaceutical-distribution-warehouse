@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { INVENTORY_CHECK_INSPECTION_STATUSES } = require("../utils/constants");
+const { checkItemSchema } = require("./subSchemas");
 
 const inventoryCheckInspectionSchema = new mongoose.Schema({
     inventory_check_order_id: {
@@ -16,21 +17,12 @@ const inventoryCheckInspectionSchema = new mongoose.Schema({
         },
         default: INVENTORY_CHECK_INSPECTION_STATUSES.PENDING,
     },
-    medicine_id: {
+    location_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Medicine",
-        required: [true, "Medicine ID is required"],
+        ref: "Location",
+        required: [true, "Location ID is required"],
     },
-    expected_quantity: {
-        type: Number,
-        required: [true, "Expected quantity is required"],
-        min: [1, "Expected quantity must be greater than 0"],
-    },
-    actual_quantity: {
-        type: Number,
-        required: [true, "Actual quantity is required"],
-        min: [0, "Actual quantity must be greater than 0"],
-    },
+    check_list: [checkItemSchema],
     notes: {
         type: String,
     },
