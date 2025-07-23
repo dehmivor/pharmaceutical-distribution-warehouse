@@ -528,11 +528,6 @@ const assignWarehouseManager = async (orderId, warehouseManagerId) => {
   const order = await ImportOrder.findById(orderId);
   if (!order) throw new Error('Import order not found');
 
-  // 2. Check order status is delivered
-  if (order.status !== IMPORT_ORDER_STATUSES.DELIVERED) {
-    throw new Error('Order must be in delivered status to assign a warehouse manager');
-  }
-
   // 3. Check if already assigned
   if (order.warehouse_manager_id) {
     throw new Error('Warehouse manager has already been assigned to this order');
@@ -554,6 +549,7 @@ const assignWarehouseManager = async (orderId, warehouseManagerId) => {
   await order.save();
 
   // Gửi notification cho tất cả warehouse
+  /* BROKEN
   const warehouses = await User.find({ role: USER_ROLES.WAREHOUSE, status: 'active' });
   const notifications = warehouses.map((wh) => ({
     recipient_id: wh._id,
@@ -567,7 +563,7 @@ const assignWarehouseManager = async (orderId, warehouseManagerId) => {
   if (notifications.length > 0) {
     await Notification.insertMany(notifications);
   }
-
+  */
   return await ImportOrder.findById(orderId)
     .populate({
       path: 'contract_id',

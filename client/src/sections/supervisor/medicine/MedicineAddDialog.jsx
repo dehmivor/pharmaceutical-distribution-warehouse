@@ -74,7 +74,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
   // Fetch filter options
   // const fetchFilterOptions = async () => {
   //   try {
-  //     const response = await axios.get(`${API_BASE_URL}/medicine/filter-options`);
+  //     const response = await axios.get(`${API_BASE_URL}/api/medicine/filter-options`);
   //     if (response.data.success) {
   //       setFilterOptions(response.data.data);
   //     }
