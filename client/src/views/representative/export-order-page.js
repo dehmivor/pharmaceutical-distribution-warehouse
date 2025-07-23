@@ -31,19 +31,7 @@ function ExportOrderPage() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedOrderForAction, setSelectedOrderForAction] = useState(null);
 
-  useEffect(() => {
-    fetchOrders();
-    fetchContracts();
-  }, []);
-
-  useEffect(() => {
-    if (formData.contract_id) {
-      fetchContractMedicines(formData.contract_id);
-    } else {
-      setContractMedicines([]);
-    }
-  }, [formData.contract_id]);
-
+  // Định nghĩa lại hàm fetchOrders
   const fetchOrders = async () => {
     setLoading(true);
     try {
@@ -56,6 +44,7 @@ function ExportOrderPage() {
     }
   };
 
+  // Định nghĩa lại hàm fetchContracts
   const fetchContracts = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/contract?status=active`, { headers: getAuthHeaders() });
@@ -65,38 +54,62 @@ function ExportOrderPage() {
     }
   };
 
+  // Lấy danh sách thuốc từ contract khi chọn contract
   const fetchContractMedicines = async (contractId) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/contract/${contractId}`, { headers: getAuthHeaders() });
-      setContractMedicines(response.data.data?.items || []);
+      const contract = response.data.data;
+      setContractMedicines(contract.current_items || contract.items || []);
     } catch (error) {
       setContractMedicines([]);
     }
   };
 
+  useEffect(() => {
+    fetchOrders();
+    fetchContracts();
+  }, []);
+
+  // Gọi fetchContractMedicines khi chọn contract
+  useEffect(() => {
+    if (formData.contract_id) {
+      fetchContractMedicines(formData.contract_id);
+    } else {
+      setContractMedicines([]);
+    }
+  }, [formData.contract_id]);
+
+  // Khi chọn contract, reset details về rỗng
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'contract_id') {
+      setFormData((prev) => ({ ...prev, contract_id: value, details: [] }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
+  // Khi chọn thuốc, tự động fill số lượng và giá từ contract
   const handleDetailChange = (index, field, value) => {
     const newDetails = [...formData.details];
-    // Nếu field là quantity, map sang expected_quantity và đảm bảo là số
-    if (field === 'quantity') {
+    if (field === 'medicine_id') {
+      // Không cho chọn trùng thuốc
+      if (newDetails.some((d, i) => d.medicine_id === value && i !== index)) return;
+      const selectedMedicine = contractMedicines.find((med) => med.medicine_id._id === value);
+      if (selectedMedicine) {
+        newDetails[index].unit_price = selectedMedicine.unit_price || 0;
+        newDetails[index].expected_quantity = selectedMedicine.quantity || 0;
+      }
+      newDetails[index][field] = value;
+    } else if (field === 'quantity') {
       newDetails[index]['expected_quantity'] = Number(value);
     } else {
       newDetails[index][field] = value;
     }
-    // Nếu chọn thuốc thì tự động lấy đơn giá từ contract
-    if (field === 'medicine_id') {
-      const selectedMedicine = contractMedicines.find((med) => med.medicine_id._id === value);
-      if (selectedMedicine) {
-        newDetails[index].unit_price = selectedMedicine.unit_price || 0;
-      }
-    }
     setFormData((prev) => ({ ...prev, details: newDetails }));
   };
 
+  // Add Medicine: thêm dòng mới với medicine_id rỗng
   const addDetail = () => {
     setFormData((prev) => ({ ...prev, details: [...prev.details, { medicine_id: '', expected_quantity: 0, unit_price: 0 }] }));
   };
@@ -189,6 +202,34 @@ function ExportOrderPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Validate contract
+    if (!formData.contract_id) {
+      setError('Please select a contract.');
+      return;
+    }
+    // Validate details
+    if (!formData.details.length) {
+      setError('Please add at least one medicine.');
+      return;
+    }
+    // Validate từng dòng: đã chọn thuốc, không trùng thuốc, số lượng > 0
+    const seen = new Set();
+    for (let i = 0; i < formData.details.length; i++) {
+      const d = formData.details[i];
+      if (!d.medicine_id) {
+        setError(`Please select a medicine for row ${i + 1}.`);
+        return;
+      }
+      if (seen.has(d.medicine_id)) {
+        setError('Duplicate medicine selected. Each medicine can only be selected once.');
+        return;
+      }
+      seen.add(d.medicine_id);
+      if (!d.expected_quantity || Number(d.expected_quantity) <= 0) {
+        setError(`Quantity must be greater than 0 for row ${i + 1}.`);
+        return;
+      }
+    }
     setFormLoading(true);
     try {
       // Loại bỏ created_by và warehouse_manager_id nếu có trong formData
@@ -199,8 +240,14 @@ function ExportOrderPage() {
         unit_price: Number(d.unit_price)
       }));
 
-      const url = selectedOrder ? `${API_BASE_URL}/api/export-orders/${selectedOrder._id}` : `${API_BASE_URL}/api/export-orders`;
-      const method = selectedOrder ? 'PUT' : 'POST';
+      let url, method;
+      if (selectedOrder) {
+        url = `${API_BASE_URL}/api/export-orders/${selectedOrder._id}`;
+        method = 'patch'; // PATCH cho update
+      } else {
+        url = `${API_BASE_URL}/api/export-orders`;
+        method = 'post';
+      }
 
       await axios({
         method,
@@ -293,7 +340,9 @@ function ExportOrderPage() {
                       label="Medicine"
                       required
                     >
-                      {contractMedicines.map((med) => (
+                      {contractMedicines.filter((med) =>
+                        !formData.details.some((d, i) => d.medicine_id === med.medicine_id._id && i !== index)
+                      ).map((med) => (
                         <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
                           {med.medicine_id.medicine_name}
                         </MenuItem>
