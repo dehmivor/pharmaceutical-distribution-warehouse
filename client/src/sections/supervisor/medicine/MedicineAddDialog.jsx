@@ -207,7 +207,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
         storage_conditions: Object.keys(storageConditions).length > 0 ? storageConditions : null
       };
 
-      const response = await axiosInstance.post(`${API_BASE_URL}/medicine`, payload, {
+      const response = await axiosInstance.post(`${API_BASE_URL}/api/medicine`, payload, {
         headers: getAuthHeaders()
       });
 
