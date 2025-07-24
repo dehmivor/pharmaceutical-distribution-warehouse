@@ -179,11 +179,64 @@ const getExportOrderDetail = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Create export order (auto details from contract if not provided)
+ * @route   POST /api/export-orders
+ * @access  Private (Representative, Representative Manager)
+ */
+const createExportOrder = async (req, res, next) => {
+  try {
+    const userId = req.user && req.user.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+    const newOrder = await exportOrderService.createExportOrder(req.body, userId);
+    res.status(201).json({ success: true, data: newOrder });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete export order (only draft/cancelled, RP chỉ xóa đơn của mình, RM xóa tất cả)
+ * @route   DELETE /api/export-orders/:id
+ * @access  Private (Representative, Representative Manager)
+ */
+const deleteExportOrder = async (req, res, next) => {
+  try {
+    const user = req.user;
+    const { id } = req.params;
+    const result = await exportOrderService.deleteExportOrder(id, user);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update export order (only draft, RP chỉ update đơn của mình)
+ * @route   PATCH /api/export-orders/:id
+ * @access  Private (Representative)
+ */
+const updateExportOrder = async (req, res, next) => {
+  try {
+    const user = req.user;
+    const { id } = req.params;
+    const updatedOrder = await exportOrderService.updateExportOrder(id, req.body, user);
+    res.status(200).json({ success: true, data: updatedOrder });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllExportOrders,
   assignStaffToExportOrder,
   updatePackingDetails,
   completeExportOrder,
   cancelExportOrder,
-  getExportOrderDetail
+  getExportOrderDetail,
+  createExportOrder,
+  deleteExportOrder,
+  updateExportOrder,
 }

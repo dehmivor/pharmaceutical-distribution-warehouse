@@ -13,7 +13,7 @@ async function createCheckoutSession({
     throw new Error('Missing billId or amount');
   }
 
-  const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
