@@ -1,6 +1,7 @@
 const Batch = require('../models/Batch');
 const Location = require('../models/Location');
 const mongoose = require('mongoose');
+const batchService = require('../services/batchService');
 
 const batchController = {
   assignBatch: async (req, res) => {
@@ -123,44 +124,33 @@ const batchController = {
   },
 
   getValidBatches: async (req, res) => {
-  try {
-    const { medicineId } = req.params;
+    try {
+      const { medicineId } = req.params;
 
-    // 1) Validate
-    if (!medicineId || !mongoose.Types.ObjectId.isValid(medicineId)) {
-      return res.status(400).json({
+      // 1) Validate
+      if (!medicineId || !mongoose.Types.ObjectId.isValid(medicineId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'A valid medicineId URL parameter is required',
+        });
+      }
+
+      // 2) Delegate to service
+      const validBatches = await batchService.getValidBatches(medicineId);
+
+      // 3) Return
+      return res.json({
+        success: true,
+        data: validBatches,
+      });
+    } catch (err) {
+      console.error('❌ Error in getValidBatches controller:', err);
+      return res.status(500).json({
         success: false,
-        message: 'A valid medicineId URL parameter is required',
+        message: 'Server error fetching valid batches',
       });
     }
-
-    // 2) Find all batches for that medicine whose expiry_date is still in the future,
-    //    *and* populate the medicine document
-    const today = new Date();
-    const validBatches = await Batch.find({
-      medicine_id: medicineId,
-      expiry_date: { $gt: today },
-    })
-    .populate({
-      path: 'medicine_id',
-      select: 'medicine_name license_code',  // pick only the fields you need
-      // you can also populate nested refs here if necessary
-    })
-    .sort({ expiry_date: 1 });
-
-    // 3) Return
-    return res.json({
-      success: true,
-      data: validBatches,
-    });
-  } catch (err) {
-    console.error('❌ Error fetching valid batches:', err);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching valid batches',
-    });
-  }
-},
+  },
 
 }
 

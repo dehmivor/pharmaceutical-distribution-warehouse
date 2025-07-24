@@ -375,7 +375,13 @@ const packageService = {
             model: 'Area',
           },
         })
-        .populate('batch_id')
+        .populate({
+          path: 'batch_id',
+          populate: {
+            path: 'medicine_id',
+            select: 'medicine_name license_code',
+          },
+        })
         .sort({ created_at: -1 });
 
       return {
@@ -412,43 +418,43 @@ const packageService = {
   },
 
   getPackagesByImportOrder: async (importOrderId) => {
-  try {
-    if (!importOrderId) {
+    try {
+      if (!importOrderId) {
+        return {
+          success: false,
+          message: 'importOrderId là bắt buộc',
+        };
+      }
+
+      // Find packages for the given import order, populate related docs
+      const packages = await Package.find({ import_order_id: importOrderId })
+        // Populate location → area
+        .populate({
+          path: 'location_id',
+          populate: { path: 'area_id', model: 'Area' },
+        })
+        // Populate batch → and within batch, populate medicine
+        .populate({
+          path: 'batch_id',
+          populate: {
+            path: 'medicine_id',
+            model: 'Medicine',
+            select: 'medicine_name license_code', // only needed fields
+          },
+        });
+
+      return {
+        success: true,
+        packages,
+      };
+    } catch (error) {
+      console.error('❌ Get packages by import order service error:', error);
       return {
         success: false,
-        message: 'importOrderId là bắt buộc',
+        message: 'Lỗi server khi lấy packages theo import order',
       };
     }
-
-    // Find packages for the given import order, populate related docs
-    const packages = await Package.find({ import_order_id: importOrderId })
-      // Populate location → area
-      .populate({
-        path: 'location_id',
-        populate: { path: 'area_id', model: 'Area' },
-      })
-      // Populate batch → and within batch, populate medicine
-      .populate({
-        path: 'batch_id',
-        populate: {
-          path: 'medicine_id',
-          model: 'Medicine',
-          select: 'medicine_name license_code', // only needed fields
-        },
-      });
-
-    return {
-      success: true,
-      packages,
-    };
-  } catch (error) {
-    console.error('❌ Get packages by import order service error:', error);
-    return {
-      success: false,
-      message: 'Lỗi server khi lấy packages theo import order',
-    };
-  }
-},
+  },
 
 
   clearPackageLocation: async (packageId) => {
@@ -465,6 +471,33 @@ const packageService = {
       return { success: false, message: 'Lỗi server khi xóa location' };
     }
   },
+
+
+  getPackagesByBatch: async (batchId) => {
+    // 1) Validate batchId
+    if (!mongoose.Types.ObjectId.isValid(batchId)) {
+      throw new Error('Invalid batch_id');
+    }
+
+    // 2) Query DB
+    const packages = await Package.find({ batch_id: batchId })
+      .populate({
+        path: 'batch_id',
+        select: 'batch_code production_date expiry_date quality_status',
+      })
+      .populate({
+        path: 'location_id',
+        select: 'bay row column',       // only these fields on Location
+        populate: {
+          path: 'area_id',               // nested populate of the Area doc
+          select: 'name',                // just the area name
+        },
+      })
+      .exec();
+
+    return packages;
+  }
+
 };
 
 module.exports = packageService;
