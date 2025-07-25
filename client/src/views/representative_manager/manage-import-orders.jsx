@@ -40,6 +40,8 @@ import { useAuth } from '@/hooks/useAuth';
 import axios from 'axios';
 import StatusChangeDialog from '@/components/StatusChangeDialog';
 import { useRole } from '@/contexts/RoleContext';
+import useNotifications from '@/hooks/useNotification';
+import { sendError } from 'next/dist/server/api-utils';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -65,6 +67,7 @@ const RepresentativeManagerImportOrders = () => {
   const [contracts, setContracts] = useState([]);
   const [detailsDialog, setDetailsDialog] = useState(false);
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState(null);
+  const { createNotification } = useNotifications();
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -147,6 +150,21 @@ const RepresentativeManagerImportOrders = () => {
         setStatusDialog(false);
         setSelectedOrder(null);
         fetchOrders(); // Refresh the list
+
+        if (newStatus === 'approved' || newStatus === 'rejected') {
+          try {
+            await createNotification({
+              sender_id: user.userId,
+              type: 'import_order_status',
+              status: 'unread',
+              priority: 'high',
+              title: newStatus === 'approved' ? 'Import order approved' : 'Import order rejected',
+              message: `Import Order ${selectedOrder._id} has been ${newStatus}.`
+            });
+          } catch (notifError) {
+            console.error('Failed to create notification:', notifError);
+          }
+        }
       } else {
         throw new Error(response.data.error || 'Failed to update status');
       }
@@ -410,12 +428,7 @@ const RepresentativeManagerImportOrders = () => {
                               </>
                             )}
                             {isOrderLocked(order) && <Chip label="LOCKED" color="error" size="small" variant="outlined" />}
-                            <IconButton 
-                              size="small" 
-                              color="info" 
-                              title="View Details"
-                              onClick={() => handleViewDetails(order)}
-                            >
+                            <IconButton size="small" color="info" title="View Details" onClick={() => handleViewDetails(order)}>
                               <ViewIcon />
                             </IconButton>
                           </Box>
@@ -443,9 +456,7 @@ const RepresentativeManagerImportOrders = () => {
 
       {/* Details Dialog */}
       <Dialog open={detailsDialog} onClose={handleCloseDetailsDialog} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>
-          Import Order Details
-        </DialogTitle>
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>Import Order Details</DialogTitle>
         <DialogContent>
           {selectedOrderForDetails && (
             <Box sx={{ mt: 2 }}>
@@ -453,23 +464,31 @@ const RepresentativeManagerImportOrders = () => {
               <Paper sx={{ p: 2, mb: 3 }}>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="subtitle2" color="text.secondary">Order ID</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Order ID
+                    </Typography>
                     <Typography variant="body2">{selectedOrderForDetails._id}</Typography>
                   </Grid>
                   <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="subtitle2" color="text.secondary">Contract</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Contract
+                    </Typography>
                     <Typography variant="body2">{selectedOrderForDetails.contract_id?.contract_code}</Typography>
                   </Grid>
                   <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                    <Chip 
-                      label={selectedOrderForDetails.status?.toUpperCase()} 
-                      color={getStatusColor(selectedOrderForDetails.status)} 
-                      size="small" 
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Status
+                    </Typography>
+                    <Chip
+                      label={selectedOrderForDetails.status?.toUpperCase()}
+                      color={getStatusColor(selectedOrderForDetails.status)}
+                      size="small"
                     />
                   </Grid>
                   <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="subtitle2" color="text.secondary">Total Amount</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Total Amount
+                    </Typography>
                     <Typography variant="body2">{formatCurrency(selectedOrderForDetails.total_amount)}</Typography>
                   </Grid>
                 </Grid>
@@ -479,7 +498,9 @@ const RepresentativeManagerImportOrders = () => {
               <Grid container spacing={3}>
                 {/* Import Order Table */}
                 <Grid item xs={12} md={6}>
-                  <Typography variant="h6" gutterBottom>Import Order Items</Typography>
+                  <Typography variant="h6" gutterBottom>
+                    Import Order Items
+                  </Typography>
                   <TableContainer component={Paper}>
                     <Table size="small">
                       <TableHead>
@@ -515,7 +536,7 @@ const RepresentativeManagerImportOrders = () => {
                             <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
                               {formatCurrency(
                                 selectedOrderForDetails.details?.reduce(
-                                  (sum, detail) => sum + ((detail.quantity || 0) * (detail.unit_price || 0)),
+                                  (sum, detail) => sum + (detail.quantity || 0) * (detail.unit_price || 0),
                                   0
                                 )
                               )}
@@ -529,7 +550,9 @@ const RepresentativeManagerImportOrders = () => {
 
                 {/* Contract Table */}
                 <Grid item xs={12} md={6}>
-                  <Typography variant="h6" gutterBottom>Contract Items</Typography>
+                  <Typography variant="h6" gutterBottom>
+                    Contract Items
+                  </Typography>
                   <TableContainer component={Paper}>
                     <Table size="small">
                       <TableHead>
@@ -553,12 +576,7 @@ const RepresentativeManagerImportOrders = () => {
                             <TableCell align="right">{item.quantity || 'N/A'}</TableCell>
                             <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
                             <TableCell align="center">
-                              <Chip 
-                                label="ACTIVE" 
-                                color="success" 
-                                size="small" 
-                                variant="outlined"
-                              />
+                              <Chip label="ACTIVE" color="success" size="small" variant="outlined" />
                             </TableCell>
                           </TableRow>
                         ))}
@@ -577,43 +595,45 @@ const RepresentativeManagerImportOrders = () => {
 
               {/* Validation Summary */}
               <Paper sx={{ p: 2, mt: 3 }}>
-                <Typography variant="h6" gutterBottom>Validation Summary</Typography>
+                <Typography variant="h6" gutterBottom>
+                  Validation Summary
+                </Typography>
                 <Grid container spacing={2}>
-                                      {selectedOrderForDetails.details?.map((detail, index) => {
-                      const contractItem = selectedOrderForDetails.contract_id?.items?.find(
-                        item => item.medicine_id?._id === detail.medicine_id?._id
-                      );
-                      
-                      const isQuantityValid = contractItem ? detail.quantity >= contractItem.quantity : false;
-                      const isPriceValid = contractItem ? detail.unit_price === contractItem.unit_price : false;
-                      
-                      return (
-                        <Grid item xs={12} sm={6} md={4} key={index}>
-                          <Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                              {detail.medicine_id?.medicine_name}
+                  {selectedOrderForDetails.details?.map((detail, index) => {
+                    const contractItem = selectedOrderForDetails.contract_id?.items?.find(
+                      (item) => item.medicine_id?._id === detail.medicine_id?._id
+                    );
+
+                    const isQuantityValid = contractItem ? detail.quantity >= contractItem.quantity : false;
+                    const isPriceValid = contractItem ? detail.unit_price === contractItem.unit_price : false;
+
+                    return (
+                      <Grid item xs={12} sm={6} md={4} key={index}>
+                        <Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                            {detail.medicine_id?.medicine_name}
+                          </Typography>
+                          <Typography variant="body2">
+                            Quantity: {detail.quantity}
+                            <span style={{ color: isQuantityValid ? 'green' : 'red', marginLeft: 8 }}>
+                              {isQuantityValid ? '✓ Valid' : `✗ Contract: ${contractItem?.quantity || 'N/A'}`}
+                            </span>
+                          </Typography>
+                          <Typography variant="body2">
+                            Price: {formatCurrency(detail.unit_price)}
+                            <span style={{ color: isPriceValid ? 'green' : 'red', marginLeft: 8 }}>
+                              {isPriceValid ? '✓ Match' : '✗ Mismatch'}
+                            </span>
+                          </Typography>
+                          {!contractItem && (
+                            <Typography variant="body2" color="error">
+                              ⚠️ Not in contract
                             </Typography>
-                            <Typography variant="body2">
-                              Quantity: {detail.quantity} 
-                              <span style={{ color: isQuantityValid ? 'green' : 'red', marginLeft: 8 }}>
-                                {isQuantityValid ? '✓ Valid' : `✗ Contract: ${contractItem?.quantity || 'N/A'}`}
-                              </span>
-                            </Typography>
-                            <Typography variant="body2">
-                              Price: {formatCurrency(detail.unit_price)}
-                              <span style={{ color: isPriceValid ? 'green' : 'red', marginLeft: 8 }}>
-                                {isPriceValid ? '✓ Match' : '✗ Mismatch'}
-                              </span>
-                            </Typography>
-                            {!contractItem && (
-                              <Typography variant="body2" color="error">
-                                ⚠️ Not in contract
-                              </Typography>
-                            )}
-                          </Box>
-                        </Grid>
-                      );
-                    })}
+                          )}
+                        </Box>
+                      </Grid>
+                    );
+                  })}
                 </Grid>
               </Paper>
             </Box>

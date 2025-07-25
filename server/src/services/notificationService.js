@@ -157,12 +157,12 @@ const createNotification = async (notificationData) => {
     const { recipient_id, sender_id, title, message, type, priority } = notificationData;
 
     // Validate required fields
-    if (!recipient_id || !title || !message) {
+    if (!title || !message) {
       throw new Error('Recipient ID, title, and message are required');
     }
 
     // Validate ObjectIds
-    if (!mongoose.Types.ObjectId.isValid(recipient_id)) {
+    if (recipient_id && !mongoose.Types.ObjectId.isValid(recipient_id)) {
       throw new Error('Invalid recipient ID');
     }
     if (sender_id && !mongoose.Types.ObjectId.isValid(sender_id)) {
