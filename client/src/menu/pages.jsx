@@ -8,9 +8,9 @@ const pages = {
   children: [
     {
       id: 'dashboard',
-      title: 'Overview',
+      title: 'Dashboard',
       type: 'item',
-      url: '/dashboard-debt',
+      url: '/dashboard',
       icon: 'IconLayoutDashboard'
     },
     {
