@@ -1,9 +1,7 @@
 const cron = require('node-cron');
 const mongoose = require('mongoose');
-const { getBatchesExpiringAtIntervals } = require('./services/batchService');
-const Notification = require('./models/Notification');
-const User = require('./models/User');
 const { getNotificationById } = require('./notificationService');
+const { User, Batch, Notification } = require('../models'); // Giả sử bạn đã định nghĩa model ở đây
 
 const createNotificationForUser = async (userId, notificationData) => {
   try {
@@ -66,6 +64,37 @@ const notifyBatches = async (batchList, months) => {
   }
 };
 
+const getBatchesExpiringAtIntervals = async (refDate) => {
+  const addMonths = (date, months) => {
+    const d = new Date(date);
+    d.setMonth(d.getMonth() + months);
+    return d;
+  };
+
+  const start6 = addMonths(refDate, 6);
+  const end6 = addMonths(refDate, 7); // 6 -> 7 tháng
+
+  const start7 = addMonths(refDate, 7);
+  const end7 = addMonths(refDate, 8); // 7 -> 8 tháng
+
+  const start8 = addMonths(refDate, 8);
+  const end8 = addMonths(refDate, 9); // 8 -> 9 tháng
+
+  const sixMonths = await Batch.find({
+    expiry_date: { $gte: start6, $lt: end6 },
+  }).populate('medicine_id');
+
+  const sevenMonths = await Batch.find({
+    expiry_date: { $gte: start7, $lt: end7 },
+  }).populate('medicine_id');
+
+  const eightMonths = await Batch.find({
+    expiry_date: { $gte: start8, $lt: end8 },
+  }).populate('medicine_id');
+
+  return { sixMonths, sevenMonths, eightMonths };
+};
+
 cron.schedule('0 8 * * *', async () => {
   console.log('Bắt đầu chạy cronjob kiểm tra batch sắp hết hạn');
 
@@ -82,4 +111,9 @@ cron.schedule('0 8 * * *', async () => {
   }
 });
 
-module.exports = cron;
+module.exports = {
+  createNotificationForUser,
+  notifyBatches,
+  getBatchesExpiringAtIntervals,
+  cron,
+};

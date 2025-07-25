@@ -1,5 +1,4 @@
-const cronService = require('../services/cronService'); // hoặc đường dẫn đúng chứa getBatchesExpiringAtIntervals
-const { sendNotification } = require('../utils/notification');
+const cronService = require('../services/cronService');
 
 const checkExpiredMedicines = async (req, res) => {
   try {
