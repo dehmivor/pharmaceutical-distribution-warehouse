@@ -36,7 +36,7 @@ async function createExportOrder(data, userId) {
     created_by: userId,
   });
   const savedOrder = await order.save();
-  
+
   return await ExportOrder.findById(savedOrder._id)
     .populate({
       path: 'contract_id',
@@ -67,7 +67,7 @@ async function approveExportOrder(orderId, rmId) {
   order.approval_by = rmId;
   // Không gán order.warehouse_manager_id ở đây!
   await order.save();
-  
+
   return await ExportOrder.findById(orderId)
     .populate({
       path: 'contract_id',
@@ -93,7 +93,7 @@ async function assignWarehouseManager(orderId, warehouseManagerId) {
   if (!order) throw new Error('Export order not found');
   order.warehouse_manager_id = warehouseManagerId;
   await order.save();
-  
+
   return await ExportOrder.findById(orderId)
     .populate({
       path: 'contract_id',
@@ -193,12 +193,72 @@ async function getExportOrders(params = {}, page = 1, limit = 10) {
   };
 }
 
-/**
- * Xóa export order (chỉ cho phép trạng thái draft hoặc cancelled, và đúng quyền)
- * @param {String} orderId
- * @param {Object} user
- * @returns {Promise<{success: boolean, message: string}>}
- */
+
+
+const getExportOrdersFilter = async (params = {}, page = 1, limit = 10) => {
+  const skip = (page - 1) * limit;
+  const query = {};
+
+  // 1) Filter by status
+  if (params.status) {
+    query.status = params.status;
+  }
+
+  // 2) Filter by warehouse_manager_id
+  if (params.warehouse_manager_id != null) {
+    if (params.warehouse_manager_id === '0') {
+      query.warehouse_manager_id = { $exists: false };
+    } else if (mongoose.Types.ObjectId.isValid(params.warehouse_manager_id)) {
+      query.warehouse_manager_id = new mongoose.Types.ObjectId(params.warehouse_manager_id);
+    }
+  }
+
+  // 3) Filter by createdAt date
+  if (params.createdAt) {
+    const start = new Date(params.createdAt);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    query.createdAt = { $gte: start, $lt: end };
+  }
+
+  if (params.created_by) {
+    if (mongoose.Types.ObjectId.isValid(params.created_by)) {
+      query.created_by = new mongoose.Types.ObjectId(params.created_by);
+    }
+  }
+
+  // 4) Execute query + count in parallel
+  const [orders, total] = await Promise.all([
+    ExportOrder.find(query)
+      .populate({
+        path: 'contract_id',
+        populate: [
+          // adjust these paths as needed for your Contract schema
+          { path: 'partner_id', select: 'name' },
+          { path: 'items.medicine_id', select: 'medicine_name license_code' },
+        ],
+      })
+      .populate('warehouse_manager_id', 'email name role')
+      .populate('created_by', 'email name role')
+      .populate('approval_by', 'email name role')
+      .populate('details.medicine_id', 'medicine_name license_code')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .exec(),
+    ExportOrder.countDocuments(query),
+  ]);
+
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    orders,
+    pagination: { total, page, limit, totalPages },
+  };
+};
+
+
 async function deleteExportOrder(orderId, user) {
   const order = await ExportOrder.findById(orderId);
   if (!order) throw new Error('Export order not found');
@@ -263,12 +323,74 @@ async function updateExportOrder(orderId, updateData, user) {
     .populate('details.medicine_id', 'medicine_name license_code');
 }
 
+
+const getExportOrderDetail = async (id) => {
+  const exportOrder = await ExportOrder.findById(id)
+    .populate('contract_id', 'contract_code')
+    .populate('warehouse_manager_id', 'email')
+    .populate('created_by', 'email')
+    .populate('approval_by', 'email')
+    .populate('details.medicine_id', 'medicine_name license_code')
+    .populate('details.actual_item');
+
+  return exportOrder;
+}
+
+async function addExportInspection(orderId, detailId, inspectionData) {
+  // 1) Validate IDs
+  if (!mongoose.Types.ObjectId.isValid(orderId)) {
+    throw new Error('Invalid orderId');
+  }
+  if (!mongoose.Types.ObjectId.isValid(detailId)) {
+    throw new Error('Invalid detailId');
+  }
+
+  // 2) Load the order
+  const order = await ExportOrder.findById(orderId);
+  if (!order) {
+    const err = new Error('Export order not found');
+    err.status = 404;
+    throw err;
+  }
+
+  // 3) Find the detail subdoc
+  const detail = order.details.id(detailId);
+  if (!detail) {
+    const err = new Error('Export order detail not found');
+    err.status = 404;
+    throw err;
+  }
+
+  // 4) Validate inspectionData.package_id
+  if (!mongoose.Types.ObjectId.isValid(inspectionData.package_id)) {
+    throw new Error('Invalid package_id');
+  }
+
+  // 5) Push new inspection
+  detail.actual_item.push({
+    package_id: inspectionData.package_id,
+    quantity: inspectionData.quantity,
+    created_by: inspectionData.created_by,
+  });
+
+  // 6) Save the parent doc
+  await order.save();
+
+  // 7) Return the newly added inspection (last in array)
+  return detail.actual_item[detail.actual_item.length - 1];
+}
+
+
+
 module.exports = {
   createExportOrder,
+  getExportOrdersFilter,
   approveExportOrder,
   assignWarehouseManager,
   getExportOrderById,
   getExportOrders,
   deleteExportOrder,
   updateExportOrder,
+  getExportOrderDetail,
+  addExportInspection
 }; 

@@ -20,6 +20,21 @@ const warehouse = {
       ]
     },
     {
+      id: 'export-orders',
+      title: 'Export',
+      type: 'collapse',
+      icon: 'IconFileExport',
+      children: [
+        {
+          id: 'view-export-orders',
+          title: 'Export Orders List',
+          type: 'item',
+          url: '/wh-export-orders',
+          icon: 'IconList'
+        }
+      ]
+    },
+    {
       id: 'management',
       title: 'Management',
       type: 'collapse',
