@@ -1,9 +1,31 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import {
-  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, FormControl, InputLabel, Select, MenuItem, Grid, Chip
+  Box,
+  Typography,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
+  Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Grid,
+  Chip
 } from '@mui/material';
 import axios from 'axios';
+import useNotifications from '@/hooks/useNotification';
 
 // Đảm bảo API_BASE_URL không lặp /api, và mọi endpoint đều có /api/export-orders
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -34,6 +56,7 @@ function ManageExportOrdersApproval() {
   const [orderToAssignWM, setOrderToAssignWM] = useState(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [orderToView, setOrderToView] = useState(null);
+  const { createNotification } = useNotifications();
 
   useEffect(() => {
     fetchOrders();
@@ -83,6 +106,20 @@ function ManageExportOrdersApproval() {
       setSuccess('Order approved!');
       fetchOrders();
       handleCloseApproveDialog();
+
+      if (newStatus === 'approved') {
+        try {
+          await createNotification({
+            type: 'export_order_status',
+            status: 'unread',
+            priority: 'high',
+            title: 'Export order approved',
+            message: `Export Order ${orderToApprove._id} has been approved.`
+          });
+        } catch (notifError) {
+          console.error('Failed to create notification:', notifError);
+        }
+      }
     } catch (error) {
       setError(error.response?.data?.error || error.message);
     } finally {
@@ -130,7 +167,9 @@ function ManageExportOrdersApproval() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3 }}>Approve Export Orders</Typography>
+      <Typography variant="h4" sx={{ mb: 3 }}>
+        Approve Export Orders
+      </Typography>
       <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 2, mb: 3, overflow: 'hidden' }}>
         <Table>
           <TableHead>
@@ -148,35 +187,33 @@ function ManageExportOrdersApproval() {
                 <TableCell sx={{ textAlign: 'center' }}>{order.contract_id?.contract_code || 'N/A'}</TableCell>
                 <TableCell sx={{ textAlign: 'center' }}>{order.created_by?.email || 'N/A'}</TableCell>
                 <TableCell sx={{ textAlign: 'center' }}>
-                  <Chip label={order.status} color={order.status === 'approved' ? 'success' : order.status === 'draft' ? 'default' : 'info'} size="small" />
+                  <Chip
+                    label={order.status}
+                    color={order.status === 'approved' ? 'success' : order.status === 'draft' ? 'default' : 'info'}
+                    size="small"
+                  />
                 </TableCell>
-                <TableCell sx={{ textAlign: 'center', fontWeight: order.warehouse_manager_id ? 600 : 400, color: order.warehouse_manager_id ? 'text.primary' : 'text.disabled' }}>
+                <TableCell
+                  sx={{
+                    textAlign: 'center',
+                    fontWeight: order.warehouse_manager_id ? 600 : 400,
+                    color: order.warehouse_manager_id ? 'text.primary' : 'text.disabled'
+                  }}
+                >
                   {order.warehouse_manager_id?.email || '-'}
                 </TableCell>
                 <TableCell sx={{ textAlign: 'center' }}>
                   <Box display="flex" gap={1} justifyContent="center">
                     {order.status === 'draft' ? (
-                      <Button
-                        variant="contained"
-                        color="success"
-                        onClick={() => handleOpenApproveDialog(order)}
-                      >
+                      <Button variant="contained" color="success" onClick={() => handleOpenApproveDialog(order)}>
                         Approve
                       </Button>
                     ) : order.status === 'approved' && !order.warehouse_manager_id ? (
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() => handleOpenAssignWMDialog(order)}
-                      >
+                      <Button variant="contained" color="primary" onClick={() => handleOpenAssignWMDialog(order)}>
                         Gán WM
                       </Button>
                     ) : null}
-                    <Button
-                      variant="outlined"
-                      color="info"
-                      onClick={() => handleOpenDetailsDialog(order)}
-                    >
+                    <Button variant="outlined" color="info" onClick={() => handleOpenDetailsDialog(order)}>
                       Xem chi tiết
                     </Button>
                   </Box>
@@ -185,7 +222,9 @@ function ManageExportOrdersApproval() {
             ))}
             {orders.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} align="center">No export orders to process.</TableCell>
+                <TableCell colSpan={5} align="center">
+                  No export orders to process.
+                </TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -209,14 +248,11 @@ function ManageExportOrdersApproval() {
         <DialogContent>
           <FormControl fullWidth sx={{ mt: 2 }}>
             <InputLabel>Warehouse Manager</InputLabel>
-            <Select
-              value={selectedWM}
-              onChange={(e) => setSelectedWM(e.target.value)}
-              label="Warehouse Manager"
-              required
-            >
+            <Select value={selectedWM} onChange={(e) => setSelectedWM(e.target.value)} label="Warehouse Manager" required>
               {warehouseManagers.map((wm) => (
-                <MenuItem key={wm._id} value={wm._id}>{wm.email}</MenuItem>
+                <MenuItem key={wm._id} value={wm._id}>
+                  {wm.email}
+                </MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -229,48 +265,69 @@ function ManageExportOrdersApproval() {
         </DialogActions>
       </Dialog>
       <Dialog open={detailsDialogOpen} onClose={handleCloseDetailsDialog} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600, fontSize: 22, pb: 1 }}>
-          Chi tiết Export Order
-        </DialogTitle>
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600, fontSize: 22, pb: 1 }}>Chi tiết Export Order</DialogTitle>
         <DialogContent>
           {orderToView && (
             <Box sx={{ mt: 1 }}>
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
                   <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-                    <Typography variant="subtitle1" fontWeight={600}>Thông tin cơ bản</Typography>
-                    <Typography variant="body2"><b>Contract:</b> {orderToView.contract_id?.contract_code || 'N/A'}</Typography>
-                    <Typography variant="body2"><b>Created By:</b> {orderToView.created_by?.email || 'N/A'}</Typography>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      Thông tin cơ bản
+                    </Typography>
+                    <Typography variant="body2">
+                      <b>Contract:</b> {orderToView.contract_id?.contract_code || 'N/A'}
+                    </Typography>
+                    <Typography variant="body2">
+                      <b>Created By:</b> {orderToView.created_by?.email || 'N/A'}
+                    </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                      <Typography variant="body2" component="span"><b>Status:</b></Typography>
+                      <Typography variant="body2" component="span">
+                        <b>Status:</b>
+                      </Typography>
                       <Chip label={orderToView.status} color="info" size="small" sx={{ ml: 1 }} />
                     </Box>
-                    <Typography variant="body2"><b>Warehouse Manager:</b> {orderToView.warehouse_manager_id?.email || '-'}</Typography>
+                    <Typography variant="body2">
+                      <b>Warehouse Manager:</b> {orderToView.warehouse_manager_id?.email || '-'}
+                    </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-                    <Typography variant="subtitle1" fontWeight={600}>Tổng quan đơn hàng</Typography>
+                    <Typography variant="subtitle1" fontWeight={600}>
+                      Tổng quan đơn hàng
+                    </Typography>
                     <Typography variant="body2">
                       <b>Số lượng loại thuốc:</b> {orderToView.details?.length || 0}
                     </Typography>
                     <Typography variant="body2">
-                      <b>Tổng tiền:</b> {orderToView.details
-                        ? orderToView.details.reduce((sum, d) => sum + (d.expected_quantity * d.unit_price), 0).toLocaleString() + ' VND'
+                      <b>Tổng tiền:</b>{' '}
+                      {orderToView.details
+                        ? orderToView.details.reduce((sum, d) => sum + d.expected_quantity * d.unit_price, 0).toLocaleString() + ' VND'
                         : '0 VND'}
                     </Typography>
                   </Paper>
                 </Grid>
               </Grid>
-              <Typography variant="h6" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>Danh sách thuốc</Typography>
+              <Typography variant="h6" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
+                Danh sách thuốc
+              </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-                      <TableCell><b>Medicine</b></TableCell>
-                      <TableCell align="right"><b>Quantity</b></TableCell>
-                      <TableCell align="right"><b>Unit Price</b></TableCell>
-                      <TableCell align="right"><b>Total</b></TableCell>
+                      <TableCell>
+                        <b>Medicine</b>
+                      </TableCell>
+                      <TableCell align="right">
+                        <b>Quantity</b>
+                      </TableCell>
+                      <TableCell align="right">
+                        <b>Unit Price</b>
+                      </TableCell>
+                      <TableCell align="right">
+                        <b>Total</b>
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -284,10 +341,12 @@ function ManageExportOrdersApproval() {
                     ))}
                     {/* Tổng tiền cuối bảng */}
                     <TableRow>
-                      <TableCell colSpan={3} align="right"><b>Tổng cộng</b></TableCell>
+                      <TableCell colSpan={3} align="right">
+                        <b>Tổng cộng</b>
+                      </TableCell>
                       <TableCell align="right">
                         {orderToView.details
-                          ? orderToView.details.reduce((sum, d) => sum + (d.expected_quantity * d.unit_price), 0).toLocaleString() + ' VND'
+                          ? orderToView.details.reduce((sum, d) => sum + d.expected_quantity * d.unit_price, 0).toLocaleString() + ' VND'
                           : '0 VND'}
                       </TableCell>
                     </TableRow>
@@ -304,13 +363,17 @@ function ManageExportOrdersApproval() {
         </DialogActions>
       </Dialog>
       <Snackbar open={!!error} autoHideDuration={4000} onClose={() => setError(null)}>
-        <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>
+        <Alert severity="error" onClose={() => setError(null)}>
+          {error}
+        </Alert>
       </Snackbar>
       <Snackbar open={!!success} autoHideDuration={4000} onClose={() => setSuccess(null)}>
-        <Alert severity="success" onClose={() => setSuccess(null)}>{success}</Alert>
+        <Alert severity="success" onClose={() => setSuccess(null)}>
+          {success}
+        </Alert>
       </Snackbar>
     </Box>
   );
 }
 
-export default ManageExportOrdersApproval; 
+export default ManageExportOrdersApproval;
