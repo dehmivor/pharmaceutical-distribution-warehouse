@@ -1,7 +1,11 @@
-const ExportOrder = require("../models/ExportOrder")
-const User = require("../models/User")
-const Package = require("../models/Package") // Assuming you have a Package model defined
-const { EXPORT_ORDER_STATUSES, USER_ROLES } = require("../utils/constants")
+const ExportOrder = require("../models/ExportOrder");
+const packageService = require('../services/packageService');
+const batchService = require('../services/batchService');
+const User = require("../models/User");
+const Package = require("../models/Package"); // Assuming you have a Package model defined
+const { EXPORT_ORDER_STATUSES, USER_ROLES } = require("../utils/constants");
+const exportOrderService = require('../services/exportOrderService');
+const mongoose = require('mongoose');
 
 // Helper function for population to ensure consistent data structure
 const populateOptions = [
@@ -12,13 +16,8 @@ const populateOptions = [
   { path: "details.actual_item.package_id", select: "package_code" }, // Populate package_code from Package model
   { path: "details.actual_item.created_by", select: "email" }, // Populate email from User model for who packed it
 ]
-const exportOrderService = require('../services/exportOrderService');
 
-/**
- * @desc    Get all export orders
- * @route   GET /api/export-orders
- * @access  Private (Representative, Representative Manager, Warehouse Manager)
- */
+
 const getAllExportOrders = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, status, warehouse_manager_id, created_by } = req.query;
@@ -33,11 +32,44 @@ const getAllExportOrders = async (req, res, next) => {
   }
 }
 
-/**
- * @desc    Assign staff to an export order
- * @route   PUT /api/export-orders/:id/assign-staff
- * @access  Private (Warehouse Manager)
- */
+
+const getExportOrders = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      createdAt,
+      warehouse_manager_id,
+      created_by,
+    } = req.query;
+
+    const params = {
+      status: status || undefined,
+      createdAt: createdAt || undefined,
+      warehouse_manager_id: warehouse_manager_id || undefined,
+      created_by: created_by || undefined,
+    };
+
+    const result = await exportOrderService.getExportOrdersFilter(
+      params,
+      parseInt(page, 10),
+      parseInt(limit, 10)
+    );
+
+    res.status(200).json({
+      success: true,
+      data: result.orders,
+      pagination: result.pagination,
+    });
+  } catch (err) {
+    console.error('Error fetching export orders:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+
+
 const assignStaffToExportOrder = async (req, res, next) => {
   try {
     const { id } = req.params
@@ -148,15 +180,7 @@ const getExportOrderDetail = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find export order by ID and populate references
-    const exportOrder = await ExportOrder.findById(id)
-      .populate("contract_id", "contract_code")
-      .populate("warehouse_manager_id", "email")
-      .populate("created_by", "email")
-      .populate("approval_by", "email")
-      // If your details include a product or medicine reference, adjust accordingly:
-      .populate("details.medicine_id", "medicine_name license_code")
-      .populate("details.actual_item");
+    const exportOrder = await exportOrderService.getExportOrderDetail(id);
 
     if (!exportOrder) {
       return res.status(404).json({
@@ -165,25 +189,21 @@ const getExportOrderDetail = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: exportOrder,
     });
   } catch (error) {
-    console.error("Error fetching export order:", error);
-    res.status(500).json({
+    console.error('Error fetching export order:', error);
+    return res.status(500).json({
       success: false,
-      message: "Server error while retrieving export order",
+      message: 'Server error while retrieving export order',
       error: error.message,
     });
   }
 };
 
-/**
- * @desc    Create export order (auto details from contract if not provided)
- * @route   POST /api/export-orders
- * @access  Private (Representative, Representative Manager)
- */
+
 const createExportOrder = async (req, res, next) => {
   try {
     const userId = req.user && req.user.userId;
@@ -197,11 +217,7 @@ const createExportOrder = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Delete export order (only draft/cancelled, RP chỉ xóa đơn của mình, RM xóa tất cả)
- * @route   DELETE /api/export-orders/:id
- * @access  Private (Representative, Representative Manager)
- */
+
 const deleteExportOrder = async (req, res, next) => {
   try {
     const user = req.user;
@@ -213,11 +229,7 @@ const deleteExportOrder = async (req, res, next) => {
   }
 };
 
-/**
- * @desc    Update export order (only draft, RP chỉ update đơn của mình)
- * @route   PATCH /api/export-orders/:id
- * @access  Private (Representative)
- */
+
 const updateExportOrder = async (req, res, next) => {
   try {
     const user = req.user;
@@ -226,6 +238,160 @@ const updateExportOrder = async (req, res, next) => {
     res.status(200).json({ success: true, data: updatedOrder });
   } catch (error) {
     next(error);
+  }
+};
+
+
+const getPackagesNeededForExport = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    if (!orderId || !mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid orderId URL parameter is required',
+      });
+    }
+
+    // 1) Load full order
+    const order = await exportOrderService.getExportOrderDetail(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: `Export order ${orderId} not found`,
+      });
+    }
+
+    // 2) For each line, compute how many are still needed
+    const needs = await Promise.all(order.details.map(async detail => {
+      const { _id: detailId, medicine_id, expected_quantity, actual_item } = detail;
+      const pickedTotal = actual_item.reduce((sum, i) => sum + i.quantity, 0);
+      const neededQty = expected_quantity - pickedTotal;
+      if (neededQty <= 0) return null;
+
+      // 3) Fetch all valid batches
+      const batches = await batchService.getValidBatches(medicine_id._id);
+
+      // 4) Map of picked per package
+      const pickedByPackage = actual_item.reduce((map, i) => {
+        const pid = i.package_id.toString();
+        map[pid] = (map[pid] || 0) + i.quantity;
+        return map;
+      }, {});
+
+      let remaining = neededQty;
+      const selectedPackages = [];
+
+      for (const batch of batches) {
+        if (remaining <= 0) break;
+
+        const pkgs = await packageService.getPackagesByBatch(batch._id);
+
+        // sort by least available first
+        pkgs.sort((a, b) => {
+          const availA = a.quantity - (pickedByPackage[a._id.toString()] || 0);
+          const availB = b.quantity - (pickedByPackage[b._id.toString()] || 0);
+          return availA - availB;
+        });
+
+        for (const pkgDoc of pkgs) {
+          if (remaining <= 0) break;
+          if (!pkgDoc.location_id) continue;
+
+          const pid = pkgDoc._id.toString();
+          const alreadyPicked = pickedByPackage[pid] || 0;
+          const avail = pkgDoc.quantity - alreadyPicked;
+          if (avail <= 0) continue;
+
+          const take = Math.min(avail, remaining);
+          remaining -= take;
+
+          selectedPackages.push({
+            package_id: pkgDoc._id,
+            batch_id: {
+              _id:        batch._id,
+              batch_code: batch.batch_code,
+              expiry_date: batch.expiry_date,
+            },
+            take_quantity: take,
+            location: {
+              bay:       pkgDoc.location_id.bay,
+              row:       pkgDoc.location_id.row,
+              column:    pkgDoc.location_id.column,
+              area_name: pkgDoc.location_id.area_id?.name || null,
+            },
+          });
+        }
+      }
+
+      return {
+        detail_id: detailId,
+        medicine_id,
+        needed_quantity: neededQty,
+        packages: selectedPackages,
+      };
+    }));
+
+    const outstanding = needs.filter(x => x && x.packages.length > 0);
+
+    return res.json({
+      success: true,
+      data: { outstanding },
+    });
+  } catch (err) {
+    console.error('❌ Error in getPackagesNeededForExport:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error computing packages needed for export',
+    });
+  }
+};
+
+const addExportInspection = async (req, res) => {
+  try {
+    const { orderId, detailId } = req.params;
+    const { package_id, quantity, user_id } = req.body;
+
+    // 1) Validate request body
+    if (!package_id || !quantity) {
+      return res.status(400).json({
+        success: false,
+        message: 'package_id and quantity are required',
+      });
+    }
+    if (typeof quantity !== 'number' || quantity < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'quantity must be a positive integer',
+      });
+    }
+    if (!user_id || !quantity) {
+      return res.status(400).json({
+        success: false,
+        message: 'user_id are required',
+      });
+    }
+
+    const created_by = user_id;
+
+    // 3) Delegate to service
+    const newInspection = await exportOrderService.addExportInspection(
+      orderId,
+      detailId,
+      { package_id, quantity, created_by }
+    );
+
+    // 4) Respond
+    return res.status(201).json({
+      success: true,
+      data: newInspection,
+    });
+  } catch (err) {
+    console.error('Error adding export inspection:', err);
+    const status = err.status || 500;
+    return res.status(status).json({
+      success: false,
+      message: err.message || 'Server error adding export inspection',
+    });
   }
 };
 
@@ -239,4 +405,7 @@ module.exports = {
   createExportOrder,
   deleteExportOrder,
   updateExportOrder,
+  getExportOrders,
+  getPackagesNeededForExport,
+  addExportInspection
 }

@@ -11,7 +11,7 @@ router.use(authenticate) // Tất cả các route đều yêu cầu xác thực
 router.route("/").post(authorize(['representative', 'representative_manager']), exportOrderController.createExportOrder);
 
 // Lấy tất cả đơn hàng xuất kho - cho phép cả warehouse_manager, warehouse, representative_manager, representative
-router.route("/").get(authorize(['warehouse_manager', 'warehouse', 'representative_manager', 'representative']), exportOrderController.getAllExportOrders);
+router.route("/").get(authorize(['warehouse_manager', 'warehouse', 'representative_manager', 'representative']), exportOrderController.getExportOrders);
 
 // Phân công nhân viên cho đơn hàng xuất kho - chỉ warehouse_manager
 router.route("/:id/assign-staff").put(authorize('warehouse_manager'), exportOrderController.assignStaffToExportOrder);
@@ -37,6 +37,13 @@ router.get(
   '/:id',
   authorize(['warehouse', 'warehouse_manager']),
   exportOrderController.getExportOrderDetail,
+);
+
+router.get('/:orderId/packages-needed', exportOrderController.getPackagesNeededForExport);
+
+router.post(
+  '/:orderId/details/:detailId/inspections',
+  exportOrderController.addExportInspection
 );
 
 

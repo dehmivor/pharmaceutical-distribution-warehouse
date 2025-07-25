@@ -14,7 +14,7 @@ router.put('/packages/:packageId/location', packageController.updatePackageLocat
 router.put('/packages/:packageId/confirm', packageController.confirmPackageStorage);
 
 // Get packages by location
-router.get('/packages/location/:locationId', packageController.getPackagesByLocation);
+router.get('/location/:locationId', packageController.getPackagesByLocation);
 
 router.post('/', packageController.createPackage);
 
@@ -27,6 +27,9 @@ router.get('/import-order/:importOrderId', packageController.getPackagesForOrder
 router.patch('/:packageId/location', packageController.addLocationToPackage);
 
 router.get('/:packageId/related-locations', packageController.getRelatedLocations);
+
+
+router.get('/:medicineId/packages', packageController.getPackagesByMedicineInExport);
 
 
 module.exports = router;

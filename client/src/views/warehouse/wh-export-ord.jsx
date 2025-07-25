@@ -39,14 +39,13 @@ const getStatusColor = (status) =>
   ({
     draft: 'default',
     approved: 'success',
-    delivered: 'info',
-    checked: 'warning',
-    arranged: 'primary',
+    returned: 'info',
+    rejected: 'warning',
     completed: 'success',
     cancelled: 'error'
   })[status] || 'default';
 
-export default function ManageImportOrders() {
+export default function ManageExportOrders() {
   const router = useRouter();
 
   const [orders, setOrders] = useState([]);
@@ -58,7 +57,7 @@ export default function ManageImportOrders() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOrder, setMenuOrder] = useState(null);
 
-  // paging
+  // pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
@@ -72,51 +71,39 @@ export default function ManageImportOrders() {
     setMenuOrder(null);
   };
 
-  const fetchOrders = async (customPage = null, customRowsPerPage = null, customDate = null, customStatus = null) => {
+  const fetchOrders = async (p = null, rpp = null, date = null, status = null) => {
     setLoading(true);
     setError(null);
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const currentPage = p !== null ? p : page;
+      const currentLimit = rpp !== null ? rpp : rowsPerPage;
+      const currentDate = date !== null ? date : filterDate;
+      const currentStatus = status !== null ? status : filterStatus;
 
-      const currentPage = customPage !== null ? customPage : page;
-      const currentLimit = customRowsPerPage !== null ? customRowsPerPage : rowsPerPage;
-      const currentDate = customDate !== null ? customDate : filterDate;
-      const currentStatus = customStatus !== null ? customStatus : filterStatus;
+      // allow multiple status values if needed; here just one
+      const statusParams = currentStatus ? [currentStatus] : ['approved'];
 
-      const currentStatusParams = currentStatus ? [currentStatus] : ['delivered', 'arranged'];
+      const qp = new URLSearchParams();
+      qp.append('page', (currentPage + 1).toString());
+      qp.append('limit', currentLimit.toString());
+      if (currentDate) qp.append('createdAt', currentDate);
+      statusParams.forEach(s => qp.append('status', s));
 
-      const queryParams = new URLSearchParams();
+      const url = `${backendUrl}/api/export-orders${qp.toString() ? `?${qp.toString()}` : ''}`;
+      const resp = await axios.get(url, { headers: getAuthHeaders() });
 
-      // Add pagination params (convert to 1-based for backend)
-      queryParams.append('page', (currentPage + 1).toString());
-      queryParams.append('limit', currentLimit.toString());
-
-      if (currentDate) {
-        queryParams.append('createdAt', currentDate);
+      if (!resp.data.success) {
+        throw new Error(resp.data.error || 'Failed to load export orders');
       }
 
-      currentStatusParams.forEach((status) => {
-        queryParams.append('status', status);
-      });
+      const data = resp.data.data || [];
+      setOrders(data);
 
-      const queryString = queryParams.toString();
-      const url = `${backendUrl}/api/import-orders${queryString ? `?${queryString}` : ''}`;
-
-      const resp = await axios.get(url, {
-        headers: getAuthHeaders()
-      });
-
-      if (resp.data.success) {
-        const responseData = resp.data.data || [];
-        setOrders(responseData);
-
-        const pag = resp.data.pagination;
-        setTotalCount(pag?.total ?? data.length);
-
-      } else {
-        throw new Error(resp.data.error || 'Failed to load orders');
-      }
+      // derive total count
+      const pag = resp.data.pagination;
+      setTotalCount(pag?.total ?? data.length);
     } catch (err) {
       setError(err.response?.data?.error || err.message);
       setOrders([]);
@@ -130,13 +117,12 @@ export default function ManageImportOrders() {
     fetchOrders();
   }, [page, rowsPerPage, filterDate, filterStatus]);
 
-  const handleChangePage = (event, newPage) => {
+  const handleChangePage = (_, newPage) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event) => {
-    const newRowsPerPage = parseInt(event.target.value, 10);
-    setRowsPerPage(newRowsPerPage);
+  const handleChangeRowsPerPage = e => {
+    setRowsPerPage(parseInt(e.target.value, 10));
     setPage(0);
   };
 
@@ -165,13 +151,8 @@ export default function ManageImportOrders() {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Error Snackbar */}
       {error && (
-        <Snackbar
-          open={Boolean(error)}
-          autoHideDuration={6000}
-          onClose={() => setError(null)}
-        >
+        <Snackbar open autoHideDuration={6000} onClose={() => setError(null)}>
           <Alert severity="error" onClose={() => setError(null)}>
             {error}
           </Alert>
@@ -179,11 +160,7 @@ export default function ManageImportOrders() {
       )}
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h4" gutterBottom>
-            Import Orders Management
-          </Typography>
-        </Box>
+        <Typography variant="h4">Export Orders Management</Typography>
         <Button
           variant="outlined"
           startIcon={<RefreshIcon />}
@@ -194,49 +171,46 @@ export default function ManageImportOrders() {
         </Button>
       </Box>
 
-      <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
+      <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
-            fullWidth
-            label="Import Date"
+            label="Export Date"
             type="date"
             value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
+            onChange={e => setFilterDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
             size="small"
           />
           <TextField
-            fullWidth
             select
-            label="Trạng thái"
+            label="Status"
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={e => setFilterStatus(e.target.value)}
             size="small"
           >
-            <MenuItem value="">Tất cả</MenuItem>
-            {['delivered', 'arranged'].map((s) => (
+            <MenuItem value="">All</MenuItem>
+            {['approved'].map(s => (
               <MenuItem key={s} value={s}>
                 {s}
               </MenuItem>
             ))}
           </TextField>
-
-          <Button fullWidth variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
+          <Button variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick}>
             Search
           </Button>
-          <Button fullWidth variant="outlined" onClick={handleReset}>
+          <Button variant="outlined" onClick={handleReset}>
             Reset
           </Button>
         </Stack>
-      </Box>
+      </Paper>
 
-      <TableContainer component={Paper} elevation={2}>
+      <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Import Date</TableCell>
+              <TableCell>Export Date</TableCell>
               <TableCell>Contract Code</TableCell>
-              <TableCell>Supplier</TableCell>
+              <TableCell>Partner</TableCell>
               <TableCell>Manager Email</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Actions</TableCell>
@@ -247,12 +221,12 @@ export default function ManageImportOrders() {
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
-                    No orders available.
+                    No export orders found.
                   </Typography>
                 </TableCell>
               </TableRow>
             ) : (
-              orders.map((o) => (
+              orders.map(o => (
                 <TableRow key={o._id} hover>
                   <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
@@ -262,7 +236,7 @@ export default function ManageImportOrders() {
                     <Chip label={o.status} color={getStatusColor(o.status)} size="small" />
                   </TableCell>
                   <TableCell>
-                    <IconButton onClick={(e) => handleMenuOpen(e, o)}>
+                    <IconButton onClick={e => handleMenuOpen(e, o)}>
                       <MoreVertIcon />
                     </IconButton>
                   </TableCell>
@@ -292,7 +266,7 @@ export default function ManageImportOrders() {
       >
         <MenuItem
           onClick={() => {
-            router.push(`/wh-create-inspections/${menuOrder?._id}`);
+            router.push(`/wh-create-export-inspections/${menuOrder?._id}`);
             handleMenuClose();
           }}
         >
@@ -300,7 +274,7 @@ export default function ManageImportOrders() {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            router.push(`/update-location/${menuOrder?._id}`);
+            router.push(`/update-export-location/${menuOrder?._id}`);
             handleMenuClose();
           }}
         >
@@ -308,7 +282,7 @@ export default function ManageImportOrders() {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            router.push(`/wh-import-orders/${menuOrder?._id}`);
+            router.push(`/wh-export-orders/${menuOrder?._id}`);
             handleMenuClose();
           }}
         >

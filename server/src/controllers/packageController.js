@@ -1,9 +1,11 @@
 const packageService = require('../services/packageService');
+const batchService = require('../services/batchService');
 const Package = require('../models/Package');
 const Area = require('../models/Area');
 const Location = require('../models/Location');
 const Batch = require('../models/Batch');
 const LogLocationChange = require('../models/LogLocationChange');
+const mongoose = require('mongoose');
 
 const packageController = {
   // ✅ Get all packages
@@ -195,7 +197,7 @@ const packageController = {
 
       res.status(200).json({
         success: true,
-        data: packages,
+        data: result,
       });
     } catch (error) {
       res.status(500).json({
@@ -593,7 +595,58 @@ const packageController = {
         message: 'Server error fetching related locations',
       });
     }
-  }
+  },
+
+  getPackagesByMedicineInExport: async (req, res) => {
+    try {
+      const { medicineId } = req.params;
+
+      // 1) Validate medicineId
+      if (!medicineId || !mongoose.Types.ObjectId.isValid(medicineId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'A valid medicineId URL parameter is required',
+        });
+      }
+
+      // 2) Fetch valid batches
+      const batches = await batchService.getValidBatches(medicineId);
+
+      // 3) For each batch, fetch its packages (exclude empty or unlocated)
+      const results = [];
+
+      for (const batch of batches) {
+        const packages = await packageService.getPackagesByBatch(batch._id);
+
+        // Filter out packages with null location and remove batch_id
+        const cleanedPackages = packages
+          .filter(pkg => pkg.location_id !== null)
+          .map(pkg => {
+            const { batch_id, ...rest } = pkg.toObject(); // omit batch_id
+            return rest;
+          });
+
+        if (cleanedPackages.length > 0) {
+          results.push({
+            batch,
+            packages: cleanedPackages,
+          });
+        }
+      }
+
+      // 4) Send response
+      return res.json({
+        success: true,
+        data: results,
+      });
+    } catch (err) {
+      console.error('❌ Error in getPackagesByMedicine controller:', err);
+      return res.status(500).json({
+        success: false,
+        message: 'Server error fetching packages by medicine',
+      });
+    }
+  },
 
 };
 
