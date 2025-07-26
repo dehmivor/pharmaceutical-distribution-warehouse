@@ -1,20 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const { areaValidator } = require('../middlewares/validate');
 const areaController = require('../controllers/areaController');
+const authenticate = require('../middlewares/authenticate');
 
-// Get all areas
-router.get('/', areaController.getAllAreas);
+// GET all areas with pagination and search
+router.get('/', authenticate, areaValidator.validateGetAllAreas, areaController.getAllAreas);
 
-// Get area by ID
-router.get('/:id', areaController.getAreaById);
+// POST create new area (supervisor only)
+router.post('/', authenticate, areaValidator.validateCreateArea, areaController.createArea);
 
-// Create new area
-router.post('/', areaController.createArea);
+// GET area by ID
+router.get('/:id', authenticate, areaValidator.validateGetAreaById, areaController.getAreaById);
 
-// Update area
-router.put('/:id', areaController.updateArea);
+// PUT update area (supervisor only)
+router.put('/:id', authenticate, areaValidator.validateUpdateArea, areaController.updateArea);
 
-// Delete area
-router.delete('/:id', areaController.deleteArea);
+// DELETE area (supervisor only)
+router.delete('/:id', authenticate, areaValidator.validateDeleteArea, areaController.deleteArea);
 
 module.exports = router;

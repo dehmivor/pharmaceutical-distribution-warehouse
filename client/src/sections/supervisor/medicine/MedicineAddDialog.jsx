@@ -134,17 +134,17 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
 
     // Storage conditions validation (optional)
     if (formData.storage_conditions.temperature.trim()) {
-      if (!/^\d+-\d+°C$|^-\d+°C$|^\d+°C$/.test(formData.storage_conditions.temperature)) {
+      if (!/^\d+-\d+$|^-\d+$|^\d+$/.test(formData.storage_conditions.temperature)) {
         newErrors.storage_conditions = {
           ...newErrors.storage_conditions,
-          temperature: 'Nhiệt độ phải có định dạng "X-Y°C", "-X°C" hoặc "X°C"'
+          temperature: 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X" (chỉ số)'
         };
       }
     }
 
     if (formData.storage_conditions.humidity.trim()) {
-      if (!/^\d+%$|^\d+-\d+%$/.test(formData.storage_conditions.humidity)) {
-        newErrors.storage_conditions = { ...newErrors.storage_conditions, humidity: 'Độ ẩm phải có định dạng "X%" hoặc "X-Y%"' };
+      if (!/^\d+$|^\d+-\d+$/.test(formData.storage_conditions.humidity)) {
+        newErrors.storage_conditions = { ...newErrors.storage_conditions, humidity: 'Độ ẩm phải có định dạng "X" hoặc "X-Y" (chỉ số)' };
       }
     }
 
@@ -451,7 +451,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     value={formData.storage_conditions.temperature}
                     onChange={(e) => handleInputChange('storage_conditions.temperature', e.target.value)}
                     error={!!errors.storage_conditions?.temperature}
-                    helperText={errors.storage_conditions?.temperature || 'Nhập số, hệ thống tự thêm °C (không bắt buộc)'}
+                    helperText={errors.storage_conditions?.temperature || 'Định dạng: X-Y, -X hoặc X (chỉ số, không bắt buộc)'}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -467,7 +467,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     value={formData.storage_conditions.humidity}
                     onChange={(e) => handleInputChange('storage_conditions.humidity', e.target.value)}
                     error={!!errors.storage_conditions?.humidity}
-                    helperText={errors.storage_conditions?.humidity || 'Định dạng: X% hoặc X-Y% (không bắt buộc)'}
+                    helperText={errors.storage_conditions?.humidity || 'Định dạng: X hoặc X-Y (chỉ số, không bắt buộc)'}
                     variant="outlined"
                     size="medium"
                     InputProps={{

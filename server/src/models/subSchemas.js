@@ -8,14 +8,14 @@ const storageConditionsSchema = new mongoose.Schema(
       type: String,
       required: false,
       match: [
-        /^\d+-\d+°C$|^-\d+°C$|^\d+°C$/,
-        'Temperature must be in format "X-Y°C", "-X°C", or "X°C"',
+        /^\d+-\d+$|^-\d+$|^\d+$/,
+        'Temperature must be in format "X-Y", "-X", or "X" (numbers only)',
       ],
     },
     humidity: {
       type: String,
       required: false,
-      match: [/^\d+%$|^\d+-\d+%$/, 'Humidity must be in format "X%" or "X-Y%"'],
+      match: [/^\d+$|^\d+-\d+$/, 'Humidity must be in format "X" or "X-Y" (numbers only)'],
     },
     light: {
       type: String,
