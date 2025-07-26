@@ -105,6 +105,13 @@ const supervisor = {
           type: 'item',
           url: '/sp-area-management',
           icon: 'IconMapPin'
+        },
+        {
+          id: 'manage-locations',
+          title: 'Manage Locations',
+          type: 'item',
+          url: '/sp-location-management',
+          icon: 'IconMapPin'
         }
       ]
     }

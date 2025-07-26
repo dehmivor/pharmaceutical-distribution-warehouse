@@ -557,8 +557,78 @@ const areaValidator = {
   ],
 };
 
+const locationValidator = {
+  validateGetAllLocations: [
+    isPositiveInt('page').optional(),
+    isPositiveInt('limit').optional(),
+    check('areaId')
+      .optional()
+      .custom((value) => {
+        if (value && value !== '') {
+          // Only validate as MongoDB ID if value is not empty
+          const mongoose = require('mongoose');
+          if (!mongoose.Types.ObjectId.isValid(value)) {
+            throw new Error('Invalid areaId ID');
+          }
+        }
+        return true;
+      }),
+    check('available')
+      .optional()
+      .isIn(['true', 'false', ''])
+      .withMessage('Available must be true, false, or empty'),
+  ],
+
+  validateCreateLocation: [
+    isMongoId('area_id').withMessage('Invalid area ID'),
+    check('bay')
+      .exists()
+      .withMessage('Bay is required')
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Bay must be a string with 1-50 characters'),
+    check('row')
+      .exists()
+      .withMessage('Row is required')
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Row must be a string with 1-50 characters'),
+    check('column')
+      .exists()
+      .withMessage('Column is required')
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Column must be a string with 1-50 characters'),
+  ],
+
+  validateGetLocationById: [
+    isMongoId('id').withMessage('Invalid location ID'),
+  ],
+
+  validateGetLocationInfo: [
+    isMongoId('id').withMessage('Invalid location ID'),
+  ],
+
+  validateUpdateLocationAvailable: [
+    isMongoId('id').withMessage('Invalid location ID'),
+    check('available')
+      .exists()
+      .withMessage('Available status is required')
+      .isBoolean()
+      .withMessage('Available must be a boolean value'),
+  ],
+
+  validateDeleteLocation: [
+    isMongoId('id').withMessage('Invalid location ID'),
+  ],
+};
+
 module.exports = {
   contractValidator,
   inventoryCheckOrderValidator,
   areaValidator,
+  locationValidator,
 };
