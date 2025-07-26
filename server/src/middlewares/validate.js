@@ -4,6 +4,7 @@ const {
   PARTNER_TYPES,
   ANNEX_STATUSES,
   CONTRACT_TYPES,
+  INVENTORY_CHECK_ORDER_STATUSES,
 } = require('../utils/constants');
 
 // Reusable validation helpers
@@ -385,6 +386,93 @@ const contractValidator = {
   ],
 };
 
+const inventoryCheckOrderValidator = {
+  validateGetAllInventoryCheckOrders: [
+    isPositiveInt('page').optional(),
+    isPositiveInt('limit').optional(),
+    check('status')
+      .optional()
+      .isIn(Object.values(INVENTORY_CHECK_ORDER_STATUSES))
+      .withMessage(`Status must be one of: ${Object.values(INVENTORY_CHECK_ORDER_STATUSES).join(', ')}`),
+    check('startDate')
+      .optional()
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid start date'),
+    check('endDate')
+      .optional()
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid end date'),
+    isMongoId('warehouse_manager_id').optional(),
+  ],
+
+  validateGetInventoryCheckOrderById: [
+    isMongoId('id').withMessage('Invalid inventory check order ID'),
+  ],
+
+  validateCreateInventoryCheckOrder: [
+    isMongoId('warehouse_manager_id').withMessage('Invalid warehouse manager ID'),
+    check('inventory_check_date')
+      .exists()
+      .withMessage('Inventory check date is required')
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid inventory check date')
+      .custom((value) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to start of today
+        const checkDate = new Date(value);
+        checkDate.setHours(0, 0, 0, 0);
+        
+        if (checkDate <= today) {
+          throw new Error('Ngày kiểm kê phải sau ngày hôm nay');
+        }
+        return true;
+      }),
+    check('notes')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 1000 })
+      .withMessage('Notes must be a string with maximum 1000 characters'),
+  ],
+
+  validateUpdateInventoryCheckOrder: [
+    isMongoId('id').withMessage('Invalid inventory check order ID'),
+    isMongoId('warehouse_manager_id').optional().withMessage('Invalid warehouse manager ID'),
+    check('inventory_check_date')
+      .optional()
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid inventory check date')
+      .custom((value) => {
+        if (!value) return true; // Skip validation if no date provided
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to start of today
+        const checkDate = new Date(value);
+        checkDate.setHours(0, 0, 0, 0);
+        
+        if (checkDate <= today) {
+          throw new Error('Ngày kiểm kê phải sau ngày hôm nay');
+        }
+        return true;
+      }),
+    check('status')
+      .optional()
+      .isIn(Object.values(INVENTORY_CHECK_ORDER_STATUSES))
+      .withMessage(`Status must be one of: ${Object.values(INVENTORY_CHECK_ORDER_STATUSES).join(', ')}`),
+    check('notes')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 1000 })
+      .withMessage('Notes must be a string with maximum 1000 characters'),
+  ],
+};
+
 module.exports = {
   contractValidator,
+  inventoryCheckOrderValidator,
 };

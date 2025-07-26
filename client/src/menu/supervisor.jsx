@@ -77,6 +77,21 @@ const supervisor = {
           icon: 'IconReceipt'
         }
       ]
+    },
+    {
+      id: 'inventory-management',
+      title: 'Inventory Management',
+      type: 'collapse',
+      icon: 'IconClipboardCheck',
+      children: [
+        {
+          id: 'inventory-check-management',
+          title: 'Inventory Check Orders',
+          type: 'item',
+          url: '/sp-inventory-check-management',
+          icon: 'IconClipboardCheck'
+        }
+      ]
     }
   ]
 };
