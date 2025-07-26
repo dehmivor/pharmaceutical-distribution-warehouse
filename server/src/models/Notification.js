@@ -1,15 +1,10 @@
 const mongoose = require('mongoose');
 const notificationSchema = new mongoose.Schema(
   {
-    id: {
-      type: String,
-      required: true,
-      unique: true,
-    },
     recipient_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false, // Có thể là system notification
     },
     sender_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -26,7 +21,14 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['code', 'git', 'document', 'location', 'security', 'system'],
+      enum: [
+        'import_order_status',
+        'export_order_status',
+        'debt_reminder',
+        'public',
+        'system_alert',
+        'user_activity',
+      ],
       required: true,
     },
     priority: {

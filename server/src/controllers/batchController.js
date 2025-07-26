@@ -151,7 +151,6 @@ const batchController = {
       });
     }
   },
-
-}
+};
 
 module.exports = batchController;

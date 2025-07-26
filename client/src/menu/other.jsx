@@ -5,18 +5,16 @@ const other = {
   type: 'group',
   children: [
     {
-      id: 'help-group',
-      title: 'Help',
+      id: 'other-group',
+      title: 'Others',
       type: 'collapse',
       icon: 'IconHelp',
       children: [
         {
-          id: 'documentation',
-          title: 'Documentation',
+          id: 'equipment',
+          title: 'Equipment Management',
           type: 'item',
-          url: 'https://phoenixcoded.gitbook.io/saasable',
-          target: true,
-          icon: 'IconNotes'
+          url: '/thingsboard'
         },
         {
           id: 'support',

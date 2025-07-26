@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const checkLowInventory = require('../controllers/cronController'); // Import đúng tên
+const { cronController } = require('../controllers');
 
-router.post('/run-task', checkLowInventory); // Dùng đúng tên function
+router.post('/check-expired-medicines', cronController.checkExpiredMedicines);
 
 module.exports = router;

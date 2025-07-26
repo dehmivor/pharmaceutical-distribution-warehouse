@@ -57,24 +57,22 @@ const supervisor = {
       ]
     },
     {
-      id: 'document-system-management',
-      title: 'Document & System',
+      id: 'bill-management',
+      title: 'Bill Management',
       type: 'collapse',
-      icon: 'IconFileContract',
+      icon: 'IconReceipt',
       children: [
         {
           id: 'manage-bills',
           title: 'Manage Bills',
           type: 'item',
-          url: '/sp-manage-bills',
-          icon: 'IconReceipt'
+          url: '/sp-manage-bills'
         },
         {
           id: 'sp-view-dashboard-bills',
           title: 'View Dashboard Bills',
           type: 'item',
-          url: '/sp-view-dashboard-bills',
-          icon: 'IconReceipt'
+          url: '/sp-view-dashboard-bills'
         }
       ]
     },

@@ -22,10 +22,10 @@ async function createExportOrder(data, userId) {
     // Lấy danh sách thuốc hiện tại từ contract (bao gồm phụ lục)
     const contractState = await contractService.getCurrentContractState(rest.contract_id);
     // Map sang export order details
-    finalDetails = (contractState.current_items || []).map(item => ({
+    finalDetails = (contractState.current_items || []).map((item) => ({
       medicine_id: item.medicine_id._id || item.medicine_id,
       expected_quantity: item.quantity || 0, // Nếu contract không có quantity thì để 0
-      unit_price: item.unit_price || 0
+      unit_price: item.unit_price || 0,
     }));
   }
 
@@ -42,7 +42,7 @@ async function createExportOrder(data, userId) {
       path: 'contract_id',
       populate: [
         { path: 'partner_id', select: 'name' },
-        { path: 'items.medicine_id', select: 'medicine_name license_code' }
+        { path: 'items.medicine_id', select: 'medicine_name license_code' },
       ],
     })
     .populate('warehouse_manager_id', 'name email role')
@@ -73,7 +73,7 @@ async function approveExportOrder(orderId, rmId) {
       path: 'contract_id',
       populate: [
         { path: 'partner_id', select: 'name' },
-        { path: 'items.medicine_id', select: 'medicine_name license_code' }
+        { path: 'items.medicine_id', select: 'medicine_name license_code' },
       ],
     })
     .populate('warehouse_manager_id', 'name email role')
@@ -99,7 +99,7 @@ async function assignWarehouseManager(orderId, warehouseManagerId) {
       path: 'contract_id',
       populate: [
         { path: 'partner_id', select: 'name' },
-        { path: 'items.medicine_id', select: 'medicine_name license_code' }
+        { path: 'items.medicine_id', select: 'medicine_name license_code' },
       ],
     })
     .populate('warehouse_manager_id', 'name email role')
@@ -119,7 +119,7 @@ async function getExportOrderById(orderId) {
       path: 'contract_id',
       populate: [
         { path: 'partner_id', select: 'name' },
-        { path: 'items.medicine_id', select: 'medicine_name license_code' }
+        { path: 'items.medicine_id', select: 'medicine_name license_code' },
       ],
     })
     .populate('warehouse_manager_id', 'name email role')
@@ -170,7 +170,7 @@ async function getExportOrders(params = {}, page = 1, limit = 10) {
         path: 'contract_id',
         populate: [
           { path: 'partner_id', select: 'name' },
-          { path: 'items.medicine_id', select: 'medicine_name license_code' }
+          { path: 'items.medicine_id', select: 'medicine_name license_code' },
         ],
       })
       .populate('warehouse_manager_id', 'name email role')
@@ -192,8 +192,6 @@ async function getExportOrders(params = {}, page = 1, limit = 10) {
     pagination: { total, page, limit, totalPages },
   };
 }
-
-
 
 const getExportOrdersFilter = async (params = {}, page = 1, limit = 10) => {
   const skip = (page - 1) * limit;
@@ -258,7 +256,6 @@ const getExportOrdersFilter = async (params = {}, page = 1, limit = 10) => {
   };
 };
 
-
 async function deleteExportOrder(orderId, user) {
   const order = await ExportOrder.findById(orderId);
   if (!order) throw new Error('Export order not found');
@@ -299,10 +296,10 @@ async function updateExportOrder(orderId, updateData, user) {
     }
     const contractId = updateData.contract_id || order.contract_id;
     const contractState = await contractService.getCurrentContractState(contractId);
-    details = (contractState.current_items || []).map(item => ({
+    details = (contractState.current_items || []).map((item) => ({
       medicine_id: item.medicine_id._id || item.medicine_id,
       expected_quantity: item.quantity || 0,
-      unit_price: item.unit_price || 0
+      unit_price: item.unit_price || 0,
     }));
   }
   // Cập nhật các trường cho phép
@@ -314,7 +311,7 @@ async function updateExportOrder(orderId, updateData, user) {
       path: 'contract_id',
       populate: [
         { path: 'partner_id', select: 'name' },
-        { path: 'items.medicine_id', select: 'medicine_name license_code' }
+        { path: 'items.medicine_id', select: 'medicine_name license_code' },
       ],
     })
     .populate('warehouse_manager_id', 'name email role')
@@ -322,7 +319,6 @@ async function updateExportOrder(orderId, updateData, user) {
     .populate('approval_by', 'name email role')
     .populate('details.medicine_id', 'medicine_name license_code');
 }
-
 
 const getExportOrderDetail = async (id) => {
   const exportOrder = await ExportOrder.findById(id)
@@ -334,7 +330,7 @@ const getExportOrderDetail = async (id) => {
     .populate('details.actual_item');
 
   return exportOrder;
-}
+};
 
 async function addExportInspection(orderId, detailId, inspectionData) {
   // 1) Validate IDs
@@ -380,8 +376,6 @@ async function addExportInspection(orderId, detailId, inspectionData) {
   return detail.actual_item[detail.actual_item.length - 1];
 }
 
-
-
 module.exports = {
   createExportOrder,
   getExportOrdersFilter,
@@ -392,5 +386,5 @@ module.exports = {
   deleteExportOrder,
   updateExportOrder,
   getExportOrderDetail,
-  addExportInspection
-}; 
+  addExportInspection,
+};
