@@ -1,100 +1,119 @@
-const Area = require('../models/Area');
+const asyncHandler = require('express-async-handler');
+const { validationResult } = require('express-validator');
+const areaService = require('../services/areaService');
+const { USER_ROLES } = require('../utils/constants');
 
-const areaController = {
-  // Get all areas
-  getAllAreas: async (req, res) => {
-    try {
-      const areas = await Area.find().sort({ name: 1 });
-      res.json(areas);
-    } catch (error) {
-      console.error('Error fetching areas:', error);
-      res.status(500).json({ error: 'Không thể tải danh sách khu vực' });
-    }
-  },
+const getAllAreas = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
-  // Get area by ID
-  getAreaById: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const area = await Area.findById(id);
+  const { page = 1, limit = 10, search = '' } = req.query;
+  
+  const result = await areaService.getAllAreas(
+    parseInt(page),
+    parseInt(limit),
+    search
+  );
 
-      if (!area) {
-        return res.status(404).json({ error: 'Không tìm thấy khu vực' });
-      }
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result.message });
+  }
 
-      res.json(area);
-    } catch (error) {
-      console.error('Error fetching area:', error);
-      res.status(500).json({ error: 'Không thể tải thông tin khu vực' });
-    }
-  },
+  res.status(200).json({ success: true, data: result.data });
+});
 
-  // Create new area
-  createArea: async (req, res) => {
-    try {
-      const areaData = req.body;
-      const area = new Area(areaData);
-      await area.save();
+const createArea = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
-      res.status(201).json({
-        message: 'Tạo khu vực thành công',
-        area,
-      });
-    } catch (error) {
-      console.error('Error creating area:', error);
-      if (error.code === 11000) {
-        res.status(400).json({ error: 'Tên khu vực đã tồn tại' });
-      } else {
-        res.status(500).json({ error: 'Không thể tạo khu vực' });
-      }
-    }
-  },
+  if (req.user.role !== USER_ROLES.SUPERVISOR) {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Chỉ supervisor mới có quyền tạo khu vực' 
+    });
+  }
 
-  // Update area
-  updateArea: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updateData = req.body;
+  const result = await areaService.createArea(req.body);
+  
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result.message });
+  }
 
-      const area = await Area.findByIdAndUpdate(id, updateData, {
-        new: true,
-        runValidators: true,
-      });
+  res.status(201).json({ success: true, data: result.data, message: result.message });
+});
 
-      if (!area) {
-        return res.status(404).json({ error: 'Không tìm thấy khu vực' });
-      }
+const getAreaById = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
-      res.json({
-        message: 'Cập nhật khu vực thành công',
-        area,
-      });
-    } catch (error) {
-      console.error('Error updating area:', error);
-      if (error.code === 11000) {
-        res.status(400).json({ error: 'Tên khu vực đã tồn tại' });
-      } else {
-        res.status(500).json({ error: 'Không thể cập nhật khu vực' });
-      }
-    }
-  },
+  const { id } = req.params;
+  const result = await areaService.getAreaById(id);
+  
+  if (!result.success) {
+    return res.status(404).json({ success: false, message: result.message });
+  }
 
-  // Delete area
-  deleteArea: async (req, res) => {
-    try {
-      const { id } = req.params;
-      const area = await Area.findByIdAndDelete(id);
+  res.status(200).json({ success: true, data: result.data });
+});
 
-      if (!area) {
-        return res.status(404).json({ error: 'Không tìm thấy khu vực' });
-      }
+const updateArea = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
-      res.json({ message: 'Xóa khu vực thành công' });
-    } catch (error) {
-      console.error('Error deleting area:', error);
-      res.status(500).json({ error: 'Không thể xóa khu vực' });
-    }
-  },
+  if (req.user.role !== USER_ROLES.SUPERVISOR) {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Chỉ supervisor mới có quyền cập nhật khu vực' 
+    });
+  }
+
+  const { id } = req.params;
+  const updateData = req.body;
+  
+  const result = await areaService.updateArea(id, updateData);
+  
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result.message });
+  }
+
+  res.status(200).json({ success: true, data: result.data, message: result.message });
+});
+
+const deleteArea = asyncHandler(async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  if (req.user.role !== USER_ROLES.SUPERVISOR) {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Chỉ supervisor mới có quyền xóa khu vực' 
+    });
+  }
+
+  const { id } = req.params;
+  const result = await areaService.deleteArea(id);
+  
+  if (!result.success) {
+    return res.status(400).json({ success: false, message: result.message });
+  }
+
+  res.status(200).json({ success: true, message: result.message });
+});
+
+module.exports = {
+  getAllAreas,
+  createArea,
+  getAreaById,
+  updateArea,
+  deleteArea,
 };
-
-module.exports = areaController;

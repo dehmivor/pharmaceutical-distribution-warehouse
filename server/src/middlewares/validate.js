@@ -472,7 +472,93 @@ const inventoryCheckOrderValidator = {
   ],
 };
 
+const areaValidator = {
+  validateGetAllAreas: [
+    isPositiveInt('page').optional(),
+    isPositiveInt('limit').optional(),
+    check('search')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Search term must be a string with maximum 100 characters'),
+  ],
+
+  validateGetAreaById: [
+    isMongoId('id').withMessage('Invalid area ID'),
+  ],
+
+  validateCreateArea: [
+    check('name')
+      .exists()
+      .withMessage('Area name is required')
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Area name must be a string with 1-100 characters'),
+    check('storage_conditions.temperature')
+      .optional()
+      .isString()
+      .trim()
+      .matches(/^\d+-\d+$|^-\d+$|^\d+$/)
+      .withMessage('Temperature must be in format "X-Y", "-X", or "X" (numbers only)'),
+    check('storage_conditions.humidity')
+      .optional()
+      .isString()
+      .trim()
+      .matches(/^\d+$|^\d+-\d+$/)
+      .withMessage('Humidity must be in format "X" or "X-Y" (numbers only)'),
+    check('storage_conditions.light')
+      .optional()
+      .isIn(['none', 'low', 'medium', 'high', ''])
+      .withMessage('Light must be one of: none, low, medium, high'),
+    check('description')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 1000 })
+      .withMessage('Description must be a string with maximum 1000 characters'),
+  ],
+
+  validateUpdateArea: [
+    isMongoId('id').withMessage('Invalid area ID'),
+    check('name')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Area name must be a string with 1-100 characters'),
+    check('storage_conditions.temperature')
+      .optional()
+      .isString()
+      .trim()
+      .matches(/^\d+-\d+$|^-\d+$|^\d+$/)
+      .withMessage('Temperature must be in format "X-Y", "-X", or "X" (numbers only)'),
+    check('storage_conditions.humidity')
+      .optional()
+      .isString()
+      .trim()
+      .matches(/^\d+$|^\d+-\d+$/)
+      .withMessage('Humidity must be in format "X" or "X-Y" (numbers only)'),
+    check('storage_conditions.light')
+      .optional()
+      .isIn(['none', 'low', 'medium', 'high', ''])
+      .withMessage('Light must be one of: none, low, medium, high'),
+    check('description')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 1000 })
+      .withMessage('Description must be a string with maximum 1000 characters'),
+  ],
+
+  validateDeleteArea: [
+    isMongoId('id').withMessage('Invalid area ID'),
+  ],
+};
+
 module.exports = {
   contractValidator,
   inventoryCheckOrderValidator,
+  areaValidator,
 };
