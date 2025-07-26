@@ -14,9 +14,7 @@ const other = {
           id: 'equipment',
           title: 'Equipment Management',
           type: 'item',
-          url: '/thingsboard',
-          target: true,
-          icon: 'IconNotes'
+          url: '/thingsboard'
         },
         {
           id: 'support',

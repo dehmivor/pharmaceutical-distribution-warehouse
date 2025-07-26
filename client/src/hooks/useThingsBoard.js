@@ -1,6 +1,7 @@
 // client/src/hooks/useThingsBoard.js
 import useSWR from 'swr';
 import { useState } from 'react';
+import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -26,7 +27,7 @@ const fetcher = async (url) => {
 // Device hooks
 export const useThingsBoardDevices = (pageSize = 10, page = 0, textSearch = '') => {
   const { data, error, isLoading, mutate } = useSWR(
-    `/thingsboard/devices?pageSize=${pageSize}&page=${page}&textSearch=${textSearch}`,
+    `${API_BASE_URL}/api/thingsboard/devices?pageSize=${pageSize}&page=${page}&textSearch=${textSearch}`,
     fetcher,
     {
       refreshInterval: 60000,
@@ -277,10 +278,13 @@ export const useThingsBoardMutations = () => {
     });
   };
 
-  const sendTelemetry = async (deviceId, telemetryData) => {
-    return makeRequest(`/thingsboard/telemetry/devices/${deviceId}`, {
-      method: 'POST',
-      body: JSON.stringify(telemetryData)
+  const sendTelemetry = async (deviceAccessToken, data) => {
+    const host = 'https://demo.thingsboard.io'; // hoặc host bạn đang dùng
+    await axios.post(`${host}/api/v1/${deviceAccessToken}/telemetry`, data, {
+      headers: {
+        'Content-Type': 'application/json'
+        // không cần Authorization header khi dùng device access token
+      }
     });
   };
 

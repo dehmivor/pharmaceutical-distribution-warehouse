@@ -17,24 +17,23 @@ import {
   Paper,
   AlertTitle
 } from '@mui/material';
-// Import icons đúng cách từ @mui/icons-material
 import ThermostatIcon from '@mui/icons-material/Thermostat';
 import OpacityIcon from '@mui/icons-material/Opacity';
 import SpeedIcon from '@mui/icons-material/Speed';
 import WifiIcon from '@mui/icons-material/Wifi';
 import WifiOffIcon from '@mui/icons-material/WifiOff';
 import WarningIcon from '@mui/icons-material/Warning';
-// Import Recharts components đúng cách
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { useThingsBoardDevices, useDeviceTelemetry, useLatestTelemetry, useThingsBoardMutations } from '@/hooks/useThingsBoard';
+import axios from 'axios';
 
 const WarehouseMonitoring = () => {
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [selectedDevice, setSelectedDevice] = useState(null);
+  const { devices, isLoading: devicesLoading, error: devicesError } = useThingsBoardDevices(100, 0);
 
-  const { devices, isLoading: devicesLoading, isError: devicesError } = useThingsBoardDevices();
-
+  const [devicesSample, setDevicesSample] = useState([{ id: { id: 'default-device-id' }, name: 'Demo Device', type: 'WarehouseSensor' }]);
   const { telemetryData, isLoading: telemetryLoading } = useDeviceTelemetry(selectedDeviceId, ['temperature', 'humidity', 'pressure'], 24);
 
   const { latestData } = useLatestTelemetry(selectedDeviceId, ['temperature', 'humidity', 'pressure']);
@@ -42,16 +41,34 @@ const WarehouseMonitoring = () => {
   const { sendTelemetry, loading: sendingTelemetry } = useThingsBoardMutations();
 
   useEffect(() => {
-    if (devices.length > 0 && !selectedDeviceId) {
-      const firstDevice = devices[0];
-      setSelectedDeviceId(firstDevice.id.id);
-      setSelectedDevice(firstDevice);
-    }
-  }, [devices, selectedDeviceId]);
+    const fetchDevices = async () => {
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+        const response = await axios.get(`${backendUrl}/api/thingsboard/devices`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('auth-token') || ''}`
+          }
+        });
+        setDevicesSample(response.data);
+      } catch (error) {
+        console.error('Failed to fetch devices:', error);
+      }
+    };
+    fetchDevices();
+  }, []);
+
+  // useEffect(() => {
+  //   if (devicesSample.length > 0 && !selectedDeviceId) {
+  //     const firstDevice = devicesSample[0];
+  //     setSelectedDeviceId(firstDevice.id.id);
+  //     setSelectedDevice(firstDevice);
+  //   }
+  // }, [devicesSample, selectedDeviceId]);
 
   const handleDeviceChange = (event) => {
     const deviceId = event.target.value;
-    const device = devices.find((d) => d.id.id === deviceId);
+    const device = devicesSample.find((d) => d.id.id === deviceId);
     setSelectedDeviceId(deviceId);
     setSelectedDevice(device);
   };
@@ -100,19 +117,27 @@ const WarehouseMonitoring = () => {
     return alerts;
   };
 
-  const handleSendTestData = async () => {
-    if (!selectedDeviceId) return;
+  const deviceAccessToken = 'F8Y3lPXFtKlOv6U8ODmB';
 
+  const handleSendTestData = async () => {
     try {
-      await sendTelemetry(selectedDeviceId, {
+      await sendTelemetry(deviceAccessToken, {
         temperature: (Math.random() * 10 + 2).toFixed(2),
         humidity: (Math.random() * 20 + 45).toFixed(2),
         pressure: (Math.random() * 50 + 1000).toFixed(2),
         ts: Date.now()
       });
+      console.log('Test telemetry sent');
     } catch (error) {
       console.error('Failed to send test data:', error);
     }
+  };
+
+  const fetchTelemetry = async (deviceAccessToken, keys, limit) => {
+    const host = 'https://demo.thingsboard.io';
+    const url = `${host}/api/v1/${deviceAccessToken}/timeseries?keys=${keys.join(',')}&limit=${limit}`;
+    const response = await axios.get(url);
+    return response.data; // xử lý tùy API trả về
   };
 
   const alerts = checkAlerts();
@@ -147,12 +172,12 @@ const WarehouseMonitoring = () => {
               >
                 {sendingTelemetry ? 'Sending...' : 'Send Test Data'}
               </Button>
-              <Chip
-                icon={devices.length > 0 ? <WifiIcon /> : <WifiOffIcon />}
-                label={devices.length > 0 ? 'Connected' : 'Offline'}
-                color={devices.length > 0 ? 'success' : 'error'}
+              {/* <Chip
+                icon={devicesSample.length > 0 ? <WifiIcon /> : <WifiOffIcon />}
+                label={devicesSample.length > 0 ? 'Connected' : 'Offline'}
+                color={devicesSample.length > 0 ? 'success' : 'error'}
                 variant="outlined"
-              />
+              /> */}
             </Box>
           </Box>
 
@@ -161,11 +186,11 @@ const WarehouseMonitoring = () => {
             <InputLabel>Select Warehouse Device</InputLabel>
             <Select value={selectedDeviceId} label="Select Warehouse Device" onChange={handleDeviceChange} disabled={devicesLoading}>
               {devicesLoading ? (
-                <MenuItem disabled>Loading devices...</MenuItem>
-              ) : devices.length === 0 ? (
-                <MenuItem disabled>No devices found</MenuItem>
+                <MenuItem disabled>Loading devicesSample...</MenuItem>
+              ) : devicesSample.length === 0 ? (
+                <MenuItem disabled>No devicesSample found</MenuItem>
               ) : (
-                devices.map((device) => (
+                devicesSample.map((device) => (
                   <MenuItem key={device.id.id} value={device.id.id}>
                     {device.name} ({device.type || 'Unknown'})
                   </MenuItem>
