@@ -116,6 +116,7 @@ app.use('/api/bills', route.billRoutes);
 app.use('/api/supplier', route.supplierRoutes);
 app.use('/api/retailer', route.retailerRoutes);
 app.use('/api/contract', route.contractRoutes);
+app.use('/api/inventory-check-orders', route.inventoryCheckOrderRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 

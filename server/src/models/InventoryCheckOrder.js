@@ -7,6 +7,11 @@ const inventoryCheckOrderSchema = new mongoose.Schema({
         ref: "User",
         required: [true, "Warehouse manager ID is required"],
     },
+    created_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: [true, "Created by is required"],
+    },
     status: {
         type: String,
         required: [true, "Status is required"],
@@ -23,6 +28,8 @@ const inventoryCheckOrderSchema = new mongoose.Schema({
     notes: {
         type: String,
     },
+}, {
+    timestamps: true,
 });
 
 module.exports = mongoose.model("InventoryCheckOrder", inventoryCheckOrderSchema);

@@ -24,5 +24,6 @@ module.exports = {
   exportOrderRoutes: require('./exportOrderRoute'),
   userRoutes: require('./userRoute'),
   contractRoutes: require('./contractRoute'),
+  inventoryCheckOrderRoutes: require('./inventoryCheckOrderRoute'),
 
 };
