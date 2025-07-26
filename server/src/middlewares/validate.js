@@ -4,6 +4,7 @@ const {
   PARTNER_TYPES,
   ANNEX_STATUSES,
   CONTRACT_TYPES,
+  INVENTORY_CHECK_ORDER_STATUSES,
 } = require('../utils/constants');
 
 // Reusable validation helpers
@@ -385,6 +386,249 @@ const contractValidator = {
   ],
 };
 
+const inventoryCheckOrderValidator = {
+  validateGetAllInventoryCheckOrders: [
+    isPositiveInt('page').optional(),
+    isPositiveInt('limit').optional(),
+    check('status')
+      .optional()
+      .isIn(Object.values(INVENTORY_CHECK_ORDER_STATUSES))
+      .withMessage(`Status must be one of: ${Object.values(INVENTORY_CHECK_ORDER_STATUSES).join(', ')}`),
+    check('startDate')
+      .optional()
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid start date'),
+    check('endDate')
+      .optional()
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid end date'),
+    isMongoId('warehouse_manager_id').optional(),
+  ],
+
+  validateGetInventoryCheckOrderById: [
+    isMongoId('id').withMessage('Invalid inventory check order ID'),
+  ],
+
+  validateCreateInventoryCheckOrder: [
+    isMongoId('warehouse_manager_id').withMessage('Invalid warehouse manager ID'),
+    check('inventory_check_date')
+      .exists()
+      .withMessage('Inventory check date is required')
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid inventory check date')
+      .custom((value) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to start of today
+        const checkDate = new Date(value);
+        checkDate.setHours(0, 0, 0, 0);
+        
+        if (checkDate <= today) {
+          throw new Error('Ngày kiểm kê phải sau ngày hôm nay');
+        }
+        return true;
+      }),
+    check('notes')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 1000 })
+      .withMessage('Notes must be a string with maximum 1000 characters'),
+  ],
+
+  validateUpdateInventoryCheckOrder: [
+    isMongoId('id').withMessage('Invalid inventory check order ID'),
+    isMongoId('warehouse_manager_id').optional().withMessage('Invalid warehouse manager ID'),
+    check('inventory_check_date')
+      .optional()
+      .isISO8601()
+      .toDate()
+      .withMessage('Invalid inventory check date')
+      .custom((value) => {
+        if (!value) return true; // Skip validation if no date provided
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to start of today
+        const checkDate = new Date(value);
+        checkDate.setHours(0, 0, 0, 0);
+        
+        if (checkDate <= today) {
+          throw new Error('Ngày kiểm kê phải sau ngày hôm nay');
+        }
+        return true;
+      }),
+    check('status')
+      .optional()
+      .isIn(Object.values(INVENTORY_CHECK_ORDER_STATUSES))
+      .withMessage(`Status must be one of: ${Object.values(INVENTORY_CHECK_ORDER_STATUSES).join(', ')}`),
+    check('notes')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 1000 })
+      .withMessage('Notes must be a string with maximum 1000 characters'),
+  ],
+};
+
+const areaValidator = {
+  validateGetAllAreas: [
+    isPositiveInt('page').optional(),
+    isPositiveInt('limit').optional(),
+    check('search')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Search term must be a string with maximum 100 characters'),
+  ],
+
+  validateGetAreaById: [
+    isMongoId('id').withMessage('Invalid area ID'),
+  ],
+
+  validateCreateArea: [
+    check('name')
+      .exists()
+      .withMessage('Area name is required')
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Area name must be a string with 1-100 characters'),
+    check('storage_conditions.temperature')
+      .optional()
+      .isString()
+      .trim()
+      .matches(/^\d+-\d+$|^-\d+$|^\d+$/)
+      .withMessage('Temperature must be in format "X-Y", "-X", or "X" (numbers only)'),
+    check('storage_conditions.humidity')
+      .optional()
+      .isString()
+      .trim()
+      .matches(/^\d+$|^\d+-\d+$/)
+      .withMessage('Humidity must be in format "X" or "X-Y" (numbers only)'),
+    check('storage_conditions.light')
+      .optional()
+      .isIn(['none', 'low', 'medium', 'high', ''])
+      .withMessage('Light must be one of: none, low, medium, high'),
+    check('description')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 1000 })
+      .withMessage('Description must be a string with maximum 1000 characters'),
+  ],
+
+  validateUpdateArea: [
+    isMongoId('id').withMessage('Invalid area ID'),
+    check('name')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 100 })
+      .withMessage('Area name must be a string with 1-100 characters'),
+    check('storage_conditions.temperature')
+      .optional()
+      .isString()
+      .trim()
+      .matches(/^\d+-\d+$|^-\d+$|^\d+$/)
+      .withMessage('Temperature must be in format "X-Y", "-X", or "X" (numbers only)'),
+    check('storage_conditions.humidity')
+      .optional()
+      .isString()
+      .trim()
+      .matches(/^\d+$|^\d+-\d+$/)
+      .withMessage('Humidity must be in format "X" or "X-Y" (numbers only)'),
+    check('storage_conditions.light')
+      .optional()
+      .isIn(['none', 'low', 'medium', 'high', ''])
+      .withMessage('Light must be one of: none, low, medium, high'),
+    check('description')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ max: 1000 })
+      .withMessage('Description must be a string with maximum 1000 characters'),
+  ],
+
+  validateDeleteArea: [
+    isMongoId('id').withMessage('Invalid area ID'),
+  ],
+};
+
+const locationValidator = {
+  validateGetAllLocations: [
+    isPositiveInt('page').optional(),
+    isPositiveInt('limit').optional(),
+    check('areaId')
+      .optional()
+      .custom((value) => {
+        if (value && value !== '') {
+          // Only validate as MongoDB ID if value is not empty
+          const mongoose = require('mongoose');
+          if (!mongoose.Types.ObjectId.isValid(value)) {
+            throw new Error('Invalid areaId ID');
+          }
+        }
+        return true;
+      }),
+    check('available')
+      .optional()
+      .isIn(['true', 'false', ''])
+      .withMessage('Available must be true, false, or empty'),
+  ],
+
+  validateCreateLocation: [
+    isMongoId('area_id').withMessage('Invalid area ID'),
+    check('bay')
+      .exists()
+      .withMessage('Bay is required')
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Bay must be a string with 1-50 characters'),
+    check('row')
+      .exists()
+      .withMessage('Row is required')
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Row must be a string with 1-50 characters'),
+    check('column')
+      .exists()
+      .withMessage('Column is required')
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Column must be a string with 1-50 characters'),
+  ],
+
+  validateGetLocationById: [
+    isMongoId('id').withMessage('Invalid location ID'),
+  ],
+
+  validateGetLocationInfo: [
+    isMongoId('id').withMessage('Invalid location ID'),
+  ],
+
+  validateUpdateLocationAvailable: [
+    isMongoId('id').withMessage('Invalid location ID'),
+    check('available')
+      .exists()
+      .withMessage('Available status is required')
+      .isBoolean()
+      .withMessage('Available must be a boolean value'),
+  ],
+
+  validateDeleteLocation: [
+    isMongoId('id').withMessage('Invalid location ID'),
+  ],
+};
+
 module.exports = {
   contractValidator,
+  inventoryCheckOrderValidator,
+  areaValidator,
+  locationValidator,
 };

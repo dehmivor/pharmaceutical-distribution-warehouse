@@ -75,6 +75,43 @@ const supervisor = {
           url: '/sp-view-dashboard-bills'
         }
       ]
+    },
+    {
+      id: 'inventory-management',
+      title: 'Inventory Management',
+      type: 'collapse',
+      icon: 'IconClipboardCheck',
+      children: [
+        {
+          id: 'inventory-check-management',
+          title: 'Inventory Check Orders',
+          type: 'item',
+          url: '/sp-inventory-check-management',
+          icon: 'IconClipboardCheck'
+        }
+      ]
+    },
+    {
+      id: 'location-management',
+      title: 'Location Management',
+      type: 'collapse',
+      icon: 'IconMapPin',
+      children: [
+        {
+          id: 'manage-areas',
+          title: 'Manage Areas',
+          type: 'item',
+          url: '/sp-area-management',
+          icon: 'IconMapPin'
+        },
+        {
+          id: 'manage-locations',
+          title: 'Manage Locations',
+          type: 'item',
+          url: '/sp-location-management',
+          icon: 'IconMapPin'
+        }
+      ]
     }
   ]
 };
