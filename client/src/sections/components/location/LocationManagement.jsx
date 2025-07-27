@@ -35,9 +35,11 @@ import {
   CheckCircle as CheckCircleIcon,
   FilterList as FilterIcon,
   Add as AddIcon,
+  Print as PrintIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
+import bwipjs from 'bwip-js/browser';
 import LocationDetailDialog from './LocationDetailDialog';
 import LocationAddDialog from './LocationAddDialog';
 import LocationBulkAddDialog from './LocationBulkAddDialog';
@@ -163,6 +165,101 @@ const LocationManagement = () => {
   const handleViewDetail = (location) => {
     setSelectedLocation(location);
     setOpenDetailDialog(true);
+  };
+
+  // Handle print QR code
+  const handlePrintQR = async (location) => {
+    try {
+      const locationId = location._id;
+      const areaName = location.area_id?.name || 'N/A';
+      const bay = location.bay || 'N/A';
+      const row = location.row || 'N/A';
+      const column = location.column || 'N/A';
+      
+      // Tạo text hiển thị: area_name + bay + row + column
+      const displayText = `${areaName} - ${bay} - ${row} - ${column}`;
+
+      // Render QR code to offscreen canvas
+      const canvas = document.createElement('canvas');
+      await bwipjs.toCanvas(canvas, {
+        bcid: 'qrcode',         // use the QR‑code generator
+        text: locationId,        // data to encode (location ID)
+        scale: 6,               // how many pixels per "module"
+        version: 5,             // 1–40, controls size; omit to auto‑fit
+        eclevel: 'M',           // error‑correction: L, M, Q, H
+        includeMargin: true,    // add a quiet zone around the code
+      });
+      const qrCodeDataUrl = canvas.toDataURL('image/png');
+
+      // Create hidden iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+
+      // Write label HTML into it
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(`
+      <html>
+        <head>
+          <style>
+            @page {
+              margin: 0;
+              size: 100mm 50mm;
+            }
+            body { 
+              font-family: sans-serif; 
+              margin: 0; 
+              padding: 5px; 
+              font-size: 12px;
+              width: 90mm;
+              height: 40mm;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            }
+            img { 
+              display: block; 
+              width: 25mm;
+              height: 25mm;
+              margin: 0 auto 3px auto;
+            }
+            .field { 
+              margin: 0; 
+              font-size: 10px;
+              text-align: center;
+              line-height: 1.2;
+            }
+            .label { 
+              font-weight: bold; 
+              color: #333;
+            }
+          </style>
+        </head>
+        <body>
+          <img src="${qrCodeDataUrl}" alt="QR Code" />
+          <div class="field"><span class="label">Location:</span> ${displayText}</div>
+        </body>
+      </html>
+    `);
+      doc.close();
+
+      // Trigger print and cleanup
+      iframe.onload = () => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => document.body.removeChild(iframe), 0);
+      };
+    } catch (err) {
+      console.error('Error printing QR code:', err);
+      enqueueSnackbar('Không thể tạo QR code.', { variant: 'error' });
+    }
   };
 
   // Handle pagination
@@ -310,6 +407,17 @@ const LocationManagement = () => {
                           sx={{ mr: 1 }}
                         >
                           <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Tooltip title="In QR Code">
+                        <IconButton
+                          color="info"
+                          size="small"
+                          onClick={() => handlePrintQR(location)}
+                          sx={{ mr: 1, bgcolor: 'info.50', '&:hover': { bgcolor: 'info.100' } }}
+                        >
+                          <PrintIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
 

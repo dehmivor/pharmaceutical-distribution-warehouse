@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -13,7 +13,8 @@ import {
   Grid,
   Chip,
   IconButton,
-  Tooltip
+  Tooltip,
+  Alert
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -24,6 +25,21 @@ import {
   Storage as StorageIcon,
   Settings as SettingsIcon
 } from '@mui/icons-material';
+import axios from 'axios';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
+
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true
+});
 
 const STORAGE_LABELS = {
   temperature: 'Nhiệt độ',
@@ -64,8 +80,40 @@ const InfoField = ({ label, value, icon: Icon }) => (
   </Box>
 );
 
-const MedicineDetailDialog = ({ open, onClose, medicine }) => {
-  if (!medicine) return null;
+const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
+  const [medicine, setMedicine] = useState(null);
+  const [amountInfo, setAmountInfo] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Fetch medicine data when dialog opens
+  useEffect(() => {
+    if (open && medicineId) {
+      fetchMedicineData();
+    }
+  }, [open, medicineId]);
+
+  const fetchMedicineData = async () => {
+    if (!medicineId) return;
+    
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get(`/api/medicine/detail/${medicineId}`, {
+        headers: getAuthHeaders()
+      });
+
+      if (response.data.success) {
+        setMedicine(response.data.data.medicine);
+        setAmountInfo(response.data.data.amount_info);
+        setError('');
+      }
+    } catch (error) {
+      console.error('Error fetching medicine data:', error);
+      setError('Lỗi khi tải thông tin thuốc');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Dialog
@@ -129,103 +177,136 @@ const MedicineDetailDialog = ({ open, onClose, medicine }) => {
 
       <DialogContent sx={{ p: 0 }}>
         <Box sx={{ p: 3 }}>
-          {/* Basic Information Section */}
-          <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
-                <MedicationIcon sx={{ color: 'primary.main', fontSize: 24 }} />
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                  Thông Tin Cơ Bản
-                </Typography>
-              </Box>
+          {/* Loading and Error States */}
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <Typography>Đang tải thông tin thuốc...</Typography>
+            </Box>
+          )}
+          
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+              {error}
+            </Alert>
+          )}
+          
+          {!loading && medicine && (
+            <>
+              {/* Basic Information Section */}
+              <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
+                    <MedicationIcon sx={{ color: 'primary.main', fontSize: 24 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                      Thông Tin Cơ Bản
+                    </Typography>
+                  </Box>
 
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <InfoField label="Tên thuốc" value={medicine.medicine_name} icon={MedicationIcon} />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <InfoField label="Số đăng ký" value={medicine.license_code} icon={CategoryIcon} />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <InfoField label="Danh mục" value={medicine.category} icon={CategoryIcon} />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <InfoField label="Đơn vị đo" value={medicine.unit_of_measure} icon={InventoryIcon} />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <InfoField label="Tên thuốc" value={medicine.medicine_name} icon={MedicationIcon} />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <InfoField label="Số đăng ký" value={medicine.license_code} icon={CategoryIcon} />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <InfoField label="Danh mục" value={medicine.category} icon={CategoryIcon} />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <InfoField label="Đơn vị đo" value={medicine.unit_of_measure} icon={InventoryIcon} />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <InfoField 
+                        label="Trạng thái" 
+                        value={medicine.status === 'active' ? 'Hoạt động' : 'Không hoạt động'} 
+                        icon={SettingsIcon} 
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <InfoField 
+                        label="Số lượng trong kho" 
+                        value={amountInfo ? `${amountInfo.total_amount} ${medicine.unit_of_measure}` : '—'} 
+                        icon={InventoryIcon} 
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
 
-          {/* Storage Conditions Section */}
-          <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
-                <StorageIcon sx={{ color: 'info.main', fontSize: 24 }} />
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'info.main' }}>
-                  Điều Kiện Bảo Quản
-                </Typography>
-              </Box>
+              {/* Storage Conditions Section */}
+              <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
+                    <StorageIcon sx={{ color: 'info.main', fontSize: 24 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'info.main' }}>
+                      Điều Kiện Bảo Quản
+                    </Typography>
+                  </Box>
 
-              {medicine.storage_conditions ? (
-                <Grid container spacing={3}>
-                  {Object.entries(medicine.storage_conditions)
-                    .filter(([_, value]) => value !== undefined && value !== '')
-                    .map(([key, value]) => (
-                      <Grid item xs={12} md={4} key={key}>
-                        <InfoField
-                          label={STORAGE_LABELS[key]}
-                          value={key === 'light' ? LIGHT_LABELS[value] || value : value}
-                          icon={StorageIcon}
-                        />
-                      </Grid>
-                    ))}
-                </Grid>
-              ) : (
-                <Box
-                  sx={{
-                    p: 2,
-                    bgcolor: 'grey.50',
-                    borderRadius: 1,
-                    border: '1px dashed #ccc',
-                    textAlign: 'center'
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
-                    Không có thông tin điều kiện bảo quản
-                  </Typography>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
+                  {medicine.storage_conditions ? (
+                    <Grid container spacing={3}>
+                      {Object.entries(medicine.storage_conditions)
+                        .filter(([_, value]) => value !== undefined && value !== '')
+                        .map(([key, value]) => (
+                          <Grid item xs={12} md={4} key={key}>
+                            <InfoField
+                              label={STORAGE_LABELS[key]}
+                              value={key === 'light' ? LIGHT_LABELS[value] || value : value}
+                              icon={StorageIcon}
+                            />
+                          </Grid>
+                        ))}
+                    </Grid>
+                  ) : (
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: 'grey.50',
+                        borderRadius: 1,
+                        border: '1px dashed #ccc',
+                        textAlign: 'center'
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
+                        Không có thông tin điều kiện bảo quản
+                      </Typography>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
 
-          {/* Stock Management Section */}
-          <Card sx={{ border: '1px solid #e0e0e0' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
-                <SettingsIcon sx={{ color: 'secondary.main', fontSize: 24 }} />
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'secondary.main' }}>
-                  Quản Lý Tồn Kho
-                </Typography>
-              </Box>
+              {/* Stock Management Section */}
+              <Card sx={{ border: '1px solid #e0e0e0' }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
+                    <SettingsIcon sx={{ color: 'secondary.main', fontSize: 24 }} />
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'secondary.main' }}>
+                      Quản Lý Tồn Kho
+                    </Typography>
+                  </Box>
 
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <InfoField
-                    label="Ngưỡng tồn kho tối thiểu"
-                    value={medicine.min_stock_threshold !== undefined ? medicine.min_stock_threshold : '—'}
-                    icon={InventoryIcon}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <InfoField
-                    label="Ngưỡng tồn kho tối đa"
-                    value={medicine.max_stock_threshold !== undefined ? medicine.max_stock_threshold : '—'}
-                    icon={InventoryIcon}
-                  />
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <InfoField
+                        label="Ngưỡng tồn kho tối thiểu"
+                        value={medicine.min_stock_threshold !== undefined ? medicine.min_stock_threshold : '—'}
+                        icon={InventoryIcon}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <InfoField
+                        label="Ngưỡng tồn kho tối đa"
+                        value={medicine.max_stock_threshold !== undefined ? medicine.max_stock_threshold : '—'}
+                        icon={InventoryIcon}
+                      />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+
+
+            </>
+          )}
         </Box>
       </DialogContent>
 
