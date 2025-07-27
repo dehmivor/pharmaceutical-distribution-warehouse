@@ -71,15 +71,6 @@ const authenticate = async (req, res, next) => {
       // Giữ lại decoded data nếu cần
       tokenData: decoded,
     };
-
-    // Log successful authentication (optional)
-    console.log('Authentication successful', {
-      userId: user._id,
-      email: user.email,
-      role: user.role,
-      path: req.path,
-    });
-
     next();
   } catch (error) {
     console.error('Authentication error:', {

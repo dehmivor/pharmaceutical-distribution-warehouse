@@ -436,13 +436,6 @@ const authService = {
         throw new Error('Token has expired');
       }
 
-      console.log('✅ Token verification successful:', {
-        userId: decoded.userId,
-        email: decoded.email,
-        role: decoded.role,
-        expiresAt: decoded.exp ? new Date(decoded.exp * 1000).toISOString() : 'No expiry',
-      });
-
       return decoded;
     } catch (error) {
       console.error('🔐 Token verification failed:', {
