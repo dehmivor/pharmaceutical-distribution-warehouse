@@ -3,6 +3,23 @@ const { EXPORT_ORDER_STATUSES } = require('../utils/constants');
 const mongoose = require('mongoose');
 const contractService = require('./contractService');
 
+// Định nghĩa populateOptions thống nhất
+const populateOptions = [
+  {
+    path: 'contract_id',
+    populate: [
+      { path: 'partner_id', select: 'name' },
+      { path: 'items.medicine_id', select: 'medicine_name license_code' },
+    ],
+  },
+  { path: 'warehouse_manager_id', select: 'name email role' },
+  { path: 'created_by', select: 'name email role' },
+  { path: 'approval_by', select: 'name email role' },
+  { path: 'details.medicine_id', select: 'medicine_name license_code unit_of_measure' }, // Thêm unit_of_measure
+  { path: 'details.actual_item.package_id', select: 'package_code' }, // Thêm nếu cần
+  { path: 'details.actual_item.created_by', select: 'email' }, // Thêm nếu cần
+];
+
 /**
  * Representative tạo export order (luôn trạng thái draft)
  * @param {Object} data - Dữ liệu export order
@@ -10,21 +27,17 @@ const contractService = require('./contractService');
  * @returns {Promise<ExportOrder>}
  */
 async function createExportOrder(data, userId) {
-  // Loại bỏ created_by nếu có trong data
   const { created_by, details, ...rest } = data;
   let finalDetails = details;
 
-  // Nếu không truyền details hoặc details rỗng, tự động lấy từ contract
   if (!Array.isArray(details) || details.length === 0) {
     if (!rest.contract_id) {
       throw new Error('Contract ID is required to auto-generate export order details');
     }
-    // Lấy danh sách thuốc hiện tại từ contract (bao gồm phụ lục)
     const contractState = await contractService.getCurrentContractState(rest.contract_id);
-    // Map sang export order details
     finalDetails = (contractState.current_items || []).map((item) => ({
       medicine_id: item.medicine_id._id || item.medicine_id,
-      expected_quantity: item.quantity || 0, // Nếu contract không có quantity thì để 0
+      expected_quantity: item.quantity || 0,
       unit_price: item.unit_price || 0,
     }));
   }
@@ -37,18 +50,7 @@ async function createExportOrder(data, userId) {
   });
   const savedOrder = await order.save();
 
-  return await ExportOrder.findById(savedOrder._id)
-    .populate({
-      path: 'contract_id',
-      populate: [
-        { path: 'partner_id', select: 'name' },
-        { path: 'items.medicine_id', select: 'medicine_name license_code' },
-      ],
-    })
-    .populate('warehouse_manager_id', 'name email role')
-    .populate('created_by', 'name email role')
-    .populate('approval_by', 'name email role')
-    .populate('details.medicine_id', 'medicine_name license_code');
+  return await ExportOrder.findById(savedOrder._id).populate(populateOptions);
 }
 
 /**
@@ -65,21 +67,9 @@ async function approveExportOrder(orderId, rmId) {
   }
   order.status = EXPORT_ORDER_STATUSES.APPROVED;
   order.approval_by = rmId;
-  // Không gán order.warehouse_manager_id ở đây!
   await order.save();
 
-  return await ExportOrder.findById(orderId)
-    .populate({
-      path: 'contract_id',
-      populate: [
-        { path: 'partner_id', select: 'name' },
-        { path: 'items.medicine_id', select: 'medicine_name license_code' },
-      ],
-    })
-    .populate('warehouse_manager_id', 'name email role')
-    .populate('created_by', 'name email role')
-    .populate('approval_by', 'name email role')
-    .populate('details.medicine_id', 'medicine_name license_code');
+  return await ExportOrder.findById(orderId).populate(populateOptions);
 }
 
 /**
@@ -94,18 +84,7 @@ async function assignWarehouseManager(orderId, warehouseManagerId) {
   order.warehouse_manager_id = warehouseManagerId;
   await order.save();
 
-  return await ExportOrder.findById(orderId)
-    .populate({
-      path: 'contract_id',
-      populate: [
-        { path: 'partner_id', select: 'name' },
-        { path: 'items.medicine_id', select: 'medicine_name license_code' },
-      ],
-    })
-    .populate('warehouse_manager_id', 'name email role')
-    .populate('created_by', 'name email role')
-    .populate('approval_by', 'name email role')
-    .populate('details.medicine_id', 'medicine_name license_code');
+  return await ExportOrder.findById(orderId).populate(populateOptions);
 }
 
 /**
@@ -114,23 +93,10 @@ async function assignWarehouseManager(orderId, warehouseManagerId) {
  * @returns {Promise<ExportOrder>}
  */
 async function getExportOrderById(orderId) {
-  const order = await ExportOrder.findById(orderId)
-    .populate({
-      path: 'contract_id',
-      populate: [
-        { path: 'partner_id', select: 'name' },
-        { path: 'items.medicine_id', select: 'medicine_name license_code' },
-      ],
-    })
-    .populate('warehouse_manager_id', 'name email role')
-    .populate('created_by', 'name email role')
-    .populate('approval_by', 'name email role')
-    .populate('details.medicine_id', 'medicine_name license_code');
-
+  const order = await ExportOrder.findById(orderId).populate(populateOptions);
   if (!order) {
     throw new Error('Export order not found');
   }
-
   return order;
 }
 
@@ -145,12 +111,10 @@ async function getExportOrders(params = {}, page = 1, limit = 10) {
   const skip = (page - 1) * limit;
   const query = {};
 
-  // Filter by status
   if (params.status) {
     query.status = params.status;
   }
 
-  // Filter by warehouse_manager_id
   if (params.warehouse_manager_id != null) {
     if (params.warehouse_manager_id === '0') {
       query.warehouse_manager_id = { $exists: false };
@@ -159,29 +123,17 @@ async function getExportOrders(params = {}, page = 1, limit = 10) {
     }
   }
 
-  // Filter by created_by
   if (params.created_by) {
     query.created_by = params.created_by;
   }
 
   const [orders, total] = await Promise.all([
     ExportOrder.find(query)
-      .populate({
-        path: 'contract_id',
-        populate: [
-          { path: 'partner_id', select: 'name' },
-          { path: 'items.medicine_id', select: 'medicine_name license_code' },
-        ],
-      })
-      .populate('warehouse_manager_id', 'name email role')
-      .populate('created_by', 'name email role')
-      .populate('approval_by', 'name email role')
-      .populate('details.medicine_id', 'medicine_name license_code')
+      .populate(populateOptions)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .exec(),
-
     ExportOrder.countDocuments(query),
   ]);
 
@@ -193,16 +145,21 @@ async function getExportOrders(params = {}, page = 1, limit = 10) {
   };
 }
 
-const getExportOrdersFilter = async (params = {}, page = 1, limit = 10) => {
+/**
+ * Get export orders with filters
+ * @param {Object} params - Filter parameters
+ * @param {Number} page - Page number
+ * @param {Number} limit - Items per page
+ * @returns {Promise<Object>}
+ */
+async function getExportOrdersFilter(params = {}, page = 1, limit = 10) {
   const skip = (page - 1) * limit;
   const query = {};
 
-  // 1) Filter by status
   if (params.status) {
     query.status = params.status;
   }
 
-  // 2) Filter by warehouse_manager_id
   if (params.warehouse_manager_id != null) {
     if (params.warehouse_manager_id === '0') {
       query.warehouse_manager_id = { $exists: false };
@@ -211,7 +168,6 @@ const getExportOrdersFilter = async (params = {}, page = 1, limit = 10) => {
     }
   }
 
-  // 3) Filter by createdAt date
   if (params.createdAt) {
     const start = new Date(params.createdAt);
     start.setHours(0, 0, 0, 0);
@@ -226,21 +182,9 @@ const getExportOrdersFilter = async (params = {}, page = 1, limit = 10) => {
     }
   }
 
-  // 4) Execute query + count in parallel
   const [orders, total] = await Promise.all([
     ExportOrder.find(query)
-      .populate({
-        path: 'contract_id',
-        populate: [
-          // adjust these paths as needed for your Contract schema
-          { path: 'partner_id', select: 'name' },
-          { path: 'items.medicine_id', select: 'medicine_name license_code' },
-        ],
-      })
-      .populate('warehouse_manager_id', 'email name role')
-      .populate('created_by', 'email name role')
-      .populate('approval_by', 'email name role')
-      .populate('details.medicine_id', 'medicine_name license_code')
+      .populate(populateOptions)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -254,26 +198,29 @@ const getExportOrdersFilter = async (params = {}, page = 1, limit = 10) => {
     orders,
     pagination: { total, page, limit, totalPages },
   };
-};
+}
 
+/**
+ * Xóa export order
+ * @param {String} orderId
+ * @param {Object} user
+ * @returns {Promise<Object>}
+ */
 async function deleteExportOrder(orderId, user) {
   const order = await ExportOrder.findById(orderId);
   if (!order) throw new Error('Export order not found');
-  // Chỉ cho phép xóa khi trạng thái là draft hoặc cancelled
   if (![EXPORT_ORDER_STATUSES.DRAFT, EXPORT_ORDER_STATUSES.CANCELLED].includes(order.status)) {
     throw new Error('Can only delete draft or cancelled export orders');
   }
-  // Chỉ cho phép representative xóa đơn do mình tạo, RM xóa tất cả
   if (user.role === 'representative' && order.created_by.toString() !== user.userId) {
     throw new Error('You can only delete your own export orders');
   }
-  // RM hoặc supervisor có thể xóa bất kỳ đơn nào
   await ExportOrder.findByIdAndDelete(orderId);
   return { success: true, message: 'Export order deleted successfully' };
 }
 
 /**
- * Cập nhật export order (chỉ cho phép RP update đơn draft do mình tạo)
+ * Cập nhật export order
  * @param {String} orderId
  * @param {Object} updateData
  * @param {Object} user
@@ -288,7 +235,6 @@ async function updateExportOrder(orderId, updateData, user) {
   if (user.role !== 'representative' || order.created_by.toString() !== user.userId) {
     throw new Error('You can only update your own draft export orders');
   }
-  // Nếu update details rỗng, tự động lấy lại từ contract
   let details = updateData.details;
   if (!Array.isArray(details) || details.length === 0) {
     if (!updateData.contract_id && !order.contract_id) {
@@ -302,38 +248,33 @@ async function updateExportOrder(orderId, updateData, user) {
       unit_price: item.unit_price || 0,
     }));
   }
-  // Cập nhật các trường cho phép
   if (updateData.contract_id) order.contract_id = updateData.contract_id;
   order.details = details;
   await order.save();
-  return await ExportOrder.findById(orderId)
-    .populate({
-      path: 'contract_id',
-      populate: [
-        { path: 'partner_id', select: 'name' },
-        { path: 'items.medicine_id', select: 'medicine_name license_code' },
-      ],
-    })
-    .populate('warehouse_manager_id', 'name email role')
-    .populate('created_by', 'name email role')
-    .populate('approval_by', 'name email role')
-    .populate('details.medicine_id', 'medicine_name license_code');
+  return await ExportOrder.findById(orderId).populate(populateOptions);
 }
 
-const getExportOrderDetail = async (id) => {
-  const exportOrder = await ExportOrder.findById(id)
-    .populate('contract_id', 'contract_code')
-    .populate('warehouse_manager_id', 'email')
-    .populate('created_by', 'email')
-    .populate('approval_by', 'email')
-    .populate('details.medicine_id', 'medicine_name license_code')
-    .populate('details.actual_item');
-
+/**
+ * Get export order detail
+ * @param {String} id
+ * @returns {Promise<ExportOrder>}
+ */
+async function getExportOrderDetail(id) {
+  const exportOrder = await ExportOrder.findById(id).populate(populateOptions);
+  if (!exportOrder) {
+    throw new Error('Export order not found');
+  }
   return exportOrder;
-};
+}
 
+/**
+ * Thêm export inspection
+ * @param {String} orderId
+ * @param {String} detailId
+ * @param {Object} inspectionData
+ * @returns {Promise<Object>}
+ */
 async function addExportInspection(orderId, detailId, inspectionData) {
-  // 1) Validate IDs
   if (!mongoose.Types.ObjectId.isValid(orderId)) {
     throw new Error('Invalid orderId');
   }
@@ -341,7 +282,6 @@ async function addExportInspection(orderId, detailId, inspectionData) {
     throw new Error('Invalid detailId');
   }
 
-  // 2) Load the order
   const order = await ExportOrder.findById(orderId);
   if (!order) {
     const err = new Error('Export order not found');
@@ -349,7 +289,6 @@ async function addExportInspection(orderId, detailId, inspectionData) {
     throw err;
   }
 
-  // 3) Find the detail subdoc
   const detail = order.details.id(detailId);
   if (!detail) {
     const err = new Error('Export order detail not found');
@@ -357,22 +296,17 @@ async function addExportInspection(orderId, detailId, inspectionData) {
     throw err;
   }
 
-  // 4) Validate inspectionData.package_id
   if (!mongoose.Types.ObjectId.isValid(inspectionData.package_id)) {
     throw new Error('Invalid package_id');
   }
 
-  // 5) Push new inspection
   detail.actual_item.push({
     package_id: inspectionData.package_id,
     quantity: inspectionData.quantity,
     created_by: inspectionData.created_by,
   });
 
-  // 6) Save the parent doc
   await order.save();
-
-  // 7) Return the newly added inspection (last in array)
   return detail.actual_item[detail.actual_item.length - 1];
 }
 
