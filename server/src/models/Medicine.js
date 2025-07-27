@@ -15,7 +15,7 @@ const medicineSchema = new mongoose.Schema({
   },
   storage_conditions: {
     type: storageConditionsSchema,
-    required: [true, 'Storage conditions are required'],
+    required: false,
   },
 
   category: {
