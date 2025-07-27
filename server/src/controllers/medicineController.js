@@ -49,16 +49,28 @@ const medicineController = {
         });
       }
 
-      const result = await medicineService.getMedicineById(id);
+      // Get medicine details
+      const medicineResult = await medicineService.getMedicineById(id);
 
-      if (!result.success) {
-        return res.status(404).json(result);
+      if (!medicineResult.success) {
+        return res.status(404).json(medicineResult);
       }
+
+      // Get medicine amount
+      const amountResult = await medicineService.getMedicineAmountById(id);
+
+      // Merge data
+      const responseData = {
+        medicine: medicineResult.data.medicine,
+        amount_info: amountResult.success ? amountResult.data : {
+          total_amount: 0
+        }
+      };
 
       res.status(200).json({
         success: true,
         message: 'Lấy thông tin thuốc thành công',
-        data: result.data,
+        data: responseData,
       });
     } catch (error) {
       console.error('Get medicine by ID error:', error);
