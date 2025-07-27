@@ -18,4 +18,5 @@ module.exports = {
   billController: require('./billController'),
   exportOrderController: require('./exportOrderController'),
   userController: require('./userController'),
+  inventoryController: require('./inventoryController'),
 };

@@ -13,6 +13,7 @@ const supplierContractService = require('./supplierContractService');
 const supplierService = require('./supplierService');
 const retailerService = require('./retailerService');
 const stripeService = require('./stripeService.js');
+const inventoryService = require('./inventoryService');
 
 let mailtrapService = {};
 
@@ -45,5 +46,6 @@ module.exports = new Promise(async (resolve) => {
     ...retailerService,
     ...billService,
     ...stripeService,
+    ...inventoryService,
   });
 });

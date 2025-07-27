@@ -98,7 +98,12 @@ app.use(
   route.userRoutes,
 );
 
-app.use('/api/export-orders', authenticate, authorize(['warehouse_manager', 'warehouse', 'representative_manager','representative']), route.exportOrderRoutes);
+app.use(
+  '/api/export-orders',
+  authenticate,
+  authorize(['warehouse_manager', 'warehouse', 'representative_manager', 'representative']),
+  route.exportOrderRoutes,
+);
 
 // Protected routes với role-based access
 app.use(
@@ -117,6 +122,7 @@ app.use('/api/supplier', route.supplierRoutes);
 app.use('/api/retailer', route.retailerRoutes);
 app.use('/api/contract', route.contractRoutes);
 app.use('/api/inventory-check-orders', route.inventoryCheckOrderRoutes);
+app.use('/api/inventory', route.inventoryRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 

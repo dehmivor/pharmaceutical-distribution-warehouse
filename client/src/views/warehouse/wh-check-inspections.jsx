@@ -20,6 +20,8 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
+import axios from 'axios';
+import { useParams } from 'next/navigation';
 
 const mockItems = [
   { id: 1, name: 'Paracetamol 500mg', stock: 100 },
@@ -29,7 +31,6 @@ const mockItems = [
 
 function CheckInspections() {
   const [loading, setLoading] = useState(true);
-
   const [quantities, setQuantities] = useState(
     mockItems.reduce((acc, item) => {
       acc[item.id] = item.stock;
@@ -46,22 +47,45 @@ function CheckInspections() {
 
   const [inspections, setInspections] = useState([]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500);
-    return () => clearTimeout(timer);
-  }, []);
+  const { checkOrderId } = useParams();
 
-  const handleQuantityChange = (id, value) => {
+  console.log('Inspection ID:', checkOrderId);
+
+  useEffect(() => {
+    if (!checkOrderId) return; // Nếu chưa có id thì không fetch
+
+    setLoading(true);
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    axios
+      .get(`${backendUrl}/api/inventory/inspection-from-order/${checkOrderId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('auth-token')}`
+        }
+      })
+      .then((response) => {
+        setInspections(response.data);
+      })
+      .catch((error) => {
+        console.error('Error fetching inspections', error);
+        alert('Không thể tải dữ liệu phiếu kiểm kê.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [checkOrderId]);
+
+  const handleQuantityChange = (itemId, value) => {
     setQuantities((prev) => ({
       ...prev,
-      [id]: value ? parseInt(value) : 0
+      [itemId]: value ? parseInt(value) : 0
     }));
   };
 
-  const handleLocationChange = (id, value) => {
+  const handleLocationChange = (itemId, value) => {
     setLocations((prev) => ({
       ...prev,
-      [id]: value
+      [itemId]: value
     }));
   };
 
@@ -102,15 +126,11 @@ function CheckInspections() {
     );
   };
 
-  // Lấy danh sách ids đã tạo phiếu
   const checkedItemIds = new Set(inspections.map((insp) => insp.item.id));
-
-  // Mặt hàng chưa kiểm
   const uncheckedItems = mockItems.filter((item) => !checkedItemIds.has(item.id));
 
-  // --- Xử lý xóa phiếu kiểm kê ---
-  const handleDeleteInspection = (id) => {
-    setInspections((prev) => prev.filter((insp) => insp.id !== id));
+  const handleDeleteInspection = (inspectionId) => {
+    setInspections((prev) => prev.filter((insp) => insp.id !== inspectionId));
   };
 
   return (
