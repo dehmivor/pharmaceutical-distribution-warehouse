@@ -113,7 +113,6 @@ export default function ManageImportOrders() {
 
         const pag = resp.data.pagination;
         setTotalCount(pag?.total ?? data.length);
-
       } else {
         throw new Error(resp.data.error || 'Failed to load orders');
       }
@@ -167,11 +166,7 @@ export default function ManageImportOrders() {
     <Box sx={{ p: 3 }}>
       {/* Error Snackbar */}
       {error && (
-        <Snackbar
-          open={Boolean(error)}
-          autoHideDuration={6000}
-          onClose={() => setError(null)}
-        >
+        <Snackbar open={Boolean(error)} autoHideDuration={6000} onClose={() => setError(null)}>
           <Alert severity="error" onClose={() => setError(null)}>
             {error}
           </Alert>
@@ -184,12 +179,7 @@ export default function ManageImportOrders() {
             Import Orders Management
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={handleRefresh}
-          disabled={loading}
-        >
+        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading}>
           Refresh
         </Button>
       </Box>
@@ -292,7 +282,7 @@ export default function ManageImportOrders() {
       >
         <MenuItem
           onClick={() => {
-            router.push(`/wh-create-inspections/${menuOrder?._id}`);
+            router.push(`/wh-create-inspections/with-import-ord/${menuOrder?._id}`);
             handleMenuClose();
           }}
         >

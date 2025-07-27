@@ -16,6 +16,13 @@ const warehouse = {
           type: 'item',
           url: '/wh-import-orders',
           icon: 'IconList'
+        },
+        {
+          id: 'create-inspections-without-ord',
+          title: 'Inspection Unknown Orders',
+          type: 'item',
+          url: '/wh-create-inspections/without-import-ord',
+          icon: 'IconPlus'
         }
       ]
     },
