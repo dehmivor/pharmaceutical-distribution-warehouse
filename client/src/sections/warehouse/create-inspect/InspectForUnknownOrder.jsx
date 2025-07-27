@@ -1,25 +1,15 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Box,
   Typography,
   Slide,
-  Tabs,
-  Tab,
   Card,
   CardContent,
   TextField,
   Button,
   Grid,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  IconButton,
   Chip,
   Dialog,
   DialogTitle,
@@ -29,604 +19,399 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Divider,
-  Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  ListItemSecondaryAction,
-  Checkbox,
-  Snackbar
+  Snackbar,
+  Autocomplete
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Search as SearchIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Inventory as InventoryIcon,
-  Medication as MedicationIcon,
-  CheckCircle as CheckCircleIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon
-} from '@mui/icons-material';
+import { Add as AddIcon, Medication as MedicationIcon } from '@mui/icons-material';
 
-// Mock data for medicines
+// Enum category và status (giống constants bạn dùng trên backend)
+const MEDICINE_CATEGORY = {
+  PAIN_RELEIVER: 'Thuốc giảm đau',
+  ANTIBIOTIC: 'Kháng sinh',
+  VITAMIN: 'Vitamin',
+  CARDIO: 'Thuốc tim mạch',
+  DIGESTION: 'Thuốc tiêu hóa',
+  OTHER: 'Khác'
+};
+
+const MEDICINE_STATUSES = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  LOW_STOCK: 'low_stock'
+};
+
+const UNIT_OPTIONS = ['viên', 'hộp', 'chai', 'gói', 'kg', 'g', 'ml', 'lít'];
+
+// Dữ liệu mock ban đầu cho medicines
 const mockMedicines = [
   {
     id: 1,
     license_code: 'VD-001',
     medicine_name: 'Paracetamol 500mg',
+    storage_conditions: {
+      temperature: '2-8°C',
+      humidity: '≤60%',
+      light: 'Tránh ánh sáng trực tiếp',
+      other: ''
+    },
+    category: MEDICINE_CATEGORY.PAIN_RELEIVER,
+    min_stock_threshold: 100,
+    max_stock_threshold: 2000,
     unit_of_measure: 'viên',
-    category: 'Thuốc giảm đau',
-    manufacturer: 'Công ty Dược phẩm A',
-    current_stock: 1500,
-    min_stock: 100,
-    max_stock: 2000,
-    unit_price: 1200,
-    expiry_date: '2025-12-31',
-    status: 'active'
+    status: MEDICINE_STATUSES.ACTIVE
   },
   {
     id: 2,
     license_code: 'VD-002',
     medicine_name: 'Amoxicillin 250mg',
+    storage_conditions: {
+      temperature: '15-25°C',
+      humidity: '',
+      light: '',
+      other: ''
+    },
+    category: MEDICINE_CATEGORY.ANTIBIOTIC,
+    min_stock_threshold: 50,
+    max_stock_threshold: 1000,
     unit_of_measure: 'viên',
-    category: 'Kháng sinh',
-    manufacturer: 'Công ty Dược phẩm B',
-    current_stock: 800,
-    min_stock: 50,
-    max_stock: 1000,
-    unit_price: 2500,
-    expiry_date: '2025-10-15',
-    status: 'active'
-  },
-  {
-    id: 3,
-    license_code: 'VD-003',
-    medicine_name: 'Vitamin C 1000mg',
-    unit_of_measure: 'viên',
-    category: 'Vitamin',
-    manufacturer: 'Công ty Dược phẩm C',
-    current_stock: 2000,
-    min_stock: 200,
-    max_stock: 3000,
-    unit_price: 800,
-    expiry_date: '2026-06-30',
-    status: 'active'
-  },
-  {
-    id: 4,
-    license_code: 'VD-004',
-    medicine_name: 'Ibuprofen 400mg',
-    unit_of_measure: 'viên',
-    category: 'Thuốc giảm đau',
-    manufacturer: 'Công ty Dược phẩm D',
-    current_stock: 50,
-    min_stock: 100,
-    max_stock: 1500,
-    unit_price: 1800,
-    expiry_date: '2025-08-20',
-    status: 'low_stock'
+    status: MEDICINE_STATUSES.ACTIVE
   }
+  // ... thêm thuốc mẫu nếu cần
 ];
 
-// Mock data for inventory inspections
-const mockInspections = [
-  {
-    id: 1,
-    inspection_code: 'KK-001',
-    date: '2025-07-27',
-    inspector: 'Nguyễn Văn A',
-    warehouse: 'Kho chính',
-    status: 'completed',
-    total_items: 15,
-    discrepancies: 2,
-    notes: 'Kiểm kê định kỳ tháng 7',
-    medicines: []
+// Form medicine khởi tạo
+const initialMedicineForm = {
+  license_code: '',
+  medicine_name: '',
+  storage_conditions: {
+    temperature: '',
+    humidity: '',
+    light: '',
+    other: ''
   },
-  {
-    id: 2,
-    inspection_code: 'KK-002',
-    date: '2025-07-25',
-    inspector: 'Trần Thị B',
-    warehouse: 'Kho phụ',
-    status: 'in_progress',
-    total_items: 8,
-    discrepancies: 0,
-    notes: 'Kiểm kê sau nhập hàng',
-    medicines: []
-  }
-];
+  category: '',
+  min_stock_threshold: 0,
+  max_stock_threshold: 0,
+  unit_of_measure: '',
+  status: MEDICINE_STATUSES.ACTIVE
+};
 
-const UNIT_OPTIONS = ['viên', 'hộp', 'chai', 'gói', 'kg', 'g', 'ml', 'lít'];
-const CATEGORY_OPTIONS = ['Thuốc giảm đau', 'Kháng sinh', 'Vitamin', 'Thuốc tim mạch', 'Thuốc tiêu hóa', 'Khác'];
-
-function TabPanel({ children, value, index, ...other }) {
-  return (
-    <div role="tabpanel" hidden={value !== index} id={`tabpanel-${index}`} aria-labelledby={`tab-${index}`} {...other}>
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
-
-export default function MedicineInventoryPage({ isVisible = true, onBackToDashboard }) {
-  const [tabValue, setTabValue] = useState(0);
-
-  // Medicines Management
+export default function MedicineInventoryPage({ isVisible = true }) {
+  // State medicine list
   const [medicines, setMedicines] = useState(mockMedicines);
-  const [searchTerm, setSearchTerm] = useState('');
+  // Thuốc được chọn cho phiếu kiểm kê
+  const [selectedMedicines, setSelectedMedicines] = useState([]);
+  // Input value tìm kiếm thuốc
+  const [medicineInputValue, setMedicineInputValue] = useState('');
+  // Modal tạo thuốc mới
   const [openMedicineDialog, setOpenMedicineDialog] = useState(false);
-  const [medicineForm, setMedicineForm] = useState({
-    license_code: '',
-    medicine_name: '',
-    unit_of_measure: 'viên',
-    category: '',
-    manufacturer: '',
-    current_stock: 0,
-    min_stock: 0,
-    max_stock: 0,
-    unit_price: 0,
-    expiry_date: '',
-    status: 'active'
-  });
-  const [editingMedicineId, setEditingMedicineId] = useState(null);
-
-  // Inspection Management
-  const [inspections, setInspections] = useState(mockInspections);
-  const [openInspectionDialog, setOpenInspectionDialog] = useState(false);
+  // Form thuốc mới
+  const [medicineForm, setMedicineForm] = useState(initialMedicineForm);
+  // Form phiếu kiểm kê
   const [inspectionForm, setInspectionForm] = useState({
     inspection_code: `KK-${Date.now()}`,
     date: new Date().toISOString().split('T')[0],
     inspector: '',
     warehouse: 'Kho chính',
     notes: '',
-    medicines: []
+    import_order_id: '',
+    actual_quantity: 0,
+    rejected_quantity: 0,
+    created_by: ''
   });
-  const [selectedMedicines, setSelectedMedicines] = useState([]);
-  const [editingInspectionId, setEditingInspectionId] = useState(null);
-  const [inspectionMedicineSearchTerm, setInspectionMedicineSearchTerm] = useState('');
-
-  // Snackbar for notifications
+  // Snackbar thông báo
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-  };
-
-  // Medicine filtering for listing
-  const filteredMedicines = useMemo(() => {
-    return medicines.filter(
-      (medicine) =>
-        medicine.medicine_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        medicine.license_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        medicine.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [medicines, searchTerm]);
-
-  // Medicine filtering for inspection dialog (search independent)
-  const filteredMedicinesForInspection = useMemo(() => {
-    return medicines.filter(
-      (medicine) =>
-        medicine.medicine_name.toLowerCase().includes(inspectionMedicineSearchTerm.toLowerCase()) ||
-        medicine.license_code.toLowerCase().includes(inspectionMedicineSearchTerm.toLowerCase()) ||
-        medicine.category.toLowerCase().includes(inspectionMedicineSearchTerm.toLowerCase())
-    );
-  }, [medicines, inspectionMedicineSearchTerm]);
-
-  // Stock Status helper
-  const getStockStatus = (medicine) => {
-    if (medicine.current_stock <= medicine.min_stock) {
-      return { color: 'error', text: 'Hết hàng', icon: <WarningIcon /> };
-    } else if (medicine.current_stock <= medicine.min_stock * 1.2) {
-      return { color: 'warning', text: 'Sắp hết', icon: <InfoIcon /> };
+  // Thêm thuốc từ autocomplete
+  const handleAddMedicineByAutocomplete = (medicine) => {
+    if (!medicine) return;
+    if (selectedMedicines.some((m) => m.id === medicine.id)) {
+      setSnackbar({ open: true, message: 'Thuốc đã được chọn rồi', severity: 'warning' });
+    } else {
+      setSelectedMedicines((prev) => [...prev, medicine]);
+      setSnackbar({ open: true, message: `Đã thêm thuốc: "${medicine.medicine_name}"`, severity: 'success' });
     }
-    return { color: 'success', text: 'Đủ hàng', icon: <CheckCircleIcon /> };
+    setMedicineInputValue('');
   };
 
-  // Inspection Status helpers
-  const getInspectionStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'success';
-      case 'in_progress':
-        return 'warning';
-      case 'pending':
-        return 'default';
-      default:
-        return 'default';
-    }
+  // Xóa thuốc khỏi danh sách kiểm kê
+  const handleRemoveSelectedMedicine = (medicineId) => {
+    setSelectedMedicines((prev) => prev.filter((m) => m.id !== medicineId));
   };
 
-  const getInspectionStatusText = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'Hoàn thành';
-      case 'in_progress':
-        return 'Đang thực hiện';
-      case 'pending':
-        return 'Chờ thực hiện';
-      default:
-        return 'Không xác định';
-    }
-  };
-
-  // Open Medicine Dialog for editing
-  const handleOpenMedicineDialogForEdit = (medicine) => {
-    setMedicineForm({ ...medicine });
-    setEditingMedicineId(medicine.id);
-    setOpenMedicineDialog(true);
-  };
-
-  // Delete medicine
-  const handleDeleteMedicine = (id) => {
-    setMedicines((prev) => prev.filter((m) => m.id !== id));
-    setSnackbar({ open: true, message: 'Xóa thuốc thành công!', severity: 'success' });
-  };
-
-  // Create or Edit medicine handler
+  // Tạo thuốc mới
   const handleCreateMedicine = useCallback(() => {
-    // Validate required fields
-    if (!medicineForm.medicine_name || !medicineForm.license_code) {
-      setSnackbar({ open: true, message: 'Vui lòng điền đầy đủ thông tin bắt buộc', severity: 'error' });
+    if (
+      !medicineForm.medicine_name.trim() ||
+      !medicineForm.license_code.trim() ||
+      !medicineForm.unit_of_measure.trim() ||
+      !medicineForm.storage_conditions.temperature.trim()
+    ) {
+      setSnackbar({
+        open: true,
+        message: 'Vui lòng điền đầy đủ thông tin bắt buộc: Mã thuốc, Tên thuốc, Đơn vị tính, Điều kiện bảo quản (nhiệt độ)',
+        severity: 'error'
+      });
       return;
     }
-
-    // Determine status
-    const current_stock = parseInt(medicineForm.current_stock) || 0;
-    const min_stock = parseInt(medicineForm.min_stock) || 0;
-    let status = 'active';
-    if (current_stock <= min_stock) {
-      status = 'low_stock';
-    }
-
-    const medicineData = {
-      ...medicineForm,
-      current_stock,
-      min_stock,
-      max_stock: parseInt(medicineForm.max_stock) || 0,
-      unit_price: parseFloat(medicineForm.unit_price) || 0,
-      status
+    const newMedicine = {
+      id: Date.now(),
+      license_code: medicineForm.license_code.trim(),
+      medicine_name: medicineForm.medicine_name.trim(),
+      storage_conditions: {
+        temperature: medicineForm.storage_conditions.temperature.trim(),
+        humidity: medicineForm.storage_conditions.humidity.trim(),
+        light: medicineForm.storage_conditions.light.trim(),
+        other: medicineForm.storage_conditions.other.trim()
+      },
+      category: medicineForm.category || null,
+      min_stock_threshold: medicineForm.min_stock_threshold >= 0 ? medicineForm.min_stock_threshold : 0,
+      max_stock_threshold: medicineForm.max_stock_threshold >= 0 ? medicineForm.max_stock_threshold : 0,
+      unit_of_measure: medicineForm.unit_of_measure.trim(),
+      status: medicineForm.status
     };
-
-    if (editingMedicineId !== null) {
-      // Update existing
-      setMedicines((prev) => prev.map((med) => (med.id === editingMedicineId ? { ...medicineData, id: editingMedicineId } : med)));
-      setSnackbar({ open: true, message: 'Cập nhật thuốc thành công!', severity: 'success' });
-    } else {
-      // Add new
-      setMedicines((prev) => [...prev, { ...medicineData, id: Date.now() }]);
-      setSnackbar({ open: true, message: 'Tạo thuốc mới thành công!', severity: 'success' });
-    }
-
-    // Reset form and states
+    setMedicines((prev) => [...prev, newMedicine]);
+    setSelectedMedicines((prev) => [...prev, newMedicine]);
     setOpenMedicineDialog(false);
-    setMedicineForm({
-      license_code: '',
-      medicine_name: '',
-      unit_of_measure: 'viên',
-      category: '',
-      manufacturer: '',
-      current_stock: 0,
-      min_stock: 0,
-      max_stock: 0,
-      unit_price: 0,
-      expiry_date: '',
-      status: 'active'
-    });
-    setEditingMedicineId(null);
-  }, [medicineForm, editingMedicineId]);
+    setMedicineForm(initialMedicineForm);
+    setSnackbar({ open: true, message: 'Tạo thuốc mới thành công!', severity: 'success' });
+  }, [medicineForm]);
 
-  // Open Inspection Dialog for editing
-  const handleOpenInspectionDialogForEdit = (inspection) => {
-    setInspectionForm({
-      inspection_code: inspection.inspection_code,
-      date: inspection.date,
-      inspector: inspection.inspector,
-      warehouse: inspection.warehouse,
-      notes: inspection.notes,
-      medicines: inspection.medicines || []
-    });
-    setSelectedMedicines(inspection.medicines || []);
-    setEditingInspectionId(inspection.id);
-    setInspectionMedicineSearchTerm('');
-    setOpenInspectionDialog(true);
-  };
-
-  // Delete inspection
-  const handleDeleteInspection = (id) => {
-    setInspections((prev) => prev.filter((i) => i.id !== id));
-    setSnackbar({ open: true, message: 'Xóa phiếu kiểm kê thành công!', severity: 'success' });
-  };
-
-  // Create or Edit inspection handler
-  const handleCreateInspection = useCallback(() => {
-    if (!inspectionForm.inspector || selectedMedicines.length === 0) {
-      setSnackbar({ open: true, message: 'Vui lòng điền đầy đủ thông tin và chọn thuốc cần kiểm kê', severity: 'error' });
+  // Tạo phiếu kiểm kê (chỉ mock)
+  const handleSubmitInventory = () => {
+    if (!inspectionForm.inspector.trim()) {
+      setSnackbar({ open: true, message: 'Vui lòng nhập người kiểm kê!', severity: 'error' });
       return;
     }
-
-    const newInspectionData = {
-      ...inspectionForm,
-      status: 'in_progress',
-      total_items: selectedMedicines.length,
-      discrepancies: 0,
-      medicines: selectedMedicines
-    };
-
-    if (editingInspectionId !== null) {
-      setInspections((prev) => prev.map((i) => (i.id === editingInspectionId ? { ...newInspectionData, id: editingInspectionId } : i)));
-      setSnackbar({ open: true, message: 'Cập nhật phiếu kiểm kê thành công!', severity: 'success' });
-    } else {
-      setInspections((prev) => [...prev, { ...newInspectionData, id: Date.now() }]);
-      setSnackbar({ open: true, message: 'Tạo phiếu kiểm kê thành công!', severity: 'success' });
+    if (selectedMedicines.length === 0) {
+      setSnackbar({ open: true, message: 'Vui lòng chọn ít nhất một thuốc để kiểm kê!', severity: 'error' });
+      return;
     }
-
-    setOpenInspectionDialog(false);
+    if (inspectionForm.actual_quantity < 0) {
+      setSnackbar({ open: true, message: 'Số lượng thực nhận không được âm!', severity: 'error' });
+      return;
+    }
+    if (inspectionForm.rejected_quantity < 0) {
+      setSnackbar({ open: true, message: 'Số lượng bị loại không được âm!', severity: 'error' });
+      return;
+    }
+    // TODO: Gửi dữ liệu ra API hoặc xử lý logic lưu phiếu
+    setSnackbar({ open: true, message: `Tạo phiếu kiểm kê thành công với ${selectedMedicines.length} thuốc`, severity: 'success' });
+    // Reset form
+    setSelectedMedicines([]);
     setInspectionForm({
       inspection_code: `KK-${Date.now()}`,
       date: new Date().toISOString().split('T')[0],
       inspector: '',
       warehouse: 'Kho chính',
       notes: '',
-      medicines: []
+      import_order_id: '',
+      actual_quantity: 0,
+      rejected_quantity: 0,
+      created_by: ''
     });
-    setSelectedMedicines([]);
-    setEditingInspectionId(null);
-    setInspectionMedicineSearchTerm('');
-  }, [inspectionForm, selectedMedicines, editingInspectionId]);
-
-  const handleMedicineSelection = (medicine, isSelected) => {
-    if (isSelected) {
-      setSelectedMedicines((prev) => [...prev, medicine]);
-    } else {
-      setSelectedMedicines((prev) => prev.filter((m) => m.id !== medicine.id));
-    }
-  };
-
-  // Open inspection dialog with reset search for medicines
-  const openInspectionDialogWithReset = () => {
-    setInspectionMedicineSearchTerm('');
-    setOpenInspectionDialog(true);
   };
 
   return (
     <Slide direction="left" in={isVisible} mountOnEnter unmountOnExit>
-      <Box sx={{ flexGrow: 1, p: { xs: 2, md: 3 } }}>
-        {/* Header */}
-        <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Box>
-            <Typography variant="h4" component="h1">
-              Quản Lý Thuốc & Kiểm Kê
+      <Box sx={{ p: { xs: 2, md: 3 }, mx: 'auto' }}>
+        <Typography variant="h4" mb={3}>
+          Tạo Phiếu Kiểm Kê Thuốc Không Tồn Tại Trong Đơn Nhập
+        </Typography>
+        <Typography variant="body1" color="text.secondary" mb={3}>
+          Sử dụng chức năng này để tạo phiếu kiểm kê cho các loại thuốc không có trong đơn nhập. Bạn có thể thêm thuốc mới hoặc chọn từ danh
+          sách hiện có.
+        </Typography>
+
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Thông Tin Phiếu Kiểm Kê
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Tạo thuốc mới và thực hiện kiểm kê kho
-            </Typography>
-          </Box>
-        </Box>
 
-        {/* Navigation Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs value={tabValue} onChange={handleTabChange}>
-            <Tab label="Danh Sách Thuốc" icon={<MedicationIcon />} iconPosition="start" />
-            <Tab label="Phiếu Kiểm Kê" icon={<InventoryIcon />} iconPosition="start" />
-          </Tabs>
-        </Box>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Mã phiếu kiểm kê"
+                  fullWidth
+                  value={inspectionForm.inspection_code}
+                  onChange={(e) => setInspectionForm((prev) => ({ ...prev, inspection_code: e.target.value }))}
+                />
+              </Grid>
 
-        {/* Medicine Management Tab */}
-        <TabPanel value={tabValue} index={0}>
-          <Grid container spacing={3}>
-            {/* Search and Actions */}
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" justifyContent="space-between" alignItems="center" gap={2} flexWrap="wrap">
-                    <TextField
-                      placeholder="Tìm kiếm thuốc..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      InputProps={{
-                        startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                      }}
-                      sx={{ minWidth: 300 }}
-                    />
-                    <Button
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      onClick={() => {
-                        setMedicineForm({
-                          license_code: '',
-                          medicine_name: '',
-                          unit_of_measure: 'viên',
-                          category: '',
-                          manufacturer: '',
-                          current_stock: 0,
-                          min_stock: 0,
-                          max_stock: 0,
-                          unit_price: 0,
-                          expiry_date: '',
-                          status: 'active'
-                        });
-                        setEditingMedicineId(null);
-                        setOpenMedicineDialog(true);
-                      }}
-                    >
-                      Thêm Thuốc Mới
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Ngày kiểm kê"
+                  type="date"
+                  fullWidth
+                  value={inspectionForm.date}
+                  onChange={(e) => setInspectionForm((prev) => ({ ...prev, date: e.target.value }))}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Người kiểm kê *"
+                  fullWidth
+                  value={inspectionForm.inspector}
+                  onChange={(e) => setInspectionForm((prev) => ({ ...prev, inspector: e.target.value }))}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Kho</InputLabel>
+                  <Select
+                    value={inspectionForm.warehouse}
+                    onChange={(e) => setInspectionForm((prev) => ({ ...prev, warehouse: e.target.value }))}
+                    label="Kho"
+                  >
+                    <MenuItem value="Kho chính">Kho chính</MenuItem>
+                    <MenuItem value="Kho phụ">Kho phụ</MenuItem>
+                    <MenuItem value="Kho lưu trữ">Kho lưu trữ</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Người tạo (created_by)"
+                  fullWidth
+                  value={inspectionForm.created_by}
+                  onChange={(e) => setInspectionForm((prev) => ({ ...prev, created_by: e.target.value }))}
+                  placeholder="ObjectId"
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Số lượng thực nhận (actual_quantity) *"
+                  type="number"
+                  fullWidth
+                  inputProps={{ min: 0 }}
+                  value={inspectionForm.actual_quantity}
+                  onChange={(e) => setInspectionForm((prev) => ({ ...prev, actual_quantity: Number(e.target.value) }))}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Số lượng bị loại (rejected_quantity)"
+                  type="number"
+                  fullWidth
+                  inputProps={{ min: 0 }}
+                  value={inspectionForm.rejected_quantity}
+                  onChange={(e) => setInspectionForm((prev) => ({ ...prev, rejected_quantity: Number(e.target.value) }))}
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  label="Ghi chú"
+                  multiline
+                  fullWidth
+                  value={inspectionForm.notes}
+                  onChange={(e) => setInspectionForm((prev) => ({ ...prev, notes: e.target.value }))}
+                />
+              </Grid>
             </Grid>
 
-            {/* Medicine List */}
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Danh Sách Thuốc ({filteredMedicines.length})
+            <Box mt={4}>
+              <Typography variant="h6" gutterBottom>
+                Chọn Thuốc Cần Kiểm Kê
+              </Typography>
+              <Autocomplete
+                options={medicines}
+                getOptionLabel={(option) => `${option.medicine_name} (${option.license_code})`}
+                value={null}
+                inputValue={medicineInputValue}
+                onInputChange={(event, newInputValue) => setMedicineInputValue(newInputValue)}
+                onChange={(event, newValue) => {
+                  if (newValue) {
+                    handleAddMedicineByAutocomplete(newValue);
+                  }
+                }}
+                freeSolo
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Nhập tên thuốc hoặc mã thuốc"
+                    placeholder="VD: Paracetamol 500mg"
+                    helperText="Chọn thuốc hoặc nhập tên thuốc mới để tạo"
+                    error={
+                      medicineInputValue !== '' &&
+                      !medicines.some((m) => m.medicine_name.toLowerCase() === medicineInputValue.toLowerCase())
+                    }
+                  />
+                )}
+              />
+              {medicineInputValue !== '' && !medicines.some((m) => m.medicine_name.toLowerCase() === medicineInputValue.toLowerCase()) && (
+                <Box mt={1}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      setOpenMedicineDialog(true);
+                      setMedicineForm((prev) => ({
+                        ...prev,
+                        medicine_name: medicineInputValue,
+                        license_code: '',
+                        unit_of_measure: '',
+                        storage_conditions: {
+                          temperature: '',
+                          humidity: '',
+                          light: '',
+                          other: ''
+                        },
+                        category: '',
+                        min_stock_threshold: 0,
+                        max_stock_threshold: 0,
+                        status: MEDICINE_STATUSES.ACTIVE
+                      }));
+                      setMedicineInputValue('');
+                    }}
+                    startIcon={<AddIcon />}
+                  >
+                    Thêm thuốc mới: "{medicineInputValue}"
+                  </Button>
+                </Box>
+              )}
+
+              <Box mt={2} display="flex" flexWrap="wrap" gap={1}>
+                {selectedMedicines.length === 0 && (
+                  <Typography color="text.secondary" variant="body2">
+                    Chưa chọn thuốc nào
                   </Typography>
-                  <TableContainer>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Mã thuốc</TableCell>
-                          <TableCell>Tên thuốc</TableCell>
-                          <TableCell>Danh mục</TableCell>
-                          <TableCell>Đơn vị</TableCell>
-                          <TableCell>Tồn kho</TableCell>
-                          <TableCell>Trạng thái</TableCell>
-                          <TableCell>Giá</TableCell>
-                          <TableCell>Thao tác</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {filteredMedicines.map((medicine) => {
-                          const stockStatus = getStockStatus(medicine);
-                          return (
-                            <TableRow key={medicine.id}>
-                              <TableCell>{medicine.license_code}</TableCell>
-                              <TableCell>
-                                <Box>
-                                  <Typography variant="body2" fontWeight="medium">
-                                    {medicine.medicine_name}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {medicine.manufacturer}
-                                  </Typography>
-                                </Box>
-                              </TableCell>
-                              <TableCell>{medicine.category}</TableCell>
-                              <TableCell>{medicine.unit_of_measure}</TableCell>
-                              <TableCell>
-                                <Typography variant="body2">{medicine.current_stock.toLocaleString()}</Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Min: {medicine.min_stock} | Max: {medicine.max_stock}
-                                </Typography>
-                              </TableCell>
-                              <TableCell>
-                                <Chip label={stockStatus.text} color={stockStatus.color} size="small" icon={stockStatus.icon} />
-                              </TableCell>
-                              <TableCell>{medicine.unit_price.toLocaleString()} VND</TableCell>
-                              <TableCell>
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handleOpenMedicineDialogForEdit(medicine)}
-                                  title="Sửa thuốc"
-                                >
-                                  <EditIcon />
-                                </IconButton>
-                                <IconButton size="small" color="error" onClick={() => handleDeleteMedicine(medicine.id)} title="Xóa thuốc">
-                                  <DeleteIcon />
-                                </IconButton>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </TabPanel>
+                )}
+                {selectedMedicines.map((med) => (
+                  <Chip
+                    key={med.id}
+                    label={`${med.medicine_name} (${med.license_code})`}
+                    onDelete={() => handleRemoveSelectedMedicine(med.id)}
+                    color="primary"
+                  />
+                ))}
+              </Box>
+            </Box>
 
-        {/* Inspection Management Tab */}
-        <TabPanel value={tabValue} index={1}>
-          <Grid container spacing={3}>
-            {/* Actions */}
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="h6">Phiếu Kiểm Kê Kho</Typography>
-                    <Button variant="contained" startIcon={<AddIcon />} onClick={openInspectionDialogWithReset}>
-                      Tạo Phiếu Kiểm Kê
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+            <Box mt={4}>
+              <Button
+                variant="contained"
+                onClick={handleSubmitInventory}
+                disabled={selectedMedicines.length === 0 || !inspectionForm.inspector.trim()}
+              >
+                Tạo Phiếu Kiểm Kê
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
 
-            {/* Inspection List */}
-            <Grid item xs={12}>
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Danh Sách Phiếu Kiểm Kê ({inspections.length})
-                  </Typography>
-                  <TableContainer>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Mã phiếu</TableCell>
-                          <TableCell>Ngày kiểm kê</TableCell>
-                          <TableCell>Người kiểm kê</TableCell>
-                          <TableCell>Kho</TableCell>
-                          <TableCell>Số mặt hàng</TableCell>
-                          <TableCell>Sai lệch</TableCell>
-                          <TableCell>Trạng thái</TableCell>
-                          <TableCell>Thao tác</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {inspections.map((inspection) => (
-                          <TableRow key={inspection.id}>
-                            <TableCell>{inspection.inspection_code}</TableCell>
-                            <TableCell>{inspection.date}</TableCell>
-                            <TableCell>{inspection.inspector}</TableCell>
-                            <TableCell>{inspection.warehouse}</TableCell>
-                            <TableCell>{inspection.total_items}</TableCell>
-                            <TableCell>
-                              {inspection.discrepancies > 0 ? (
-                                <Chip label={inspection.discrepancies} color="warning" size="small" />
-                              ) : (
-                                <Chip label="0" color="success" size="small" />
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                label={getInspectionStatusText(inspection.status)}
-                                color={getInspectionStatusColor(inspection.status)}
-                                size="small"
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleOpenInspectionDialogForEdit(inspection)}
-                                title="Sửa phiếu kiểm kê"
-                              >
-                                <EditIcon />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleDeleteInspection(inspection.id)}
-                                title="Xóa phiếu kiểm kê"
-                              >
-                                <DeleteIcon />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </TabPanel>
-
-        {/* Medicine Creation/Edit Dialog */}
+        {/* Modal tạo thuốc mới */}
         <Dialog open={openMedicineDialog} onClose={() => setOpenMedicineDialog(false)} maxWidth="md" fullWidth>
           <DialogTitle>
             <Box display="flex" alignItems="center" gap={1}>
               <MedicationIcon />
-              {editingMedicineId === null ? 'Thêm Thuốc Mới' : 'Cập Nhật Thuốc'}
+              Thêm Thuốc Mới
             </Box>
           </DialogTitle>
           <DialogContent>
@@ -647,244 +432,141 @@ export default function MedicineInventoryPage({ isVisible = true, onBackToDashbo
                   onChange={(e) => setMedicineForm((prev) => ({ ...prev, medicine_name: e.target.value }))}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Đơn vị tính</InputLabel>
-                  <Select
-                    value={medicineForm.unit_of_measure}
-                    onChange={(e) => setMedicineForm((prev) => ({ ...prev, unit_of_measure: e.target.value }))}
-                    label="Đơn vị tính"
-                  >
-                    {UNIT_OPTIONS.map((unit) => (
-                      <MenuItem key={unit} value={unit}>
-                        {unit}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Điều kiện bảo quản * (Nhiệt độ là bắt buộc)
+                </Typography>
               </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Nhiệt độ"
+                  value={medicineForm.storage_conditions.temperature}
+                  onChange={(e) =>
+                    setMedicineForm((prev) => ({
+                      ...prev,
+                      storage_conditions: { ...prev.storage_conditions, temperature: e.target.value }
+                    }))
+                  }
+                  placeholder="VD: 2-8°C"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Độ ẩm"
+                  value={medicineForm.storage_conditions.humidity}
+                  onChange={(e) =>
+                    setMedicineForm((prev) => ({
+                      ...prev,
+                      storage_conditions: { ...prev.storage_conditions, humidity: e.target.value }
+                    }))
+                  }
+                  placeholder="VD: ≤60%"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Ánh sáng"
+                  value={medicineForm.storage_conditions.light}
+                  onChange={(e) =>
+                    setMedicineForm((prev) => ({
+                      ...prev,
+                      storage_conditions: { ...prev.storage_conditions, light: e.target.value }
+                    }))
+                  }
+                  placeholder="VD: Tránh ánh sáng trực tiếp"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Khác"
+                  value={medicineForm.storage_conditions.other}
+                  onChange={(e) =>
+                    setMedicineForm((prev) => ({
+                      ...prev,
+                      storage_conditions: { ...prev.storage_conditions, other: e.target.value }
+                    }))
+                  }
+                  placeholder="Thông tin bổ sung"
+                />
+              </Grid>
+
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
                   <InputLabel>Danh mục</InputLabel>
                   <Select
+                    label="Danh mục"
+                    placeholder="Chọn danh mục"
                     value={medicineForm.category}
                     onChange={(e) => setMedicineForm((prev) => ({ ...prev, category: e.target.value }))}
-                    label="Danh mục"
                   >
-                    {CATEGORY_OPTIONS.map((category) => (
-                      <MenuItem key={category} value={category}>
-                        {category}
+                    {Object.values(MEDICINE_CATEGORY).map((cat) => (
+                      <MenuItem key={cat} value={cat}>
+                        {cat}
                       </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Nhà sản xuất"
-                  value={medicineForm.manufacturer}
-                  onChange={(e) => setMedicineForm((prev) => ({ ...prev, manufacturer: e.target.value }))}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Tồn kho hiện tại"
-                  type="number"
-                  value={medicineForm.current_stock}
-                  onChange={(e) => setMedicineForm((prev) => ({ ...prev, current_stock: e.target.value }))}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
+
+              <Grid item xs={12} sm={3}>
                 <TextField
                   fullWidth
                   label="Tồn kho tối thiểu"
                   type="number"
-                  value={medicineForm.min_stock}
-                  onChange={(e) => setMedicineForm((prev) => ({ ...prev, min_stock: e.target.value }))}
+                  inputProps={{ min: 0 }}
+                  value={medicineForm.min_stock_threshold}
+                  onChange={(e) => setMedicineForm((prev) => ({ ...prev, min_stock_threshold: Number(e.target.value) }))}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+
+              <Grid item xs={12} sm={3}>
                 <TextField
                   fullWidth
                   label="Tồn kho tối đa"
                   type="number"
-                  value={medicineForm.max_stock}
-                  onChange={(e) => setMedicineForm((prev) => ({ ...prev, max_stock: e.target.value }))}
+                  inputProps={{ min: 0 }}
+                  value={medicineForm.max_stock_threshold}
+                  onChange={(e) => setMedicineForm((prev) => ({ ...prev, max_stock_threshold: Number(e.target.value) }))}
                 />
               </Grid>
+
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Giá (VND)"
-                  type="number"
-                  value={medicineForm.unit_price}
-                  onChange={(e) => setMedicineForm((prev) => ({ ...prev, unit_price: e.target.value }))}
+                  label="Đơn vị tính *"
+                  value={medicineForm.unit_of_measure}
+                  onChange={(e) => setMedicineForm((prev) => ({ ...prev, unit_of_measure: e.target.value }))}
+                  placeholder="VD: viên, hộp,…"
                 />
               </Grid>
+
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Ngày hết hạn"
-                  type="date"
-                  value={medicineForm.expiry_date}
-                  onChange={(e) => setMedicineForm((prev) => ({ ...prev, expiry_date: e.target.value }))}
-                  InputLabelProps={{ shrink: true }}
-                />
+                <FormControl fullWidth>
+                  <InputLabel>Trạng thái</InputLabel>
+                  <Select
+                    label="Trạng thái"
+                    value={medicineForm.status}
+                    onChange={(e) => setMedicineForm((prev) => ({ ...prev, status: e.target.value }))}
+                  >
+                    {Object.values(MEDICINE_STATUSES).map((status) => (
+                      <MenuItem key={status} value={status}>
+                        {status}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Grid>
             </Grid>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpenMedicineDialog(false)}>Hủy</Button>
             <Button variant="contained" onClick={handleCreateMedicine}>
-              {editingMedicineId === null ? 'Tạo Thuốc' : 'Cập Nhật'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Inspection Creation/Edit Dialog */}
-        <Dialog open={openInspectionDialog} onClose={() => setOpenInspectionDialog(false)} maxWidth="lg" fullWidth>
-          <DialogTitle>
-            <Box display="flex" alignItems="center" gap={1}>
-              <InventoryIcon />
-              {editingInspectionId === null ? 'Tạo Phiếu Kiểm Kê Mới' : 'Cập Nhật Phiếu Kiểm Kê'}
-            </Box>
-          </DialogTitle>
-          <DialogContent>
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-              {/* Basic Information */}
-              <Grid item xs={12}>
-                <Typography variant="h6" gutterBottom>
-                  Thông Tin Cơ Bản
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Mã phiếu kiểm kê"
-                      value={inspectionForm.inspection_code}
-                      onChange={(e) => setInspectionForm((prev) => ({ ...prev, inspection_code: e.target.value }))}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Ngày kiểm kê"
-                      type="date"
-                      value={inspectionForm.date}
-                      onChange={(e) => setInspectionForm((prev) => ({ ...prev, date: e.target.value }))}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Người kiểm kê *"
-                      value={inspectionForm.inspector}
-                      onChange={(e) => setInspectionForm((prev) => ({ ...prev, inspector: e.target.value }))}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Kho</InputLabel>
-                      <Select
-                        value={inspectionForm.warehouse}
-                        onChange={(e) => setInspectionForm((prev) => ({ ...prev, warehouse: e.target.value }))}
-                        label="Kho"
-                      >
-                        <MenuItem value="Kho chính">Kho chính</MenuItem>
-                        <MenuItem value="Kho phụ">Kho phụ</MenuItem>
-                        <MenuItem value="Kho lưu trữ">Kho lưu trữ</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      label="Ghi chú"
-                      multiline
-                      rows={2}
-                      value={inspectionForm.notes}
-                      onChange={(e) => setInspectionForm((prev) => ({ ...prev, notes: e.target.value }))}
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Divider />
-              </Grid>
-
-              {/* Medicine Selection */}
-              <Grid item xs={12}>
-                <Typography variant="h6" gutterBottom>
-                  Chọn Thuốc Cần Kiểm Kê
-                </Typography>
-
-                <Box sx={{ mb: 2 }}>
-                  <TextField
-                    fullWidth
-                    placeholder="Tìm kiếm thuốc để thêm vào phiếu kiểm kê..."
-                    value={inspectionMedicineSearchTerm}
-                    onChange={(e) => setInspectionMedicineSearchTerm(e.target.value)}
-                    InputProps={{
-                      startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                    }}
-                  />
-                </Box>
-
-                <Paper variant="outlined" sx={{ maxHeight: 400, overflow: 'auto' }}>
-                  <List>
-                    {filteredMedicinesForInspection.map((medicine) => {
-                      const isSelected = selectedMedicines.some((m) => m.id === medicine.id);
-                      const stockStatus = getStockStatus(medicine);
-
-                      return (
-                        <ListItem key={medicine.id} dense>
-                          <ListItemAvatar>
-                            <Avatar sx={{ bgcolor: stockStatus.color + '.light' }}>{stockStatus.icon}</Avatar>
-                          </ListItemAvatar>
-                          <ListItemText
-                            primary={
-                              <Box display="flex" alignItems="center" gap={1}>
-                                <Typography variant="body2" fontWeight="medium">
-                                  {medicine.medicine_name}
-                                </Typography>
-                                <Chip label={medicine.license_code} size="small" variant="outlined" />
-                              </Box>
-                            }
-                            secondary={
-                              <Box>
-                                <Typography variant="caption" color="text.secondary">
-                                  {medicine.category} • {medicine.current_stock.toLocaleString()} {medicine.unit_of_measure}
-                                </Typography>
-                                <br />
-                                <Typography variant="caption" color="text.secondary">
-                                  {medicine.manufacturer}
-                                </Typography>
-                              </Box>
-                            }
-                          />
-                          <ListItemSecondaryAction>
-                            <Checkbox
-                              edge="end"
-                              checked={isSelected}
-                              onChange={(e) => handleMedicineSelection(medicine, e.target.checked)}
-                            />
-                          </ListItemSecondaryAction>
-                        </ListItem>
-                      );
-                    })}
-                  </List>
-                </Paper>
-              </Grid>
-            </Grid>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenInspectionDialog(false)}>Hủy</Button>
-            <Button variant="contained" onClick={handleCreateInspection}>
-              {editingInspectionId === null ? 'Tạo Phiếu Kiểm Kê' : 'Cập Nhật'}
+              Tạo Thuốc
             </Button>
           </DialogActions>
         </Dialog>
@@ -892,16 +574,16 @@ export default function MedicineInventoryPage({ isVisible = true, onBackToDashbo
         {/* Snackbar */}
         <Snackbar
           open={snackbar.open}
-          autoHideDuration={6000}
+          autoHideDuration={4000}
           onClose={(event, reason) => {
             if (reason !== 'clickaway') {
-              setSnackbar({ ...snackbar, open: false });
+              setSnackbar((prev) => ({ ...prev, open: false }));
             }
           }}
           message={snackbar.message}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           action={
-            <Button color="inherit" size="small" onClick={() => setSnackbar({ ...snackbar, open: false })}>
+            <Button color="inherit" size="small" onClick={() => setSnackbar((prev) => ({ ...prev, open: false }))}>
               Đóng
             </Button>
           }
