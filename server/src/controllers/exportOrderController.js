@@ -3,6 +3,7 @@ const packageService = require('../services/packageService');
 const batchService = require('../services/batchService');
 const User = require("../models/User");
 const Package = require("../models/Package"); // Assuming you have a Package model defined
+const LogLocationChange = require("../models/LogLocationChange");
 const { EXPORT_ORDER_STATUSES, USER_ROLES } = require("../utils/constants");
 const exportOrderService = require('../services/exportOrderService');
 const mongoose = require('mongoose');
@@ -143,22 +144,90 @@ const updatePackingDetails = async (req, res, next) => {
   }
 }
 
-const completeExportOrder = async (req, res, next) => {
+const completeExportOrder = async (req, res) => {
+  const { id } = req.params;
+  const user = req.user; // Giả sử user được gắn vào req bởi middleware xác thực
+
   try {
-    const { id } = req.params
-    const order = await ExportOrder.findById(id)
-    if (!order) {
-      return res.status(404).json({ success: false, error: "Export Order not found" })
+    // Tìm đơn xuất kho
+    const exportOrder = await ExportOrder.findById(id).populate(populateOptions);
+    if (!exportOrder) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn xuất kho" });
     }
-    // As per your request, the quantity check for completion is removed for warehouse_manager
-    order.status = EXPORT_ORDER_STATUSES.COMPLETED
-    await order.save()
-    const populatedOrder = await ExportOrder.findById(id).populate(populateOptions)
-    res.status(200).json({ success: true, data: populatedOrder })
+
+    // Kiểm tra trạng thái đơn
+    if (exportOrder.status !== EXPORT_ORDER_STATUSES.APPROVED) {
+      return res.status(400).json({ success: false, message: "Đơn xuất kho phải ở trạng thái đã phê duyệt để hoàn thành" });
+    }
+
+    // Kiểm tra quyền người dùng
+    if (user.role !== "warehouse_manager") {
+      return res.status(403).json({ success: false, message: "Chỉ quản lý kho mới có thể hoàn thành đơn xuất kho" });
+    }
+
+    // Bắt đầu transaction để đảm bảo tính nguyên tử
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Lặp qua từng chi tiết trong đơn xuất kho
+      for (const detail of exportOrder.details) {
+        for (const item of detail.actual_item) {
+          const packageId = item.package_id._id;
+          const quantityToRemove = item.quantity;
+
+          // Tìm package
+          const pkg = await Package.findById(packageId).session(session);
+          if (!pkg) {
+            throw new Error(`Không tìm thấy package ${packageId}`);
+          }
+
+          // Kiểm tra số lượng đủ để giảm
+          if (pkg.quantity < quantityToRemove) {
+            throw new Error(`Số lượng trong package ${packageId} không đủ cho thuốc ${detail.medicine_id}`);
+          }
+
+          // Giảm số lượng trong package
+          pkg.quantity -= quantityToRemove;
+          await pkg.save({ session });
+
+          // Ghi log thay đổi vị trí
+          await LogLocationChange.create(
+            [
+              {
+                location_id: pkg.location_id,
+                type: "remove",
+                batch_id: pkg.batch_id,
+                quantity: quantityToRemove,
+                export_order_id: exportOrder._id,
+                ware_house_id: user.userId,
+              },
+            ],
+            { session }
+          );
+        }
+      }
+
+      // Cập nhật trạng thái đơn xuất kho
+      exportOrder.status = EXPORT_ORDER_STATUSES.COMPLETED;
+      await exportOrder.save({ session });
+
+      // Commit transaction
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.json({ success: true, message: "Đơn xuất kho đã hoàn thành thành công", data: exportOrder });
+    } catch (error) {
+      // Hủy transaction nếu có lỗi
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   } catch (error) {
-    next(error)
+    console.error("Lỗi khi hoàn thành đơn xuất kho:", error);
+    return res.status(500).json({ success: false, message: error.message || "Lỗi server khi hoàn thành đơn xuất kho" });
   }
-}
+};
 
 const cancelExportOrder = async (req, res, next) => {
   try {

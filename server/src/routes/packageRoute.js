@@ -33,6 +33,7 @@ router.get('/:medicineId/packages', packageController.getPackagesByMedicineInExp
 
 router.get('/:id', packageController.getPackageById);
 
+router.get('/:batchId', packageController.getByBatch);
 
 
-module.exports = router;
+module.exports = router; 
