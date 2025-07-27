@@ -23,21 +23,33 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
-
-// Dữ liệu giả lập mặt hàng ban đầu (id giả dạng ObjectId string)
-const mockItems = [
-  { id: '60f6d1fd5f556e5a8cde1111', name: 'Paracetamol 500mg', stock: 100 },
-  { id: '60f6d1fd5f556e5a8cde2222', name: 'Amoxicillin 250mg', stock: 50 },
-  { id: '60f6d1fd5f556e5a8cde3333', name: 'Ibuprofen 200mg', stock: 70 }
-];
+import { useSnackbar } from 'notistack';
 
 function CheckInspections() {
-  const [loading, setLoading] = useState(true);
+  const { enqueueSnackbar } = useSnackbar();
 
-  // Lấy auth token và userId từ localStorage đúng cách
+  const [loading, setLoading] = useState(true);
   const [authToken, setAuthToken] = useState(null);
   const [checkBy, setCheckBy] = useState(null);
 
+  // Danh sách thuốc lấy từ đơn hàng kiểm kê (InventoryCheckOrder)
+  const [inventoryItems, setInventoryItems] = useState([]);
+
+  const [actualQuantities, setActualQuantities] = useState({});
+  const [locations, setLocations] = useState({});
+
+  const [notes, setNotes] = useState('');
+  const [inspections, setInspections] = useState([]);
+  const [locationsList, setLocationsList] = useState([]);
+
+  const [selectedMedicineId, setSelectedMedicineId] = useState('');
+
+  const { checkOrderId } = useParams();
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+
+  const status = 'checked';
+
+  // Lấy token và userId từ localStorage
   useEffect(() => {
     const token = localStorage.getItem('auth-token');
     setAuthToken(token);
@@ -54,33 +66,52 @@ function CheckInspections() {
     }
   }, []);
 
-  // State số lượng thực tế người dùng nhập
-  const [actualQuantities, setActualQuantities] = useState(
-    mockItems.reduce((acc, item) => {
-      acc[item.id] = item.stock;
-      return acc;
-    }, {})
-  );
-
-  // State vị trí selected theo medicineId (lưu location_id)
-  const [locations, setLocations] = useState(
-    mockItems.reduce((acc, item) => {
-      acc[item.id] = '';
-      return acc;
-    }, {})
-  );
-
-  const [notes, setNotes] = useState('');
-  const [inspections, setInspections] = useState([]);
-  const [locationsList, setLocationsList] = useState([]);
-
-  // Medicine chọn trong form
-  const [selectedMedicineId, setSelectedMedicineId] = useState(mockItems[0].id);
-
-  const { checkOrderId } = useParams();
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-
+  // Lấy danh sách thuốc từ đơn hàng kiểm kê
   useEffect(() => {
+    if (!checkOrderId || !authToken) return;
+
+    axios
+      .get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+      .then((res) => {
+        if (res.data && Array.isArray(res.data.items)) {
+          const items = res.data.items.map((item) => ({
+            id: item.medicine_id._id,
+            name: item.medicine_id.medicine_name,
+            stock: item.stock
+          }));
+          setInventoryItems(items);
+
+          setActualQuantities(
+            items.reduce((acc, item) => {
+              acc[item.id] = item.stock;
+              return acc;
+            }, {})
+          );
+
+          setLocations(
+            items.reduce((acc, item) => {
+              acc[item.id] = '';
+              return acc;
+            }, {})
+          );
+
+          if (items.length > 0) {
+            setSelectedMedicineId(items[0].id);
+          }
+        } else {
+          enqueueSnackbar('Dữ liệu đơn hàng kiểm kê không hợp lệ', { variant: 'error' });
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load inventory check order:', error);
+        enqueueSnackbar('Không tải được danh sách thuốc từ đơn hàng kiểm kê', { variant: 'error' });
+      });
+  }, [checkOrderId, backendUrl, authToken]);
+
+  // Hàm fetch danh sách inspections
+  const fetchInspections = () => {
     if (!checkOrderId || !authToken) return;
     setLoading(true);
     axios
@@ -88,46 +119,49 @@ function CheckInspections() {
         headers: { Authorization: `Bearer ${authToken}` }
       })
       .then((res) => {
-        const inspectionsData = res.data?.data; // lấy mảng data từ response
+        const inspectionsData = res.data?.data || res.data;
 
-        // Kiểm tra inspectionsData có phải array không, nếu không thì xử lý fallback
         if (Array.isArray(inspectionsData)) {
           const processedInspections = inspectionsData.map((inspection) => {
-            const firstItem = inspection.check_list && inspection.check_list.length > 0 ? inspection.check_list[0] : null;
+            const firstCheckItem = inspection.check_list?.[0] || null;
+            const med = firstCheckItem?.medicine_id;
 
             return {
-              id: inspection._id,
+              _id: inspection._id,
               inventory_check_order_id: inspection.inventory_check_order_id,
               status: inspection.status,
               location_id: inspection.location_id,
               notes: inspection.notes,
               check_by: inspection.check_by,
               date: inspection.createdAt || inspection.updatedAt || null,
-              item: firstItem
+              item: med
                 ? {
-                    medicine_id: firstItem.medicine_id,
-                    expectedQuantity: firstItem.expected_quantity,
-                    actualQuantity: firstItem.actual_quantity
+                    medicine_id: med._id || med,
+                    medicine_name: med.medicine_name || 'Không xác định',
+                    license_code: med.license_code,
+                    expectedQuantity: firstCheckItem.expected_quantity,
+                    actualQuantity: firstCheckItem.actual_quantity
                   }
                 : null
             };
           });
-
           setInspections(processedInspections);
-          console.log('Processed inspections:', processedInspections);
         } else {
           console.error('Data from inspection API is not an array:', inspectionsData);
+          enqueueSnackbar('Dữ liệu phiếu kiểm kê không đúng định dạng.', { variant: 'error' });
           setInspections([]);
         }
       })
       .catch((error) => {
         console.error('Error fetching inspections', error);
-        alert('Không thể tải dữ liệu phiếu kiểm kê.');
+        enqueueSnackbar('Không thể tải dữ liệu phiếu kiểm kê.', { variant: 'error' });
         setInspections([]);
       })
-      .finally(() => {
-        setLoading(false);
-      });
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchInspections();
   }, [checkOrderId, backendUrl, authToken]);
 
   // Load danh sách location từ backend
@@ -140,45 +174,45 @@ function CheckInspections() {
       .then((res) => setLocationsList(res.data))
       .catch((error) => {
         console.error('Failed to load locations:', error);
-        alert('Không thể tải dữ liệu vị trí kho.');
+        enqueueSnackbar('Không thể tải dữ liệu vị trí kho.', { variant: 'error' });
       });
   }, [backendUrl, authToken]);
 
-  // Hàm xử lý đổi số lượng thực tế
+  // Xử lý đổi số lượng thực tế
   const handleActualQuantityChange = (medicineId, val) => {
     const value = val ? parseInt(val, 10) : 0;
     setActualQuantities((prev) => ({ ...prev, [medicineId]: value >= 0 ? value : 0 }));
   };
 
-  // Hàm xử lý đổi vị trí
+  // Xử lý đổi vị trí
   const handleLocationChange = (medicineId, locationId) => {
     setLocations((prev) => ({ ...prev, [medicineId]: locationId }));
   };
 
-  // Submit form tạo phiếu kiểm kê
+  // Tạo phiếu kiểm kê mới
   const handleSubmit = (e) => {
     e.preventDefault();
 
     if (!locations[selectedMedicineId]) {
-      alert('Vui lòng chọn vị trí cho thuốc được chọn.');
+      enqueueSnackbar('Vui lòng chọn vị trí cho thuốc được chọn.', { variant: 'warning' });
       return;
     }
     if (!checkBy) {
-      alert('Không xác định được người kiểm kê. Vui lòng đăng nhập lại.');
+      enqueueSnackbar('Không xác định được người kiểm kê. Vui lòng đăng nhập lại.', { variant: 'error' });
       return;
     }
 
     const checkList = [
       {
         medicine_id: selectedMedicineId,
-        expected_quantity: mockItems.find((m) => m.id === selectedMedicineId).stock,
+        expected_quantity: inventoryItems.find((m) => m.id === selectedMedicineId)?.stock || 0,
         actual_quantity: actualQuantities[selectedMedicineId] || 0
       }
     ];
 
     const dataToPost = {
       inventory_check_order_id: checkOrderId,
-      status: 'checked',
+      status,
       location_id: locations[selectedMedicineId] || null,
       check_list: checkList,
       notes,
@@ -192,33 +226,35 @@ function CheckInspections() {
           Authorization: `Bearer ${authToken}`
         }
       })
-      .then((res) => {
-        alert('Phiếu kiểm kê đã được tạo!');
-        if (res.data && res.data._id) setInspections((prev) => [res.data, ...prev]);
-        else if (Array.isArray(res.data)) setInspections((prev) => [...res.data, ...prev]);
+      .then(() => {
+        enqueueSnackbar('Phiếu kiểm kê đã được tạo!', { variant: 'success' });
+        fetchInspections();
+
         setLocations((prev) => ({ ...prev, [selectedMedicineId]: '' }));
         setActualQuantities((prev) => ({
           ...prev,
-          [selectedMedicineId]: mockItems.find((m) => m.id === selectedMedicineId)?.stock || 0
+          [selectedMedicineId]: inventoryItems.find((m) => m.id === selectedMedicineId)?.stock || 0
         }));
         setNotes('');
       })
       .catch((error) => {
         console.error('Failed to create inspection:', error);
-        alert('Tạo phiếu kiểm kê thất bại.');
+        enqueueSnackbar('Tạo phiếu kiểm kê thất bại.', { variant: 'error' });
       });
   };
 
-  const checkedMedicineIds = new Set(inspections.map((insp) => insp.item.id));
-  const uncheckedMedicines = mockItems.filter((item) => !checkedMedicineIds.has(item.id));
+  // Lọc danh sách thuốc chưa kiểm kê
+  const checkedMedicineIds = new Set(inspections.map((insp) => insp.item?.medicine_id).filter(Boolean));
+  const uncheckedMedicines = inventoryItems.filter((item) => !checkedMedicineIds.has(item.id));
 
+  // Xóa phiếu kiểm kê
   const handleDeleteInspection = (inspectionId) => {
     if (!authToken) {
-      alert('Bạn chưa đăng nhập.');
+      enqueueSnackbar('Bạn chưa đăng nhập.', { variant: 'warning' });
       return;
     }
     if (!inspectionId || inspectionId.length !== 24) {
-      alert('ID phiếu kiểm kê không hợp lệ để xóa.');
+      enqueueSnackbar('ID phiếu kiểm kê không hợp lệ để xóa.', { variant: 'error' });
       return;
     }
     axios
@@ -226,16 +262,16 @@ function CheckInspections() {
         headers: { Authorization: `Bearer ${authToken}` }
       })
       .then(() => {
-        setInspections((prev) => prev.filter((insp) => (insp._id || insp.id) !== inspectionId));
-        alert('Phiếu kiểm kê đã được xóa.');
+        enqueueSnackbar('Phiếu kiểm kê đã được xóa.', { variant: 'success' });
+        fetchInspections();
       })
       .catch((error) => {
         console.error('Failed to delete inspection:', error);
-        alert('Xóa phiếu kiểm kê thất bại.');
+        enqueueSnackbar('Xóa phiếu kiểm kê thất bại.', { variant: 'error' });
       });
   };
 
-  // Lấy label mô tả vị trí từ locationsList
+  // Lấy label mô tả vị trí
   const getLocationLabel = (locationId) => {
     const loc = locationsList.find((loc) => loc._id === locationId);
     if (!loc) return '';
@@ -262,7 +298,7 @@ function CheckInspections() {
               value={selectedMedicineId}
               onChange={(e) => setSelectedMedicineId(e.target.value)}
             >
-              {mockItems.map((item) => (
+              {inventoryItems.map((item) => (
                 <MenuItem key={item.id} value={item.id}>
                   {item.name} (Tồn kho: {item.stock})
                 </MenuItem>
@@ -273,7 +309,7 @@ function CheckInspections() {
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              label={`Số lượng kiểm kê (Tồn kho: ${mockItems.find((m) => m.id === selectedMedicineId)?.stock ?? 0})`}
+              label={`Số lượng kiểm kê (Tồn kho: ${inventoryItems.find((m) => m.id === selectedMedicineId)?.stock ?? 0})`}
               type="number"
               inputProps={{ min: 0 }}
               value={actualQuantities[selectedMedicineId]}
@@ -288,7 +324,7 @@ function CheckInspections() {
               label="Chọn vị trí"
               value={locations[selectedMedicineId] || ''}
               onChange={(e) => handleLocationChange(selectedMedicineId, e.target.value)}
-              InputLabelProps={{ shrink: true }} // Giữ label không mất khi value rỗng
+              InputLabelProps={{ shrink: true }}
             >
               <MenuItem value="">-- Chọn vị trí --</MenuItem>
               {locationsList.map((loc) => (
@@ -300,7 +336,7 @@ function CheckInspections() {
           </Grid>
 
           <Grid item xs={12}>
-            <TextField fullWidth label="Ghi chú" multiline value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <TextField fullWidth label="Ghi chú" multiline rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </Grid>
 
           <Grid item xs={12}>
@@ -341,7 +377,7 @@ function CheckInspections() {
                     <TableBody>
                       {uncheckedMedicines.map((item) => (
                         <TableRow key={item.id}>
-                          <TableCell>{item.checkList.medicine_name}</TableCell>
+                          <TableCell>{item.name}</TableCell>
                           <TableCell align="right">{item.stock}</TableCell>
                         </TableRow>
                       ))}
@@ -370,12 +406,16 @@ function CheckInspections() {
                     </TableHead>
                     <TableBody>
                       {inspections.map((inspection) => (
-                        <TableRow key={inspection.id}>
-                          <TableCell>{inspection.item.name}</TableCell>
-                          <TableCell align="right">{inspection.item.expectedQuantity ?? '-'}</TableCell>
-                          <TableCell align="right">{inspection.item.actualQuantity ?? '-'}</TableCell>
-                          <TableCell>{inspection.item.location_id ? getLocationLabel(inspection.item.location_id) : ''}</TableCell>
-                          <TableCell align="right">{inspection.item.stock}</TableCell>
+                        <TableRow key={inspection._id}>
+                          <TableCell>{inspection.item?.medicine_name ?? 'Không xác định'}</TableCell>
+                          <TableCell align="right">{inspection.item?.expectedQuantity ?? '-'}</TableCell>
+                          <TableCell align="right">{inspection.item?.actualQuantity ?? '-'}</TableCell>
+                          <TableCell>
+                            {inspection.location_id ? getLocationLabel(inspection.location_id._id || inspection.location_id) : ''}
+                          </TableCell>
+                          <TableCell align="right">
+                            {inventoryItems.find((m) => m.id === (inspection.item?.medicine_id || ''))?.stock || '-'}
+                          </TableCell>
                           <TableCell align="center">
                             <IconButton
                               aria-label="delete"

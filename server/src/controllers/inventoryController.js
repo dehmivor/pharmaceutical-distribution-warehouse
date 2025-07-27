@@ -1,4 +1,5 @@
 const inventoryService = require('../services/inventoryService');
+const mongoose = require('mongoose');
 
 const getInspectionsFromCheckOrder = async (req, res) => {
   try {
@@ -69,8 +70,39 @@ const deleteCheckInspection = async (req, res) => {
   }
 };
 
+const getCheckOrderById = async (req, res) => {
+  try {
+    const checkOrderId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(checkOrderId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid inspection ID',
+      });
+    }
+
+    const inspection = await inventoryService.getCheckOrderById(checkOrderId);
+    if (!inspection) {
+      return res.status(404).json({
+        success: false,
+        message: 'Check Order not found',
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: inspection,
+    });
+  } catch (error) {
+    console.error('Error fetching inspection by ID:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching the inspection',
+    });
+  }
+};
 module.exports = {
   getInspectionsFromCheckOrder,
   createCheckInspection,
   deleteCheckInspection,
+  getCheckOrderById,
 };

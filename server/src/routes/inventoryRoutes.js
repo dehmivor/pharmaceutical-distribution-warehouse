@@ -9,6 +9,8 @@ router.get(
   inventoryController.getInspectionsFromCheckOrder,
 );
 
+router.get('/check-order/:id', authenticate, inventoryController.getCheckOrderById);
+
 router.post('/', authenticate, inventoryController.createCheckInspection);
 
 router.delete('/:id', authenticate, inventoryController.deleteCheckInspection);

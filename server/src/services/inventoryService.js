@@ -53,8 +53,38 @@ const deleteCheckInspection = async (inspectionId) => {
   }
 };
 
+const getCheckOrderById = async (checkOrderId) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(checkOrderId)) {
+      throw new Error('Invalid inspection ID');
+    }
+
+    const inspection = await InventoryCheckInspection.findById(checkOrderId)
+      .populate('inventory_check_order_id', 'name')
+      .populate({
+        path: 'location_id',
+        select: 'bay row column area_id',
+        populate: {
+          path: 'area_id',
+          select: 'name',
+        },
+      })
+      .populate('check_by', 'username email')
+      .populate({
+        path: 'check_list.medicine_id',
+        select: 'medicine_name license_code',
+      });
+
+    return inspection;
+  } catch (error) {
+    console.error('Error fetching inspection by ID:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   getInspectionsFromCheckOrder,
   createCheckInspection,
   deleteCheckInspection,
+  getCheckOrderById,
 };
