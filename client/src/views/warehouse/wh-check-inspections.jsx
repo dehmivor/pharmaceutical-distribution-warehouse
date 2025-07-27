@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  CardContent,
-  CardHeader,
   TextField,
   Button,
   Typography,
@@ -16,9 +14,12 @@ import {
   TableBody,
   TableCell,
   TableHead,
-  TableRow
+  TableRow,
+  Skeleton,
+  IconButton
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const mockItems = [
   { id: 1, name: 'Paracetamol 500mg', stock: 100 },
@@ -27,7 +28,8 @@ const mockItems = [
 ];
 
 function CheckInspections() {
-  // Dùng state để lưu số lượng kiểm kê cho từng mặt hàng
+  const [loading, setLoading] = useState(true);
+
   const [quantities, setQuantities] = useState(
     mockItems.reduce((acc, item) => {
       acc[item.id] = item.stock;
@@ -35,7 +37,6 @@ function CheckInspections() {
     }, {})
   );
 
-  // Dùng state riêng biệt để lưu vị trí cho từng mặt hàng
   const [locations, setLocations] = useState(
     mockItems.reduce((acc, item) => {
       acc[item.id] = '';
@@ -43,8 +44,12 @@ function CheckInspections() {
     }, {})
   );
 
-  // Danh sách phiếu kiểm kê, mỗi phiếu là 1 loại thuốc
   const [inspections, setInspections] = useState([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleQuantityChange = (id, value) => {
     setQuantities((prev) => ({
@@ -63,12 +68,10 @@ function CheckInspections() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Tạo nhiều phiếu, mỗi phiếu 1 thuốc, có vị trí và số lượng kiểm kê
-    // Bỏ qua thuốc không có vị trí nhập hoặc quantity là null/undefined
     const createdInspections = mockItems
       .filter((item) => locations[item.id]?.trim() !== '' && quantities[item.id] !== undefined)
       .map((item) => ({
-        id: Date.now() + item.id, // id unique
+        id: Date.now() + item.id,
         date: new Date().toLocaleString(),
         item: {
           ...item,
@@ -85,7 +88,6 @@ function CheckInspections() {
     setInspections((prev) => [...createdInspections, ...prev]);
     alert('Phiếu kiểm kê đã được tạo!');
 
-    // Reset inputs: giữ quantity = stock, reset location = ''
     setLocations(
       mockItems.reduce((acc, item) => {
         acc[item.id] = '';
@@ -98,6 +100,17 @@ function CheckInspections() {
         return acc;
       }, {})
     );
+  };
+
+  // Lấy danh sách ids đã tạo phiếu
+  const checkedItemIds = new Set(inspections.map((insp) => insp.item.id));
+
+  // Mặt hàng chưa kiểm
+  const uncheckedItems = mockItems.filter((item) => !checkedItemIds.has(item.id));
+
+  // --- Xử lý xóa phiếu kiểm kê ---
+  const handleDeleteInspection = (id) => {
+    setInspections((prev) => prev.filter((insp) => insp.id !== id));
   };
 
   return (
@@ -145,41 +158,85 @@ function CheckInspections() {
           Danh sách phiếu kiểm kê
         </Typography>
 
-        {inspections.length === 0 && (
-          <Typography variant="body1" color="textSecondary">
-            Chưa có phiếu kiểm kê nào.
-          </Typography>
-        )}
+        {loading ? (
+          <>
+            <Skeleton variant="rectangular" height={60} sx={{ mb: 2 }} />
+            <Skeleton variant="rectangular" height={150} sx={{ mb: 2 }} />
+          </>
+        ) : (
+          <>
+            <Accordion defaultExpanded sx={{ mb: 2 }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="h6">Mặt hàng chưa kiểm ({uncheckedItems.length})</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                {uncheckedItems.length === 0 ? (
+                  <Typography>Không còn mặt hàng nào chưa kiểm.</Typography>
+                ) : (
+                  <Table size="small" aria-label="unchecked-items">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Tên mặt hàng</TableCell>
+                        <TableCell align="right">Tồn kho</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {uncheckedItems.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>{item.name}</TableCell>
+                          <TableCell align="right">{item.stock}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </AccordionDetails>
+            </Accordion>
 
-        {inspections.map((inspection) => (
-          <Accordion key={inspection.id} sx={{ mb: 2 }}>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography>
-                Phiếu kiểm kê ngày {inspection.date} - {inspection.item.name}
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Table size="small" aria-label="inspection-item-details">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Tên mặt hàng</TableCell>
-                    <TableCell align="right">Số lượng kiểm kê</TableCell>
-                    <TableCell>Vị trí</TableCell>
-                    <TableCell align="right">Tồn kho</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>{inspection.item.name}</TableCell>
-                    <TableCell align="right">{inspection.item.checkedQuantity}</TableCell>
-                    <TableCell>{inspection.item.location}</TableCell>
-                    <TableCell align="right">{inspection.item.stock}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </AccordionDetails>
-          </Accordion>
-        ))}
+            <Accordion defaultExpanded>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="h6">Mặt hàng đã kiểm ({inspections.length})</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                {inspections.length === 0 ? (
+                  <Typography>Chưa có phiếu kiểm kê nào.</Typography>
+                ) : (
+                  <Table size="small" aria-label="checked-items">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Tên mặt hàng</TableCell>
+                        <TableCell align="right">Số lượng kiểm kê</TableCell>
+                        <TableCell>Vị trí</TableCell>
+                        <TableCell align="right">Tồn kho</TableCell>
+                        <TableCell align="center">Hành động</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {inspections.map((inspection) => (
+                        <TableRow key={inspection.id}>
+                          <TableCell>{inspection.item.name}</TableCell>
+                          <TableCell align="right">{inspection.item.checkedQuantity}</TableCell>
+                          <TableCell>{inspection.item.location}</TableCell>
+                          <TableCell align="right">{inspection.item.stock}</TableCell>
+                          <TableCell align="center">
+                            <IconButton
+                              aria-label="delete"
+                              size="small"
+                              color="error"
+                              onClick={() => handleDeleteInspection(inspection.id)}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </AccordionDetails>
+            </Accordion>
+          </>
+        )}
       </Box>
     </Box>
   );
