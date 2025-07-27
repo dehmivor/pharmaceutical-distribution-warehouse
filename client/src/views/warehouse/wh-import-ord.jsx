@@ -178,6 +178,9 @@ export default function ManageImportOrders() {
           <Typography variant="h4" gutterBottom>
             Import Orders Management
           </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Manage and track import orders for the warehouse
+          </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading}>
           Refresh

@@ -123,7 +123,7 @@ export default function CreateInspectionWithExistImportOrderId() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h4">Tạo Phiếu Kiểm Tra Đơn Nhập</Typography>
         <Box display="flex" gap={2}>
           <Button variant="contained" className="p-4" onClick={() => router.push('/wh-create-inspections/without-import-ord')}>
@@ -132,7 +132,7 @@ export default function CreateInspectionWithExistImportOrderId() {
           <Button variant="outlined" onClick={() => enqueueSnackbar('You have sent require to warehouse manager', { variant: 'info' })}>
             Ask for Warehouse Manager to create inspect
           </Button>
-        </Box>{' '}
+        </Box>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Tạo phiếu kiểm nhập từ đơn đặt hàng đã chọn

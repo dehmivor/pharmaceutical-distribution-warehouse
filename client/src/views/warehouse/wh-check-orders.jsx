@@ -161,6 +161,9 @@ const CheckOrders = () => {
       <Typography variant="h4" color="primary" fontWeight={600} gutterBottom>
         Danh Sách Phiếu Kiểm Kê Toàn Kho
       </Typography>
+      <Typography variant="body1" color="text.secondary" mb={3}>
+        Quản lý và theo dõi các phiếu kiểm kê kho. Bạn có thể lọc, tìm kiếm và xem chi tiết từng phiếu kiểm kê.
+      </Typography>
 
       {error && (
         <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
@@ -188,10 +191,9 @@ const CheckOrders = () => {
                 <InputLabel>Trạng thái</InputLabel>
                 <Select
                   value={filters.status}
-                  label=""
+                  label="Trạng thái các phiếu"
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                   displayEmpty
-                  renderValue={(selected) => (selected ? selected : <em>Chọn trạng thái</em>)}
                 >
                   {statusOptions.map((status) => (
                     <MenuItem key={status} value={status}>

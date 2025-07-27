@@ -138,6 +138,9 @@ function CheckInspections() {
       <Typography variant="h4" gutterBottom>
         Tạo phiếu kiểm kê kho thuốc
       </Typography>
+      <Typography variant="body1" color="text.secondary" mb={3}>
+        Quản lý và theo dõi các phiếu kiểm kê cho đợt kiểm kê toàn kho
+      </Typography>
 
       <form onSubmit={handleSubmit}>
         <Grid container spacing={2} alignItems="center">

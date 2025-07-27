@@ -216,7 +216,6 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
         console.log(response.data);
       } catch (error) {
         setInspectionsError(error.message || 'Lỗi khi tải phiếu kiểm nhập');
-        enqueueSnackbar(error.message || 'Lỗi khi tải phiếu kiểm nhập', { variant: 'error' });
       } finally {
         setLoadingInspections(false);
       }
