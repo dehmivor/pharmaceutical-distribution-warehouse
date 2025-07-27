@@ -27,6 +27,21 @@ const warehouse = {
       ]
     },
     {
+      id: 'inventory',
+      title: 'Inventory',
+      type: 'collapse',
+      icon: 'IconBrandMinecraft',
+      children: [
+        {
+          id: 'view-inventory-check-orders',
+          title: 'View Inventory Check Orders',
+          type: 'item',
+          url: '/wh-inventory/check-orders',
+          icon: 'IconList'
+        }
+      ]
+    },
+    {
       id: 'export-orders',
       title: 'Export',
       type: 'collapse',
