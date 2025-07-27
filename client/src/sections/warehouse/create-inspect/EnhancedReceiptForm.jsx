@@ -43,7 +43,7 @@ const UNIT_CONVERSIONS = {
   viên: { gói: 10, hộp: 100 }
 };
 
-function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
+function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
   const router = useRouter();
   const params = useParams();
   const importOrderId = params.importOrderId;
@@ -72,13 +72,13 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
     receivedPercentage: 0,
     totalValue: 0
   });
+
   const isInitialized = useRef(false);
   const lastOrderId = useRef(null);
   const lastCheckedItemsLength = useRef(0);
 
   const convertUnit = useCallback((quantity, fromUnit, toUnit) => {
     if (fromUnit === toUnit) return quantity;
-
     const conversions = UNIT_CONVERSIONS[fromUnit];
     if (conversions && conversions[toUnit]) {
       return quantity * conversions[toUnit];
@@ -87,9 +87,9 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
   }, []);
 
   const [isCreating, setIsCreating] = useState(false);
-  const [createError, setCreateError] = useState(null);
   const { createInspection, loading, error } = useInspection();
 
+  // Fetch import order data
   useEffect(() => {
     if (!importOrderId) return;
 
@@ -145,11 +145,12 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
     };
 
     fetchImportOrder();
-  }, [importOrderId]);
+  }, [importOrderId, inspections, setInspections, enqueueSnackbar, checkedItems]);
 
+  // Initialize receiptItems when orderData or checkedItems changes
   useEffect(() => {
     const currentOrderId = orderData?._id;
-    const currentCheckedItemsLength = checkedItems.length;
+    const currentCheckedItemsLength = checkedItems?.length || 0;
 
     if (!isInitialized.current || lastOrderId.current !== currentOrderId || lastCheckedItemsLength.current !== currentCheckedItemsLength) {
       let initialItems = [];
@@ -171,7 +172,7 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
           status: 'pending',
           medicineId: item.medicine_id?._id || item.medicine_id || null
         }));
-      } else if (checkedItems.length > 0) {
+      } else if (checkedItems?.length > 0) {
         initialItems = checkedItems.map((item, index) => ({
           ...item,
           id: index + 1,
@@ -196,8 +197,9 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
         }));
       }
     }
-  }, [orderData, checkedItems]);
+  }, [orderData, checkedItems, inspections]);
 
+  // Fetch inspections for this order
   useEffect(() => {
     if (!importOrderId) return;
 
@@ -212,8 +214,8 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
           }
         });
 
-        setInspections(response.data || response.data || []);
-        console.log(response.data);
+        setInspections(response.data || []);
+        console.log('🔍 Fetched inspections:', response.data);
       } catch (error) {
         setInspectionsError(error.message || 'Lỗi khi tải phiếu kiểm nhập');
       } finally {
@@ -224,6 +226,7 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
     fetchInspections();
   }, [importOrderId]);
 
+  // Calculate statistics
   const calculateStatistics = useCallback(() => {
     const totalExpected = receiptItems.reduce((sum, item) => sum + (parseFloat(item.expectedQuantity) || 0), 0);
 
@@ -264,6 +267,7 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
     });
   }, [calculateStatistics]);
 
+  // Update a single item property
   const updateReceiptItem = useCallback(
     (id, field, value) => {
       setReceiptItems((prev) =>
@@ -314,10 +318,12 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
     [convertUnit]
   );
 
+  // Remove item (only for unchecked items)
   const removeItem = useCallback((id) => {
     setReceiptItems((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
+  // Get chip color and text for status
   const getStatusColor = useCallback((status) => {
     switch (status) {
       case 'received':
@@ -344,6 +350,7 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
     }
   }, []);
 
+  // Get current user ID (simplified)
   const getCurrentUserId = () => {
     try {
       const userStr = localStorage.getItem('user');
@@ -352,11 +359,11 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
       const userObj = JSON.parse(userStr);
       return userObj.userId || userObj.id || 'defaultUserIdMongoObjectId';
     } catch (err) {
-      // Nếu parse lỗi hoặc không có userId
       return 'defaultUserIdMongoObjectId';
     }
   };
 
+  // Handle create receipt submit
   const handleCreateReceipt = useCallback(async () => {
     if (receiptItems.length === 0) {
       enqueueSnackbar('Vui lòng thêm ít nhất một sản phẩm', { variant: 'warning' });
@@ -393,12 +400,13 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
       if (onReceiptCreate) onReceiptCreate(res.data);
       router.push('/wh-import-orders');
     } catch (error) {
-      enqueueSnackbar(error.response?.data?.message || error.message || 'Lỗi khi tạo phiếu kiểm nhập', { variant: 'error' });
+      enqueueSnackbar('Không thể tạo phiếu kiểm nhập', { variant: 'error' });
     } finally {
       setIsCreating(false);
     }
   }, [receiptItems, orderData, receiptData.notes, onReceiptCreate, router]);
 
+  // Loading and error states
   if (loadingOrder) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
@@ -414,6 +422,17 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
       </Box>
     );
   }
+
+  // --- PHÂN TÁCH DANH SÁCH HÀNG HÓA ĐÃ ĐƯỢC KIỂM và CHƯA KIỂM ---
+
+  // Tạo Set medicineId đã kiểm
+  const inspectedMedicineIds = new Set(inspections.map((i) => i.medicine_id));
+
+  // Các mặt hàng chưa được kiểm (hiển thị form nhập liệu)
+  const uncheckedItems = receiptItems.filter((item) => !inspectedMedicineIds.has(item.medicineId));
+
+  // Các mặt hàng đã được kiểm (hiển thị tóm tắt)
+  checkedItems = receiptItems.filter((item) => inspectedMedicineIds.has(item.medicineId));
 
   return (
     <Box>
@@ -456,160 +475,199 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
         </CardContent>
       </Card>
 
-      {/* Danh sách hàng hóa */}
+      {/* Danh sách hàng hóa chưa kiểm */}
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">Danh Sách Hàng Hóa ({receiptItems.length} sản phẩm)</Typography>
+            <Typography variant="h6">Danh Sách Hàng Hóa Chưa Kiểm ({uncheckedItems?.length} sản phẩm)</Typography>
           </Box>
-
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Mã SP</TableCell>
-                  <TableCell>Tên sản phẩm</TableCell>
-                  <TableCell>SL dự kiến</TableCell>
-                  <TableCell>SL từ chối</TableCell>
-                  <TableCell>SL thực nhận</TableCell>
-                  <TableCell>Trạng thái</TableCell>
-                  <TableCell>Ghi chú</TableCell>
-                  <TableCell>Thao tác</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {receiptItems.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        value={item.productCode}
-                        onChange={(e) => updateReceiptItem(item.id, 'productCode', e.target.value)}
-                        sx={{ minWidth: 100 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        value={item.productName}
-                        onChange={(e) => updateReceiptItem(item.id, 'productName', e.target.value)}
-                        sx={{ minWidth: 150 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={item.expectedQuantity}
-                          onChange={(e) => updateReceiptItem(item.id, 'expectedQuantity', e.target.value)}
-                          sx={{ width: 80 }}
-                          disabled
-                        />
-                        <FormControl size="small" sx={{ minWidth: 60 }}>
-                          <Select
-                            disabled
-                            value={item.expectedUnit}
-                            onChange={(e) => updateReceiptItem(item.id, 'expectedUnit', e.target.value)}
-                          >
-                            {Object.keys(UNIT_CONVERSIONS).map((unit) => (
-                              <MenuItem key={unit} value={unit}>
-                                {unit}
-                              </MenuItem>
-                            ))}
-                            <MenuItem value="viên">viên</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={item.rejectedQuantity || 0}
-                          onChange={(e) => updateReceiptItem(item.id, 'rejectedQuantity', e.target.value)}
-                          sx={{ width: 80 }}
-                        />
-                        <FormControl size="small" sx={{ minWidth: 60 }}>
-                          <Select
-                            disabled
-                            value={item.expectedUnit}
-                            onChange={(e) => updateReceiptItem(item.id, 'expectedUnit', e.target.value)}
-                          >
-                            {Object.keys(UNIT_CONVERSIONS).map((unit) => (
-                              <MenuItem key={unit} value={unit}>
-                                {unit}
-                              </MenuItem>
-                            ))}
-                            <MenuItem value="viên">viên</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <TextField
-                          size="small"
-                          type="number"
-                          value={item.actualQuantity}
-                          onChange={(e) => updateReceiptItem(item.id, 'actualQuantity', e.target.value)}
-                          sx={{ width: 80 }}
-                        />
-                        <FormControl size="small" sx={{ minWidth: 60 }}>
-                          <Select
-                            disabled
-                            value={item.actualUnit}
-                            onChange={(e) => updateReceiptItem(item.id, 'actualUnit', e.target.value)}
-                          >
-                            {Object.keys(UNIT_CONVERSIONS).map((unit) => (
-                              <MenuItem key={unit} value={unit}>
-                                {unit}
-                              </MenuItem>
-                            ))}
-                            <MenuItem value="viên">viên</MenuItem>
-                          </Select>
-                        </FormControl>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip label={getStatusText(item.status)} color={getStatusColor(item.status)} size="small" />
-                    </TableCell>
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        value={receiptData.notes}
-                        onChange={(e) => setReceiptData((prev) => ({ ...prev, notes: e.target.value }))}
-                        sx={{ minWidth: 150 }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <IconButton size="small" color="error" onClick={() => removeItem(item.id)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
+          {checkedItems.length === 0 && (
+            <Typography variant="body2" color="textPrimary" mb={2}>
+              Không còn hàng hóa để kiểm.
+            </Typography>
+          )}
+          {checkedItems.length === 0 && (
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Mã SP</TableCell>
+                    <TableCell>Tên sản phẩm</TableCell>
+                    <TableCell>SL dự kiến</TableCell>
+                    <TableCell>SL từ chối</TableCell>
+                    <TableCell>SL thực nhận</TableCell>
+                    <TableCell>Trạng thái</TableCell>
+                    <TableCell>Ghi chú</TableCell>
+                    <TableCell>Thao tác</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {uncheckedItems.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          value={item.productCode}
+                          onChange={(e) => updateReceiptItem(item.id, 'productCode', e.target.value)}
+                          sx={{ minWidth: 100 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          value={item.productName}
+                          onChange={(e) => updateReceiptItem(item.id, 'productName', e.target.value)}
+                          sx={{ minWidth: 150 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={item.expectedQuantity}
+                            onChange={(e) => updateReceiptItem(item.id, 'expectedQuantity', e.target.value)}
+                            sx={{ width: 80 }}
+                            disabled
+                          />
+                          <FormControl size="small" sx={{ minWidth: 60 }}>
+                            <Select disabled value={item.expectedUnit}>
+                              {Object.keys(UNIT_CONVERSIONS).map((unit) => (
+                                <MenuItem key={unit} value={unit}>
+                                  {unit}
+                                </MenuItem>
+                              ))}
+                              <MenuItem value="viên">viên</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={item.rejectedQuantity || 0}
+                            onChange={(e) => updateReceiptItem(item.id, 'rejectedQuantity', e.target.value)}
+                            sx={{ width: 80 }}
+                          />
+                          <FormControl size="small" sx={{ minWidth: 60 }}>
+                            <Select disabled value={item.expectedUnit}>
+                              {Object.keys(UNIT_CONVERSIONS).map((unit) => (
+                                <MenuItem key={unit} value={unit}>
+                                  {unit}
+                                </MenuItem>
+                              ))}
+                              <MenuItem value="viên">viên</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={item.actualQuantity}
+                            onChange={(e) => updateReceiptItem(item.id, 'actualQuantity', e.target.value)}
+                            sx={{ width: 80 }}
+                          />
+                          <FormControl size="small" sx={{ minWidth: 60 }}>
+                            <Select disabled value={item.actualUnit}>
+                              {Object.keys(UNIT_CONVERSIONS).map((unit) => (
+                                <MenuItem key={unit} value={unit}>
+                                  {unit}
+                                </MenuItem>
+                              ))}
+                              <MenuItem value="viên">viên</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip label={getStatusText(item.status)} color={getStatusColor(item.status)} size="small" />
+                      </TableCell>
+                      <TableCell>
+                        <TextField
+                          size="small"
+                          value={item.notes}
+                          onChange={(e) => updateReceiptItem(item.id, 'notes', e.target.value)}
+                          sx={{ minWidth: 150 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <IconButton size="small" color="error" onClick={() => removeItem(item.id)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </CardContent>
       </Card>
 
+      {/* Danh sách hàng hóa đã được kiểm */}
+      {checkedItems?.length > 0 && (
+        <Card variant="outlined" sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Danh Sách Hàng Hóa Đã Kiểm ({checkedItems?.length} sản phẩm)
+            </Typography>
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Mã SP</TableCell>
+                    <TableCell>Tên sản phẩm</TableCell>
+                    <TableCell>SL Thực nhận</TableCell>
+                    <TableCell>SL Từ chối</TableCell>
+                    <TableCell>Ghi chú</TableCell>
+                    <TableCell>Trạng thái</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {checkedItems.map((item) => {
+                    // Lấy phiếu kiểm tương ứng
+                    const inspection = inspections.find((ins) => ins.medicine_id === item.medicineId);
+
+                    // Nếu inspection không có, dùng dữ liệu receiptItems làm fallback
+                    const actualQty = inspection ? inspection.actual_quantity : item.actualQuantity;
+                    const rejectedQty = inspection ? inspection.rejected_quantity : item.rejectedQuantity;
+                    const note = inspection ? inspection.note : item.notes;
+
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell>{item.productCode}</TableCell>
+                        <TableCell>{item.productName}</TableCell>
+                        <TableCell>{actualQty}</TableCell>
+                        <TableCell>{rejectedQty}</TableCell>
+                        <TableCell>{note}</TableCell>
+                        <TableCell>
+                          <Chip label={getStatusText(item.status)} color={getStatusColor(item.status)} size="small" />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Thống kê */}
-      {!loadingInspections && <ReceiptStatistics statistics={statistics} items={receiptItems} inspections={inspections} />}
+      {!loadingInspections && (
+        <ReceiptStatistics statistics={statistics} items={receiptItems} inspections={inspections} setInspections={setInspections} />
+      )}
 
       {loadingInspections && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
           <CircularProgress size={24} />
         </Box>
       )}
-
-      {/* {inspectionsError && (
-        <Typography color="error" sx={{ mt: 2 }}>
-          {inspectionsError}
-        </Typography>
-      )} */}
 
       {/* Nút tạo phiếu */}
       <Box display="flex" justifyContent="center" gap={2} mt={3}>
@@ -618,7 +676,7 @@ function EnhancedReceiptForm({ checkedItems = [], onReceiptCreate }) {
           color="primary"
           size="large"
           onClick={handleCreateReceipt}
-          disabled={receiptItems.length === 0 || isCreating || loadingOrder}
+          disabled={uncheckedItems?.length === 0 || isCreating || loadingOrder}
           startIcon={isCreating ? <CircularProgress size={20} /> : null}
           sx={{ minWidth: 200 }}
         >

@@ -17,7 +17,7 @@ router.put('/:id', importInspectionController.updateInspection);
 
 router.delete(
   '/:id',
-  authorize(['warehouse_manager', 'supervisor']),
+  authorize(['warehouse_manager', 'supervisor', 'warehouse']),
   importInspectionController.deleteInspection,
 );
 

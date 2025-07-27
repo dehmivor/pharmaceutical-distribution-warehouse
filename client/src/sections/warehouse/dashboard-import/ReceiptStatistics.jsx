@@ -16,8 +16,12 @@ import {
   TableRow,
   Paper,
   Chip,
-  Alert
+  Alert,
+  IconButton
 } from '@mui/material';
+import { Delete as DeleteIcon } from '@mui/icons-material';
+import axios from 'axios';
+import { enqueueSnackbar } from 'notistack';
 
 // Đơn giản hóa bảng chuyển đổi đơn vị (nếu cần)
 const UNIT_CONVERSIONS = {
@@ -33,7 +37,7 @@ const UNIT_CONVERSIONS = {
   viên: { gói: 10, hộp: 100 }
 };
 
-function ReceiptStatistics({ inspections = [] }) {
+function ReceiptStatistics({ inspections = [], setInspections }) {
   const convertUnit = (quantity, fromUnit, toUnit) => {
     if (fromUnit === toUnit) return quantity;
     const conversions = UNIT_CONVERSIONS[fromUnit];
@@ -45,6 +49,24 @@ function ReceiptStatistics({ inspections = [] }) {
 
   const calculatePercentage = (received, expected) => {
     return expected > 0 ? Math.round((received / expected) * 100) : 0;
+  };
+
+  const handleDeleteInspection = (id) => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      const response = axios.delete(`${backendUrl}/api/inspections/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('auth-token')}`
+        }
+      });
+      if (response.success) {
+        enqueueSnackbar('Xóa phiếu kiểm nhập thành công', { variant: 'success' });
+      }
+      setInspections((prev) => prev.filter((inspection) => inspection._id !== id));
+    } catch (error) {
+      console.error('Error deleting inspection:', error);
+      enqueueSnackbar('Xóa phiếu kiểm nhập thất bại', { variant: 'error' });
+    }
   };
 
   // Xử lý từng inspection để lấy thông tin mặt hàng, số lượng dự kiến, đơn giá...
@@ -236,6 +258,7 @@ function ReceiptStatistics({ inspections = [] }) {
                   <TableCell>Đơn giá</TableCell>
                   <TableCell>Thành tiền</TableCell>
                   <TableCell>Trạng thái</TableCell>
+                  <TableCell>Hành động</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -335,6 +358,17 @@ function ReceiptStatistics({ inspections = [] }) {
                         </TableCell>
                         <TableCell>
                           <Chip label={getStatusText(item.status)} color={getStatusColor(item.status)} size="small" variant="outlined" />
+                        </TableCell>
+                        <TableCell>
+                          <IconButton
+                            color="error"
+                            size="small"
+                            onClick={() => {
+                              handleDeleteInspection(item.id);
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
                     );
