@@ -40,6 +40,7 @@ import { useSnackbar } from 'notistack';
 import axios from 'axios';
 import LocationDetailDialog from './LocationDetailDialog';
 import LocationAddDialog from './LocationAddDialog';
+import LocationBulkAddDialog from './LocationBulkAddDialog';
 
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -66,6 +67,7 @@ const LocationManagement = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [locationToDelete, setLocationToDelete] = useState(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [openBulkAddDialog, setOpenBulkAddDialog] = useState(false);
 
   // Fetch areas for filter
   const fetchAreas = async () => {
@@ -173,6 +175,11 @@ const LocationManagement = () => {
     setPage(0);
   };
 
+  const handleBulkAddSuccess = () => {
+    fetchLocations();
+    setOpenBulkAddDialog(false);
+  };
+
 
 
   useEffect(() => {
@@ -241,11 +248,19 @@ const LocationManagement = () => {
 
 
             <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => setOpenBulkAddDialog(true)}
+              startIcon={<AddIcon />}
+              sx={{ ml: 'auto' }}
+            >
+              Thêm Nhiều Vị Trí
+            </Button>
+            <Button
               variant="contained"
               color="primary"
               onClick={() => setOpenAddDialog(true)}
               startIcon={<AddIcon />}
-              sx={{ ml: 'auto' }}
             >
               Thêm Vị Trí
             </Button>
@@ -374,6 +389,13 @@ const LocationManagement = () => {
         open={openAddDialog}
         onClose={() => setOpenAddDialog(false)}
         onSuccess={fetchLocations}
+      />
+
+      {/* Bulk Add Dialog */}
+      <LocationBulkAddDialog
+        open={openBulkAddDialog}
+        onClose={() => setOpenBulkAddDialog(false)}
+        onSuccess={handleBulkAddSuccess}
       />
     </Box>
   );
