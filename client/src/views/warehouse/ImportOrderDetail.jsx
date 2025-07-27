@@ -137,11 +137,10 @@ function ImportOrderDetail() {
         await fetchPutAway();
 
         // 3) Fetch all areas
-        const { data: areasResp } = await axios.get(
-          '/api/areas',
-          { headers: getAuthHeaders() }
-        );
-        setAreas(areasResp);
+        const {
+          data: { data: { areas: areaList = [] } = {} },
+        } = await axios.get('/api/areas', { headers: getAuthHeaders() });
+        setAreas(areaList);
 
         // 4) Enable/disable accordions based on status
         switch (orderResp.data.status) {
@@ -235,8 +234,8 @@ function ImportOrderDetail() {
     try {
       const { location_id } = locForm;
       // Grab the current warehouse user and the import‑order ID
-      const ware_house_id    = userId;       // or wherever you keep the logged‑in user’s ID
-      const import_order_id  = order._id;
+      const ware_house_id = userId;       // or wherever you keep the logged‑in user’s ID
+      const import_order_id = order._id;
 
       await axios.patch(
         `/api/packages/${currentPkg._id}/location`,

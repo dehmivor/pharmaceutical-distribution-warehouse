@@ -31,6 +31,8 @@ router.get('/:packageId/related-locations', packageController.getRelatedLocation
 
 router.get('/:medicineId/packages', packageController.getPackagesByMedicineInExport);
 
+router.get('/:id', packageController.getPackageById);
+
 router.get('/:batchId', packageController.getByBatch);
 
 
