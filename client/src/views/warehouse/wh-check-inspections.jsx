@@ -80,9 +80,6 @@ function CheckInspections() {
   const { checkOrderId } = useParams();
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  const status = 'checked'; // Theo bạn set status 'checked', thực tế có thể là 'PENDING'...
-
-  // Load danh sách inspections theo checkOrderId
   useEffect(() => {
     if (!checkOrderId || !authToken) return;
     setLoading(true);
@@ -91,10 +88,35 @@ function CheckInspections() {
         headers: { Authorization: `Bearer ${authToken}` }
       })
       .then((res) => {
-        if (Array.isArray(res.data)) {
-          setInspections(res.data);
+        const inspectionsData = res.data?.data; // lấy mảng data từ response
+
+        // Kiểm tra inspectionsData có phải array không, nếu không thì xử lý fallback
+        if (Array.isArray(inspectionsData)) {
+          const processedInspections = inspectionsData.map((inspection) => {
+            const firstItem = inspection.check_list && inspection.check_list.length > 0 ? inspection.check_list[0] : null;
+
+            return {
+              id: inspection._id,
+              inventory_check_order_id: inspection.inventory_check_order_id,
+              status: inspection.status,
+              location_id: inspection.location_id,
+              notes: inspection.notes,
+              check_by: inspection.check_by,
+              date: inspection.createdAt || inspection.updatedAt || null,
+              item: firstItem
+                ? {
+                    medicine_id: firstItem.medicine_id,
+                    expectedQuantity: firstItem.expected_quantity,
+                    actualQuantity: firstItem.actual_quantity
+                  }
+                : null
+            };
+          });
+
+          setInspections(processedInspections);
+          console.log('Processed inspections:', processedInspections);
         } else {
-          console.error('Data from inspection API is not an array:', res.data);
+          console.error('Data from inspection API is not an array:', inspectionsData);
           setInspections([]);
         }
       })
@@ -156,7 +178,7 @@ function CheckInspections() {
 
     const dataToPost = {
       inventory_check_order_id: checkOrderId,
-      status,
+      status: 'checked',
       location_id: locations[selectedMedicineId] || null,
       check_list: checkList,
       notes,
@@ -319,7 +341,7 @@ function CheckInspections() {
                     <TableBody>
                       {uncheckedMedicines.map((item) => (
                         <TableRow key={item.id}>
-                          <TableCell>{item.name}</TableCell>
+                          <TableCell>{item.checkList.medicine_name}</TableCell>
                           <TableCell align="right">{item.stock}</TableCell>
                         </TableRow>
                       ))}
