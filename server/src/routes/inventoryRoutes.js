@@ -9,4 +9,8 @@ router.get(
   inventoryController.getInspectionsFromCheckOrder,
 );
 
+router.post('/', authenticate, inventoryController.createCheckInspection);
+
+router.delete('/:id', authenticate, inventoryController.deleteCheckInspection);
+
 module.exports = router;
