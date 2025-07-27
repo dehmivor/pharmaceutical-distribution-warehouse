@@ -1,5 +1,7 @@
 // services/medicineService.js
 const Medicine = require('../models/Medicine');
+const Batch = require('../models/Batch');
+const Package = require('../models/Package');
 // const constants = require('../utils/constants');
 const { MEDICINE_STATUSES } = require('../utils/constants');
 const medicineService = {
@@ -255,11 +257,14 @@ const medicineService = {
         };
       }
 
-      if (maxThreshold < minThreshold) {
-        return {
-          success: false,
-          message: 'Ngưỡng tồn kho tối đa phải lớn hơn hoặc bằng ngưỡng tối thiểu',
-        };
+      // Only validate max >= min if both values are provided in the update
+      if (updateData.min_stock_threshold !== undefined && updateData.max_stock_threshold !== undefined) {
+        if (maxThreshold < minThreshold) {
+          return {
+            success: false,
+            message: 'Ngưỡng tồn kho tối đa phải lớn hơn hoặc bằng ngưỡng tối thiểu',
+          };
+        }
       }
 
       // Trim string fields
@@ -376,6 +381,61 @@ const medicineService = {
       return {
         success: false,
         message: 'Lỗi khi lấy danh sách thuốc',
+      };
+    }
+  },
+
+  // ✅ Get medicine amount by ID
+  getMedicineAmountById: async (medicineId) => {
+    try {
+      if (!medicineId) {
+        return {
+          success: false,
+          message: 'ID thuốc là bắt buộc',
+        };
+      }
+
+      // 1. Tìm tất cả Batch chứa medicine này
+      
+      const batches = await Batch.find({ medicine_id: medicineId }).lean();
+      
+      if (batches.length === 0) {
+        return {
+          success: true,
+          data: {
+            total_amount: 0
+          }
+        };
+      }
+
+      const batchIds = batches.map(batch => batch._id);
+
+      // 2. Tìm tất cả Package chứa các Batch này và tính tổng quantity
+      const packages = await Package.find({ 
+        batch_id: { $in: batchIds }
+      }).lean();
+
+      const totalAmount = packages.reduce((sum, package) => sum + (package.quantity || 0), 0);
+
+      return {
+        success: true,
+        data: {
+          total_amount: totalAmount
+        }
+      };
+    } catch (error) {
+      console.error('Get medicine amount service error:', error);
+
+      if (error.name === 'CastError') {
+        return {
+          success: false,
+          message: 'ID thuốc không hợp lệ',
+        };
+      }
+
+      return {
+        success: false,
+        message: 'Lỗi server khi tính toán số lượng thuốc',
       };
     }
   },

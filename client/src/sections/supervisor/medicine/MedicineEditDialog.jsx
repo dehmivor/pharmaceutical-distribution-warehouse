@@ -27,10 +27,26 @@ import {
   Category as CategoryIcon,
   Inventory as InventoryIcon,
   Storage as StorageIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  ToggleOn as ToggleOnIcon
 } from '@mui/icons-material';
+import axios from 'axios';
 
-const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions }) => {
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const getAuthHeaders = () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
+
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true
+});
+
+const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptions }) => {
   const [formValues, setFormValues] = useState({
     medicine_name: '',
     license_code: '',
@@ -38,6 +54,7 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
     unit_of_measure: '',
     min_stock_threshold: '',
     max_stock_threshold: '',
+    status: 'active',
     storage_conditions: {
       temperature: '',
       humidity: '',
@@ -47,22 +64,54 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [medicine, setMedicine] = useState(null);
 
+  // Fetch medicine data when dialog opens
   useEffect(() => {
-    if (medicine) {
-      setFormValues({
-        ...medicine,
-        min_stock_threshold: medicine.min_stock_threshold || '',
-        max_stock_threshold: medicine.max_stock_threshold || '',
-        storage_conditions: {
-          temperature: medicine.storage_conditions?.temperature || '',
-          humidity: medicine.storage_conditions?.humidity || '',
-          light: medicine.storage_conditions?.light || ''
-        }
+    if (open && medicineId) {
+      fetchMedicineData();
+    }
+  }, [open, medicineId]);
+
+  const fetchMedicineData = async () => {
+    if (!medicineId) return;
+    
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get(`/api/medicine/detail/${medicineId}`, {
+        headers: getAuthHeaders()
       });
+
+      if (response.data.success) {
+        const medicineData = response.data.data.medicine;
+        setMedicine(medicineData);
+        setFormValues({
+          ...medicineData,
+          min_stock_threshold: medicineData.min_stock_threshold || '',
+          max_stock_threshold: medicineData.max_stock_threshold || '',
+          status: medicineData.status || 'active',
+          storage_conditions: {
+            temperature: medicineData.storage_conditions?.temperature || '',
+            humidity: medicineData.storage_conditions?.humidity || '',
+            light: medicineData.storage_conditions?.light || ''
+          }
+        });
+        setErrors({});
+      }
+    } catch (error) {
+      console.error('Error fetching medicine data:', error);
+      setErrors({ general: 'Lỗi khi tải thông tin thuốc' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset errors when dialog closes
+  useEffect(() => {
+    if (!open) {
       setErrors({});
     }
-  }, [medicine]);
+  }, [open]);
 
   const handleChange = (field, value) => {
     setFormValues((prev) => ({ ...prev, [field]: value }));
@@ -113,19 +162,23 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
       newErrors.unit_of_measure = 'Đơn vị đo là bắt buộc';
     }
 
+    if (!formValues.status) {
+      newErrors.status = 'Trạng thái là bắt buộc';
+    }
+
     // Storage conditions validation (optional)
     if (formValues.storage_conditions.temperature.trim()) {
       if (!/^\d+-\d+$|^-\d+$|^\d+$/.test(formValues.storage_conditions.temperature)) {
         newErrors.storage_conditions = {
           ...newErrors.storage_conditions,
-          temperature: 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X" (chỉ số)'
+          temperature: 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X"'
         };
       }
     }
 
     if (formValues.storage_conditions.humidity.trim()) {
       if (!/^\d+$|^\d+-\d+$/.test(formValues.storage_conditions.humidity)) {
-        newErrors.storage_conditions = { ...newErrors.storage_conditions, humidity: 'Độ ẩm phải có định dạng "X" hoặc "X-Y" (chỉ số)' };
+        newErrors.storage_conditions = { ...newErrors.storage_conditions, humidity: 'Độ ẩm phải có định dạng "X" hoặc "X-Y"' };
       }
     }
 
@@ -179,11 +232,22 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
       }
 
       const payload = {
-        ...formValues,
-        min_stock_threshold: formValues.min_stock_threshold ? parseFloat(formValues.min_stock_threshold) : 0,
-        max_stock_threshold: formValues.max_stock_threshold ? parseFloat(formValues.max_stock_threshold) : 0,
+        _id: medicineId, // Use medicineId from props
+        medicine_name: formValues.medicine_name,
+        license_code: formValues.license_code,
+        category: formValues.category,
+        unit_of_measure: formValues.unit_of_measure,
+        status: formValues.status,
         storage_conditions: Object.keys(storageConditions).length > 0 ? storageConditions : null
       };
+
+      // Only include threshold fields if they have values
+      if (formValues.min_stock_threshold) {
+        payload.min_stock_threshold = parseFloat(formValues.min_stock_threshold);
+      }
+      if (formValues.max_stock_threshold) {
+        payload.max_stock_threshold = parseFloat(formValues.max_stock_threshold);
+      }
 
       await onSubmit(payload);
       onClose();
@@ -256,6 +320,19 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
 
       <DialogContent sx={{ p: 0 }}>
         <Box sx={{ p: 3 }}>
+          {/* Loading and Error States */}
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <Typography>Đang tải thông tin thuốc...</Typography>
+            </Box>
+          )}
+          
+          {errors.general && (
+            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setErrors({})}>
+              {errors.general}
+            </Alert>
+          )}
+          
           {/* Basic Information Section */}
           <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
             <CardContent sx={{ p: 3 }}>
@@ -361,7 +438,7 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
                     value={formValues.storage_conditions.temperature}
                     onChange={(e) => handleStorageChange('temperature', e.target.value)}
                     error={!!errors.storage_conditions?.temperature}
-                    helperText={errors.storage_conditions?.temperature || 'Định dạng: X-Y, -X hoặc X (chỉ số, không bắt buộc)'}
+                    helperText={errors.storage_conditions?.temperature || 'Định dạng: X-Y, -X hoặc X (không bắt buộc)'}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -377,7 +454,7 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
                     value={formValues.storage_conditions.humidity}
                     onChange={(e) => handleStorageChange('humidity', e.target.value)}
                     error={!!errors.storage_conditions?.humidity}
-                    helperText={errors.storage_conditions?.humidity || 'Định dạng: X hoặc X-Y (chỉ số, không bắt buộc)'}
+                    helperText={errors.storage_conditions?.humidity || 'Định dạng: X hoặc X-Y (không bắt buộc)'}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -386,7 +463,7 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <FormControl fullWidth error={!!errors.storage_conditions?.light} size="medium">
+                  <FormControl fullWidth error={!!errors.storage_conditions?.light} size="medium" sx={{ width: 200 }}>
                     <InputLabel>Điều kiện ánh sáng</InputLabel>
                     <Select
                       value={formValues.storage_conditions.light}
@@ -455,6 +532,25 @@ const MedicineEditDialog = ({ open, onClose, medicine, onSubmit, categoryOptions
                       startAdornment: <InventoryIcon sx={{ mr: 1, color: 'text.secondary' }} />
                     }}
                   />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth error={!!errors.status} size="medium">
+                    <InputLabel>Trạng thái *</InputLabel>
+                    <Select
+                      value={formValues.status}
+                      label="Trạng thái *"
+                      onChange={(e) => handleChange('status', e.target.value)}
+                      startAdornment={<ToggleOnIcon sx={{ mr: 1, color: 'text.secondary' }} />}
+                    >
+                      <MenuItem value="active">Hoạt động</MenuItem>
+                      <MenuItem value="inactive">Không hoạt động</MenuItem>
+                    </Select>
+                    {errors.status && (
+                      <Typography variant="caption" color="error">
+                        {errors.status}
+                      </Typography>
+                    )}
+                  </FormControl>
                 </Grid>
               </Grid>
             </CardContent>

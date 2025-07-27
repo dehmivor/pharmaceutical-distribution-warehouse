@@ -61,6 +61,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
     min_stock_threshold: '',
     max_stock_threshold: '',
     unit_of_measure: '',
+    status: 'active',
     description: ''
   });
 
@@ -104,6 +105,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
         min_stock_threshold: '',
         max_stock_threshold: '',
         unit_of_measure: '',
+        status: 'active',
         description: ''
       });
       setErrors({});
@@ -131,6 +133,8 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
     if (!formData.unit_of_measure) {
       newErrors.unit_of_measure = 'Đơn vị đo là bắt buộc';
     }
+
+
 
     // Storage conditions validation (optional)
     if (formData.storage_conditions.temperature.trim()) {
@@ -201,11 +205,21 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
       }
 
       const payload = {
-        ...formData,
-        min_stock_threshold: formData.min_stock_threshold ? parseFloat(formData.min_stock_threshold) : 0,
-        max_stock_threshold: formData.max_stock_threshold ? parseFloat(formData.max_stock_threshold) : 0,
+        medicine_name: formData.medicine_name,
+        license_code: formData.license_code,
+        category: formData.category,
+        unit_of_measure: formData.unit_of_measure,
+        status: formData.status,
         storage_conditions: Object.keys(storageConditions).length > 0 ? storageConditions : null
       };
+
+      // Only include threshold fields if they have values
+      if (formData.min_stock_threshold) {
+        payload.min_stock_threshold = parseFloat(formData.min_stock_threshold);
+      }
+      if (formData.max_stock_threshold) {
+        payload.max_stock_threshold = parseFloat(formData.max_stock_threshold);
+      }
 
       const response = await axiosInstance.post(`${API_BASE_URL}/api/medicine`, payload, {
         headers: getAuthHeaders()
@@ -545,6 +559,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     }}
                   />
                 </Grid>
+
               </Grid>
             </CardContent>
           </Card>

@@ -68,7 +68,8 @@ const MedicineManagement = () => {
   // Filter states
   const [filters, setFilters] = useState({
     license_code: '',
-    category: ''
+    category: '',
+    status: ''
   });
 
   // Filter options
@@ -266,7 +267,7 @@ const MedicineManagement = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 300 }}>
                 <InputLabel>Danh mục</InputLabel>
                 <Select
@@ -300,7 +301,30 @@ const MedicineManagement = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end', ml: 'auto' }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 300 }}>
+                <InputLabel>Trạng thái</InputLabel>
+                <Select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  label="Trạng thái"
+                  renderValue={(selected) => {
+                    if (selected === '') return 'Tất cả';
+                    if (selected === 'active') return 'Hoạt động';
+                    if (selected === 'inactive') return 'Không hoạt động';
+                    return selected;
+                  }}
+                  sx={{
+                    width: 300
+                  }}
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="active">Hoạt động</MenuItem>
+                  <MenuItem value="inactive">Không hoạt động</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={12} md={3} sx={{ display: 'flex', justifyContent: 'flex-end', ml: 'auto' }}>
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
@@ -349,6 +373,7 @@ const MedicineManagement = () => {
                 <TableCell sx={{ fontWeight: 600 }}>Số đăng ký</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Danh mục</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Đơn vị đo</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>
                   Hành động
                 </TableCell>
@@ -368,6 +393,14 @@ const MedicineManagement = () => {
                     <Chip label={medicine.category} size="small" color="secondary" variant="outlined" />
                   </TableCell>
                   <TableCell>{medicine.unit_of_measure}</TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={medicine.status === 'active' ? 'Hoạt động' : 'Không hoạt động'} 
+                      size="small" 
+                      color={medicine.status === 'active' ? 'success' : 'error'} 
+                      variant="outlined" 
+                    />
+                  </TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                       <Tooltip title="Xem chi tiết">
@@ -375,7 +408,7 @@ const MedicineManagement = () => {
                           color="primary"
                           size="small"
                           onClick={() => {
-                            setSelectedMedicine(medicine);
+                            setSelectedMedicine(medicine._id);
                             setOpenViewDialog(true);
                           }}
                           sx={{
@@ -392,7 +425,7 @@ const MedicineManagement = () => {
                           color="secondary"
                           size="small"
                           onClick={() => {
-                            setSelectedMedicine(medicine);
+                            setSelectedMedicine(medicine._id);
                             setOpenEditDialog(true);
                           }}
                           sx={{
@@ -445,12 +478,12 @@ const MedicineManagement = () => {
         />
       </Card>
 
-      <MedicineDetailDialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} medicine={selectedMedicine} />
+      <MedicineDetailDialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} medicineId={selectedMedicine} />
 
       <MedicineEditDialog
         open={openEditDialog}
         onClose={() => setOpenEditDialog(false)}
-        medicine={selectedMedicine}
+        medicineId={selectedMedicine}
         onSubmit={handleUpdateMedicine}
         categoryOptions={filterOptions.category}
       />
