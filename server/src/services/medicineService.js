@@ -338,6 +338,24 @@ const medicineService = {
         };
       }
 
+      if (medicine.status === 'active') {
+        return {
+          success: false,
+          message: 'Không thể xóa thuốc đang hoạt động. Vui lòng chuyển trạng thái thành "Không hoạt động" trước khi xóa.',
+        };
+      }
+
+      // Kiểm tra điều kiện xóa: số lượng = 0 và trạng thái = inactive
+      const amountResult = await medicineService.getMedicineAmountById(medicineId);
+      const currentAmount = amountResult.success ? amountResult.data.total_amount : 0;
+
+      if (currentAmount > 0) {
+        return {
+          success: false,
+          message: `Không thể xóa thuốc. Hiện tại còn ${currentAmount} ${medicine.unit_of_measure} trong kho. Vui lòng xuất hết thuốc trước khi xóa.`,
+        };
+      }
+
       await Medicine.findByIdAndDelete(medicineId);
 
       return {

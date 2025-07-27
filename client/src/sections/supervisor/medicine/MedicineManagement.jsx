@@ -174,6 +174,9 @@ const MedicineManagement = () => {
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Lỗi khi xóa thuốc');
+      // Tự động đóng dialog khi có lỗi
+      setOpenDeleteDialog(false);
+      setSelectedMedicine(null);
     }
   };
 
@@ -538,6 +541,28 @@ const MedicineManagement = () => {
             </Typography>
             <Typography variant="caption" color="error.main">
               Hành động này không thể hoàn tác!
+            </Typography>
+          </Box>
+          
+          {/* Điều kiện xóa */}
+          <Box
+            sx={{
+              p: 2,
+              bgcolor: 'warning.50',
+              borderRadius: 1,
+              border: '1px solid',
+              borderColor: 'warning.200',
+              mt: 2
+            }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.main', mb: 1 }}>
+              ⚠️ Điều kiện xóa:
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+              • Số lượng trong kho phải bằng 0
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              • Trạng thái phải là "Không hoạt động"
             </Typography>
           </Box>
         </DialogContent>
