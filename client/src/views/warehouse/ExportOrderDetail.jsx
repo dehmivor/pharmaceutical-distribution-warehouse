@@ -9,7 +9,7 @@ import {
   Typography, CircularProgress, Alert, Table,
   TableHead, TableBody, TableRow, TableCell,
   IconButton, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField
+  DialogActions, TextField, Chip
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -51,14 +51,24 @@ export default function ExportOrderDetail() {
   const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const userId = userData.userId;
 
+  // Scan Package modal state
+  const [openPkgModal, setOpenPkgModal] = useState(false);
+  const [pkgInput, setPkgInput] = useState('');
+
+  const [pkgDetail, setPkgDetail] = useState(null);
+  const [loadingPkgDetail, setLoadingPkgDetail] = useState(false);
+  const [onHandQty, setOnHandQty] = useState(0);
+  const [recommendedQty, setRecommendedQty] = useState(0);
+
+
   // Handler to open the Proceed modal
   const openProceedModal = (detailId, pkg, needed) => {
     setCurrentDetailId(detailId);
-    setCurrentPkg(pkg);
+    setCurrentPkg(pkg.package_id);         // only store the ID
     setNeededQty(needed);
-    setPickAmount(needed);
     setVerifyInput('');
     setProceedOpen(true);
+    handleCloseModal();
   };
 
   const closeProceedModal = () => {
@@ -69,28 +79,35 @@ export default function ExportOrderDetail() {
 
 
   const handleProceedSubmit = async e => {
-    e.preventDefault();
-    try {
-      // disable double‐submits
-      if (!verifyInput || verifyInput !== String(currentPkg.package_id)) return;
+  e.preventDefault();
 
-      await axios.post(
-        `/api/export-orders/${orderId}/details/${currentDetailId}/inspections`,
-        {
-          package_id: currentPkg.package_id,
-          quantity: pickAmount, user_id: userId
-        },
-        { headers: getAuthHeaders() }
-      );
+  if (!pkgDetail || verifyInput !== String(pkgDetail._id)) {
+    console.warn('Cannot submit: invalid or missing package');
+    return;
+  }
 
-      // close and reload outstanding
-      closeProceedModal();
-      fetchOutstanding();
-    } catch (err) {
-      console.error('Error creating inspection:', err);
-      // you can show a snackbar or set an error state here
-    }
-  };
+  try {
+    const pkgId = pkgDetail._id;
+
+    await axios.post(
+      `/api/export-orders/${orderId}/details/${currentDetailId}/inspections`,
+      {
+        package_id: pkgId,
+        quantity: pickAmount,
+        user_id: userId,
+      },
+      { headers: getAuthHeaders() }
+    );
+
+    // Close modal & refresh outstanding list
+    closeProceedModal();
+    handleRefresh();
+  } catch (err) {
+    console.error('Error creating inspection:', err);
+    // Optionally show user feedback here:
+    // setSnackbar({ open: true, message: err.response?.data?.message || err.message, severity: 'error' });
+  }
+};
 
 
   // reset modal state
@@ -123,6 +140,51 @@ export default function ExportOrderDetail() {
   );
   const outstandingMedIds = new Set(outstanding.map(o => o.medicine_id._id));
 
+
+  // Scan Package modal handlers
+  const handleOpenPkgModal = () => { setPkgInput(''); setOpenPkgModal(true); };
+  const handleClosePkgModal = () => setOpenPkgModal(false);
+
+
+  const handlePkgSubmit = async e => {
+    e.preventDefault();
+    if (!pkgInput) return;
+
+    try {
+      // 1) Fetch full package details
+      const { data: { success, data: pkgDetail } } = await axios.get(
+        `/api/packages/${pkgInput}`,
+        { headers: getAuthHeaders() }
+      );
+      if (!success) throw new Error('Package not found');
+
+      // 2) Find the export-detail line by medicine_id
+      const medId = pkgDetail.batch_id.medicine_id._id;
+      const entry = outstanding.find(o =>
+        String(o.medicine_id._id) === String(medId)
+      );
+      if (!entry) {
+        // No matching line → you could show an error here, but still close modal
+        setOpenPkgModal(false);
+        return;
+      }
+
+      // 3) Build the pkgToProceed object (always use pkgDetail)
+      const pkgToProceed = {
+        package_id: pkgDetail._id,
+        batch_id: pkgDetail.batch_id,
+        take_quantity: pkgDetail.quantity,
+        location: pkgDetail.location_id
+      };
+
+      // 4) **Always** open the Proceed modal
+      openProceedModal(entry.detail_id, pkgToProceed, entry.needed_quantity);
+    } catch (err) {
+      console.error('Error fetching package:', err);
+    } finally {
+      setOpenPkgModal(false);
+    }
+  };
 
   const fetchOrderDetail = async () => {
     try {
@@ -162,7 +224,56 @@ export default function ExportOrderDetail() {
       setLoadingOut(false);
     }
   };
+
   useEffect(() => { if (orderId) fetchOutstanding(); }, [orderId]);
+
+  useEffect(() => {
+    if (!proceedOpen || !currentPkg || !order) return;
+
+    (async () => {
+      try {
+        setLoadingPkgDetail(true);
+
+        // fetch package
+        const { data: pkgResp } = await axios.get(
+          `/api/packages/${currentPkg}`,
+          { headers: getAuthHeaders() }
+        );
+        if (!pkgResp.success) throw new Error('Failed to load pkg');
+        const pkg = pkgResp.data;
+        setPkgDetail(pkg);
+
+        // compute how much has already been picked from this pkg
+        const alreadyPicked = order.details
+          .flatMap(d => d.actual_item || [])
+          .filter(i => String(i.package_id) === String(pkg._id))
+          .reduce((sum, i) => sum + i.quantity, 0);
+
+        // compute on‑hand and recommended
+        const onHand = pkg.quantity - alreadyPicked;
+        setOnHandQty(onHand);
+        const rec = Math.min(onHand, neededQty);
+        setRecommendedQty(rec);
+
+        // is this package in outstanding?
+        const inOutstanding = outstandingPkgIds.has(pkg._id);
+
+        // initialize once
+        setPickAmount(inOutstanding ? rec : 0);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingPkgDetail(false);
+      }
+    })();
+  }, [
+    proceedOpen,
+    currentPkg,
+    order,               // watch the whole order object
+    neededQty,
+  ]);
+
+
 
   // Fetch packages for location
   const handleLocSubmit = async () => {
@@ -227,7 +338,7 @@ export default function ExportOrderDetail() {
                 variant="outlined"
                 onClick={handleOpenModal}
               >Scan Location</Button>
-              <Button size="small" variant="outlined">Scan Package</Button>
+              <Button size="small" variant="outlined" onClick={handleOpenPkgModal}>Scan Package</Button>
               <IconButton size="small" onClick={handleRefresh}>
                 <RefreshIcon fontSize="small" />
               </IconButton>
@@ -252,7 +363,7 @@ export default function ExportOrderDetail() {
                     <AccordionDetails>
                       {/* Batch‐level */}
                       {out.packages.map(pkg => (
-                        <Accordion key={pkg.batch_id._id} sx={{ mb: 1 }}>
+                        <Accordion key={pkg.package_id} sx={{ mb: 1 }}>
                           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                             <Typography variant="subtitle2">
                               {pkg.batch_id.batch_code} — {new Date(pkg.batch_id.expiry_date).toLocaleDateString()}
@@ -331,7 +442,6 @@ export default function ExportOrderDetail() {
                 <Table size="small" sx={{ mt: 2 }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Package ID</TableCell>
                       <TableCell>Medicine</TableCell>
                       <TableCell>Qty</TableCell>
                       <TableCell>Action</TableCell>
@@ -341,6 +451,7 @@ export default function ExportOrderDetail() {
                     {locPackages.map(pkg => {
                       const pid = pkg._id;
                       const medId = pkg.batch_id.medicine_id._id;
+                      const entry = outstanding.find(o => o.medicine_id._id === medId)
                       let bg = '#f0f0f0'; // grey
                       if (outstandingPkgIds.has(pid)) bg = '#c8e6c9'; // green
                       else if (outstandingMedIds.has(medId)) bg = '#fff9c4'; // yellow
@@ -348,11 +459,28 @@ export default function ExportOrderDetail() {
                       return (
                         <TableRow key={pid} sx={{ background: bg }}>
                           <TableCell>{pid}</TableCell>
-                          <TableCell>{pkg.batch_id.medicine_id.medicine_name}</TableCell>
+                          <TableCell>{pkg.batch_id.medicine_id.medicine_name}({pkg.batch_id.medicine_id.license_code})</TableCell>
                           <TableCell>{pkg.quantity}</TableCell>
                           <TableCell>
-                            {(outstandingPkgIds.has(pid) || outstandingMedIds.has(medId)) && (
-                              <Button size="small" variant="contained">Proceed</Button>
+                            {entry && (
+                              <Button
+                                size="small"
+                                variant="contained"
+                                onClick={() =>
+                                  openProceedModal(
+                                    entry.detail_id,   // the detail to attach inspection to
+                                    {
+                                      package_id: pid,
+                                      location: pkg.location,
+                                      batch_id: pkg.batch_id,
+                                      quantity: pkg.quantity,
+                                    },
+                                    entry.needed_quantity
+                                  )
+                                }
+                              >
+                                Proceed
+                              </Button>
                             )}
                           </TableCell>
                         </TableRow>
@@ -377,53 +505,132 @@ export default function ExportOrderDetail() {
       </Dialog>
 
 
-      {/* Proceed Modal */}
       <Dialog open={proceedOpen} onClose={closeProceedModal} fullWidth maxWidth="xs">
         <DialogTitle>Verify Package & Pick Amount</DialogTitle>
-
         <Box component="form" onSubmit={handleProceedSubmit}>
           <DialogContent>
-            <Typography variant="body2" gutterBottom>
-              Please scan or enter the Package ID to verify:
-            </Typography>
-            <TextField
-              label="Package ID"
-              fullWidth
-              margin="dense"
-              value={verifyInput}
-              onChange={e => setVerifyInput(e.target.value.trim())}
-              autoFocus
-            />
+            {loadingPkgDetail ? (
+              <Box textAlign="center" py={2}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : pkgDetail ? (
+              <>
+                {/* Package Info */}
+                <Stack spacing={1} mb={2}>
+                  <Typography>
+                    <strong>Medicine:</strong>{" "}
+                    {pkgDetail.batch_id.medicine_id.medicine_name}
+                  </Typography>
+                  <Typography>
+                    <strong>License Code:</strong>{" "}
+                    {pkgDetail.batch_id.medicine_id.license_code}
+                  </Typography>
+                  <Typography>
+                    <strong>Batch Code:</strong> {pkgDetail.batch_id.batch_code}
+                  </Typography>
+                  <Typography>
+                    <strong>Expiry:</strong>{" "}
+                    {new Date(pkgDetail.batch_id.expiry_date).toLocaleDateString()}
+                  </Typography>
+                  <Typography>
+                    <strong>On‑hand Qty:</strong> {onHandQty}
+                  </Typography>
+                  <Typography>
+                    <strong>Recommended:</strong> {recommendedQty}
+                  </Typography>
+                </Stack>
 
-            <Typography variant="body2" sx={{ mt: 2 }}>
-              Enter amount to pick (max {neededQty}):
-            </Typography>
-            <TextField
-              label="Pick Quantity"
-              type="number"
-              fullWidth
-              margin="dense"
-              value={pickAmount}
-              onChange={e => setPickAmount(Number(e.target.value))}
-              disabled={verifyInput !== String(currentPkg?.package_id)}
-              inputProps={{ min: 1, max: neededQty }}
-            />
+                {/* Package‑ID Status Chip */}
+                <Box sx={{ mb: 1 }}>
+                  {(() => {
+                    let label, color;
+                    if (!verifyInput) {
+                      label = "Enter package ID";
+                      color = "default";
+                    } else if (verifyInput === String(pkgDetail._id)) {
+                      label = "Valid package ID";
+                      color = "success";
+                    } else {
+                      label = "Invalid package ID";
+                      color = "error";
+                    }
+                    return <Chip label={label} color={color} size="small" />;
+                  })()}
+                </Box>
+
+                {/* Verification Input */}
+                <Typography variant="body2" gutterBottom>
+                  Please scan or enter the Package ID to verify:
+                </Typography>
+                <TextField
+                  label="Package ID"
+                  fullWidth
+                  margin="dense"
+                  value={verifyInput}
+                  onChange={e => setVerifyInput(e.target.value.trim())}
+                  autoFocus
+                />
+
+                {/* Pick Quantity Input */}
+                <Typography variant="body2" sx={{ mt: 2 }}>
+                  Enter amount to pick (max {Math.min(onHandQty, neededQty)}):
+                </Typography>
+                <TextField
+                  label="Pick Quantity"
+                  type="number"
+                  fullWidth
+                  margin="dense"
+                  value={pickAmount}
+                  onChange={e => setPickAmount(Number(e.target.value))}
+                  disabled={verifyInput !== String(pkgDetail._id)}
+                  inputProps={{
+                    min: 1,
+                    max: Math.min(onHandQty, neededQty),
+                  }}
+                />
+              </>
+            ) : (
+              <Alert severity="error">Unable to load package details.</Alert>
+            )}
           </DialogContent>
-
           <DialogActions>
             <Button
               type="submit"
               variant="contained"
-              disabled={verifyInput !== String(currentPkg?.package_id)}
+              disabled={
+                verifyInput !== String(pkgDetail?._id)
+                || pickAmount < 1
+                || pickAmount > Math.min(pkgDetail?.quantity || 0, neededQty)
+              }
             >
               Submit
             </Button>
-            <Button type="button" onClick={closeProceedModal}>
-              Cancel
-            </Button>
+            <Button onClick={closeProceedModal}>Cancel</Button>
           </DialogActions>
         </Box>
       </Dialog>
+
+      {/* Scan Package Modal */}
+      <Dialog open={openPkgModal} onClose={handleClosePkgModal} fullWidth maxWidth="sm">
+        <DialogTitle>Scan Package</DialogTitle>
+        <Box component="form" onSubmit={handlePkgSubmit}>
+          <DialogContent>
+            <TextField
+              label="Package ID"
+              fullWidth
+              value={pkgInput}
+              onChange={e => setPkgInput(e.target.value.trim())}
+              autoFocus
+              margin="dense"
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button type="submit" variant="contained" disabled={!pkgInput}>Submit</Button>
+            <Button type="button" onClick={handleClosePkgModal}>Cancel</Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+
     </Box>
   );
 }

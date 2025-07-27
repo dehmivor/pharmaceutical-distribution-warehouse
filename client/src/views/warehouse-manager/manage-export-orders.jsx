@@ -11,7 +11,6 @@ import {
   MenuItem,
   Paper,
   Snackbar,
-  Stack,
   Table,
   TableBody,
   TableCell,
@@ -20,12 +19,13 @@ import {
   TablePagination,
   TableRow,
   TextField,
-  Typography
+  Typography,
+  Stack
 } from '@mui/material';
 import Menu from '@mui/material/Menu';
 import axios from 'axios';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -89,7 +89,7 @@ export default function ManageExportOrders() {
       qp.append('page', (currentPage + 1).toString());
       qp.append('limit', currentLimit.toString());
       if (currentDate) qp.append('createdAt', currentDate);
-      statusParams.forEach((s) => qp.append('status', s));
+      statusParams.forEach(s => qp.append('status', s));
 
       const url = `${backendUrl}/api/export-orders${qp.toString() ? `?${qp.toString()}` : ''}`;
       const resp = await axios.get(url, { headers: getAuthHeaders() });
@@ -121,7 +121,7 @@ export default function ManageExportOrders() {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (e) => {
+  const handleChangeRowsPerPage = e => {
     setRowsPerPage(parseInt(e.target.value, 10));
     setPage(0);
   };
@@ -161,7 +161,12 @@ export default function ManageExportOrders() {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Export Orders Management</Typography>
-        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading}>
+        <Button
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={handleRefresh}
+          disabled={loading}
+        >
           Refresh
         </Button>
       </Box>
@@ -172,13 +177,19 @@ export default function ManageExportOrders() {
             label="Export Date"
             type="date"
             value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
+            onChange={e => setFilterDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
             size="small"
           />
-          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+          <TextField
+            select
+            label="Status"
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            size="small"
+          >
             <MenuItem value="">All</MenuItem>
-            {['approved'].map((s) => (
+            {['approved'].map(s => (
               <MenuItem key={s} value={s}>
                 {s}
               </MenuItem>
@@ -215,7 +226,7 @@ export default function ManageExportOrders() {
                 </TableCell>
               </TableRow>
             ) : (
-              orders.map((o) => (
+              orders.map(o => (
                 <TableRow key={o._id} hover>
                   <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
@@ -225,7 +236,7 @@ export default function ManageExportOrders() {
                     <Chip label={o.status} color={getStatusColor(o.status)} size="small" />
                   </TableCell>
                   <TableCell>
-                    <IconButton onClick={(e) => handleMenuOpen(e, o)}>
+                    <IconButton onClick={e => handleMenuOpen(e, o)}>
                       <MoreVertIcon />
                     </IconButton>
                   </TableCell>
@@ -253,7 +264,6 @@ export default function ManageExportOrders() {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        
         <MenuItem
           onClick={() => {
             router.push(`/wh-export-orders/${menuOrder?._id}`);

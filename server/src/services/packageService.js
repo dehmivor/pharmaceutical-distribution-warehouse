@@ -69,7 +69,13 @@ const packageService = {
             model: 'Area',
           },
         })
-        .populate('batch_id');
+        .populate({
+          path: 'batch_id',
+          populate: {
+            path: 'medicine_id',
+            select: 'medicine_name license_code',
+          },
+        });
 
       if (!package) {
         return {
