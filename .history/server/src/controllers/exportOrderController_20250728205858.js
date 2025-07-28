@@ -342,7 +342,7 @@ const getPackagesNeededForExport = async (req, res) => {
 
       // 4) Map of picked per package
       const pickedByPackage = actual_item.reduce((map, i) => {
-        const pid = i.package_id._id.toString();
+        const pid = i.package_id.toString();
         map[pid] = (map[pid] || 0) + i.quantity;
         return map;
       }, {});

@@ -16,6 +16,28 @@ const warehouse = {
           type: 'item',
           url: '/wh-import-orders',
           icon: 'IconList'
+        },
+        {
+          id: 'create-inspections-without-ord',
+          title: 'Inspection Unknown Orders',
+          type: 'item',
+          url: '/wh-create-inspections/without-import-ord',
+          icon: 'IconPlus'
+        }
+      ]
+    },
+    {
+      id: 'inventory',
+      title: 'Inventory',
+      type: 'collapse',
+      icon: 'IconBrandMinecraft',
+      children: [
+        {
+          id: 'view-inventory-check-orders',
+          title: 'View Inventory Check Orders',
+          type: 'item',
+          url: '/wh-inventory/check-orders',
+          icon: 'IconList'
         }
       ]
     },
@@ -48,7 +70,7 @@ const warehouse = {
           icon: 'IconMapPin'
         }
       ]
-    }
+    },
   ]
 };
 

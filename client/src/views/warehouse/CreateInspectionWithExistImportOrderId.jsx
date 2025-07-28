@@ -1,5 +1,5 @@
 'use client';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useAlert } from '@/hooks/useAlert';
 import { useEffect, useState } from 'react';
 import EnhancedReceiptForm from '@/sections/warehouse/create-inspect/EnhancedReceiptForm';
@@ -21,6 +21,7 @@ export default function CreateInspectionWithExistImportOrderId() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { showAlert } = useAlert();
+  const router = useRouter();
 
   // Hàm fetch đơn hàng theo id
   const fetchOrderById = async (orderId) => {
@@ -122,12 +123,16 @@ export default function CreateInspectionWithExistImportOrderId() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h4">Tạo Phiếu Kiểm Tra Đơn Nhập</Typography>
-
-        <Button variant="outlined" onClick={() => enqueueSnackbar('You have sent require to warehouse manager', { variant: 'info' })}>
-          Ask for Warehouse Manager to create inspect
-        </Button>
+        <Box display="flex" gap={2}>
+          <Button variant="contained" className="p-4" onClick={() => router.push('/wh-create-inspections/without-import-ord')}>
+            Suspected Medicine
+          </Button>
+          <Button variant="outlined" onClick={() => enqueueSnackbar('You have sent require to warehouse manager', { variant: 'info' })}>
+            Ask for Warehouse Manager to create inspect
+          </Button>
+        </Box>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Tạo phiếu kiểm nhập từ đơn đặt hàng đã chọn
