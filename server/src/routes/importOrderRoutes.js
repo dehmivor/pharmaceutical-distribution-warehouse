@@ -110,7 +110,7 @@ router.patch(
   importOrderController.updateOrderStatus,
 );
 
-// Assign warehouse manager (chỉ supervisor được phép)
+// Assign warehouse manager 
 router.patch(
   '/:id/assign-warehouse-manager',
   authorize(['supervisor', 'warehouse_manager']),
