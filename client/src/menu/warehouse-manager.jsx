@@ -40,13 +40,6 @@ const warehouseManager = {
         }
       ]
     },
-    {
-      id: 'manage-packaging',
-      title: 'Packaging Management',
-      type: 'item',
-      url: '/wm-manage-packaging',
-      icon: 'IconFileImport'
-    },
   ]
 };
 
