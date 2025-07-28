@@ -70,6 +70,7 @@ export default function ProfileSection() {
     try {
       localStorage.removeItem('auth-token');
       localStorage.removeItem('user');
+      localStorage.removeItem('refresh-token');
       enqueueSnackbar('Logout successful', { variant: 'success' });
       window.location.href = '/auth/login';
     } catch (error) {
