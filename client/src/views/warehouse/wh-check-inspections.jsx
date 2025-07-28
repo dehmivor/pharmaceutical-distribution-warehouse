@@ -45,7 +45,6 @@ function CheckInspections() {
   const [selectedMedicineId, setSelectedMedicineId] = useState('');
 
   const { checkOrderId } = useParams();
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
   const status = 'checked';
 
@@ -70,6 +69,7 @@ function CheckInspections() {
   useEffect(() => {
     if (!checkOrderId || !authToken) return;
 
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     axios
       .get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
         headers: { Authorization: `Bearer ${authToken}` }
@@ -114,6 +114,7 @@ function CheckInspections() {
   const fetchInspections = () => {
     if (!checkOrderId || !authToken) return;
     setLoading(true);
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     axios
       .get(`${backendUrl}/api/inventory/inspection-from-order/${checkOrderId}`, {
         headers: { Authorization: `Bearer ${authToken}` }
@@ -167,6 +168,7 @@ function CheckInspections() {
   // Load danh sách location từ backend
   useEffect(() => {
     if (!authToken) return;
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     axios
       .get(`${backendUrl}/api/locations`, {
         headers: { Authorization: `Bearer ${authToken}` }
@@ -218,6 +220,7 @@ function CheckInspections() {
       notes,
       check_by: checkBy
     };
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
     axios
       .post(`${backendUrl}/api/inventory`, dataToPost, {
@@ -257,6 +260,7 @@ function CheckInspections() {
       enqueueSnackbar('ID phiếu kiểm kê không hợp lệ để xóa.', { variant: 'error' });
       return;
     }
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     axios
       .delete(`${backendUrl}/api/inventory/${inspectionId}`, {
         headers: { Authorization: `Bearer ${authToken}` }
