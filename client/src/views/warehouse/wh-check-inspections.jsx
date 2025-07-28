@@ -16,121 +16,267 @@ import {
   TableHead,
   TableRow,
   Skeleton,
-  IconButton
+  IconButton,
+  MenuItem
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
-
-const mockItems = [
-  { id: 1, name: 'Paracetamol 500mg', stock: 100 },
-  { id: 2, name: 'Amoxicillin 250mg', stock: 50 },
-  { id: 3, name: 'Ibuprofen 200mg', stock: 70 }
-];
+import { useSnackbar } from 'notistack';
 
 function CheckInspections() {
+  const { enqueueSnackbar } = useSnackbar();
+
   const [loading, setLoading] = useState(true);
-  const [quantities, setQuantities] = useState(
-    mockItems.reduce((acc, item) => {
-      acc[item.id] = item.stock;
-      return acc;
-    }, {})
-  );
+  const [authToken, setAuthToken] = useState(null);
+  const [checkBy, setCheckBy] = useState(null);
 
-  const [locations, setLocations] = useState(
-    mockItems.reduce((acc, item) => {
-      acc[item.id] = '';
-      return acc;
-    }, {})
-  );
+  // Danh sách thuốc lấy từ đơn hàng kiểm kê (InventoryCheckOrder)
+  const [inventoryItems, setInventoryItems] = useState([]);
 
+  const [actualQuantities, setActualQuantities] = useState({});
+  const [locations, setLocations] = useState({});
+
+  const [notes, setNotes] = useState('');
   const [inspections, setInspections] = useState([]);
+  const [locationsList, setLocationsList] = useState([]);
+
+  const [selectedMedicineId, setSelectedMedicineId] = useState('');
 
   const { checkOrderId } = useParams();
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  console.log('Inspection ID:', checkOrderId);
+  const status = 'checked';
 
+  // Lấy token và userId từ localStorage
   useEffect(() => {
-    if (!checkOrderId) return; // Nếu chưa có id thì không fetch
+    const token = localStorage.getItem('auth-token');
+    setAuthToken(token);
 
-    setLoading(true);
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      try {
+        const userObj = JSON.parse(userString);
+        setCheckBy(userObj.userId || null);
+      } catch (e) {
+        console.error('Error parsing user from localStorage', e);
+        setCheckBy(null);
+      }
+    }
+  }, []);
+
+  // Lấy danh sách thuốc từ đơn hàng kiểm kê
+  useEffect(() => {
+    if (!checkOrderId || !authToken) return;
+
     axios
-      .get(`${backendUrl}/api/inventory/inspection-from-order/${checkOrderId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('auth-token')}`
+      .get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+      .then((res) => {
+        if (res.data && Array.isArray(res.data.items)) {
+          const items = res.data.items.map((item) => ({
+            id: item.medicine_id._id,
+            name: item.medicine_id.medicine_name,
+            stock: item.stock
+          }));
+          setInventoryItems(items);
+
+          setActualQuantities(
+            items.reduce((acc, item) => {
+              acc[item.id] = item.stock;
+              return acc;
+            }, {})
+          );
+
+          setLocations(
+            items.reduce((acc, item) => {
+              acc[item.id] = '';
+              return acc;
+            }, {})
+          );
+
+          if (items.length > 0) {
+            setSelectedMedicineId(items[0].id);
+          }
+        } else {
+          enqueueSnackbar('Dữ liệu đơn hàng kiểm kê không hợp lệ', { variant: 'error' });
         }
       })
-      .then((response) => {
-        setInspections(response.data);
+      .catch((error) => {
+        console.error('Failed to load inventory check order:', error);
+        enqueueSnackbar('Không tải được danh sách thuốc từ đơn hàng kiểm kê', { variant: 'error' });
+      });
+  }, [checkOrderId, backendUrl, authToken]);
+
+  // Hàm fetch danh sách inspections
+  const fetchInspections = () => {
+    if (!checkOrderId || !authToken) return;
+    setLoading(true);
+    axios
+      .get(`${backendUrl}/api/inventory/inspection-from-order/${checkOrderId}`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+      .then((res) => {
+        const inspectionsData = res.data?.data || res.data;
+
+        if (Array.isArray(inspectionsData)) {
+          const processedInspections = inspectionsData.map((inspection) => {
+            const firstCheckItem = inspection.check_list?.[0] || null;
+            const med = firstCheckItem?.medicine_id;
+
+            return {
+              _id: inspection._id,
+              inventory_check_order_id: inspection.inventory_check_order_id,
+              status: inspection.status,
+              location_id: inspection.location_id,
+              notes: inspection.notes,
+              check_by: inspection.check_by,
+              date: inspection.createdAt || inspection.updatedAt || null,
+              item: med
+                ? {
+                    medicine_id: med._id || med,
+                    medicine_name: med.medicine_name || 'Không xác định',
+                    license_code: med.license_code,
+                    expectedQuantity: firstCheckItem.expected_quantity,
+                    actualQuantity: firstCheckItem.actual_quantity
+                  }
+                : null
+            };
+          });
+          setInspections(processedInspections);
+        } else {
+          console.error('Data from inspection API is not an array:', inspectionsData);
+          enqueueSnackbar('Dữ liệu phiếu kiểm kê không đúng định dạng.', { variant: 'error' });
+          setInspections([]);
+        }
       })
       .catch((error) => {
         console.error('Error fetching inspections', error);
-        alert('Không thể tải dữ liệu phiếu kiểm kê.');
+        enqueueSnackbar('Không thể tải dữ liệu phiếu kiểm kê.', { variant: 'error' });
+        setInspections([]);
       })
-      .finally(() => {
-        setLoading(false);
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchInspections();
+  }, [checkOrderId, backendUrl, authToken]);
+
+  // Load danh sách location từ backend
+  useEffect(() => {
+    if (!authToken) return;
+    axios
+      .get(`${backendUrl}/api/locations`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+      .then((res) => setLocationsList(res.data))
+      .catch((error) => {
+        console.error('Failed to load locations:', error);
+        enqueueSnackbar('Không thể tải dữ liệu vị trí kho.', { variant: 'error' });
       });
-  }, [checkOrderId]);
+  }, [backendUrl, authToken]);
 
-  const handleQuantityChange = (itemId, value) => {
-    setQuantities((prev) => ({
-      ...prev,
-      [itemId]: value ? parseInt(value) : 0
-    }));
+  // Xử lý đổi số lượng thực tế
+  const handleActualQuantityChange = (medicineId, val) => {
+    const value = val ? parseInt(val, 10) : 0;
+    setActualQuantities((prev) => ({ ...prev, [medicineId]: value >= 0 ? value : 0 }));
   };
 
-  const handleLocationChange = (itemId, value) => {
-    setLocations((prev) => ({
-      ...prev,
-      [itemId]: value
-    }));
+  // Xử lý đổi vị trí
+  const handleLocationChange = (medicineId, locationId) => {
+    setLocations((prev) => ({ ...prev, [medicineId]: locationId }));
   };
 
+  // Tạo phiếu kiểm kê mới
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const createdInspections = mockItems
-      .filter((item) => locations[item.id]?.trim() !== '' && quantities[item.id] !== undefined)
-      .map((item) => ({
-        id: Date.now() + item.id,
-        date: new Date().toLocaleString(),
-        item: {
-          ...item,
-          checkedQuantity: quantities[item.id],
-          location: locations[item.id].trim()
-        }
-      }));
-
-    if (createdInspections.length === 0) {
-      alert('Vui lòng nhập vị trí cho ít nhất một mặt hàng.');
+    if (!locations[selectedMedicineId]) {
+      enqueueSnackbar('Vui lòng chọn vị trí cho thuốc được chọn.', { variant: 'warning' });
+      return;
+    }
+    if (!checkBy) {
+      enqueueSnackbar('Không xác định được người kiểm kê. Vui lòng đăng nhập lại.', { variant: 'error' });
       return;
     }
 
-    setInspections((prev) => [...createdInspections, ...prev]);
-    alert('Phiếu kiểm kê đã được tạo!');
+    const checkList = [
+      {
+        medicine_id: selectedMedicineId,
+        expected_quantity: inventoryItems.find((m) => m.id === selectedMedicineId)?.stock || 0,
+        actual_quantity: actualQuantities[selectedMedicineId] || 0
+      }
+    ];
 
-    setLocations(
-      mockItems.reduce((acc, item) => {
-        acc[item.id] = '';
-        return acc;
-      }, {})
-    );
-    setQuantities(
-      mockItems.reduce((acc, item) => {
-        acc[item.id] = item.stock;
-        return acc;
-      }, {})
-    );
+    const dataToPost = {
+      inventory_check_order_id: checkOrderId,
+      status,
+      location_id: locations[selectedMedicineId] || null,
+      check_list: checkList,
+      notes,
+      check_by: checkBy
+    };
+
+    axios
+      .post(`${backendUrl}/api/inventory`, dataToPost, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`
+        }
+      })
+      .then(() => {
+        enqueueSnackbar('Phiếu kiểm kê đã được tạo!', { variant: 'success' });
+        fetchInspections();
+
+        setLocations((prev) => ({ ...prev, [selectedMedicineId]: '' }));
+        setActualQuantities((prev) => ({
+          ...prev,
+          [selectedMedicineId]: inventoryItems.find((m) => m.id === selectedMedicineId)?.stock || 0
+        }));
+        setNotes('');
+      })
+      .catch((error) => {
+        console.error('Failed to create inspection:', error);
+        enqueueSnackbar('Tạo phiếu kiểm kê thất bại.', { variant: 'error' });
+      });
   };
 
-  const checkedItemIds = new Set(inspections.map((insp) => insp.item.id));
-  const uncheckedItems = mockItems.filter((item) => !checkedItemIds.has(item.id));
+  // Lọc danh sách thuốc chưa kiểm kê
+  const checkedMedicineIds = new Set(inspections.map((insp) => insp.item?.medicine_id).filter(Boolean));
+  const uncheckedMedicines = inventoryItems.filter((item) => !checkedMedicineIds.has(item.id));
 
+  // Xóa phiếu kiểm kê
   const handleDeleteInspection = (inspectionId) => {
-    setInspections((prev) => prev.filter((insp) => insp.id !== inspectionId));
+    if (!authToken) {
+      enqueueSnackbar('Bạn chưa đăng nhập.', { variant: 'warning' });
+      return;
+    }
+    if (!inspectionId || inspectionId.length !== 24) {
+      enqueueSnackbar('ID phiếu kiểm kê không hợp lệ để xóa.', { variant: 'error' });
+      return;
+    }
+    axios
+      .delete(`${backendUrl}/api/inventory/${inspectionId}`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+      .then(() => {
+        enqueueSnackbar('Phiếu kiểm kê đã được xóa.', { variant: 'success' });
+        fetchInspections();
+      })
+      .catch((error) => {
+        console.error('Failed to delete inspection:', error);
+        enqueueSnackbar('Xóa phiếu kiểm kê thất bại.', { variant: 'error' });
+      });
+  };
+
+  // Lấy label mô tả vị trí
+  const getLocationLabel = (locationId) => {
+    const loc = locationsList.find((loc) => loc._id === locationId);
+    if (!loc) return '';
+    const areaName = loc.area_id?.name || 'Không xác định';
+    return `Khu vực: ${areaName}, Bay: ${loc.bay}, Row: ${loc.row}, Column: ${loc.column}`;
   };
 
   return (
@@ -143,33 +289,58 @@ function CheckInspections() {
       </Typography>
 
       <form onSubmit={handleSubmit}>
-        <Grid container spacing={2} alignItems="center">
-          {mockItems.map((item) => (
-            <Grid container spacing={2} key={item.id} sx={{ marginBottom: 2 }}>
-              <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  label={`${item.name} (Tồn kho: ${item.stock})`}
-                  type="number"
-                  inputProps={{ min: 0 }}
-                  value={quantities[item.id]}
-                  onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  label="Vị trí"
-                  placeholder="Nhập vị trí lưu kho..."
-                  value={locations[item.id]}
-                  onChange={(e) => handleLocationChange(item.id, e.target.value)}
-                />
-              </Grid>
-            </Grid>
-          ))}
+        <Grid container spacing={2} alignItems="center" sx={{ marginBottom: 2 }}>
+          <Grid item xs={12} md={4}>
+            <TextField
+              select
+              fullWidth
+              label="Chọn thuốc"
+              value={selectedMedicineId}
+              onChange={(e) => setSelectedMedicineId(e.target.value)}
+            >
+              {inventoryItems.map((item) => (
+                <MenuItem key={item.id} value={item.id}>
+                  {item.name} (Tồn kho: {item.stock})
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label={`Số lượng kiểm kê (Tồn kho: ${inventoryItems.find((m) => m.id === selectedMedicineId)?.stock ?? 0})`}
+              type="number"
+              inputProps={{ min: 0 }}
+              value={actualQuantities[selectedMedicineId]}
+              onChange={(e) => handleActualQuantityChange(selectedMedicineId, e.target.value)}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              select
+              fullWidth
+              label="Chọn vị trí"
+              value={locations[selectedMedicineId] || ''}
+              onChange={(e) => handleLocationChange(selectedMedicineId, e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            >
+              <MenuItem value="">-- Chọn vị trí --</MenuItem>
+              {locationsList.map((loc) => (
+                <MenuItem key={loc._id} value={loc._id}>
+                  {getLocationLabel(loc._id)}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
 
           <Grid item xs={12}>
-            <Button variant="contained" color="primary" type="submit">
+            <TextField fullWidth label="Ghi chú" multiline rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Button variant="contained" color="primary" type="submit" disabled={!authToken || !checkBy}>
               Tạo phiếu kiểm kê
             </Button>
           </Grid>
@@ -190,10 +361,10 @@ function CheckInspections() {
           <>
             <Accordion defaultExpanded sx={{ mb: 2 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="h6">Mặt hàng chưa kiểm ({uncheckedItems.length})</Typography>
+                <Typography variant="h6">Mặt hàng chưa kiểm ({uncheckedMedicines.length})</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                {uncheckedItems.length === 0 ? (
+                {uncheckedMedicines.length === 0 ? (
                   <Typography>Không còn mặt hàng nào chưa kiểm.</Typography>
                 ) : (
                   <Table size="small" aria-label="unchecked-items">
@@ -204,7 +375,7 @@ function CheckInspections() {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {uncheckedItems.map((item) => (
+                      {uncheckedMedicines.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell>{item.name}</TableCell>
                           <TableCell align="right">{item.stock}</TableCell>
@@ -221,14 +392,13 @@ function CheckInspections() {
                 <Typography variant="h6">Mặt hàng đã kiểm ({inspections.length})</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                {inspections.length === 0 ? (
-                  <Typography>Chưa có phiếu kiểm kê nào.</Typography>
-                ) : (
+                {Array.isArray(inspections) && inspections.length > 0 ? (
                   <Table size="small" aria-label="checked-items">
                     <TableHead>
                       <TableRow>
                         <TableCell>Tên mặt hàng</TableCell>
-                        <TableCell align="right">Số lượng kiểm kê</TableCell>
+                        <TableCell align="right">Số lượng dự kiến</TableCell>
+                        <TableCell align="right">Số lượng thực tế</TableCell>
                         <TableCell>Vị trí</TableCell>
                         <TableCell align="right">Tồn kho</TableCell>
                         <TableCell align="center">Hành động</TableCell>
@@ -236,17 +406,22 @@ function CheckInspections() {
                     </TableHead>
                     <TableBody>
                       {inspections.map((inspection) => (
-                        <TableRow key={inspection.id}>
-                          <TableCell>{inspection.item.name}</TableCell>
-                          <TableCell align="right">{inspection.item.checkedQuantity}</TableCell>
-                          <TableCell>{inspection.item.location}</TableCell>
-                          <TableCell align="right">{inspection.item.stock}</TableCell>
+                        <TableRow key={inspection._id}>
+                          <TableCell>{inspection.item?.medicine_name ?? 'Không xác định'}</TableCell>
+                          <TableCell align="right">{inspection.item?.expectedQuantity ?? '-'}</TableCell>
+                          <TableCell align="right">{inspection.item?.actualQuantity ?? '-'}</TableCell>
+                          <TableCell>
+                            {inspection.location_id ? getLocationLabel(inspection.location_id._id || inspection.location_id) : ''}
+                          </TableCell>
+                          <TableCell align="right">
+                            {inventoryItems.find((m) => m.id === (inspection.item?.medicine_id || ''))?.stock || '-'}
+                          </TableCell>
                           <TableCell align="center">
                             <IconButton
                               aria-label="delete"
                               size="small"
                               color="error"
-                              onClick={() => handleDeleteInspection(inspection.id)}
+                              onClick={() => handleDeleteInspection(inspection._id)}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
@@ -255,6 +430,8 @@ function CheckInspections() {
                       ))}
                     </TableBody>
                   </Table>
+                ) : (
+                  <Typography>Chưa có phiếu kiểm kê nào.</Typography>
                 )}
               </AccordionDetails>
             </Accordion>
