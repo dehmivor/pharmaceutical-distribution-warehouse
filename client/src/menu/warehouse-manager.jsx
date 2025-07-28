@@ -41,10 +41,10 @@ const warehouseManager = {
       ]
     },
     {
-      id: 'manage-assign-task',
-      title: 'Assign Task Management',
+      id: 'manage-packaging',
+      title: 'Packaging Management',
       type: 'item',
-      url: '/wm-assign-task',
+      url: '/wm-manage-packaging',
       icon: 'IconFileImport'
     },
   ]
