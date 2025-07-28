@@ -40,13 +40,6 @@ const warehouseManager = {
         }
       ]
     },
-    {
-      id: 'manage-assign-task',
-      title: 'Assign Task Management',
-      type: 'item',
-      url: '/wm-assign-task',
-      icon: 'IconFileImport'
-    },
   ]
 };
 

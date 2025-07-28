@@ -85,6 +85,9 @@ function ImportOrderDetail() {
   const userId = userData.userId;
 
 
+  const [confirmFinishInspection, setConfirmFinishInspection] = useState(false);
+
+
   // Initial fetch: order + inspections + initial packages
   useEffect(() => {
     if (!orderId) return;
@@ -430,6 +433,19 @@ function ImportOrderDetail() {
     }
   };
 
+
+  const onFinishClickInspection = async () => {
+    if (!confirmFinishInspection) {
+      // first click: re-fetch inspections and enter “confirm” mode
+      await fetchInspection();
+      setConfirmFinishInspection(true);
+    } else {
+      // second click: actually finish
+      handleFinishInspection();
+    }
+  };
+
+
   const handlePrintLabel = async (pkg) => {
     try {
       console.log(pkg);
@@ -722,9 +738,15 @@ function ImportOrderDetail() {
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={2}>
-              <IconButton onClick={fetchInspection} size="small" sx={{ ml: 2 }} disabled={inspectionsDone}>
+              <IconButton
+                onClick={fetchInspection}
+                size="small"
+                sx={{ ml: 2 }}
+                disabled={inspectionsDone}
+              >
                 <RefreshIcon />
               </IconButton>
+
               <TableContainer component={Paper} elevation={3}>
                 <Table size="medium">
                   <TableHead>
@@ -741,7 +763,8 @@ function ImportOrderDetail() {
                         <TableCell>
                           <Tooltip title={insp._id}>
                             <Typography variant="body2" fontWeight="bold">
-                              {insp.medicine_id?.medicine_name || ''} ({insp.medicine_id?.license_code || ''})
+                              {insp.medicine_id?.medicine_name || ''} (
+                              {insp.medicine_id?.license_code || ''})
                             </Typography>
                           </Tooltip>
                         </TableCell>
@@ -766,8 +789,14 @@ function ImportOrderDetail() {
                   </TableBody>
                 </Table>
               </TableContainer>
-              <Button variant="contained" disabled={inspectionsDone} onClick={handleFinishInspection}>
-                Finish inspection
+
+              <Button
+                variant="contained"
+                disabled={inspectionsDone}
+                onClick={onFinishClickInspection}
+                color={confirmFinishInspection ? 'warning' : 'primary'}
+              >
+                {confirmFinishInspection ? 'Continue ?' : 'Finish inspection'}
               </Button>
             </Stack>
           </AccordionDetails>

@@ -598,55 +598,72 @@ const packageController = {
   },
 
   getPackagesByMedicineInExport: async (req, res) => {
-    try {
-      const { medicineId } = req.params;
+  try {
+    const { medicineId } = req.params;
 
-      // 1) Validate medicineId
-      if (!medicineId || !mongoose.Types.ObjectId.isValid(medicineId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'A valid medicineId URL parameter is required',
-        });
-      }
-
-      // 2) Fetch valid batches
-      const batches = await batchService.getValidBatches(medicineId);
-
-      // 3) For each batch, fetch its packages (exclude empty or unlocated)
-      const results = [];
-
-      for (const batch of batches) {
-        const packages = await packageService.getPackagesByBatch(batch._id);
-
-        // Filter out packages with null location and remove batch_id
-        const cleanedPackages = packages
-          .filter(pkg => pkg.location_id !== null)
-          .map(pkg => {
-            const { batch_id, ...rest } = pkg.toObject(); // omit batch_id
-            return rest;
-          });
-
-        if (cleanedPackages.length > 0) {
-          results.push({
-            batch,
-            packages: cleanedPackages,
-          });
-        }
-      }
-
-      // 4) Send response
-      return res.json({
-        success: true,
-        data: results,
-      });
-    } catch (err) {
-      console.error('❌ Error in getPackagesByMedicine controller:', err);
-      return res.status(500).json({
+    // 1) Validate medicineId
+    if (!medicineId || !mongoose.Types.ObjectId.isValid(medicineId)) {
+      return res.status(400).json({
         success: false,
-        message: 'Server error fetching packages by medicine',
+        message: 'A valid medicineId URL parameter is required',
       });
     }
-  },
+
+    // 2) Fetch valid batches
+    const batches = await batchService.getValidBatches(medicineId);
+
+    // 3) For each batch, fetch its packages with populated location
+    const results = [];
+
+    for (const batch of batches) {
+      const packages = await Package.find({ batch_id: batch._id, location_id: { $ne: null } })
+        .populate({
+          path: 'location_id',
+          select: 'bay row column area_id',
+          populate: {
+            path: 'area_id',
+            select: 'name',
+          },
+        });
+
+      // Map packages to desired format
+      const cleanedPackages = packages.map(pkg => ({
+        _id: pkg._id,
+        quantity: pkg.quantity,
+        package_code: pkg.package_code,
+        location: {
+          bay: pkg.location_id?.bay || 'N/A',
+          row: pkg.location_id?.row || 'N/A',
+          column: pkg.location_id?.column || 'N/A',
+          area_name: pkg.location_id?.area_id?.name || 'N/A',
+        },
+      }));
+
+      if (cleanedPackages.length > 0) {
+        results.push({
+          batch: {
+            _id: batch._id,
+            batch_code: batch.batch_code,
+            expiry_date: batch.expiry_date,
+          },
+          packages: cleanedPackages,
+        });
+      }
+    }
+
+    // 4) Send response
+    return res.json({
+      success: true,
+      data: results,
+    });
+  } catch (err) {
+    console.error('❌ Error in getPackagesByMedicineInExport controller:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching packages by medicine',
+    });
+  }
+},
 
 };
 

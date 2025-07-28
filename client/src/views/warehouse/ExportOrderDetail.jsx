@@ -9,7 +9,7 @@ import {
   Typography, CircularProgress, Alert, Table,
   TableHead, TableBody, TableRow, TableCell,
   IconButton, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, Chip
+  DialogActions, TextField, Chip, Snackbar
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -61,6 +61,13 @@ export default function ExportOrderDetail() {
   const [recommendedQty, setRecommendedQty] = useState(0);
 
 
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'error',
+  });
+
+
   // Handler to open the Proceed modal
   const openProceedModal = (detailId, pkg, needed) => {
     setCurrentDetailId(detailId);
@@ -79,35 +86,35 @@ export default function ExportOrderDetail() {
 
 
   const handleProceedSubmit = async e => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!pkgDetail || verifyInput !== String(pkgDetail._id)) {
-    console.warn('Cannot submit: invalid or missing package');
-    return;
-  }
+    if (!pkgDetail || verifyInput !== String(pkgDetail._id)) {
+      console.warn('Cannot submit: invalid or missing package');
+      return;
+    }
 
-  try {
-    const pkgId = pkgDetail._id;
+    try {
+      const pkgId = pkgDetail._id;
 
-    await axios.post(
-      `/api/export-orders/${orderId}/details/${currentDetailId}/inspections`,
-      {
-        package_id: pkgId,
-        quantity: pickAmount,
-        user_id: userId,
-      },
-      { headers: getAuthHeaders() }
-    );
+      await axios.post(
+        `/api/export-orders/${orderId}/details/${currentDetailId}/inspections`,
+        {
+          package_id: pkgId,
+          quantity: pickAmount,
+          user_id: userId,
+        },
+        { headers: getAuthHeaders() }
+      );
 
-    // Close modal & refresh outstanding list
-    closeProceedModal();
-    handleRefresh();
-  } catch (err) {
-    console.error('Error creating inspection:', err);
-    // Optionally show user feedback here:
-    // setSnackbar({ open: true, message: err.response?.data?.message || err.message, severity: 'error' });
-  }
-};
+      // Close modal & refresh outstanding list
+      closeProceedModal();
+      handleRefresh();
+    } catch (err) {
+      console.error('Error creating inspection:', err);
+      // Optionally show user feedback here:
+      // setSnackbar({ open: true, message: err.response?.data?.message || err.message, severity: 'error' });
+    }
+  };
 
 
   // reset modal state
@@ -147,45 +154,59 @@ export default function ExportOrderDetail() {
 
 
   const handlePkgSubmit = async e => {
-    e.preventDefault();
-    if (!pkgInput) return;
+  e.preventDefault();
+  if (!pkgInput) return;
 
-    try {
-      // 1) Fetch full package details
-      const { data: { success, data: pkgDetail } } = await axios.get(
-        `/api/packages/${pkgInput}`,
-        { headers: getAuthHeaders() }
-      );
-      if (!success) throw new Error('Package not found');
-
-      // 2) Find the export-detail line by medicine_id
-      const medId = pkgDetail.batch_id.medicine_id._id;
-      const entry = outstanding.find(o =>
-        String(o.medicine_id._id) === String(medId)
-      );
-      if (!entry) {
-        // No matching line → you could show an error here, but still close modal
-        setOpenPkgModal(false);
-        return;
-      }
-
-      // 3) Build the pkgToProceed object (always use pkgDetail)
-      const pkgToProceed = {
-        package_id: pkgDetail._id,
-        batch_id: pkgDetail.batch_id,
-        take_quantity: pkgDetail.quantity,
-        location: pkgDetail.location_id
-      };
-
-      // 4) **Always** open the Proceed modal
-      openProceedModal(entry.detail_id, pkgToProceed, entry.needed_quantity);
-    } catch (err) {
-      console.error('Error fetching package:', err);
-    } finally {
-      setOpenPkgModal(false);
+  try {
+    // 1) Fetch full package details
+    const resp = await axios.get(
+      `/api/packages/${pkgInput}`,
+      { headers: getAuthHeaders() }
+    );
+    const { success, data: pkgDetail } = resp.data;
+    if (!success) {
+      // server said “not a package”
+      throw new Error('invalid');
     }
-  };
 
+    // 2) Find the export-detail line by medicine_id
+    const medId = pkgDetail.batch_id.medicine_id._id;
+    const entry = outstanding.find(o =>
+      String(o.medicine_id._id) === String(medId)
+    );
+    if (!entry) {
+      // no matching detail line
+      setSnackbar({
+        open: true,
+        message: 'Package ID không hợp lệ',
+        severity: 'error',
+      });
+      return;
+    }
+
+    // 3) Build the pkgToProceed object
+    const pkgToProceed = {
+      package_id: pkgDetail._id,
+      batch_id: pkgDetail.batch_id,
+      take_quantity: pkgDetail.quantity,
+      location: pkgDetail.location_id,
+    };
+
+    // 4) Open the Proceed modal
+    openProceedModal(entry.detail_id, pkgToProceed, entry.needed_quantity);
+
+  } catch (err) {
+    // either a network / 404, or the “invalid” we threw
+    setSnackbar({
+      open: true,
+      message: 'Package ID không hợp lệ',
+      severity: 'error',
+    });
+  } finally {
+    // keep modal open so user can retry; only clear input if you like
+    // setOpenPkgModal(false);
+  }
+};
   const fetchOrderDetail = async () => {
     try {
       setLoadingOrder(true);
@@ -282,7 +303,21 @@ export default function ExportOrderDetail() {
       const resp = await axios.get(`/api/packages/location/${locInput}`, {
         headers: getAuthHeaders()
       });
-      let pkgs = resp.data.data.packages || [];
+      const payload = resp.data.data;
+
+      // if server returned success=false OR no packages → error
+      if (payload.success === false || (payload.success === true && Array.isArray(payload.packages) && payload.packages.length === 0)) {
+        setSnackbar({
+          open: true,
+          message: 'Invalid or empty location',
+          severity: 'error',
+        });
+        setLocPackages([]);
+        return;
+      }
+
+      // otherwise we have real packages
+      let pkgs = payload.packages;
       const today = new Date();
       // 1) filter unexpired
       pkgs = pkgs.filter(p => new Date(p.batch_id.expiry_date) > today);
@@ -630,6 +665,21 @@ export default function ExportOrderDetail() {
           </DialogActions>
         </Box>
       </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar(sn => ({ ...sn, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar(sn => ({ ...sn, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
 
     </Box>
   );

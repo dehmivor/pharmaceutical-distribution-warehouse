@@ -70,7 +70,7 @@ const warehouse = {
           icon: 'IconMapPin'
         }
       ]
-    }
+    },
   ]
 };
 
