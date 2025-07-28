@@ -215,7 +215,7 @@ export default function MedicineInventoryPage({ isVisible = true }) {
   return (
     <Slide direction="left" in={isVisible} mountOnEnter unmountOnExit>
       <Box sx={{ p: { xs: 2, md: 3 }, mx: 'auto' }}>
-        <Typography variant="h4" mb={3}>
+        <Typography variant="h4" gutterBottom>
           Tạo Phiếu Kiểm Kê Thuốc Không Tồn Tại Trong Đơn Nhập
         </Typography>
         <Typography variant="body1" color="text.secondary" mb={3}>
