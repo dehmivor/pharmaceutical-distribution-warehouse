@@ -373,18 +373,20 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
       enqueueSnackbar('Chưa có dữ liệu đơn hàng hợp lệ.', { variant: 'error' });
       return;
     }
+    if (receiptItems.actual_quantity === 0) {
+      enqueueSnackbar('Số lượng thực nhận không được bằng 0', { variant: 'warning' });
+    }
     setIsCreating(true);
 
     try {
       const inspectionsPayload = receiptItems.map((item) => ({
         import_order_id: orderData._id,
         medicine_id: item.medicineId,
-        actual_quantity: parseFloat(item.actualQuantity) || 0,
+        actual_quantity: parseFloat(item.actualQuantity),
         rejected_quantity: parseFloat(item.rejectedQuantity) || 0,
         note: item.notes || receiptData.notes || '',
         created_by: getCurrentUserId()
       }));
-
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const res = await axios.post(
         `${backendUrl}/api/inspections`,

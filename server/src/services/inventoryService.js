@@ -1,4 +1,5 @@
 const InventoryCheckInspection = require('../models/InventoryCheckInspection');
+const InventoryCheckOrder = require('../models/InventoryCheckOrder');
 const mongoose = require('mongoose');
 const getInspectionsFromCheckOrder = async (checkOrderId) => {
   try {
@@ -59,7 +60,7 @@ const getCheckOrderById = async (checkOrderId) => {
       throw new Error('Invalid inspection ID');
     }
 
-    const inspection = await InventoryCheckInspection.findById(checkOrderId)
+    const inspection = await InventoryCheckOrder.findById(checkOrderId)
       .populate('inventory_check_order_id', 'name')
       .populate({
         path: 'location_id',

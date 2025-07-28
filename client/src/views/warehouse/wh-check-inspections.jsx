@@ -24,6 +24,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
 import { useSnackbar } from 'notistack';
+const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 function CheckInspections() {
   const { enqueueSnackbar } = useSnackbar();
