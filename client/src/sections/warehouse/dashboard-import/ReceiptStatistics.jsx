@@ -51,18 +51,48 @@ function ReceiptStatistics({ inspections = [], setInspections }) {
     return expected > 0 ? Math.round((received / expected) * 100) : 0;
   };
 
-  const handleDeleteInspection = (id) => {
+  const handleDeleteInspection = async (id) => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const response = axios.delete(`${backendUrl}/api/inspections/${id}`, {
+      const token = localStorage.getItem('auth-token');
+      const currentUserId = token.userId;
+
+      // Gọi API lấy inspection theo id
+      const response = await axios.get(`${backendUrl}/api/inspections/${id}`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('auth-token')}`
+          Authorization: `Bearer ${token}`
         }
       });
-      if (response.success) {
-        enqueueSnackbar('Xóa phiếu kiểm nhập thành công', { variant: 'success' });
+
+      if (response.status !== 200) {
+        enqueueSnackbar('Không tìm thấy phiếu kiểm nhập', { variant: 'error' });
+        return;
       }
-      setInspections((prev) => prev.filter((inspection) => inspection._id !== id));
+
+      const inspection = response.data;
+      if (!inspection.created_by) {
+        enqueueSnackbar('Phiếu kiểm nhập không có thông tin người tạo', { variant: 'error' });
+        return;
+      }
+
+      if (inspection.created_by !== currentUserId) {
+        enqueueSnackbar('Bạn không thể xóa phiếu kiểm nhập ko do bạn tạo', { variant: 'warning' });
+        return;
+      }
+
+      // Nếu đúng user tạo, thực hiện xóa
+      const deleteResponse = await axios.delete(`${backendUrl}/api/inspections/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (deleteResponse.status === 200 || deleteResponse.data.success) {
+        enqueueSnackbar('Xóa phiếu kiểm nhập thành công', { variant: 'success' });
+        setInspections((prev) => prev.filter((inspection) => inspection._id !== id));
+      } else {
+        enqueueSnackbar('Xóa phiếu kiểm nhập thất bại', { variant: 'error' });
+      }
     } catch (error) {
       console.error('Error deleting inspection:', error);
       enqueueSnackbar('Xóa phiếu kiểm nhập thất bại', { variant: 'error' });

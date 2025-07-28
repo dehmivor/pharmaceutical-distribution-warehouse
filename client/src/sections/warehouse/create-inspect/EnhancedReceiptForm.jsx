@@ -398,7 +398,8 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
 
       enqueueSnackbar(res.data.message, { variant: 'success' });
       if (onReceiptCreate) onReceiptCreate(res.data);
-      router.push('/wh-import-orders');
+      setReceiptData((prev) => ({ ...prev, notes: '' }));
+      setInspections((prev) => [...prev, ...res.data.data]);
     } catch (error) {
       enqueueSnackbar('Không thể tạo phiếu kiểm nhập', { variant: 'error' });
     } finally {
@@ -487,7 +488,7 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
               Không còn hàng hóa để kiểm.
             </Typography>
           )}
-          {checkedItems.length === 0 && (
+          {uncheckedItems.length !== 0 && (
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
                 <TableHead>
