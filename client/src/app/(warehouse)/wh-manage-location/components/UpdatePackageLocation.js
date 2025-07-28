@@ -1,283 +1,462 @@
 'use client';
-import { useEffect, useState } from 'react';
+
+import LocationAddDialog from '@/sections/components/location/LocationAddDialog';
+import LocationBulkAddDialog from '@/sections/components/location/LocationBulkAddDialog';
+import LocationDetailDialog from '@/sections/components/location/LocationDetailDialog';
+import {
+  Block as BlockIcon,
+  CheckCircle as CheckCircleIcon,
+  Print as PrintIcon,
+  Refresh as RefreshIcon,
+  Visibility as VisibilityIcon
+} from '@mui/icons-material';
 import {
   Box,
-  Typography,
-  Paper,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
+  Card,
+  CardContent,
   Chip,
-  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
+  IconButton,
   InputLabel,
-  Select,
   MenuItem,
-  Grid
+  Paper,
+  Select,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  Tooltip,
+  Typography
 } from '@mui/material';
+import axios from 'axios';
+import bwipjs from 'bwip-js/browser';
+import { useSnackbar } from 'notistack';
+import { useEffect, useState } from 'react';
 
-// Sample batchId, replace with dynamic value in a real application
-const BATCH_ID = '685a5e26c832ad11bcaa5fdd';
+// API configuration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const getAuthHeaders = () => ({
+  Authorization: `Bearer ${localStorage.getItem('auth-token')}`
+});
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true
+});
 
-export default function UpdatePackageLocation() {
-  const [packages, setPackages] = useState([]);
+const LocationManagement = () => {
+  const { enqueueSnackbar } = useSnackbar();
+  const [locations, setLocations] = useState([]);
   const [areas, setAreas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [areasLoading, setAreasLoading] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState({
-    areaId: '',
-    bay: '',
-    row: '',
-    column: ''
-  });
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [totalCount, setTotalCount] = useState(0);
+  const [filterAreaId, setFilterAreaId] = useState('');
+  const [filterAvailable, setFilterAvailable] = useState('');
+  const [openDetailDialog, setOpenDetailDialog] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [locationToDelete, setLocationToDelete] = useState(null);
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [openBulkAddDialog, setOpenBulkAddDialog] = useState(false);
 
-  // Fetch areas from backend
+  // Fetch areas for filter
   const fetchAreas = async () => {
-    setAreasLoading(true);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const res = await fetch(`${backendUrl}/api/areas`);
-      if (!res.ok) throw new Error('Failed to fetch areas');
-      const data = await res.json();
-      setAreas(data);
+      const response = await axiosInstance.get('/api/areas', {
+        headers: getAuthHeaders(),
+        params: { page: 1, limit: 1000 }
+      });
+      if (response.data.success) {
+        setAreas(response.data.data.areas);
+      }
     } catch (error) {
       console.error('Error fetching areas:', error);
-      alert('Không thể tải danh sách khu vực. Vui lòng thử lại.');
-    } finally {
-      setAreasLoading(false);
     }
   };
 
-  // Fetch packages by batchId
-  const fetchPackages = async () => {
+  // Fetch locations
+  const fetchLocations = async () => {
     setLoading(true);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const res = await fetch(`${backendUrl}/api/packages/by-batch/${BATCH_ID}`);
-      if (!res.ok) throw new Error('Failed to fetch packages');
-      const data = await res.json();
-      const mapped = data.map((item, idx) => ({
-        id: item._id,
-        packageCode: `TH-${idx + 1}`,
-        batchCode: item.batch_id?.batch_code || '',
-        drugName: item.batch_id?.medicine_id?.medicine_name || '',
-        location: item.location_id
-          ? `${item.location_id.area_id.name}-${item.location_id.bay}-${item.location_id.row}-${item.location_id.column}`
-          : '',
-        status: item.location_id ? 'Đã xếp' : 'Chưa xếp'
-      }));
-      setPackages(mapped);
+      const params = {
+        page: page + 1,
+        limit: rowsPerPage
+      };
+
+      if (filterAreaId) {
+        params.areaId = filterAreaId;
+      }
+
+      if (filterAvailable) {
+        params.available = filterAvailable;
+      }
+
+      const response = await axiosInstance.get('/api/locations/v2', {
+        headers: getAuthHeaders(),
+        params
+      });
+
+      if (response.data.success) {
+        setLocations(response.data.data.locations);
+        setTotalCount(response.data.data.pagination.totalItems);
+      }
     } catch (error) {
-      console.error('Error fetching packages:', error);
+      console.error('Error fetching locations:', error);
+      enqueueSnackbar(error.response?.data?.message || 'Không thể tải danh sách vị trí', { variant: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
+  // Handle delete location
+  const handleDeleteClick = (location) => {
+    setLocationToDelete(location);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      const response = await axiosInstance.delete(`/api/locations/v2/${locationToDelete._id}`, {
+        headers: getAuthHeaders()
+      });
+
+      if (response.data.success) {
+        enqueueSnackbar(response.data.message, { variant: 'success' });
+        fetchLocations();
+      }
+    } catch (error) {
+      enqueueSnackbar(error.response?.data?.message || 'Không thể xóa vị trí', { variant: 'error' });
+    } finally {
+      setOpenDeleteDialog(false);
+      setLocationToDelete(null);
+    }
+  };
+
+  // Handle toggle available
+  const handleToggleAvailable = async (location) => {
+    try {
+      const response = await axiosInstance.put(
+        `/api/locations/v2/${location._id}/available`,
+        { available: !location.available },
+        { headers: getAuthHeaders() }
+      );
+
+      if (response.data.success) {
+        enqueueSnackbar(response.data.message, { variant: 'success' });
+        fetchLocations();
+      }
+    } catch (error) {
+      enqueueSnackbar(error.response?.data?.message || 'Không thể cập nhật trạng thái vị trí', { variant: 'error' });
+    }
+  };
+
+  // Handle view detail
+  const handleViewDetail = (location) => {
+    setSelectedLocation(location);
+    setOpenDetailDialog(true);
+  };
+
+  // Handle print QR code
+  const handlePrintQR = async (location) => {
+    try {
+      const locationId = location._id;
+      const areaName = location.area_id?.name || 'N/A';
+      const bay = location.bay || 'N/A';
+      const row = location.row || 'N/A';
+      const column = location.column || 'N/A';
+
+      // Tạo text hiển thị: area_name + bay + row + column
+      const displayText = `${areaName} - ${bay} - ${row} - ${column}`;
+
+      // Render QR code to offscreen canvas
+      const canvas = document.createElement('canvas');
+      await bwipjs.toCanvas(canvas, {
+        bcid: 'qrcode', // use the QR‑code generator
+        text: locationId, // data to encode (location ID)
+        scale: 6, // how many pixels per "module"
+        version: 5, // 1–40, controls size; omit to auto‑fit
+        eclevel: 'M', // error‑correction: L, M, Q, H
+        includeMargin: true // add a quiet zone around the code
+      });
+      const qrCodeDataUrl = canvas.toDataURL('image/png');
+
+      // Create hidden iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+
+      // Write label HTML into it
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(`
+      <html>
+        <head>
+          <style>
+            @page {
+              margin: 0;
+              size: 100mm 50mm;
+            }
+            body { 
+              font-family: sans-serif; 
+              margin: 0; 
+              padding: 5px; 
+              font-size: 12px;
+              width: 90mm;
+              height: 40mm;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            }
+            img { 
+              display: block; 
+              width: 25mm;
+              height: 25mm;
+              margin: 0 auto 3px auto;
+            }
+            .field { 
+              margin: 0; 
+              font-size: 10px;
+              text-align: center;
+              line-height: 1.2;
+            }
+            .label { 
+              font-weight: bold; 
+              color: #333;
+            }
+          </style>
+        </head>
+        <body>
+          <img src="${qrCodeDataUrl}" alt="QR Code" />
+          <div class="field"><span class="label">Location:</span> ${displayText}</div>
+        </body>
+      </html>
+    `);
+      doc.close();
+
+      // Trigger print and cleanup
+      iframe.onload = () => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(() => document.body.removeChild(iframe), 0);
+      };
+    } catch (err) {
+      console.error('Error printing QR code:', err);
+      enqueueSnackbar('Không thể tạo QR code.', { variant: 'error' });
+    }
+  };
+
+  // Handle pagination
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const handleBulkAddSuccess = () => {
+    fetchLocations();
+    setOpenBulkAddDialog(false);
+  };
+
   useEffect(() => {
-    fetchPackages();
     fetchAreas();
   }, []);
 
-  const handleOpen = (pkg) => {
-    setSelected(pkg);
-
-    // Parse existing location if available
-    if (pkg.location) {
-      const parts = pkg.location.split('-');
-      if (parts.length === 4) {
-        const [areaName, bay, row, column] = parts;
-        const area = areas.find((a) => a.name === areaName);
-        setForm({
-          areaId: area?._id || '',
-          bay,
-          row,
-          column
-        });
-      } else {
-        setForm({
-          areaId: '',
-          bay: '',
-          row: '',
-          column: ''
-        });
-      }
-    } else {
-      setForm({
-        areaId: '',
-        bay: '',
-        row: '',
-        column: ''
-      });
-    }
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    setSelected(null);
-    setForm({
-      areaId: '',
-      bay: '',
-      row: '',
-      column: ''
-    });
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
-  };
-
-  // Update package location
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!selected) return;
-
-    // Validate form
-    if (!form.areaId || !form.bay || !form.row || !form.column) {
-      alert('Vui lòng điền đầy đủ thông tin vị trí.');
-      return;
-    }
-
-    try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const res = await fetch(`${backendUrl}/api/packages/${selected.id}/location-detailed`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          areaId: form.areaId,
-          bay: form.bay,
-          row: form.row,
-          column: form.column
-        })
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to update location');
-      }
-
-      // Reload data after successful update
-      await fetchPackages();
-      handleClose();
-      alert('Cập nhật vị trí thành công!');
-    } catch (error) {
-      console.error('Error updating location:', error);
-      alert(`Cập nhật vị trí thất bại: ${error.message || 'Vui lòng thử lại.'}`);
-    }
-  };
-
-  // Check if all packages have locations assigned
-  const allFilled = packages.length > 0 && packages.every((pkg) => pkg.status === 'Đã xếp');
+  useEffect(() => {
+    fetchLocations();
+  }, [page, rowsPerPage, filterAreaId, filterAvailable]);
 
   return (
-    <Box maxWidth={1200} mx="auto" mt={4}>
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Cập nhật vị trí các thùng trong kho
-        </Typography>
-        {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <>
-            {allFilled && <Chip label="Tất cả thùng đã được xếp vào vị trí" color="success" sx={{ mb: 2 }} />}
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>STT</TableCell>
-                  <TableCell>Mã thùng</TableCell>
-                  <TableCell>Mã lô</TableCell>
-                  <TableCell>Tên thuốc</TableCell>
-                  <TableCell>Vị trí</TableCell>
-                  <TableCell>Trạng thái</TableCell>
-                  <TableCell>Hành động</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {packages.map((pkg, idx) => (
-                  <TableRow key={pkg.id}>
-                    <TableCell>{idx + 1}</TableCell>
-                    <TableCell>{pkg.packageCode}</TableCell>
-                    <TableCell>{pkg.batchCode}</TableCell>
-                    <TableCell>{pkg.drugName}</TableCell>
-                    <TableCell>{pkg.location}</TableCell>
-                    <TableCell>
-                      <Chip label={pkg.status} color={pkg.status === 'Đã xếp' ? 'success' : 'warning'} size="small" />
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="contained" size="small" onClick={() => handleOpen(pkg)}>
-                        Cập nhật vị trí
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </>
-        )}
-      </Paper>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Location Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Manage and inspect location, track log location change.
+          </Typography>
+        </Box>
+        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => fetchLocations()} disabled={loading}>
+          Refresh
+        </Button>
+      </Box>
 
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>Cập nhật vị trí thùng</DialogTitle>
+      <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+          <FormControl sx={{ minWidth: 100 }}>
+            <InputLabel>Khu vực</InputLabel>
+            <Select
+              value={filterAreaId}
+              onChange={(e) => setFilterAreaId(e.target.value)}
+              label="Khu vực"
+              size="small"
+              renderValue={(value) => {
+                if (!value) return 'Tất cả';
+                const area = areas.find((a) => a._id === value);
+                return area ? area.name : value;
+              }}
+            >
+              <MenuItem value="">Tất cả</MenuItem>
+              {areas.map((area) => (
+                <MenuItem key={area._id} value={area._id}>
+                  {area.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl sx={{ minWidth: 100 }}>
+            <InputLabel>Trạng thái</InputLabel>
+            <Select
+              value={filterAvailable}
+              onChange={(e) => setFilterAvailable(e.target.value)}
+              label="Trạng thái"
+              size="small"
+              renderValue={(value) => {
+                if (value === '') return 'Tất cả';
+                if (value === 'true') return 'Có sẵn';
+                if (value === 'false') return 'Không có sẵn';
+                return value;
+              }}
+            >
+              <MenuItem value="">Tất cả</MenuItem>
+              <MenuItem value="true">Có sẵn</MenuItem>
+              <MenuItem value="false">Không có sẵn</MenuItem>
+            </Select>
+          </FormControl>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setFilterAreaId('');
+              setFilterAvailable('all');
+              setPage(1);
+              fetchLocations();
+            }}
+          >
+            Reset
+          </Button>
+        </Stack>
+      </Box>
+
+      <TableContainer component={Paper} elevation={2}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Khu vực</TableCell>
+              <TableCell>Bay</TableCell>
+              <TableCell>Row</TableCell>
+              <TableCell>Column</TableCell>
+              <TableCell>Trạng thái</TableCell>
+              <TableCell align="center">Hành động</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {locations.map((location) => (
+              <TableRow key={location._id}>
+                <TableCell>{location.area_id?.name || 'N/A'}</TableCell>
+                <TableCell>{location.bay}</TableCell>
+                <TableCell>{location.row}</TableCell>
+                <TableCell>{location.column}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={location.available ? 'Có sẵn' : 'Không có sẵn'}
+                    color={location.available ? 'success' : 'error'}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell align="center">
+                  <Tooltip title="Xem chi tiết">
+                    <IconButton color="primary" size="small" onClick={() => handleViewDetail(location)} sx={{ mr: 1 }}>
+                      <VisibilityIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+
+                  <Tooltip title="In QR Code">
+                    <IconButton
+                      color="info"
+                      size="small"
+                      onClick={() => handlePrintQR(location)}
+                      sx={{ mr: 1, bgcolor: 'info.50', '&:hover': { bgcolor: 'info.100' } }}
+                    >
+                      <PrintIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+
+                  <Tooltip title={location.available ? 'Đánh dấu không có sẵn' : 'Đánh dấu có sẵn'}>
+                    <IconButton
+                      color={location.available ? 'warning' : 'success'}
+                      size="small"
+                      onClick={() => handleToggleAvailable(location)}
+                      sx={{ mr: 1 }}
+                    >
+                      {location.available ? <BlockIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[5, 10, 25, 50]}
+        labelRowsPerPage="Số hàng mỗi trang:"
+        labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
+        <DialogTitle>Xác nhận xóa</DialogTitle>
         <DialogContent>
-          <form id="update-location-form" onSubmit={handleSubmit}>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
-                <FormControl fullWidth required>
-                  <InputLabel>Khu vực</InputLabel>
-                  <Select name="areaId" value={form.areaId} onChange={handleChange} label="Khu vực" disabled={areasLoading}>
-                    {areas.map((area) => (
-                      <MenuItem key={area._id} value={area._id}>
-                        {area.name} {area.description && `- ${area.description}`}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={4}>
-                <TextField label="Bay" name="bay" value={form.bay} onChange={handleChange} fullWidth required helperText="Ví dụ: 01" />
-              </Grid>
-
-              <Grid item xs={4}>
-                <TextField label="Hàng" name="row" value={form.row} onChange={handleChange} fullWidth required helperText="Ví dụ: 01" />
-              </Grid>
-
-              <Grid item xs={4}>
-                <TextField
-                  label="Cột"
-                  name="column"
-                  value={form.column}
-                  onChange={handleChange}
-                  fullWidth
-                  required
-                  helperText="Ví dụ: 01"
-                />
-              </Grid>
-            </Grid>
-          </form>
+          <DialogContentText>Bạn có chắc chắn muốn xóa vị trí này không? Hành động này không thể hoàn tác.</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>Hủy</Button>
-          <Button type="submit" form="update-location-form" variant="contained" disabled={areasLoading}>
-            Lưu
+          <Button onClick={() => setOpenDeleteDialog(false)}>Hủy</Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            Xóa
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Detail Dialog */}
+      {openDetailDialog && selectedLocation && (
+        <LocationDetailDialog open={openDetailDialog} onClose={() => setOpenDetailDialog(false)} location={selectedLocation} />
+      )}
+
+      {/* Add Dialog */}
+      <LocationAddDialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} onSuccess={fetchLocations} />
+
+      {/* Bulk Add Dialog */}
+      <LocationBulkAddDialog open={openBulkAddDialog} onClose={() => setOpenBulkAddDialog(false)} onSuccess={handleBulkAddSuccess} />
     </Box>
   );
-}
+};
+
+export default LocationManagement;

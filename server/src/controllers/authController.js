@@ -183,7 +183,6 @@ const authController = {
         success: true,
         data: {
           ...user,
-          permissions: getRolePermissions(user.role),
         },
       });
     } catch (error) {

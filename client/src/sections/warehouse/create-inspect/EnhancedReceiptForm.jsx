@@ -373,18 +373,20 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
       enqueueSnackbar('Chưa có dữ liệu đơn hàng hợp lệ.', { variant: 'error' });
       return;
     }
+    if (receiptItems.actual_quantity === 0) {
+      enqueueSnackbar('Số lượng thực nhận không được bằng 0', { variant: 'warning' });
+    }
     setIsCreating(true);
 
     try {
       const inspectionsPayload = receiptItems.map((item) => ({
         import_order_id: orderData._id,
         medicine_id: item.medicineId,
-        actual_quantity: parseFloat(item.actualQuantity) || 0,
+        actual_quantity: parseFloat(item.actualQuantity),
         rejected_quantity: parseFloat(item.rejectedQuantity) || 0,
         note: item.notes || receiptData.notes || '',
         created_by: getCurrentUserId()
       }));
-
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const res = await axios.post(
         `${backendUrl}/api/inspections`,
@@ -398,7 +400,8 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
 
       enqueueSnackbar(res.data.message, { variant: 'success' });
       if (onReceiptCreate) onReceiptCreate(res.data);
-      router.push('/wh-import-orders');
+      setReceiptData((prev) => ({ ...prev, notes: '' }));
+      setInspections((prev) => [...prev, ...res.data.data]);
     } catch (error) {
       enqueueSnackbar('Không thể tạo phiếu kiểm nhập', { variant: 'error' });
     } finally {
@@ -422,16 +425,17 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
       </Box>
     );
   }
+  const inspectedMedicineIds = new Set(
+    inspections.map((i) => {
+      if (typeof i.medicine_id === 'object' && i.medicine_id !== null && '_id' in i.medicine_id) {
+        return i.medicine_id._id;
+      }
+      return i.medicine_id;
+    })
+  );
 
-  // --- PHÂN TÁCH DANH SÁCH HÀNG HÓA ĐÃ ĐƯỢC KIỂM và CHƯA KIỂM ---
-
-  // Tạo Set medicineId đã kiểm
-  const inspectedMedicineIds = new Set(inspections.map((i) => i.medicine_id));
-
-  // Các mặt hàng chưa được kiểm (hiển thị form nhập liệu)
   const uncheckedItems = receiptItems.filter((item) => !inspectedMedicineIds.has(item.medicineId));
 
-  // Các mặt hàng đã được kiểm (hiển thị tóm tắt)
   checkedItems = receiptItems.filter((item) => inspectedMedicineIds.has(item.medicineId));
 
   return (
@@ -481,12 +485,12 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6">Danh Sách Hàng Hóa Chưa Kiểm ({uncheckedItems?.length} sản phẩm)</Typography>
           </Box>
-          {checkedItems.length === 0 && (
+          {uncheckedItems.length === 0 && (
             <Typography variant="body2" color="textPrimary" mb={2}>
               Không còn hàng hóa để kiểm.
             </Typography>
           )}
-          {checkedItems.length === 0 && (
+          {uncheckedItems.length !== 0 && (
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
                 <TableHead>
@@ -608,55 +612,6 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
           )}
         </CardContent>
       </Card>
-
-      {/* Danh sách hàng hóa đã được kiểm */}
-      {checkedItems?.length > 0 && (
-        <Card variant="outlined" sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Danh Sách Hàng Hóa Đã Kiểm ({checkedItems?.length} sản phẩm)
-            </Typography>
-            <TableContainer component={Paper} variant="outlined">
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Mã SP</TableCell>
-                    <TableCell>Tên sản phẩm</TableCell>
-                    <TableCell>SL Thực nhận</TableCell>
-                    <TableCell>SL Từ chối</TableCell>
-                    <TableCell>Ghi chú</TableCell>
-                    <TableCell>Trạng thái</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {checkedItems.map((item) => {
-                    // Lấy phiếu kiểm tương ứng
-                    const inspection = inspections.find((ins) => ins.medicine_id === item.medicineId);
-
-                    // Nếu inspection không có, dùng dữ liệu receiptItems làm fallback
-                    const actualQty = inspection ? inspection.actual_quantity : item.actualQuantity;
-                    const rejectedQty = inspection ? inspection.rejected_quantity : item.rejectedQuantity;
-                    const note = inspection ? inspection.note : item.notes;
-
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell>{item.productCode}</TableCell>
-                        <TableCell>{item.productName}</TableCell>
-                        <TableCell>{actualQty}</TableCell>
-                        <TableCell>{rejectedQty}</TableCell>
-                        <TableCell>{note}</TableCell>
-                        <TableCell>
-                          <Chip label={getStatusText(item.status)} color={getStatusColor(item.status)} size="small" />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Thống kê */}
       {!loadingInspections && (

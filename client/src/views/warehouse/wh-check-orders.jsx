@@ -158,7 +158,7 @@ const CheckOrders = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" color="primary" fontWeight={600} gutterBottom>
+      <Typography variant="h4" gutterBottom>
         Danh Sách Phiếu Kiểm Kê Toàn Kho
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
@@ -323,6 +323,13 @@ const CheckOrders = () => {
           }}
         >
           Create Check Inspection
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleMenuClose();
+          }}
+        >
+          Start Checking Inventory
         </MenuItem>
       </Menu>
     </Box>

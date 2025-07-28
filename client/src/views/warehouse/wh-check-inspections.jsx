@@ -24,6 +24,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
 import { useSnackbar } from 'notistack';
+const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 function CheckInspections() {
   const { enqueueSnackbar } = useSnackbar();
@@ -68,7 +69,8 @@ function CheckInspections() {
   // Lấy danh sách thuốc từ đơn hàng kiểm kê
   useEffect(() => {
     if (!checkOrderId || !authToken) return;
-const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     axios
       .get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
         headers: { Authorization: `Bearer ${authToken}` }
