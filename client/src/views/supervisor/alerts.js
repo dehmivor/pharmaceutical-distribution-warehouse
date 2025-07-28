@@ -14,11 +14,13 @@ import {
   Paper,
   Alert as MuiAlert,
   Button,
-  Skeleton
+  Skeleton,
+  TablePagination
 } from '@mui/material';
 
 const Alerts = () => {
   const [batches, setBatches] = useState({
+    expiredUnder6Months: [],
     sixMonths: [],
     sevenMonths: [],
     eightMonths: []
@@ -35,7 +37,6 @@ const Alerts = () => {
 
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  // Map type to MUI severity
   const severityMap = {
     'Low Inventory': 'warning',
     'Expired Batch': 'error',
@@ -44,7 +45,6 @@ const Alerts = () => {
     Info: 'info'
   };
 
-  // Fetch batches and alerts from backend
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -54,10 +54,8 @@ const Alerts = () => {
       if (res.data.success) {
         setBatches(res.data.data);
 
-        // Giả lập thêm cảnh báo động từ API batch data, ví dụ tồn kho thấp, recall
         const dynamicAlerts = [];
 
-        // Low Inventory example: batch with quantity <= 10 (mock)
         res.data.data.sixMonths.forEach((batch) => {
           if (batch.quantity <= 10) {
             dynamicAlerts.push({
@@ -70,7 +68,6 @@ const Alerts = () => {
           }
         });
 
-        // Kết hợp mockAlerts + dynamicAlerts
         const mockAlerts = [
           {
             id: '1',
@@ -108,7 +105,6 @@ const Alerts = () => {
 
     loadData();
 
-    // Lặp lại fetch mỗi 5 phút
     intervalRef.current = setInterval(
       () => {
         if (!ignore) loadData();
@@ -122,18 +118,52 @@ const Alerts = () => {
     };
   }, []);
 
-  // Đánh dấu cảnh báo đã xử lý
   const handleMarkAsRead = (alertId) => {
     setHandledAlertIds((prev) => new Set(prev).add(alertId));
   };
 
-  const renderBatchTable = (batchList, label) => {
+  const handleCreateDestroyTicket = (batch) => {
+    console.log('Tạo phiếu hủy cho batch:', batch._id, batch.batch_code);
+    alert(`Tạo phiếu hủy cho batch: ${batch.batch_code}`);
+  };
+
+  // Pagination state and handlers for each batch table
+  // Expired under 6 months
+  const [pageExpiredUnder6, setPageExpiredUnder6] = useState(0); // MUI TablePagination page is 0-based
+  const [rowsPerPageExpiredUnder6, setRowsPerPageExpiredUnder6] = useState(5);
+
+  // Six months
+  const [pageSixMonths, setPageSixMonths] = useState(0);
+  const [rowsPerPageSixMonths, setRowsPerPageSixMonths] = useState(5);
+
+  // Seven months
+  const [pageSevenMonths, setPageSevenMonths] = useState(0);
+  const [rowsPerPageSevenMonths, setRowsPerPageSevenMonths] = useState(5);
+
+  // Eight months
+  const [pageEightMonths, setPageEightMonths] = useState(0);
+  const [rowsPerPageEightMonths, setRowsPerPageEightMonths] = useState(5);
+
+  const renderBatchTable = (batchList, label, page, setPage, rowsPerPage, setRowsPerPage) => {
     if (!batchList || batchList.length === 0) return <Typography>Không có batch {label} tháng nào.</Typography>;
+
+    const count = batchList.length;
+
+    const displayBatches = batchList.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+    const handleChangePage = (event, newPage) => {
+      setPage(newPage);
+    };
+
+    const handleChangeRowsPerPage = (event) => {
+      setRowsPerPage(parseInt(event.target.value, 10));
+      setPage(0);
+    };
 
     return (
       <TableContainer component={Paper} sx={{ mb: 3 }}>
         <Typography variant="h6" sx={{ p: 2 }}>
-          Batch hết hạn sau khoảng {label} tháng:
+          Batch hết hạn {label === '<6' ? 'dưới 6' : `sau khoảng ${label}`} tháng:
         </Typography>
         <Table size="small" aria-label={`${label} tháng`}>
           <TableHead>
@@ -143,20 +173,38 @@ const Alerts = () => {
               <TableCell>Ngày hết hạn</TableCell>
               <TableCell>Số lượng còn lại</TableCell>
               <TableCell>Nhà cung cấp</TableCell>
+              <TableCell align="center">Hành động</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {batchList.map((batch) => (
+            {displayBatches.map((batch) => (
               <TableRow key={batch._id}>
                 <TableCell>{batch.batch_code}</TableCell>
                 <TableCell>{batch.medicine_id?.medicine_name || 'Unknown'}</TableCell>
                 <TableCell>{new Date(batch.expiry_date).toLocaleDateString()}</TableCell>
                 <TableCell>{batch.quantity ?? 'N/A'}</TableCell>
                 <TableCell>{batch.supplier || 'N/A'}</TableCell>
+                <TableCell align="center">
+                  <Button variant="contained" color="error" size="small" onClick={() => handleCreateDestroyTicket(batch)}>
+                    Tạo phiếu hủy
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          component="div"
+          count={count}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[5, 10, 25, 50]}
+          labelRowsPerPage="Số hàng mỗi trang:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
+          sx={{ mt: 1 }}
+        />
       </TableContainer>
     );
   };
@@ -186,6 +234,9 @@ const Alerts = () => {
       <Typography variant="h4" gutterBottom>
         Alerts Hệ thống Quản lý Kho Thuốc
       </Typography>
+      <Typography variant="body1" color="text.secondary" mb={3}>
+        Hiển thị các batch thuốc hết hạn và cảnh báo liên quan.
+      </Typography>
 
       {loading && (
         <>
@@ -203,12 +254,35 @@ const Alerts = () => {
 
       {!loading && !error && (
         <>
-          {/* Hiển thị batch hết hạn */}
-          {renderBatchTable(batches.sixMonths, '6')}
-          {renderBatchTable(batches.sevenMonths, '7')}
-          {renderBatchTable(batches.eightMonths, '8')}
+          {renderBatchTable(
+            batches.expiredUnder6Months,
+            '<6',
+            pageExpiredUnder6,
+            setPageExpiredUnder6,
+            rowsPerPageExpiredUnder6,
+            setRowsPerPageExpiredUnder6
+          )}
 
-          {/* Hiển thị cảnh báo chi tiết */}
+          {renderBatchTable(batches.sixMonths, '6', pageSixMonths, setPageSixMonths, rowsPerPageSixMonths, setRowsPerPageSixMonths)}
+
+          {renderBatchTable(
+            batches.sevenMonths,
+            '7',
+            pageSevenMonths,
+            setPageSevenMonths,
+            rowsPerPageSevenMonths,
+            setRowsPerPageSevenMonths
+          )}
+
+          {renderBatchTable(
+            batches.eightMonths,
+            '8',
+            pageEightMonths,
+            setPageEightMonths,
+            rowsPerPageEightMonths,
+            setRowsPerPageEightMonths
+          )}
+
           <Box sx={{ mt: 4 }}>
             <Typography variant="h5" sx={{ mb: 2 }}>
               Các cảnh báo khác
