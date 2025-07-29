@@ -23,13 +23,6 @@ const warehouseManager = {
           type: 'item',
           url: '/wm-inventory',
           icon: 'IconList'
-        },
-        {
-          id: 'manage-inventory-checking',
-          title: 'Manage Inventory',
-          type: 'item',
-          url: '/wm-manage-inventory',
-          icon: 'IconFileExport'
         }
       ]
     },
