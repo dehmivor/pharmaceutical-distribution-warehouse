@@ -177,6 +177,18 @@ const createAnnex = asyncHandler(async (req, res) => {
     });
   }
 
+  // Validate medicine changes trước khi tạo
+  console.log('=== DEBUG createAnnex controller ===');
+  console.log('Calling validateNewAnnex...');
+  const medicineValidation = await contractService.validateNewAnnex(id, annexData);
+  console.log('medicineValidation result:', medicineValidation);
+  if (!medicineValidation.isValid) {
+    return res.status(400).json({ 
+      success: false, 
+      message: `Invalid annex: ${medicineValidation.errors.join(', ')}` 
+    });
+  }
+
   const updatedContract = await contractService.createAnnex(id, annexData);
   res.status(201).json({ success: true, data: updatedContract });
 });
@@ -199,6 +211,15 @@ const updateAnnex = asyncHandler(async (req, res) => {
     });
   }
 
+  // Validate medicine changes trước khi cập nhật
+  const medicineValidation = await contractService.validateNewAnnex(id, annexData);
+  if (!medicineValidation.isValid) {
+    return res.status(400).json({ 
+      success: false, 
+      message: `Invalid annex: ${medicineValidation.errors.join(', ')}` 
+    });
+  }
+
   const updatedContract = await contractService.updateAnnex(id, annex_code, annexData, req.user);
   res.status(200).json({ success: true, data: updatedContract });
 });
@@ -213,6 +234,22 @@ const updateAnnexStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
 
   const updatedContract = await contractService.updateAnnexStatus(id, annex_code, status, req.user);
+  res.status(200).json({ success: true, data: updatedContract });
+});
+
+const deleteAnnex = asyncHandler(async (req, res) => {
+  const { id, annex_code } = req.params;
+
+  // Kiểm tra quyền xóa phụ lục
+  const canDelete = await contractService.canDeleteAnnex(id, annex_code, req.user);
+  if (!canDelete.canDelete) {
+    return res.status(400).json({ 
+      success: false, 
+      message: canDelete.message 
+    });
+  }
+
+  const updatedContract = await contractService.deleteAnnex(id, annex_code);
   res.status(200).json({ success: true, data: updatedContract });
 });
 
@@ -234,5 +271,6 @@ module.exports = {
   createAnnex,
   updateAnnex,
   updateAnnexStatus,
+  deleteAnnex,
   getContractHistory,
 };

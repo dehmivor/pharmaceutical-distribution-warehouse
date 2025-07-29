@@ -18,6 +18,7 @@ router.delete('/:id', authenticate, contractValidator.validateGetContractById, c
 router.post('/:id/annexes', authenticate, contractValidator.validateCreateAnnex, contractController.createAnnex);
 router.put('/:id/annexes/:annex_code', authenticate, contractValidator.validateUpdateAnnex, contractController.updateAnnex);
 router.put('/:id/annexes/:annex_code/status', authenticate, contractValidator.validateUpdateAnnexStatus, contractController.updateAnnexStatus);
+router.delete('/:id/annexes/:annex_code', authenticate, contractController.deleteAnnex);
 
 // UC6: Lấy lịch sử thay đổi hợp đồng
 router.get('/:id/history', authenticate, contractController.getContractHistory);
