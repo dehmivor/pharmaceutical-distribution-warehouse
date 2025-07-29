@@ -22,20 +22,22 @@ import {
   TextField,
   Typography,
   Stack,
-  Menu, // Keep Menu for MoreVertIcon
-  Dialog, // For View Details and Packing Dialogs
+  Menu,
+  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Grid,
   Card,
   Divider,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material"
-import { Add, Delete } from "@mui/icons-material" // Icons for dialogs
+import { Delete } from "@mui/icons-material"
 import axios from "axios"
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import ModalConfirm from "../../views/general/ModalConfirm" // Assuming this path for ModalConfirm
+import ModalConfirm from "../../views/general/ModalConfirm"
 
 const USER_ROLES = {
   WAREHOUSEMANAGER: "warehouse_manager",
@@ -50,7 +52,6 @@ const getAuthHeaders = () => {
   }
 }
 
-// Replaced getStatusColor with getStatusBadge for more detailed status display
 const getStatusBadge = (status) => {
   const statusConfig = {
     draft: { label: "Nháp", color: "default" },
@@ -68,33 +69,24 @@ export default function ManageExportOrders() {
   const router = useRouter()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null) // Keep for Snackbar, though messageDialog is preferred for new logic
+  const [error, setError] = useState(null)
   const [filterDate, setFilterDate] = useState("")
   const [filterStatus, setFilterStatus] = useState("")
-  const [anchorEl, setAnchorEl] = useState(null) // For MoreVertIcon menu
-  const [menuOrder, setMenuOrder] = useState(null) // For MoreVertIcon menu
-
-  // pagination
+  const [filterAssignedToMe, setFilterAssignedToMe] = useState(false)
+  const [anchorEl, setAnchorEl] = useState(null)
+  const [menuOrder, setMenuOrder] = useState(null)
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [totalCount, setTotalCount] = useState(0)
-
-  // States for View Details Dialog (from managePacking.js)
   const [viewDetailsDialogOpen, setViewDetailsDialogOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
-
-  // States for Packing Dialog (from managePacking.js)
   const [packingDialogOpen, setPackingDialogOpen] = useState(false)
   const [packingDetails, setPackingDetails] = useState([])
   const [availablePackages, setAvailablePackages] = useState({})
   const [showingPackageListFor, setShowingPackageListFor] = useState(null)
-
-  // States for User Role and ID (from managePacking.js)
   const [currentUserRole, setCurrentUserRole] = useState(null)
   const [currentUserId, setCurrentUserId] = useState(null)
   const [isRoleLoading, setIsRoleLoading] = useState(true)
-
-  // States for Confirmation and Message Dialogs (from managePacking.js)
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
     title: "",
@@ -110,7 +102,6 @@ export default function ManageExportOrders() {
     content: "",
   })
 
-  // Helper functions (from managePacking.js)
   const getAuthToken = () => localStorage.getItem("auth-token")
 
   const calculateTotalValue = (order) => {
@@ -125,17 +116,16 @@ export default function ManageExportOrders() {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value)
   }
 
-  // Menu handlers for MoreVertIcon
   const handleMenuOpen = (e, order) => {
     setAnchorEl(e.currentTarget)
     setMenuOrder(order)
   }
+
   const handleMenuClose = () => {
     setAnchorEl(null)
     setMenuOrder(null)
   }
 
-  // Fetch current user role (from managePacking.js)
   useEffect(() => {
     const fetchCurrentUserRole = async () => {
       setIsRoleLoading(true)
@@ -168,26 +158,23 @@ export default function ManageExportOrders() {
     fetchCurrentUserRole()
   }, [router])
 
-  const fetchOrders = async (p = null, rpp = null, date = null, status = null) => {
+  const fetchOrders = async (p = null, rpp = null, date = null, status = null, assignedToMe = null) => {
     setLoading(true)
-    setError(null) // Reset error for Snackbar
+    setError(null)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
       const currentPage = p !== null ? p : page
       const currentLimit = rpp !== null ? rpp : rowsPerPage
       const currentDate = date !== null ? date : filterDate
       const currentStatus = status !== null ? status : filterStatus
-      // allow multiple status values if needed; here just one
-      // Original logic had 'approved' default if currentStatus is empty.
-      // To fetch all statuses when filterStatus is empty, remove the statusParams array and conditional append.
-      // If currentStatus is empty, no 'status' query param is sent, fetching all.
-      // If currentStatus is selected, it sends that specific status.
+      const currentAssignedToMe = assignedToMe !== null ? assignedToMe : filterAssignedToMe
 
       const qp = new URLSearchParams()
       qp.append("page", (currentPage + 1).toString())
       qp.append("limit", currentLimit.toString())
       if (currentDate) qp.append("createdAt", currentDate)
       if (currentStatus) qp.append("status", currentStatus)
+      if (currentAssignedToMe && currentUserId) qp.append("warehouse_manager_id", currentUserId)
 
       const url = `${backendUrl}/api/export-orders${qp.toString() ? `?${qp.toString()}` : ""}`
       const resp = await axios.get(url, { headers: getAuthHeaders() })
@@ -196,12 +183,11 @@ export default function ManageExportOrders() {
       }
       const data = resp.data.data || []
       setOrders(data)
-      // derive total count
       const pag = resp.data.pagination
       setTotalCount(pag?.total ?? data.length)
     } catch (err) {
-      setError(err.response?.data?.error || err.message) // Set error for Snackbar
-      setMessageDialog({ open: true, title: "Lỗi", content: err.response?.data?.error || err.message }) // Also use messageDialog
+      setError(err.response?.data?.error || err.message)
+      setMessageDialog({ open: true, title: "Lỗi", content: err.response?.data?.error || err.message })
       setOrders([])
       setTotalCount(0)
     } finally {
@@ -209,7 +195,6 @@ export default function ManageExportOrders() {
     }
   }
 
-  // Fetch available packages for packing dialog (from managePacking.js)
   const fetchAvailablePackages = async (medicineId) => {
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
     const token = getAuthToken()
@@ -234,14 +219,12 @@ export default function ManageExportOrders() {
     return packages
   }
 
-  // Main useEffect for fetching orders, now dependent on user role
   useEffect(() => {
     if (!isRoleLoading && currentUserRole) {
       fetchOrders()
     }
-  }, [page, rowsPerPage, filterDate, filterStatus, isRoleLoading, currentUserRole])
+  }, [page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe, isRoleLoading, currentUserRole])
 
-  // Effect to fetch packages when selectedOrder changes for packing dialog (from managePacking.js)
   useEffect(() => {
     if (selectedOrder && packingDialogOpen) {
       const fetchPackages = async () => {
@@ -273,24 +256,24 @@ export default function ManageExportOrders() {
 
   const handleSearchClick = useCallback(() => {
     setPage(0)
-    fetchOrders(0, rowsPerPage, filterDate, filterStatus)
-  }, [rowsPerPage, filterDate, filterStatus])
+    fetchOrders(0, rowsPerPage, filterDate, filterStatus, filterAssignedToMe)
+  }, [rowsPerPage, filterDate, filterStatus, filterAssignedToMe])
 
   const handleRefresh = useCallback(() => {
-    fetchOrders(page, rowsPerPage, filterDate, filterStatus)
-  }, [page, rowsPerPage, filterDate, filterStatus])
+    fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe)
+  }, [page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe])
 
   const handleReset = useCallback(() => {
     setFilterDate("")
     setFilterStatus("")
+    setFilterAssignedToMe(false)
     setPage(0)
   }, [])
 
-  // View Details Dialog Handlers (from managePacking.js)
   const handleOpenViewDetailsDialog = (order) => {
     setSelectedOrder(order)
     setViewDetailsDialogOpen(true)
-    handleMenuClose() // Close the MoreVertIcon menu
+    handleMenuClose()
   }
 
   const handleCloseViewDetailsDialog = () => {
@@ -298,7 +281,6 @@ export default function ManageExportOrders() {
     setSelectedOrder(null)
   }
 
-  // Packing Dialog Handlers (from managePacking.js)
   const handleOpenPackingDialog = (order) => {
     setSelectedOrder(order)
     setPackingDetails(
@@ -500,6 +482,8 @@ export default function ManageExportOrders() {
           const updatedOrder = await res.json()
           setOrders((prev) => prev.map((order) => (order._id === orderId ? updatedOrder.data : order)))
           setMessageDialog({ open: true, title: "Thành công", content: "Đơn hàng đã hoàn thành!" })
+          // Refresh the orders list
+          await fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe)
         } catch (error) {
           setMessageDialog({
             open: true,
@@ -558,9 +542,8 @@ export default function ManageExportOrders() {
     })
   }
 
-  // New function to assign order to current user
   const handleAssignToMyself = async (orderId) => {
-    handleMenuClose() // Close the menu immediately
+    handleMenuClose()
     setConfirmDialog({
       open: true,
       title: "Xác nhận phân công",
@@ -574,7 +557,6 @@ export default function ManageExportOrders() {
             setMessageDialog({ open: true, title: "Lỗi", content: "Không có token xác thực. Vui lòng đăng nhập lại." })
             return
           }
-
           const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/assign-warehouse-manager`, {
             method: "PUT",
             headers: {
@@ -583,12 +565,10 @@ export default function ManageExportOrders() {
             },
             body: JSON.stringify({ warehouse_manager_id: currentUserId }),
           })
-
           if (!res.ok) {
             const errorData = await res.json()
             throw new Error(errorData.error || "Failed to assign warehouse manager")
           }
-
           const updatedOrder = await res.json()
           setOrders((prev) => prev.map((order) => (order._id === orderId ? updatedOrder.data : order)))
           setMessageDialog({ open: true, title: "Thành công", content: "Đơn hàng đã được phân công cho bạn!" })
@@ -627,9 +607,6 @@ export default function ManageExportOrders() {
       )}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h4">Export Orders Management</Typography>
-        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading}>
-          Refresh
-        </Button>
       </Box>
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
@@ -655,11 +632,21 @@ export default function ManageExportOrders() {
               </MenuItem>
             ))}
           </TextField>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterAssignedToMe}
+                onChange={(e) => setFilterAssignedToMe(e.target.checked)}
+                disabled={!currentUserId}
+              />
+            }
+            label="Assigned to Me"
+          />
           <Button variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick}>
             Search
           </Button>
-          <Button variant="outlined" onClick={handleReset}>
-            Reset
+          <Button variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />}>
+            Refresh
           </Button>
         </Stack>
       </Paper>
@@ -728,7 +715,6 @@ export default function ManageExportOrders() {
         >
           Detail
         </MenuItem>
-        {/* New "Assign to myself" button */}
         {currentUserRole === USER_ROLES.WAREHOUSEMANAGER && !menuOrder?.warehouse_manager_id && (
           <MenuItem
             onClick={() => {
@@ -739,14 +725,11 @@ export default function ManageExportOrders() {
           </MenuItem>
         )}
       </Menu>
-
-      {/* View Details Dialog (Integrated from managePacking.js) */}
       <Dialog open={viewDetailsDialogOpen} onClose={handleCloseViewDetailsDialog} maxWidth="md" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>Chi tiết Đơn hàng Xuất kho</DialogTitle>
         <DialogContent dividers sx={{ pt: 2 }}>
           {selectedOrder && (
             <Box>
-              {/* Thông tin tổng quan */}
               <Typography variant="h6" gutterBottom>
                 Thông tin đơn hàng
               </Typography>
@@ -805,9 +788,11 @@ export default function ManageExportOrders() {
                       {selectedOrder.status === "completed" ? "Ngày hoàn thành:" : "Ngày hủy:"}
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {selectedOrder.completedAt || selectedOrder.cancelledAt
-                        ? new Date(selectedOrder.completedAt || selectedOrder.cancelledAt).toLocaleDateString("vi-VN")
-                        : "N/A"}
+                      {(() => {
+                        const dateString = selectedOrder.updatedAt || selectedOrder.updatedAt
+                        const date = dateString ? new Date(dateString) : null
+                        return date && !isNaN(date.getTime()) ? date.toLocaleDateString("vi-VN") : "N/A"
+                      })()}
                     </Typography>
                   </Grid>
                 )}
@@ -831,7 +816,6 @@ export default function ManageExportOrders() {
                 )}
               </Grid>
               <Divider sx={{ my: 3 }} />
-              {/* Chi tiết mặt hàng */}
               <Typography variant="h6" gutterBottom>
                 Chi tiết mặt hàng
               </Typography>
@@ -861,7 +845,12 @@ export default function ManageExportOrders() {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          {(currentUserRole === USER_ROLES.WAREHOUSE || currentUserRole === USER_ROLES.WAREHOUSEMANAGER) && (
+          <Button onClick={handleCloseViewDetailsDialog} variant="outlined" color="secondary">
+            Đóng
+          </Button>
+          {(currentUserRole === USER_ROLES.WAREHOUSE ||
+            (currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
+              selectedOrder?.warehouse_manager_id?._id === currentUserId)) && (
             <Button
               variant="outlined"
               color="info"
@@ -869,23 +858,23 @@ export default function ManageExportOrders() {
                 handleOpenPackingDialog(selectedOrder)
               }}
             >
-              Đóng gói
+              Chi Tiết Đóng gói
             </Button>
           )}
-          {currentUserRole === USER_ROLES.WAREHOUSEMANAGER && selectedOrder?.status === "approved" && (
-            <>
-              <Button variant="contained" color="primary" onClick={() => handleCompleteOrder(selectedOrder._id)}>
-                Hoàn thành
-              </Button>
-              <Button variant="contained" color="error" onClick={() => handleCancelOrder(selectedOrder._id)}>
-                Hủy
-              </Button>
-            </>
-          )}
+          {currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
+            selectedOrder?.warehouse_manager_id?._id === currentUserId &&
+            selectedOrder?.status === "approved" && (
+              <>
+                <Button variant="contained" color="primary" onClick={() => handleCompleteOrder(selectedOrder._id)}>
+                  Hoàn thành
+                </Button>
+                <Button variant="contained" color="error" onClick={() => handleCancelOrder(selectedOrder._id)}>
+                  Hủy
+                </Button>
+              </>
+            )}
         </DialogActions>
       </Dialog>
-
-      {/* Packing Dialog (Integrated from managePacking.js) */}
       <Dialog
         open={
           packingDialogOpen &&
@@ -898,9 +887,7 @@ export default function ManageExportOrders() {
         <DialogTitle sx={{ pb: 1 }}>Chi tiết Đóng gói</DialogTitle>
         <DialogContent dividers sx={{ pt: 2 }}>
           <Typography variant="body2" color="text.secondary" gutterBottom>
-            {selectedOrder?.status === "completed"
-              ? `Xem chi tiết đóng gói cho đơn hàng `
-              : `Chọn thùng hàng và nhập số lượng thực tế cho đơn hàng `}
+            Xem chi tiết đóng gói cho đơn hàng{" "}
             <Typography component="span" fontWeight="medium">
               {selectedOrder?.contract_id?.contract_code || "N/A"}
             </Typography>
@@ -953,100 +940,13 @@ export default function ManageExportOrders() {
                           >
                             <Typography variant="body2" flex={1}>
                               {pkg
-                                ? `${pkg.batch.batch_code}, Vị trí: ${pkg.location.area_name || "N/A"} - ${pkg.location.bay || "N/A"} - ${
-                                    pkg.location.row || "N/A"
-                                  } - ${pkg.location.column || "N/A"} (Còn: ${pkg.quantity})`
+                                ? `${pkg.batch.batch_code}, Vị trí: ${pkg.location.area_name || "N/A"} - ${pkg.location.bay || "N/A"} - ${pkg.location.row || "N/A"} - ${pkg.location.column || "N/A"}`
                                 : "Gói không xác định"}
                             </Typography>
-                            <TextField
-                              type="number"
-                              size="small"
-                              inputProps={{ min: 0, max: maxQuantity }}
-                              value={sp.quantity}
-                              onChange={(e) => handleQuantityChange(detail.medicine_id, sp.package_id, e.target.value)}
-                              sx={{ width: 90 }}
-                              disabled={
-                                currentUserRole === USER_ROLES.WAREHOUSEMANAGER || selectedOrder?.status === "completed"
-                              }
-                              error={isInvalidQuantity}
-                              helperText={isInvalidQuantity ? `Tối đa ${maxQuantity}` : ""}
-                            />
-                            <IconButton
-                              color="error"
-                              onClick={() => removePackage(detail.medicine_id, sp.package_id)}
-                              disabled={
-                                currentUserRole === USER_ROLES.WAREHOUSEMANAGER || selectedOrder?.status === "completed"
-                              }
-                              size="small"
-                            >
-                              <Delete fontSize="small" />
-                            </IconButton>
                           </Box>
                         )
                       })}
                     </Stack>
-                  )}
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<Add />}
-                    onClick={() => setShowingPackageListFor(detail.medicine_id)}
-                    disabled={currentUserRole === USER_ROLES.WAREHOUSEMANAGER || selectedOrder?.status === "completed"}
-                    sx={{ mb: 2 }}
-                  >
-                    Thêm thùng hàng
-                  </Button>
-                  {showingPackageListFor === detail.medicine_id && (
-                    <Box sx={{ mt: 2, border: 1, borderColor: "divider", p: 2, borderRadius: 1, bgcolor: "grey.50" }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Thùng hàng có sẵn:
-                      </Typography>
-                      {availablePackages[detail.medicine_id]?.filter(
-                        (pkg) => !detail.selected_packages.some((sp) => sp.package_id === pkg._id),
-                      ).length === 0 ? (
-                        <Typography variant="body2" color="text.secondary">
-                          Không có thùng hàng nào khác có sẵn.
-                        </Typography>
-                      ) : (
-                        <Stack spacing={1}>
-                          {availablePackages[detail.medicine_id]
-                            ?.filter((pkg) => !detail.selected_packages.some((sp) => sp.package_id === pkg._id))
-                            .map((pkg) => (
-                              <Box
-                                key={pkg._id}
-                                display="flex"
-                                alignItems="center"
-                                gap={2}
-                                sx={{
-                                  p: 1,
-                                  bgcolor: "background.paper",
-                                  borderRadius: 1,
-                                  border: "1px solid",
-                                  borderColor: "grey.200",
-                                }}
-                              >
-                                <Typography variant="body2" flex={1}>
-                                  {pkg.batch.batch_code} - Vị trí: {pkg.location.area_name || "N/A"} (Kệ:{" "}
-                                  {pkg.location.bay || "N/A"}, Hàng: {pkg.location.row || "N/A"}, Cột:{" "}
-                                  {pkg.location.column || "N/A"}) (Còn: {pkg.quantity})
-                                </Typography>
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => addPackage(detail.medicine_id, pkg._id)}
-                                  disabled={selectedOrder?.status === "completed"}
-                                >
-                                  Chọn
-                                </Button>
-                              </Box>
-                            ))}
-                        </Stack>
-                      )}
-                      <Button variant="text" size="small" onClick={() => setShowingPackageListFor(null)} sx={{ mt: 1 }}>
-                        Hủy chọn
-                      </Button>
-                    </Box>
                   )}
                   <Typography variant="body2" sx={{ mt: 2, fontWeight: "medium" }}>
                     Tổng chọn: {totalActualQuantity} / {detail.expected_quantity} {unitOfMeasure}
@@ -1069,8 +969,6 @@ export default function ManageExportOrders() {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Confirm Dialog (Integrated from managePacking.js) */}
       <ModalConfirm
         open={confirmDialog.open}
         title={confirmDialog.title}
@@ -1081,7 +979,6 @@ export default function ManageExportOrders() {
         confirmText={confirmDialog.confirmText}
         cancelText={confirmDialog.cancelText}
       />
-      {/* Message Dialog (Integrated from managePacking.js) */}
       <ModalConfirm
         open={messageDialog.open}
         title={messageDialog.title}
