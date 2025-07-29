@@ -497,7 +497,7 @@ const assignWarehouseManager = async (req, res, next) => {
     const { warehouse_manager_id } = req.body;
 
     // Kiểm tra quyền - chỉ representative_manager mới được assign
-    if (req.user.role !== 'representative_manager') {
+    if (req.user.role !== 'warehouse_manager') {
       return res.status(403).json({
         success: false,
         error: 'Only representative managers can assign warehouse managers'

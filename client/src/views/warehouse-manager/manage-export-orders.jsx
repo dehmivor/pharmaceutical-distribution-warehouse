@@ -178,16 +178,16 @@ export default function ManageExportOrders() {
       const currentDate = date !== null ? date : filterDate
       const currentStatus = status !== null ? status : filterStatus
       // allow multiple status values if needed; here just one
-      const statusParams = currentStatus ? [currentStatus] : ["approved"] // Original logic had 'approved' default
+      // Original logic had 'approved' default if currentStatus is empty.
+      // To fetch all statuses when filterStatus is empty, remove the statusParams array and conditional append.
+      // If currentStatus is empty, no 'status' query param is sent, fetching all.
+      // If currentStatus is selected, it sends that specific status.
 
       const qp = new URLSearchParams()
       qp.append("page", (currentPage + 1).toString())
       qp.append("limit", currentLimit.toString())
       if (currentDate) qp.append("createdAt", currentDate)
-      if (currentStatus) qp.append("status", currentStatus) // Only append if a specific status is selected
-      // If 'All' is selected, don't append status, or handle it based on backend
-      // For now, keeping original behavior: if currentStatus is empty, it means 'All' and no status param is sent.
-      // If currentStatus is 'approved', it sends 'approved'.
+      if (currentStatus) qp.append("status", currentStatus)
 
       const url = `${backendUrl}/api/export-orders${qp.toString() ? `?${qp.toString()}` : ""}`
       const resp = await axios.get(url, { headers: getAuthHeaders() })
@@ -558,6 +558,56 @@ export default function ManageExportOrders() {
     })
   }
 
+  // New function to assign order to current user
+  const handleAssignToMyself = async (orderId) => {
+    handleMenuClose() // Close the menu immediately
+    setConfirmDialog({
+      open: true,
+      title: "Xác nhận phân công",
+      content: "Bạn có chắc chắn muốn tự phân công đơn hàng này cho mình không?",
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, loading: true }))
+        try {
+          const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+          const token = getAuthToken()
+          if (!token) {
+            setMessageDialog({ open: true, title: "Lỗi", content: "Không có token xác thực. Vui lòng đăng nhập lại." })
+            return
+          }
+
+          const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/assign-warehouse-manager`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ warehouse_manager_id: currentUserId }),
+          })
+
+          if (!res.ok) {
+            const errorData = await res.json()
+            throw new Error(errorData.error || "Failed to assign warehouse manager")
+          }
+
+          const updatedOrder = await res.json()
+          setOrders((prev) => prev.map((order) => (order._id === orderId ? updatedOrder.data : order)))
+          setMessageDialog({ open: true, title: "Thành công", content: "Đơn hàng đã được phân công cho bạn!" })
+        } catch (error) {
+          setMessageDialog({
+            open: true,
+            title: "Lỗi",
+            content: `Phân công đơn hàng thất bại: ${error.message || ""}`,
+          })
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, open: false, loading: false }))
+        }
+      },
+      confirmText: "Xác nhận",
+      cancelText: "Hủy",
+      loading: false,
+    })
+  }
+
   if (loading || isRoleLoading || !currentUserRole) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", height: "50vh", alignItems: "center" }}>
@@ -678,6 +728,16 @@ export default function ManageExportOrders() {
         >
           Detail
         </MenuItem>
+        {/* New "Assign to myself" button */}
+        {currentUserRole === USER_ROLES.WAREHOUSEMANAGER && !menuOrder?.warehouse_manager_id && (
+          <MenuItem
+            onClick={() => {
+              handleAssignToMyself(menuOrder._id)
+            }}
+          >
+            Assign order to myself
+          </MenuItem>
+        )}
       </Menu>
 
       {/* View Details Dialog (Integrated from managePacking.js) */}
@@ -812,7 +872,7 @@ export default function ManageExportOrders() {
               Đóng gói
             </Button>
           )}
-          {currentUserRole === USER_ROLES.WAREHOUSEMANAGER && (
+          {currentUserRole === USER_ROLES.WAREHOUSEMANAGER && selectedOrder?.status === "approved" && (
             <>
               <Button variant="contained" color="primary" onClick={() => handleCompleteOrder(selectedOrder._id)}>
                 Hoàn thành
@@ -1007,16 +1067,6 @@ export default function ManageExportOrders() {
           <Button onClick={handleClosePackingDialog} variant="outlined" color="secondary">
             Đóng
           </Button>
-          {(currentUserRole === USER_ROLES.WAREHOUSE || currentUserRole === USER_ROLES.WAREHOUSEMANAGER) && (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleUpdatePacking}
-              disabled={selectedOrder?.status === "completed"}
-            >
-              Cập nhật
-            </Button>
-          )}
         </DialogActions>
       </Dialog>
 
