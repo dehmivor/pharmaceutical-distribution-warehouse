@@ -1,24 +1,19 @@
 'use client';
-import { FilterList as FilterIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
-import Menu from '@mui/material/Menu';
+import { MoreVert as MoreVertIcon } from '@mui/icons-material';
+import { ArrowDownward as ArrowDownwardIcon, ArrowUpward as ArrowUpwardIcon } from '@mui/icons-material';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SearchIcon from '@mui/icons-material/Search';
+import InputAdornment from '@mui/material/InputAdornment';
 import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormControl,
-  Grid,
   IconButton,
-  InputLabel,
   MenuItem,
-  Select,
+  Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -26,17 +21,14 @@ import {
   TableHead,
   TablePagination,
   TableRow,
+  TextField,
   Typography
 } from '@mui/material';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import Menu from '@mui/material/Menu';
 import { useEffect, useState } from 'react';
 
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import axios from 'axios';
-import { vi } from 'date-fns/locale';
-import { useRouter } from 'next/navigation'; // Nếu Next.js 13+, còn nếu khác hãy dùng react-router hoặc cách tương tự
-import { orderColumns } from '@tanstack/react-table';
+import { useRouter } from 'next/navigation';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -69,13 +61,10 @@ const CheckOrders = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOrder, setMenuOrder] = useState(null);
 
-  // Filters
-  const [filters, setFilters] = useState({
-    status: '',
-    warehouse_manager_id: '',
-    startDate: null,
-    endDate: null
-  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
 
   const handleMenuOpen = (e, order) => {
     setAnchorEl(e.currentTarget);
@@ -87,19 +76,25 @@ const CheckOrders = () => {
     setMenuOrder(null);
   };
 
-  // Fetch data
   const fetchOrders = async () => {
     setLoading(true);
     setError('');
     try {
-      const params = new URLSearchParams({
-        page: String(page + 1),
-        limit: String(rowsPerPage)
-      });
-      if (filters.status) params.append('status', filters.status);
-      if (filters.warehouse_manager_id) params.append('warehouse_manager_id', filters.warehouse_manager_id);
-      if (filters.startDate) params.append('startDate', filters.startDate.toISOString());
-      if (filters.endDate) params.append('endDate', filters.endDate.toISOString());
+      const params = new URLSearchParams();
+      params.append('page', String(page + 1));
+      params.append('limit', String(rowsPerPage));
+
+      if (filterStatus) params.append('status', filterStatus);
+      if (filterDate) {
+        const startDate = new Date(filterDate);
+        const startIso = new Date(startDate.setHours(0, 0, 0, 0)).toISOString();
+        const endIso = new Date(startDate.setHours(23, 59, 59, 999)).toISOString();
+
+        params.append('startDate', startIso);
+        params.append('endDate', endIso);
+      }
+      if (searchTerm.trim() !== '') params.append('search', searchTerm.trim());
+      if (sortDirection) params.append('sortDirection', sortDirection);
 
       const res = await axiosInstance.get(`/api/inventory-check-orders?${params.toString()}`, {
         headers: getAuthHeaders()
@@ -121,26 +116,53 @@ const CheckOrders = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, [page, rowsPerPage, filters]);
+  }, [page, rowsPerPage, filterStatus, filterDate, sortDirection]);
 
-  // Handle filter change
   const handleFilterChange = (field, value) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
+    switch (field) {
+      case 'status':
+        setFilterStatus(value);
+        break;
+      case 'date':
+        setFilterDate(value);
+        break;
+      case 'search':
+        setSearchTerm(value);
+        break;
+      case 'sortDirection':
+        setSortDirection(value);
+        break;
+      default:
+        break;
+    }
     setPage(0);
   };
 
-  // Pagination
-  const handlePageChange = (event, newPage) => setPage(newPage);
+  const handleSearchClick = () => {
+    // Vì đã lọc theo từng biến và fetch tự động load effect, chỉ cần fetchOrders nếu muốn gọi lại ngay
+    fetchOrders();
+  };
+
+  const handleReset = () => {
+    setSearchTerm('');
+    setFilterStatus('');
+    setFilterDate('');
+    setSortDirection('asc');
+    setPage(0);
+  };
+
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
+  };
+
   const handleRowsPerPageChange = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
-  // Format date/time
   const formatDate = (d) => (d ? new Date(d).toLocaleDateString('vi-VN') : '');
   const formatDateTime = (d) => (d ? new Date(d).toLocaleString('vi-VN', { hour12: false }) : '');
 
-  // Status color
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending':
@@ -159,7 +181,7 @@ const CheckOrders = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Danh Sách Phiếu Kiểm Kê Toàn Kho
+        Danh Sách Phiếu Kiểm Kê Tổng
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
         Quản lý và theo dõi các phiếu kiểm kê kho. Bạn có thể lọc, tìm kiếm và xem chi tiết từng phiếu kiểm kê.
@@ -176,130 +198,135 @@ const CheckOrders = () => {
         </Alert>
       )}
 
-      {/* Filters */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
-            <FilterIcon color="primary" />
-            <Typography variant="h6" color="primary" fontWeight={600}>
-              Bộ lọc tìm kiếm
-            </Typography>
-          </Box>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Trạng thái</InputLabel>
-                <Select
-                  value={filters.status}
-                  label="Trạng thái các phiếu"
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
-                  displayEmpty
-                >
-                  {statusOptions.map((status) => (
-                    <MenuItem key={status} value={status}>
-                      {status}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+      <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+          <TextField
+            fullWidth
+            variant="outlined"
+            size="small"
+            label="Tìm kiếm"
+            placeholder="Tìm kiếm "
+            value={searchTerm}
+            onChange={(e) => handleFilterChange('search', e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" />
+                </InputAdornment>
+              )
+            }}
+          />
+          <TextField
+            fullWidth
+            label="Ngày kiểm kê"
+            type="date"
+            value={filterDate}
+            onChange={(e) => handleFilterChange('date', e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            size="small"
+          />
+          <TextField
+            fullWidth
+            select
+            label="Trạng thái"
+            value={filterStatus}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+            size="small"
+          >
+            <MenuItem value="">Tất cả</MenuItem>
+            {statusOptions.map((s) => (
+              <MenuItem key={s} value={s}>
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </MenuItem>
+            ))}
+          </TextField>
+          <Button
+            fullWidth
+            variant="outlined"
+            size="small"
+            startIcon={sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
+            onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+          >
+            {sortDirection === 'asc' ? 'Tăng dần' : 'Giảm dần'}
+          </Button>
 
-            <Grid item xs={12} sm={6} md={3}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
-                <DatePicker
-                  label="Từ ngày"
-                  value={filters.startDate}
-                  onChange={(newValue) => handleFilterChange('startDate', newValue)}
-                  slotProps={{
-                    textField: { fullWidth: true, size: 'small' }
-                  }}
-                />
-              </LocalizationProvider>
-            </Grid>
+          <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
+            Search
+          </Button>
+          <Button fullWidth size="small" variant="outlined" onClick={handleReset}>
+            Refresh
+          </Button>
+        </Stack>
+      </Box>
 
-            <Grid item xs={12} sm={6} md={3}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
-                <DatePicker
-                  label="Đến ngày"
-                  value={filters.endDate}
-                  onChange={(newValue) => handleFilterChange('endDate', newValue)}
-                  slotProps={{
-                    textField: { fullWidth: true, size: 'small' }
-                  }}
-                />
-              </LocalizationProvider>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ bgcolor: 'grey.100' }}>
-                <TableCell>Ngày kiểm kê</TableCell>
-                <TableCell>Warehouse Manager</TableCell>
-                <TableCell>Người tạo</TableCell>
-                <TableCell>Trạng thái</TableCell>
-                <TableCell>Ghi chú</TableCell>
-                <TableCell>Ngày tạo</TableCell>
-                <TableCell>Ngày cập nhật</TableCell>
-                <TableCell align="center">Hành động</TableCell>
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow sx={{ bgcolor: 'grey.100', fontWeight: 'bold' }}>
+              <TableCell>ID Phiếu</TableCell>
+              <TableCell>Ngày kiểm kê</TableCell>
+              <TableCell>Warehouse Manager</TableCell>
+              <TableCell>Người tạo</TableCell>
+              <TableCell>Trạng thái</TableCell>
+              <TableCell>Ghi chú</TableCell>
+              <TableCell>Ngày tạo</TableCell>
+              <TableCell>Ngày cập nhật</TableCell>
+              <TableCell align="center">Hành động</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                  <CircularProgress />
+                </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
-                    <CircularProgress />
+            ) : orders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                  Không có phiếu kiểm kê
+                </TableCell>
+              </TableRow>
+            ) : (
+              orders.map((order) => (
+                <TableRow key={order._id} hover>
+                  <TableCell>{order._id.slice(-6)}</TableCell>
+                  <TableCell>{formatDate(order.inventory_check_date)}</TableCell>
+                  <TableCell>
+                    <Typography>{order.warehouse_manager_id?.email.split('@')[0] || 'N/A'}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography>{order.created_by?.email.split('@')[0] || 'N/A'}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip label={order.status} size="small" color={getStatusColor(order.status)} variant="filled" />
+                  </TableCell>
+                  <TableCell>{order.notes || '-'}</TableCell>
+                  <TableCell>{formatDateTime(order.createdAt)}</TableCell>
+                  <TableCell>{formatDateTime(order.updatedAt)}</TableCell>
+                  <TableCell align="center" sx={{ display: 'flex', justifyContent: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                    <IconButton onClick={(e) => handleMenuOpen(e, order)}>
+                      <MoreVertIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
-              ) : orders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
-                    Không có phiếu kiểm kê
-                  </TableCell>
-                </TableRow>
-              ) : (
-                orders.map((order) => (
-                  <TableRow key={order._id} hover>
-                    <TableCell>{formatDate(order.inventory_check_date)}</TableCell>
-                    <TableCell>
-                      <Typography>{order.warehouse_manager_id?.email || 'N/A'}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography>{order.created_by?.email || 'N/A'}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip label={order.status} size="small" color={getStatusColor(order.status)} variant="filled" />
-                    </TableCell>
-                    <TableCell>{order.notes || '-'}</TableCell>
-                    <TableCell>{formatDateTime(order.createdAt)}</TableCell>
-                    <TableCell>{formatDateTime(order.updatedAt)}</TableCell>
-                    <TableCell align="center" sx={{ display: 'flex', justifyContent: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-                      <IconButton onClick={(e) => handleMenuOpen(e, order)}>
-                        <MoreVertIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={totalCount}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-          labelRowsPerPage="Số hàng mỗi trang"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`}
-        />
-      </Card>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={totalCount}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handlePageChange}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        labelRowsPerPage="Số hàng mỗi trang"
+        labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`}
+      />
 
       <Menu
         anchorEl={anchorEl}
@@ -324,13 +351,7 @@ const CheckOrders = () => {
         >
           Create Check Inspection
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            handleMenuClose();
-          }}
-        >
-          Start Checking Inventory
-        </MenuItem>
+        <MenuItem onClick={handleMenuClose}>Start Checking Inventory</MenuItem>
       </Menu>
     </Box>
   );
