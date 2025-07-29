@@ -1,6 +1,7 @@
 const InventoryCheckInspection = require('../models/InventoryCheckInspection');
 const InventoryCheckOrder = require('../models/InventoryCheckOrder');
 const mongoose = require('mongoose');
+const LogLocationChange = require('../models/LogLocationChange');
 const getInspectionsFromCheckOrder = async (checkOrderId) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(checkOrderId)) {
@@ -57,28 +58,23 @@ const deleteCheckInspection = async (inspectionId) => {
 const getCheckOrderById = async (checkOrderId) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(checkOrderId)) {
-      throw new Error('Invalid inspection ID');
+      throw new Error('Invalid check order ID');
     }
 
-    const inspection = await InventoryCheckOrder.findById(checkOrderId)
-      .populate('inventory_check_order_id', 'name')
-      .populate({
-        path: 'location_id',
-        select: 'bay row column area_id',
-        populate: {
-          path: 'area_id',
-          select: 'name',
-        },
-      })
-      .populate('check_by', 'username email')
-      .populate({
-        path: 'check_list.medicine_id',
-        select: 'medicine_name license_code',
-      });
+    const checkorderData = await InventoryCheckOrder.findById(checkOrderId).populate(
+      'created_by',
+      'username email',
+    );
 
-    return inspection;
+    const loglocation = await LogLocationChange.find({
+      inventory_check_order_id: checkOrderId,
+    });
+    return {
+      checkorder: checkorderData,
+      loglocation: loglocation,
+    };
   } catch (error) {
-    console.error('Error fetching inspection by ID:', error);
+    console.error('Error fetching check order by ID:', error);
     throw error;
   }
 };

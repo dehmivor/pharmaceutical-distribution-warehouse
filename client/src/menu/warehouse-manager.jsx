@@ -12,34 +12,27 @@ const warehouseManager = {
       icon: 'IconFileImport'
     },
     {
+      id: 'inventory',
+      title: 'Inventory',
+      type: 'collapse',
+      icon: 'IconBrandMinecraft',
+      children: [
+        {
+          id: 'view-inventory-check-orders',
+          title: 'Check Orders Management',
+          type: 'item',
+          url: '/wm-inventory',
+          icon: 'IconList'
+        }
+      ]
+    },
+    {
       id: 'manage-export-orders',
       title: 'Export Orders Management',
       type: 'item',
       url: '/wm-export-orders',
       icon: 'IconFileImport'
-    },
-    {
-      id: 'inventory-management',
-      title: 'Inventory Management',
-      type: 'item',
-      url: '/wm-dashboard-import',
-      icon: 'IconBoxMultiple'
-    },
-    {
-      id: 'checking',
-      title: 'Checking',
-      type: 'collapse',
-      icon: 'IconFileExport',
-      children: [
-        {
-          id: 'manage-inventory-checking',
-          title: 'Manage Inventory',
-          type: 'item',
-          url: '/wm-manage-inventory',
-          icon: 'IconFileExport'
-        }
-      ]
-    },
+    }
   ]
 };
 
