@@ -14,5 +14,5 @@ package-lock.json
 .env.local
 .env.development
 .env.production
-.history
+.history/
 
