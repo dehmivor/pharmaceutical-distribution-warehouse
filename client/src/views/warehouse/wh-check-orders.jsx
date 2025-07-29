@@ -349,9 +349,8 @@ const CheckOrders = () => {
             handleMenuClose();
           }}
         >
-          Create Check Inspection
+          Start Checking Inventory
         </MenuItem>
-        <MenuItem onClick={handleMenuClose}>Start Checking Inventory</MenuItem>
       </Menu>
     </Box>
   );

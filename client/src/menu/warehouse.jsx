@@ -71,6 +71,13 @@ const warehouse = {
         }
       ]
     },
+    {
+      id: 'warehouse-dashboard',
+      title: 'Warehouse Dashboard',
+      type: 'item',
+      url: '/wh-dashboard-import',
+      icon: 'IconDashboard'
+    }
   ]
 };
 

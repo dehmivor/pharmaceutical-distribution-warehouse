@@ -107,7 +107,6 @@ function CheckInspections() {
       })
       .catch((error) => {
         console.error('Failed to load inventory check order:', error);
-        enqueueSnackbar('Không tải được danh sách thuốc từ đơn hàng kiểm kê', { variant: 'error' });
       });
   }, [checkOrderId, backendUrl, authToken]);
 
@@ -292,65 +291,6 @@ function CheckInspections() {
       <Typography variant="body1" color="text.secondary" mb={3}>
         Quản lý và theo dõi các phiếu kiểm kê cho đợt kiểm kê toàn kho
       </Typography>
-
-      <form onSubmit={handleSubmit}>
-        <Grid container spacing={2} alignItems="center" sx={{ marginBottom: 2 }}>
-          <Grid item xs={12} md={4}>
-            <TextField
-              select
-              fullWidth
-              label="Chọn thuốc"
-              value={selectedMedicineId}
-              onChange={(e) => setSelectedMedicineId(e.target.value)}
-            >
-              {inventoryItems.map((item) => (
-                <MenuItem key={item.id} value={item.id}>
-                  {item.name} (Tồn kho: {item.stock})
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label={`Số lượng kiểm kê (Tồn kho: ${inventoryItems.find((m) => m.id === selectedMedicineId)?.stock ?? 0})`}
-              type="number"
-              inputProps={{ min: 0 }}
-              value={actualQuantities[selectedMedicineId]}
-              onChange={(e) => handleActualQuantityChange(selectedMedicineId, e.target.value)}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <TextField
-              select
-              fullWidth
-              label="Chọn vị trí"
-              value={locations[selectedMedicineId] || ''}
-              onChange={(e) => handleLocationChange(selectedMedicineId, e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            >
-              <MenuItem value="">-- Chọn vị trí --</MenuItem>
-              {locationsList.map((loc) => (
-                <MenuItem key={loc._id} value={loc._id}>
-                  {getLocationLabel(loc._id)}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField fullWidth label="Ghi chú" multiline rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
-          </Grid>
-
-          <Grid item xs={12}>
-            <Button variant="contained" color="primary" type="submit" disabled={!authToken || !checkBy}>
-              Tạo phiếu kiểm kê
-            </Button>
-          </Grid>
-        </Grid>
-      </form>
 
       <Box sx={{ marginTop: 6 }}>
         <Typography variant="h5" gutterBottom>
