@@ -141,14 +141,14 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
       if (!/^\d+-\d+$|^-\d+$|^\d+$/.test(formData.storage_conditions.temperature)) {
         newErrors.storage_conditions = {
           ...newErrors.storage_conditions,
-          temperature: 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X" (chỉ số)'
+          temperature: 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X"'
         };
       }
     }
 
     if (formData.storage_conditions.humidity.trim()) {
       if (!/^\d+$|^\d+-\d+$/.test(formData.storage_conditions.humidity)) {
-        newErrors.storage_conditions = { ...newErrors.storage_conditions, humidity: 'Độ ẩm phải có định dạng "X" hoặc "X-Y" (chỉ số)' };
+        newErrors.storage_conditions = { ...newErrors.storage_conditions, humidity: 'Độ ẩm phải có định dạng "X" hoặc "X-Y"' };
       }
     }
 
@@ -246,31 +246,11 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
       // Handle nested objects like storage_conditions.temperature
       const [parent, child] = field.split('.');
 
-      // Auto-format temperature
-      let formattedValue = value;
-      if (parent === 'storage_conditions' && child === 'temperature') {
-        // Remove any existing °C and format
-        const cleanValue = value.replace(/°C/g, '').trim();
-        if (cleanValue) {
-          // Check if it's a range (contains -)
-          if (cleanValue.includes('-') && !cleanValue.startsWith('-')) {
-            // Format as range: X-Y°C
-            formattedValue = cleanValue + '°C';
-          } else if (cleanValue.startsWith('-')) {
-            // Format as negative: -X°C
-            formattedValue = cleanValue + '°C';
-          } else {
-            // Single positive number: X°C
-            formattedValue = cleanValue + '°C';
-          }
-        }
-      }
-
       setFormData((prev) => ({
         ...prev,
         [parent]: {
           ...prev[parent],
-          [child]: formattedValue
+          [child]: value
         }
       }));
     } else {
@@ -465,7 +445,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     value={formData.storage_conditions.temperature}
                     onChange={(e) => handleInputChange('storage_conditions.temperature', e.target.value)}
                     error={!!errors.storage_conditions?.temperature}
-                    helperText={errors.storage_conditions?.temperature || 'Định dạng: X-Y, -X hoặc X (chỉ số, không bắt buộc)'}
+                    helperText={errors.storage_conditions?.temperature || 'Định dạng: X-Y, -X hoặc X (°C)'}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -481,7 +461,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     value={formData.storage_conditions.humidity}
                     onChange={(e) => handleInputChange('storage_conditions.humidity', e.target.value)}
                     error={!!errors.storage_conditions?.humidity}
-                    helperText={errors.storage_conditions?.humidity || 'Định dạng: X hoặc X-Y (chỉ số, không bắt buộc)'}
+                    helperText={errors.storage_conditions?.humidity || 'Định dạng: X hoặc X-Y (%)'}
                     variant="outlined"
                     size="medium"
                     InputProps={{

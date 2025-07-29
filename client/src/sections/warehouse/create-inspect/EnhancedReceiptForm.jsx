@@ -401,7 +401,6 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
       enqueueSnackbar(res.data.message, { variant: 'success' });
       if (onReceiptCreate) onReceiptCreate(res.data);
       setReceiptData((prev) => ({ ...prev, notes: '' }));
-      setInspections((prev) => [...prev, ...res.data.data]);
     } catch (error) {
       enqueueSnackbar('Không thể tạo phiếu kiểm nhập', { variant: 'error' });
     } finally {
