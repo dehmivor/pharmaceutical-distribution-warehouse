@@ -478,6 +478,7 @@ function ExportOrderPage() {
                     value={filters.status}
                     onChange={(e) => handleFilterChange('status', e.target.value)}
                     label="Trạng thái"
+                    sx={{ minWidth: '140px' }}
                   >
                     <MenuItem value="">Tất cả trạng thái</MenuItem>
                     <MenuItem value="draft">Draft</MenuItem>
@@ -496,6 +497,7 @@ function ExportOrderPage() {
                     value={filters.date_filter || ''}
                     onChange={(e) => handleFilterChange('date_filter', e.target.value)}
                     label="Ngày tạo"
+                    sx={{ minWidth: '140px' }}
                   >
                     <MenuItem value="">Tất cả ngày</MenuItem>
                     <MenuItem value="today">Hôm nay</MenuItem>
@@ -505,15 +507,18 @@ function ExportOrderPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid item xs={12} sm={4}>
                 <FormControl fullWidth>
                   <InputLabel>Người tạo</InputLabel>
                   <Select
                     value={filters.created_by}
                     onChange={(e) => handleFilterChange('created_by', e.target.value)}
                     label="Người tạo"
+                    sx={{ minWidth: '200px' }}
                   >
-                    
+                    <MenuItem value="">Tất cả người tạo</MenuItem>
+                    <MenuItem value="current_user">Tôi tạo</MenuItem>
+                    <MenuItem value="others">Người khác tạo</MenuItem>
                     {userEmails.length > 0 && (
                       <MenuItem disabled>
                         <Typography variant="caption" color="text.secondary">

@@ -112,6 +112,28 @@ const supervisor = {
           icon: 'IconMapPin'
         }
       ]
+    },
+    {
+      id: 'contract-management',
+      title: 'Contract Management',
+      type: 'collapse',
+      icon: 'IconFileContract',
+      children: [
+        {
+          id: 'retailer-contracts',
+          title: 'Retailer Contracts',
+          type: 'item',
+          url: '/sp-retailer-contracts',
+          icon: 'IconBuildingStore'
+        },
+        {
+          id: 'supplier-contracts',
+          title: 'Supplier Contracts',
+          type: 'item',
+          url: '/sp-supplier-contracts',
+          icon: 'IconTruck'
+        }
+      ]
     }
   ]
 };
