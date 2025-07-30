@@ -38,4 +38,25 @@ const exportOrderSchema = new mongoose.Schema(
   { timestamps: true }, // Add timestamps for createdAt and updatedAt
 )
 
+// Validation: Kiểm tra contract phải là Retailer contract
+exportOrderSchema.pre('save', async function (next) {
+  if (this.contract_id) {
+    try {
+      const Contract = mongoose.model('Contract');
+      const contract = await Contract.findById(this.contract_id);
+
+      if (!contract) {
+        return next(new Error('Contract not found'));
+      }
+
+      if (contract.partner_type !== 'Retailer') {
+        return next(new Error('Export orders can only be created for retailer contracts'));
+      }
+    } catch (error) {
+      return next(error);
+    }
+  }
+  next();
+});
+
 module.exports = mongoose.model("ExportOrder", exportOrderSchema)
