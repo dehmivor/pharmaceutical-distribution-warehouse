@@ -132,25 +132,7 @@ const AnnexDialog = ({
           setAnnex(null);
         }
         
-        // For representative_manager: only use annex medicines for display
-        // For representative: need to fetch all medicines for selection
-        if (user?.role === 'representative_manager' && annex) {
-          // Get medicines from annex only
-          let annexMedicines = [];
-          if (annex && annex.medicine_changes) {
-            const addItems = annex.medicine_changes.add_items || [];
-            const removeItems = annex.medicine_changes.remove_items || [];
-            const updateItems = annex.medicine_changes.update_prices || [];
-            
-            annexMedicines = [
-              ...addItems.map(item => item.medicine_id),
-              ...removeItems.map(item => item.medicine_id),
-              ...updateItems.map(item => item.medicine_id)
-            ];
-          }
-          
-          setMedicines(annexMedicines);
-        }
+
       }
     } catch (error) {
       console.error('Error fetching contract detail:', error);
@@ -235,6 +217,28 @@ const AnnexDialog = ({
       }
     }
   }, [open, contractId, userRole]);
+
+  // Handle medicines for representative_manager when annex changes
+  useEffect(() => {
+    if (userRole === 'representative_manager' && annex) {
+      // Get medicines from annex only - use the populated medicine objects
+      let annexMedicines = [];
+      if (annex && annex.medicine_changes) {
+        const addItems = annex.medicine_changes.add_items || [];
+        const removeItems = annex.medicine_changes.remove_items || [];
+        const updateItems = annex.medicine_changes.update_prices || [];
+        
+        // Extract medicine objects (already populated from backend)
+        annexMedicines = [
+          ...addItems.map(item => item.medicine_id),
+          ...removeItems.map(item => item.medicine_id),
+          ...updateItems.map(item => item.medicine_id)
+        ].filter(medicine => medicine && typeof medicine === 'object'); // Filter out string IDs
+      }
+      
+      setMedicines(annexMedicines);
+    }
+  }, [annex, userRole]);
 
   useEffect(() => {
     if (annex) {
@@ -459,6 +463,9 @@ const AnnexDialog = ({
       signed_date: formData.signed_date ? format(formData.signed_date, 'yyyy-MM-dd') : null,
     };
 
+    // Initialize medicine_changes object
+    const medicine_changes = {};
+
     // Medicine changes
     const add_items = formData.medicine_changes.add_items
       .filter(item => item.medicine_id)
@@ -466,12 +473,12 @@ const AnnexDialog = ({
         medicine_id: item.medicine_id,
         unit_price: item.unit_price
       }));
-    if (add_items.length > 0) payload.medicine_changes = { ...payload.medicine_changes, add_items };
+    if (add_items.length > 0) medicine_changes.add_items = add_items;
 
     const remove_items = formData.medicine_changes.remove_items
       .filter(item => item.medicine_id)
       .map(item => ({ medicine_id: item.medicine_id }));
-    if (remove_items.length > 0) payload.medicine_changes = { ...payload.medicine_changes, remove_items };
+    if (remove_items.length > 0) medicine_changes.remove_items = remove_items;
 
     const update_prices = formData.medicine_changes.update_prices
       .filter(item => item.medicine_id)
@@ -479,11 +486,11 @@ const AnnexDialog = ({
         medicine_id: item.medicine_id,
         unit_price: item.unit_price
       }));
-    if (update_prices.length > 0) payload.medicine_changes = { ...payload.medicine_changes, update_prices };
+    if (update_prices.length > 0) medicine_changes.update_prices = update_prices;
 
     // Only add medicine_changes if it has at least one key
-    if (payload.medicine_changes && Object.keys(payload.medicine_changes).length === 0) {
-      delete payload.medicine_changes;
+    if (Object.keys(medicine_changes).length > 0) {
+      payload.medicine_changes = medicine_changes;
     }
 
     // End date change
@@ -501,6 +508,7 @@ const AnnexDialog = ({
 
     try {
       const payload = buildAnnexPayload();
+      
 
       let result;
       if (currentMode === 'create') {
@@ -740,9 +748,7 @@ const AnnexDialog = ({
                       value={(() => {
                         if (!Array.isArray(medicines)) return null;
                         const found = medicines.find(m => m._id.toString() === item.medicine_id.toString());
-                        console.log('Autocomplete add_items - item.medicine_id:', item.medicine_id);
-                        console.log('Autocomplete add_items - medicines:', medicines.map(m => ({ _id: m._id, name: m.medicine_name })));
-                        console.log('Autocomplete add_items - found:', found);
+                        
                         return found || null;
                       })()}
                       onChange={(_, newValue) => {

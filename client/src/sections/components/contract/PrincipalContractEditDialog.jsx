@@ -183,25 +183,25 @@ const PrincipalContractEditDialog = ({
           ? contract.annexes
               .filter(annex => contract.status === 'active' ? annex.status === 'active' : true)
               .map((annex) => ({
-                ...annex,
-                signed_date: annex.signed_date ? new Date(annex.signed_date) : null,
-                end_date_change: annex.end_date_change ? {
-                  ...annex.end_date_change,
-                  new_end_date: annex.end_date_change.new_end_date ? new Date(annex.end_date_change.new_end_date) : null
-                } : null,
-                medicine_changes: annex.medicine_changes ? {
-                  add_items: annex.medicine_changes.add_items ? annex.medicine_changes.add_items.map((item) => ({
-                    medicine_id: item.medicine_id?._id || item.medicine_id || '',
-                    unit_price: item.unit_price?.toString() || '',
-                  })) : [],
-                  remove_items: annex.medicine_changes.remove_items ? annex.medicine_changes.remove_items.map((item) => ({
-                    medicine_id: item.medicine_id?._id || item.medicine_id || '',
-                  })) : [],
-                  update_prices: annex.medicine_changes.update_prices ? annex.medicine_changes.update_prices.map((item) => ({
-                    medicine_id: item.medicine_id?._id || item.medicine_id || '',
-                    unit_price: item.unit_price?.toString() || '',
-                  })) : [],
-                } : { add_items: [], remove_items: [], update_prices: [] }
+          ...annex,
+          signed_date: annex.signed_date ? new Date(annex.signed_date) : null,
+          end_date_change: annex.end_date_change ? {
+            ...annex.end_date_change,
+            new_end_date: annex.end_date_change.new_end_date ? new Date(annex.end_date_change.new_end_date) : null
+          } : null,
+          medicine_changes: annex.medicine_changes ? {
+            add_items: annex.medicine_changes.add_items ? annex.medicine_changes.add_items.map((item) => ({
+              medicine_id: item.medicine_id?._id || item.medicine_id || '',
+              unit_price: item.unit_price?.toString() || '',
+            })) : [],
+            remove_items: annex.medicine_changes.remove_items ? annex.medicine_changes.remove_items.map((item) => ({
+              medicine_id: item.medicine_id?._id || item.medicine_id || '',
+            })) : [],
+            update_prices: annex.medicine_changes.update_prices ? annex.medicine_changes.update_prices.map((item) => ({
+              medicine_id: item.medicine_id?._id || item.medicine_id || '',
+              unit_price: item.unit_price?.toString() || '',
+            })) : [],
+          } : { add_items: [], remove_items: [], update_prices: [] }
               }))
           : [],
       });

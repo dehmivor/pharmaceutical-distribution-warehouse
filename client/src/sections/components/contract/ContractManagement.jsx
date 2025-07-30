@@ -305,6 +305,8 @@ const ContractManagement = () => {
 
   // Annex handlers
   const handleOpenAnnexDialog = (contract) => {
+    console.log('=== DEBUG handleOpenAnnexDialog ===');
+    console.log('contract:', contract);
     setSelectedContract(contract);
     setOpenAnnexDialog(true);
   };
@@ -319,8 +321,8 @@ const ContractManagement = () => {
 
   useEffect(() => {
     if (!isLoading) {
-      fetchSuppliers();
-      fetchRetailers();
+        fetchSuppliers();
+        fetchRetailers();
     }
   }, [isLoading, userRole]);
 
@@ -620,7 +622,23 @@ const ContractManagement = () => {
                               color="info"
                               size="small"
                               onClick={async () => {
+                                // Find existing annex that can be edited (draft or rejected)
+                                console.log('=== DEBUG ContractManagement annex logic ===');
+                                console.log('contract.annexes:', contract.annexes);
+                                console.log('contract.annexes.map(a => ({code: a.annex_code, status: a.status})):', 
+                                  contract.annexes?.map(a => ({code: a.annex_code, status: a.status})));
+                                console.log('Annexes with rejected status:', 
+                                  contract.annexes?.filter(a => a.status === 'rejected').map(a => ({code: a.annex_code, status: a.status})));
+                                
+                                const existingAnnex = contract.annexes?.find(annex => 
+                                  annex.status === 'draft' || annex.status === 'rejected'
+                                );
+                                
+                                console.log('existingAnnex:', existingAnnex);
+                                console.log('existingAnnex.status:', existingAnnex?.status);
+                                
                                 // Force refresh data to ensure sync
+                                console.log('=== FORCE REFRESH DATA ===');
                                 await fetchContracts();
                                 
                                 // Let AnnexDialog handle the logic based on fresh data

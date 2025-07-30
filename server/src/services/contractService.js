@@ -5,18 +5,7 @@ const { CONTRACT_STATUSES, PARTNER_TYPES, ANNEX_STATUSES, ANNEX_ACTIONS, CONTRAC
 
 const contractService = {
   // Helper function để kiểm tra annex có thay đổi gì không
-  _validateAnnexHasChanges(annex, annexCode = '') {
-    const hasChanges = (
-      (annex.medicine_changes?.add_items && annex.medicine_changes.add_items.length > 0) ||
-      (annex.medicine_changes?.remove_items && annex.medicine_changes.remove_items.length > 0) ||
-      (annex.medicine_changes?.update_prices && annex.medicine_changes.update_prices.length > 0) ||
-      (annex.end_date_change && annex.end_date_change.new_end_date)
-    );
-    
-    if (!hasChanges) {
-      throw new Error(`Phụ lục ${annexCode || annex.annex_code} không có thay đổi nào. Phụ lục phải có ít nhất một thay đổi về thuốc hoặc thời hạn.`);
-    }
-  },
+
   async getAllContracts({
     page,
     limit,
@@ -509,7 +498,16 @@ const contractService = {
     }
 
     // Kiểm tra annex có tác động gì không
-    this._validateAnnexHasChanges(annexData);
+    const hasChanges = (
+      (annexData.medicine_changes?.add_items && annexData.medicine_changes.add_items.length > 0) ||
+      (annexData.medicine_changes?.remove_items && annexData.medicine_changes.remove_items.length > 0) ||
+      (annexData.medicine_changes?.update_prices && annexData.medicine_changes.update_prices.length > 0) ||
+      (annexData.end_date_change && annexData.end_date_change.new_end_date)
+    );
+    
+    if (!hasChanges) {
+      throw new Error(`Phụ lục không có thay đổi nào. Phụ lục phải có ít nhất một thay đổi về thuốc hoặc thời hạn.`);
+    }
 
     // Validate medicine changes
     if (annexData.medicine_changes) {
@@ -590,7 +588,16 @@ const contractService = {
     }
 
     // Kiểm tra annex có tác động gì không
-    this._validateAnnexHasChanges(annexData, annex_code);
+    const hasChanges = (
+      (annexData.medicine_changes?.add_items && annexData.medicine_changes.add_items.length > 0) ||
+      (annexData.medicine_changes?.remove_items && annexData.medicine_changes.remove_items.length > 0) ||
+      (annexData.medicine_changes?.update_prices && annexData.medicine_changes.update_prices.length > 0) ||
+      (annexData.end_date_change && annexData.end_date_change.new_end_date)
+    );
+    
+    if (!hasChanges) {
+      throw new Error(`Phụ lục ${annex_code} không có thay đổi nào. Phụ lục phải có ít nhất một thay đổi về thuốc hoặc thời hạn.`);
+    }
 
     // Validate medicine changes
     if (annexData.medicine_changes) {
@@ -631,17 +638,21 @@ const contractService = {
       const updated = await Contract.findOneAndUpdate(
         { _id: id, 'annexes.annex_code': annex_code },
         { $set: updateData },
-        { new: true, runValidators: true, session }
-      )
+        { new: true, runValidators: false, session }
+      );
+
+      await session.commitTransaction();
+      
+      // Populate after transaction commit to avoid issues
+      const populated = await Contract.findById(id)
         .populate('created_by', 'name email')
         .populate('partner_id', 'name')
         .populate('items.medicine_id', 'medicine_name license_code')
         .populate('annexes.medicine_changes.add_items.medicine_id', 'medicine_name license_code')
         .populate('annexes.medicine_changes.remove_items.medicine_id', 'medicine_name license_code')
         .populate('annexes.medicine_changes.update_prices.medicine_id', 'medicine_name license_code');
-
-      await session.commitTransaction();
-      return updated;
+      
+      return populated;
     } catch (error) {
       await session.abortTransaction();
       throw error;
@@ -827,6 +838,7 @@ const contractService = {
     // Kiểm tra thêm thuốc mới
     if (annexData.medicine_changes && annexData.medicine_changes.add_items) {
       for (const item of annexData.medicine_changes.add_items) {
+        
         if (currentMedicineIds.includes(item.medicine_id.toString())) {
           const medicine = await medicineService.findMedicineById(item.medicine_id);
           const medicineInfo = medicine ? medicine.license_code : item.medicine_id;
@@ -880,10 +892,15 @@ const contractService = {
         const currentMedicineIds = new Set(currentItems.map(item => item.medicine_id.toString()));
         
         // Kiểm tra annex có tác động gì không
-        try {
-          this._validateAnnexHasChanges(annex);
-        } catch (error) {
-          errors.push(error.message);
+        const hasChanges = (
+          (annex.medicine_changes?.add_items && annex.medicine_changes.add_items.length > 0) ||
+          (annex.medicine_changes?.remove_items && annex.medicine_changes.remove_items.length > 0) ||
+          (annex.medicine_changes?.update_prices && annex.medicine_changes.update_prices.length > 0) ||
+          (annex.end_date_change && annex.end_date_change.new_end_date)
+        );
+        
+        if (!hasChanges) {
+          errors.push(`Phụ lục ${annex.annex_code} không có thay đổi nào. Phụ lục phải có ít nhất một thay đổi về thuốc hoặc thời hạn.`);
         }
         
         // Validate medicine changes
