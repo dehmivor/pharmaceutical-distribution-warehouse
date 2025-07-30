@@ -370,7 +370,7 @@ function CheckInspections() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Tạo phiếu kiểm kê kho thuốc
+            Danh sách phiếu kiểm kê con cho 1 đợt
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
             Quản lý và theo dõi các phiếu kiểm kê cho đợt kiểm kê toàn kho
@@ -384,7 +384,7 @@ function CheckInspections() {
           onClick={() => router.push(`/wh-inventory/check-orders/${checkOrderId}`)}
           disabled={loading}
         >
-          Xem thống kê chi tiết của phiếu kiểm kê này
+          Xem thống kê chi tiết của đợt kiểm kê này
         </Button>
       </Box>
 

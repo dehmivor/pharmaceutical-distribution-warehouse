@@ -1,13 +1,12 @@
 'use client';
+import AddUserDialog from '@/sections/supervisor/activate-account/AddUserDialog';
 import ContentSection from '@/sections/supervisor/activate-account/ContentSection';
 import HeaderSection from '@/sections/supervisor/activate-account/HeaderSection';
 import TableSection from '@/sections/supervisor/activate-account/TableSection';
 import { Box, Container } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useState } from 'react';
-import AddUserDialog from '@/sections/supervisor/activate-account/AddUserDialog';
-import UserManagement from '@/sections/supervisor/activate-account/UserManagementTab';
 import axios from 'axios';
+import { useState } from 'react';
 
 function ManageUsers() {
   const theme = useTheme();
@@ -111,9 +110,9 @@ function ManageUsers() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: theme.palette.background.default }}>
+    <Box>
       <HeaderSection />
-      <Container maxWidth={true} sx={{ py: { xs: 2, md: 3 } }}>
+      <Container maxWidth={true} sx={{ py: { xs: 2 } }}>
         <TableSection activeTab={activeTab} handleTabChange={handleTabChange} />
         <ContentSection activeTab={activeTab} onOpenAddUser={handleOpenAddUser} />
       </Container>
