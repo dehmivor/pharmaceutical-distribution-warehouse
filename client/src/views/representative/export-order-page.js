@@ -1,9 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Chip, TextField, Grid, MenuItem, FormControl, InputLabel, Select, IconButton, Menu
+  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Chip, TextField, Grid, MenuItem, FormControl, InputLabel, Select, IconButton, Menu, Pagination, Card, CardContent
 } from '@mui/material';
-import { Add as AddIcon, MoreVert as MoreVertIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
+import { Add as AddIcon, MoreVert as MoreVertIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, Refresh as RefreshIcon, FilterList as FilterListIcon } from '@mui/icons-material';
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -30,13 +30,81 @@ function ExportOrderPage() {
   const [openEditForm, setOpenEditForm] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedOrderForAction, setSelectedOrderForAction] = useState(null);
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [limit] = useState(10);
+  
+  // Filter state
+  const [filters, setFilters] = useState({
+    status: '',
+    contract_code: '',
+    date_filter: '',
+    created_by: ''
+  });
+  const [showFilters, setShowFilters] = useState(false);
+  const [userEmails, setUserEmails] = useState([]);
 
   // Định nghĩa lại hàm fetchOrders
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/export-orders`, { headers: getAuthHeaders() });
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+
+      // Add filters if they have values
+      if (filters.status) params.append('status', filters.status);
+      if (filters.contract_code) params.append('contract_code', filters.contract_code);
+      if (filters.date_filter) params.append('date_filter', filters.date_filter);
+      if (filters.created_by) {
+        if (filters.created_by === 'current_user') {
+          // Lấy user ID từ localStorage hoặc context
+          const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+          if (token) {
+            try {
+              const payload = JSON.parse(atob(token.split('.')[1]));
+              params.append('created_by', payload.userId);
+            } catch (error) {
+              console.error('Error parsing token:', error);
+            }
+          }
+        } else if (filters.created_by === 'others') {
+          // Lấy user ID từ localStorage hoặc context
+          const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+          if (token) {
+            try {
+              const payload = JSON.parse(atob(token.split('.')[1]));
+              params.append('created_by_not', payload.userId);
+            } catch (error) {
+              console.error('Error parsing token:', error);
+            }
+          }
+        } else if (filters.created_by.includes('@')) {
+          // Nếu là email cụ thể, tìm user ID trước
+          const userId = await findUserIdByEmail(filters.created_by);
+          if (userId) {
+            params.append('created_by', userId);
+          } else {
+            // Nếu không tìm thấy user, trả về empty result
+            setOrders([]);
+            setTotalPages(1);
+            setTotalItems(0);
+            setLoading(false);
+            return;
+          }
+        } else {
+          params.append('created_by', filters.created_by);
+        }
+      }
+      
+      const response = await axios.get(`${API_BASE_URL}/api/export-orders?${params}`, { headers: getAuthHeaders() });
       setOrders(response.data.data || []);
+      setTotalPages(response.data.pagination?.totalPages || 1);
+      setTotalItems(response.data.pagination?.total || 0);
     } catch (error) {
       setError(error.response?.data?.error || error.message);
     } finally {
@@ -47,7 +115,7 @@ function ExportOrderPage() {
   // Định nghĩa lại hàm fetchContracts
   const fetchContracts = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/contract?status=active`, { headers: getAuthHeaders() });
+      const response = await axios.get(`${API_BASE_URL}/api/contract?status=active&partner_type=Retailer`, { headers: getAuthHeaders() });
       setContracts(response.data.data.contracts || []);
     } catch (error) {
       setError('Failed to load contracts');
@@ -65,10 +133,62 @@ function ExportOrderPage() {
     }
   };
 
+  // Fetch user emails for filter
+  const fetchUserEmails = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/export-orders`, { 
+        headers: getAuthHeaders(),
+        params: { limit: 1000 } // Lấy nhiều orders để extract emails
+      });
+      
+      // Extract unique emails from orders
+      const emails = new Set();
+      response.data.data?.forEach(order => {
+        if (order.created_by?.email) {
+          emails.add(order.created_by.email);
+        }
+      });
+      
+      setUserEmails(Array.from(emails).sort());
+    } catch (error) {
+      console.error('Error fetching user emails:', error);
+      setUserEmails([]);
+    }
+  };
+
+  // Helper function to find user ID by email
+  const findUserIdByEmail = async (email) => {
+    try {
+      // Tìm trong orders hiện tại trước
+      const existingOrder = orders.find(order => order.created_by?.email === email);
+      if (existingOrder?.created_by?._id) {
+        return existingOrder.created_by._id;
+      }
+      
+      // Nếu không tìm thấy, fetch lại orders để tìm
+      const response = await axios.get(`${API_BASE_URL}/api/export-orders`, { 
+        headers: getAuthHeaders(),
+        params: { limit: 1000 }
+      });
+      
+      const foundOrder = response.data.data?.find(order => order.created_by?.email === email);
+      return foundOrder?.created_by?._id || null;
+    } catch (error) {
+      console.error('Error finding user ID by email:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
     fetchContracts();
-  }, []);
+    fetchUserEmails();
+  }, [page, filters]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
 
   // Gọi fetchContractMedicines khi chọn contract
   useEffect(() => {
@@ -101,8 +221,9 @@ function ExportOrderPage() {
         newDetails[index].expected_quantity = selectedMedicine.quantity || 0;
       }
       newDetails[index][field] = value;
-    } else if (field === 'quantity') {
-      newDetails[index]['expected_quantity'] = Number(value);
+    } else if (field === 'quantity' || field === 'unit_price') {
+      // Không cho phép sửa quantity và unit_price - chúng được tự động fill từ contract
+      return;
     } else {
       newDetails[index][field] = value;
     }
@@ -160,7 +281,8 @@ function ExportOrderPage() {
         headers: getAuthHeaders()
       });
       setSuccess('Order deleted successfully');
-      fetchOrders();
+      // Refresh table after delete
+      await fetchOrders();
     } catch (error) {
       setError(error.response?.data?.error || error.message);
     } finally {
@@ -198,6 +320,34 @@ function ExportOrderPage() {
       default:
         return 'default';
     }
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      status: '',
+      contract_code: '',
+      date_filter: '',
+      created_by: ''
+    });
+  };
+
+  // Handle page change
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  // Refresh table
+  const handleRefresh = () => {
+    fetchOrders();
   };
 
   const handleSubmit = async (e) => {
@@ -261,7 +411,8 @@ function ExportOrderPage() {
       setOpenEditForm(false);
       setFormData({ contract_id: '', details: [] });
       setSelectedOrder(null);
-      fetchOrders();
+      // Refresh table after create/update
+      await fetchOrders();
     } catch (error) {
       setError(error.response?.data?.error || error.message);
     } finally {
@@ -273,41 +424,194 @@ function ExportOrderPage() {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Export Orders</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenForm(true)}>
-          Create Export Order
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button 
+            variant="outlined" 
+            startIcon={<RefreshIcon />} 
+            onClick={handleRefresh}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+          <Button 
+            variant="outlined" 
+            startIcon={<FilterListIcon />} 
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            Bộ lọc
+          </Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenForm(true)}>
+            Create Export Order
+          </Button>
+        </Box>
       </Box>
-      <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 2, mb: 3 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Contract</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Created By</TableCell>
-              <TableCell>Warehouse Manager</TableCell>
-              <TableCell align="center">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order._id} hover>
-                <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
-                <TableCell><Chip label={order.status} color={getStatusColor(order.status)} size="small" /></TableCell>
-                <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
-                <TableCell>{order.warehouse_manager_id?.email || 'N/A'}</TableCell>
-                <TableCell align="center">
-                  <IconButton
-                    size="small"
-                    onClick={(e) => handleActionMenuOpen(e, order)}
+
+      {/* Filter Section */}
+      {showFilters && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <FilterListIcon sx={{ color: 'primary.main', mr: 1 }} />
+              <Typography variant="h6" sx={{ color: 'primary.main' }}>Bộ Lọc Tìm Kiếm</Typography>
+            </Box>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={2}>
+                <TextField
+                  fullWidth
+                  label="Mã hợp đồng"
+                  placeholder="Tìm kiếm theo mã hợp đồng..."
+                  value={filters.contract_code || ''}
+                  onChange={(e) => handleFilterChange('contract_code', e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                        🔍
+                      </Box>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={2}>
+                <FormControl fullWidth>
+                  <InputLabel>Trạng thái</InputLabel>
+                  <Select
+                    value={filters.status}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    label="Trạng thái"
                   >
-                    <MoreVertIcon />
-                  </IconButton>
-                </TableCell>
+                    <MenuItem value="">Tất cả trạng thái</MenuItem>
+                    <MenuItem value="draft">Draft</MenuItem>
+                    <MenuItem value="approved">Approved</MenuItem>
+                    <MenuItem value="rejected">Rejected</MenuItem>
+                    <MenuItem value="completed">Completed</MenuItem>
+                    <MenuItem value="returned">Returned</MenuItem>
+                    <MenuItem value="cancelled">Cancelled</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={2}>
+                <FormControl fullWidth>
+                  <InputLabel>Ngày tạo</InputLabel>
+                  <Select
+                    value={filters.date_filter || ''}
+                    onChange={(e) => handleFilterChange('date_filter', e.target.value)}
+                    label="Ngày tạo"
+                  >
+                    <MenuItem value="">Tất cả ngày</MenuItem>
+                    <MenuItem value="today">Hôm nay</MenuItem>
+                    <MenuItem value="week">Tuần này</MenuItem>
+                    <MenuItem value="month">Tháng này</MenuItem>
+                    <MenuItem value="quarter">Quý này</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <FormControl fullWidth>
+                  <InputLabel>Người tạo</InputLabel>
+                  <Select
+                    value={filters.created_by}
+                    onChange={(e) => handleFilterChange('created_by', e.target.value)}
+                    label="Người tạo"
+                  >
+                    
+                    {userEmails.length > 0 && (
+                      <MenuItem disabled>
+                        <Typography variant="caption" color="text.secondary">
+                          ─── Chọn email cụ thể ───
+                        </Typography>
+                      </MenuItem>
+                    )}
+                    {userEmails.map((email) => (
+                      <MenuItem key={email} value={email}>
+                        {email}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: '100%' }}>
+                  <Button 
+                    variant="outlined" 
+                    onClick={clearFilters}
+                    fullWidth
+                  >
+                    Xóa bộ lọc
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
+              <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 2, mb: 3 }}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Contract</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Created By</TableCell>
+                <TableCell>Warehouse Manager</TableCell>
+                <TableCell align="center">Actions</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <Typography>Loading...</Typography>
+                  </TableCell>
+                </TableRow>
+              ) : orders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                    <Typography color="text.secondary">No export orders found</Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                orders.map((order) => (
+                  <TableRow key={order._id} hover>
+                    <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
+                    <TableCell><Chip label={order.status} color={getStatusColor(order.status)} size="small" /></TableCell>
+                    <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
+                    <TableCell>{order.warehouse_manager_id?.email || 'N/A'}</TableCell>
+                    <TableCell align="center">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleActionMenuOpen(e, order)}
+                      >
+                        <MoreVertIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+            <Pagination
+              count={totalPages}
+              page={page}
+              onChange={handlePageChange}
+              color="primary"
+              showFirstButton
+              showLastButton
+            />
+          </Box>
+        )}
+
+        {/* Pagination Info */}
+        {totalItems > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, totalItems)} of {totalItems} export orders
+            </Typography>
+          </Box>
+        )}
       <Dialog open={openForm} onClose={() => setOpenForm(false)} maxWidth="md" fullWidth>
         <DialogTitle>Create Export Order</DialogTitle>
         <DialogContent>
@@ -329,51 +633,83 @@ function ExportOrderPage() {
               </Select>
             </FormControl>
             <Typography variant="subtitle1" sx={{ mb: 1 }}>Order Details</Typography>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="body2">
+                Số lượng và đơn giá sẽ được tự động điền từ hợp đồng và không thể chỉnh sửa.
+              </Typography>
+            </Alert>
             {formData.details.map((detail, index) => (
-              <Grid container spacing={2} key={index} alignItems="center">
-                <Grid item xs={5}>
-                  <FormControl fullWidth>
-                    <InputLabel>Medicine</InputLabel>
-                    <Select
-                      value={detail.medicine_id}
-                      onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
-                      label="Medicine"
+              <Box key={index} sx={{ mb: 2 }}>
+                <Grid container spacing={2} alignItems="flex-start">
+                  <Grid item xs={12} sm={5}>
+                    <FormControl fullWidth>
+                      <InputLabel>Medicine</InputLabel>
+                      <Select
+                        value={detail.medicine_id}
+                        onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
+                        label="Medicine"
+                        required
+                      >
+                        {contractMedicines.filter((med) =>
+                          !formData.details.some((d, i) => d.medicine_id === med.medicine_id._id && i !== index)
+                        ).map((med) => (
+                          <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
+                            {med.medicine_id.medicine_name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      label="Quantity"
+                      type="number"
+                      value={detail.expected_quantity}
+                      onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
+                      fullWidth
                       required
+                      disabled
+                      helperText="Tự động từ hợp đồng"
+                      sx={{ 
+                        '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
+                        '& .MuiInputBase-input.Mui-disabled': {
+                          backgroundColor: '#f5f5f5',
+                          color: '#666'
+                        }
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      label="Unit Price"
+                      type="number"
+                      value={detail.unit_price}
+                      onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
+                      fullWidth
+                      required
+                      disabled
+                      helperText="Tự động từ hợp đồng"
+                      sx={{ 
+                        '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
+                        '& .MuiInputBase-input.Mui-disabled': {
+                          backgroundColor: '#f5f5f5',
+                          color: '#666'
+                        }
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={1}>
+                    <Button 
+                      color="error" 
+                      onClick={() => removeDetail(index)} 
+                      disabled={formData.details.length === 1}
+                      sx={{ mt: 1 }}
                     >
-                      {contractMedicines.filter((med) =>
-                        !formData.details.some((d, i) => d.medicine_id === med.medicine_id._id && i !== index)
-                      ).map((med) => (
-                        <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
-                          {med.medicine_id.medicine_name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                      X
+                    </Button>
+                  </Grid>
                 </Grid>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Quantity"
-                    type="number"
-                    value={detail.expected_quantity}
-                    onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
-                    fullWidth
-                    required
-                  />
-                </Grid>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Unit Price"
-                    type="number"
-                    value={detail.unit_price}
-                    onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
-                    fullWidth
-                    required
-                  />
-                </Grid>
-                <Grid item xs={1}>
-                  <Button color="error" onClick={() => removeDetail(index)} disabled={formData.details.length === 1}>X</Button>
-                </Grid>
-              </Grid>
+              </Box>
             ))}
             <Button onClick={addDetail} sx={{ mt: 2 }}>Add Medicine</Button>
             <DialogActions>
@@ -496,56 +832,81 @@ function ExportOrderPage() {
               </Select>
             </FormControl>
             <Typography variant="subtitle1" sx={{ mb: 1 }}>Order Details</Typography>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="body2">
+                Số lượng và đơn giá sẽ được tự động điền từ hợp đồng và không thể chỉnh sửa.
+              </Typography>
+            </Alert>
             {formData.details.map((detail, index) => (
-              <Grid container spacing={2} key={index} alignItems="center">
-                <Grid item xs={12} sm={4}>
-                  <FormControl fullWidth>
-                    <InputLabel>Medicine</InputLabel>
-                    <Select
-                      value={detail.medicine_id}
-                      onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
-                      label="Medicine"
+              <Box key={index} sx={{ mb: 2 }}>
+                <Grid container spacing={2} alignItems="flex-start">
+                  <Grid item xs={12} sm={4}>
+                    <FormControl fullWidth>
+                      <InputLabel>Medicine</InputLabel>
+                      <Select
+                        value={detail.medicine_id}
+                        onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
+                        label="Medicine"
+                        required
+                      >
+                        {contractMedicines.map((med) => (
+                          <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
+                            {med.medicine_id.medicine_name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      label="Quantity"
+                      type="number"
+                      value={detail.expected_quantity}
+                      onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
+                      fullWidth
                       required
+                      disabled
+                      helperText="Tự động từ hợp đồng"
+                      sx={{ 
+                        '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
+                        '& .MuiInputBase-input.Mui-disabled': {
+                          backgroundColor: '#f5f5f5',
+                          color: '#666'
+                        }
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      label="Unit Price"
+                      type="number"
+                      value={detail.unit_price}
+                      onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
+                      fullWidth
+                      required
+                      disabled
+                      helperText="Tự động từ hợp đồng"
+                      sx={{ 
+                        '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
+                        '& .MuiInputBase-input.Mui-disabled': {
+                          backgroundColor: '#f5f5f5',
+                          color: '#666'
+                        }
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={2}>
+                    <Button 
+                      color="error" 
+                      onClick={() => removeDetail(index)} 
+                      disabled={formData.details.length === 1}
+                      sx={{ mt: 1 }}
                     >
-                      {contractMedicines.map((med) => (
-                        <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
-                          {med.medicine_id.medicine_name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                      X
+                    </Button>
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} sm={3}>
-                  <TextField
-                    label="Quantity"
-                    type="number"
-                    value={detail.expected_quantity}
-                    onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
-                    fullWidth
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={3}>
-                  <TextField
-                    label="Unit Price"
-                    type="number"
-                    value={detail.unit_price}
-                    onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
-                    fullWidth
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} sm={2}>
-                  <Button 
-                    color="error" 
-                    onClick={() => removeDetail(index)} 
-                    disabled={formData.details.length === 1}
-                    fullWidth
-                  >
-                    X
-                  </Button>
-                </Grid>
-              </Grid>
+              </Box>
             ))}
             <Button onClick={addDetail} sx={{ mt: 2 }}>Add Medicine</Button>
             <DialogActions>
