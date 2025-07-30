@@ -12,13 +12,6 @@ const representative = {
       icon: 'IconFileInvoice'
     },
     {
-      id: 'create-contract',
-      title: 'Create Contract',
-      type: 'item',
-      url: '/rp-create-contract',
-      icon: 'IconFilePlus'
-    },
-    {
       id: 'manage-debt',
       title: 'Manage Debt',
       type: 'item',

@@ -5,18 +5,7 @@ const { CONTRACT_STATUSES, PARTNER_TYPES, ANNEX_STATUSES, ANNEX_ACTIONS, CONTRAC
 
 const contractService = {
   // Helper function để kiểm tra annex có thay đổi gì không
-  _validateAnnexHasChanges(annex, annexCode = '') {
-    const hasChanges = (
-      (annex.medicine_changes?.add_items && annex.medicine_changes.add_items.length > 0) ||
-      (annex.medicine_changes?.remove_items && annex.medicine_changes.remove_items.length > 0) ||
-      (annex.medicine_changes?.update_prices && annex.medicine_changes.update_prices.length > 0) ||
-      (annex.end_date_change && annex.end_date_change.new_end_date)
-    );
-    
-    if (!hasChanges) {
-      throw new Error(`Phụ lục ${annexCode || annex.annex_code} không có thay đổi nào. Phụ lục phải có ít nhất một thay đổi về thuốc hoặc thời hạn.`);
-    }
-  },
+
   async getAllContracts({
     page,
     limit,
@@ -418,8 +407,8 @@ const contractService = {
       throw new Error('Only representative managers can approve contracts');
     }
 
-    if (newStatus === CONTRACT_STATUSES.CANCELLED && contract.created_by.toString() !== user.userId) {
-      throw new Error('Only the contract creator can cancel contracts');
+    if (newStatus === CONTRACT_STATUSES.CANCELLED && user.role !== USER_ROLES.REPRESENTATIVEMANAGER) {
+      throw new Error('Only supervisor can cancel contracts');
     }
 
     const session = await mongoose.startSession();
@@ -509,7 +498,16 @@ const contractService = {
     }
 
     // Kiểm tra annex có tác động gì không
-    this._validateAnnexHasChanges(annexData);
+    const hasChanges = (
+      (annexData.medicine_changes?.add_items && annexData.medicine_changes.add_items.length > 0) ||
+      (annexData.medicine_changes?.remove_items && annexData.medicine_changes.remove_items.length > 0) ||
+      (annexData.medicine_changes?.update_prices && annexData.medicine_changes.update_prices.length > 0) ||
+      (annexData.end_date_change && annexData.end_date_change.new_end_date)
+    );
+    
+    if (!hasChanges) {
+      throw new Error(`Phụ lục không có thay đổi nào. Phụ lục phải có ít nhất một thay đổi về thuốc hoặc thời hạn.`);
+    }
 
     // Validate medicine changes
     if (annexData.medicine_changes) {
@@ -585,12 +583,21 @@ const contractService = {
       throw new Error('Annex not found');
     }
 
-    if (annex.status !== ANNEX_STATUSES.DRAFT) {
-      throw new Error('Only draft annexes can be updated');
+    if (annex.status !== ANNEX_STATUSES.DRAFT && annex.status !== ANNEX_STATUSES.REJECTED) {
+      throw new Error('Only draft or rejected annexes can be updated');
     }
 
     // Kiểm tra annex có tác động gì không
-    this._validateAnnexHasChanges(annexData, annex_code);
+    const hasChanges = (
+      (annexData.medicine_changes?.add_items && annexData.medicine_changes.add_items.length > 0) ||
+      (annexData.medicine_changes?.remove_items && annexData.medicine_changes.remove_items.length > 0) ||
+      (annexData.medicine_changes?.update_prices && annexData.medicine_changes.update_prices.length > 0) ||
+      (annexData.end_date_change && annexData.end_date_change.new_end_date)
+    );
+    
+    if (!hasChanges) {
+      throw new Error(`Phụ lục ${annex_code} không có thay đổi nào. Phụ lục phải có ít nhất một thay đổi về thuốc hoặc thời hạn.`);
+    }
 
     // Validate medicine changes
     if (annexData.medicine_changes) {
@@ -615,26 +622,37 @@ const contractService = {
     const session = await mongoose.startSession();
     try {
       session.startTransaction();
+      
+      // Prepare update data
+      const updateData = {
+        'annexes.$.medicine_changes': annexData.medicine_changes,
+        'annexes.$.end_date_change': annexData.end_date_change,
+        'annexes.$.description': annexData.description,
+      };
+      
+      // If annex status is 'rejected', automatically change it to 'draft' for resubmission
+      if (annex.status === ANNEX_STATUSES.REJECTED) {
+        updateData['annexes.$.status'] = ANNEX_STATUSES.DRAFT;
+      }
+      
       const updated = await Contract.findOneAndUpdate(
         { _id: id, 'annexes.annex_code': annex_code },
-        {
-          $set: {
-            'annexes.$.medicine_changes': annexData.medicine_changes,
-            'annexes.$.end_date_change': annexData.end_date_change,
-            'annexes.$.description': annexData.description,
-          },
-        },
-        { new: true, runValidators: true, session }
-      )
+        { $set: updateData },
+        { new: true, runValidators: false, session }
+      );
+
+      await session.commitTransaction();
+      
+      // Populate after transaction commit to avoid issues
+      const populated = await Contract.findById(id)
         .populate('created_by', 'name email')
         .populate('partner_id', 'name')
         .populate('items.medicine_id', 'medicine_name license_code')
         .populate('annexes.medicine_changes.add_items.medicine_id', 'medicine_name license_code')
         .populate('annexes.medicine_changes.remove_items.medicine_id', 'medicine_name license_code')
         .populate('annexes.medicine_changes.update_prices.medicine_id', 'medicine_name license_code');
-
-      await session.commitTransaction();
-      return updated;
+      
+      return populated;
     } catch (error) {
       await session.abortTransaction();
       throw error;
@@ -683,8 +701,8 @@ const contractService = {
       if (![ANNEX_STATUSES.ACTIVE, ANNEX_STATUSES.REJECTED].includes(newStatus)) {
         throw new Error(`Draft annexes can only be updated to "active" or "rejected"`);
       }
-      if (user.role !== USER_ROLES.SUPERVISOR) {
-        throw new Error('Only supervisors can approve or reject annexes');
+      if (user.role !== USER_ROLES.REPRESENTATIVEMANAGER) {
+        throw new Error('Only representative managers can approve or reject annexes');
       }
     }
 
@@ -809,35 +827,46 @@ const contractService = {
   // Kiểm tra tính hợp lệ của phụ lục mới dựa trên trạng thái hiện tại
   async validateNewAnnex(contractId, annexData) {
     const currentState = await this.getCurrentContractState(contractId);
-    const currentMedicineIds = new Set(currentState.current_items.map(item => item.medicine_id.toString()));
+    const currentMedicineIds = currentState.current_items.map(item => 
+      typeof item.medicine_id === 'object' ? item.medicine_id._id.toString() : item.medicine_id.toString()
+    );
+
+
 
     const errors = [];
 
     // Kiểm tra thêm thuốc mới
     if (annexData.medicine_changes && annexData.medicine_changes.add_items) {
-      annexData.medicine_changes.add_items.forEach(item => {
-        if (currentMedicineIds.has(item.medicine_id.toString())) {
-          errors.push(`Thuốc ${item.medicine_id} đã tồn tại trong hợp đồng hiện tại`);
+      for (const item of annexData.medicine_changes.add_items) {
+        
+        if (currentMedicineIds.includes(item.medicine_id.toString())) {
+          const medicine = await medicineService.findMedicineById(item.medicine_id);
+          const medicineInfo = medicine ? medicine.license_code : item.medicine_id;
+          errors.push(`Thuốc ${medicineInfo} đã tồn tại trong hợp đồng hiện tại`);
         }
-      });
+      }
     }
 
     // Kiểm tra xóa thuốc
     if (annexData.medicine_changes && annexData.medicine_changes.remove_items) {
-      annexData.medicine_changes.remove_items.forEach(item => {
-        if (!currentMedicineIds.has(item.medicine_id.toString())) {
-          errors.push(`Thuốc ${item.medicine_id} không tồn tại trong hợp đồng hiện tại`);
+      for (const item of annexData.medicine_changes.remove_items) {
+        if (!currentMedicineIds.includes(item.medicine_id.toString())) {
+          const medicine = await medicineService.findMedicineById(item.medicine_id);
+          const medicineInfo = medicine ? medicine.license_code : item.medicine_id;
+          errors.push(`Thuốc ${medicineInfo} không tồn tại trong hợp đồng hiện tại`);
         }
-      });
+      }
     }
 
     // Kiểm tra cập nhật giá
     if (annexData.medicine_changes && annexData.medicine_changes.update_prices) {
-      annexData.medicine_changes.update_prices.forEach(item => {
-        if (!currentMedicineIds.has(item.medicine_id.toString())) {
-          errors.push(`Thuốc ${item.medicine_id} không tồn tại trong hợp đồng hiện tại`);
+      for (const item of annexData.medicine_changes.update_prices) {
+        if (!currentMedicineIds.includes(item.medicine_id.toString())) {
+          const medicine = await medicineService.findMedicineById(item.medicine_id);
+          const medicineInfo = medicine ? medicine.license_code : item.medicine_id;
+          errors.push(`Thuốc ${medicineInfo} không tồn tại trong hợp đồng hiện tại`);
         }
-      });
+      }
     }
 
     return {
@@ -863,10 +892,15 @@ const contractService = {
         const currentMedicineIds = new Set(currentItems.map(item => item.medicine_id.toString()));
         
         // Kiểm tra annex có tác động gì không
-        try {
-          this._validateAnnexHasChanges(annex);
-        } catch (error) {
-          errors.push(error.message);
+        const hasChanges = (
+          (annex.medicine_changes?.add_items && annex.medicine_changes.add_items.length > 0) ||
+          (annex.medicine_changes?.remove_items && annex.medicine_changes.remove_items.length > 0) ||
+          (annex.medicine_changes?.update_prices && annex.medicine_changes.update_prices.length > 0) ||
+          (annex.end_date_change && annex.end_date_change.new_end_date)
+        );
+        
+        if (!hasChanges) {
+          errors.push(`Phụ lục ${annex.annex_code} không có thay đổi nào. Phụ lục phải có ít nhất một thay đổi về thuốc hoặc thời hạn.`);
         }
         
         // Validate medicine changes
@@ -889,7 +923,7 @@ const contractService = {
             for (const item of remove_items) {
               if (!currentMedicineIds.has(item.medicine_id.toString())) {
                 const medicine = await medicineService.findMedicineById(item.medicine_id);
-                const medicineInfo = medicine ? `${medicine.medicine_name} (${medicine.license_code})` : item.medicine_id;
+                const medicineInfo = medicine ? medicine.license_code : item.medicine_id;
                 errors.push(`Phụ lục ${annex.annex_code}: Thuốc ${medicineInfo} không tồn tại`);
               }
             }
@@ -900,7 +934,7 @@ const contractService = {
             for (const item of update_prices) {
               if (!currentMedicineIds.has(item.medicine_id.toString())) {
                 const medicine = await medicineService.findMedicineById(item.medicine_id);
-                const medicineInfo = medicine ? `${medicine.medicine_name} (${medicine.license_code})` : item.medicine_id;
+                const medicineInfo = medicine ? medicine.license_code : item.medicine_id;
                 errors.push(`Phụ lục ${annex.annex_code}: Thuốc ${medicineInfo} không tồn tại`);
               }
             }
@@ -1070,6 +1104,56 @@ const contractService = {
     }
 
     return history.sort((a, b) => new Date(a.date) - new Date(b.date));
+  },
+
+  // Kiểm tra quyền xóa phụ lục
+  async canDeleteAnnex(contractId, annex_code, user) {
+    const contract = await Contract.findById(contractId);
+    if (!contract) {
+      return { canDelete: false, message: 'Contract not found' };
+    }
+
+    const annex = contract.annexes.find(a => a.annex_code === annex_code);
+    if (!annex) {
+      return { canDelete: false, message: 'Annex not found' };
+    }
+
+    // Chỉ representative có thể xóa phụ lục
+    if (user.role !== USER_ROLES.REPRESENTATIVE) {
+      return { canDelete: false, message: 'Only representatives can delete annexes' };
+    }
+
+    // Chỉ có thể xóa phụ lục draft hoặc rejected
+    if (annex.status !== ANNEX_STATUSES.DRAFT && annex.status !== ANNEX_STATUSES.REJECTED) {
+      return { canDelete: false, message: 'Only draft or rejected annexes can be deleted' };
+    }
+
+    // Kiểm tra xem phụ lục có thuộc về user này không
+    // Note: Annex không có created_by field, nên kiểm tra contract created_by
+    if (contract.created_by.toString() !== user.userId) {
+      return { canDelete: false, message: 'You can only delete annexes from your own contracts' };
+    }
+
+    return { canDelete: true };
+  },
+
+  // Xóa phụ lục
+  async deleteAnnex(contractId, annex_code) {
+    const contract = await Contract.findById(contractId);
+    if (!contract) {
+      throw new Error('Contract not found');
+    }
+
+    const annexIndex = contract.annexes.findIndex(a => a.annex_code === annex_code);
+    if (annexIndex === -1) {
+      throw new Error('Annex not found');
+    }
+
+    // Xóa phụ lục khỏi mảng
+    contract.annexes.splice(annexIndex, 1);
+    await contract.save();
+
+    return contract;
   },
 
   // Helper function để lấy trạng thái hợp đồng tại một ngày cụ thể

@@ -140,7 +140,7 @@ const isValidFloat = (value) => {
   return !isNaN(parsed) && parsed >= 0;
 };
 
-const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers = [], medicines = [] }) => {
+const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers = [] }) => {
   const [formData, setFormData] = useState({
     contract_code: '',
     contract_type: 'economic',
@@ -154,8 +154,29 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
 
   const [errorValidate, setErrorValidate] = useState({});
   const [errorApi, setErrorApi] = useState('');
+  const [medicines, setMedicines] = useState([]);
 
   const { trigger, isMutating } = useSWRMutation('/api/contract', createContract);
+
+  // Fetch medicines
+  const fetchAllMedicines = async () => {
+    try {
+      const response = await axiosInstance.get('/api/medicine/all/v1', {
+        headers: getAuthHeaders()
+      });
+      if (response.data.success) {
+        setMedicines(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching medicines:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (open) {
+      fetchAllMedicines();
+    }
+  }, [open]);
 
   useEffect(() => {
     if (open) {
