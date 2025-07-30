@@ -178,10 +178,7 @@ const createAnnex = asyncHandler(async (req, res) => {
   }
 
   // Validate medicine changes trước khi tạo
-  console.log('=== DEBUG createAnnex controller ===');
-  console.log('Calling validateNewAnnex...');
   const medicineValidation = await contractService.validateNewAnnex(id, annexData);
-  console.log('medicineValidation result:', medicineValidation);
   if (!medicineValidation.isValid) {
     return res.status(400).json({ 
       success: false, 

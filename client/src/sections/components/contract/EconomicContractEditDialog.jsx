@@ -134,7 +134,7 @@ const isValidFloat = (value) => {
   const trimmed = value.toString().trim()
   if (!/^\d+(\.\d+)?$/.test(trimmed)) return false
   const parsed = Number.parseFloat(trimmed)
-  return !isNaN(parsed) && parsed >= 0
+  return !isNaN(parsed) && parsed > 0
 }
 
 const EconomicContractEditDialog = ({

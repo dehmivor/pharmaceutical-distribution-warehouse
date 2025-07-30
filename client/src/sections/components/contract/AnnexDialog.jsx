@@ -82,24 +82,14 @@ const AnnexDialog = ({
   contractId, 
   onSuccess
 }) => {
-  // Debug props
-  console.log('=== DEBUG AnnexDialog props ===');
-  console.log('open:', open);
-  console.log('contractId:', contractId);
-  console.log('onSuccess:', onSuccess);
+
   const { userRole, user } = useRole();
   const { enqueueSnackbar } = useSnackbar();
   const [contract, setContract] = useState(null);
   const [annex, setAnnex] = useState(null);
   const [medicines, setMedicines] = useState([]);
   
-  // Debug medicines state
-  useEffect(() => {
-    console.log('=== DEBUG medicines state change ===');
-    console.log('medicines:', medicines);
-    console.log('medicines type:', typeof medicines);
-    console.log('medicines isArray:', Array.isArray(medicines));
-  }, [medicines]);
+
   const [formData, setFormData] = useState({
     annex_code: '',
     description: '',
@@ -134,10 +124,8 @@ const AnnexDialog = ({
             annex.status === 'draft' || annex.status === 'rejected'
           );
           if (existingAnnex) {
-            console.log('Found existing annex:', existingAnnex);
             setAnnex(existingAnnex);
           } else {
-            console.log('No existing annex found, will create new one');
             setAnnex(null);
           }
         } else {
@@ -161,7 +149,6 @@ const AnnexDialog = ({
             ];
           }
           
-          console.log('Set annex medicines for manager:', annexMedicines);
           setMedicines(annexMedicines);
         }
       }
@@ -174,16 +161,12 @@ const AnnexDialog = ({
   // Fetch all medicines for representative
   const fetchAllMedicines = async () => {
     try {
-      console.log('=== DEBUG fetchAllMedicines ===');
       const response = await axiosInstance.get('/api/medicine/all/v1', {
         headers: getAuthHeaders()
       });
       
-      console.log('Medicine API response:', response.data);
-      
       if (response.data.success) {
         const medicinesData = response.data.data || [];
-        console.log('Set medicines:', medicinesData);
         setMedicines(medicinesData);
       }
     } catch (error) {
@@ -239,35 +222,21 @@ const AnnexDialog = ({
   
   const isReadOnly = currentMode === 'approve' || currentMode === 'view';
   
-  // Debug mode
-  console.log('=== DEBUG currentMode ===');
-  console.log('annex:', annex);
-  console.log('annex.status:', annex?.status);
-  console.log('userRole:', userRole);
-  console.log('determineMode(annex, userRole):', determineMode(annex, userRole));
-  console.log('currentMode:', currentMode);
+
 
   // Initialize form data and fetch data based on role
   useEffect(() => {
-    console.log('=== DEBUG useEffect fetch data ===');
-    console.log('open:', open, 'contractId:', contractId, 'userRole:', userRole);
-    
     if (open && contractId) {
       fetchContractDetail();
       
       // For representative: fetch all medicines for selection
       if (userRole === 'representative') {
-        console.log('Calling fetchAllMedicines for representative');
         fetchAllMedicines();
       }
     }
   }, [open, contractId, userRole]);
 
   useEffect(() => {
-    console.log('=== DEBUG AnnexDialog useEffect ===');
-    console.log('annex:', annex);
-    console.log('medicines:', medicines);
-    
     if (annex) {
       const parsedFormData = {
         annex_code: annex.annex_code || '',
@@ -276,7 +245,6 @@ const AnnexDialog = ({
         medicine_changes: {
           add_items: (annex.medicine_changes?.add_items || []).map(item => {
             const medicineId = typeof item.medicine_id === 'object' ? item.medicine_id._id : item.medicine_id;
-            console.log('Parsing add_item:', item, 'medicine_id:', medicineId);
             return {
               medicine_id: medicineId,
               unit_price: item.unit_price
@@ -284,7 +252,6 @@ const AnnexDialog = ({
           }),
           remove_items: (annex.medicine_changes?.remove_items || []).map(item => {
             const medicineId = typeof item.medicine_id === 'object' ? item.medicine_id._id : item.medicine_id;
-            console.log('Parsing remove_item:', item, 'medicine_id:', medicineId);
             return {
               medicine_id: medicineId,
               unit_price: item.unit_price
@@ -292,7 +259,6 @@ const AnnexDialog = ({
           }),
           update_prices: (annex.medicine_changes?.update_prices || []).map(item => {
             const medicineId = typeof item.medicine_id === 'object' ? item.medicine_id._id : item.medicine_id;
-            console.log('Parsing update_item:', item, 'medicine_id:', medicineId);
             return {
               medicine_id: medicineId,
               unit_price: item.unit_price
@@ -304,7 +270,6 @@ const AnnexDialog = ({
         }
       };
       
-      console.log('Parsed formData:', parsedFormData);
       setFormData(parsedFormData);
     } else {
       setFormData({
@@ -653,7 +618,7 @@ const AnnexDialog = ({
         {getDialogTitle()}
       </DialogTitle>
 
-      <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto' }}>
+      <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto', paddingTop: "10px !important" }}>
         {errorValidate.general && (
           <Box sx={{ mb: 2, p: 2, bgcolor: 'error.light', color: 'error.contrastText', borderRadius: 1 }}>
             <Typography variant="body2">{errorValidate.general}</Typography>

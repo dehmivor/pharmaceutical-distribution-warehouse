@@ -418,8 +418,8 @@ const contractService = {
       throw new Error('Only representative managers can approve contracts');
     }
 
-    if (newStatus === CONTRACT_STATUSES.CANCELLED && contract.created_by.toString() !== user.userId) {
-      throw new Error('Only the contract creator can cancel contracts');
+    if (newStatus === CONTRACT_STATUSES.CANCELLED && user.role !== USER_ROLES.REPRESENTATIVEMANAGER) {
+      throw new Error('Only supervisor can cancel contracts');
     }
 
     const session = await mongoose.startSession();
@@ -820,35 +820,13 @@ const contractService = {
       typeof item.medicine_id === 'object' ? item.medicine_id._id.toString() : item.medicine_id.toString()
     );
 
-    console.log('=== DEBUG validateNewAnnex ===');
-    console.log('contractId:', contractId);
-    console.log('currentState.current_items:', currentState.current_items);
-    console.log('currentMedicineIds:', currentMedicineIds);
-    console.log('annexData.medicine_changes:', annexData.medicine_changes);
+
 
     const errors = [];
 
     // Kiểm tra thêm thuốc mới
     if (annexData.medicine_changes && annexData.medicine_changes.add_items) {
       for (const item of annexData.medicine_changes.add_items) {
-        console.log('Checking item:', item);
-        console.log('item.medicine_id:', item.medicine_id);
-        console.log('item.medicine_id.toString():', item.medicine_id.toString());
-        
-        // Debug: Kiểm tra từng item trong currentMedicineIds
-        const itemIdStr = item.medicine_id.toString();
-        console.log('itemIdStr:', itemIdStr);
-        console.log('itemIdStr type:', typeof itemIdStr);
-        console.log('itemIdStr length:', itemIdStr.length);
-        
-        for (const currentId of currentMedicineIds) {
-          console.log('Comparing with currentId:', currentId);
-          console.log('currentId type:', typeof currentId);
-          console.log('currentId length:', currentId.length);
-          console.log('itemIdStr === currentId:', itemIdStr === currentId);
-          console.log('itemIdStr == currentId:', itemIdStr == currentId);
-        }
-        
         if (currentMedicineIds.includes(item.medicine_id.toString())) {
           const medicine = await medicineService.findMedicineById(item.medicine_id);
           const medicineInfo = medicine ? medicine.license_code : item.medicine_id;
