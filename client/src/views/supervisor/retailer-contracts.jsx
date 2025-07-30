@@ -232,12 +232,13 @@ const RetailerContracts = () => {
               />
             </Grid>
             <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Trạng thái</InputLabel>
-                                 <Select
+                             <FormControl fullWidth>
+                 <InputLabel>Trạng thái</InputLabel>
+                 <Select
                    value={filters.status || ''}
                    label="Trạng thái"
                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                   sx={{ minWidth: 200 }}
                  >
                   <MenuItem value="">Tất cả</MenuItem>
                   {filterOptions.status?.map((status) => (
@@ -249,13 +250,14 @@ const RetailerContracts = () => {
               </FormControl>
             </Grid>
                          <Grid item xs={12} md={3}>
-               <FormControl fullWidth>
+                              <FormControl fullWidth>
                  <InputLabel>Tên retailer</InputLabel>
-                                   <Select
-                    value={filters.partner_id || ''}
-                    label="Tên retailer"
-                    onChange={(e) => handleFilterChange('partner_id', e.target.value)}
-                  >
+                 <Select
+                   value={filters.partner_id || ''}
+                   label="Tên retailer"
+                   onChange={(e) => handleFilterChange('partner_id', e.target.value)}
+                   sx={{ minWidth: 200 }}
+                 >
                    <MenuItem value="">Tất cả</MenuItem>
                    {retailers.map((retailer) => (
                      <MenuItem key={retailer._id} value={retailer._id}>
