@@ -30,13 +30,13 @@ function ExportOrderPage() {
   const [openEditForm, setOpenEditForm] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedOrderForAction, setSelectedOrderForAction] = useState(null);
-  
+
   // Pagination state
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [limit] = useState(10);
-  
+
   // Filter state
   const [filters, setFilters] = useState({
     status: '',
@@ -100,7 +100,7 @@ function ExportOrderPage() {
           params.append('created_by', filters.created_by);
         }
       }
-      
+
       const response = await axios.get(`${API_BASE_URL}/api/export-orders?${params}`, { headers: getAuthHeaders() });
       setOrders(response.data.data || []);
       setTotalPages(response.data.pagination?.totalPages || 1);
@@ -136,11 +136,11 @@ function ExportOrderPage() {
   // Fetch user emails for filter
   const fetchUserEmails = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/export-orders`, { 
+      const response = await axios.get(`${API_BASE_URL}/api/export-orders`, {
         headers: getAuthHeaders(),
         params: { limit: 1000 } // Lấy nhiều orders để extract emails
       });
-      
+
       // Extract unique emails from orders
       const emails = new Set();
       response.data.data?.forEach(order => {
@@ -148,7 +148,7 @@ function ExportOrderPage() {
           emails.add(order.created_by.email);
         }
       });
-      
+
       setUserEmails(Array.from(emails).sort());
     } catch (error) {
       console.error('Error fetching user emails:', error);
@@ -164,13 +164,13 @@ function ExportOrderPage() {
       if (existingOrder?.created_by?._id) {
         return existingOrder.created_by._id;
       }
-      
+
       // Nếu không tìm thấy, fetch lại orders để tìm
-      const response = await axios.get(`${API_BASE_URL}/api/export-orders`, { 
+      const response = await axios.get(`${API_BASE_URL}/api/export-orders`, {
         headers: getAuthHeaders(),
         params: { limit: 1000 }
       });
-      
+
       const foundOrder = response.data.data?.find(order => order.created_by?.email === email);
       return foundOrder?.created_by?._id || null;
     } catch (error) {
@@ -425,17 +425,17 @@ function ExportOrderPage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Export Orders</Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button 
-            variant="outlined" 
-            startIcon={<RefreshIcon />} 
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
             onClick={handleRefresh}
             disabled={loading}
           >
             Refresh
           </Button>
-          <Button 
-            variant="outlined" 
-            startIcon={<FilterListIcon />} 
+          <Button
+            variant="outlined"
+            startIcon={<FilterListIcon />}
             onClick={() => setShowFilters(!showFilters)}
           >
             Bộ lọc
@@ -455,7 +455,7 @@ function ExportOrderPage() {
               <Typography variant="h6" sx={{ color: 'primary.main' }}>Bộ Lọc Tìm Kiếm</Typography>
             </Box>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={2}>
+              <Grid item xs={12} sm={3}>
                 <TextField
                   fullWidth
                   label="Mã hợp đồng"
@@ -471,7 +471,7 @@ function ExportOrderPage() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={2}>
+              <Grid item xs={12} sm={3}>
                 <FormControl fullWidth>
                   <InputLabel>Trạng thái</InputLabel>
                   <Select
@@ -490,35 +490,18 @@ function ExportOrderPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={2}>
-                <FormControl fullWidth>
-                  <InputLabel>Ngày tạo</InputLabel>
-                  <Select
-                    value={filters.date_filter || ''}
-                    onChange={(e) => handleFilterChange('date_filter', e.target.value)}
-                    label="Ngày tạo"
-                    sx={{ minWidth: '140px' }}
-                  >
-                    <MenuItem value="">Tất cả ngày</MenuItem>
-                    <MenuItem value="today">Hôm nay</MenuItem>
-                    <MenuItem value="week">Tuần này</MenuItem>
-                    <MenuItem value="month">Tháng này</MenuItem>
-                    <MenuItem value="quarter">Quý này</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
+
               <Grid item xs={12} sm={4}>
                 <FormControl fullWidth>
-                  <InputLabel>Người tạo</InputLabel>
+                  <InputLabel>Tất cả</InputLabel>
                   <Select
                     value={filters.created_by}
                     onChange={(e) => handleFilterChange('created_by', e.target.value)}
                     label="Người tạo"
                     sx={{ minWidth: '200px' }}
                   >
-                    <MenuItem value="">Tất cả người tạo</MenuItem>
-                    <MenuItem value="current_user">Tôi tạo</MenuItem>
-                    <MenuItem value="others">Người khác tạo</MenuItem>
+                    <MenuItem value="">Tất cả </MenuItem>
+
                     {userEmails.length > 0 && (
                       <MenuItem disabled>
                         <Typography variant="caption" color="text.secondary">
@@ -536,8 +519,8 @@ function ExportOrderPage() {
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: '100%' }}>
-                  <Button 
-                    variant="outlined" 
+                  <Button
+                    variant="outlined"
                     onClick={clearFilters}
                     fullWidth
                   >
@@ -549,74 +532,74 @@ function ExportOrderPage() {
           </CardContent>
         </Card>
       )}
-              <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 2, mb: 3 }}>
-          <Table>
-            <TableHead>
+      <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 2, mb: 3 }}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Contract</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Created By</TableCell>
+              <TableCell>Warehouse Manager</TableCell>
+              <TableCell align="center">Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
               <TableRow>
-                <TableCell>Contract</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Created By</TableCell>
-                <TableCell>Warehouse Manager</TableCell>
-                <TableCell align="center">Actions</TableCell>
+                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                  <Typography>Loading...</Typography>
+                </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                    <Typography>Loading...</Typography>
+            ) : orders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                  <Typography color="text.secondary">No export orders found</Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              orders.map((order) => (
+                <TableRow key={order._id} hover>
+                  <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
+                  <TableCell><Chip label={order.status} color={getStatusColor(order.status)} size="small" /></TableCell>
+                  <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
+                  <TableCell>{order.warehouse_manager_id?.email || 'N/A'}</TableCell>
+                  <TableCell align="center">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => handleActionMenuOpen(e, order)}
+                    >
+                      <MoreVertIcon />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
-              ) : orders.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                    <Typography color="text.secondary">No export orders found</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                orders.map((order) => (
-                  <TableRow key={order._id} hover>
-                    <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
-                    <TableCell><Chip label={order.status} color={getStatusColor(order.status)} size="small" /></TableCell>
-                    <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
-                    <TableCell>{order.warehouse_manager_id?.email || 'N/A'}</TableCell>
-                    <TableCell align="center">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleActionMenuOpen(e, order)}
-                      >
-                        <MoreVertIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-            <Pagination
-              count={totalPages}
-              page={page}
-              onChange={handlePageChange}
-              color="primary"
-              showFirstButton
-              showLastButton
-            />
-          </Box>
-        )}
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <Pagination
+            count={totalPages}
+            page={page}
+            onChange={handlePageChange}
+            color="primary"
+            showFirstButton
+            showLastButton
+          />
+        </Box>
+      )}
 
-        {/* Pagination Info */}
-        {totalItems > 0 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, totalItems)} of {totalItems} export orders
-            </Typography>
-          </Box>
-        )}
+      {/* Pagination Info */}
+      {totalItems > 0 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, totalItems)} of {totalItems} export orders
+          </Typography>
+        </Box>
+      )}
       <Dialog open={openForm} onClose={() => setOpenForm(false)} maxWidth="md" fullWidth>
         <DialogTitle>Create Export Order</DialogTitle>
         <DialogContent>
@@ -675,7 +658,7 @@ function ExportOrderPage() {
                       required
                       disabled
                       helperText="Tự động từ hợp đồng"
-                      sx={{ 
+                      sx={{
                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
                         '& .MuiInputBase-input.Mui-disabled': {
                           backgroundColor: '#f5f5f5',
@@ -694,7 +677,7 @@ function ExportOrderPage() {
                       required
                       disabled
                       helperText="Tự động từ hợp đồng"
-                      sx={{ 
+                      sx={{
                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
                         '& .MuiInputBase-input.Mui-disabled': {
                           backgroundColor: '#f5f5f5',
@@ -704,9 +687,9 @@ function ExportOrderPage() {
                     />
                   </Grid>
                   <Grid item xs={12} sm={1}>
-                    <Button 
-                      color="error" 
-                      onClick={() => removeDetail(index)} 
+                    <Button
+                      color="error"
+                      onClick={() => removeDetail(index)}
                       disabled={formData.details.length === 1}
                       sx={{ mt: 1 }}
                     >
@@ -872,7 +855,7 @@ function ExportOrderPage() {
                       required
                       disabled
                       helperText="Tự động từ hợp đồng"
-                      sx={{ 
+                      sx={{
                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
                         '& .MuiInputBase-input.Mui-disabled': {
                           backgroundColor: '#f5f5f5',
@@ -891,7 +874,7 @@ function ExportOrderPage() {
                       required
                       disabled
                       helperText="Tự động từ hợp đồng"
-                      sx={{ 
+                      sx={{
                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
                         '& .MuiInputBase-input.Mui-disabled': {
                           backgroundColor: '#f5f5f5',
@@ -901,9 +884,9 @@ function ExportOrderPage() {
                     />
                   </Grid>
                   <Grid item xs={12} sm={2}>
-                    <Button 
-                      color="error" 
-                      onClick={() => removeDetail(index)} 
+                    <Button
+                      color="error"
+                      onClick={() => removeDetail(index)}
                       disabled={formData.details.length === 1}
                       sx={{ mt: 1 }}
                     >

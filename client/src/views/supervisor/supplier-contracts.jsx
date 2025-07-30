@@ -232,13 +232,14 @@ const SupplierContracts = () => {
               />
             </Grid>
             <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Trạng thái</InputLabel>
-                                 <Select
-                   value={filters.status || ''}
-                   label="Trạng thái"
-                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                 >
+                                                           <FormControl fullWidth>
+                  <InputLabel>Trạng thái</InputLabel>
+                  <Select
+                    value={filters.status || ''}
+                    label="Trạng thái"
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    sx={{ minWidth: 200 }}
+                  >
                   <MenuItem value="">Tất cả</MenuItem>
                   {filterOptions.status?.map((status) => (
                     <MenuItem key={status} value={status}>
@@ -249,13 +250,14 @@ const SupplierContracts = () => {
               </FormControl>
             </Grid>
                          <Grid item xs={12} md={3}>
-               <FormControl fullWidth>
-                 <InputLabel>Tên supplier</InputLabel>
-                                   <Select
-                    value={filters.partner_id || ''}
-                    label="Tên supplier"
-                    onChange={(e) => handleFilterChange('partner_id', e.target.value)}
-                  >
+                                                             <FormControl fullWidth>
+                   <InputLabel>Tên supplier</InputLabel>
+                   <Select
+                     value={filters.partner_id || ''}
+                     label="Tên supplier"
+                     onChange={(e) => handleFilterChange('partner_id', e.target.value)}
+                     sx={{ minWidth: 200 }}
+                   >
                    <MenuItem value="">Tất cả</MenuItem>
                    {suppliers.map((supplier) => (
                      <MenuItem key={supplier._id} value={supplier._id}>
