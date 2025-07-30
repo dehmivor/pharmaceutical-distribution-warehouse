@@ -15,19 +15,41 @@ import {
   Skeleton,
   IconButton,
   Button,
-  TablePagination
+  TablePagination,
+  TextField,
+  InputAdornment,
+  MenuItem,
+  Stack,
+  Paper
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import DetailsIcon from '@mui/icons-material/Details';
 import DeleteIcon from '@mui/icons-material/Delete';
+import {
+  Refresh as RefreshIcon,
+  Search as SearchIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon
+} from '@mui/icons-material';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
 import { useSnackbar } from 'notistack';
+import { useRouter } from 'next/navigation';
 
 const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 function CheckInspections() {
   const { enqueueSnackbar } = useSnackbar();
+  const router = useRouter();
 
+  // State filter, sort, search
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterLocation, setFilterLocation] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc'); // 'asc' hoặc 'desc'
+
+  // Các state cũ
   const [loading, setLoading] = useState(true);
   const [checkBy, setCheckBy] = useState(null);
   const [orderData, setOrderData] = useState(null);
@@ -35,15 +57,15 @@ function CheckInspections() {
   const [inspections, setInspections] = useState([]);
   const [locationsList, setLocationsList] = useState([]);
   const [usersMap, setUsersMap] = useState({});
-
-  // Pagination state
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [totalCount, setTotalCount] = useState(0);
 
   const { checkOrderId } = useParams();
 
-  // Lấy auth headers mỗi lần gọi API
+  // Các trạng thái ví dụ (có thể tùy biến theo backend)
+  const statusOptions = ['pending', 'processing', 'completed', 'cancelled'];
+
   const getAuthHeaders = () => {
     if (typeof window === 'undefined') return {};
     const token = localStorage.getItem('auth-token');
@@ -53,7 +75,7 @@ function CheckInspections() {
     };
   };
 
-  // Load thông tin user hiện tại
+  // Load user hiện tại
   useEffect(() => {
     const userString = localStorage.getItem('user');
     if (userString) {
@@ -67,7 +89,18 @@ function CheckInspections() {
     }
   }, []);
 
-  // Lấy chi tiết đơn kiểm kê và xử lý trạng thái
+  // Load locations list
+  useEffect(() => {
+    axios
+      .get(`${backendUrl}/api/locations`, { headers: getAuthHeaders() })
+      .then((res) => setLocationsList(res.data))
+      .catch((error) => {
+        console.error('Failed to load locations:', error);
+        enqueueSnackbar('Không thể tải dữ liệu vị trí kho.', { variant: 'error' });
+      });
+  }, []);
+
+  // Load chi tiết đơn và xử lý trạng thái
   useEffect(() => {
     if (!checkOrderId) return;
 
@@ -77,14 +110,12 @@ function CheckInspections() {
         const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
           headers: getAuthHeaders()
         });
-
         if (res.data?.success && res.data.data) {
           const order = res.data.data.checkorder;
-          console.log(res.data.data.checkorder);
           setOrderData(order);
 
           if (order.status?.toLowerCase() === 'processing') {
-            enqueueSnackbar('Toàn kho đang trong trạng thái khóa, ko thể tạo phiếu mới', { variant: 'info' });
+            enqueueSnackbar('Toàn kho đang trong trạng thái khóa, không thể tạo phiếu mới', { variant: 'info' });
             if (Array.isArray(order.items)) {
               const items = order.items.map((item) => ({
                 id: item.medicine_id._id,
@@ -93,7 +124,7 @@ function CheckInspections() {
               }));
               setInventoryItems(items);
             }
-            fetchInspections(page, rowsPerPage);
+            fetchInspections(0, rowsPerPage);
           } else {
             if (Array.isArray(order.items)) {
               const items = order.items.map((item) => ({
@@ -118,50 +149,72 @@ function CheckInspections() {
 
     fetchOrderAndDecide();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkOrderId, page, rowsPerPage]);
+  }, [checkOrderId]);
 
-  // Load danh sách vị trí kho
-  useEffect(() => {
-    axios
-      .get(`${backendUrl}/api/locations`, {
-        headers: getAuthHeaders()
-      })
-      .then((res) => setLocationsList(res.data))
-      .catch((error) => {
-        console.error('Failed to load locations:', error);
-        enqueueSnackbar('Không thể tải dữ liệu vị trí kho.', { variant: 'error' });
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Lấy label vị trí mô tả
-  const getLocationLabel = (location) => {
-    if (!location) return '';
-    const areaName = location.area_id?.name || 'Không xác định';
-    return `Khu vực: ${areaName}, Bay: ${location.bay}, Row: ${location.row}, Column: ${location.column}`;
+  // Hàm xử lý đổi filter field
+  const handleFilterChange = (field, value) => {
+    switch (field) {
+      case 'search':
+        setSearchTerm(value);
+        break;
+      case 'location':
+        setFilterLocation(value);
+        break;
+      case 'date':
+        setFilterDate(value);
+        break;
+      case 'status':
+        setFilterStatus(value);
+        break;
+      default:
+        break;
+    }
   };
 
-  // Hàm fetch danh sách phiếu kiểm + dữ liệu người kiểm kê (users)
+  // Xử lý khi nhấn nút Search (tải dữ liệu mới với filter, sort)
+  const handleSearchClick = () => {
+    setPage(0);
+    fetchInspections(0, rowsPerPage);
+  };
+
+  // Reset filter, sort về mặc định
+  const handleReset = () => {
+    setSearchTerm('');
+    setFilterLocation('');
+    setFilterDate('');
+    setFilterStatus('');
+    setSortDirection('asc');
+    setPage(0);
+    fetchInspections(0, rowsPerPage);
+  };
+
+  // Hàm fetch inspections với query filter, sort
   const fetchInspections = (pageParam = page, rowsPerPageParam = rowsPerPage) => {
     if (!checkOrderId) return;
     setLoading(true);
 
+    const params = {
+      page: pageParam + 1, // backend pagination start from 1
+      limit: rowsPerPageParam
+    };
+
+    if (searchTerm.trim()) params.search = searchTerm.trim();
+    if (filterLocation) params.location = filterLocation;
+    if (filterDate) params.date = filterDate;
+    if (filterStatus) params.status = filterStatus;
+    if (sortDirection) params.sort = sortDirection;
+
     axios
       .get(`${backendUrl}/api/inventory/inspection-from-order/${checkOrderId}`, {
         headers: getAuthHeaders(),
-        params: {
-          page: pageParam + 1, // Giả sử backend phân trang bắt đầu từ 1
-          limit: rowsPerPageParam
-        }
+        params
       })
       .then(async (res) => {
-        // Giả sử response có { data: inspectionsArray, totalCount: number }
         const inspectionsData = res.data?.data || [];
         const total = res.data?.totalCount ?? inspectionsData.length;
         setTotalCount(total);
 
         if (Array.isArray(inspectionsData)) {
-          // Chuẩn hóa dữ liệu phù hợp với UI
           const processedInspections = inspectionsData.map((inspection) => {
             const firstCheckItem = inspection.check_list?.[0] || null;
             const med = firstCheckItem?.medicine_id || null;
@@ -187,7 +240,7 @@ function CheckInspections() {
           });
           setInspections(processedInspections);
 
-          // Lấy userId duy nhất từ inspections
+          // Lấy userId duy nhất
           const uniqueUserIds = [...new Set(processedInspections.map((i) => i.check_by?._id || i.check_by).filter(Boolean))];
 
           if (uniqueUserIds.length > 0) {
@@ -233,10 +286,6 @@ function CheckInspections() {
       .finally(() => setLoading(false));
   };
 
-  // Danh sách mặt hàng chưa kiểm
-  const checkedMedicineIds = new Set(inspections.map((insp) => insp.item?.medicine_id).filter(Boolean));
-  const uncheckedMedicines = inventoryItems.filter((item) => !checkedMedicineIds.has(item.id));
-
   // Tạo phiếu kiểm loạt và cập nhật trạng thái khi đơn chưa processing
   useEffect(() => {
     const createInspectionsAndUpdateStatus = async () => {
@@ -257,7 +306,7 @@ function CheckInspections() {
 
         enqueueSnackbar('Cập nhật trạng thái đơn kiểm kê thành công.', { variant: 'success' });
 
-        fetchInspections(page, rowsPerPage);
+        fetchInspections(0, rowsPerPage);
       } catch (error) {
         console.error('Lỗi khi tạo phiếu hoặc cập nhật trạng thái:', error);
         enqueueSnackbar('Tạo phiếu hoặc cập nhật trạng thái thất bại.', { variant: 'error' });
@@ -267,17 +316,21 @@ function CheckInspections() {
     };
 
     createInspectionsAndUpdateStatus();
-  }, [checkOrderId, checkBy, orderData, page, rowsPerPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkOrderId, checkBy, orderData]);
 
   // Xử lý đổi trang
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
+    fetchInspections(newPage, rowsPerPage);
   };
 
   // Xử lý đổi số hàng/trang
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+    const newRpp = parseInt(event.target.value, 10);
+    setRowsPerPage(newRpp);
     setPage(0);
+    fetchInspections(0, newRpp);
   };
 
   // Xóa phiếu kiểm kê
@@ -292,7 +345,6 @@ function CheckInspections() {
       })
       .then(() => {
         enqueueSnackbar('Phiếu kiểm kê đã được xóa.', { variant: 'success' });
-        // Load lại trang hiện tại sau khi xóa
         fetchInspections(page, rowsPerPage);
       })
       .catch((error) => {
@@ -301,31 +353,120 @@ function CheckInspections() {
       });
   };
 
-  // Data phân trang local trong trường hợp backend không phân trang
-  // Nếu backend phân trang, bạn đã dùng tham số page, limit trong fetchInspections
-  // nên ở đây lấy toàn bộ data để hiển thị
-  const paginatedInspections = inspections; // dữ liệu đã phân trang từ backend
+  // Danh sách mặt hàng chưa kiểm
+  const checkedMedicineIds = new Set(inspections.map((insp) => insp.item?.medicine_id).filter(Boolean));
+  const uncheckedMedicines = inventoryItems.filter((item) => !checkedMedicineIds.has(item.id));
+
+  // Lấy label vị trí mô tả
+  const getLocationLabel = (location) => {
+    if (!location) return '';
+    const areaName = location.area_id?.name || 'Không xác định';
+    return `Khu vực: ${areaName}, Bay: ${location.bay}, Row: ${location.row}, Column: ${location.column}`;
+  };
 
   return (
     <Box sx={{ padding: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Tạo phiếu kiểm kê kho thuốc
-      </Typography>
-      <Typography variant="body1" color="text.secondary" mb={3}>
-        Quản lý và theo dõi các phiếu kiểm kê cho đợt kiểm kê toàn kho
-      </Typography>
+      {/* Tiêu đề và nút Refresh */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Tạo phiếu kiểm kê kho thuốc
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Quản lý và theo dõi các phiếu kiểm kê cho đợt kiểm kê toàn kho
+          </Typography>
+        </Box>
 
-      <Box sx={{ mb: 2 }}>
-        <Button variant="outlined" onClick={() => fetchInspections(page, rowsPerPage)} disabled={loading}>
-          Refresh
+        <Button
+          variant="contained"
+          color="warning"
+          startIcon={<DetailsIcon />}
+          onClick={() => router.push(`/wh-inventory/check-orders/${checkOrderId}`)}
+          disabled={loading}
+        >
+          Xem thống kê chi tiết của phiếu kiểm kê này
         </Button>
       </Box>
 
-      <Box sx={{ marginTop: 6 }}>
-        <Typography variant="h5" gutterBottom>
-          Danh sách phiếu kiểm kê
-        </Typography>
+      {/* UI filter, search, sort */}
+      <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+          <TextField
+            fullWidth
+            variant="outlined"
+            size="small"
+            label="Tìm kiếm"
+            placeholder="Tìm kiếm"
+            value={searchTerm}
+            onChange={(e) => handleFilterChange('search', e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" />
+                </InputAdornment>
+              )
+            }}
+          />
+          <TextField
+            fullWidth
+            select
+            label="Vị trí kho"
+            value={filterLocation}
+            onChange={(e) => handleFilterChange('location', e.target.value)}
+            size="small"
+          >
+            <MenuItem value="">Tất cả vị trí</MenuItem>
+            {locationsList.map((loc) => (
+              <MenuItem key={loc._id} value={loc._id}>
+                {loc.area_id?.name || 'Không xác định'} - Bay: {loc.bay}, Row: {loc.row}, Column: {loc.column}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            fullWidth
+            label="Thời điểm cập nhật"
+            type="date"
+            value={filterDate}
+            onChange={(e) => handleFilterChange('date', e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            size="small"
+          />
+          <TextField
+            fullWidth
+            select
+            label="Trạng thái"
+            value={filterStatus}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+            size="small"
+          >
+            <MenuItem value="">Tất cả</MenuItem>
+            {statusOptions.map((s) => (
+              <MenuItem key={s} value={s}>
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </MenuItem>
+            ))}
+          </TextField>
+          <Button
+            fullWidth
+            variant="outlined"
+            size="small"
+            startIcon={sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
+            onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+          >
+            {sortDirection === 'asc' ? 'Tăng dần' : 'Giảm dần'}
+          </Button>
 
+          <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
+            Search
+          </Button>
+          <Button fullWidth size="small" variant="outlined" onClick={handleReset}>
+            Refresh
+          </Button>
+        </Stack>
+      </Box>
+
+      {/* Mặt hàng chưa kiểm */}
+      <Box>
         {loading ? (
           <>
             <Skeleton variant="rectangular" height={60} sx={{ mb: 2 }} />
@@ -333,7 +474,7 @@ function CheckInspections() {
           </>
         ) : (
           <>
-            <Accordion defaultExpanded sx={{ mb: 2 }}>
+            <Accordion defaultExpanded sx={{ mb: 5 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="h6">Mặt hàng chưa kiểm ({uncheckedMedicines.length})</Typography>
               </AccordionSummary>
@@ -361,12 +502,13 @@ function CheckInspections() {
               </AccordionDetails>
             </Accordion>
 
+            {/* Mặt hàng đã kiểm */}
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="h6">Mặt hàng đã kiểm ({totalCount})</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                {paginatedInspections.length > 0 ? (
+                {inspections.length > 0 ? (
                   <>
                     <Table size="small" aria-label="checked-items">
                       <TableHead>
@@ -381,7 +523,7 @@ function CheckInspections() {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {paginatedInspections.map((inspection) => (
+                        {inspections.map((inspection) => (
                           <TableRow key={inspection._id}>
                             <TableCell>{inspection.item?.medicine_name ?? 'Không xác định'}</TableCell>
                             <TableCell align="right">{inspection.item?.expectedQuantity ?? '-'}</TableCell>
@@ -407,6 +549,7 @@ function CheckInspections() {
                         ))}
                       </TableBody>
                     </Table>
+
                     <TablePagination
                       component="div"
                       count={totalCount}
