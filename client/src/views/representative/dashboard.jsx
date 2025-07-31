@@ -30,11 +30,14 @@ export default function RepresentativeDashboard() {
         setLoading(true);
         setError(null);
 
+        const token = localStorage.getItem('auth-token');
+
         const response = await axios.get(`${API_BASE_URL}/api/dashboard/representative`, {
           headers: getAuthHeaders()
         });
 
         if (response.data.success) {
+
           setDashboardData(response.data.data);
         } else {
           throw new Error(response.data.error || 'Failed to fetch dashboard data');

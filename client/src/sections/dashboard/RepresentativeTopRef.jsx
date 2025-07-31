@@ -4,7 +4,7 @@
 import { Typography, Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import PropTypes from 'prop-types';
-import { BarChart } from '@mui/x-charts/BarChart';
+import { LineChart } from '@mui/x-charts/LineChart';
 
 // @project
 import MainCard from '@/components/MainCard';
@@ -23,15 +23,20 @@ export default function RepresentativeTopRef({ data }) {
   const totalValue = data?.reduce((sum, item) => sum + item.value, 0) || 0;
   const averageOrders = data?.length ? Math.round(totalOrders / data.length) : 0;
 
-  // Prepare chart data
-  const chartData = data?.map(item => ({
-    month: item.month,
-    'Export Orders': item.count,
-    'Total Value': item.value
-  })) || [];
+  // Prepare chart data with Date objects
+  const chartData = data?.map(item => {
+    const [year, month] = item.month.split('-').map(Number);
+    const date = new Date(year, month - 1, 1);
+    
+    return {
+      date: date,
+      'Export Orders': Number(item.count || 0),
+      'Total Value': Number(item.value || 0)
+    };
+  }) || [];
 
-  // If no data, show placeholder
-  if (chartData.length === 0) {
+  // If no data or invalid data, show placeholder
+  if (!data || !Array.isArray(data) || chartData.length === 0) {
     return (
       <MainCard>
         <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -39,7 +44,7 @@ export default function RepresentativeTopRef({ data }) {
           <Box>
             <Typography variant="h6">Export Orders by Month</Typography>
             <Typography variant="body2" color="text.secondary">
-              Monthly export order statistics
+              Monthly statistics for all representatives
             </Typography>
           </Box>
         </Box>
@@ -69,21 +74,33 @@ export default function RepresentativeTopRef({ data }) {
         <Box>
           <Typography variant="h6">Export Orders by Month</Typography>
           <Typography variant="body2" color="text.secondary">
-            Monthly export order statistics
+            Monthly statistics for all representatives
           </Typography>
         </Box>
       </Box>
       
       <Box sx={{ height: '300px', width: '100%' }}>
-        <BarChart
-          dataset={chartData}
-          xAxis={[{ scaleType: 'band', dataKey: 'month' }]}
-          series={[
-            { dataKey: 'Export Orders', color: theme.palette.primary.main }
-          ]}
-          height={300}
-          margin={{ top: 10, bottom: 30, left: 40, right: 10 }}
-        />
+                           <LineChart
+                     dataset={chartData.length > 0 ? chartData : [{ date: new Date(), 'Export Orders': 0 }]}
+                     xAxis={[{ 
+                       dataKey: 'date', 
+                       scaleType: 'point',
+                       valueFormatter: (date) => date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+                     }]}
+                     series={[
+                       { 
+                         dataKey: 'Export Orders', 
+                         color: theme.palette.primary.main,
+                         area: true,
+                         areaOpacity: 0.3,
+                         curve: 'linear'
+                       }
+                     ]}
+                     height={300}
+                     margin={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                     grid={{ horizontal: true }}
+                     slotProps={{ legend: { hidden: true } }}
+                   />
       </Box>
       
       <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>

@@ -70,15 +70,16 @@ export default function RepresentativeRecentActivity({ data }) {
       ) : (
         <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
           <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Order Code</TableCell>
-                <TableCell>Contract</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Value</TableCell>
-                <TableCell>Date</TableCell>
-              </TableRow>
-            </TableHead>
+                                   <TableHead>
+                         <TableRow>
+                           <TableCell>Order Code</TableCell>
+                           <TableCell>Contract</TableCell>
+                           <TableCell>Representative</TableCell>
+                           <TableCell>Status</TableCell>
+                           <TableCell align="right">Value</TableCell>
+                           <TableCell>Date</TableCell>
+                         </TableRow>
+                       </TableHead>
             <TableBody>
               {data.map((activity) => (
                 <TableRow key={activity.id} hover>
@@ -87,18 +88,23 @@ export default function RepresentativeRecentActivity({ data }) {
                       {activity.orderCode}
                     </Typography>
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {activity.contractCode || 'N/A'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={activity.status} 
-                      color={getStatusColor(activity.status)} 
-                      size="small" 
-                    />
-                  </TableCell>
+                                               <TableCell>
+                               <Typography variant="body2" color="text.secondary">
+                                 {activity.contractCode || 'N/A'}
+                               </Typography>
+                             </TableCell>
+                             <TableCell>
+                               <Typography variant="body2" color="text.secondary">
+                                 {activity.representative || 'N/A'}
+                               </Typography>
+                             </TableCell>
+                             <TableCell>
+                               <Chip
+                                 label={activity.status}
+                                 color={getStatusColor(activity.status)}
+                                 size="small"
+                               />
+                             </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" fontWeight="medium">
                       {fCurrency(activity.totalValue)}
@@ -120,13 +126,14 @@ export default function RepresentativeRecentActivity({ data }) {
 }
 
 RepresentativeRecentActivity.propTypes = {
-  data: PropTypes.arrayOf(PropTypes.shape({
-    id: PropTypes.string,
-    orderCode: PropTypes.string,
-    contractCode: PropTypes.string,
-    warehouseManager: PropTypes.string,
-    status: PropTypes.string,
-    totalValue: PropTypes.number,
-    createdAt: PropTypes.string
-  }))
+             data: PropTypes.arrayOf(PropTypes.shape({
+             id: PropTypes.string,
+             orderCode: PropTypes.string,
+             contractCode: PropTypes.string,
+             warehouseManager: PropTypes.string,
+             representative: PropTypes.string,
+             status: PropTypes.string,
+             totalValue: PropTypes.number,
+             createdAt: PropTypes.string
+           }))
 }; 

@@ -7,54 +7,65 @@ class DashboardService {
   // Get overview data for representative dashboard
   static async getOverviewData(userId, startDate, endDate) {
     try {
+  
+      
       const overviewData = await Promise.all([
-        // Total Export Orders
+        // Total Export Orders - All Representatives
         ExportOrder.countDocuments({
-          created_by: userId,
           createdAt: { $gte: startDate, $lte: endDate }
         }),
         
-        // Total Import Orders
+        // Total Import Orders - All Representatives
         ImportOrder.countDocuments({
-          created_by: userId,
           createdAt: { $gte: startDate, $lte: endDate }
         }),
         
-        // Total Contracts
+        // Total Contracts - All Representatives
         Contract.countDocuments({
-          created_by: userId,
           createdAt: { $gte: startDate, $lte: endDate }
         }),
         
-        // Total Value from Export Orders
+        // Total Value from Export Orders - All Representatives
         ExportOrder.aggregate([
           {
             $match: {
-              created_by: new mongoose.Types.ObjectId(userId),
               createdAt: { $gte: startDate, $lte: endDate }
             }
           },
           {
+            $unwind: "$details"
+          },
+          {
             $group: {
               _id: null,
-              totalValue: { $sum: "$total_value" }
+              totalValue: { 
+                $sum: { 
+                  $multiply: ["$details.expected_quantity", "$details.unit_price"] 
+                } 
+              }
             }
           }
         ])
       ]);
 
-      return {
+      
+
+      const result = {
         totalExportOrders: overviewData[0],
         totalImportOrders: overviewData[1],
         totalContracts: overviewData[2],
         totalValue: overviewData[3][0]?.totalValue || 0
       };
+
+      
+      return result;
     } catch (error) {
+      console.error('getOverviewData Error:', error);
       throw new Error(`Failed to get overview data: ${error.message}`);
     }
   }
 
-  // Get monthly chart data
+    // Get monthly chart data - All Representatives
   static async getMonthlyChartData(userId, months = 12) {
     try {
       const startDate = new Date();
@@ -63,24 +74,30 @@ class DashboardService {
       const monthlyData = await ExportOrder.aggregate([
         {
           $match: {
-            created_by: new mongoose.Types.ObjectId(userId),
             createdAt: { $gte: startDate }
           }
         },
-        {
-          $group: {
-            _id: {
-              year: { $year: "$createdAt" },
-              month: { $month: "$createdAt" }
-            },
-            count: { $sum: 1 },
-            totalValue: { $sum: "$total_value" }
-          }
-        },
-        {
-          $sort: { "_id.year": 1, "_id.month": 1 }
-        }
-      ]);
+         {
+           $unwind: "$details"
+         },
+         {
+           $group: {
+             _id: {
+               year: { $year: "$createdAt" },
+               month: { $month: "$createdAt" }
+             },
+             count: { $sum: 1 },
+             totalValue: { 
+               $sum: { 
+                 $multiply: ["$details.expected_quantity", "$details.unit_price"] 
+               } 
+             }
+           }
+         },
+         {
+           $sort: { "_id.year": 1, "_id.month": 1 }
+         }
+       ]);
 
       return monthlyData.map(item => ({
         month: `${item._id.year}-${String(item._id.month).padStart(2, '0')}`,
@@ -92,7 +109,7 @@ class DashboardService {
     }
   }
 
-  // Get export vs import comparison data
+    // Get export vs import comparison data - All Representatives
   static async getComparisonData(userId, months = 12) {
     try {
       const startDate = new Date();
@@ -102,29 +119,34 @@ class DashboardService {
         ExportOrder.aggregate([
           {
             $match: {
-              created_by: new mongoose.Types.ObjectId(userId),
               createdAt: { $gte: startDate }
             }
           },
-          {
-            $group: {
-              _id: {
-                year: { $year: "$createdAt" },
-                month: { $month: "$createdAt" }
-              },
-              exportCount: { $sum: 1 },
-              exportValue: { $sum: "$total_value" }
-            }
-          },
-          {
-            $sort: { "_id.year": 1, "_id.month": 1 }
-          }
-        ]),
+           {
+             $unwind: "$details"
+           },
+           {
+             $group: {
+               _id: {
+                 year: { $year: "$createdAt" },
+                 month: { $month: "$createdAt" }
+               },
+               exportCount: { $sum: 1 },
+               exportValue: { 
+                 $sum: { 
+                   $multiply: ["$details.expected_quantity", "$details.unit_price"] 
+                 } 
+               }
+             }
+           },
+           {
+             $sort: { "_id.year": 1, "_id.month": 1 }
+           }
+         ]),
         
         ImportOrder.aggregate([
           {
             $match: {
-              created_by: new mongoose.Types.ObjectId(userId),
               createdAt: { $gte: startDate }
             }
           },
@@ -161,7 +183,7 @@ class DashboardService {
     }
   }
 
-  // Get top export orders by month
+    // Get top export orders by month - All Representatives
   static async getTopExportData(userId, limit = 10) {
     try {
       const startDate = new Date();
@@ -170,27 +192,33 @@ class DashboardService {
       const topExportData = await ExportOrder.aggregate([
         {
           $match: {
-            created_by: new mongoose.Types.ObjectId(userId),
             createdAt: { $gte: startDate }
           }
         },
-        {
-          $group: {
-            _id: {
-              year: { $year: "$createdAt" },
-              month: { $month: "$createdAt" }
-            },
-            count: { $sum: 1 },
-            totalValue: { $sum: "$total_value" }
-          }
-        },
-        {
-          $sort: { "_id.year": 1, "_id.month": 1 }
-        },
-        {
-          $limit: limit
-        }
-      ]);
+         {
+           $unwind: "$details"
+         },
+         {
+           $group: {
+             _id: {
+               year: { $year: "$createdAt" },
+               month: { $month: "$createdAt" }
+             },
+             count: { $sum: 1 },
+             totalValue: { 
+               $sum: { 
+                 $multiply: ["$details.expected_quantity", "$details.unit_price"] 
+               } 
+             }
+           }
+         },
+         {
+           $sort: { "_id.year": 1, "_id.month": 1 }
+         },
+         {
+           $limit: limit
+         }
+       ]);
 
       return topExportData.map(item => ({
         month: `${item._id.year}-${String(item._id.month).padStart(2, '0')}`,
@@ -202,33 +230,39 @@ class DashboardService {
     }
   }
 
-  // Get recent activity
+  // Get recent activity - All Representatives
   static async getRecentActivity(userId, limit = 10) {
     try {
-      const recentActivity = await ExportOrder.find({
-        created_by: userId
-      })
-      .populate('contract_id', 'contract_code')
-      .populate('warehouse_manager_id', 'email')
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .select('order_code contract_id warehouse_manager_id status total_value createdAt');
+            const recentActivity = await ExportOrder.find({})
+        .populate('contract_id', 'contract_code')
+        .populate('warehouse_manager_id', 'email')
+        .populate('created_by', 'email') // Thêm thông tin Representative
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .select('order_code contract_id warehouse_manager_id status details createdAt created_by');
 
-      return recentActivity.map(order => ({
-        id: order._id,
-        orderCode: order.order_code,
-        contractCode: order.contract_id?.contract_code,
-        warehouseManager: order.warehouse_manager_id?.email,
-        status: order.status,
-        totalValue: order.total_value,
-        createdAt: order.createdAt
-      }));
+             return recentActivity.map(order => {
+         const totalValue = order.details.reduce((sum, detail) => {
+           return sum + (detail.expected_quantity * detail.unit_price);
+         }, 0);
+         
+                 return {
+          id: order._id,
+          orderCode: order.order_code,
+          contractCode: order.contract_id?.contract_code,
+          warehouseManager: order.warehouse_manager_id?.email,
+          representative: order.created_by?.email, // Thêm thông tin Representative
+          status: order.status,
+          totalValue: totalValue,
+          createdAt: order.createdAt
+        };
+       });
     } catch (error) {
       throw new Error(`Failed to get recent activity: ${error.message}`);
     }
   }
 
-  // Get dashboard statistics by date range
+  // Get dashboard statistics by date range - All Representatives
   static async getDashboardStats(userId, startDate, endDate) {
     try {
       const stats = await Promise.all([
@@ -236,7 +270,6 @@ class DashboardService {
         ExportOrder.aggregate([
           {
             $match: {
-              created_by: new mongoose.Types.ObjectId(userId),
               createdAt: { $gte: startDate, $lte: endDate }
             }
           },
@@ -254,7 +287,6 @@ class DashboardService {
         ImportOrder.aggregate([
           {
             $match: {
-              created_by: new mongoose.Types.ObjectId(userId),
               createdAt: { $gte: startDate, $lte: endDate }
             }
           },
@@ -272,7 +304,6 @@ class DashboardService {
         Contract.aggregate([
           {
             $match: {
-              created_by: new mongoose.Types.ObjectId(userId),
               createdAt: { $gte: startDate, $lte: endDate }
             }
           },

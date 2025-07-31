@@ -45,27 +45,27 @@ export function applyBorderWithRadius(radius, theme) {
 
 const getOverviewAnalytics = (data) => [
   {
-    title: 'Export Orders',
+    title: 'Total Export Orders',
     value: data?.totalExportOrders?.toString() || '0',
-    compare: 'This month',
+    compare: 'All Representatives',
     chip: {
       label: '24.5%',
       avatar: <IconArrowUp />
     }
   },
   {
-    title: 'Import Orders',
+    title: 'Total Import Orders',
     value: data?.totalImportOrders?.toString() || '0',
-    compare: 'This month',
+    compare: 'All Representatives',
     chip: {
       label: '20.5%',
       avatar: <IconArrowUp />
     }
   },
   {
-    title: 'Active Contracts',
+    title: 'Total Contracts',
     value: data?.totalContracts?.toString() || '0',
-    compare: 'This month',
+    compare: 'All Representatives',
     chip: {
       label: '15.2%',
       color: 'error',
@@ -75,7 +75,7 @@ const getOverviewAnalytics = (data) => [
   {
     title: 'Total Revenue',
     value: fCurrency(data?.totalValue || 0),
-    compare: 'This month',
+    compare: 'All Representatives',
     chip: {
       label: '18.7%',
       avatar: <IconArrowUp />

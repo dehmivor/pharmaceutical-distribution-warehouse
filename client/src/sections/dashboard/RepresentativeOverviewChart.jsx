@@ -4,7 +4,7 @@
 import { Typography, Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import PropTypes from 'prop-types';
-import { BarChart } from '@mui/x-charts/BarChart';
+import { LineChart } from '@mui/x-charts/LineChart';
 
 // @project
 import MainCard from '@/components/MainCard';
@@ -24,31 +24,42 @@ export default function RepresentativeOverviewChart({ data }) {
   const exportValue = data?.export?.reduce((sum, item) => sum + item.value, 0) || 0;
   const importValue = data?.import?.reduce((sum, item) => sum + item.value, 0) || 0;
 
-  // Prepare chart data
+  // Prepare chart data with Date objects
   const chartData = [];
-  const months = new Set();
   
-  // Collect all months
-  data?.export?.forEach(item => months.add(item.month));
-  data?.import?.forEach(item => months.add(item.month));
-  
-  // Sort months
-  const sortedMonths = Array.from(months).sort();
-  
-  // Create chart data
-  sortedMonths.forEach(month => {
-    const exportItem = data?.export?.find(item => item.month === month);
-    const importItem = data?.import?.find(item => item.month === month);
+  // Only process if we have valid data
+  if (data && Array.isArray(data.export) && Array.isArray(data.import)) {
+    const months = new Set();
     
-    chartData.push({
-      month: month,
-      'Export Orders': exportItem?.count || 0,
-      'Import Orders': importItem?.count || 0,
+    // Collect all months
+    data.export.forEach(item => {
+      if (item && item.month) months.add(item.month);
     });
-  });
+    data.import.forEach(item => {
+      if (item && item.month) months.add(item.month);
+    });
+    
+    // Sort months and convert to Date objects
+    const sortedMonths = Array.from(months).sort();
+    
+    // Create chart data with Date objects
+    sortedMonths.forEach(monthStr => {
+      const [year, month] = monthStr.split('-').map(Number);
+      const date = new Date(year, month - 1, 1); // month - 1 because Date constructor uses 0-based months
+      
+      const exportItem = data.export.find(item => item && item.month === monthStr);
+      const importItem = data.import.find(item => item && item.month === monthStr);
+      
+      chartData.push({
+        date: date,
+        'Export Orders': Number(exportItem?.count || 0),
+        'Import Orders': Number(importItem?.count || 0),
+      });
+    });
+  }
 
-  // If no data, show placeholder
-  if (chartData.length === 0) {
+  // If no data or invalid data, show placeholder
+  if (!data || !Array.isArray(data.export) || !Array.isArray(data.import) || chartData.length === 0) {
     return (
       <MainCard>
         <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -56,7 +67,7 @@ export default function RepresentativeOverviewChart({ data }) {
           <Box>
             <Typography variant="h6">Export vs Import Orders</Typography>
             <Typography variant="body2" color="text.secondary">
-              Monthly comparison of export and import orders
+              Monthly comparison of all representatives
             </Typography>
           </Box>
         </Box>
@@ -86,22 +97,40 @@ export default function RepresentativeOverviewChart({ data }) {
         <Box>
           <Typography variant="h6">Export vs Import Orders</Typography>
           <Typography variant="body2" color="text.secondary">
-            Monthly comparison of export and import orders
+            Monthly comparison of all representatives
           </Typography>
         </Box>
       </Box>
       
       <Box sx={{ height: '300px', width: '100%' }}>
-        <BarChart
-          dataset={chartData}
-          xAxis={[{ scaleType: 'band', dataKey: 'month' }]}
-          series={[
-            { dataKey: 'Export Orders', color: theme.palette.primary.main },
-            { dataKey: 'Import Orders', color: theme.palette.secondary.main }
-          ]}
-          height={300}
-          margin={{ top: 10, bottom: 30, left: 40, right: 10 }}
-        />
+                           <LineChart
+                     dataset={chartData.length > 0 ? chartData : [{ date: new Date(), 'Export Orders': 0, 'Import Orders': 0 }]}
+                     xAxis={[{ 
+                       dataKey: 'date', 
+                       scaleType: 'point',
+                       valueFormatter: (date) => date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+                     }]}
+                     series={[
+                       { 
+                         dataKey: 'Export Orders', 
+                         color: theme.palette.primary.main,
+                         area: true,
+                         areaOpacity: 0.2,
+                         curve: 'linear'
+                       },
+                       { 
+                         dataKey: 'Import Orders', 
+                         color: theme.palette.secondary.main,
+                         area: true,
+                         areaOpacity: 0.2,
+                         curve: 'linear'
+                       }
+                     ]}
+                     height={300}
+                     margin={{ top: 20, bottom: 40, left: 50, right: 20 }}
+                     grid={{ horizontal: true }}
+                     slotProps={{ legend: { hidden: true } }}
+                   />
       </Box>
       
       <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
