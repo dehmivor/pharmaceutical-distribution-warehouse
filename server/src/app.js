@@ -123,6 +123,7 @@ app.use('/api/retailer', route.retailerRoutes);
 app.use('/api/contract', route.contractRoutes);
 app.use('/api/inventory-check-orders', route.inventoryCheckOrderRoutes);
 app.use('/api/inventory', route.inventoryRoutes);
+app.use('/api/dashboard', route.dashboardRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 

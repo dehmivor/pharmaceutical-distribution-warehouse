@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 
 // @project
 
-const ForgotPassword = dynamic(() => import('@/views/auth/forgot-password'));
+const ForgotPassword = dynamic(() => import('@/views/admin/auth/forgot-password'));
 
 /***************************  AUTH - LOGIN  ***************************/
 
