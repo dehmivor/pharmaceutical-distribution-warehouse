@@ -1,17 +1,18 @@
-'use client';
+import useTrans from '@/hooks/useTrans';
 import { Box, Typography } from '@mui/material';
 
-function HeaderSection() {
+const HeaderSection = () => {
+  const trans = useTrans();
   return (
     <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
       <Typography variant="h4" gutterBottom>
-        Manage User
+        {trans.header.title}
       </Typography>
       <Typography variant="body1" color="text.secondary">
-        Administer and oversee user accounts and privileges within the platform
+        {trans.header.description}
       </Typography>
     </Box>
   );
-}
+};
 
 export default HeaderSection;

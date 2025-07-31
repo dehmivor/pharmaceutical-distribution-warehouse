@@ -147,8 +147,6 @@ export const useAuth = () => {
       }
 
       const result = await response.json();
-      console.log('✅ API response received:', { success: result.success });
-
       // 5. Process successful response
       if (result.success && result.data) {
         console.log('✅ Account activation successful');

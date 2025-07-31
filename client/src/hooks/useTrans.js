@@ -1,10 +1,11 @@
-import en from '../public/lang/en.js';
-import vi from '../public/lang/vi.js';
 import useConfig from '@/hooks/useConfig';
+import en from '../../public/lang/en';
+import vi from '../../public/lang/vi';
+import { ThemeI18n } from '@/config';
 
-const useTrans = () => {
+export default function useTrans() {
   const { i18n } = useConfig();
-  return i18n === 'vi' ? vi : en;
-};
+  console.log('i18n đã được cập nhật để lấy ngôn ngữ', i18n);
 
-export default useTrans;
+  return i18n === ThemeI18n.VN ? vi : en;
+}

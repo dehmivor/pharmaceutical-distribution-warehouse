@@ -66,14 +66,6 @@ const fetcher = async (url) => {
     });
 
     clearTimeout(timeoutId);
-
-    console.log('📡 Response received:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-      url: response.url
-    });
-
     // Enhanced error handling
     if (!response.ok) {
       let errorData = null;
@@ -171,8 +163,6 @@ const fetcher = async (url) => {
       console.warn('⚠️ Unexpected data structure, using empty array');
       users = [];
     }
-
-    console.log(`✅ Successfully fetched ${users.length} users`);
     return users;
   } catch (error) {
     // Enhanced error logging
@@ -317,15 +307,6 @@ const useUsers = () => {
 
   // Safe data processing
   const safeUsers = Array.isArray(users) ? users : [];
-
-  console.log('📊 useUsers result:', {
-    usersCount: safeUsers.length,
-    isLoading,
-    hasError: !!error,
-    errorMessage: error?.message,
-    hasValidToken: shouldFetch,
-    retryCount
-  });
 
   return {
     users: safeUsers,

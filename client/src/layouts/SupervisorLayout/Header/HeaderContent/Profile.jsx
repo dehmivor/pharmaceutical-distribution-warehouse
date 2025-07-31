@@ -55,7 +55,7 @@ export default function ProfileSection() {
   const innerId = innerOpen ? 'profile-inner-popper' : undefined;
   const buttonStyle = { borderRadius: 2, p: 1 };
 
-  if (isLoading) return null; // hoặc hiện loading spinner
+  if (isLoading) return null;
 
   const handleActionClick = (event) => {
     setAnchorEl(anchorEl ? null : event.currentTarget);
@@ -81,13 +81,12 @@ export default function ProfileSection() {
   };
 
   const i18nHandler = (event, key) => {
-    handleInnerActionClick(event); // đóng popper chọn ngôn ngữ
+    handleInnerActionClick(event);
     if (key !== i18n) {
-      setI18n(key); // cập nhật ngôn ngữ trong context, trigger re-render
+      setI18n(key);
       enqueueSnackbar(`Language changed to ${languageList.find((l) => l.key === key)?.value}`, { variant: 'success' });
     }
   };
-  // Chuẩn bị dữ liệu profile lấy từ context
   const profileData = {
     avatar: { src: user?.avatar || '/assets/images/users/avatar-2.png', size: AvatarSize.XS },
     title: user?.email || 'Email',

@@ -1,4 +1,5 @@
 'use client';
+import useConfig from '@/hooks/useConfig';
 import AddUserDialog from '@/sections/supervisor/activate-account/AddUserDialog';
 import ContentSection from '@/sections/supervisor/activate-account/ContentSection';
 import HeaderSection from '@/sections/supervisor/activate-account/HeaderSection';
@@ -9,6 +10,7 @@ import axios from 'axios';
 import { useState } from 'react';
 
 function ManageUsers() {
+  const { i18n } = useConfig();
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
 

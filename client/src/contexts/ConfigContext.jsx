@@ -16,15 +16,9 @@ const ConfigContext = createContext({
 function ConfigProvider({ children }) {
   const [config, setConfig] = useLocalStorage('sass-able-react-mui-admin-next-ts', initialState);
 
-  const setI18n = useCallback(
-    (newLocale) => {
-      setConfig((prevConfig) => ({
-        ...prevConfig,
-        i18n: newLocale
-      }));
-    },
-    [setConfig]
-  );
+  const setI18n = (newLocale) => {
+    setConfig((prev) => ({ ...prev, i18n: newLocale }));
+  };
 
   return <ConfigContext.Provider value={{ ...config, setI18n }}>{children}</ConfigContext.Provider>;
 }

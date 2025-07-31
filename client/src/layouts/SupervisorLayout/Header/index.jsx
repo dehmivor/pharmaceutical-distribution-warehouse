@@ -26,7 +26,7 @@ export default function Header() {
   const drawerOpen = menuMaster.isDashboardDrawerOpened;
 
   // Memoized header content to avoid unnecessary re-renders
-  const headerContent = useMemo(() => <HeaderContent />, []);
+  const headerContent = <HeaderContent />;
 
   // Common header content
   const mainHeader = (

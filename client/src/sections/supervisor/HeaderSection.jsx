@@ -4,6 +4,7 @@ import { Box, Typography } from '@mui/material';
 
 function HeaderSection() {
   const trans = useTrans();
+  console.log('header sections re-render');
   return (
     <div>
       <Box>
