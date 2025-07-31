@@ -1,8 +1,10 @@
 'use client';
 import React from 'react';
 import { Paper, Tab, Tabs } from '@mui/material';
+import useTrans from '@/hooks/useTrans';
 
 function TableSection({ activeTab, handleTabChange }) {
+  const trans = useTrans();
   return (
     <Paper
       elevation={0}
@@ -12,8 +14,8 @@ function TableSection({ activeTab, handleTabChange }) {
       }}
     >
       <Tabs value={activeTab} onChange={handleTabChange}>
-        <Tab label="Users" />
-        <Tab label="Permissions" />
+        <Tab label={trans.tabs.users} />
+        <Tab label={trans.tabs.permissions} />
       </Tabs>
     </Paper>
   );

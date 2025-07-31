@@ -19,8 +19,10 @@ import {
 import { useCallback, useState } from 'react';
 import PermissionManagement from '../PermissionManagementTab';
 import UserManagement from './UserManagementTab';
+import useTrans from '@/hooks/useTrans';
 
 function ContentSection({ activeTab, onOpenAddUser }) {
+  const trans = useTrans();
   const [permissionDialog, setPermissionDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newRole, setNewRole] = useState('');
@@ -56,7 +58,7 @@ function ContentSection({ activeTab, onOpenAddUser }) {
   };
 
   return (
-    <Stack spacing={2} title={activeTab === 1 ? 'Permission Management' : ''}>
+    <Stack spacing={2} title={activeTab === 1 ? trans.tabs.permissions : ''}>
       {activeTab === 0 ? (
         <UserManagement onOpenPermissionDialog={handleOpenPermissionDialog} onOpenAddUser={onOpenAddUser} />
       ) : (
