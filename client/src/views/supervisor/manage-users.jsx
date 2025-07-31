@@ -1,17 +1,13 @@
 'use client';
-import useConfig from '@/hooks/useConfig';
 import AddUserDialog from '@/sections/supervisor/activate-account/AddUserDialog';
 import ContentSection from '@/sections/supervisor/activate-account/ContentSection';
 import HeaderSection from '@/sections/supervisor/activate-account/HeaderSection';
 import TableSection from '@/sections/supervisor/activate-account/TableSection';
 import { Box, Container } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import axios from 'axios';
 import { useState } from 'react';
 
 function ManageUsers() {
-  const { i18n } = useConfig();
-  const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
 
   // State cho dialog và form
