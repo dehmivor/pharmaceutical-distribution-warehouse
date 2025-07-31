@@ -26,9 +26,11 @@ import {
   FormControl,
   InputLabel,
   Select,
-  Divider
+  Divider,
+  Card,
+  CardContent
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Info as InfoIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Info as InfoIcon, Refresh as RefreshIcon, FilterList as FilterListIcon } from '@mui/icons-material';
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -55,7 +57,16 @@ function ImportOrderPage() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [statusFilter, setStatusFilter] = useState('');
+
+  // Filter state
+  const [filters, setFilters] = useState({
+    contract_code: '',
+    supplier: '',
+    date_filter: '',
+    created_by: ''
+  });
+  const [userEmails, setUserEmails] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -88,6 +99,50 @@ function ImportOrderPage() {
       setError(error.response?.data?.error || error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch user emails for filter
+  const fetchUserEmails = async () => {
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/import-orders`, {
+        headers: getAuthHeaders()
+      });
+
+      // Extract unique emails from orders
+      const emails = new Set();
+      response.data.data?.forEach(order => {
+        if (order.created_by?.email) {
+          emails.add(order.created_by.email);
+        }
+      });
+
+      setUserEmails(Array.from(emails).sort());
+    } catch (error) {
+      console.error('Error fetching user emails:', error);
+      setUserEmails([]);
+    }
+  };
+
+  // Fetch suppliers for filter
+  const fetchSuppliers = async () => {
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/import-orders`, {
+        headers: getAuthHeaders()
+      });
+
+      // Extract unique suppliers from orders
+      const supplierSet = new Set();
+      response.data.data?.forEach(order => {
+        if (order.contract_id?.partner_id?.name) {
+          supplierSet.add(order.contract_id.partner_id.name);
+        }
+      });
+
+      setSuppliers(Array.from(supplierSet).sort());
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+      setSuppliers([]);
     }
   };
 
@@ -144,6 +199,8 @@ function ImportOrderPage() {
     fetchOrders();
     fetchContracts();
     fetchWarehouseManagers();
+    fetchUserEmails();
+    fetchSuppliers();
   }, []);
 
   useEffect(() => {
@@ -378,8 +435,29 @@ function ImportOrderPage() {
     }
   };
 
+  // Handle filter changes
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      contract_code: '',
+      supplier: '',
+      date_filter: '',
+      created_by: ''
+    });
+  };
+
+  // Filter orders based on current filters
   const filteredOrders = orders.filter((order) => {
-    if (statusFilter && order.status !== statusFilter) return false;
+    if (filters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(filters.contract_code.toLowerCase())) return false;
+    if (filters.supplier && order.contract_id?.partner_id?.name !== filters.supplier) return false;
+    if (filters.created_by && order.created_by?.email !== filters.created_by) return false;
     return true;
   });
 
@@ -391,32 +469,104 @@ function ImportOrderPage() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Manage Import Orders</Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>Status Filter</InputLabel>
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              label="Status Filter"
-            >
-              <MenuItem value="">All Status</MenuItem>
-              <MenuItem value="draft">Draft</MenuItem>
-              <MenuItem value="approved">Approved</MenuItem>
-              <MenuItem value="rejected">Rejected</MenuItem>
-              <MenuItem value="delivered">Delivered</MenuItem>
-              <MenuItem value="checked">Checked</MenuItem>
-              <MenuItem value="arranged">Arranged</MenuItem>
-              <MenuItem value="completed">Completed</MenuItem>
-              <MenuItem value="cancelled">Cancelled</MenuItem>
-            </Select>
-          </FormControl>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={fetchOrders}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenForm()} sx={{ minWidth: 180, height: 48 }}>
             Create New Order
           </Button>
         </Box>
       </Box>
+
+      {/* Filter Section */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <FilterListIcon sx={{ color: 'primary.main', mr: 1 }} />
+            <Typography variant="h6" sx={{ color: 'primary.main' }}>Bộ Lọc Tìm Kiếm</Typography>
+          </Box>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={3}>
+              <TextField
+                fullWidth
+                label="Mã hợp đồng"
+                placeholder="Tìm kiếm theo mã hợp đồng..."
+                value={filters.contract_code || ''}
+                onChange={(e) => handleFilterChange('contract_code', e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                      🔍
+                    </Box>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <FormControl fullWidth>
+                <InputLabel>Nhà cung cấp</InputLabel>
+                <Select
+                  value={filters.supplier}
+                  onChange={(e) => handleFilterChange('supplier', e.target.value)}
+                  label="Nhà cung cấp"
+                  sx={{ minWidth: '140px' }}
+                >
+                  <MenuItem value="">Tất cả nhà cung cấp</MenuItem>
+                  {suppliers.map((supplier) => (
+                    <MenuItem key={supplier} value={supplier}>
+                      {supplier}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth>
+                <InputLabel>Người tạo</InputLabel>
+                <Select
+                  value={filters.created_by}
+                  onChange={(e) => handleFilterChange('created_by', e.target.value)}
+                  label="Người tạo"
+                  sx={{ minWidth: '200px' }}
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  {userEmails.length > 0 && (
+                    <MenuItem disabled>
+                      <Typography variant="caption" color="text.secondary">
+                        ─── Chọn email cụ thể ───
+                      </Typography>
+                    </MenuItem>
+                  )}
+                  {userEmails.map((email) => (
+                    <MenuItem key={email} value={email}>
+                      {email}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={2}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: '100%' }}>
+                <Button
+                  variant="outlined"
+                  onClick={clearFilters}
+                  fullWidth
+                >
+                  Xóa bộ lọc
+                </Button>
+              </Box>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
       <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 2, mb: 3 }}>
         <Table>
@@ -424,7 +574,7 @@ function ImportOrderPage() {
             <TableRow>
               <TableCell sx={{ minWidth: 120 }}>Contract Code</TableCell>
               <TableCell sx={{ minWidth: 150 }}>Supplier</TableCell>
-              <TableCell sx={{ minWidth: 150 }}>Warehouse</TableCell>
+              <TableCell sx={{ minWidth: 150 }}>Warehouse Manager</TableCell>
               <TableCell sx={{ minWidth: 120 }}>Created By</TableCell>
               <TableCell align="right" sx={{ minWidth: 120 }}>
                 Total Amount
@@ -438,8 +588,8 @@ function ImportOrderPage() {
               <TableRow key={order._id} hover>
                 <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
                 <TableCell>{order.contract_id?.partner_id?.name || 'N/A'}</TableCell>
-                <TableCell>{order.warehouse_manager_id?.name || 'N/A'}</TableCell>
-                <TableCell>{order.created_by?._id || order.created_by || 'N/A'}</TableCell>
+                <TableCell>{order.warehouse_manager_id?.email || 'N/A'}</TableCell>
+                <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
                 <TableCell align="right">
                   ${order.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0).toLocaleString() || 0}
                 </TableCell>

@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Chip, TextField, Grid, MenuItem, FormControl, InputLabel, Select, IconButton, Menu, Pagination, Card, CardContent
+  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Chip, TextField, Grid, MenuItem, FormControl, InputLabel, Select, IconButton, Menu, TablePagination, Card, CardContent
 } from '@mui/material';
 import { Add as AddIcon, MoreVert as MoreVertIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, Refresh as RefreshIcon, FilterList as FilterListIcon } from '@mui/icons-material';
 import axios from 'axios';
@@ -32,10 +32,8 @@ function ExportOrderPage() {
   const [selectedOrderForAction, setSelectedOrderForAction] = useState(null);
 
   // Pagination state
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const [limit] = useState(10);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -44,67 +42,14 @@ function ExportOrderPage() {
     date_filter: '',
     created_by: ''
   });
-  const [showFilters, setShowFilters] = useState(false);
   const [userEmails, setUserEmails] = useState([]);
 
   // Định nghĩa lại hàm fetchOrders
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString()
-      });
-
-      // Add filters if they have values
-      if (filters.status) params.append('status', filters.status);
-      if (filters.contract_code) params.append('contract_code', filters.contract_code);
-      if (filters.date_filter) params.append('date_filter', filters.date_filter);
-      if (filters.created_by) {
-        if (filters.created_by === 'current_user') {
-          // Lấy user ID từ localStorage hoặc context
-          const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
-          if (token) {
-            try {
-              const payload = JSON.parse(atob(token.split('.')[1]));
-              params.append('created_by', payload.userId);
-            } catch (error) {
-              console.error('Error parsing token:', error);
-            }
-          }
-        } else if (filters.created_by === 'others') {
-          // Lấy user ID từ localStorage hoặc context
-          const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
-          if (token) {
-            try {
-              const payload = JSON.parse(atob(token.split('.')[1]));
-              params.append('created_by_not', payload.userId);
-            } catch (error) {
-              console.error('Error parsing token:', error);
-            }
-          }
-        } else if (filters.created_by.includes('@')) {
-          // Nếu là email cụ thể, tìm user ID trước
-          const userId = await findUserIdByEmail(filters.created_by);
-          if (userId) {
-            params.append('created_by', userId);
-          } else {
-            // Nếu không tìm thấy user, trả về empty result
-            setOrders([]);
-            setTotalPages(1);
-            setTotalItems(0);
-            setLoading(false);
-            return;
-          }
-        } else {
-          params.append('created_by', filters.created_by);
-        }
-      }
-
-      const response = await axios.get(`${API_BASE_URL}/api/export-orders?${params}`, { headers: getAuthHeaders() });
+      const response = await axios.get(`${API_BASE_URL}/api/export-orders`, { headers: getAuthHeaders() });
       setOrders(response.data.data || []);
-      setTotalPages(response.data.pagination?.totalPages || 1);
-      setTotalItems(response.data.pagination?.total || 0);
     } catch (error) {
       setError(error.response?.data?.error || error.message);
     } finally {
@@ -137,8 +82,7 @@ function ExportOrderPage() {
   const fetchUserEmails = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/export-orders`, {
-        headers: getAuthHeaders(),
-        params: { limit: 1000 } // Lấy nhiều orders để extract emails
+        headers: getAuthHeaders()
       });
 
       // Extract unique emails from orders
@@ -156,38 +100,15 @@ function ExportOrderPage() {
     }
   };
 
-  // Helper function to find user ID by email
-  const findUserIdByEmail = async (email) => {
-    try {
-      // Tìm trong orders hiện tại trước
-      const existingOrder = orders.find(order => order.created_by?.email === email);
-      if (existingOrder?.created_by?._id) {
-        return existingOrder.created_by._id;
-      }
-
-      // Nếu không tìm thấy, fetch lại orders để tìm
-      const response = await axios.get(`${API_BASE_URL}/api/export-orders`, {
-        headers: getAuthHeaders(),
-        params: { limit: 1000 }
-      });
-
-      const foundOrder = response.data.data?.find(order => order.created_by?.email === email);
-      return foundOrder?.created_by?._id || null;
-    } catch (error) {
-      console.error('Error finding user ID by email:', error);
-      return null;
-    }
-  };
-
   useEffect(() => {
     fetchOrders();
     fetchContracts();
     fetchUserEmails();
-  }, [page, filters]);
+  }, []);
 
   // Reset page when filters change
   useEffect(() => {
-    setPage(1);
+    setPage(0);
   }, [filters]);
 
   // Gọi fetchContractMedicines khi chọn contract
@@ -340,9 +261,23 @@ function ExportOrderPage() {
     });
   };
 
-  // Handle page change
-  const handlePageChange = (event, newPage) => {
+  // Filter orders based on current filters
+  const filteredOrders = orders.filter((order) => {
+    if (filters.status && order.status !== filters.status) return false;
+    if (filters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(filters.contract_code.toLowerCase())) return false;
+    if (filters.created_by && order.created_by?.email !== filters.created_by) return false;
+    return true;
+  });
+
+  const paginatedOrders = filteredOrders.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  const handleChangePage = (event, newPage) => {
     setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   // Refresh table
@@ -433,13 +368,6 @@ function ExportOrderPage() {
           >
             Refresh
           </Button>
-          <Button
-            variant="outlined"
-            startIcon={<FilterListIcon />}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            Bộ lọc
-          </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenForm(true)}>
             Create Export Order
           </Button>
@@ -447,13 +375,12 @@ function ExportOrderPage() {
       </Box>
 
       {/* Filter Section */}
-      {showFilters && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <FilterListIcon sx={{ color: 'primary.main', mr: 1 }} />
-              <Typography variant="h6" sx={{ color: 'primary.main' }}>Bộ Lọc Tìm Kiếm</Typography>
-            </Box>
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <FilterListIcon sx={{ color: 'primary.main', mr: 1 }} />
+            <Typography variant="h6" sx={{ color: 'primary.main' }}>Bộ Lọc Tìm Kiếm</Typography>
+          </Box>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={3}>
                 <TextField
@@ -531,7 +458,6 @@ function ExportOrderPage() {
             </Grid>
           </CardContent>
         </Card>
-      )}
       <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 2, mb: 3 }}>
         <Table>
           <TableHead>
@@ -550,14 +476,14 @@ function ExportOrderPage() {
                   <Typography>Loading...</Typography>
                 </TableCell>
               </TableRow>
-            ) : orders.length === 0 ? (
+            ) : paginatedOrders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                   <Typography color="text.secondary">No export orders found</Typography>
                 </TableCell>
               </TableRow>
             ) : (
-              orders.map((order) => (
+              paginatedOrders.map((order) => (
                 <TableRow key={order._id} hover>
                   <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
                   <TableCell><Chip label={order.status} color={getStatusColor(order.status)} size="small" /></TableCell>
@@ -576,136 +502,149 @@ function ExportOrderPage() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={filteredOrders.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          sx={{ px: 2, py: 1 }}
+        />
       </TableContainer>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-          <Pagination
-            count={totalPages}
-            page={page}
-            onChange={handlePageChange}
-            color="primary"
-            showFirstButton
-            showLastButton
-          />
-        </Box>
-      )}
-
-      {/* Pagination Info */}
-      {totalItems > 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, totalItems)} of {totalItems} export orders
-          </Typography>
-        </Box>
-      )}
-      <Dialog open={openForm} onClose={() => setOpenForm(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Create Export Order</DialogTitle>
+            <Dialog open={openForm} onClose={() => setOpenForm(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>Create Export Order</DialogTitle>
         <DialogContent>
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Contract</InputLabel>
-              <Select
-                name="contract_id"
-                value={formData.contract_id}
-                onChange={handleFormChange}
-                label="Contract"
-                required
-              >
-                {contracts.map((contract) => (
-                  <MenuItem key={contract._id} value={contract._id}>
-                    {contract.contract_code}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>Order Details</Typography>
-            <Alert severity="info" sx={{ mb: 2 }}>
-              <Typography variant="body2">
-                Số lượng và đơn giá sẽ được tự động điền từ hợp đồng và không thể chỉnh sửa.
-              </Typography>
-            </Alert>
-            {formData.details.map((detail, index) => (
-              <Box key={index} sx={{ mb: 2 }}>
-                <Grid container spacing={2} alignItems="flex-start">
-                  <Grid item xs={12} sm={5}>
-                    <FormControl fullWidth>
-                      <InputLabel>Medicine</InputLabel>
-                      <Select
-                        value={detail.medicine_id}
-                        onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
-                        label="Medicine"
-                        required
-                      >
-                        {contractMedicines.filter((med) =>
-                          !formData.details.some((d, i) => d.medicine_id === med.medicine_id._id && i !== index)
-                        ).map((med) => (
-                          <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
-                            {med.medicine_id.medicine_name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={3}>
-                    <TextField
-                      label="Quantity"
-                      type="number"
-                      value={detail.expected_quantity}
-                      onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
-                      fullWidth
-                      required
-                      disabled
-                      helperText="Tự động từ hợp đồng"
-                      sx={{
-                        '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
-                        '& .MuiInputBase-input.Mui-disabled': {
-                          backgroundColor: '#f5f5f5',
-                          color: '#666'
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={3}>
-                    <TextField
-                      label="Unit Price"
-                      type="number"
-                      value={detail.unit_price}
-                      onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
-                      fullWidth
-                      required
-                      disabled
-                      helperText="Tự động từ hợp đồng"
-                      sx={{
-                        '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
-                        '& .MuiInputBase-input.Mui-disabled': {
-                          backgroundColor: '#f5f5f5',
-                          color: '#666'
-                        }
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={1}>
-                    <Button
-                      color="error"
-                      onClick={() => removeDetail(index)}
-                      disabled={formData.details.length === 1}
-                      sx={{ mt: 1 }}
-                    >
-                      X
-                    </Button>
-                  </Grid>
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, position: 'relative', minHeight: 400 }}>
+            {/* Row: Contract select + Order Details title + Add Medicine */}
+            <Grid container alignItems="center" spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Contract</InputLabel>
+                  <Select
+                    name="contract_id"
+                    value={formData.contract_id}
+                    onChange={handleFormChange}
+                    label="Contract"
+                    required
+                  >
+                    {contracts.map((contract) => (
+                      <MenuItem key={contract._id} value={contract._id}>
+                        {contract.contract_code} - {contract.partner_id?.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={5} sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-start', md: 'center' } }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>Order Details</Typography>
+              </Grid>
+              <Grid item xs={12} md={3} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                <Button onClick={addDetail} variant="outlined" size="medium" disabled={!formData.contract_id} sx={{ minWidth: 140, fontWeight: 600 }}>
+                  Add Medicine
+                </Button>
+              </Grid>
+            </Grid>
+            {/* Medicines List */}
+            <Grid container spacing={2}>
+              {formData.details.length === 0 && !formData.contract_id && (
+                <Grid item xs={12}>
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    Please select a Contract first to load available medicines
+                  </Alert>
                 </Grid>
-              </Box>
-            ))}
-            <Button onClick={addDetail} sx={{ mt: 2 }}>Add Medicine</Button>
-            <DialogActions>
-              <Button onClick={() => setOpenForm(false)} disabled={formLoading}>Cancel</Button>
-              <Button type="submit" variant="contained" disabled={formLoading}>{formLoading ? 'Saving...' : 'Create'}</Button>
-            </DialogActions>
+              )}
+              {formData.details.map((detail, index) => (
+                <Grid item xs={12} key={index}>
+                  <Paper sx={{ p: 2, mb: 1, borderRadius: 2, boxShadow: 1 }}>
+                    <Grid container spacing={2} alignItems="center" justifyContent="center" wrap="nowrap">
+                      <Grid item sx={{ flex: '1 1 0', minWidth: 220, maxWidth: 260 }}>
+                        <FormControl fullWidth>
+                          <InputLabel>Medicine</InputLabel>
+                          <Select
+                            value={detail.medicine_id}
+                            onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
+                            label="Medicine"
+                            required
+                            sx={{ minWidth: 200, maxWidth: 240 }}
+                          >
+                            {contractMedicines.filter((med) =>
+                              !formData.details.some((d, i) => d.medicine_id === med.medicine_id._id && i !== index)
+                            ).map((med) => (
+                              <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
+                                {med.medicine_id.medicine_name} - {med.medicine_id.license_code}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
+                        <TextField
+                          fullWidth
+                          label="Quantity"
+                          type="number"
+                          value={detail.expected_quantity}
+                          InputProps={{ readOnly: true }}
+                          required
+                          helperText={(() => {
+                            const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
+                            if (contractItem) {
+                              return `Từ hợp đồng: ${contractItem.quantity || contractItem.min_order_quantity || 1}`;
+                            }
+                            return '';
+                          })()}
+                          sx={{ minWidth: 120, maxWidth: 140 }}
+                        />
+                      </Grid>
+                      <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
+                        <TextField
+                          fullWidth
+                          label="Unit Price"
+                          type="number"
+                          value={detail.unit_price}
+                          InputProps={{ readOnly: true }}
+                          required
+                          sx={{ minWidth: 120, maxWidth: 140 }}
+                        />
+                      </Grid>
+                      <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
+                        <TextField
+                          fullWidth
+                          label="Total"
+                          value={(detail.expected_quantity * detail.unit_price).toLocaleString()}
+                          InputProps={{ readOnly: true }}
+                          sx={{ minWidth: 120, maxWidth: 140 }}
+                        />
+                      </Grid>
+                      <Grid item sx={{ flex: '0 0 56px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <IconButton color="error" onClick={() => removeDetail(index)} disabled={formData.details.length === 1}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+            {/* Total Amount bottom right */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 4, mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                Total Amount: {formData.details.reduce((total, detail) => 
+                  total + (detail.expected_quantity * detail.unit_price), 0
+                ).toLocaleString()} VND
+              </Typography>
+            </Box>
           </Box>
         </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
+          <Button onClick={() => setOpenForm(false)} disabled={formLoading} variant="outlined" sx={{ minWidth: 120 }}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="contained" disabled={formLoading} sx={{ minWidth: 120 }}>
+            {formLoading ? 'Creating...' : 'Create Order'}
+          </Button>
+        </DialogActions>
       </Dialog>
       <Snackbar open={!!error} autoHideDuration={4000} onClose={() => setError(null)}>
         <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>
