@@ -85,9 +85,7 @@ function ContentSection({ activeTab }) {
 
   return (
     <>
-      <ComponentsWrapper title="System Administration">
-        <PresentationCard title={title}>{component}</PresentationCard>
-      </ComponentsWrapper>
+      <PresentationCard title={title}>{component}</PresentationCard>
 
       {/* Permission Dialog */}
       <Dialog open={permissionDialog} onClose={handleClosePermissionDialog} maxWidth="sm" fullWidth>

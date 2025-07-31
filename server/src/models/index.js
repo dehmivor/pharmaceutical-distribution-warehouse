@@ -29,7 +29,6 @@ module.exports = {
   ImportInspection,
   LogLocationChange,
   Bill,
-  Supplier,
   Retailer,
   Contract,
   ExportOrder,

@@ -129,142 +129,91 @@ function PermissionManagement({ onOpenPermissionDialog }) {
     }
 
     return (
-      <Card sx={{ mb: 2, overflow: 'hidden' }}>
-        <TableContainer>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Email</TableCell>
-                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Role</TableCell>
-                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Manager</TableCell>
-                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Created Date</TableCell>
-                <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}`, textAlign: 'center' }}>
-                  Actions
+      <TableContainer>
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Email</TableCell>
+              <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Role</TableCell>
+              <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Status</TableCell>
+              <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Manager</TableCell>
+              <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Created Date</TableCell>
+              <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}`, textAlign: 'center' }}>
+                Actions
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {users.map((user) => (
+              <TableRow key={user._id || user.id} hover>
+                <TableCell>
+                  <Stack direction="row" alignItems="center" spacing={2}>
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: theme.palette.primary.main, fontSize: '0.875rem' }}>
+                      {getRoleIcon(user.role)}
+                    </Avatar>
+                    <Typography variant="body2" fontWeight={500}>
+                      {user.email || 'N/A'}
+                    </Typography>
+                  </Stack>
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={getRoleDisplayName(user.role)}
+                    color={getLevelColor(user.role)}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontWeight: 500, borderRadius: 2 }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={user.status === 'active' ? 'Active' : 'Inactive'}
+                    color={user.status === 'active' ? 'success' : 'default'}
+                    size="small"
+                    variant="filled"
+                    sx={{ fontWeight: 500, borderRadius: 2 }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={user.is_manager ? 'Yes' : 'No'}
+                    color={user.is_manager ? 'primary' : 'default'}
+                    size="small"
+                    variant="outlined"
+                    sx={{ fontWeight: 500, borderRadius: 2 }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={1} justifyContent="center">
+                    <IconButton size="small" color="primary" sx={{ borderRadius: 2 }} onClick={() => onOpenPermissionDialog(user)}>
+                      <SecurityIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" color="secondary" sx={{ borderRadius: 2 }}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" color="error" sx={{ borderRadius: 2 }}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
                 </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user._id || user.id} hover>
-                  <TableCell>
-                    <Stack direction="row" alignItems="center" spacing={2}>
-                      <Avatar sx={{ width: 40, height: 40, bgcolor: theme.palette.primary.main, fontSize: '0.875rem' }}>
-                        {getRoleIcon(user.role)}
-                      </Avatar>
-                      <Typography variant="body2" fontWeight={500}>
-                        {user.email || 'N/A'}
-                      </Typography>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={getRoleDisplayName(user.role)}
-                      color={getLevelColor(user.role)}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontWeight: 500, borderRadius: 2 }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={user.status === 'active' ? 'Active' : 'Inactive'}
-                      color={user.status === 'active' ? 'success' : 'default'}
-                      size="small"
-                      variant="filled"
-                      sx={{ fontWeight: 500, borderRadius: 2 }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={user.is_manager ? 'Yes' : 'No'}
-                      color={user.is_manager ? 'primary' : 'default'}
-                      size="small"
-                      variant="outlined"
-                      sx={{ fontWeight: 500, borderRadius: 2 }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={1} justifyContent="center">
-                      <IconButton size="small" color="primary" sx={{ borderRadius: 2 }} onClick={() => onOpenPermissionDialog(user)}>
-                        <SecurityIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small" color="secondary" sx={{ borderRadius: 2 }}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small" color="error" sx={{ borderRadius: 2 }}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Card>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     );
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Permission Statistics */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3 }}>
-            <SupervisorIcon sx={{ fontSize: 40, color: theme.palette.error.main, mb: 1 }} />
-            <Typography variant="h4" fontWeight={600} color="error">
-              {roleStats.supervisor}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Supervisors
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3 }}>
-            <PersonAddIcon sx={{ fontSize: 40, color: theme.palette.warning.main, mb: 1 }} />
-            <Typography variant="h4" fontWeight={600} color="warning">
-              {roleStats.representative}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Representatives
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3 }}>
-            <WarehouseIcon sx={{ fontSize: 40, color: theme.palette.info.main, mb: 1 }} />
-            <Typography variant="h4" fontWeight={600} color="info">
-              {roleStats.warehouse}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Warehouse
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 3 }}>
-            <AdminIcon sx={{ fontSize: 40, color: theme.palette.primary.main, mb: 1 }} />
-            <Typography variant="h4" fontWeight={600} color="primary">
-              {roleStats.managers}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Managers
-            </Typography>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* Permission Rules */}
+    <Box>
       <Card sx={{ mb: 3, borderRadius: 3 }}>
         <CardContent>
-          <Typography variant="h6" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
             <SecurityIcon sx={{ mr: 1 }} />
             Permission Rules
           </Typography>
@@ -321,12 +270,7 @@ function PermissionManagement({ onOpenPermissionDialog }) {
 
       {/* All Users Table for Permission Management */}
       <Card sx={{ borderRadius: 3 }}>
-        <CardContent>
-          <Typography variant="h6" fontWeight={600} gutterBottom>
-            User Permission Management
-          </Typography>
-          <UserTable users={allUsers} sectionName="All Users" />
-        </CardContent>
+        <UserTable users={allUsers} sectionName="All Users" />
       </Card>
     </Box>
   );

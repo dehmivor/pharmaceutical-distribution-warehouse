@@ -345,7 +345,7 @@ const CheckOrders = () => {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            router.push(`/wh-inventory/create-inspections/${menuOrder?._id}`);
+            router.push(`/wm-inventory/create-inspections/${menuOrder?._id}`);
             handleMenuClose();
           }}
         >
