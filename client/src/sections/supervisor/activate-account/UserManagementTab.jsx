@@ -8,51 +8,35 @@ import {
   Card,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Divider,
-  FormControl,
-  FormControlLabel,
   Grid,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  Snackbar,
   Stack,
-  Switch,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
   Typography
 } from '@mui/material';
 
 import {
   BarChart as BarChartIcon,
-  CheckCircle as CheckCircleIcon,
-  Close as CloseIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
   PersonAdd as PersonAddIcon,
   Person as PersonIcon,
   Refresh as RefreshIcon,
   Security as SecurityIcon,
-  Send as SendIcon,
   SupervisorAccount as SupervisorIcon,
   Warehouse as WarehouseIcon
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import ComponentsWrapper from '@/components/ComponentsWrapper';
 import PresentationCard from '@/components/cards/PresentationCard';
-import axios from 'axios';
 
 function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
   const theme = useTheme();
@@ -222,9 +206,12 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
   };
 
   return (
-    <ComponentsWrapper title="User Management">
-      {/* Summary Statistics */}
+    <>
       <PresentationCard title="User Statistics">
+        <Typography variant="body2" color="text.secondary">
+          Summary of user account with role authorization
+        </Typography>
+        <Divider sx={{ mb: 2 }} />
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.dark', color: 'white' }}>
@@ -274,6 +261,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Perform common user management tasks quickly and efficiently.
         </Typography>
+        <Divider sx={{ mb: 2 }} />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <Button
             variant="contained"
@@ -303,6 +291,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Manage supervisor accounts and their permissions. Supervisors have elevated access to oversee operations and manage team members.
         </Typography>
+        <Divider sx={{ mb: 2 }} />
         <UserTable users={supervisorUsers} sectionName="Supervisors" />
       </PresentationCard>
 
@@ -312,6 +301,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
           Customer service representatives handle client interactions and support requests. They serve as the primary point of contact for
           customers.
         </Typography>
+        <Divider sx={{ mb: 2 }} />
         <UserTable users={representativeUsers} sectionName="Representatives" />
       </PresentationCard>
 
@@ -321,17 +311,17 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
           Warehouse staff manage inventory, fulfillment, and logistics operations. They ensure accurate order processing and inventory
           management.
         </Typography>
+        <Divider sx={{ mb: 2 }} />
         <UserTable users={warehouseUsers} sectionName="Warehouse" />
       </PresentationCard>
 
       {/* Warehouse Section */}
       <PresentationCard title="Warehouse Managers">
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Warehouse managers oversee warehouse operations and ensure efficient inventory management.
-        </Typography>
+        <Typography variant="body2">Warehouse managers oversee warehouse operations and ensure efficient inventory management.</Typography>
+        <Divider sx={{ mb: 2 }} />
         <UserTable users={warehouseManagersUsers} sectionName="Warehouse Managers" />
       </PresentationCard>
-    </ComponentsWrapper>
+    </>
   );
 }
 

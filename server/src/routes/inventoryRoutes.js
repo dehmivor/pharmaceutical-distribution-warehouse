@@ -11,7 +11,9 @@ router.get(
 
 router.get('/check-order/:id', authenticate, inventoryController.getCheckOrderById);
 
-router.post('/', authenticate, inventoryController.createCheckInspection);
+router.patch('/check-order/:id', authenticate, inventoryController.updateCheckOrderStatus);
+
+router.post('/check-order/:id', authenticate, inventoryController.createCheckInspection);
 
 router.delete('/:id', authenticate, inventoryController.deleteCheckInspection);
 

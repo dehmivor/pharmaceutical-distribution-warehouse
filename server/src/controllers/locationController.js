@@ -1,10 +1,10 @@
-const Location = require('../models/Location');
 const Package = require('../models/Package');
 const Batch = require('../models/Batch');
 const asyncHandler = require('express-async-handler');
 const { validationResult } = require('express-validator');
 const locationService = require('../services/locationService');
 const { USER_ROLES } = require('../utils/constants');
+const { Location } = require('../models');
 
 // Existing methods (keep unchanged)
 const getLocationsWithBatches = async (req, res) => {
@@ -135,8 +135,7 @@ const getLocationById = async (req, res) => {
       });
     }
 
-    const location = await Location.findById(locationId)
-      .populate('area_id');  // bring in the area details
+    const location = await Location.findById(locationId).populate('area_id'); // bring in the area details
 
     if (!location) {
       return res.status(404).json({
@@ -176,7 +175,7 @@ const getAllLocations = asyncHandler(async (req, res) => {
     parseInt(page),
     parseInt(limit),
     areaId,
-    available
+    available,
   );
 
   if (!result.success) {
@@ -225,9 +224,9 @@ const updateLocationAvailable = asyncHandler(async (req, res) => {
   }
 
   if (req.user.role !== USER_ROLES.SUPERVISOR) {
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Chỉ supervisor mới có quyền cập nhật trạng thái vị trí' 
+    return res.status(403).json({
+      success: false,
+      message: 'Chỉ supervisor mới có quyền cập nhật trạng thái vị trí',
     });
   }
 
@@ -249,9 +248,9 @@ const createLocation = asyncHandler(async (req, res) => {
   }
 
   if (req.user.role !== USER_ROLES.SUPERVISOR) {
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Chỉ supervisor mới có quyền tạo vị trí' 
+    return res.status(403).json({
+      success: false,
+      message: 'Chỉ supervisor mới có quyền tạo vị trí',
     });
   }
 
@@ -271,9 +270,9 @@ const deleteLocation = asyncHandler(async (req, res) => {
   }
 
   if (req.user.role !== USER_ROLES.SUPERVISOR) {
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Chỉ supervisor mới có quyền xóa vị trí' 
+    return res.status(403).json({
+      success: false,
+      message: 'Chỉ supervisor mới có quyền xóa vị trí',
     });
   }
 
@@ -294,7 +293,7 @@ module.exports = {
   getLocationsByBatchMedicine,
   getLocationWithPackages,
   getLocationById,
-  
+
   // New V2 methods
   getAllLocations,
   getLocationByIdV2,

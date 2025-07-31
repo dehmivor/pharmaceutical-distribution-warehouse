@@ -25,8 +25,8 @@ export default function MainDrawer({ window }) {
   const container = window !== undefined ? () => window().document.body : undefined;
 
   // Memoize drawer content and header to prevent unnecessary re-renders
-  const drawerContent = useMemo(() => <DrawerContent />, []);
-  const drawerHeader = useMemo(() => <DrawerHeader open={drawerOpen} />, [drawerOpen]);
+  const drawerContent = <DrawerContent />;
+  const drawerHeader = <DrawerHeader open={drawerOpen} />;
 
   return (
     <Box component="nav" sx={{ flexShrink: { md: 0 }, zIndex: 1200 }} aria-label="mailbox folders">
