@@ -591,7 +591,7 @@ function ImportOrderPage() {
                 <TableCell>{order.warehouse_manager_id?.email || 'N/A'}</TableCell>
                 <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
                 <TableCell align="right">
-                  ${order.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0).toLocaleString() || 0}
+                  {order.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0).toLocaleString() || 0} VND
                 </TableCell>
                 <TableCell>
                   <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
