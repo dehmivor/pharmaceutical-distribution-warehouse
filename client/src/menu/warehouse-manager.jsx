@@ -1,10 +1,10 @@
 const warehouseManager = [
   {
-    id: 'dashboard',
-    title: 'Dashboard',
+    id: 'wm-dashboard',
+    title: 'WM Dashboard',
     type: 'item',
     url: '/wm-dashboard',
-    icon: 'IconDashboard'
+    icon: 'IconDashboard',
   },
   {
     id: 'group-manage',
@@ -17,7 +17,7 @@ const warehouseManager = [
         title: 'Import Orders Management',
         type: 'item',
         url: '/wm-import-orders',
-        icon: 'IconFileImport'
+        icon: 'IconFileImport',
       },
       {
         id: 'inventory',
@@ -30,19 +30,17 @@ const warehouseManager = [
             title: 'Check Orders Management',
             type: 'item',
             url: '/wm-inventory',
-            icon: 'IconList'
-          }
-        ]
+            icon: 'IconList',
+          },
+        ],
       },
       {
         id: 'manage-export-orders',
         title: 'Export Orders Management',
         type: 'item',
         url: '/wm-export-orders',
-        icon: 'IconFileImport'
-      }
-    ]
-  }
+        icon: 'IconFileImport',
+      },
+    ],
+  },
 ];
-
-export default warehouseManager;
