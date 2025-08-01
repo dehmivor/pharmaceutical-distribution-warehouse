@@ -12,6 +12,7 @@ router.get('/representative', dashboardController.getRepresentativeDashboard);
 // Get Dashboard Statistics by Date Range
 router.get('/stats', dashboardController.getDashboardStats);
 
-
+// Get Warehouse Manager Dashboard Data
+router.get('/warehouse-manager', dashboardController.getWarehouseManagerDashboard);
 
 module.exports = router; 

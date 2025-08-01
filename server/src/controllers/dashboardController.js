@@ -85,11 +85,31 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
+// Get Warehouse Manager Dashboard Data
+const getWarehouseManagerDashboard = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
 
+    const dashboardData = await DashboardService.getWarehouseManagerDashboard(userId);
 
+    const response = {
+      success: true,
+      data: dashboardData
+    };
 
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching warehouse manager dashboard data:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch warehouse manager dashboard data',
+      details: error.message 
+    });
+  }
+};
 
 module.exports = {
   getRepresentativeDashboard,
-  getDashboardStats
+  getDashboardStats,
+  getWarehouseManagerDashboard
 }; 

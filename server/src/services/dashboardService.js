@@ -1,6 +1,7 @@
 const ExportOrder = require("../models/ExportOrder");
 const ImportOrder = require("../models/ImportOrder");
 const Contract = require("../models/Contract");
+const Inventory = require("../models/Inventory");
 const mongoose = require('mongoose');
 
 class DashboardService {
@@ -323,6 +324,109 @@ class DashboardService {
       };
     } catch (error) {
       throw new Error(`Failed to get dashboard stats: ${error.message}`);
+    }
+  }
+
+  // Get warehouse manager dashboard data
+  static async getWarehouseManagerDashboard(userId) {
+    try {
+      const currentDate = new Date();
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+      const [
+        totalInventory,
+        pendingImportOrders,
+        pendingExportOrders,
+        completedOrders,
+        lowStockItems,
+        totalInventoryValue,
+        recentImportOrders,
+        recentExportOrders,
+        lowStockMedicines
+      ] = await Promise.all([
+        // Total inventory items
+        Inventory.countDocuments({}),
+
+        // Pending import orders
+        ImportOrder.countDocuments({
+          status: { $in: ['draft', 'approved', 'delivered'] }
+        }),
+
+        // Pending export orders
+        ExportOrder.countDocuments({
+          status: { $in: ['draft', 'approved'] }
+        }),
+
+        // Completed orders this month
+        Promise.all([
+          ImportOrder.countDocuments({
+            status: 'completed',
+            createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+          }),
+          ExportOrder.countDocuments({
+            status: 'completed',
+            createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+          })
+        ]).then(([importCompleted, exportCompleted]) => importCompleted + exportCompleted),
+
+        // Low stock items
+        Inventory.countDocuments({
+          $expr: { $lte: ["$quantity", { $ifNull: ["$min_quantity", 10] }] }
+        }),
+
+        // Total inventory value
+        Inventory.aggregate([
+          {
+            $group: {
+              _id: null,
+              totalValue: { $sum: { $multiply: ["$quantity", { $ifNull: ["$unit_price", 0] }] } }
+            }
+          }
+        ]),
+
+        // Recent import orders
+        ImportOrder.find({})
+          .populate('contract_id', 'contract_code')
+          .populate('created_by', 'email')
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .select('_id status createdAt contract_id created_by'),
+
+        // Recent export orders
+        ExportOrder.find({})
+          .populate('contract_id', 'contract_code')
+          .populate('created_by', 'email')
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .select('_id status createdAt contract_id created_by'),
+
+        // Low stock medicines
+        Inventory.find({
+          $expr: { $lte: ["$quantity", { $ifNull: ["$min_quantity", 10] }] }
+        })
+          .populate('medicine_id', 'medicine_name license_code')
+          .sort({ quantity: 1 })
+          .limit(5)
+          .select('_id quantity min_quantity medicine_id')
+      ]);
+
+      return {
+        stats: {
+          totalInventory,
+          pendingImportOrders,
+          pendingExportOrders,
+          completedOrders,
+          lowStockItems,
+          totalValue: totalInventoryValue[0]?.totalValue || 0
+        },
+        recentImportOrders,
+        recentExportOrders,
+        lowStockMedicines
+      };
+    } catch (error) {
+      console.error('getWarehouseManagerDashboard Error:', error);
+      throw new Error(`Failed to get warehouse manager dashboard data: ${error.message}`);
     }
   }
 }
