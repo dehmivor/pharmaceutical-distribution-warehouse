@@ -85,11 +85,81 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
+// Get Warehouse Manager Dashboard Data
+const getWarehouseManagerDashboard = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
 
+    const dashboardData = await DashboardService.getWarehouseManagerDashboard(userId);
 
+    const response = {
+      success: true,
+      data: dashboardData
+    };
 
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching warehouse manager dashboard data:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch warehouse manager dashboard data',
+      details: error.message 
+    });
+  }
+};
+
+// Get Warehouse Manager Chart Data
+const getWarehouseManagerChart = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+    const { months = 6 } = req.query;
+
+    const chartData = await DashboardService.getWarehouseManagerChartData(userId, parseInt(months));
+
+    const response = {
+      success: true,
+      data: chartData
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching warehouse manager chart data:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch warehouse manager chart data',
+      details: error.message 
+    });
+  }
+};
+
+// Get Supervisor Recent Activity
+const getSupervisorRecentActivity = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+    const { limit = 10 } = req.query;
+
+    const recentActivity = await DashboardService.getSupervisorRecentActivity(userId, parseInt(limit));
+
+    const response = {
+      success: true,
+      data: recentActivity
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching supervisor recent activity:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch supervisor recent activity',
+      details: error.message 
+    });
+  }
+};
 
 module.exports = {
   getRepresentativeDashboard,
-  getDashboardStats
+  getDashboardStats,
+  getWarehouseManagerDashboard,
+  getWarehouseManagerChart,
+  getSupervisorRecentActivity
 }; 
