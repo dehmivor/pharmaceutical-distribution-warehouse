@@ -1,6 +1,6 @@
 const inventoryService = require('../services/inventoryService');
 const mongoose = require('mongoose');
-const Location = require('../models/location');
+const Location = require('../models/Location');
 const { INVENTORY_CHECK_INSPECTION_STATUSES } = require('../utils/constants');
 const getInspectionsFromCheckOrder = async (req, res) => {
   try {
