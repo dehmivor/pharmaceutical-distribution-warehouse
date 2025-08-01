@@ -15,4 +15,10 @@ router.get('/stats', dashboardController.getDashboardStats);
 // Get Warehouse Manager Dashboard Data
 router.get('/warehouse-manager', dashboardController.getWarehouseManagerDashboard);
 
+// Get Warehouse Manager Chart Data
+router.get('/warehouse-manager/chart', dashboardController.getWarehouseManagerChart);
+
+// Get Supervisor Recent Activity
+router.get('/supervisor/recent-activity', dashboardController.getSupervisorRecentActivity);
+
 module.exports = router; 

@@ -29,6 +29,7 @@ import {
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import WarehouseManagerChart from '@/sections/dashboard/WarehouseManagerChart';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -146,7 +147,8 @@ const WarehouseManagerDashboard = () => {
     },
     recentImportOrders: [],
     recentExportOrders: [],
-    lowStockMedicines: []
+    lowStockMedicines: [],
+    chartData: null
   });
 
   const fetchDashboardData = async () => {
@@ -154,12 +156,20 @@ const WarehouseManagerDashboard = () => {
       setLoading(true);
       
       // Fetch warehouse manager dashboard data from API
-      const response = await axios.get(`${API_BASE_URL}/api/dashboard/warehouse-manager`, {
-        headers: getAuthHeaders()
-      });
+      const [dashboardResponse, chartResponse] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/dashboard/warehouse-manager`, {
+          headers: getAuthHeaders()
+        }),
+        axios.get(`${API_BASE_URL}/api/dashboard/warehouse-manager/chart`, {
+          headers: getAuthHeaders()
+        })
+      ]);
 
-      if (response.data.success) {
-        setDashboardData(response.data.data);
+      if (dashboardResponse.data.success && chartResponse.data.success) {
+        setDashboardData({
+          ...dashboardResponse.data.data,
+          chartData: chartResponse.data.data
+        });
       } else {
         setError('Failed to load dashboard data');
       }
@@ -257,6 +267,13 @@ const WarehouseManagerDashboard = () => {
             color="secondary"
             subtitle="Current stock value"
           />
+        </Grid>
+      </Grid>
+
+      {/* Chart Section */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} lg={12}>
+          <WarehouseManagerChart months={6} />
         </Grid>
       </Grid>
 

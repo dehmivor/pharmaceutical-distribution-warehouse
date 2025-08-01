@@ -343,7 +343,8 @@ class DashboardService {
         totalInventoryValue,
         recentImportOrders,
         recentExportOrders,
-        lowStockMedicines
+        lowStockMedicines,
+        chartData
       ] = await Promise.all([
         // Total inventory items
         Inventory.countDocuments({}),
@@ -408,7 +409,10 @@ class DashboardService {
           .populate('medicine_id', 'medicine_name license_code')
           .sort({ quantity: 1 })
           .limit(5)
-          .select('_id quantity min_quantity medicine_id')
+          .select('_id quantity min_quantity medicine_id'),
+
+        // Chart data for last 6 months
+        this.getWarehouseManagerChartData(userId, 6)
       ]);
 
       return {
@@ -422,11 +426,222 @@ class DashboardService {
         },
         recentImportOrders,
         recentExportOrders,
-        lowStockMedicines
+        lowStockMedicines,
+        chartData
       };
     } catch (error) {
       console.error('getWarehouseManagerDashboard Error:', error);
       throw new Error(`Failed to get warehouse manager dashboard data: ${error.message}`);
+    }
+  }
+
+  // Get supervisor recent activity
+  static async getSupervisorRecentActivity(userId, limit = 10) {
+    try {
+      const recentActivity = await Promise.all([
+        // Recent import orders
+        ImportOrder.find({})
+          .populate('contract_id', 'contract_code')
+          .populate('created_by', 'email')
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .select('_id status createdAt contract_id created_by total_value'),
+
+        // Recent export orders
+        ExportOrder.find({})
+          .populate('contract_id', 'contract_code')
+          .populate('created_by', 'email')
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .select('_id status createdAt contract_id created_by total_value'),
+
+        // Recent inventory checks (if model exists)
+        // InventoryCheck.find({})
+        //   .populate('created_by', 'email')
+        //   .sort({ createdAt: -1 })
+        //   .limit(limit)
+        //   .select('_id check_code status createdAt created_by'),
+
+        // Recent user activities
+        // Account.find({})
+        //   .sort({ createdAt: -1 })
+        //   .limit(limit)
+        //   .select('_id email role status createdAt')
+      ]);
+
+      // Combine and format activities
+      const allActivities = [
+        ...(recentActivity[0] || []).map(order => ({
+          id: order._id,
+          type: 'import',
+          title: `Import Order ${order._id.toString().slice(-6).toUpperCase()}`,
+          description: `Contract: ${order.contract_id?.contract_code || 'N/A'} | Created by ${order.created_by?.email || 'Unknown'}`,
+          status: order.status,
+          timestamp: order.createdAt,
+          value: order.total_value || 0,
+          contractCode: order.contract_id?.contract_code,
+          orderCode: order._id.toString().slice(-6).toUpperCase()
+        })),
+        ...(recentActivity[1] || []).map(order => ({
+          id: order._id,
+          type: 'export',
+          title: `Export Order ${order._id.toString().slice(-6).toUpperCase()}`,
+          description: `Contract: ${order.contract_id?.contract_code || 'N/A'} | Created by ${order.created_by?.email || 'Unknown'}`,
+          status: order.status,
+          timestamp: order.createdAt,
+          value: order.total_value || 0,
+          contractCode: order.contract_id?.contract_code,
+          orderCode: order._id.toString().slice(-6).toUpperCase()
+        }))
+      ];
+
+      // Sort by timestamp and take top limit
+      const sortedActivities = allActivities
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, limit);
+
+      return sortedActivities;
+    } catch (error) {
+      console.error('getSupervisorRecentActivity Error:', error);
+      throw new Error(`Failed to get supervisor recent activity: ${error.message}`);
+    }
+  }
+
+  // Get warehouse manager chart data
+  static async getWarehouseManagerChartData(userId, months = 6) {
+    try {
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - months);
+
+      const monthlyData = await Promise.all([
+        // Import orders monthly data
+        ImportOrder.aggregate([
+          {
+            $match: {
+              createdAt: { $gte: startDate }
+            }
+          },
+          {
+            $group: {
+              _id: {
+                year: { $year: "$createdAt" },
+                month: { $month: "$createdAt" }
+              },
+              count: { $sum: 1 },
+              totalValue: {
+                $sum: {
+                  $reduce: {
+                    input: "$details",
+                    initialValue: 0,
+                    in: { $add: ["$$value", { $multiply: ["$$this.quantity", "$$this.unit_price"] }] }
+                  }
+                }
+              }
+            }
+          },
+          {
+            $sort: { "_id.year": 1, "_id.month": 1 }
+          }
+        ]),
+
+        // Export orders monthly data
+        ExportOrder.aggregate([
+          {
+            $match: {
+              createdAt: { $gte: startDate }
+            }
+          },
+          {
+            $group: {
+              _id: {
+                year: { $year: "$createdAt" },
+                month: { $month: "$createdAt" }
+              },
+              count: { $sum: 1 },
+              totalValue: {
+                $sum: {
+                  $reduce: {
+                    input: "$details",
+                    initialValue: 0,
+                    in: { $add: ["$$value", { $multiply: ["$$this.expected_quantity", "$$this.unit_price"] }] }
+                  }
+                }
+              }
+            }
+          },
+          {
+            $sort: { "_id.year": 1, "_id.month": 1 }
+          }
+        ])
+      ]);
+
+      // Generate labels for last 6 months
+      const labels = [];
+      const importData = [];
+      const exportData = [];
+      const importValues = [];
+      const exportValues = [];
+
+      for (let i = months - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        
+        labels.push(`${month}/${year}`);
+        
+        // Find data for this month
+        const importMonthData = monthlyData[0].find(item => 
+          item._id.year === year && item._id.month === month
+        );
+        const exportMonthData = monthlyData[1].find(item => 
+          item._id.year === year && item._id.month === month
+        );
+        
+        importData.push(importMonthData?.count || 0);
+        exportData.push(exportMonthData?.count || 0);
+        importValues.push(importMonthData?.totalValue || 0);
+        exportValues.push(exportMonthData?.totalValue || 0);
+      }
+
+      return {
+        labels,
+        datasets: [
+          {
+            label: 'Import Orders',
+            data: importData,
+            borderColor: '#2196F3',
+            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+            tension: 0.4
+          },
+          {
+            label: 'Export Orders',
+            data: exportData,
+            borderColor: '#4CAF50',
+            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+            tension: 0.4
+          }
+        ],
+        valueDatasets: [
+          {
+            label: 'Import Value (VND)',
+            data: importValues,
+            borderColor: '#FF9800',
+            backgroundColor: 'rgba(255, 152, 0, 0.1)',
+            tension: 0.4
+          },
+          {
+            label: 'Export Value (VND)',
+            data: exportValues,
+            borderColor: '#9C27B0',
+            backgroundColor: 'rgba(156, 39, 176, 0.1)',
+            tension: 0.4
+          }
+        ]
+      };
+    } catch (error) {
+      console.error('getWarehouseManagerChartData Error:', error);
+      throw new Error(`Failed to get warehouse manager chart data: ${error.message}`);
     }
   }
 }
