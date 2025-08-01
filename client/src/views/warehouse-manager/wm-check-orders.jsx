@@ -1,9 +1,6 @@
 'use client';
-import { MoreVert as MoreVertIcon } from '@mui/icons-material';
-import { ArrowDownward as ArrowDownwardIcon, ArrowUpward as ArrowUpwardIcon } from '@mui/icons-material';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import { ArrowDownward as ArrowDownwardIcon, ArrowUpward as ArrowUpwardIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
 import SearchIcon from '@mui/icons-material/Search';
-import InputAdornment from '@mui/material/InputAdornment';
 import {
   Alert,
   Box,
@@ -24,6 +21,7 @@ import {
   TextField,
   Typography
 } from '@mui/material';
+import InputAdornment from '@mui/material/InputAdornment';
 import Menu from '@mui/material/Menu';
 import { useEffect, useState } from 'react';
 
@@ -337,7 +335,7 @@ const CheckOrders = () => {
       >
         <MenuItem
           onClick={() => {
-            router.push(`/wh-inventory/check-orders/${menuOrder?._id}`);
+            router.push(`/wm-inventory/check-orders/${menuOrder?._id}`);
             handleMenuClose();
           }}
         >

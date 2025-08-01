@@ -1,8 +1,12 @@
 'use client';
-import React, { useState } from 'react';
+import { CheckCircle, ErrorOutline, Search, Warning } from '@mui/icons-material';
 import {
   Box,
-  Typography,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
+  Grid,
   Paper,
   Table,
   TableBody,
@@ -10,15 +14,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
-  Grid,
-  Card,
-  CardContent,
-  Divider,
-  Button,
-  TextField
+  TextField,
+  Typography
 } from '@mui/material';
-import { Inventory2, Warning, CheckCircle, ErrorOutline, Search } from '@mui/icons-material';
+import { useState } from 'react';
 
 // Sample inventory data
 const sampleInventory = [
