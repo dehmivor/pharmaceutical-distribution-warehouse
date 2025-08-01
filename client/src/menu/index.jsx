@@ -16,10 +16,10 @@ const menuItems = {
   items: [manage, uiElements, pages, other],
   prototype: [prototype],
   supervisor: [supervisor, pages, other],
-  warehouse: [warehouse, pages, other],
+  warehouse: [warehouse],
   warehouseManager: [warehouseManager],
-  representative: [representative, pages, other],
-  representativeManager: [representativeManager, pages, other]
+  representative: [representative],
+  representativeManager: [representativeManager]
 };
 
 export default menuItems;

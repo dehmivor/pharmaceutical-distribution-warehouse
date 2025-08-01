@@ -4,12 +4,31 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
 import {
-  Accordion, AccordionSummary, AccordionDetails,
-  Box, Button, Container, Divider, Stack,
-  Typography, CircularProgress, Alert, Table,
-  TableHead, TableBody, TableRow, TableCell,
-  IconButton, Dialog, DialogTitle, DialogContent,
-  DialogActions, TextField, Chip, Snackbar
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Box,
+  Button,
+  Container,
+  Divider,
+  Stack,
+  Typography,
+  CircularProgress,
+  Alert,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Chip,
+  Snackbar,
+  Grid
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -40,7 +59,6 @@ export default function ExportOrderDetail() {
   const [locPackages, setLocPackages] = useState([]);
   const [loadingLoc, setLoadingLoc] = useState(false);
 
-
   const [proceedOpen, setProceedOpen] = useState(false);
   const [currentPkg, setCurrentPkg] = useState(null);
   const [neededQty, setNeededQty] = useState(0);
@@ -60,18 +78,16 @@ export default function ExportOrderDetail() {
   const [onHandQty, setOnHandQty] = useState(0);
   const [recommendedQty, setRecommendedQty] = useState(0);
 
-
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
-    severity: 'error',
+    severity: 'error'
   });
-
 
   // Handler to open the Proceed modal
   const openProceedModal = (detailId, pkg, needed) => {
     setCurrentDetailId(detailId);
-    setCurrentPkg(pkg.package_id);         // only store the ID
+    setCurrentPkg(pkg.package_id); // only store the ID
     setNeededQty(needed);
     setVerifyInput('');
     setProceedOpen(true);
@@ -84,8 +100,7 @@ export default function ExportOrderDetail() {
     setVerifyInput('');
   };
 
-
-  const handleProceedSubmit = async e => {
+  const handleProceedSubmit = async (e) => {
     e.preventDefault();
 
     if (!pkgDetail || verifyInput !== String(pkgDetail._id)) {
@@ -101,7 +116,7 @@ export default function ExportOrderDetail() {
         {
           package_id: pkgId,
           quantity: pickAmount,
-          user_id: userId,
+          user_id: userId
         },
         { headers: getAuthHeaders() }
       );
@@ -115,7 +130,6 @@ export default function ExportOrderDetail() {
       // setSnackbar({ open: true, message: err.response?.data?.message || err.message, severity: 'error' });
     }
   };
-
 
   // reset modal state
   const resetModal = () => {
@@ -140,73 +154,65 @@ export default function ExportOrderDetail() {
     fetchOutstanding();
   };
 
-
   // Flattened sets for quick lookup
-  const outstandingPkgIds = new Set(
-    outstanding.flatMap(o => o.packages.map(p => p.package_id))
-  );
-  const outstandingMedIds = new Set(outstanding.map(o => o.medicine_id._id));
-
+  const outstandingPkgIds = new Set(outstanding.flatMap((o) => o.packages.map((p) => p.package_id)));
+  const outstandingMedIds = new Set(outstanding.map((o) => o.medicine_id._id));
 
   // Scan Package modal handlers
-  const handleOpenPkgModal = () => { setPkgInput(''); setOpenPkgModal(true); };
+  const handleOpenPkgModal = () => {
+    setPkgInput('');
+    setOpenPkgModal(true);
+  };
   const handleClosePkgModal = () => setOpenPkgModal(false);
 
+  const handlePkgSubmit = async (e) => {
+    e.preventDefault();
+    if (!pkgInput) return;
 
-  const handlePkgSubmit = async e => {
-  e.preventDefault();
-  if (!pkgInput) return;
+    try {
+      // 1) Fetch full package details
+      const resp = await axios.get(`/api/packages/${pkgInput}`, { headers: getAuthHeaders() });
+      const { success, data: pkgDetail } = resp.data;
+      if (!success) {
+        // server said “not a package”
+        throw new Error('invalid');
+      }
 
-  try {
-    // 1) Fetch full package details
-    const resp = await axios.get(
-      `/api/packages/${pkgInput}`,
-      { headers: getAuthHeaders() }
-    );
-    const { success, data: pkgDetail } = resp.data;
-    if (!success) {
-      // server said “not a package”
-      throw new Error('invalid');
-    }
+      // 2) Find the export-detail line by medicine_id
+      const medId = pkgDetail.batch_id.medicine_id._id;
+      const entry = outstanding.find((o) => String(o.medicine_id._id) === String(medId));
+      if (!entry) {
+        // no matching detail line
+        setSnackbar({
+          open: true,
+          message: 'Package ID không hợp lệ',
+          severity: 'error'
+        });
+        return;
+      }
 
-    // 2) Find the export-detail line by medicine_id
-    const medId = pkgDetail.batch_id.medicine_id._id;
-    const entry = outstanding.find(o =>
-      String(o.medicine_id._id) === String(medId)
-    );
-    if (!entry) {
-      // no matching detail line
+      // 3) Build the pkgToProceed object
+      const pkgToProceed = {
+        package_id: pkgDetail._id,
+        batch_id: pkgDetail.batch_id,
+        take_quantity: pkgDetail.quantity,
+        location: pkgDetail.location_id
+      };
+
+      // 4) Open the Proceed modal
+      openProceedModal(entry.detail_id, pkgToProceed, entry.needed_quantity);
+    } catch (err) {
+      // either a network / 404, or the “invalid” we threw
       setSnackbar({
         open: true,
         message: 'Package ID không hợp lệ',
-        severity: 'error',
+        severity: 'error'
       });
-      return;
+    } finally {
+      // keep modal open so user can retry; only clear input if you like
+      // setOpenPkgModal(false);
     }
-
-    // 3) Build the pkgToProceed object
-    const pkgToProceed = {
-      package_id: pkgDetail._id,
-      batch_id: pkgDetail.batch_id,
-      take_quantity: pkgDetail.quantity,
-      location: pkgDetail.location_id,
-    };
-
-    // 4) Open the Proceed modal
-    openProceedModal(entry.detail_id, pkgToProceed, entry.needed_quantity);
-
-  } catch (err) {
-    // either a network / 404, or the “invalid” we threw
-    setSnackbar({
-      open: true,
-      message: 'Package ID không hợp lệ',
-      severity: 'error',
-    });
-  } finally {
-    // keep modal open so user can retry; only clear input if you like
-    // setOpenPkgModal(false);
-  }
-};
+  };
   const fetchOrderDetail = async () => {
     try {
       setLoadingOrder(true);
@@ -233,10 +239,7 @@ export default function ExportOrderDetail() {
   const fetchOutstanding = async () => {
     try {
       setLoadingOut(true);
-      const resp = await axios.get(
-        `/api/export-orders/${orderId}/packages-needed`,
-        { headers: getAuthHeaders() }
-      );
+      const resp = await axios.get(`/api/export-orders/${orderId}/packages-needed`, { headers: getAuthHeaders() });
       if (!resp.data.success) throw new Error();
       setOutstanding(resp.data.data.outstanding);
     } catch {
@@ -246,7 +249,9 @@ export default function ExportOrderDetail() {
     }
   };
 
-  useEffect(() => { if (orderId) fetchOutstanding(); }, [orderId]);
+  useEffect(() => {
+    if (orderId) fetchOutstanding();
+  }, [orderId]);
 
   useEffect(() => {
     if (!proceedOpen || !currentPkg || !order) return;
@@ -256,18 +261,15 @@ export default function ExportOrderDetail() {
         setLoadingPkgDetail(true);
 
         // fetch package
-        const { data: pkgResp } = await axios.get(
-          `/api/packages/${currentPkg}`,
-          { headers: getAuthHeaders() }
-        );
+        const { data: pkgResp } = await axios.get(`/api/packages/${currentPkg}`, { headers: getAuthHeaders() });
         if (!pkgResp.success) throw new Error('Failed to load pkg');
         const pkg = pkgResp.data;
         setPkgDetail(pkg);
 
         // compute how much has already been picked from this pkg
         const alreadyPicked = order.details
-          .flatMap(d => d.actual_item || [])
-          .filter(i => String(i.package_id) === String(pkg._id))
+          .flatMap((d) => d.actual_item || [])
+          .filter((i) => String(i.package_id) === String(pkg._id))
           .reduce((sum, i) => sum + i.quantity, 0);
 
         // compute on‑hand and recommended
@@ -290,11 +292,9 @@ export default function ExportOrderDetail() {
   }, [
     proceedOpen,
     currentPkg,
-    order,               // watch the whole order object
-    neededQty,
+    order, // watch the whole order object
+    neededQty
   ]);
-
-
 
   // Fetch packages for location
   const handleLocSubmit = async () => {
@@ -310,7 +310,7 @@ export default function ExportOrderDetail() {
         setSnackbar({
           open: true,
           message: 'Invalid or empty location',
-          severity: 'error',
+          severity: 'error'
         });
         setLocPackages([]);
         return;
@@ -320,7 +320,7 @@ export default function ExportOrderDetail() {
       let pkgs = payload.packages;
       const today = new Date();
       // 1) filter unexpired
-      pkgs = pkgs.filter(p => new Date(p.batch_id.expiry_date) > today);
+      pkgs = pkgs.filter((p) => new Date(p.batch_id.expiry_date) > today);
       setLocPackages(pkgs);
     } catch {
       setLocPackages([]);
@@ -329,36 +329,97 @@ export default function ExportOrderDetail() {
     }
   };
 
-  if (loadingOrder) return <Box textAlign="center" py={8}><CircularProgress /></Box>;
-  if (error) return <Alert severity="error" sx={{ m: 4 }}>{error}</Alert>;
-  if (!order) return <Alert severity="info" sx={{ m: 4 }}>Order not found</Alert>;
+  if (loadingOrder)
+    return (
+      <Box textAlign="center" py={8}>
+        <CircularProgress />
+      </Box>
+    );
+  if (error)
+    return (
+      <Alert severity="error" sx={{ m: 4 }}>
+        {error}
+      </Alert>
+    );
+  if (!order)
+    return (
+      <Alert severity="info" sx={{ m: 4 }}>
+        Order not found
+      </Alert>
+    );
 
   // helper
-  const getPickedQty = detail =>
-    detail.actual_item?.reduce((s, i) => s + i.quantity, 0) || 0;
+  const getPickedQty = (detail) => detail.actual_item?.reduce((s, i) => s + i.quantity, 0) || 0;
 
   return (
     <Box sx={{ background: theme.palette.background.default, minHeight: '100vh', py: 4 }}>
-      <Container maxWidth="md">
-        {/* Order Detail */}
+      <Container>
+        <Typography variant="h4" gutterBottom>
+          Export Order Detail
+        </Typography>
+        <Typography variant="body1" color="text.secondary" mb={3}>
+          Packing and Counting Medicines
+        </Typography>
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>Order Detail</Typography>
+            <Typography variant="h6">Order Detail</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography><strong>Status:</strong> {order.status}</Typography>
-            <Typography><strong>Contract Code:</strong> {order.contract_id.contract_code}</Typography>
-            <Typography><strong>Created By:</strong> {order.created_by.email}</Typography>
-            <Typography>
-              <strong>Warehouse Manager:</strong> {order.warehouse_manager_id?.email || 'N/A'}
+            <Grid container spacing={2} mb={2} alignItems="center">
+              <Grid item xs={12} sm={3}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Status:
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {order.status || 'N/A'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Contract:
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {order.contract_id?.contract_code || 'N/A'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Created by
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {order.created_by?.email.slice(0, -10) || 'N/A'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Warehouse Manager
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {order.warehouse_manager_id?.email || 'N/A'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Supplier:
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {order.contract_id?.partner_id?.name || 'N/A'}
+                </Typography>
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ mb: 2 }} />
+
+            <Typography variant="subtitle1" mb={1} fontWeight="bold">
+              Items:
             </Typography>
-            <Divider sx={{ my: 2 }} />
-            <Typography><strong>Items:</strong></Typography>
-            {order.details.map(d => (
-              <Typography key={d._id}>
-                • {d.medicine_id.medicine_name} ({d.medicine_id.license_code}): {d.expected_quantity}
-              </Typography>
-            ))}
+            <Stack spacing={1} mb={2}>
+              {order.details.map((d) => (
+                <Typography key={d._id} variant="body2">
+                  • <strong>{d.medicine_id.medicine_name}</strong> ({d.medicine_id.license_code}): {d.expected_quantity}
+                </Typography>
+              ))}
+            </Stack>
           </AccordionDetails>
         </Accordion>
 
@@ -368,22 +429,25 @@ export default function ExportOrderDetail() {
           </AccordionSummary>
           <AccordionDetails>
             <Stack direction="row" spacing={1} mb={2}>
-              <Button
-                size="small"
-                variant="outlined"
-                onClick={handleOpenModal}
-              >Scan Location</Button>
-              <Button size="small" variant="outlined" onClick={handleOpenPkgModal}>Scan Package</Button>
+              <Button size="small" variant="outlined" onClick={handleOpenModal}>
+                Scan Location
+              </Button>
+              <Button size="small" variant="outlined" onClick={handleOpenPkgModal}>
+                Scan Package
+              </Button>
               <IconButton size="small" onClick={handleRefresh}>
                 <RefreshIcon fontSize="small" />
               </IconButton>
             </Stack>
 
             {/* Medicine‐level */}
-            {loadingOut
-              ? <Box textAlign="center" py={4}><CircularProgress /></Box>
-              : order.details.map(detail => {
-                const out = outstanding.find(o => o.detail_id === detail._id);
+            {loadingOut ? (
+              <Box textAlign="center" py={4}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              order.details.map((detail) => {
+                const out = outstanding.find((o) => o.detail_id === detail._id);
                 if (!out) return null;
                 const picked = getPickedQty(detail),
                   expected = detail.expected_quantity;
@@ -391,13 +455,12 @@ export default function ExportOrderDetail() {
                   <Accordion key={detail._id} sx={{ mb: 2 }}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                       <Typography>
-                        {detail.medicine_id.medicine_name} ({detail.medicine_id.license_code})
-                        : {picked}/{expected}
+                        {detail.medicine_id.medicine_name} ({detail.medicine_id.license_code}) : {picked}/{expected}
                       </Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                       {/* Batch‐level */}
-                      {out.packages.map(pkg => (
+                      {out.packages.map((pkg) => (
                         <Accordion key={pkg.package_id} sx={{ mb: 1 }}>
                           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                             <Typography variant="subtitle2">
@@ -443,7 +506,7 @@ export default function ExportOrderDetail() {
                   </Accordion>
                 );
               })
-            }
+            )}
           </AccordionDetails>
         </Accordion>
       </Container>
@@ -455,7 +518,7 @@ export default function ExportOrderDetail() {
         {/* Wrap the content in a form */}
         <Box
           component="form"
-          onSubmit={e => {
+          onSubmit={(e) => {
             e.preventDefault();
             handleLocSubmit();
           }}
@@ -465,15 +528,18 @@ export default function ExportOrderDetail() {
               label="Location ID"
               fullWidth
               value={locInput}
-              onChange={e => setLocInput(e.target.value)}
+              onChange={(e) => setLocInput(e.target.value)}
               margin="dense"
               // so Enter in this field submits
               autoFocus
             />
 
-            {loadingLoc
-              ? <Box textAlign="center" py={2}><CircularProgress size={24} /></Box>
-              : locPackages.length > 0 && (
+            {loadingLoc ? (
+              <Box textAlign="center" py={2}>
+                <CircularProgress size={24} />
+              </Box>
+            ) : (
+              locPackages.length > 0 && (
                 <Table size="small" sx={{ mt: 2 }}>
                   <TableHead>
                     <TableRow>
@@ -483,18 +549,21 @@ export default function ExportOrderDetail() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {locPackages.map(pkg => {
+                    {locPackages.map((pkg) => {
                       const pid = pkg._id;
                       const medId = pkg.batch_id.medicine_id._id;
-                      const entry = outstanding.find(o => o.medicine_id._id === medId)
+                      const entry = outstanding.find((o) => o.medicine_id._id === medId);
                       let bg = '#f0f0f0'; // grey
-                      if (outstandingPkgIds.has(pid)) bg = '#c8e6c9'; // green
+                      if (outstandingPkgIds.has(pid))
+                        bg = '#c8e6c9'; // green
                       else if (outstandingMedIds.has(medId)) bg = '#fff9c4'; // yellow
 
                       return (
                         <TableRow key={pid} sx={{ background: bg }}>
                           <TableCell>{pid}</TableCell>
-                          <TableCell>{pkg.batch_id.medicine_id.medicine_name}({pkg.batch_id.medicine_id.license_code})</TableCell>
+                          <TableCell>
+                            {pkg.batch_id.medicine_id.medicine_name}({pkg.batch_id.medicine_id.license_code})
+                          </TableCell>
                           <TableCell>{pkg.quantity}</TableCell>
                           <TableCell>
                             {entry && (
@@ -503,12 +572,12 @@ export default function ExportOrderDetail() {
                                 variant="contained"
                                 onClick={() =>
                                   openProceedModal(
-                                    entry.detail_id,   // the detail to attach inspection to
+                                    entry.detail_id, // the detail to attach inspection to
                                     {
                                       package_id: pid,
                                       location: pkg.location,
                                       batch_id: pkg.batch_id,
-                                      quantity: pkg.quantity,
+                                      quantity: pkg.quantity
                                     },
                                     entry.needed_quantity
                                   )
@@ -523,7 +592,8 @@ export default function ExportOrderDetail() {
                     })}
                   </TableBody>
                 </Table>
-              )}
+              )
+            )}
           </DialogContent>
 
           <DialogActions>
@@ -539,7 +609,6 @@ export default function ExportOrderDetail() {
         </Box>
       </Dialog>
 
-
       <Dialog open={proceedOpen} onClose={closeProceedModal} fullWidth maxWidth="xs">
         <DialogTitle>Verify Package & Pick Amount</DialogTitle>
         <Box component="form" onSubmit={handleProceedSubmit}>
@@ -553,19 +622,16 @@ export default function ExportOrderDetail() {
                 {/* Package Info */}
                 <Stack spacing={1} mb={2}>
                   <Typography>
-                    <strong>Medicine:</strong>{" "}
-                    {pkgDetail.batch_id.medicine_id.medicine_name}
+                    <strong>Medicine:</strong> {pkgDetail.batch_id.medicine_id.medicine_name}
                   </Typography>
                   <Typography>
-                    <strong>License Code:</strong>{" "}
-                    {pkgDetail.batch_id.medicine_id.license_code}
+                    <strong>License Code:</strong> {pkgDetail.batch_id.medicine_id.license_code}
                   </Typography>
                   <Typography>
                     <strong>Batch Code:</strong> {pkgDetail.batch_id.batch_code}
                   </Typography>
                   <Typography>
-                    <strong>Expiry:</strong>{" "}
-                    {new Date(pkgDetail.batch_id.expiry_date).toLocaleDateString()}
+                    <strong>Expiry:</strong> {new Date(pkgDetail.batch_id.expiry_date).toLocaleDateString()}
                   </Typography>
                   <Typography>
                     <strong>On‑hand Qty:</strong> {onHandQty}
@@ -580,14 +646,14 @@ export default function ExportOrderDetail() {
                   {(() => {
                     let label, color;
                     if (!verifyInput) {
-                      label = "Enter package ID";
-                      color = "default";
+                      label = 'Enter package ID';
+                      color = 'default';
                     } else if (verifyInput === String(pkgDetail._id)) {
-                      label = "Valid package ID";
-                      color = "success";
+                      label = 'Valid package ID';
+                      color = 'success';
                     } else {
-                      label = "Invalid package ID";
-                      color = "error";
+                      label = 'Invalid package ID';
+                      color = 'error';
                     }
                     return <Chip label={label} color={color} size="small" />;
                   })()}
@@ -602,7 +668,7 @@ export default function ExportOrderDetail() {
                   fullWidth
                   margin="dense"
                   value={verifyInput}
-                  onChange={e => setVerifyInput(e.target.value.trim())}
+                  onChange={(e) => setVerifyInput(e.target.value.trim())}
                   autoFocus
                 />
 
@@ -616,11 +682,11 @@ export default function ExportOrderDetail() {
                   fullWidth
                   margin="dense"
                   value={pickAmount}
-                  onChange={e => setPickAmount(Number(e.target.value))}
+                  onChange={(e) => setPickAmount(Number(e.target.value))}
                   disabled={verifyInput !== String(pkgDetail._id)}
                   inputProps={{
                     min: 1,
-                    max: Math.min(onHandQty, neededQty),
+                    max: Math.min(onHandQty, neededQty)
                   }}
                 />
               </>
@@ -633,9 +699,7 @@ export default function ExportOrderDetail() {
               type="submit"
               variant="contained"
               disabled={
-                verifyInput !== String(pkgDetail?._id)
-                || pickAmount < 1
-                || pickAmount > Math.min(pkgDetail?.quantity || 0, neededQty)
+                verifyInput !== String(pkgDetail?._id) || pickAmount < 1 || pickAmount > Math.min(pkgDetail?.quantity || 0, neededQty)
               }
             >
               Submit
@@ -654,14 +718,18 @@ export default function ExportOrderDetail() {
               label="Package ID"
               fullWidth
               value={pkgInput}
-              onChange={e => setPkgInput(e.target.value.trim())}
+              onChange={(e) => setPkgInput(e.target.value.trim())}
               autoFocus
               margin="dense"
             />
           </DialogContent>
           <DialogActions>
-            <Button type="submit" variant="contained" disabled={!pkgInput}>Submit</Button>
-            <Button type="button" onClick={handleClosePkgModal}>Cancel</Button>
+            <Button type="submit" variant="contained" disabled={!pkgInput}>
+              Submit
+            </Button>
+            <Button type="button" onClick={handleClosePkgModal}>
+              Cancel
+            </Button>
           </DialogActions>
         </Box>
       </Dialog>
@@ -669,18 +737,13 @@ export default function ExportOrderDetail() {
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
-        onClose={() => setSnackbar(sn => ({ ...sn, open: false }))}
+        onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert
-          onClose={() => setSnackbar(sn => ({ ...sn, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
+        <Alert onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
-
     </Box>
   );
 }

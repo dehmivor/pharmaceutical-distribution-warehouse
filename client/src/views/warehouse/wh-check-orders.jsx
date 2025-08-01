@@ -343,14 +343,6 @@ const CheckOrders = () => {
         >
           View Detail
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            router.push(`/wm-inventory/create-inspections/${menuOrder?._id}`);
-            handleMenuClose();
-          }}
-        >
-          Start Checking Inventory
-        </MenuItem>
       </Menu>
     </Box>
   );
