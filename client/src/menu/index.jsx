@@ -17,7 +17,7 @@ const menuItems = {
   prototype: [prototype],
   supervisor: [supervisor, pages, other],
   warehouse: [warehouse, pages, other],
-  warehouseManager: [warehouseManager, pages, other],
+  warehouseManager: [warehouseManager],
   representative: [representative, pages, other],
   representativeManager: [representativeManager, pages, other]
 };

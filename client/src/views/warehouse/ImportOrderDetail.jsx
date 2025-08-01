@@ -34,7 +34,7 @@ import {
   TableContainer,
   TableCell,
   Tooltip,
-  Paper,
+  Paper
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -57,7 +57,6 @@ const getAuthHeaders = () => {
 const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
 const userId = userData.userId;
 
-
 function ImportOrderDetail() {
   const theme = useTheme();
   const { orderId } = useParams();
@@ -66,11 +65,8 @@ function ImportOrderDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-
-
   const [inspectionsDone, setInspectionsDone] = useState(false);
   const [putAwayDone, setPutAwayDone] = useState(false);
-
 
   const [putAway, setPutAway] = useState([]);
   const [loadingPutAway, setLoadingPutAway] = useState(false);
@@ -84,7 +80,7 @@ function ImportOrderDetail() {
     area_id: '',
     bay: '',
     row: '',
-    level: '',
+    level: ''
   });
   const [locError, setLocError] = useState(null);
 
@@ -103,9 +99,7 @@ function ImportOrderDetail() {
       const resp = await axios.get(`/api/packages/import-order/${orderId}`, {
         headers: getAuthHeaders()
       });
-      const list = Array.isArray(resp.data.data)
-        ? resp.data.data
-        : [];
+      const list = Array.isArray(resp.data.data) ? resp.data.data : [];
       setPutAway(list);
     } catch (err) {
       console.error(err);
@@ -124,10 +118,7 @@ function ImportOrderDetail() {
         setLoading(true);
 
         // 1) Load the order
-        const { data: orderResp } = await axios.get(
-          `/api/import-orders/${orderId}`,
-          { headers: getAuthHeaders() }
-        );
+        const { data: orderResp } = await axios.get(`/api/import-orders/${orderId}`, { headers: getAuthHeaders() });
         if (!orderResp.success) {
           throw new Error('Failed to load order');
         }
@@ -138,7 +129,7 @@ function ImportOrderDetail() {
 
         // 3) Fetch all areas
         const {
-          data: { data: { areas: areaList = [] } = {} },
+          data: { data: { areas: areaList = [] } = {} }
         } = await axios.get('/api/areas', { headers: getAuthHeaders() });
         setAreas(areaList);
 
@@ -161,8 +152,6 @@ function ImportOrderDetail() {
     })();
   }, [orderId]);
 
-
-
   const enableAccordion = async (orderState) => {
     if (orderState == 'other') {
       setInspectionsDone(true);
@@ -176,15 +165,12 @@ function ImportOrderDetail() {
       setInspectionsDone(true);
       setPutAwayDone(false);
     }
-  }
+  };
 
   const handleShowRelated = async (pkg) => {
     try {
       setRelatedError(null);
-      const { data } = await axios.get(
-        `/api/packages/${pkg._id}/related-locations`,
-        { headers: getAuthHeaders() }
-      );
+      const { data } = await axios.get(`/api/packages/${pkg._id}/related-locations`, { headers: getAuthHeaders() });
       setRelatedBatchLocs(data.data.sameBatchLocations);
       setRelatedMedLocs(data.data.sameMedicineLocations);
       setRelatedModalOpen(true);
@@ -214,7 +200,7 @@ function ImportOrderDetail() {
         area_id: loc.area_id._id,
         bay: loc.bay,
         row: loc.row,
-        level: loc.column,
+        level: loc.column
       });
     } catch (err) {
       setLocError(err.response?.data?.message || err.message);
@@ -222,7 +208,7 @@ function ImportOrderDetail() {
   };
 
   // Pressing Enter in the location_id field
-  const onLocationKeyDown = e => {
+  const onLocationKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleLookupLocation();
@@ -234,7 +220,7 @@ function ImportOrderDetail() {
     try {
       const { location_id } = locForm;
       // Grab the current warehouse user and the import‑order ID
-      const ware_house_id = userId;       // or wherever you keep the logged‑in user’s ID
+      const ware_house_id = userId; // or wherever you keep the logged‑in user’s ID
       const import_order_id = order._id;
 
       await axios.patch(
@@ -242,7 +228,7 @@ function ImportOrderDetail() {
         {
           location_id,
           ware_house_id,
-          import_order_id,
+          import_order_id
         },
         { headers: getAuthHeaders() }
       );
@@ -252,7 +238,6 @@ function ImportOrderDetail() {
       setLocError(err.response?.data?.message || err.message);
     }
   };
-
 
   const handlePrintLabel = async (pkg) => {
     try {
@@ -267,19 +252,17 @@ function ImportOrderDetail() {
 
       // Fetch medicine details
       const med = pkg.batch_id?.medicine_id;
-      const medicineLabel = med
-        ? `${med.medicine_name} (${med.license_code})`
-        : 'Unknown Medicine';
+      const medicineLabel = med ? `${med.medicine_name} (${med.license_code})` : 'Unknown Medicine';
 
       // Render barcode to offscreen canvas
       const canvas = document.createElement('canvas');
       await bwipjs.toCanvas(canvas, {
-        bcid: 'qrcode',         // use the QR‑code generator
-        text: pkgId,            // data to encode
-        scale: 6,               // how many pixels per “module”
-        version: 5,             // 1–40, controls size; omit to auto‑fit
-        eclevel: 'M',           // error‑correction: L, M, Q, H
-        includeMargin: true,    // add a quiet zone around the code
+        bcid: 'qrcode', // use the QR‑code generator
+        text: pkgId, // data to encode
+        scale: 6, // how many pixels per “module”
+        version: 5, // 1–40, controls size; omit to auto‑fit
+        eclevel: 'M', // error‑correction: L, M, Q, H
+        includeMargin: true // add a quiet zone around the code
       });
       const barcodeDataUrl = canvas.toDataURL('image/png');
 
@@ -332,25 +315,45 @@ function ImportOrderDetail() {
     }
   };
 
-  const unarranged = putAway.filter(p => !p.location_id);
-  const arranged = putAway.filter(p => !!p.location_id);
+  const unarranged = putAway.filter((p) => !p.location_id);
+  const arranged = putAway.filter((p) => !!p.location_id);
 
-  const openSearchModal = () => { setSearchPackageId(''); setSearchModalOpen(true); };
-  const closeSearchModal = () => { setSearchModalOpen(false); };
+  const openSearchModal = () => {
+    setSearchPackageId('');
+    setSearchModalOpen(true);
+  };
+  const closeSearchModal = () => {
+    setSearchModalOpen(false);
+  };
   const handleSearchSubmit = () => {
-    const exists = putAway.some(p => p._id === searchPackageId);
+    const exists = putAway.some((p) => p._id === searchPackageId);
     setHighlightedPkgId(exists ? searchPackageId : null);
     closeSearchModal();
   };
 
-  if (loading) return <Box textAlign="center" py={8}><CircularProgress /></Box>;
-  if (error) return <Alert severity="error" sx={{ m: 4 }}>{error}</Alert>;
-  if (!order) return <Alert severity="info" sx={{ m: 4 }}>Order not found</Alert>;
+  if (loading)
+    return (
+      <Box textAlign="center" py={8}>
+        <CircularProgress />
+      </Box>
+    );
+  if (error)
+    return (
+      <Alert severity="error" sx={{ m: 4 }}>
+        {error}
+      </Alert>
+    );
+  if (!order)
+    return (
+      <Alert severity="info" sx={{ m: 4 }}>
+        Order not found
+      </Alert>
+    );
 
   return (
     <Box sx={{ background: theme.palette.background.default, minHeight: '100vh', py: 4 }}>
       <Container maxWidth="md">
-        <Typography variant="h5" gutterBottom>
+        <Typography variant="h4" gutterBottom>
           Import Order #{order._id}
         </Typography>
 
@@ -360,7 +363,9 @@ function ImportOrderDetail() {
             <Typography>Order Detail</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography><strong>Status:</strong> {order.status}</Typography>
+            <Typography>
+              <strong>Status:</strong> {order.status}
+            </Typography>
             <Typography>
               <strong>Contract:</strong> {order.contract_id.contract_code}
             </Typography>
@@ -368,8 +373,10 @@ function ImportOrderDetail() {
               <strong>Supplier:</strong> {order.contract_id.partner_id.name}
             </Typography>
             <Divider sx={{ my: 2 }} />
-            <Typography><strong>Items:</strong></Typography>
-            {order.details.map(d => (
+            <Typography>
+              <strong>Items:</strong>
+            </Typography>
+            {order.details.map((d) => (
               <Typography key={d._id}>
                 • {d.medicine_id.medicine_name} ({d.medicine_id.license_code}): {d.quantity}
               </Typography>
@@ -383,13 +390,8 @@ function ImportOrderDetail() {
             <Typography>Inspection</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Stack spacing={2}>
-
-
-
-            </Stack>
+            <Stack spacing={2}></Stack>
           </AccordionDetails>
-
         </Accordion>
 
         {/* Put Away */}
@@ -412,7 +414,6 @@ function ImportOrderDetail() {
                 <CircularProgress />
               ) : (
                 <Stack spacing={2}>
-
                   {/* Unarranged packages */}
                   <Paper sx={{ flex: 1, p: 1 }}>
                     <Typography variant="subtitle1" gutterBottom>
@@ -430,40 +431,22 @@ function ImportOrderDetail() {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {unarranged.map(pkg => (
-                            <TableRow
-                              key={pkg._id}
-                              sx={pkg._id === highlightedPkgId
-                                ? { backgroundColor: 'rgba(255,255,0,0.3)' }
-                                : {}}
-                            >
+                          {unarranged.map((pkg) => (
+                            <TableRow key={pkg._id} sx={pkg._id === highlightedPkgId ? { backgroundColor: 'rgba(255,255,0,0.3)' } : {}}>
                               <TableCell>
                                 {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
                               </TableCell>
                               <TableCell>{pkg.quantity}</TableCell>
                               <TableCell>
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => openPutAwayModal(pkg)}
-                                  disabled={putAwayDone}
-                                >
+                                <IconButton size="small" color="error" onClick={() => openPutAwayModal(pkg)} disabled={putAwayDone}>
                                   <AddBoxIcon fontSize="small" />
                                 </IconButton>
 
-                                <IconButton
-                                  size="small"
-                                  color="info"
-                                  onClick={() => handleShowRelated(pkg)}
-                                >
+                                <IconButton size="small" color="info" onClick={() => handleShowRelated(pkg)}>
                                   <LocationOnIcon fontSize="small" />
                                 </IconButton>
 
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handlePrintLabel(pkg)}
-                                >
+                                <IconButton size="small" color="primary" onClick={() => handlePrintLabel(pkg)}>
                                   <PrintIcon fontSize="small" />
                                 </IconButton>
                               </TableCell>
@@ -492,13 +475,8 @@ function ImportOrderDetail() {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {arranged.map(pkg => (
-                            <TableRow
-                              key={pkg._id}
-                              sx={pkg._id === highlightedPkgId
-                                ? { backgroundColor: 'rgba(255,255,0,0.3)' }
-                                : {}}
-                            >
+                          {arranged.map((pkg) => (
+                            <TableRow key={pkg._id} sx={pkg._id === highlightedPkgId ? { backgroundColor: 'rgba(255,255,0,0.3)' } : {}}>
                               <TableCell>
                                 {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
                               </TableCell>
@@ -506,15 +484,10 @@ function ImportOrderDetail() {
                               <TableCell>
                                 {pkg.location_id
                                   ? `${pkg.location_id.area_id?.name || '—'} • Bay ${pkg.location_id.bay}, Row ${pkg.location_id.row}, Level ${pkg.location_id.column}`
-                                  : '—'
-                                }
+                                  : '—'}
                               </TableCell>
                               <TableCell>
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handlePrintLabel(pkg)}
-                                >
+                                <IconButton size="small" color="primary" onClick={() => handlePrintLabel(pkg)}>
                                   <PrintIcon fontSize="small" />
                                 </IconButton>
                               </TableCell>
@@ -524,7 +497,6 @@ function ImportOrderDetail() {
                       </Table>
                     )}
                   </Paper>
-
                 </Stack>
               )}
             </Stack>
@@ -541,7 +513,7 @@ function ImportOrderDetail() {
                   fullWidth
                   autoFocus
                   value={locForm.location_id}
-                  onChange={e => setLocForm({ ...locForm, location_id: e.target.value })}
+                  onChange={(e) => setLocForm({ ...locForm, location_id: e.target.value })}
                   onKeyDown={onLocationKeyDown}
                 />
                 <Button onClick={handleLookupLocation} variant="outlined">
@@ -551,34 +523,21 @@ function ImportOrderDetail() {
 
               <FormControl fullWidth>
                 <InputLabel>Area</InputLabel>
-                <Select
-                  value={locForm.area_id || ''}
-                  label="Area"
-                  onChange={e => setLocForm({ ...locForm, area_id: e.target.value })}
-                >
-                  {Array.isArray(areas) && areas.map(a => (
-                    <MenuItem key={a._id} value={a._id}>
-                      {a.name}
-                    </MenuItem>
-                  ))}
+                <Select value={locForm.area_id || ''} label="Area" onChange={(e) => setLocForm({ ...locForm, area_id: e.target.value })}>
+                  {Array.isArray(areas) &&
+                    areas.map((a) => (
+                      <MenuItem key={a._id} value={a._id}>
+                        {a.name}
+                      </MenuItem>
+                    ))}
                 </Select>
               </FormControl>
-              <TextField
-                label="Bay"
-                value={locForm.bay}
-                onChange={e => setLocForm({ ...locForm, bay: e.target.value })}
-                fullWidth
-              />
-              <TextField
-                label="Row"
-                value={locForm.row}
-                onChange={e => setLocForm({ ...locForm, row: e.target.value })}
-                fullWidth
-              />
+              <TextField label="Bay" value={locForm.bay} onChange={(e) => setLocForm({ ...locForm, bay: e.target.value })} fullWidth />
+              <TextField label="Row" value={locForm.row} onChange={(e) => setLocForm({ ...locForm, row: e.target.value })} fullWidth />
               <TextField
                 label="Level"
                 value={locForm.level}
-                onChange={e => setLocForm({ ...locForm, level: e.target.value })}
+                onChange={(e) => setLocForm({ ...locForm, level: e.target.value })}
                 fullWidth
               />
               {locError && <Alert severity="error">{locError}</Alert>}
@@ -592,12 +551,7 @@ function ImportOrderDetail() {
           </DialogActions>
         </Dialog>
 
-        <Dialog
-          open={relatedModalOpen}
-          onClose={() => setRelatedModalOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
+        <Dialog open={relatedModalOpen} onClose={() => setRelatedModalOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Related Locations</DialogTitle>
           <DialogContent dividers>
             {relatedError && <Alert severity="error">{relatedError}</Alert>}
@@ -608,7 +562,7 @@ function ImportOrderDetail() {
             {relatedBatchLocs.length === 0 ? (
               <Typography>No locations found for this batch.</Typography>
             ) : (
-              relatedBatchLocs.map(loc => (
+              relatedBatchLocs.map((loc) => (
                 <Typography key={loc._id}>
                   • {loc.area_id.name} — Bay {loc.bay}, Row {loc.row}, Level {loc.column}
                 </Typography>
@@ -617,13 +571,11 @@ function ImportOrderDetail() {
 
             <Divider sx={{ my: 2 }} />
 
-            <Typography variant="subtitle1">
-              Same Medicine Locations
-            </Typography>
+            <Typography variant="subtitle1">Same Medicine Locations</Typography>
             {relatedMedLocs.length === 0 ? (
               <Typography>No locations found for this medicine.</Typography>
             ) : (
-              relatedMedLocs.map(loc => (
+              relatedMedLocs.map((loc) => (
                 <Typography key={loc._id}>
                   • {loc.area_id.name} — Bay {loc.bay}, Row {loc.row}, Level {loc.column}
                 </Typography>
@@ -639,7 +591,7 @@ function ImportOrderDetail() {
           <DialogTitle>Find Package</DialogTitle>
           <DialogContent>
             <form
-              onSubmit={e => {
+              onSubmit={(e) => {
                 e.preventDefault();
                 handleSearchSubmit();
               }}
@@ -649,7 +601,7 @@ function ImportOrderDetail() {
                   label="Package ID"
                   fullWidth
                   value={searchPackageId}
-                  onChange={e => setSearchPackageId(e.target.value)}
+                  onChange={(e) => setSearchPackageId(e.target.value)}
                   autoFocus
                 />
                 <Button type="submit" variant="contained">
@@ -659,10 +611,9 @@ function ImportOrderDetail() {
             </form>
           </DialogContent>
         </Dialog>
-
       </Container>
     </Box>
   );
-};
+}
 
-export default ImportOrderDetail
+export default ImportOrderDetail;

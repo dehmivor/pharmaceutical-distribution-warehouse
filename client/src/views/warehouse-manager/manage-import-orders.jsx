@@ -54,14 +54,14 @@ export default function ManageImportOrders() {
   const [error, setError] = useState(null);
 
   const [filterDate, setFilterDate] = useState('');
-  const [filterAssigned, setFilterAssigned] = useState('self'); // 'self' | 'unassigned'
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterAssigned, setFilterAssigned] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('All Status');
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOrder, setMenuOrder] = useState(null);
 
   // paging
   const [page, setPage] = useState(1); // 1-based
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const [totalCount, setTotalCount] = useState(0);
 
   const handleMenuOpen = (e, order) => {
@@ -86,14 +86,13 @@ export default function ManageImportOrders() {
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
         const params = { page: p, limit: l };
         if (importDate) params.createdAt = importDate;
-        if (status) params.status = status;
+        if (status && status !== 'All Status') params.status = status;
 
-        // map our “Assigned To” dropdown into the back‑end’s warehouse_manager_id param:
         if (assigned === 'unassigned') {
           params.warehouse_manager_id = '0';
         } else if (assigned === 'self') {
-          console.log(userId);
           params.warehouse_manager_id = userId;
+        } else if (assigned === 'all') {
         }
 
         const resp = await axios.get(`${backendUrl}/api/import-orders`, {
@@ -103,7 +102,6 @@ export default function ManageImportOrders() {
 
         if (resp.data.success) {
           setOrders(resp.data.data);
-          // your API should return pagination.total
           setTotalCount(resp.data.pagination?.total ?? resp.data.data.length);
         } else {
           throw new Error(resp.data.error || 'Failed to load orders');
@@ -116,7 +114,7 @@ export default function ManageImportOrders() {
         setLoading(false);
       }
     },
-    [page, rowsPerPage, filterDate, filterAssigned, filterStatus]
+    [rowsPerPage, userId]
   );
 
   useEffect(() => {
@@ -182,6 +180,7 @@ export default function ManageImportOrders() {
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
+            fullWidth
             label="Import Date"
             type="date"
             value={filterDate}
@@ -189,27 +188,37 @@ export default function ManageImportOrders() {
             InputLabelProps={{ shrink: true }}
             size="small"
           />
-          <TextField select label="Assigned To" value={filterAssigned} onChange={(e) => setFilterAssigned(e.target.value)} size="small">
+          <TextField
+            fullWidth
+            select
+            label="Assigned To"
+            value={filterAssigned}
+            onChange={(e) => setFilterAssigned(e.target.value)}
+            size="small"
+          >
             <MenuItem value="self">My Orders</MenuItem>
             <MenuItem value="unassigned">Unassigned</MenuItem>
             <MenuItem value="all">All</MenuItem>
           </TextField>
-          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+          <TextField fullWidth select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+            <MenuItem value="All Status">All Status</MenuItem>
             {['draft', 'approved', 'rejected', 'delivered', 'checked', 'arranged', 'completed', 'cancelled'].map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
               </MenuItem>
             ))}
           </TextField>
-          <Button variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
+          <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
             Search
           </Button>
           <Button
+            fullWidth
             variant="outlined"
+            size="small"
             onClick={() => {
               setFilterDate('');
               setFilterAssigned('all');
-              setFilterStatus('');
+              setFilterStatus('All Status');
               setPage(1);
               fetchOrders({ page: 1, limit: rowsPerPage });
             }}
