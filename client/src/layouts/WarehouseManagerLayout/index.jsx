@@ -20,7 +20,7 @@ import { DRAWER_WIDTH } from '@/config';
 
 /***************************  WAREHOUSE MANAGER LAYOUT  ***************************/
 
-export default function RepresentativeLayout({ children }) {
+export default function WarehouseManagerLayout({ children }) {
   const { menuMasterLoading } = useGetMenuMaster();
 
   const downXL = useMediaQuery((theme) => theme.breakpoints.down('xl'));
@@ -59,4 +59,4 @@ export default function RepresentativeLayout({ children }) {
   );
 }
 
-RepresentativeLayout.propTypes = { children: PropTypes.any };
+WarehouseManagerLayout.propTypes = { children: PropTypes.any };
