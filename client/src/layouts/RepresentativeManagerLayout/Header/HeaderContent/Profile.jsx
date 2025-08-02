@@ -43,7 +43,7 @@ const languageList = [
 
 export default function ProfileSection() {
   const theme = useTheme();
-  const { i18n } = useConfig();
+  const { i18n, setI18n } = useConfig();
   const { user, userRole, isLoading, updateUserRole } = useRole();
 
   const [anchorEl, setAnchorEl] = useState(null);
@@ -82,10 +82,12 @@ export default function ProfileSection() {
 
   const i18nHandler = (event, key) => {
     handleInnerActionClick(event);
-    if (key !== i18n) enqueueSnackbar('Upgrade to pro for language change');
+    if (key !== i18n) {
+      setI18n(key);
+      enqueueSnackbar(`Language changed to ${languageList.find((l) => l.key === key)?.value}`, { variant: 'success' });
+    }
   };
 
-  // Chuẩn bị dữ liệu profile lấy từ context
   const profileData = {
     avatar: { src: user?.avatar || '/assets/images/users/avatar-5.png', size: AvatarSize.XS },
     title: user?.email || 'Email',
