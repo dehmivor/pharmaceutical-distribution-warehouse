@@ -4,13 +4,14 @@ const pages = {
   id: 'group-pages',
   title: 'Data & Reports',
   icon: 'IconChartBar',
+  url: '/data&reports',
   type: 'group',
   children: [
     {
       id: 'dashboard',
       title: 'Dashboard',
       type: 'item',
-      url: '/dashboard',
+      url: '/data&reports/dashboard',
       icon: 'IconLayoutDashboard'
     },
     {
@@ -23,19 +24,19 @@ const pages = {
           id: 'report-summary',
           title: 'Weekly',
           type: 'item',
-          url: '/reports/weekly'
+          url: '/data&reports/reports/weekly'
         },
         {
           id: 'report-detail',
           title: 'Monthly',
           type: 'item',
-          url: '/reports/monthly'
+          url: '/data&reports/reports/monthly'
         },
         {
           id: 'report-custom',
           title: 'Yearly',
           type: 'item',
-          url: '/reports/yearly'
+          url: '/data&reports/reports/yearly'
         }
       ]
     },
@@ -49,13 +50,13 @@ const pages = {
           id: 'tracking-trends',
           title: 'Trends',
           type: 'item',
-          url: '/data-tracking/trends'
+          url: '/data&reports/data-tracking/trends'
         },
         {
           id: 'tracking-alerts',
           title: 'Alerts',
           type: 'item',
-          url: '/data-tracking/alerts'
+          url: '/data&reports/data-tracking/alerts'
         }
       ]
     }
