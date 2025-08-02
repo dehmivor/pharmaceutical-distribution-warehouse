@@ -1,13 +1,14 @@
 const supervisor = {
-  id: 'group-manage',
+  id: 'group-supervisor',
   title: 'Manage',
   icon: 'IconBrandAsana',
   type: 'group',
   children: [
     {
       id: 'user-management',
-      title: 'User & Role',
+      title: 'User & Role Management',
       type: 'collapse',
+      url: '/user-management',
       icon: 'IconUsers',
       children: [
         {
@@ -23,6 +24,7 @@ const supervisor = {
       id: 'order-management',
       title: 'Order Management',
       type: 'collapse',
+      url: '/order-management',
       icon: 'IconDatabaseExport',
       children: [
         {
@@ -45,6 +47,7 @@ const supervisor = {
       id: 'medicine-management',
       title: 'Medicine Management',
       type: 'collapse',
+      url: '/medicine-management',
       icon: 'IconPill',
       children: [
         {
@@ -60,6 +63,7 @@ const supervisor = {
       id: 'bill-management',
       title: 'Bill Management',
       type: 'collapse',
+      url: '/bill-management',
       icon: 'IconReceipt',
       children: [
         {
@@ -80,6 +84,7 @@ const supervisor = {
       id: 'inventory-management',
       title: 'Inventory Management',
       type: 'collapse',
+      url: '/inventory-management',
       icon: 'IconClipboardCheck',
       children: [
         {
@@ -95,6 +100,7 @@ const supervisor = {
       id: 'location-management',
       title: 'Location Management',
       type: 'collapse',
+      url: '/location-management',
       icon: 'IconMapPin',
       children: [
         {
@@ -117,6 +123,7 @@ const supervisor = {
       id: 'contract-management',
       title: 'Contract Management',
       type: 'collapse',
+      url: '/contract-management',
       icon: 'IconContract',
       children: [
         {

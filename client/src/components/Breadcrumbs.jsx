@@ -20,9 +20,6 @@ import { generateFocusStyle } from '@/utils/generateFocusStyle';
 // @assets
 import { IconChevronRight } from '@tabler/icons-react';
 
-// @data
-const homeBreadcrumb = { title: 'Home', url: APP_DEFAULT_PATH };
-
 /***************************  BREADCRUMBS  ***************************/
 
 export default function Breadcrumbs({ data }) {
@@ -32,11 +29,60 @@ export default function Breadcrumbs({ data }) {
   const [breadcrumbItems, setBreadcrumbItems] = useState([]);
   const [activeItem, setActiveItem] = useState();
 
+  // Get user role from localStorage and create home URL
+  const getHomeBreadcrumb = () => {
+    if (typeof window !== 'undefined') {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          const role = user.role;
+
+          // Map role to home URL
+          const roleHomeMap = {
+            supervisor: '/sp-home',
+            representative: '/rp-home',
+            warehouse: '/wh-home',
+            warehouse_manager: '/wm-home',
+            representative_manager: '/rm-home'
+          };
+
+          const homeUrl = roleHomeMap[role] || '/';
+          return { title: 'Home', url: homeUrl };
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+    }
+    return { title: 'Home', url: '/' };
+  };
+
   useEffect(() => {
     if (data?.length) {
       dataHandler(data);
     } else {
+      // Check if current page is a home page
+      const homeBreadcrumb = getHomeBreadcrumb();
+      const isHomePage = location === homeBreadcrumb.url;
+
+      if (isHomePage) {
+        // Show only "Home" for home pages
+        setBreadcrumbItems([]);
+        setActiveItem({ title: 'Home', url: location });
+        return;
+      }
+
+      // Use original logic for all other pages
       for (const menu of menuItems?.items) {
+        if (menu.type && menu.type === 'group') {
+          const matchedParents = findParentElements(menu.children || [], location);
+          dataHandler(matchedParents || []);
+          if (matchedParents) break;
+        }
+      }
+
+      // Also check supervisor menu
+      for (const menu of menuItems?.supervisor) {
         if (menu.type && menu.type === 'group') {
           const matchedParents = findParentElements(menu.children || [], location);
           dataHandler(matchedParents || []);
@@ -48,9 +94,12 @@ export default function Breadcrumbs({ data }) {
   }, [data, location]);
 
   const dataHandler = (data) => {
+    console.log('Breadcrumb data:', data);
     const active = data.at(-1);
     const linkItems = data.slice(0, -1);
-    if (active && active.url != homeBreadcrumb.url) {
+    const homeBreadcrumb = getHomeBreadcrumb();
+
+    if (active && active.url !== homeBreadcrumb.url) {
       linkItems.unshift(homeBreadcrumb);
     }
     setActiveItem(active);
@@ -59,24 +108,26 @@ export default function Breadcrumbs({ data }) {
 
   function findParentElements(navItems, targetUrl, parents = []) {
     for (const item of navItems) {
-      // Add the current item to the parents array
       const newParents = [...parents, item];
 
-      // Check if the current item matches the target URL
-      if (item.url && targetUrl.includes(item.url)) {
-        return newParents; // Return the array of parent elements
+      if (item.url && (targetUrl === item.url || targetUrl.startsWith(item.url + '/'))) {
+        if (item.children) {
+          const deeper = findParentElements(item.children, targetUrl, newParents);
+          if (deeper) {
+            return deeper;
+          }
+        }
+        return newParents;
       }
 
-      // If the item has children, recurse into them
       if (item.children) {
         const result = findParentElements(item.children, targetUrl, newParents);
         if (result) {
-          return result; // Return the result if found in children
+          return result;
         }
       }
     }
-
-    return null; // Return null if no match is found
+    return null;
   }
 
   return (
