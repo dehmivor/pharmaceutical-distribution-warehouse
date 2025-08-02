@@ -93,6 +93,13 @@ const supervisor = {
           type: 'item',
           url: '/sp-inventory-check-management',
           icon: 'IconClipboardCheck'
+        },
+        {
+          id: 'manage-packages',
+          title: 'Manage Packages',
+          type: 'item',
+          url: '/sp-manage-packages',
+          icon: 'IconPackage'
         }
       ]
     },

@@ -665,6 +665,149 @@ const packageController = {
   }
 },
 
+  // V2 methods for Supervisor Package Management
+  getAllPackagesV2: async (req, res) => {
+    try {
+      const { page = 1, limit = 10, medicine_id, area_id } = req.query;
+      const { validationResult } = require('express-validator');
+      const errors = validationResult(req);
+      
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error',
+          errors: errors.array(),
+        });
+      }
+
+      const result = await packageService.getAllPackagesV2({
+        page: Number.parseInt(page),
+        limit: Number.parseInt(limit),
+        medicine_id,
+        area_id,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: result.packages,
+        pagination: result.pagination,
+      });
+    } catch (error) {
+      console.error('Error getting packages V2:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error getting packages',
+        error: error.message,
+      });
+    }
+  },
+
+  getPackageByIdV2: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { validationResult } = require('express-validator');
+      const errors = validationResult(req);
+      
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error',
+          errors: errors.array(),
+        });
+      }
+
+      const result = await packageService.getPackageByIdV2(id);
+
+      if (!result.success) {
+        return res.status(404).json(result);
+      }
+
+      res.status(200).json({
+        success: true,
+        data: result.package,
+      });
+    } catch (error) {
+      console.error('Error getting package V2:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error getting package',
+        error: error.message,
+      });
+    }
+  },
+
+  updatePackageLocationV2: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { newLocationId } = req.body;
+      const { validationResult } = require('express-validator');
+      const errors = validationResult(req);
+      
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error',
+          errors: errors.array(),
+        });
+      }
+
+      const result = await packageService.updatePackageLocationV2(id, newLocationId);
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Package location updated successfully',
+        data: result.package,
+      });
+    } catch (error) {
+      console.error('Error updating package location V2:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error updating package location',
+        error: error.message,
+      });
+    }
+  },
+
+  updatePackageV2: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { newLocationId, quantity } = req.body;
+      const { validationResult } = require('express-validator');
+      const errors = validationResult(req);
+      
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error',
+          errors: errors.array(),
+        });
+      }
+
+      const result = await packageService.updatePackageV2(id, { newLocationId, quantity });
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Package updated successfully',
+        data: result.package,
+      });
+    } catch (error) {
+      console.error('Error updating package V2:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error updating package',
+        error: error.message,
+      });
+    }
+  },
+
 };
 
 module.exports = packageController;
