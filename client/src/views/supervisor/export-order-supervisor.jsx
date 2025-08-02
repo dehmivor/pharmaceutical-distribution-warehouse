@@ -87,7 +87,7 @@ const IMPORT_ORDER_STATUSES = {
   CANCELLED: 'cancelled'
 };
 
-export default function ImportOrderSupervisor() {
+export default function ExportOrderSupervisor() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -144,7 +144,7 @@ export default function ImportOrderSupervisor() {
       }
       // 'all' means no filter on assign
 
-      const response = await axiosInstance.get('/import-orders', { params });
+      const response = await axiosInstance.get('/export-orders', { params });
       if (response.data.success || response.data.data) {
         setOrders(response.data.data || []);
         setTotalCount(response.data.pagination?.total || response.data.data?.length || 0);
@@ -231,11 +231,11 @@ export default function ImportOrderSupervisor() {
       setActionLoading(true);
 
       if (editForm.status !== selectedOrder.status) {
-        await axiosInstance.patch(`/import-orders/${selectedOrder._id}/status`, { status: editForm.status });
+        await axiosInstance.patch(`/export-orders/${selectedOrder._id}/status`, { status: editForm.status });
       }
 
       if (editForm.warehouse_manager_id !== (selectedOrder.warehouse_manager_id?._id || '')) {
-        await axiosInstance.patch(`/import-orders/${selectedOrder._id}/assign-warehouse-manager`, {
+        await axiosInstance.patch(`/export-orders/${selectedOrder._id}/assign-warehouse-manager`, {
           warehouse_manager_id: editForm.warehouse_manager_id
         });
       }
@@ -325,10 +325,10 @@ export default function ImportOrderSupervisor() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Import Orders Management
+            Export Orders Management
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Supervisor can view, approve and reject import order
+            Supervisor can view, approve and reject export order
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => fetchOrders()} disabled={loading}>

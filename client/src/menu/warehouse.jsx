@@ -5,6 +5,13 @@ const warehouse = {
   type: 'group',
   children: [
     {
+      id: 'warehouse-dashboard',
+      title: 'Warehouse Dashboard',
+      type: 'item',
+      url: '/wh-dashboard-import',
+      icon: 'IconDashboard'
+    },
+    {
       id: 'import-orders',
       title: 'Import',
       type: 'collapse',
@@ -70,13 +77,6 @@ const warehouse = {
           icon: 'IconMapPin'
         }
       ]
-    },
-    {
-      id: 'warehouse-dashboard',
-      title: 'Warehouse Dashboard',
-      type: 'item',
-      url: '/wh-dashboard-import',
-      icon: 'IconDashboard'
     }
   ]
 };

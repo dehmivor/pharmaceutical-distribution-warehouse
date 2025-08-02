@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  DialogContentText,
+  DialogContentText
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
@@ -36,6 +36,7 @@ import {
   FilterList as FilterIcon,
   Add as AddIcon,
   Print as PrintIcon,
+  Refresh
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
@@ -47,11 +48,11 @@ import LocationBulkAddDialog from './LocationBulkAddDialog';
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('auth-token')}`,
+  Authorization: `Bearer ${localStorage.getItem('auth-token')}`
 });
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
+  withCredentials: true
 });
 
 const LocationManagement = () => {
@@ -92,13 +93,13 @@ const LocationManagement = () => {
     try {
       const params = {
         page: page + 1,
-        limit: rowsPerPage,
+        limit: rowsPerPage
       };
-      
+
       if (filterAreaId) {
         params.areaId = filterAreaId;
       }
-      
+
       if (filterAvailable) {
         params.available = filterAvailable;
       }
@@ -147,7 +148,8 @@ const LocationManagement = () => {
   // Handle toggle available
   const handleToggleAvailable = async (location) => {
     try {
-      const response = await axiosInstance.put(`/api/locations/v2/${location._id}/available`, 
+      const response = await axiosInstance.put(
+        `/api/locations/v2/${location._id}/available`,
         { available: !location.available },
         { headers: getAuthHeaders() }
       );
@@ -175,19 +177,19 @@ const LocationManagement = () => {
       const bay = location.bay || 'N/A';
       const row = location.row || 'N/A';
       const column = location.column || 'N/A';
-      
+
       // Tạo text hiển thị: area_name + bay + row + column
       const displayText = `${areaName} - ${bay} - ${row} - ${column}`;
 
       // Render QR code to offscreen canvas
       const canvas = document.createElement('canvas');
       await bwipjs.toCanvas(canvas, {
-        bcid: 'qrcode',         // use the QR‑code generator
-        text: locationId,        // data to encode (location ID)
-        scale: 6,               // how many pixels per "module"
-        version: 5,             // 1–40, controls size; omit to auto‑fit
-        eclevel: 'M',           // error‑correction: L, M, Q, H
-        includeMargin: true,    // add a quiet zone around the code
+        bcid: 'qrcode', // use the QR‑code generator
+        text: locationId, // data to encode (location ID)
+        scale: 6, // how many pixels per "module"
+        version: 5, // 1–40, controls size; omit to auto‑fit
+        eclevel: 'M', // error‑correction: L, M, Q, H
+        includeMargin: true // add a quiet zone around the code
       });
       const qrCodeDataUrl = canvas.toDataURL('image/png');
 
@@ -277,8 +279,6 @@ const LocationManagement = () => {
     setOpenBulkAddDialog(false);
   };
 
-
-
   useEffect(() => {
     fetchAreas();
   }, []);
@@ -289,6 +289,19 @@ const LocationManagement = () => {
 
   return (
     <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Location Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Update, add and remove location of warehouse
+          </Typography>
+        </Box>
+        <Button variant="outlined" startIcon={<Refresh />}>
+          Refresh
+        </Button>
+      </Box>
       {/* Filter Section */}
       <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 3 }}>
@@ -298,7 +311,7 @@ const LocationManagement = () => {
               Bộ Lọc Tìm Kiếm
             </Typography>
           </Box>
-          
+
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <FormControl sx={{ minWidth: 100 }}>
               <InputLabel>Khu vực</InputLabel>
@@ -309,7 +322,7 @@ const LocationManagement = () => {
                 size="small"
                 renderValue={(value) => {
                   if (!value) return 'Tất cả';
-                  const area = areas.find(a => a._id === value);
+                  const area = areas.find((a) => a._id === value);
                   return area ? area.name : value;
                 }}
               >
@@ -342,8 +355,6 @@ const LocationManagement = () => {
               </Select>
             </FormControl>
 
-
-
             <Button
               variant="outlined"
               color="primary"
@@ -353,12 +364,7 @@ const LocationManagement = () => {
             >
               Thêm Nhiều Vị Trí
             </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => setOpenAddDialog(true)}
-              startIcon={<AddIcon />}
-            >
+            <Button variant="contained" color="primary" onClick={() => setOpenAddDialog(true)} startIcon={<AddIcon />}>
               Thêm Vị Trí
             </Button>
           </Box>
@@ -400,12 +406,7 @@ const LocationManagement = () => {
                     </TableCell>
                     <TableCell align="center">
                       <Tooltip title="Xem chi tiết">
-                        <IconButton
-                          color="primary"
-                          size="small"
-                          onClick={() => handleViewDetail(location)}
-                          sx={{ mr: 1 }}
-                        >
+                        <IconButton color="primary" size="small" onClick={() => handleViewDetail(location)} sx={{ mr: 1 }}>
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -428,11 +429,7 @@ const LocationManagement = () => {
                           onClick={() => handleToggleAvailable(location)}
                           sx={{ mr: 1 }}
                         >
-                          {location.available ? (
-                            <BlockIcon fontSize="small" />
-                          ) : (
-                            <CheckCircleIcon fontSize="small" />
-                          )}
+                          {location.available ? <BlockIcon fontSize="small" /> : <CheckCircleIcon fontSize="small" />}
                         </IconButton>
                       </Tooltip>
 
@@ -471,9 +468,7 @@ const LocationManagement = () => {
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Xác nhận xóa</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Bạn có chắc chắn muốn xóa vị trí này không? Hành động này không thể hoàn tác.
-          </DialogContentText>
+          <DialogContentText>Bạn có chắc chắn muốn xóa vị trí này không? Hành động này không thể hoàn tác.</DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)}>Hủy</Button>
@@ -485,28 +480,16 @@ const LocationManagement = () => {
 
       {/* Detail Dialog */}
       {openDetailDialog && selectedLocation && (
-        <LocationDetailDialog
-          open={openDetailDialog}
-          onClose={() => setOpenDetailDialog(false)}
-          location={selectedLocation}
-        />
+        <LocationDetailDialog open={openDetailDialog} onClose={() => setOpenDetailDialog(false)} location={selectedLocation} />
       )}
 
       {/* Add Dialog */}
-      <LocationAddDialog
-        open={openAddDialog}
-        onClose={() => setOpenAddDialog(false)}
-        onSuccess={fetchLocations}
-      />
+      <LocationAddDialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} onSuccess={fetchLocations} />
 
       {/* Bulk Add Dialog */}
-      <LocationBulkAddDialog
-        open={openBulkAddDialog}
-        onClose={() => setOpenBulkAddDialog(false)}
-        onSuccess={handleBulkAddSuccess}
-      />
+      <LocationBulkAddDialog open={openBulkAddDialog} onClose={() => setOpenBulkAddDialog(false)} onSuccess={handleBulkAddSuccess} />
     </Box>
   );
 };
 
-export default LocationManagement; 
+export default LocationManagement;

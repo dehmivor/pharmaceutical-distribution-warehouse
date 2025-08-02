@@ -23,19 +23,19 @@ const pages = {
           id: 'report-summary',
           title: 'Weekly',
           type: 'item',
-          url: '/reports/summary'
+          url: '/reports/weekly'
         },
         {
           id: 'report-detail',
           title: 'Monthly',
           type: 'item',
-          url: '/reports/detail'
+          url: '/reports/monthly'
         },
         {
           id: 'report-custom',
           title: 'Yearly',
           type: 'item',
-          url: '/reports/custom'
+          url: '/reports/yearly'
         }
       ]
     },
@@ -45,12 +45,6 @@ const pages = {
       type: 'collapse',
       icon: 'IconTrendingUp',
       children: [
-        {
-          id: 'tracking-overview',
-          title: 'Overview',
-          type: 'item',
-          url: '/data-tracking/overview'
-        },
         {
           id: 'tracking-trends',
           title: 'Trends',
