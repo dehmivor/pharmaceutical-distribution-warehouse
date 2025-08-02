@@ -18,7 +18,13 @@ router
 router
   .route('/')
   .get(
-    authorize(['warehouse_manager', 'warehouse', 'representative_manager', 'representative']),
+    authorize([
+      'warehouse_manager',
+      'warehouse',
+      'representative_manager',
+      'representative',
+      'supervisor',
+    ]),
     exportOrderController.getExportOrders,
   );
 

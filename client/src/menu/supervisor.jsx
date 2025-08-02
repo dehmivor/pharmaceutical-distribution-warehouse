@@ -23,7 +23,7 @@ const supervisor = {
       id: 'order-management',
       title: 'Order Management',
       type: 'collapse',
-      icon: 'IconFileImport',
+      icon: 'IconDatabaseExport',
       children: [
         {
           id: 'manage-import-orders',
@@ -36,7 +36,7 @@ const supervisor = {
           id: 'manage-export-orders',
           title: 'Export Orders',
           type: 'item',
-          url: '/sp-manage-stocks',
+          url: '/sp-export-orders',
           icon: 'IconFileExport'
         }
       ]
@@ -117,7 +117,7 @@ const supervisor = {
       id: 'contract-management',
       title: 'Contract Management',
       type: 'collapse',
-      icon: 'IconFileContract',
+      icon: 'IconContract',
       children: [
         {
           id: 'retailer-contracts',
