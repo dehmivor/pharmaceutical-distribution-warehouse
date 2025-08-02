@@ -387,7 +387,7 @@ const medicineService = {
     try {
       const medicines = await Medicine.find(
         { status: 'active' }, // Lọc chỉ lấy thuốc active
-        { _id: 1, license_code: 1 }, // Chỉ lấy _id và license_code
+        { _id: 1, license_code: 1, medicine_name: 1 }, // Thêm medicine_name
       ).lean();
 
       return {

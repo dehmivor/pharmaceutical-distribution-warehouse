@@ -75,6 +75,13 @@ const warehouse = {
           type: 'item',
           url: '/wh-manage-location',
           icon: 'IconMapPin'
+        },
+        {
+          id: 'view-packages',
+          title: 'Package Management',
+          type: 'item',
+          url: '/wh-view-packages',
+          icon: 'IconPackage'
         }
       ]
     }

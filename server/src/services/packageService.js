@@ -1,6 +1,7 @@
 const Package = require('../models/Package');
 const Location = require('../models/Location');
 const Area = require('../models/Area');
+const Batch = require('../models/Batch');
 const Inventory = require('../models/Inventory');
 const mongoose = require('mongoose');
 
@@ -502,7 +503,305 @@ const packageService = {
       .exec();
 
     return packages;
-  }
+  },
+
+  // V2 methods for Supervisor Package Management
+  getAllPackagesV2: async ({ page = 1, limit = 10, medicine_id, area_id }) => {
+    try {
+      const skip = (page - 1) * limit;
+      
+      // Build query
+      const query = {};
+      if (medicine_id) {
+        // Find packages by medicine_id through batch
+        const batches = await Batch.find({ medicine_id }).select('_id');
+        const batchIds = batches.map(batch => batch._id);
+        query.batch_id = { $in: batchIds };
+      }
+      if (area_id) {
+        // Find packages by area_id through location
+        const locations = await Location.find({ area_id }).select('_id');
+        const locationIds = locations.map(location => location._id);
+        query.location_id = { $in: locationIds };
+      }
+
+      // Get total count
+      const totalCount = await Package.countDocuments(query);
+      
+      // Get packages with pagination
+      const packages = await Package.find(query)
+        .populate({
+          path: 'batch_id',
+          select: 'batch_code medicine_id',
+          populate: {
+            path: 'medicine_id',
+            select: 'medicine_name license_code',
+          },
+        })
+        .populate({
+          path: 'location_id',
+          select: 'bay row column area_id',
+          populate: {
+            path: 'area_id',
+            select: 'name',
+          },
+        })
+        .skip(skip)
+        .limit(limit)
+        .sort({ _id: -1 });
+
+      // Transform data for frontend
+      const transformedPackages = packages.map(pkg => ({
+        _id: pkg._id.toString().slice(-6), // Rút gọn _id
+        location: pkg.location_id ? 
+          `${pkg.location_id.area_id?.name || 'N/A'} - ${pkg.location_id.bay || 'N/A'} - ${pkg.location_id.row || 'N/A'} - ${pkg.location_id.column || 'N/A'}` : 
+          'Chưa có vị trí',
+        batch_code: pkg.batch_id?.batch_code || 'N/A',
+        license_code: pkg.batch_id?.medicine_id?.license_code || 'N/A',
+        medicine_name: pkg.batch_id?.medicine_id?.medicine_name || 'N/A',
+        quantity: pkg.quantity,
+        full_id: pkg._id, // Giữ lại full ID cho các operations
+        location_id: pkg.location_id?._id,
+        batch_id: pkg.batch_id?._id,
+        medicine_id: pkg.batch_id?.medicine_id?._id,
+      }));
+
+      return {
+        packages: transformedPackages,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      };
+    } catch (error) {
+      console.error('Error in getAllPackagesV2:', error);
+      throw error;
+    }
+  },
+
+  getPackageByIdV2: async (id) => {
+    try {
+      const package = await Package.findById(id)
+        .populate({
+          path: 'batch_id',
+          select: 'batch_code medicine_id',
+          populate: {
+            path: 'medicine_id',
+            select: 'medicine_name',
+          },
+        })
+        .populate({
+          path: 'location_id',
+          select: 'bay row column area_id',
+          populate: {
+            path: 'area_id',
+            select: 'name',
+          },
+        });
+
+      if (!package) {
+        return {
+          success: false,
+          message: 'Package not found',
+        };
+      }
+
+      return {
+        success: true,
+        package: {
+          _id: package._id,
+          quantity: package.quantity,
+          batch_code: package.batch_id?.batch_code,
+          medicine_name: package.batch_id?.medicine_id?.medicine_name,
+          location: package.location_id ? {
+            _id: package.location_id._id,
+            area_name: package.location_id.area_id?.name,
+            bay: package.location_id.bay,
+            row: package.location_id.row,
+            column: package.location_id.column,
+          } : null,
+          batch_id: package.batch_id?._id,
+          medicine_id: package.batch_id?.medicine_id?._id,
+        },
+      };
+    } catch (error) {
+      console.error('Error in getPackageByIdV2:', error);
+      return {
+        success: false,
+        message: 'Error getting package',
+      };
+    }
+  },
+
+  updatePackageLocationV2: async (packageId, newLocationId) => {
+    try {
+      // Check if package exists
+      const package = await Package.findById(packageId);
+      if (!package) {
+        return {
+          success: false,
+          message: 'Package not found',
+        };
+      }
+
+      // Check if new location exists and is available
+      const newLocation = await Location.findById(newLocationId);
+      if (!newLocation) {
+        return {
+          success: false,
+          message: 'New location not found',
+        };
+      }
+
+      if (!newLocation.available) {
+        return {
+          success: false,
+          message: 'New location is not available',
+        };
+      }
+
+      // Update package location
+      const updatedPackage = await Package.findByIdAndUpdate(
+        packageId,
+        { location_id: newLocationId },
+        { new: true }
+      ).populate({
+        path: 'batch_id',
+        select: 'batch_code medicine_id',
+        populate: {
+          path: 'medicine_id',
+          select: 'medicine_name',
+        },
+      }).populate({
+        path: 'location_id',
+        select: 'bay row column area_id',
+        populate: {
+          path: 'area_id',
+          select: 'name',
+        },
+      });
+
+      return {
+        success: true,
+        package: {
+          _id: updatedPackage._id,
+          quantity: updatedPackage.quantity,
+          batch_code: updatedPackage.batch_id?.batch_code,
+          medicine_name: updatedPackage.batch_id?.medicine_id?.medicine_name,
+          location: updatedPackage.location_id ? {
+            _id: updatedPackage.location_id._id,
+            area_name: updatedPackage.location_id.area_id?.name,
+            bay: updatedPackage.location_id.bay,
+            row: updatedPackage.location_id.row,
+            column: updatedPackage.location_id.column,
+          } : null,
+        },
+      };
+    } catch (error) {
+      console.error('Error in updatePackageLocationV2:', error);
+      return {
+        success: false,
+        message: 'Error updating package location',
+      };
+    }
+  },
+
+  updatePackageV2: async (packageId, updateData) => {
+    try {
+      const { newLocationId, quantity } = updateData;
+
+      // Check if package exists
+      const package = await Package.findById(packageId);
+      if (!package) {
+        return {
+          success: false,
+          message: 'Package not found',
+        };
+      }
+
+      // Prepare update object
+      const updateObject = {};
+
+      // Update location if provided
+      if (newLocationId) {
+        const newLocation = await Location.findById(newLocationId);
+        if (!newLocation) {
+          return {
+            success: false,
+            message: 'New location not found',
+          };
+        }
+
+        if (!newLocation.available) {
+          return {
+            success: false,
+            message: 'New location is not available',
+          };
+        }
+
+        updateObject.location_id = newLocationId;
+      }
+
+      // Update quantity if provided
+      if (quantity !== undefined && quantity !== null) {
+        updateObject.quantity = quantity;
+      }
+
+      // If no updates to make, return success
+      if (Object.keys(updateObject).length === 0) {
+        return {
+          success: false,
+          message: 'No updates provided',
+        };
+      }
+
+      // Update package
+      const updatedPackage = await Package.findByIdAndUpdate(
+        packageId,
+        updateObject,
+        { new: true }
+      ).populate({
+        path: 'batch_id',
+        select: 'batch_code medicine_id',
+        populate: {
+          path: 'medicine_id',
+          select: 'medicine_name',
+        },
+      }).populate({
+        path: 'location_id',
+        select: 'bay row column area_id',
+        populate: {
+          path: 'area_id',
+          select: 'name',
+        },
+      });
+
+      return {
+        success: true,
+        package: {
+          _id: updatedPackage._id,
+          quantity: updatedPackage.quantity,
+          batch_code: updatedPackage.batch_id?.batch_code,
+          medicine_name: updatedPackage.batch_id?.medicine_id?.medicine_name,
+          location: updatedPackage.location_id ? {
+            _id: updatedPackage.location_id._id,
+            area_name: updatedPackage.location_id.area_id?.name,
+            bay: updatedPackage.location_id.bay,
+            row: updatedPackage.location_id.row,
+            column: updatedPackage.location_id.column,
+          } : null,
+        },
+      };
+    } catch (error) {
+      console.error('Error in updatePackageV2:', error);
+      return {
+        success: false,
+        message: 'Error updating package',
+      };
+    }
+  },
 
 };
 
