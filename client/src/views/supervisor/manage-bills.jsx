@@ -26,9 +26,11 @@ import {
   FormControl,
   InputLabel,
   Stack,
-  Checkbox
+  Checkbox,
+  IconButton
 } from '@mui/material';
 import axios from 'axios';
+import { Refresh } from '@mui/icons-material';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('auth-token');
@@ -335,77 +337,92 @@ function ManageBills() {
 
   return (
     <Box sx={{ p: 2 }}>
-      <Typography variant="h4" gutterBottom>
-        Quản lý Hóa đơn
-      </Typography>
-
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2} alignItems="center">
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>Loại</InputLabel>
-          <Select label="Loại" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-            <MenuItem value="ALL">Tất cả</MenuItem>
-            <MenuItem value="IMPORT">IMPORT</MenuItem>
-            <MenuItem value="EXPORT">EXPORT</MenuItem>
-          </Select>
-        </FormControl>
-
-        <FormControl size="small" sx={{ minWidth: 140 }}>
-          <InputLabel>Trạng thái</InputLabel>
-          <Select label="Trạng thái" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-            <MenuItem value="ALL">Tất cả</MenuItem>
-            <MenuItem value="PENDING">PENDING</MenuItem>
-            <MenuItem value="COMPLETED">COMPLETED</MenuItem>
-            <MenuItem value="CANCELED">CANCELED</MenuItem>
-            <MenuItem value="PAID">PAID</MenuItem>
-            <MenuItem value="OVERDUE">OVERDUE</MenuItem>
-          </Select>
-        </FormControl>
-
-        <TextField
-          size="small"
-          label="Tìm kiếm"
-          placeholder="Mã hóa đơn, Mã thuốc"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          sx={{ minWidth: 200 }}
-        />
-
-        <FormControl size="small" sx={{ minWidth: 140 }}>
-          <InputLabel>Sắp xếp ngày tạo</InputLabel>
-          <Select label="Sắp xếp ngày tạo" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
-            <MenuItem value="desc">Mới nhất trước</MenuItem>
-            <MenuItem value="asc">Cũ nhất trước</MenuItem>
-          </Select>
-        </FormControl>
-        <Button
-          variant="contained"
-          color="secondary"
-          disabled={selectedBills.length === 0 || loadingPaymentId !== null}
-          onClick={handleMultiStripePayment}
-        >
-          {loadingPaymentId ? 'Đang xử lý...' : `Thanh toán (${selectedBills.length}) hóa đơn`}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Bills Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Pay bill and search, sort, filter bill with status, type, date
+          </Typography>
+        </Box>
+        <Button variant="outlined" startIcon={<Refresh />}>
+          Refresh
         </Button>
-      </Stack>
+      </Box>
+
+      <Box component={Paper} sx={{ p: 2, mb: 2 }} elevation={1}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2} alignItems="center">
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Loại</InputLabel>
+            <Select label="Loại" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+              <MenuItem value="ALL">Tất cả</MenuItem>
+              <MenuItem value="IMPORT">IMPORT</MenuItem>
+              <MenuItem value="EXPORT">EXPORT</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel>Trạng thái</InputLabel>
+            <Select label="Trạng thái" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+              <MenuItem value="ALL">Tất cả</MenuItem>
+              <MenuItem value="PENDING">PENDING</MenuItem>
+              <MenuItem value="COMPLETED">COMPLETED</MenuItem>
+              <MenuItem value="CANCELED">CANCELED</MenuItem>
+              <MenuItem value="PAID">PAID</MenuItem>
+              <MenuItem value="OVERDUE">OVERDUE</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            size="small"
+            label="Tìm kiếm"
+            placeholder="Mã hóa đơn, Mã thuốc"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            sx={{ minWidth: 200 }}
+          />
+
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel>Sắp xếp ngày tạo</InputLabel>
+            <Select label="Sắp xếp ngày tạo" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+              <MenuItem value="desc">Mới nhất trước</MenuItem>
+              <MenuItem value="asc">Cũ nhất trước</MenuItem>
+            </Select>
+          </FormControl>
+          <Button
+            size="small"
+            variant="contained"
+            color="secondary"
+            disabled={selectedBills.length === 0 || loadingPaymentId !== null}
+            onClick={handleMultiStripePayment}
+          >
+            {loadingPaymentId ? 'Đang xử lý...' : `Thanh toán (${selectedBills.length}) hóa đơn`}
+          </Button>
+        </Stack>
+      </Box>
 
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
-            <TableRow>
-              <TableCell padding="checkbox">
+            <TableRow sx={{ backgroundColor: 'grey.50' }}>
+              <TableCell sx={{ fontWeight: 600 }} padding="checkbox">
                 <Checkbox
                   indeterminate={selectedBills.length > 0 && selectedBills.length < filteredBills.length}
                   checked={filteredBills.length > 0 && selectedBills.length === filteredBills.length}
                   onChange={handleSelectAll}
                 />
               </TableCell>
-              <TableCell>Label</TableCell>
-              <TableCell>Mã hóa đơn</TableCell>
-              <TableCell>Loại</TableCell>
-              <TableCell>Trạng thái</TableCell>
-              <TableCell>Ngày tạo</TableCell>
-              <TableCell>Chi tiết thuốc (Mã thuốc)</TableCell>
-              <TableCell align="right">Tổng tiền (VNĐ)</TableCell>
-              <TableCell>Thao tác</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Label</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Mã hóa đơn</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Loại</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Ngày tạo</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Chi tiết thuốc (Mã thuốc)</TableCell>
+              <TableCell sx={{ fontWeight: 600 }} align="right">
+                Tổng tiền (VNĐ)
+              </TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Thao tác</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -464,6 +481,7 @@ function ManageBills() {
           </TableBody>
         </Table>
         <TablePagination
+          component="div"
           rowsPerPageOptions={[5, 10, 25]}
           count={filteredBills.length}
           rowsPerPage={rowsPerPage}
