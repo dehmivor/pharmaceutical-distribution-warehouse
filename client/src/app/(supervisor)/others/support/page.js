@@ -2,7 +2,7 @@
 import dynamic from 'next/dynamic';
 
 // @project
-const Support = dynamic(() => import('@/views/supervisor/support'));
+const Support = dynamic(() => import('@/views/supervisor/others/support'));
 
 /***************************  DASHBOARD PAGE  ***************************/
 
