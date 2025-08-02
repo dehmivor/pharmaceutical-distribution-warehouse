@@ -144,7 +144,6 @@ const EconomicContractEditDialog = ({
   onSuccess,
   suppliers = [],
   retailers = [],
-  medicines = [],
   isViewMode = false,
 }) => {
   const [formData, setFormData] = useState({
@@ -160,12 +159,33 @@ const EconomicContractEditDialog = ({
 
   const [errorValidate, setErrorValidate] = useState({})
   const [errorApi, setErrorApi] = useState("")
+  const [medicines, setMedicines] = useState([])
 
   // useSWRMutation for update
   const { trigger, isMutating } = useSWRMutation(
     contract?._id ? `/api/contract/${contract._id}` : null,
     updateContract,
   )
+
+  // Fetch medicines
+  const fetchAllMedicines = async () => {
+    try {
+      const response = await axiosInstance.get('/api/medicine/all/v1', {
+        headers: getAuthHeaders()
+      });
+      if (response.data.success) {
+        setMedicines(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching medicines:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (open) {
+      fetchAllMedicines();
+    }
+  }, [open]);
 
   // Pre-fill form data when contract changes
   useEffect(() => {

@@ -1,9 +1,8 @@
+'use client';
 import PropTypes from 'prop-types';
-// @next
-import dynamic from 'next/dynamic';
 
 // @project
-const SupervisorLayout = dynamic(() => import('@/layouts/SupervisorLayout'));
+import SupervisorLayout from '@/layouts/SupervisorLayout';
 
 /***************************  LAYOUT - AUTH PAGES  ***************************/
 

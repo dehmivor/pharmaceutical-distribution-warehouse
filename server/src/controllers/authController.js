@@ -183,7 +183,6 @@ const authController = {
         success: true,
         data: {
           ...user,
-          permissions: getRolePermissions(user.role),
         },
       });
     } catch (error) {
@@ -388,7 +387,7 @@ const authController = {
 
 function getRedirectByRole(role) {
   const roleRoutes = {
-    supervisor: '/sp-import-orders',
+    supervisor: '/data&reports/dashboard',
     warehouse_manager: '/wm-import-orders',
     warehouse: '/wh-manage-location',
     representative: '/rp-import-orders',

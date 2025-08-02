@@ -32,7 +32,8 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Refresh
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useSnackbar } from 'notistack';
@@ -157,31 +158,49 @@ const AreaManagement = () => {
 
   const getLightColor = (light) => {
     switch (light) {
-      case 'none': return 'default';
-      case 'low': return 'warning';
-      case 'medium': return 'info';
-      case 'high': return 'error';
-      default: return 'default';
+      case 'none':
+        return 'default';
+      case 'low':
+        return 'warning';
+      case 'medium':
+        return 'info';
+      case 'high':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
   const getLightLabel = (light) => {
     switch (light) {
-      case 'none': return 'none';
-      case 'low': return 'low';
-      case 'medium': return 'medium';
-      case 'high': return 'high';
-      default: return 'Không xác định';
+      case 'none':
+        return 'none';
+      case 'low':
+        return 'low';
+      case 'medium':
+        return 'medium';
+      case 'high':
+        return 'high';
+      default:
+        return 'Không xác định';
     }
   };
 
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 600, color: 'primary.main' }}>
-          Quản Lý Khu Vực
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Area Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Search, sort, filter area
+          </Typography>
+        </Box>
+        <Button variant="outlined" startIcon={<Refresh />}>
+          Refresh
+        </Button>
       </Box>
 
       {/* Search and Filter */}
@@ -194,18 +213,8 @@ const AreaManagement = () => {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
-            <TextField
-              placeholder="Tìm kiếm theo tên khu vực..."
-              value={searchTerm}
-              onChange={handleSearch}
-              sx={{ minWidth: 200 }}
-            />
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setOpenAddDialog(true)}
-              sx={{ borderRadius: 2 }}
-            >
+            <TextField placeholder="Tìm kiếm theo tên khu vực..." value={searchTerm} onChange={handleSearch} sx={{ minWidth: 200 }} />
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenAddDialog(true)} sx={{ borderRadius: 2 }}>
               Thêm Khu Vực
             </Button>
           </Box>
@@ -229,7 +238,9 @@ const AreaManagement = () => {
                       <TableCell sx={{ fontWeight: 600 }}>Nhiệt Độ</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>Độ Ẩm</TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>Ánh Sáng</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }} align="center">Hành Động</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="center">
+                        Hành Động
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -307,9 +318,7 @@ const AreaManagement = () => {
                 onRowsPerPageChange={handleChangeRowsPerPage}
                 rowsPerPageOptions={[5, 10, 25, 50]}
                 labelRowsPerPage="Số hàng mỗi trang:"
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from}-${to} trong ${count !== -1 ? count : `hơn ${to}`}`
-                }
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} trong ${count !== -1 ? count : `hơn ${to}`}`}
               />
             </>
           )}
@@ -317,39 +326,24 @@ const AreaManagement = () => {
       </Card>
 
       {/* Add Dialog */}
-      <AreaAddDialog
-        open={openAddDialog}
-        onClose={() => setOpenAddDialog(false)}
-        onSuccess={handleAddSuccess}
-      />
+      <AreaAddDialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} onSuccess={handleAddSuccess} />
 
       {/* Detail/Edit Dialog */}
-      <AreaDetailDialog
-        open={openViewDialog}
-        onClose={() => setOpenViewDialog(false)}
-        area={selectedArea}
-        onSuccess={handleEditSuccess}
-      />
+      <AreaDetailDialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} area={selectedArea} onSuccess={handleEditSuccess} />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>Xác nhận xóa</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Bạn có chắc chắn muốn xóa khu vực "{areaToDelete?.name}" không? 
-            Hành động này không thể hoàn tác.
+            Bạn có chắc chắn muốn xóa khu vực "{areaToDelete?.name}" không? Hành động này không thể hoàn tác.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleteLoading}>
             Hủy
           </Button>
-          <Button 
-            onClick={handleDeleteConfirm} 
-            color="error" 
-            variant="contained"
-            disabled={deleteLoading}
-          >
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained" disabled={deleteLoading}>
             {deleteLoading ? <CircularProgress size={20} /> : 'Xóa'}
           </Button>
         </DialogActions>
@@ -358,4 +352,4 @@ const AreaManagement = () => {
   );
 };
 
-export default AreaManagement; 
+export default AreaManagement;

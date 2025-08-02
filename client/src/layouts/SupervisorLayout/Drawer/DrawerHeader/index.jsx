@@ -14,6 +14,7 @@ import { IconLayoutSidebarLeftCollapse, IconLayoutSidebarRightCollapse } from '@
 /***************************  DRAWER HEADER  ***************************/
 
 export default function DrawerHeader({ open }) {
+  console.log('drawer header re-render');
   const { menuMaster } = useGetMenuMaster();
   const drawerOpen = menuMaster.isDashboardDrawerOpened;
 

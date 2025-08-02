@@ -35,7 +35,8 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Block as BlockIcon,
-  Restore as RestoreIcon
+  Restore as RestoreIcon,
+  AttachFile as AttachFileIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useRole } from '@/contexts/RoleContext';
@@ -43,6 +44,7 @@ import EconomicContractEditDialog from './EconomicContractEditDialog'; // Import
 import ContractAddDialog from './ContractAddDialog'; // Import the new unified add dialog component
 import StatusActionDialog from './StatusActionDialog';
 import PrincipalContractEditDialog from './PrincipalContractEditDialog'; // Import the unified principal contract dialog
+import AnnexDialog from './AnnexDialog'; // Import the annex dialog component
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => {
@@ -63,7 +65,6 @@ const ContractManagement = () => {
   const [contracts, setContracts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [retailers, setRetailers] = useState([]);
-  const [medicines, setMedicines] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -94,6 +95,11 @@ const ContractManagement = () => {
   const [openActionDialog, setOpenActionDialog] = useState(false);
   const [actionType, setActionType] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Annex dialog states
+  const [openAnnexDialog, setOpenAnnexDialog] = useState(false);
+  const [selectedAnnex, setSelectedAnnex] = useState(null);
+  const [annexMode, setAnnexMode] = useState('create');
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -162,22 +168,7 @@ const ContractManagement = () => {
     }
   };
 
-  // Fetch medicines
-  const fetchMedicines = async () => {
-    setLoading(true);
-    try {
-      const response = await axiosInstance.get('/api/medicine/all/v1', {
-        headers: getAuthHeaders()
-      });
-      if (response.data.success) {
-        setMedicines(response.data.data); // Dữ liệu từ API, chỉ chứa _id và license_code
-      }
-    } catch (error) {
-      console.error('Error fetching medicines:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   // Handle add contract success
   const handleAddContractSuccess = () => {
@@ -312,13 +303,26 @@ const ContractManagement = () => {
     }
   };
 
+  // Annex handlers
+  const handleOpenAnnexDialog = (contract) => {
+    console.log('=== DEBUG handleOpenAnnexDialog ===');
+    console.log('contract:', contract);
+    setSelectedContract(contract);
+    setOpenAnnexDialog(true);
+  };
+
+  const handleAnnexSuccess = () => {
+    setOpenAnnexDialog(false);
+    setSelectedContract(null);
+    setSelectedAnnex(null);
+    setSuccess('Thao tác phụ lục thành công');
+    fetchContracts();
+  };
+
   useEffect(() => {
     if (!isLoading) {
-      if (userRole === 'representative') {
         fetchSuppliers();
         fetchRetailers();
-        fetchMedicines();
-      }
     }
   }, [isLoading, userRole]);
 
@@ -610,6 +614,45 @@ const ContractManagement = () => {
                             </IconButton>
                           </Tooltip>
                         )}
+                        
+                        {/* Annex action for principal contracts with active status */}
+                        {contract.contract_type === 'principal' && contract.status === 'active' && (
+                          <Tooltip title="Phụ lục">
+                            <IconButton
+                              color="info"
+                              size="small"
+                              onClick={async () => {
+                                // Find existing annex that can be edited (draft or rejected)
+                                console.log('=== DEBUG ContractManagement annex logic ===');
+                                console.log('contract.annexes:', contract.annexes);
+                                console.log('contract.annexes.map(a => ({code: a.annex_code, status: a.status})):', 
+                                  contract.annexes?.map(a => ({code: a.annex_code, status: a.status})));
+                                console.log('Annexes with rejected status:', 
+                                  contract.annexes?.filter(a => a.status === 'rejected').map(a => ({code: a.annex_code, status: a.status})));
+                                
+                                const existingAnnex = contract.annexes?.find(annex => 
+                                  annex.status === 'draft' || annex.status === 'rejected'
+                                );
+                                
+                                console.log('existingAnnex:', existingAnnex);
+                                console.log('existingAnnex.status:', existingAnnex?.status);
+                                
+                                // Force refresh data to ensure sync
+                                console.log('=== FORCE REFRESH DATA ===');
+                                await fetchContracts();
+                                
+                                // Let AnnexDialog handle the logic based on fresh data
+                                handleOpenAnnexDialog(contract);
+                              }}
+                              sx={{
+                                bgcolor: 'info.50',
+                                '&:hover': { bgcolor: 'info.100' }
+                              }}
+                            >
+                              <AttachFileIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         {(contract.status === 'draft' || contract.status === 'rejected') && (
                           <>
                             <Tooltip title="Chỉnh sửa">
@@ -689,6 +732,26 @@ const ContractManagement = () => {
                             </IconButton>
                           </Tooltip>
                         )}
+                        
+                        {/* Annex action for representative_manager - only show if there's a draft annex */}
+                        {contract.contract_type === 'principal' && contract.status === 'active' && 
+                         contract.annexes?.some(annex => annex.status === 'draft') && (
+                          <Tooltip title="Duyệt phụ lục">
+                            <IconButton
+                              color="info"
+                              size="small"
+                              onClick={() => {
+                                handleOpenAnnexDialog(contract);
+                              }}
+                              sx={{
+                                bgcolor: 'info.50',
+                                '&:hover': { bgcolor: 'info.100' }
+                              }}
+                            >
+                              <AttachFileIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                       </Box>
                     )}
                   </TableCell>
@@ -722,7 +785,6 @@ const ContractManagement = () => {
         onSuccess={handleAddContractSuccess}
         suppliers={suppliers}
         retailers={retailers}
-        medicines={medicines}
       />
 
       {/* View Dialog - Economic Contract */}
@@ -733,7 +795,6 @@ const ContractManagement = () => {
           contract={selectedContract}
           suppliers={suppliers}
           retailers={retailers}
-          medicines={medicines}
           isViewMode={true}
         />
       )}
@@ -746,7 +807,6 @@ const ContractManagement = () => {
           contract={selectedContract}
           suppliers={suppliers}
           retailers={retailers}
-          medicines={medicines}
           isViewMode={true}
         />
       )}
@@ -759,7 +819,6 @@ const ContractManagement = () => {
           contract={selectedContract}
           suppliers={suppliers}
           retailers={retailers}
-          medicines={medicines}
           onSuccess={handleUpdateContractSuccess}
         />
       )}
@@ -772,7 +831,6 @@ const ContractManagement = () => {
           contract={selectedContract}
           suppliers={suppliers}
           retailers={retailers}
-          medicines={medicines}
           onSuccess={handleUpdateContractSuccess}
         />
       )}
@@ -785,6 +843,14 @@ const ContractManagement = () => {
         contract={selectedContract}
         onConfirm={handleStatusAction}
         loading={actionLoading}
+      />
+
+      {/* Annex Dialog */}
+      <AnnexDialog
+        open={openAnnexDialog}
+        onClose={() => setOpenAnnexDialog(false)}
+        contractId={selectedContract?._id}
+        onSuccess={handleAnnexSuccess}
       />
     </Box>
   );

@@ -4,27 +4,17 @@ const checkExpiredMedicines = async (req, res) => {
   try {
     const refDate = req.query.date ? new Date(req.query.date) : new Date();
 
+    const expiredUnder6Months = await cronService.getBatchesExpiredUnder6Months(refDate);
+
     const batchesByInterval = await cronService.getBatchesExpiringAtIntervals(refDate);
-
-    const notifyGroup = (batchList, months) => {
-      batchList.forEach((batch) => {
-        const medName = batch.medicine_id?.medicine_name || 'Unknown medicine';
-        const expiryDate = batch.expiry_date.toDateString();
-
-        sendNotification(
-          `Thông báo: Batch ${batch.batch_code} của thuốc ${medName} sẽ hết hạn sau khoảng ${months} tháng, ngày hết hạn: ${expiryDate}`,
-        );
-      });
-    };
-
-    notifyGroup(batchesByInterval.sixMonths, 6);
-    notifyGroup(batchesByInterval.sevenMonths, 7);
-    notifyGroup(batchesByInterval.eightMonths, 8);
 
     return res.status(200).json({
       success: true,
-      message: 'Đã kiểm tra và gửi thông báo cho các batch sắp hết hạn theo 6,7,8 tháng.',
-      data: batchesByInterval,
+      message: 'Đã kiểm tra và phân loại batch hết hạn',
+      data: {
+        expiredUnder6Months,
+        ...batchesByInterval,
+      },
     });
   } catch (error) {
     console.error('Lỗi checkBatchExpiries:', error);

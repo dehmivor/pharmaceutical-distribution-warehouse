@@ -18,7 +18,13 @@ router
 router
   .route('/')
   .get(
-    authorize(['warehouse_manager', 'warehouse', 'representative_manager', 'representative']),
+    authorize([
+      'warehouse_manager',
+      'warehouse',
+      'representative_manager',
+      'representative',
+      'supervisor',
+    ]),
     exportOrderController.getExportOrders,
   );
 
@@ -35,7 +41,7 @@ router
 // Gán warehouse manager cho export order - chỉ representative_manager
 router
   .route('/:id/assign-warehouse-manager')
-  .put(authorize('representative_manager'), exportOrderController.assignWarehouseManager);
+  .put(authorize('warehouse_manager'), exportOrderController.assignWarehouseManager);
 
 // Cập nhật chi tiết đóng gói - có thể truy cập bởi cả warehouse và warehouse_manager
 router

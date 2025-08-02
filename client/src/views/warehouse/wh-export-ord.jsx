@@ -37,7 +37,6 @@ const getAuthHeaders = () => {
 
 const getStatusColor = (status) =>
   ({
-    draft: 'default',
     approved: 'success',
     returned: 'info',
     rejected: 'warning',
@@ -53,7 +52,7 @@ export default function ManageExportOrders() {
   const [error, setError] = useState(null);
 
   const [filterDate, setFilterDate] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterStatus, setFilterStatus] = useState('All Status');
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOrder, setMenuOrder] = useState(null);
 
@@ -71,7 +70,7 @@ export default function ManageExportOrders() {
     setMenuOrder(null);
   };
 
-  const fetchOrders = async (p = null, rpp = null, date = null, status = null) => {
+  const fetchOrders = async (p = null, rpp = null, date = null, status = 'All Status') => {
     setLoading(true);
     setError(null);
 
@@ -89,7 +88,12 @@ export default function ManageExportOrders() {
       qp.append('page', (currentPage + 1).toString());
       qp.append('limit', currentLimit.toString());
       if (currentDate) qp.append('createdAt', currentDate);
-      statusParams.forEach((s) => qp.append('status', s));
+      if (currentStatus && currentStatus !== 'All Status') {
+        qp.append('status', currentStatus);
+      } else if (currentStatus === 'All Status') {
+        const allStatusesExceptDraft = ['approved', 'returned', 'rejected', 'completed', 'cancelled'];
+        allStatusesExceptDraft.forEach((s) => qp.append('status', s));
+      }
 
       const url = `${backendUrl}/api/export-orders${qp.toString() ? `?${qp.toString()}` : ''}`;
       const resp = await axios.get(url, { headers: getAuthHeaders() });
@@ -137,7 +141,7 @@ export default function ManageExportOrders() {
 
   const handleReset = () => {
     setFilterDate('');
-    setFilterStatus('');
+    setFilterStatus('All Status');
     setPage(0);
   };
 
@@ -160,7 +164,14 @@ export default function ManageExportOrders() {
       )}
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Export Orders Management</Typography>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Export Orders Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Manage export order, track progress and view status
+          </Typography>
+        </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading}>
           Refresh
         </Button>
@@ -177,17 +188,17 @@ export default function ManageExportOrders() {
             size="small"
           />
           <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
-            <MenuItem value="">All</MenuItem>
-            {['approved'].map((s) => (
+            <MenuItem value="All Status">All Status</MenuItem>
+            {['approved', 'rejected', 'cancelled'].map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
               </MenuItem>
             ))}
           </TextField>
-          <Button variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick}>
+          <Button size="small" variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick}>
             Search
           </Button>
-          <Button variant="outlined" onClick={handleReset}>
+          <Button size="small" variant="outlined" onClick={handleReset}>
             Reset
           </Button>
         </Stack>
@@ -253,7 +264,6 @@ export default function ManageExportOrders() {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        
         <MenuItem
           onClick={() => {
             router.push(`/wh-export-orders/${menuOrder?._id}`);

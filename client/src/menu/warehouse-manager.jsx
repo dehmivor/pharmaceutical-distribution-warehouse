@@ -5,41 +5,56 @@ const warehouseManager = {
   type: 'group',
   children: [
     {
-      id: 'manage-import-orders',
-      title: 'Import Orders Management',
+      id: 'dashboard',
+      title: 'Dashboard',
       type: 'item',
-      url: '/wm-import-orders',
-      icon: 'IconFileImport'
+      url: '/wm-dashboard',
+      icon: 'IconDashboard'
     },
     {
-      id: 'manage-export-orders',
-      title: 'Export Orders Management',
-      type: 'item',
-      url: '/wm-export-orders',
-      icon: 'IconFileImport'
-    },
-    {
-      id: 'inventory-management',
-      title: 'Inventory Management',
-      type: 'item',
-      url: '/wm-dashboard-import',
-      icon: 'IconBoxMultiple'
-    },
-    {
-      id: 'checking',
-      title: 'Checking',
+      id: 'order-management',
+      title: 'Order Management',
       type: 'collapse',
-      icon: 'IconFileExport',
+      icon: 'IconFileImport',
       children: [
         {
-          id: 'manage-inventory-checking',
-          title: 'Manage Inventory',
+          id: 'manage-import-orders',
+          title: 'Import Orders Management',
           type: 'item',
-          url: '/wm-manage-inventory',
+          url: '/wm-import-orders',
+          icon: 'IconFileImport'
+        },
+        {
+          id: 'manage-export-orders',
+          title: 'Export Orders Management',
+          type: 'item',
+          url: '/wm-export-orders',
           icon: 'IconFileExport'
         }
       ]
     },
+    {
+      id: 'inventory-management',
+      title: 'Inventory Management',
+      type: 'collapse',
+      icon: 'IconBrandMinecraft',
+      children: [
+        {
+          id: 'view-inventory-check-orders',
+          title: 'Check Orders Management',
+          type: 'item',
+          url: '/wm-inventory',
+          icon: 'IconList'
+        },
+        {
+          id: 'wm-manage-inventory',
+          title: 'Inventory Dashboard',
+          type: 'item',
+          url: '/wm-manage-inventory',
+          icon: 'IconHome2'
+        }
+      ]
+    }
   ]
 };
 

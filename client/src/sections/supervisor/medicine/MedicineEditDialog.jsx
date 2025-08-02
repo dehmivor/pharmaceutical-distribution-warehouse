@@ -171,7 +171,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
       if (!/^\d+-\d+$|^-\d+$|^\d+$/.test(formValues.storage_conditions.temperature)) {
         newErrors.storage_conditions = {
           ...newErrors.storage_conditions,
-          temperature: 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X"'
+          temperature: 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X" (chỉ số, không bao gồm °C)'
         };
       }
     }
@@ -434,11 +434,11 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                   <TextField
                     fullWidth
                     label="Nhiệt độ"
-                    placeholder="VD: 2-8°C hoặc -20°C"
+                    placeholder="VD: 2-8 hoặc -20"
                     value={formValues.storage_conditions.temperature}
                     onChange={(e) => handleStorageChange('temperature', e.target.value)}
                     error={!!errors.storage_conditions?.temperature}
-                    helperText={errors.storage_conditions?.temperature || 'Định dạng: X-Y, -X hoặc X (không bắt buộc)'}
+                    helperText={errors.storage_conditions?.temperature || 'Định dạng: X-Y, -X hoặc X'}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -450,11 +450,11 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                   <TextField
                     fullWidth
                     label="Độ ẩm"
-                    placeholder="VD: 60% hoặc 50-70%"
+                    placeholder="VD: 60 hoặc 50-70"
                     value={formValues.storage_conditions.humidity}
                     onChange={(e) => handleStorageChange('humidity', e.target.value)}
                     error={!!errors.storage_conditions?.humidity}
-                    helperText={errors.storage_conditions?.humidity || 'Định dạng: X hoặc X-Y (không bắt buộc)'}
+                    helperText={errors.storage_conditions?.humidity || 'Định dạng: X hoặc X-Y'}
                     variant="outlined"
                     size="medium"
                     InputProps={{

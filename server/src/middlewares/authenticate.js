@@ -64,12 +64,10 @@ const authenticate = async (req, res, next) => {
     }
     req.user = {
       userId: user._id.toString(),
+      id: user._id.toString(),
       email: user.email,
       role: user.role,
-      is_manager: user.is_manager,
       status: user.status,
-      // Giữ lại decoded data nếu cần
-      tokenData: decoded,
     };
     next();
   } catch (error) {

@@ -34,6 +34,17 @@ async function createExportOrder(data, userId) {
     if (!rest.contract_id) {
       throw new Error('Contract ID is required to auto-generate export order details');
     }
+    
+    // Kiểm tra contract phải là Retailer contract
+    const Contract = require('../models/Contract');
+    const contract = await Contract.findById(rest.contract_id);
+    if (!contract) {
+      throw new Error('Contract not found');
+    }
+    if (contract.partner_type !== 'Retailer') {
+      throw new Error('Export orders can only be created for retailer contracts');
+    }
+    
     const contractState = await contractService.getCurrentContractState(rest.contract_id);
     finalDetails = (contractState.current_items || []).map((item) => ({
       medicine_id: item.medicine_id._id || item.medicine_id,
@@ -241,6 +252,17 @@ async function updateExportOrder(orderId, updateData, user) {
       throw new Error('Contract ID is required to auto-generate export order details');
     }
     const contractId = updateData.contract_id || order.contract_id;
+    
+    // Kiểm tra contract phải là Retailer contract
+    const Contract = require('../models/Contract');
+    const contract = await Contract.findById(contractId);
+    if (!contract) {
+      throw new Error('Contract not found');
+    }
+    if (contract.partner_type !== 'Retailer') {
+      throw new Error('Export orders can only be created for retailer contracts');
+    }
+    
     const contractState = await contractService.getCurrentContractState(contractId);
     details = (contractState.current_items || []).map((item) => ({
       medicine_id: item.medicine_id._id || item.medicine_id,
@@ -248,7 +270,18 @@ async function updateExportOrder(orderId, updateData, user) {
       unit_price: item.unit_price || 0,
     }));
   }
-  if (updateData.contract_id) order.contract_id = updateData.contract_id;
+  if (updateData.contract_id) {
+    // Kiểm tra contract mới cũng phải là Retailer contract
+    const Contract = require('../models/Contract');
+    const newContract = await Contract.findById(updateData.contract_id);
+    if (!newContract) {
+      throw new Error('New contract not found');
+    }
+    if (newContract.partner_type !== 'Retailer') {
+      throw new Error('Export orders can only be created for retailer contracts');
+    }
+    order.contract_id = updateData.contract_id;
+  }
   order.details = details;
   await order.save();
   return await ExportOrder.findById(orderId).populate(populateOptions);

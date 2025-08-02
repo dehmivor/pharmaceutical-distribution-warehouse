@@ -58,7 +58,6 @@ function ImportOrderDetail() {
   const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const userId = userData.userId;
 
-
   const [confirmFinishInspection, setConfirmFinishInspection] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
@@ -85,7 +84,6 @@ function ImportOrderDetail() {
         });
         const insps = inspResp.inspections || [];
         setInspections(insps);
-
 
         // 4) Fetch any existing “put away” packages
         await fetchPutAway();
@@ -115,9 +113,9 @@ function ImportOrderDetail() {
   useEffect(() => {
     // whenever `inspections` changes, recalculate `packages`
     if (inspections.length) {
-      const pre = inspections.map(i => ({
+      const pre = inspections.map((i) => ({
         batch_id: i.batch_id?._id || '',
-        quantity: i.actual_quantity - i.rejected_quantity,
+        quantity: i.actual_quantity - i.rejected_quantity
       }));
       setPackages(pre);
     }
@@ -125,11 +123,7 @@ function ImportOrderDetail() {
 
   useEffect(() => {
     // build a set of all medicineIds in the inspections
-    const meds = Array.from(
-      new Set(inspections
-        .map(i => i.medicine_id?._id)
-        .filter(Boolean))
-    );
+    const meds = Array.from(new Set(inspections.map((i) => i.medicine_id?._id).filter(Boolean)));
     if (meds.length === 0) {
       setValidBatchOptions([]);
       return;
@@ -138,18 +132,14 @@ function ImportOrderDetail() {
     (async () => {
       try {
         // fetch valid batches for each medicine
-        const results = await Promise.all(
-          meds.map(mid =>
-            axios.get(`/api/batch/valid/${mid}`, { headers: getAuthHeaders() })
-          )
-        );
+        const results = await Promise.all(meds.map((mid) => axios.get(`/api/batch/valid/${mid}`, { headers: getAuthHeaders() })));
         // flatten into { id, label } shape
-        const serverOpts = results.flatMap(r =>
-          (r.data.data || []).map(b => ({
+        const serverOpts = results.flatMap((r) =>
+          (r.data.data || []).map((b) => ({
             id: b._id,
             // combine batch code + medicine name + license code
             label: `${b.batch_code} - ${b.medicine_id.medicine_name} (${b.medicine_id.license_code})`,
-            max: b.quantity,    // if you still need max
+            max: b.quantity // if you still need max
           }))
         );
         setValidBatchOptions(serverOpts);
@@ -160,11 +150,10 @@ function ImportOrderDetail() {
     })();
   }, [inspections, newBatches]);
 
-
   const prefillPackages = (insps) => {
-    const pre = insps.map(i => ({
+    const pre = insps.map((i) => ({
       batch_id: i.batch_id?._id || '',
-      quantity: i.actual_quantity - i.rejected_quantity,
+      quantity: i.actual_quantity - i.rejected_quantity
     }));
     setPackages(pre);
   };
@@ -183,7 +172,6 @@ function ImportOrderDetail() {
     }
   };
 
-
   const fetchPutAway = async () => {
     try {
       setLoadingPutAway(true);
@@ -201,7 +189,6 @@ function ImportOrderDetail() {
     }
   };
 
-
   const handleClearLocation = async (pkgId) => {
     try {
       const ware_house_id = userId;
@@ -211,7 +198,7 @@ function ImportOrderDetail() {
         `/api/packages/${pkgId}/clear-location`,
         {
           ware_house_id,
-          import_order_id,
+          import_order_id
         },
         { headers: getAuthHeaders() }
       );
@@ -280,9 +267,7 @@ function ImportOrderDetail() {
     }
 
     // Lookup the medicine object so we can grab name & license
-    const medDoc = uniqueInspections.find(
-      (i) => i.medicine_id._id === newMedicineId
-    )?.medicine_id;
+    const medDoc = uniqueInspections.find((i) => i.medicine_id._id === newMedicineId)?.medicine_id;
 
     // stash locally
     setNewBatches((list) => [
@@ -306,7 +291,6 @@ function ImportOrderDetail() {
       }
     ]);
 
-
     closeBatchDialog();
   };
 
@@ -314,20 +298,17 @@ function ImportOrderDetail() {
     .filter((i) => i.medicine_id && i.medicine_id._id)
     .filter((i, idx, arr) => arr.findIndex((j) => j.medicine_id._id === i.medicine_id._id) === idx);
 
-
-
   const allBatchOptions = [
     ...validBatchOptions,
     ...newBatches.map((nb) => ({
       id: nb.batch_code,
       label: `(new) ${nb.batch_code} – ${nb.medicine_name} (${nb.license_code})`,
-      max: 0,
-    })),
+      max: 0
+    }))
   ].reduce((acc, opt) => {
-    if (!acc.find(o => o.id === opt.id)) acc.push(opt);
+    if (!acc.find((o) => o.id === opt.id)) acc.push(opt);
     return acc;
   }, []);
-
 
   // 1) Build map: medicineId → net inspected quantity
   const netByMedicine = inspections.reduce((acc, ins) => {
@@ -338,9 +319,8 @@ function ImportOrderDetail() {
     return acc;
   }, {});
 
-
   function getLicenseCodeById(id, array) {
-    const item = array.find(el => el.id === id);
+    const item = array.find((el) => el.id === id);
     if (!item) return null;
 
     const match = item.label.match(/\(([^)]+)\)$/); // extract text inside the last parentheses
@@ -364,18 +344,13 @@ function ImportOrderDetail() {
     packages.every(p => p.quantity != 0) &&
 
     // every row has a selected batch
-    packages.every(p => Boolean(p.batch_id)) &&
-
-    // every row has a quantity 
-    packages.every(p => Boolean(p.quantity)) &&
-
+    packages.every((p) => Boolean(p.batch_id)) &&
+    // every row has a quantity
+    packages.every((p) => Boolean(p.quantity)) &&
     // same number of distinct medicines
     Object.keys(netByMedicine).length === Object.keys(packedByMedicine).length &&
-
     // every medicine’s net inspected qty equals packaged qty
-    Object.entries(netByMedicine).every(
-      ([medId, net]) => packedByMedicine[medId] === net
-    );
+    Object.entries(netByMedicine).every(([medId, net]) => packedByMedicine[medId] === net);
 
   const addPackageRow = () => {
     setPackages((pkgs) => [...pkgs, { batch_id: batchOptions[0]?.id || '', quantity: 0 }]);
@@ -384,9 +359,6 @@ function ImportOrderDetail() {
   const removePackageRow = (idx) => {
     setPackages((pkgs) => pkgs.filter((_, i) => i !== idx));
   };
-
-
-
 
   const handlePkgChange = (idx, field, value) => {
     setPackages((pkgs) => {
@@ -405,13 +377,9 @@ function ImportOrderDetail() {
 
       // Remove it directly from the inspections array
       setInspections((prev) => prev.filter((insp) => insp._id !== inspectionId));
-      fetchInspection()
-
-    } catch (error) {
-
-    }
+      fetchInspection();
+    } catch (error) {}
   };
-
 
   const onFinishClickInspection = async () => {
     if (!confirmFinishInspection) {
@@ -423,7 +391,6 @@ function ImportOrderDetail() {
       handleFinishInspection();
     }
   };
-
 
   const handlePrintLabel = async (pkg) => {
     try {
@@ -438,19 +405,17 @@ function ImportOrderDetail() {
 
       // Fetch medicine details
       const med = pkg.batch_id?.medicine_id;
-      const medicineLabel = med
-        ? `${med.medicine_name} (${med.license_code})`
-        : 'Unknown Medicine';
+      const medicineLabel = med ? `${med.medicine_name} (${med.license_code})` : 'Unknown Medicine';
 
       // Render barcode to offscreen canvas
       const canvas = document.createElement('canvas');
       await bwipjs.toCanvas(canvas, {
-        bcid: 'qrcode',         // use the QR‑code generator
-        text: pkgId,            // data to encode
-        scale: 6,               // how many pixels per “module”
-        version: 5,             // 1–40, controls size; omit to auto‑fit
-        eclevel: 'M',           // error‑correction: L, M, Q, H
-        includeMargin: true,    // add a quiet zone around the code
+        bcid: 'qrcode', // use the QR‑code generator
+        text: pkgId, // data to encode
+        scale: 6, // how many pixels per “module”
+        version: 5, // 1–40, controls size; omit to auto‑fit
+        eclevel: 'M', // error‑correction: L, M, Q, H
+        includeMargin: true // add a quiet zone around the code
       });
       const barcodeDataUrl = canvas.toDataURL('image/png');
 
@@ -518,11 +483,9 @@ function ImportOrderDetail() {
     }
   };
 
-
-
   const handleArrival = async () => {
     try {
-      await handleSelfAssign()
+      await handleSelfAssign();
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
         { status: 'delivered' },
@@ -530,8 +493,8 @@ function ImportOrderDetail() {
           headers: getAuthHeaders()
         }
       );
-      setOrder(prev => ({ ...prev, status: 'delivered' }));
-      enableAccordion('delivered')
+      setOrder((prev) => ({ ...prev, status: 'delivered' }));
+      enableAccordion('delivered');
     } catch (err) {
       console.error('Error updating status:', err);
       setError('Lỗi khi cập nhật trạng thái đơn');
@@ -674,39 +637,66 @@ function ImportOrderDetail() {
 
   return (
     <Box sx={{ background: theme.palette.background.default, minHeight: '100vh', py: 4 }}>
-      <Container maxWidth="md">
-        <Typography variant="h5" gutterBottom>
+      <Container>
+        <Typography variant="h4" gutterBottom>
           Import Order #{order._id}
         </Typography>
 
-        {/* Order Detail */}
+        <Typography variant="body1" color="text.secondary" mb={3}>
+          View detail, handle inspection and placing medicines
+        </Typography>
+
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>Order Detail</Typography>
+            <Typography variant="h6" fontWeight="bold">
+              Order Detail
+            </Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography>
-              <strong>Status:</strong> {order.status}
+            <Grid container spacing={2} mb={2} alignItems="center">
+              <Grid item xs={12} sm={3}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Status:
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {order.status}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Contract:
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {order.contract_id.contract_code}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Supplier:
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {order.contract_id.partner_id.name}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={3} display="flex" justifyContent="flex-end" alignItems="center">
+                <Button variant="contained" disabled={order.status !== 'approved'} onClick={handleArrival} size="large">
+                  Arrived
+                </Button>
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ mb: 2 }} />
+
+            <Typography variant="subtitle1" mb={1} fontWeight="bold">
+              Items:
             </Typography>
-            <Typography>
-              <strong>Contract:</strong> {order.contract_id.contract_code}
-            </Typography>
-            <Typography>
-              <strong>Supplier:</strong> {order.contract_id.partner_id.name}
-            </Typography>
-            <Divider sx={{ my: 2 }} />
-            <Typography>
-              <strong>Items:</strong>
-            </Typography>
-            {order.details.map((d) => (
-              <Typography key={d._id}>
-                • {d.medicine_id.medicine_name} ({d.medicine_id.license_code}): {d.quantity}
-              </Typography>
-            ))}
-            <Divider sx={{ my: 2 }} />
-            <Button variant="contained" disabled={order.status != 'approved'} onClick={handleArrival}>
-              Arrived
-            </Button>
+            <Stack spacing={1} mb={2}>
+              {order.details.map((d) => (
+                <Typography key={d._id} variant="body2">
+                  • <strong>{d.medicine_id.medicine_name}</strong> ({d.medicine_id.license_code}): {d.quantity}
+                </Typography>
+              ))}
+            </Stack>
           </AccordionDetails>
         </Accordion>
 
@@ -717,12 +707,7 @@ function ImportOrderDetail() {
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={2}>
-              <IconButton
-                onClick={fetchInspection}
-                size="small"
-                sx={{ ml: 2 }}
-                disabled={inspectionsDone}
-              >
+              <IconButton onClick={fetchInspection} size="small" sx={{ ml: 2 }} disabled={inspectionsDone}>
                 <RefreshIcon />
               </IconButton>
 
@@ -742,8 +727,7 @@ function ImportOrderDetail() {
                         <TableCell>
                           <Tooltip title={insp._id}>
                             <Typography variant="body2" fontWeight="bold">
-                              {insp.medicine_id?.medicine_name || ''} (
-                              {insp.medicine_id?.license_code || ''})
+                              {insp.medicine_id?.medicine_name || ''} ({insp.medicine_id?.license_code || ''})
                             </Typography>
                           </Tooltip>
                         </TableCell>
@@ -797,12 +781,8 @@ function ImportOrderDetail() {
                   <Stack key={idx} direction="row" spacing={2} alignItems="center">
                     <FormControl sx={{ flex: 1 }} disabled={packagesDone}>
                       <InputLabel>Batch</InputLabel>
-                      <Select
-                        size="small"
-                        value={p.batch_id}
-                        onChange={e => handlePkgChange(idx, 'batch_id', e.target.value)}
-                      >
-                        {allBatchOptions.map(opt => (
+                      <Select size="small" value={p.batch_id} onChange={(e) => handlePkgChange(idx, 'batch_id', e.target.value)}>
+                        {allBatchOptions.map((opt) => (
                           <MenuItem key={opt.id} value={opt.id}>
                             {opt.label}
                           </MenuItem>

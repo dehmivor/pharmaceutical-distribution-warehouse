@@ -45,8 +45,6 @@ const createMultipleInspections = async (listInspectionData) => {
     );
 
     if (duplicateMedicines.length > 0) {
-      // Tạo danh sách tên thuốc đã duplicate (nếu cần truy vấn thêm tên thuốc)
-      // Ở đây chỉ trả id ra thôi, truyền thêm hoặc sửa lại theo yêu cầu
       const medicineListStr = duplicateMedicines.map((d) => d.medicine_id.toString()).join(', ');
       const error = new Error(`Inspections already exist for medicine(s): ${medicineListStr}`);
       error.statusCode = 400;

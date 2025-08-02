@@ -1,11 +1,12 @@
-import UpdatePackageLocation from './components/UpdatePackageLocation';
+// @next
+import dynamic from 'next/dynamic';
 
-function page() {
-  return (
-    <div>
-      <UpdatePackageLocation />
-    </div>
-  );
+// @project
+
+const ViewListLocation = dynamic(() => import('@/views/warehouse/wh-location'));
+
+/***************************  IMPORT ORDERS MANAGEMENT  ***************************/
+
+export default function ImportOrdersPage() {
+  return <ViewListLocation />;
 }
-
-export default page;

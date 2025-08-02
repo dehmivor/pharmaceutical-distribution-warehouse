@@ -14,15 +14,13 @@ const other = {
           id: 'equipment',
           title: 'Equipment Management',
           type: 'item',
-          url: '/thingsboard'
+          url: '/others/equipment'
         },
         {
           id: 'support',
           title: 'Support',
           type: 'item',
-          url: 'https://support.phoenixcoded.net',
-          target: true,
-          icon: 'IconLifebuoy'
+          url: '/others/support'
         }
       ]
     },
@@ -36,16 +34,7 @@ const other = {
           id: 'changelog',
           title: 'Changelog',
           type: 'item',
-          url: 'https://phoenixcoded.gitbook.io/saasable/changelog',
-          target: true,
-          icon: 'IconHistory'
-        },
-        {
-          id: 'timetable',
-          title: 'Timetable',
-          type: 'item',
-          url: '/timetable',
-          icon: 'IconClock'
+          url: '/others/updates'
         }
       ]
     }

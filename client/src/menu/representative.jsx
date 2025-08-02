@@ -5,18 +5,18 @@ const representative = {
   type: 'group',
   children: [
     {
+      id: 'rp-dashboard',
+      title: 'Dashboard',
+      type: 'item',
+      url: '/rp-dashboard',
+      icon: 'IconDashboard'
+    },
+    {
       id: 'rp-manage-contracts',
       title: 'Manage Contracts',
       type: 'item',
       url: '/rp-manage-contracts',
       icon: 'IconFileInvoice'
-    },
-    {
-      id: 'create-contract',
-      title: 'Create Contract',
-      type: 'item',
-      url: '/rp-create-contract',
-      icon: 'IconFilePlus'
     },
     {
       id: 'manage-debt',

@@ -27,7 +27,6 @@ const locationSchema = new mongoose.Schema({
   },
 });
 
-// Đảm bảo vị trí duy nhất trong khu vực
 locationSchema.index({ area_id: 1, bay: 1, row: 1, column: 1 }, { unique: true });
 
-module.exports = mongoose.model('Location', locationSchema);
+module.exports = mongoose.models.Location || mongoose.model('Location', locationSchema);

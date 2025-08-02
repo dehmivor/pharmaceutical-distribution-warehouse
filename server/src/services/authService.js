@@ -354,11 +354,10 @@ const authService = {
         data: {
           user: {
             id: user._id,
+            userId: user._id,
             email: user.email,
-            fullName: user.email.split('@')[0], // Fallback name since model doesn't have fullName
             role: user.role,
             status: user.status,
-            is_manager: user.is_manager,
           },
           token,
           refreshToken,
