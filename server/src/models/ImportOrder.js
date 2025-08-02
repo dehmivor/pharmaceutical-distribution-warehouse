@@ -7,7 +7,7 @@ const importOrderSchema = new mongoose.Schema(
     contract_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Contract',
-      required: [true, 'Contract ID is required'],
+      required: false,
     },
     warehouse_manager_id: {
       type: mongoose.Schema.Types.ObjectId,

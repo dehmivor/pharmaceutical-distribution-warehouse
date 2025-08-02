@@ -408,7 +408,7 @@ const contractService = {
     }
 
     if (newStatus === CONTRACT_STATUSES.CANCELLED && user.role !== USER_ROLES.REPRESENTATIVEMANAGER) {
-      throw new Error('Only supervisor can cancel contracts');
+      throw new Error('Only representative manager can cancel contracts');
     }
 
     const session = await mongoose.startSession();
