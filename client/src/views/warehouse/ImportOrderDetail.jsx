@@ -1,7 +1,7 @@
 'use client';
 
 import bwipjs from 'bwip-js/browser';
-import PrintIcon from '@mui/icons-material/Print';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -464,7 +464,7 @@ function ImportOrderDetail() {
                                   color="primary"
                                   onClick={() => handlePrintLabel(pkg)}
                                 >
-                                  <PrintIcon fontSize="small" />
+                                  <ReceiptIcon fontSize="small" />
                                 </IconButton>
                               </TableCell>
                             </TableRow>
@@ -515,7 +515,7 @@ function ImportOrderDetail() {
                                   color="primary"
                                   onClick={() => handlePrintLabel(pkg)}
                                 >
-                                  <PrintIcon fontSize="small" />
+                                  <ReceiptIcon fontSize="small" />
                                 </IconButton>
                               </TableCell>
                             </TableRow>
