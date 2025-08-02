@@ -17,4 +17,6 @@ router.post('/check-order/:id', authenticate, inventoryController.createCheckIns
 
 router.delete('/:id', authenticate, inventoryController.deleteCheckInspection);
 
+router.patch('/check-order/:id/clear-inspections', authenticate, inventoryController.clearInspections);
+
 module.exports = router;

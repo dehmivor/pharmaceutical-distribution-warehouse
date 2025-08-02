@@ -179,10 +179,42 @@ const updateCheckOrderStatus = async (req, res) => {
     });
   }
 };
+
+const clearInspections = async (req, res) => {
+  try {
+    const checkOrderId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(checkOrderId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid check order ID',
+      });
+    }
+
+    const updatedInspections = await inventoryService.clearInspections(checkOrderId);
+    if (!updatedInspections) {
+      return res.status(404).json({
+        success: false,
+        message: 'No inspections found to clear',
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Inspections cleared and reset to draft',
+    });
+  } catch (error) {
+    console.error('Error clearing inspections:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while clearing inspections',
+    });
+  }
+};
 module.exports = {
   getInspectionsFromCheckOrder,
   createCheckInspection,
   deleteCheckInspection,
   getCheckOrderById,
   updateCheckOrderStatus,
+  clearInspections,
 };

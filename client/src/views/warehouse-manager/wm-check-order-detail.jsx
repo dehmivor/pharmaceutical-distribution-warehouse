@@ -45,10 +45,10 @@ export default function CheckOrderDetailPage() {
   const [logLocation, setLogLocation] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
   // Ví dụ giả lập dữ liệu kết quả kiểm kê (thực tế bạn bổ sung từ API)
-  // Giả sử bạn có: total items, checked items, discrepancy items
   const inventoryResultData = orderData
     ? [
         { name: 'Đã kiểm kê', value: orderData.checkedItems || 70 },
@@ -83,6 +83,74 @@ export default function CheckOrderDetailPage() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleCompleteCheck = async (orderId) => {
+    if (orderData.status !== 'processing') {
+      setError('Chỉ các đơn kiểm kê đang xử lý mới có thể hoàn thành');
+      return;
+    }
+
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      const response = await axios.patch(`${backendUrl}/api/inventory/check-order/${orderId}`, {
+        status: 'completed',
+      }, {
+        headers: getAuthHeaders(),
+      });
+
+      if (response.data.success) {
+        setOrderData((prev) => ({ ...prev, status: 'completed' }));
+        setSuccess('Đơn kiểm kê đã được hoàn thành thành công');
+        fetchData(); // Làm mới dữ liệu trang
+      } else {
+        setError(response.data.message || 'Không thể hoàn thành đơn kiểm kê');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Đã xảy ra lỗi khi hoàn thành đơn kiểm kê');
+    }
+  };
+
+  const handleClearInspections = async (orderId) => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      const response = await axios.patch(`${backendUrl}/api/inventory/check-order/${orderId}/clear-inspections`, {}, {
+        headers: getAuthHeaders(),
+      });
+
+      if (response.data.success) {
+        setSuccess('Đã xóa toàn bộ số lượng thực tế và đặt lại trạng thái phiếu kiểm con');
+        fetchData(); // Làm mới dữ liệu trang
+      } else {
+        setError(response.data.message || 'Không thể xóa phiếu kiểm con');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Đã xảy ra lỗi khi xóa phiếu kiểm con');
+    }
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      const response = await axios.patch(`${backendUrl}/api/inventory/check-order/${orderId}`, {
+        status: 'cancelled',
+      }, {
+        headers: getAuthHeaders(),
+      });
+
+      if (response.data.success) {
+        setOrderData((prev) => ({ ...prev, status: 'cancelled' }));
+        setSuccess('Đơn kiểm kê đã được hủy thành công');
+        fetchData(); // Làm mới dữ liệu trang
+      } else {
+        setError(response.data.message || 'Không thể hủy đơn kiểm kê');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Đã xảy ra lỗi khi hủy đơn kiểm kê');
     }
   };
 
@@ -132,6 +200,17 @@ export default function CheckOrderDetailPage() {
         </Button>
       </Stack>
 
+      {success && (
+        <Alert severity="success" onClose={() => setSuccess('')} sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
+      {error && (
+        <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
       {/* Thông tin cơ bản */}
       <Paper sx={{ p: 3, mb: 4 }} elevation={3}>
         <Grid container spacing={3}>
@@ -160,7 +239,6 @@ export default function CheckOrderDetailPage() {
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
               Người tạo (Created By):
             </Typography>
-            {/* Nếu created_by có email: lấy phần trước @ nếu không thì hiển thị thẳng */}
             <Typography variant="body1">
               {(orderData.created_by.email && orderData.created_by.email.split('@')[0]) || orderData.created_by}
             </Typography>
@@ -230,7 +308,7 @@ export default function CheckOrderDetailPage() {
       </Paper>
 
       {/* Lịch sử thay đổi vị trí */}
-      <Paper sx={{ p: 3 }} elevation={3}>
+      <Paper sx={{ p: 3, mb: 4 }} elevation={3}>
         <Typography variant="h6" gutterBottom>
           Lịch sử thay đổi vị trí
         </Typography>
@@ -249,6 +327,34 @@ export default function CheckOrderDetailPage() {
           </Typography>
         )}
       </Paper>
+
+      {/* Nút hành động */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, gap: 2 }}>
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={() => handleClearInspections(orderData._id)}
+          disabled={orderData.status !== 'processing'}
+        >
+          Clear
+        </Button>
+        <Button
+          variant="contained"
+          color="error"
+          onClick={() => handleCancelOrder(orderData._id)}
+          disabled={orderData.status === 'cancelled' || orderData.status === 'completed'}
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => handleCompleteCheck(orderData._id)}
+          disabled={orderData.status !== 'processing'}
+        >
+          Hoàn thành kiểm kê
+        </Button>
+      </Box>
     </Box>
   );
 }
