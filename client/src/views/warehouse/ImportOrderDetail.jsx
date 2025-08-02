@@ -523,6 +523,7 @@ function ImportOrderDetail() {
                   value={locForm.location_id}
                   onChange={(e) => setLocForm({ ...locForm, location_id: e.target.value })}
                   onKeyDown={onLocationKeyDown}
+                  inputProps={{ maxLength: 24 }}
                 />
                 <Button onClick={handleLookupLocation} variant="outlined">
                   Auto‑fill
@@ -611,6 +612,7 @@ function ImportOrderDetail() {
                   value={searchPackageId}
                   onChange={(e) => setSearchPackageId(e.target.value)}
                   autoFocus
+                  inputProps={{ maxLength: 24 }}
                 />
                 <Button type="submit" variant="contained">
                   Search
