@@ -45,23 +45,37 @@ const getInspectionsFromCheckOrder = async (checkOrderId, page, limit) => {
 };
 const createCheckInspection = async (inspectionData) => {
   try {
+    // Kiểm tra trạng thái đơn kiểm kê
+    const checkOrder = await InventoryCheckOrder.findById(inspectionData.inventory_check_order_id);
+    if (checkOrder.status === 'cancelled') {
+      throw new Error('Không thể tạo phiếu kiểm con cho đơn kiểm kê đã bị hủy');
+    }
     const newInspection = new InventoryCheckInspection(inspectionData);
     await newInspection.save();
     return newInspection;
   } catch (error) {
-    console.error('Error creating inspection in service:', error);
+    console.error('Lỗi khi tạo phiếu kiểm con trong service:', error);
     throw error;
   }
 };
 const deleteCheckInspection = async (inspectionId) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(inspectionId)) {
-      throw new Error('Invalid inspectionId');
+      throw new Error('ID phiếu kiểm con không hợp lệ');
+    }
+    const inspection = await InventoryCheckInspection.findById(inspectionId);
+    if (!inspection) {
+      throw new Error('Không tìm thấy phiếu kiểm con');
+    }
+    // Kiểm tra trạng thái đơn kiểm kê
+    const checkOrder = await InventoryCheckOrder.findById(inspection.inventory_check_order_id);
+    if (checkOrder.status === 'cancelled') {
+      throw new Error('Không thể xóa phiếu kiểm con cho đơn kiểm kê đã bị hủy');
     }
     const deletedInspection = await InventoryCheckInspection.findByIdAndDelete(inspectionId);
     return deletedInspection;
   } catch (error) {
-    console.error('Error deleting inspection in service:', error);
+    console.error('Lỗi khi xóa phiếu kiểm con trong service:', error);
     throw error;
   }
 };
@@ -107,10 +121,34 @@ const updateCheckOrderStatus = async (checkOrderId, status) => {
   }
 };
 
+const clearInspections = async (checkOrderId) => {
+  try {
+    // Kiểm tra trạng thái đơn kiểm kê
+    const checkOrder = await InventoryCheckOrder.findById(checkOrderId);
+    if (checkOrder.status === 'cancelled') {
+      throw new Error('Không thể xóa dữ liệu phiếu kiểm con cho đơn kiểm kê đã bị hủy');
+    }
+    const updatedInspections = await InventoryCheckInspection.updateMany(
+      { inventory_check_order_id: checkOrderId },
+      {
+        $set: {
+          'check_list.$[].actual_quantity': 0,
+          status: INVENTORY_CHECK_INSPECTION_STATUSES.DRAFT,
+        },
+      }
+    );
+    return updatedInspections.nModified > 0 ? updatedInspections : null;
+  } catch (error) {
+    console.error('Lỗi khi xóa dữ liệu phiếu kiểm con:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   getInspectionsFromCheckOrder,
   createCheckInspection,
   deleteCheckInspection,
   getCheckOrderById,
   updateCheckOrderStatus,
+  clearInspections,
 };
