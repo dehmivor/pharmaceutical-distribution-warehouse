@@ -6,6 +6,14 @@ const router = express.Router();
 
 router.use(authenticate); // Tất cả các route đều yêu cầu xác thực
 
+// Kiểm tra tồn kho cho export order - chỉ representative
+router
+  .route('/check-stock')
+  .post(
+    authorize(['representative']),
+    exportOrderController.checkStockForExportOrder,
+  );
+
 // Tạo mới export order - chỉ representative và representative_manager
 router
   .route('/')
@@ -38,6 +46,10 @@ router
   .route('/:id/approve')
   .put(authorize('representative_manager'), exportOrderController.approveExportOrder);
 
+// Từ chối export order - chỉ representative_manager
+router
+  .route('/:id/reject')
+  .put(authorize('representative_manager'), exportOrderController.rejectExportOrder);
 
 
 // Cập nhật chi tiết đóng gói - có thể truy cập bởi cả warehouse và warehouse_manager
