@@ -1,41 +1,14 @@
 'use client';
 
 import bwipjs from 'bwip-js/browser';
-import PrintIcon from '@mui/icons-material/Print';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Box,
-  Button,
-  Container,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-  Typography,
-  CircularProgress,
-  Alert,
-  IconButton,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableContainer,
-  TableCell,
-  Tooltip,
-  Paper,
-  Grid
+  Accordion, AccordionSummary, AccordionDetails, Box, Button, Container, Divider, Dialog, DialogTitle, DialogContent, DialogActions,
+  FormControl, InputLabel, MenuItem, Select, Stack, TextField, Typography, CircularProgress, Alert, IconButton, Table, TableHead,
+  TableBody, TableRow, TableContainer, TableCell, Tooltip, Paper
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -86,6 +59,9 @@ function ImportOrderDetail() {
   const userId = userData.userId;
 
   const [confirmFinishInspection, setConfirmFinishInspection] = useState(false);
+
+  const today = new Date().toISOString().split('T')[0];
+
 
   // Initial fetch: order + inspections + initial packages
   useEffect(() => {
@@ -363,6 +339,10 @@ function ImportOrderDetail() {
   const isValid =
     // must have at least one package row
     packages.length > 0 &&
+
+    //every row quantity != 0
+    packages.every(p => p.quantity != 0) &&
+
     // every row has a selected batch
     packages.every((p) => Boolean(p.batch_id)) &&
     // every row has a quantity
@@ -831,6 +811,38 @@ function ImportOrderDetail() {
 
               <Divider />
 
+              {/* ▶︎ VALIDITY STATUS */}
+              {
+                !packagesDone && (isValid ? (
+                  <Alert severity="success" sx={{ mb: 2 }}>
+                    Valid input
+                  </Alert>
+                ) : (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    Invalid input
+                    {Object.entries(
+                      // iterate over all medicines we inspected
+                      netByMedicine
+                    )
+                      .map(([license, netQty]) => {
+                        const packedQty = packedByMedicine[license] || 0;
+                        const diff = packedQty - netQty;
+                        if (diff === 0) return null;
+                        // look up the human name from your inspections list
+                        const med = uniqueInspections.find(
+                          (i) => i.medicine_id.license_code === license
+                        )?.medicine_id;
+                        const name = med?.medicine_name || license;
+                        const verb = diff > 0 ? 'over' : 'under';
+                        return ` ${name} is ${Math.abs(diff)} unit ${verb}`;
+                      })
+                      .filter(Boolean)
+                      .join('; ')}
+                  </Alert>
+                ))
+              }
+
+
               <Button variant="contained" disabled={!isValid || saving || packagesDone} onClick={handleContinuePackages}>
                 {saving ? 'Saving…' : 'Continue to Put Away'}
               </Button>
@@ -878,7 +890,7 @@ function ImportOrderDetail() {
                               </IconButton>
                             )}
                             <IconButton size="small" color="primary" onClick={() => handlePrintLabel(pkg)} disabled={putAwayDone}>
-                              <PrintIcon fontSize="small" />
+                              <ReceiptIcon fontSize="small" />
                             </IconButton>
                           </TableCell>
                         </TableRow>
@@ -928,6 +940,7 @@ function ImportOrderDetail() {
                     setNewExpiryDate(prod);
                   }
                 }}
+                inputProps={{ max: today }}
               />
 
               <TextField

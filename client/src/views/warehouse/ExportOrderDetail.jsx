@@ -530,8 +530,8 @@ export default function ExportOrderDetail() {
               value={locInput}
               onChange={(e) => setLocInput(e.target.value)}
               margin="dense"
-              // so Enter in this field submits
               autoFocus
+              inputProps={{ maxLength: 24 }}
             />
 
             {loadingLoc ? (
@@ -670,6 +670,7 @@ export default function ExportOrderDetail() {
                   value={verifyInput}
                   onChange={(e) => setVerifyInput(e.target.value.trim())}
                   autoFocus
+                  inputProps={{ maxLength: 24 }}
                 />
 
                 {/* Pick Quantity Input */}
@@ -721,6 +722,7 @@ export default function ExportOrderDetail() {
               onChange={(e) => setPkgInput(e.target.value.trim())}
               autoFocus
               margin="dense"
+              inputProps={{ maxLength: 24 }}
             />
           </DialogContent>
           <DialogActions>

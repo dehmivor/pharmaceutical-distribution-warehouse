@@ -463,7 +463,6 @@ const packageService = {
     }
   },
 
-
   clearPackageLocation: async (packageId) => {
     try {
       if (!packageId) {
@@ -479,7 +478,6 @@ const packageService = {
     }
   },
 
-
   getPackagesByBatch: async (batchId) => {
     // 1) Validate batchId
     if (!mongoose.Types.ObjectId.isValid(batchId)) {
@@ -494,10 +492,10 @@ const packageService = {
       })
       .populate({
         path: 'location_id',
-        select: 'bay row column',       // only these fields on Location
+        select: 'bay row column', // only these fields on Location
         populate: {
-          path: 'area_id',               // nested populate of the Area doc
-          select: 'name',                // just the area name
+          path: 'area_id', // nested populate of the Area doc
+          select: 'name', // just the area name
         },
       })
       .exec();
@@ -509,25 +507,25 @@ const packageService = {
   getAllPackagesV2: async ({ page = 1, limit = 10, medicine_id, area_id }) => {
     try {
       const skip = (page - 1) * limit;
-      
+
       // Build query
       const query = {};
       if (medicine_id) {
         // Find packages by medicine_id through batch
         const batches = await Batch.find({ medicine_id }).select('_id');
-        const batchIds = batches.map(batch => batch._id);
+        const batchIds = batches.map((batch) => batch._id);
         query.batch_id = { $in: batchIds };
       }
       if (area_id) {
         // Find packages by area_id through location
         const locations = await Location.find({ area_id }).select('_id');
-        const locationIds = locations.map(location => location._id);
+        const locationIds = locations.map((location) => location._id);
         query.location_id = { $in: locationIds };
       }
 
       // Get total count
       const totalCount = await Package.countDocuments(query);
-      
+
       // Get packages with pagination
       const packages = await Package.find(query)
         .populate({
@@ -551,11 +549,11 @@ const packageService = {
         .sort({ _id: -1 });
 
       // Transform data for frontend
-      const transformedPackages = packages.map(pkg => ({
+      const transformedPackages = packages.map((pkg) => ({
         _id: pkg._id.toString().slice(-6), // Rút gọn _id
-        location: pkg.location_id ? 
-          `${pkg.location_id.area_id?.name || 'N/A'} - ${pkg.location_id.bay || 'N/A'} - ${pkg.location_id.row || 'N/A'} - ${pkg.location_id.column || 'N/A'}` : 
-          'Chưa có vị trí',
+        location: pkg.location_id
+          ? `${pkg.location_id.area_id?.name || 'N/A'} - ${pkg.location_id.bay || 'N/A'} - ${pkg.location_id.row || 'N/A'} - ${pkg.location_id.column || 'N/A'}`
+          : 'Chưa có vị trí',
         batch_code: pkg.batch_id?.batch_code || 'N/A',
         license_code: pkg.batch_id?.medicine_id?.license_code || 'N/A',
         medicine_name: pkg.batch_id?.medicine_id?.medicine_name || 'N/A',
@@ -615,13 +613,15 @@ const packageService = {
           quantity: package.quantity,
           batch_code: package.batch_id?.batch_code,
           medicine_name: package.batch_id?.medicine_id?.medicine_name,
-          location: package.location_id ? {
-            _id: package.location_id._id,
-            area_name: package.location_id.area_id?.name,
-            bay: package.location_id.bay,
-            row: package.location_id.row,
-            column: package.location_id.column,
-          } : null,
+          location: package.location_id
+            ? {
+                _id: package.location_id._id,
+                area_name: package.location_id.area_id?.name,
+                bay: package.location_id.bay,
+                row: package.location_id.row,
+                column: package.location_id.column,
+              }
+            : null,
           batch_id: package.batch_id?._id,
           medicine_id: package.batch_id?.medicine_id?._id,
         },
@@ -666,22 +666,24 @@ const packageService = {
       const updatedPackage = await Package.findByIdAndUpdate(
         packageId,
         { location_id: newLocationId },
-        { new: true }
-      ).populate({
-        path: 'batch_id',
-        select: 'batch_code medicine_id',
-        populate: {
-          path: 'medicine_id',
-          select: 'medicine_name',
-        },
-      }).populate({
-        path: 'location_id',
-        select: 'bay row column area_id',
-        populate: {
-          path: 'area_id',
-          select: 'name',
-        },
-      });
+        { new: true },
+      )
+        .populate({
+          path: 'batch_id',
+          select: 'batch_code medicine_id',
+          populate: {
+            path: 'medicine_id',
+            select: 'medicine_name',
+          },
+        })
+        .populate({
+          path: 'location_id',
+          select: 'bay row column area_id',
+          populate: {
+            path: 'area_id',
+            select: 'name',
+          },
+        });
 
       return {
         success: true,
@@ -690,13 +692,15 @@ const packageService = {
           quantity: updatedPackage.quantity,
           batch_code: updatedPackage.batch_id?.batch_code,
           medicine_name: updatedPackage.batch_id?.medicine_id?.medicine_name,
-          location: updatedPackage.location_id ? {
-            _id: updatedPackage.location_id._id,
-            area_name: updatedPackage.location_id.area_id?.name,
-            bay: updatedPackage.location_id.bay,
-            row: updatedPackage.location_id.row,
-            column: updatedPackage.location_id.column,
-          } : null,
+          location: updatedPackage.location_id
+            ? {
+                _id: updatedPackage.location_id._id,
+                area_name: updatedPackage.location_id.area_id?.name,
+                bay: updatedPackage.location_id.bay,
+                row: updatedPackage.location_id.row,
+                column: updatedPackage.location_id.column,
+              }
+            : null,
         },
       };
     } catch (error) {
@@ -758,25 +762,23 @@ const packageService = {
       }
 
       // Update package
-      const updatedPackage = await Package.findByIdAndUpdate(
-        packageId,
-        updateObject,
-        { new: true }
-      ).populate({
-        path: 'batch_id',
-        select: 'batch_code medicine_id',
-        populate: {
-          path: 'medicine_id',
-          select: 'medicine_name',
-        },
-      }).populate({
-        path: 'location_id',
-        select: 'bay row column area_id',
-        populate: {
-          path: 'area_id',
-          select: 'name',
-        },
-      });
+      const updatedPackage = await Package.findByIdAndUpdate(packageId, updateObject, { new: true })
+        .populate({
+          path: 'batch_id',
+          select: 'batch_code medicine_id',
+          populate: {
+            path: 'medicine_id',
+            select: 'medicine_name',
+          },
+        })
+        .populate({
+          path: 'location_id',
+          select: 'bay row column area_id',
+          populate: {
+            path: 'area_id',
+            select: 'name',
+          },
+        });
 
       return {
         success: true,
@@ -785,13 +787,15 @@ const packageService = {
           quantity: updatedPackage.quantity,
           batch_code: updatedPackage.batch_id?.batch_code,
           medicine_name: updatedPackage.batch_id?.medicine_id?.medicine_name,
-          location: updatedPackage.location_id ? {
-            _id: updatedPackage.location_id._id,
-            area_name: updatedPackage.location_id.area_id?.name,
-            bay: updatedPackage.location_id.bay,
-            row: updatedPackage.location_id.row,
-            column: updatedPackage.location_id.column,
-          } : null,
+          location: updatedPackage.location_id
+            ? {
+                _id: updatedPackage.location_id._id,
+                area_name: updatedPackage.location_id.area_id?.name,
+                bay: updatedPackage.location_id.bay,
+                row: updatedPackage.location_id.row,
+                column: updatedPackage.location_id.column,
+              }
+            : null,
         },
       };
     } catch (error) {
@@ -803,6 +807,25 @@ const packageService = {
     }
   },
 
+  // const updated = await Package.findByIdAndUpdate(
+  //   packageId,
+  //   { location_id: locationId },
+  //   { new: true }
+  // )
+  //   .populate({
+  //     path: 'location_id',
+  //     populate: { path: 'area_id', model: 'Area' },
+  //   })
+  //   .populate({
+  //     path: 'batch_id',
+  //     populate: { path: 'medicine_id', model: 'Medicine' },
+  //   });
+
+  // if (!updated) {
+  //   throw { status: 404, message: `No package found with id ${packageId}` };
+  // }
+
+  // return updated;
 };
 
 module.exports = packageService;
