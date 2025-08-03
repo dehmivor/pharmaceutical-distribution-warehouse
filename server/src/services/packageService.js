@@ -650,25 +650,31 @@ const packageService = {
     }
   },
 
-  // const updated = await Package.findByIdAndUpdate(
-  //   packageId,
-  //   { location_id: locationId },
-  //   { new: true }
-  // )
-  //   .populate({
-  //     path: 'location_id',
-  //     populate: { path: 'area_id', model: 'Area' },
-  //   })
-  //   .populate({
-  //     path: 'batch_id',
-  //     populate: { path: 'medicine_id', model: 'Medicine' },
-  //   });
+  addLocation: async (packageId, locationId) => {
+  if (!packageId || !locationId) {
+    throw { status: 400, message: 'packageId and location_id are required' };
+  }
 
-  // if (!updated) {
-  //   throw { status: 404, message: `No package found with id ${packageId}` };
-  // }
+  const updated = await Package.findByIdAndUpdate(
+    packageId,
+    { location_id: locationId },
+    { new: true }
+  )
+    .populate({
+      path: 'location_id',
+      populate: { path: 'area_id', model: 'Area' },
+    })
+    .populate({
+      path: 'batch_id',
+      populate: { path: 'medicine_id', model: 'Medicine' },
+    });
 
-  // return updated;
+  if (!updated) {
+    throw { status: 404, message: `No package found with id ${packageId}` };
+  }
+
+  return updated;
+}
 };
 
 module.exports = packageService;
