@@ -89,6 +89,15 @@ export default function Breadcrumbs({ data }) {
           if (matchedParents) break;
         }
       }
+
+      // Also check representative menu
+      for (const menu of menuItems?.representative) {
+        if (menu.type && menu.type === 'group') {
+          const matchedParents = findParentElements(menu.children || [], location);
+          dataHandler(matchedParents || []);
+          if (matchedParents) break;
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, location]);
