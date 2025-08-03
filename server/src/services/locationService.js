@@ -22,7 +22,12 @@ class LocationService {
       // Get locations with pagination and populate area
       const locations = await Location.find(query)
         .populate('area_id', 'name')
-        .sort({ _id: -1 })
+        .sort({ 
+          'area_id.name': 1,  // Theo tên khu vực
+          bay: 1, 
+          row: 1, 
+          column: 1 
+        })
         .skip(skip)
         .limit(limit);
 

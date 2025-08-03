@@ -157,164 +157,160 @@ const WarehouseMonitoring = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-            <Typography variant="h4" component="h1" gutterBottom>
-              Warehouse Environmental Monitoring
-            </Typography>
-            <Box display="flex" alignItems="center" gap={2}>
-              <Button
-                variant="contained"
-                onClick={handleSendTestData}
-                disabled={!selectedDeviceId || sendingTelemetry}
-                startIcon={sendingTelemetry ? <CircularProgress size={16} /> : null}
-              >
-                {sendingTelemetry ? 'Sending...' : 'Send Test Data'}
-              </Button>
-              {/* <Chip
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" component="h1" gutterBottom>
+          Warehouse Environmental Monitoring
+        </Typography>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Button
+            variant="contained"
+            onClick={handleSendTestData}
+            disabled={!selectedDeviceId || sendingTelemetry}
+            startIcon={sendingTelemetry ? <CircularProgress size={16} /> : null}
+          >
+            {sendingTelemetry ? 'Sending...' : 'Send Test Data'}
+          </Button>
+          {/* <Chip
                 icon={devicesSample.length > 0 ? <WifiIcon /> : <WifiOffIcon />}
                 label={devicesSample.length > 0 ? 'Connected' : 'Offline'}
                 color={devicesSample.length > 0 ? 'success' : 'error'}
                 variant="outlined"
               /> */}
-            </Box>
-          </Box>
+        </Box>
+      </Box>
 
-          {/* Device Selector */}
-          <FormControl fullWidth sx={{ mb: 3, maxWidth: 400 }}>
-            <InputLabel>Select Warehouse Device</InputLabel>
-            <Select value={selectedDeviceId} label="Select Warehouse Device" onChange={handleDeviceChange} disabled={devicesLoading}>
-              {devicesLoading ? (
-                <MenuItem disabled>Loading devicesSample...</MenuItem>
-              ) : devicesSample.length === 0 ? (
-                <MenuItem disabled>No devicesSample found</MenuItem>
-              ) : (
-                devicesSample.map((device) => (
-                  <MenuItem key={device.id.id} value={device.id.id}>
-                    {device.name} ({device.type || 'Unknown'})
-                  </MenuItem>
-                ))
-              )}
-            </Select>
-          </FormControl>
+      {/* Device Selector */}
+      <FormControl fullWidth sx={{ mb: 3, maxWidth: 400 }}>
+        <InputLabel>Select Warehouse Device</InputLabel>
+        <Select value={selectedDeviceId} label="Select Warehouse Device" onChange={handleDeviceChange} disabled={devicesLoading}>
+          {devicesLoading ? (
+            <MenuItem disabled>Loading devicesSample...</MenuItem>
+          ) : devicesSample.length === 0 ? (
+            <MenuItem disabled>No devicesSample found</MenuItem>
+          ) : (
+            devicesSample.map((device) => (
+              <MenuItem key={device.id.id} value={device.id.id}>
+                {device.name} ({device.type || 'Unknown'})
+              </MenuItem>
+            ))
+          )}
+        </Select>
+      </FormControl>
 
-          {/* Current Values Display */}
-          {selectedDevice && (
-            <Grid container spacing={3} sx={{ mb: 3 }}>
-              {[
-                { key: 'temperature', icon: <ThermostatIcon />, unit: '°C', color: '#f44336' },
-                { key: 'humidity', icon: <OpacityIcon />, unit: '%', color: '#2196f3' },
-                { key: 'pressure', icon: <SpeedIcon />, unit: 'hPa', color: '#4caf50' }
-              ].map(({ key, icon, unit, color }) => {
-                const currentValue = getCurrentValue(key);
-                return (
-                  <Grid item xs={12} md={4} key={key}>
-                    <Paper sx={{ p: 2, textAlign: 'center' }}>
-                      <Box display="flex" alignItems="center" justifyContent="center" mb={1}>
-                        <Box sx={{ color, mr: 1 }}>{icon}</Box>
-                        <Typography variant="h6" component="h3">
-                          {key.charAt(0).toUpperCase() + key.slice(1)}
+      {/* Current Values Display */}
+      {selectedDevice && (
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          {[
+            { key: 'temperature', icon: <ThermostatIcon />, unit: '°C', color: '#f44336' },
+            { key: 'humidity', icon: <OpacityIcon />, unit: '%', color: '#2196f3' },
+            { key: 'pressure', icon: <SpeedIcon />, unit: 'hPa', color: '#4caf50' }
+          ].map(({ key, icon, unit, color }) => {
+            const currentValue = getCurrentValue(key);
+            return (
+              <Grid item xs={12} md={4} key={key}>
+                <Paper sx={{ p: 2, textAlign: 'center' }}>
+                  <Box display="flex" alignItems="center" justifyContent="center" mb={1}>
+                    <Box sx={{ color, mr: 1 }}>{icon}</Box>
+                    <Typography variant="h6" component="h3">
+                      {key.charAt(0).toUpperCase() + key.slice(1)}
+                    </Typography>
+                  </Box>
+                  <Typography variant="h3" component="div" sx={{ color }}>
+                    {currentValue !== null ? (
+                      <>
+                        {currentValue.toFixed(1)}
+                        <Typography variant="h6" component="span" sx={{ color: 'text.secondary', ml: 1 }}>
+                          {unit}
                         </Typography>
-                      </Box>
-                      <Typography variant="h3" component="div" sx={{ color }}>
-                        {currentValue !== null ? (
-                          <>
-                            {currentValue.toFixed(1)}
-                            <Typography variant="h6" component="span" sx={{ color: 'text.secondary', ml: 1 }}>
-                              {unit}
-                            </Typography>
-                          </>
-                        ) : (
-                          <Typography variant="h6" sx={{ color: 'text.disabled' }}>
-                            --
-                          </Typography>
-                        )}
+                      </>
+                    ) : (
+                      <Typography variant="h6" sx={{ color: 'text.disabled' }}>
+                        --
                       </Typography>
-                    </Paper>
-                  </Grid>
-                );
-              })}
-            </Grid>
-          )}
+                    )}
+                  </Typography>
+                </Paper>
+              </Grid>
+            );
+          })}
+        </Grid>
+      )}
 
-          {/* Alerts Section */}
-          {alerts.length > 0 && (
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
-                <WarningIcon sx={{ mr: 1 }} />
-                Active Alerts
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {alerts.map((alert, index) => (
-                  <Alert key={index} severity={alert.type} icon={alert.icon}>
-                    {alert.message}
-                  </Alert>
-                ))}
-              </Box>
-            </Box>
-          )}
+      {/* Alerts Section */}
+      {alerts.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+            <WarningIcon sx={{ mr: 1 }} />
+            Active Alerts
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {alerts.map((alert, index) => (
+              <Alert key={index} severity={alert.type} icon={alert.icon}>
+                {alert.message}
+              </Alert>
+            ))}
+          </Box>
+        </Box>
+      )}
 
-          {/* Charts Section */}
-          {selectedDeviceId && (
-            <Grid container spacing={3}>
-              {['temperature', 'humidity'].map((key) => (
-                <Grid item xs={12} lg={6} key={key}>
-                  <Card variant="outlined">
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        {key.charAt(0).toUpperCase() + key.slice(1)} Trend (24h)
+      {/* Charts Section */}
+      {selectedDeviceId && (
+        <Grid container spacing={3}>
+          {['temperature', 'humidity'].map((key) => (
+            <Grid item xs={12} lg={6} key={key}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Typography variant="h6" gutterBottom>
+                    {key.charAt(0).toUpperCase() + key.slice(1)} Trend (24h)
+                  </Typography>
+
+                  {telemetryLoading ? (
+                    <Box display="flex" justifyContent="center" alignItems="center" height={300}>
+                      <CircularProgress />
+                    </Box>
+                  ) : telemetryData[key] && telemetryData[key].length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={prepareChartData(key)}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="timestamp" tick={{ fontSize: 12 }} />
+                        <YAxis domain={key === 'temperature' ? [0, 15] : [0, 100]} tick={{ fontSize: 12 }} />
+                        <Tooltip
+                          labelFormatter={(value, payload) => {
+                            if (payload && payload[0]) {
+                              return payload[0].payload.fullTime;
+                            }
+                            return value;
+                          }}
+                          formatter={(value) => [
+                            `${parseFloat(value).toFixed(2)}${key === 'temperature' ? '°C' : '%'}`,
+                            key.charAt(0).toUpperCase() + key.slice(1)
+                          ]}
+                        />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="value"
+                          stroke={key === 'temperature' ? '#f44336' : '#2196f3'}
+                          strokeWidth={2}
+                          dot={{ r: 3 }}
+                          activeDot={{ r: 5 }}
+                          name={key.charAt(0).toUpperCase() + key.slice(1)}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Box display="flex" justifyContent="center" alignItems="center" height={300}>
+                      <Typography variant="body1" color="text.secondary">
+                        No data available for {key}
                       </Typography>
-
-                      {telemetryLoading ? (
-                        <Box display="flex" justifyContent="center" alignItems="center" height={300}>
-                          <CircularProgress />
-                        </Box>
-                      ) : telemetryData[key] && telemetryData[key].length > 0 ? (
-                        <ResponsiveContainer width="100%" height={300}>
-                          <LineChart data={prepareChartData(key)}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="timestamp" tick={{ fontSize: 12 }} />
-                            <YAxis domain={key === 'temperature' ? [0, 15] : [0, 100]} tick={{ fontSize: 12 }} />
-                            <Tooltip
-                              labelFormatter={(value, payload) => {
-                                if (payload && payload[0]) {
-                                  return payload[0].payload.fullTime;
-                                }
-                                return value;
-                              }}
-                              formatter={(value) => [
-                                `${parseFloat(value).toFixed(2)}${key === 'temperature' ? '°C' : '%'}`,
-                                key.charAt(0).toUpperCase() + key.slice(1)
-                              ]}
-                            />
-                            <Legend />
-                            <Line
-                              type="monotone"
-                              dataKey="value"
-                              stroke={key === 'temperature' ? '#f44336' : '#2196f3'}
-                              strokeWidth={2}
-                              dot={{ r: 3 }}
-                              activeDot={{ r: 5 }}
-                              name={key.charAt(0).toUpperCase() + key.slice(1)}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <Box display="flex" justifyContent="center" alignItems="center" height={300}>
-                          <Typography variant="body1" color="text.secondary">
-                            No data available for {key}
-                          </Typography>
-                        </Box>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
             </Grid>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </Grid>
+      )}
     </Box>
   );
 };

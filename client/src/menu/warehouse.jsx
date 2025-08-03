@@ -5,6 +5,13 @@ const warehouse = {
   type: 'group',
   children: [
     {
+      id: 'warehouse-dashboard',
+      title: 'Warehouse Dashboard',
+      type: 'item',
+      url: '/wh-dashboard-import',
+      icon: 'IconDashboard'
+    },
+    {
       id: 'import-orders',
       title: 'Import',
       type: 'collapse',
@@ -68,15 +75,15 @@ const warehouse = {
           type: 'item',
           url: '/wh-manage-location',
           icon: 'IconMapPin'
+        },
+        {
+          id: 'view-packages',
+          title: 'Package Management',
+          type: 'item',
+          url: '/wh-view-packages',
+          icon: 'IconPackage'
         }
       ]
-    },
-    {
-      id: 'warehouse-dashboard',
-      title: 'Warehouse Dashboard',
-      type: 'item',
-      url: '/wh-dashboard-import',
-      icon: 'IconDashboard'
     }
   ]
 };

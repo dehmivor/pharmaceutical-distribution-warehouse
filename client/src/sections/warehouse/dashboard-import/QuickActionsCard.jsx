@@ -3,12 +3,12 @@ import React from 'react';
 import { Box, Typography, Button, Card, CardContent, Stack } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { IconPackageImport, IconClipboardCheck, IconArrowRight } from '@tabler/icons-react';
+import { useRouter } from 'next/navigation';
 
 const PROCESS_STEPS = ['Kiểm tra đơn hàng', 'Kiểm kê số lượng', 'Quy đổi đơn vị', 'Tạo phiếu nhập'];
-
 export default function QuickActionsCard({ onStartInspection }) {
   const theme = useTheme();
-
+  const router = useRouter();
   return (
     <Card
       variant="outlined"
@@ -55,7 +55,7 @@ export default function QuickActionsCard({ onStartInspection }) {
             <Button
               variant="contained"
               size="large"
-              onClick={onStartInspection}
+              onClick={() => router.push('/wh-inventory/check-orders')}
               endIcon={<IconArrowRight />}
               sx={{
                 px: 4,

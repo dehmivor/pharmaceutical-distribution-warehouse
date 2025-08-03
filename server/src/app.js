@@ -98,12 +98,7 @@ app.use(
   route.userRoutes,
 );
 
-app.use(
-  '/api/export-orders',
-  authenticate,
-  authorize(['warehouse_manager', 'warehouse', 'representative_manager', 'representative']),
-  route.exportOrderRoutes,
-);
+app.use('/api/export-orders', authenticate, route.exportOrderRoutes);
 
 // Protected routes với role-based access
 app.use(

@@ -181,10 +181,10 @@ const CheckOrders = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Danh Sách Phiếu Kiểm Kê Tổng
+        List of Inventory Check Orders
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
-        Quản lý và theo dõi các phiếu kiểm kê kho. Bạn có thể lọc, tìm kiếm và xem chi tiết từng phiếu kiểm kê.
+        Manage and track inventory check order. You can filter, search, and view details of each inventory slip.
       </Typography>
 
       {error && (
@@ -342,14 +342,6 @@ const CheckOrders = () => {
           }}
         >
           View Detail
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            router.push(`/wm-inventory/create-inspections/${menuOrder?._id}`);
-            handleMenuClose();
-          }}
-        >
-          Start Checking Inventory
         </MenuItem>
       </Menu>
     </Box>
