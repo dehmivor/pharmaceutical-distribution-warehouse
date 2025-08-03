@@ -135,7 +135,7 @@ const clearInspections = async (checkOrderId) => {
           'check_list.$[].actual_quantity': 0,
           status: INVENTORY_CHECK_INSPECTION_STATUSES.DRAFT,
         },
-      }
+      },
     );
     return updatedInspections.nModified > 0 ? updatedInspections : null;
   } catch (error) {
@@ -144,6 +144,12 @@ const clearInspections = async (checkOrderId) => {
   }
 };
 
+const getProcessingCheckOrdersExcept = async (excludeId) => {
+  return await InventoryCheckOrder.find({
+    _id: { $ne: excludeId },
+    status: { $regex: /^processing$/i },
+  });
+};
 module.exports = {
   getInspectionsFromCheckOrder,
   createCheckInspection,
@@ -151,4 +157,5 @@ module.exports = {
   getCheckOrderById,
   updateCheckOrderStatus,
   clearInspections,
+  getProcessingCheckOrdersExcept,
 };

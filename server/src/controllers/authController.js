@@ -397,13 +397,4 @@ function getRedirectByRole(role) {
   return roleRoutes[role] || '/dashboard';
 }
 
-function getRolePermissions(role) {
-  const permissions = {
-    admin: ['read', 'write', 'delete', 'manage_users'],
-    warehouse_manager: ['read', 'write', 'manage_inventory'],
-  };
-
-  return permissions[role] || ['read'];
-}
-
 module.exports = authController;

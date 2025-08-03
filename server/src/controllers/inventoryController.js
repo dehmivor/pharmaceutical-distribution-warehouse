@@ -1,6 +1,7 @@
 const inventoryService = require('../services/inventoryService');
 const mongoose = require('mongoose');
 const Location = require('../models/Location');
+const Package = require('../models/Package');
 const { INVENTORY_CHECK_INSPECTION_STATUSES } = require('../utils/constants');
 const getInspectionsFromCheckOrder = async (req, res) => {
   try {
@@ -45,8 +46,7 @@ const createCheckInspection = async (req, res) => {
       });
     }
 
-    // Lấy danh sách tất cả location trong kho
-    const allLocations = await Location.find({});
+    const allLocations = await Location.find({}).populate('area_id', 'name');
     if (!allLocations || allLocations.length === 0) {
       return res.status(400).json({
         success: false,
@@ -54,25 +54,58 @@ const createCheckInspection = async (req, res) => {
       });
     }
 
-    // Tạo mảng promise tạo phiếu, mỗi phiếu có:
-    // - inventory_check_order_id = checkOrderId
-    // - location_id từ từng location
-    // - status mặc định DRAFT
-    // - check_list rỗng mảng []
-    // - notes rỗng chuỗi ''
-    // - check_by null hoặc để undefined (có thể bỏ hoặc set nếu bạn có người check mặc định)
     const createdInspections = await Promise.all(
-      allLocations.map((location) => {
-        const newInspectionData = {
+      allLocations.map(async (location) => {
+        // Lấy package trong vị trí, populate batch và medicine (theo logic getLocationInfo)
+        const packages = await Package.find({ location_id: location._id }).populate({
+          path: 'batch_id',
+          populate: {
+            path: 'medicine_id',
+            select: 'medicine_name license_code', // theo schema medicine_model bạn gửi trước đó
+          },
+        });
+
+        if (!packages || packages.length === 0) {
+          // Nếu không có package ở location => check_list rỗng
+          return inventoryService.createCheckInspection({
+            inventory_check_order_id: checkOrderId,
+            status: INVENTORY_CHECK_INSPECTION_STATUSES.DRAFT,
+            location_id: location._id,
+            check_list: [],
+            notes: '',
+          });
+        }
+
+        // Gom nhóm tổng số lượng expected_quantity theo medicine_id, giống như medicineSummary
+        const medicineMap = new Map();
+
+        packages.forEach((pkg) => {
+          const batch = pkg.batch_id;
+          if (batch && batch.medicine_id) {
+            const medIdStr = batch.medicine_id._id.toString();
+            const current = medicineMap.get(medIdStr) || {
+              medicine_id: batch.medicine_id._id,
+              expected_quantity: 0,
+            };
+            current.expected_quantity += pkg.quantity;
+            medicineMap.set(medIdStr, current);
+          }
+        });
+
+        // Tạo check_list dựa trên medicineMap
+        const check_list = Array.from(medicineMap.values()).map((item) => ({
+          medicine_id: item.medicine_id,
+          expected_quantity: item.expected_quantity,
+          actual_quantity: 0, // khởi tạo 0
+        }));
+
+        return inventoryService.createCheckInspection({
           inventory_check_order_id: checkOrderId,
-          status: INVENTORY_CHECK_INSPECTION_STATUSES.DRAFT, // trạng thái mặc định DRAFT
+          status: INVENTORY_CHECK_INSPECTION_STATUSES.DRAFT,
           location_id: location._id,
-          check_list: [],
+          check_list,
           notes: '',
-          // Không set check_by vì không có người check mặc định, hoặc set null
-          // check_by: null,
-        };
-        return inventoryService.createCheckInspection(newInspectionData);
+        });
       }),
     );
 
@@ -159,7 +192,21 @@ const updateCheckOrderStatus = async (req, res) => {
       });
     }
 
+    // if (status?.toLowerCase() === 'processing') {
+    //   const otherProcessingOrders =
+    //     await inventoryService.getProcessingCheckOrdersExcept(checkOrderId);
+
+    //   if (Array.isArray(otherProcessingOrders) && otherProcessingOrders.length > 0) {
+    //     return res.json({
+    //       success: true,
+    //       updated: false,
+    //       message: 'Đang có 1 đợt kiểm kê khác!',
+    //     });
+    //   }
+    // }
+
     const updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
+
     if (!updatedCheckOrder) {
       return res.status(404).json({
         success: false,
@@ -169,13 +216,17 @@ const updateCheckOrderStatus = async (req, res) => {
 
     return res.json({
       success: true,
+      updated: true,
       data: updatedCheckOrder,
+      message: 'Cập nhật trạng thái thành công',
     });
   } catch (error) {
     console.error('Error updating check order status:', error);
+
     return res.status(500).json({
       success: false,
-      message: 'An error occurred while updating the check order status',
+      message: 'Lỗi xảy ra khi cập nhật trạng thái đơn kiểm kê',
+      error: error.message ?? 'Unknown error',
     });
   }
 };

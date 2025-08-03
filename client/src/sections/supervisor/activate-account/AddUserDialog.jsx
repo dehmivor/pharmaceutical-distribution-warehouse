@@ -84,7 +84,13 @@ export default function AddUserDialog({ open, onClose, formData, setFormData, fo
                   <MenuItem value="warehouse">
                     <Box display="flex" alignItems="center" gap={1}>
                       <WarehouseIcon fontSize="small" />
-                      Warehouse Staff
+                      Warehouse
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="warehouse_manager">
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <PersonIcon fontSize="small" />
+                      Warehouse Manager
                     </Box>
                   </MenuItem>
                   <MenuItem value="representative">
@@ -93,16 +99,10 @@ export default function AddUserDialog({ open, onClose, formData, setFormData, fo
                       Representative
                     </Box>
                   </MenuItem>
-                  <MenuItem value="supervisor">
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <SupervisorIcon fontSize="small" />
-                      Supervisor
-                    </Box>
-                  </MenuItem>
-                  <MenuItem value="warehouse_manager">
+                  <MenuItem value="representative_manager">
                     <Box display="flex" alignItems="center" gap={1}>
                       <WarehouseIcon fontSize="small" />
-                      Warehouse Manager
+                      Representative Manager
                     </Box>
                   </MenuItem>
                 </Select>
@@ -112,36 +112,6 @@ export default function AddUserDialog({ open, onClose, formData, setFormData, fo
                   </Typography>
                 )}
               </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.is_manager}
-                    onChange={(e) => handleFormChange('is_manager', e.target.checked)}
-                    disabled={submitting}
-                  />
-                }
-                label="Manager Role"
-              />
-              <Typography variant="caption" color="text.secondary" display="block">
-                Grant management privileges to this user
-              </Typography>
-            </Grid>
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.generatePassword}
-                    onChange={(e) => handleFormChange('generatePassword', e.target.checked)}
-                    disabled={submitting}
-                  />
-                }
-                label="Auto-generate Password"
-              />
-              <Typography variant="caption" color="text.secondary" display="block">
-                System will generate a secure password and send it via email
-              </Typography>
             </Grid>
             {!formData.generatePassword && (
               <Grid item xs={12}>
