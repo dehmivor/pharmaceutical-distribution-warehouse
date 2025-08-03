@@ -85,6 +85,26 @@ async function approveExportOrder(orderId, rmId) {
   return await ExportOrder.findById(orderId).populate(populateOptions);
 }
 
+/**
+ * RM từ chối export order (chuyển trạng thái sang rejected)
+ * @param {String} orderId - ID export order
+ * @param {String} rmId - ID RM từ chối
+ * @param {String} reason - Lý do từ chối
+ * @returns {Promise<ExportOrder>}
+ */
+async function rejectExportOrder(orderId, rmId, reason) {
+  const order = await ExportOrder.findById(orderId);
+  if (!order) throw new Error('Export order not found');
+  if (order.status !== 'draft') {
+    throw new Error('Only draft orders can be rejected');
+  }
+  order.status = EXPORT_ORDER_STATUSES.REJECTED;
+  order.approval_by = rmId;
+  order.rejection_reason = reason; // Thêm lý do từ chối
+  await order.save();
+
+  return await ExportOrder.findById(orderId).populate(populateOptions);
+}
 
 
 /**
@@ -229,12 +249,27 @@ async function deleteExportOrder(orderId, user) {
 async function updateExportOrder(orderId, updateData, user) {
   const order = await ExportOrder.findById(orderId);
   if (!order) throw new Error('Export order not found');
-  if (order.status !== EXPORT_ORDER_STATUSES.DRAFT) {
-    throw new Error('Can only update draft export orders');
+  
+  // Representative chỉ có thể sửa draft hoặc rejected orders
+  if (!['draft', 'rejected'].includes(order.status)) {
+    throw new Error('Can only update draft or rejected export orders');
   }
+  
+  // Representative chỉ có thể sửa orders của mình
   if (user.role !== 'representative' || order.created_by.toString() !== user.userId) {
-    throw new Error('You can only update your own draft export orders');
+    throw new Error('You can only update your own export orders');
   }
+  
+  // Set currentUser context cho validation middleware
+  order.currentUser = user;
+  
+  // Nếu đang sửa rejected order, tự động chuyển về draft
+  if (order.status === 'rejected') {
+    order.status = EXPORT_ORDER_STATUSES.DRAFT;
+    order.rejection_reason = undefined;
+    order.approval_by = undefined;
+  }
+  
   let details = updateData.details;
   if (!Array.isArray(details) || details.length === 0) {
     if (!updateData.contract_id && !order.contract_id) {
@@ -259,6 +294,7 @@ async function updateExportOrder(orderId, updateData, user) {
       unit_price: item.unit_price || 0,
     }));
   }
+  
   if (updateData.contract_id) {
     // Kiểm tra contract mới cũng phải là Retailer contract
     const Contract = require('../models/Contract');
@@ -271,6 +307,7 @@ async function updateExportOrder(orderId, updateData, user) {
     }
     order.contract_id = updateData.contract_id;
   }
+  
   order.details = details;
   await order.save();
   return await ExportOrder.findById(orderId).populate(populateOptions);
@@ -426,6 +463,7 @@ module.exports = {
   createExportOrder,
   getExportOrdersFilter,
   approveExportOrder,
+  rejectExportOrder, // Thêm function reject
   getExportOrderById,
   getExportOrders,
   deleteExportOrder,

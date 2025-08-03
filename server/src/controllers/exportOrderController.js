@@ -505,6 +505,41 @@ const approveExportOrder = async (req, res, next) => {
   }
 };
 
+// Reject export order - chỉ cho phép representative_manager
+const rejectExportOrder = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const userId = req.user._id;
+
+    // Kiểm tra quyền - chỉ representative_manager mới được reject
+    if (req.user.role !== 'representative_manager') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only representative managers can reject export orders',
+      });
+    }
+
+    // Validate reason
+    if (!reason || reason.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Rejection reason is required',
+      });
+    }
+
+    const rejectedOrder = await exportOrderService.rejectExportOrder(id, userId, reason);
+
+    res.status(200).json({
+      success: true,
+      data: rejectedOrder,
+      message: 'Export order rejected successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 /**
  * Kiểm tra tồn kho cho export order
  * @param {Object} req - Request object
@@ -568,5 +603,6 @@ module.exports = {
   getPackagesNeededForExport,
   addExportInspection,
   approveExportOrder,
+  rejectExportOrder, // Thêm function mới
   checkStockForExportOrder // Thêm function mới
 }

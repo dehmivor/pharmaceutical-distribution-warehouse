@@ -58,6 +58,10 @@ function ManageExportOrdersApproval() {
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [orderToApprove, setOrderToApprove] = useState(null);
   const [approveLoading, setApproveLoading] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [orderToReject, setOrderToReject] = useState(null);
+  const [rejectLoading, setRejectLoading] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [orderToView, setOrderToView] = useState(null);
   
@@ -213,6 +217,52 @@ function ManageExportOrdersApproval() {
     }
   };
 
+  const handleOpenRejectDialog = (order) => {
+    setOrderToReject(order);
+    setRejectDialogOpen(true);
+    setRejectReason(''); // Clear previous reason
+  };
+  const handleCloseRejectDialog = () => {
+    setRejectDialogOpen(false);
+    setOrderToReject(null);
+    setRejectReason('');
+  };
+  const handleReject = async () => {
+    if (!orderToReject) return;
+    if (!rejectReason) {
+      setError('Vui lòng nhập lý do từ chối.');
+      return;
+    }
+    setRejectLoading(true);
+    try {
+      await axios.put(
+        `${API_BASE_URL}/api/export-orders/${orderToReject._id}/reject`,
+        { reason: rejectReason },
+        { headers: getAuthHeaders() }
+      );
+      setSuccess('Order rejected!');
+      fetchOrders();
+      handleCloseRejectDialog();
+
+      // Create notification for rejected order
+      try {
+        await createNotification({
+          type: 'export_order_status',
+          status: 'unread',
+          priority: 'high',
+          title: 'Export order rejected',
+          message: `Export Order ${orderToReject._id} has been rejected. Reason: ${rejectReason}`
+        });
+      } catch (notifError) {
+        console.error('Failed to create notification:', notifError);
+      }
+    } catch (error) {
+      setError(error.response?.data?.error || error.message);
+    } finally {
+      setRejectLoading(false);
+    }
+  };
+
   const handleOpenDetailsDialog = (order) => {
     setOrderToView(order);
     setDetailsDialogOpen(true);
@@ -362,16 +412,21 @@ function ManageExportOrdersApproval() {
                   <TableCell>
                     <Chip
                       label={order.status}
-                      color={order.status === 'approved' ? 'success' : order.status === 'draft' ? 'default' : 'info'}
+                      color={order.status === 'approved' ? 'success' : order.status === 'rejected' ? 'error' : order.status === 'draft' ? 'default' : 'info'}
                       size="small"
                     />
                   </TableCell>
                   <TableCell>
                     <Box display="flex" gap={1} justifyContent="center">
                       {order.status === 'draft' && (
-                        <Button variant="contained" color="success" onClick={() => handleOpenApproveDialog(order)}>
-                          Approve
-                        </Button>
+                        <>
+                          <Button variant="contained" color="success" onClick={() => handleOpenApproveDialog(order)}>
+                            Approve
+                          </Button>
+                          <Button variant="contained" color="error" onClick={() => handleOpenRejectDialog(order)}>
+                            Reject
+                          </Button>
+                        </>
                       )}
                       <Button variant="outlined" color="info" onClick={() => handleOpenDetailsDialog(order)}>
                         Xem chi tiết
@@ -419,6 +474,29 @@ function ManageExportOrdersApproval() {
           </Button>
         </DialogActions>
       </Dialog>
+      <Dialog open={rejectDialogOpen} onClose={handleCloseRejectDialog}>
+        <DialogTitle>Reject Export Order</DialogTitle>
+        <DialogContent>
+          <Typography>Bạn có chắc chắn muốn từ chối đơn xuất này?</Typography>
+          <TextField
+            fullWidth
+            label="Lý do từ chối"
+            multiline
+            rows={4}
+            variant="outlined"
+            margin="normal"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseRejectDialog}>Cancel</Button>
+          <Button onClick={handleReject} color="error" variant="contained" disabled={rejectLoading}>
+            {rejectLoading ? 'Rejecting...' : 'Reject'}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog open={detailsDialogOpen} onClose={handleCloseDetailsDialog} maxWidth="md" fullWidth>
         <DialogTitle sx={{ textAlign: 'center', fontWeight: 600, fontSize: 22, pb: 1 }}>Chi tiết Export Order</DialogTitle>
         <DialogContent>
@@ -445,6 +523,11 @@ function ManageExportOrdersApproval() {
                     <Typography variant="body2">
                       <b>Warehouse Manager:</b> {orderToView.warehouse_manager_id?.email || '-'}
                     </Typography>
+                    {orderToView.rejection_reason && (
+                      <Typography variant="body2" sx={{ mt: 1 }}>
+                        <b>Lý do từ chối:</b> {orderToView.rejection_reason}
+                      </Typography>
+                    )}
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
