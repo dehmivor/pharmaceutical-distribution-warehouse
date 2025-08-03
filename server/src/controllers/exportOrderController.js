@@ -285,7 +285,8 @@ const getExportOrderDetail = async (req, res) => {
   }
 };
 
-const createExportOrder = async (req, res, next) => {
+
+const createExportOrder = async (req, res) => {
   try {
     const userId = req.user && req.user.userId;
     if (!userId) {
@@ -294,7 +295,10 @@ const createExportOrder = async (req, res, next) => {
     const newOrder = await exportOrderService.createExportOrder(req.body, userId);
     res.status(201).json({ success: true, data: newOrder });
   } catch (error) {
-    next(error);
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
   }
 };
 
@@ -501,39 +505,7 @@ const approveExportOrder = async (req, res, next) => {
   }
 };
 
-// Assign warehouse manager to export order - chỉ cho phép representative_manager
-const assignWarehouseManager = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { warehouse_manager_id } = req.body;
 
-    // Kiểm tra quyền - chỉ representative_manager mới được assign
-    if (req.user.role !== 'warehouse_manager') {
-      return res.status(403).json({
-        success: false,
-        error: 'Only representative managers can assign warehouse managers',
-      });
-    }
-
-    // Validate warehouse_manager_id
-    if (!warehouse_manager_id) {
-      return res.status(400).json({
-        success: false,
-        error: 'warehouse_manager_id is required',
-      });
-    }
-
-    const assignedOrder = await exportOrderService.assignWarehouseManager(id, warehouse_manager_id);
-
-    res.status(200).json({
-      success: true,
-      data: assignedOrder,
-      message: 'Warehouse manager assigned successfully',
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 
 module.exports = {
   getAllExportOrders,
@@ -548,6 +520,5 @@ module.exports = {
   getExportOrders,
   getPackagesNeededForExport,
   addExportInspection,
-  approveExportOrder,
-  assignWarehouseManager,
-};
+  approveExportOrder
+}

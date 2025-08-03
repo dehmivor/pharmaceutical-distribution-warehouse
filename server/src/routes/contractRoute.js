@@ -9,6 +9,7 @@ router.get('/', contractValidator.validateGetAllContracts, contractController.ge
 router.get('/:id', authenticate, contractValidator.validateGetContractById, contractController.getContractById);
 
 router.get('/detail/:id', authenticate, contractValidator.validateGetContractById, contractController.getContractById);
+router.get('/:id/medicines', authenticate, contractValidator.validateGetContractById, contractController.getActiveContractMedicines);
 router.post('/', authenticate, contractValidator.validateCreateContract, contractController.createContract);
 router.put('/:id', authenticate, contractValidator.validateUpdateContract, contractController.updateContract);
 router.put('/:id/status', authenticate, contractValidator.validateUpdateContractStatus, contractController.updateContractStatus);

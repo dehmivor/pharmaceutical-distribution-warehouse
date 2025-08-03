@@ -1,12 +1,12 @@
-// @next
-import dynamic from 'next/dynamic';
+'use client';
 
+import dynamic from 'next/dynamic';
 // @project
 
-const SupplierContracts = dynamic(() => import('@/views/supervisor/supplier-contracts'));
+const SupplierManagement = dynamic(() => import('@/views/supervisor/supplier-management'));
 
-/***************************  SUPERVISOR - SUPPLIER CONTRACTS  ***************************/
+/***************************  SUPERVISOR - SUPPLIER MANAGEMENT  ***************************/
 
-export default function SupplierContractsPage() {
-  return <SupplierContracts />;
+export default function Page() {
+  return <SupplierManagement />;
 } 

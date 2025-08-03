@@ -67,13 +67,14 @@ function ExportOrderPage() {
     }
   };
 
-  // Lấy danh sách thuốc từ contract khi chọn contract
+  // Lấy danh sách thuốc từ contract khi chọn contract (bao gồm cả phụ lục)
   const fetchContractMedicines = async (contractId) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/contract/${contractId}`, { headers: getAuthHeaders() });
-      const contract = response.data.data;
-      setContractMedicines(contract.current_items || contract.items || []);
+      const response = await axios.get(`${API_BASE_URL}/api/contract/${contractId}/medicines`, { headers: getAuthHeaders() });
+      console.log('Contract medicines loaded:', response.data.data);
+      setContractMedicines(response.data.data || []);
     } catch (error) {
+      console.error('Error fetching contract medicines:', error);
       setContractMedicines([]);
     }
   };
@@ -139,7 +140,8 @@ function ExportOrderPage() {
       const selectedMedicine = contractMedicines.find((med) => med.medicine_id._id === value);
       if (selectedMedicine) {
         newDetails[index].unit_price = selectedMedicine.unit_price || 0;
-        newDetails[index].expected_quantity = selectedMedicine.quantity || 0;
+        // Principal contracts có min_order_quantity, Economic contracts có quantity
+        newDetails[index].expected_quantity = selectedMedicine.quantity || selectedMedicine.min_order_quantity || 1;
       }
       newDetails[index][field] = value;
     } else if (field === 'quantity' || field === 'unit_price') {
@@ -287,6 +289,7 @@ function ExportOrderPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     // Validate contract
     if (!formData.contract_id) {
       setError('Please select a contract.');
@@ -590,7 +593,8 @@ function ExportOrderPage() {
                           helperText={(() => {
                             const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
                             if (contractItem) {
-                              return `Từ hợp đồng: ${contractItem.quantity || contractItem.min_order_quantity || 1}`;
+                              const qty = contractItem.quantity || contractItem.min_order_quantity || 1;
+                              return `Từ hợp đồng: ${qty}`;
                             }
                             return '';
                           })()}
@@ -641,7 +645,7 @@ function ExportOrderPage() {
           <Button onClick={() => setOpenForm(false)} disabled={formLoading} variant="outlined" sx={{ minWidth: 120 }}>
             Cancel
           </Button>
-          <Button type="submit" variant="contained" disabled={formLoading} sx={{ minWidth: 120 }}>
+          <Button onClick={handleSubmit} variant="contained" disabled={formLoading} sx={{ minWidth: 120 }}>
             {formLoading ? 'Creating...' : 'Create Order'}
           </Button>
         </DialogActions>
