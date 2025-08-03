@@ -332,6 +332,96 @@ async function addExportInspection(orderId, detailId, inspectionData) {
   return detail.actual_item[detail.actual_item.length - 1];
 }
 
+/**
+ * Kiểm tra tồn kho cho export order
+ * @param {Array} details - Chi tiết export order
+ * @returns {Promise<Object>} - Kết quả kiểm tra tồn kho
+ */
+async function checkStockAvailability(details) {
+  try {
+    const Batch = require('../models/Batch');
+    const Package = require('../models/Package');
+    const Medicine = require('../models/Medicine');
+
+    const stockCheckResults = [];
+
+    for (const detail of details) {
+      const { medicine_id, expected_quantity } = detail;
+
+      // Lấy thông tin thuốc
+      const medicine = await Medicine.findById(medicine_id).select('medicine_name license_code');
+      if (!medicine) {
+        stockCheckResults.push({
+          medicine_id,
+          medicine_name: 'Unknown',
+          license_code: 'Unknown',
+          expected_quantity,
+          available_quantity: 0,
+          is_available: false,
+          error: 'Medicine not found'
+        });
+        continue;
+      }
+
+      // Tìm tất cả batch của thuốc này
+      const batches = await Batch.find({ medicine_id }).lean();
+      
+      if (batches.length === 0) {
+        stockCheckResults.push({
+          medicine_id,
+          medicine_name: medicine.medicine_name,
+          license_code: medicine.license_code,
+          expected_quantity,
+          available_quantity: 0,
+          is_available: false,
+          error: 'No batches found for this medicine'
+        });
+        continue;
+      }
+
+      const batchIds = batches.map(batch => batch._id);
+
+      // Tính tổng số lượng có sẵn từ tất cả package
+      const packages = await Package.find({ 
+        batch_id: { $in: batchIds }
+      }).lean();
+
+      const availableQuantity = packages.reduce((sum, pkg) => sum + (pkg.quantity || 0), 0);
+
+      stockCheckResults.push({
+        medicine_id,
+        medicine_name: medicine.medicine_name,
+        license_code: medicine.license_code,
+        expected_quantity,
+        available_quantity: availableQuantity,
+        is_available: availableQuantity >= expected_quantity,
+        error: availableQuantity >= expected_quantity ? null : 'Insufficient stock'
+      });
+    }
+
+    const allAvailable = stockCheckResults.every(result => result.is_available);
+    const insufficientItems = stockCheckResults.filter(result => !result.is_available);
+
+    return {
+      success: true,
+      data: {
+        all_available: allAvailable,
+        stock_check_results: stockCheckResults,
+        insufficient_items: insufficientItems,
+        total_items: stockCheckResults.length,
+        available_items: stockCheckResults.filter(result => result.is_available).length
+      }
+    };
+  } catch (error) {
+    console.error('Error checking stock availability:', error);
+    return {
+      success: false,
+      message: 'Error checking stock availability',
+      error: error.message
+    };
+  }
+}
+
 module.exports = {
   createExportOrder,
   getExportOrdersFilter,
@@ -342,4 +432,5 @@ module.exports = {
   updateExportOrder,
   getExportOrderDetail,
   addExportInspection,
+  checkStockAvailability // Thêm function mới
 };

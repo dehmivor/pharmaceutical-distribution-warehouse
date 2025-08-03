@@ -505,6 +505,53 @@ const approveExportOrder = async (req, res, next) => {
   }
 };
 
+/**
+ * Kiểm tra tồn kho cho export order
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
+const checkStockForExportOrder = async (req, res) => {
+  try {
+    const { details } = req.body;
+
+    // Validate input
+    if (!Array.isArray(details) || details.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Details array is required and must not be empty'
+      });
+    }
+
+    // Validate each detail
+    for (const detail of details) {
+      if (!detail.medicine_id || !detail.expected_quantity) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each detail must have medicine_id and expected_quantity'
+        });
+      }
+    }
+
+    // Check stock availability
+    const result = await exportOrderService.checkStockAvailability(details);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: result.message
+      });
+    }
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Error checking stock for export order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
 
 
 module.exports = {
@@ -520,5 +567,6 @@ module.exports = {
   getExportOrders,
   getPackagesNeededForExport,
   addExportInspection,
-  approveExportOrder
+  approveExportOrder,
+  checkStockForExportOrder // Thêm function mới
 }

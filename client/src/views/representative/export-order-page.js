@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Chip, TextField, Grid, MenuItem, FormControl, InputLabel, Select, IconButton, Menu, TablePagination, Card, CardContent
 } from '@mui/material';
@@ -34,6 +34,11 @@ function ExportOrderPage() {
   const [openEditForm, setOpenEditForm] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedOrderForAction, setSelectedOrderForAction] = useState(null);
+
+  // Thêm state cho stock validation
+  const [stockCheckResults, setStockCheckResults] = useState([]);
+  const [isCheckingStock, setIsCheckingStock] = useState(false);
+  const [stockValidationError, setStockValidationError] = useState(null);
 
   // Pagination state
   const [page, setPage] = useState(0);
@@ -79,10 +84,8 @@ function ExportOrderPage() {
   const fetchContractMedicines = async (contractId) => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/contract/${contractId}/medicines`, { headers: getAuthHeaders() });
-      console.log('Contract medicines loaded:', response.data.data);
       setContractMedicines(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching contract medicines:', error);
       setContractMedicines([]);
     }
   };
@@ -102,18 +105,104 @@ function ExportOrderPage() {
         }
       });
 
-      setUserEmails(Array.from(emails).sort());
+      setUserEmails(Array.from(emails));
     } catch (error) {
       console.error('Error fetching user emails:', error);
-      setUserEmails([]);
     }
   };
+
+  // Function để kiểm tra tồn kho với debounce
+  const checkStockAvailability = async (details) => {
+    if (!details || details.length === 0) {
+      setStockCheckResults([]);
+      return { success: true, all_available: true };
+    }
+
+    // Chỉ kiểm tra những detail có đủ thông tin
+    const validDetails = details.filter(detail => 
+      detail.medicine_id && detail.expected_quantity > 0
+    );
+
+    if (validDetails.length === 0) {
+      setStockCheckResults([]);
+      return { success: true, all_available: true };
+    }
+
+    try {
+      setIsCheckingStock(true);
+      setStockValidationError(null);
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/export-orders/check-stock`,
+        { details: validDetails },
+        { headers: getAuthHeaders() }
+      );
+
+      if (response.data.success) {
+        setStockCheckResults(response.data.data.stock_check_results);
+        return {
+          success: true,
+          ...response.data.data
+        };
+      } else {
+        throw new Error(response.data.message || 'Failed to check stock');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+      setStockValidationError(errorMessage);
+      return { success: false, all_available: false, error: errorMessage };
+    } finally {
+      setIsCheckingStock(false);
+    }
+  };
+
+  // Debounced stock check function
+  const debouncedStockCheck = useCallback(
+    debounce((details) => {
+      checkStockAvailability(details);
+    }, 800),
+    []
+  );
+
+  // Debounce utility function
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
 
   useEffect(() => {
     fetchOrders();
     fetchContracts();
     fetchUserEmails();
   }, []);
+
+  // Reset stock check results when form is closed
+  useEffect(() => {
+    if (!openForm && !openEditForm) {
+      setStockCheckResults([]);
+      setStockValidationError(null);
+      setIsCheckingStock(false);
+    }
+  }, [openForm, openEditForm]);
+
+  // Auto check stock when form opens with details
+  useEffect(() => {
+    if ((openForm || openEditForm) && formData.details.length > 0) {
+      const validDetails = formData.details.filter(detail => 
+        detail.medicine_id && detail.expected_quantity > 0
+      );
+      if (validDetails.length > 0) {
+        debouncedStockCheck(formData.details);
+      }
+    }
+  }, [openForm, openEditForm, formData.details.length]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -176,7 +265,6 @@ function ExportOrderPage() {
           newDetails[index].unit_price = selectedMedicine.unit_price || 0;
           newDetails[index].expected_quantity = selectedMedicine.quantity || selectedMedicine.min_order_quantity || 1;
         }
-        console.log('Selected medicine:', selectedMedicine.medicine_id.medicine_name, 'Unit price:', selectedMedicine.unit_price, 'Quantity:', newDetails[index].expected_quantity);
       }
       newDetails[index][field] = value;
     } else {
@@ -184,6 +272,11 @@ function ExportOrderPage() {
     }
     
     setFormData((prev) => ({ ...prev, details: newDetails }));
+
+    // Tự động kiểm tra tồn kho khi thay đổi thuốc hoặc số lượng (với debounce)
+    if (field === 'medicine_id' || field === 'expected_quantity') {
+      debouncedStockCheck(newDetails);
+    }
   };
 
   // Add Medicine: thêm dòng mới với medicine_id rỗng
@@ -360,6 +453,7 @@ function ExportOrderPage() {
 
     // Validate: số lượng và đơn giá > 0
     for (const detail of formData.details) {
+      
       if (!detail.medicine_id || detail.expected_quantity <= 0 || detail.unit_price <= 0) {
         setError('Vui lòng nhập đầy đủ, số lượng và đơn giá phải lớn hơn 0!');
         setFormLoading(false);
@@ -401,6 +495,32 @@ function ExportOrderPage() {
         }
       }
     }
+    
+    // Kiểm tra tồn kho trước khi tạo export order
+    const stockCheck = await checkStockAvailability(formData.details);
+    
+    if (!stockCheck.success) {
+      const errorMsg = stockCheck.error || stockValidationError || 'Lỗi kiểm tra tồn kho';
+      setError(`Lỗi kiểm tra tồn kho: ${errorMsg}`);
+      setFormLoading(false);
+      return;
+    }
+
+    if (!stockCheck.all_available) {
+      const insufficientItems = stockCheck.insufficient_items || [];
+      if (insufficientItems.length > 0) {
+        const errorMessage = insufficientItems.map(item => 
+          `"${item.medicine_name}" (${item.license_code}): Yêu cầu ${item.expected_quantity}, có sẵn ${item.available_quantity}`
+        ).join('\n');
+        
+        setError(`Không đủ tồn kho cho các thuốc sau:\n${errorMessage}`);
+      } else {
+        setError('Không đủ tồn kho cho một số thuốc trong đơn hàng');
+      }
+      setFormLoading(false);
+      return;
+    }
+
     setFormLoading(true);
     try {
       // Loại bỏ created_by và warehouse_manager_id nếu có trong formData
@@ -420,7 +540,7 @@ function ExportOrderPage() {
         method = 'post';
       }
 
-      await axios({
+      const response = await axios({
         method,
         url,
         data: payload,
@@ -432,10 +552,28 @@ function ExportOrderPage() {
       setOpenEditForm(false);
       setFormData({ contract_type: '', contract_id: '', details: [] });
       setSelectedOrder(null);
+      setStockCheckResults([]); // Reset stock check results
       // Refresh table after create/update
       await fetchOrders();
     } catch (error) {
-      setError(error.response?.data?.error || error.message);
+      console.error('❌ Error creating export order:', error);
+      console.error('❌ Error response:', error.response);
+      console.error('❌ Error message:', error.message);
+      
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error.response) {
+        // Server responded with error status
+        errorMessage = error.response.data?.error || error.response.data?.message || error.response.statusText;
+      } else if (error.request) {
+        // Request was made but no response received
+        errorMessage = 'No response from server. Please check your connection.';
+      } else {
+        // Something else happened
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setFormLoading(false);
     }
@@ -807,6 +945,152 @@ function ExportOrderPage() {
                 {selectedOrder ? 'Add Medicine' : (formData.contract_type === 'principal' ? 'Add Medicine (Quantity Editable)' : 'Add Medicine')}
               </Button>
             </Box>
+
+            {/* Check Stock Button */}
+            {formData.details.length > 0 && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 2 }}>
+                <Button 
+                  onClick={() => checkStockAvailability(formData.details)} 
+                  variant="outlined" 
+                  color="primary"
+                  disabled={isCheckingStock || formData.details.length === 0}
+                  sx={{ minWidth: 160, fontWeight: 600 }}
+                >
+                  {isCheckingStock ? 'Đang kiểm tra...' : '🔍 Kiểm tra tồn kho'}
+                </Button>
+                
+              </Box>
+            )}
+
+            {/* Stock Availability Information */}
+            {formData.details.length > 0 && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                  📊 Thông Tin Tồn Kho
+                </Typography>
+                
+                {isCheckingStock && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box sx={{ mr: 1 }}>⏳</Box>
+                      Đang kiểm tra tồn kho...
+                    </Box>
+                  </Alert>
+                )}
+
+                {stockValidationError && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box sx={{ mr: 1 }}>⚠️</Box>
+                      Lỗi kiểm tra tồn kho: {stockValidationError}
+                    </Box>
+                  </Alert>
+                )}
+
+                {/* Overall Validation Status */}
+                {stockCheckResults.length > 0 && (
+                  <Alert 
+                    severity={stockCheckResults.every(r => r.is_available) ? 'success' : 'error'} 
+                    sx={{ mb: 2 }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box sx={{ mr: 1 }}>
+                        {stockCheckResults.every(r => r.is_available) ? '✅' : '❌'}
+                      </Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        {stockCheckResults.every(r => r.is_available) 
+                          ? 'Đủ tồn kho - Có thể tạo export order' 
+                          : 'Thiếu tồn kho - Không thể tạo export order'
+                        }
+                      </Typography>
+                    </Box>
+                  </Alert>
+                )}
+
+                {stockCheckResults.length > 0 && (
+                  <Grid container spacing={2}>
+                    {stockCheckResults.map((result, index) => (
+                      <Grid item xs={12} sm={6} md={4} key={index}>
+                        <Paper 
+                          sx={{ 
+                            p: 2, 
+                            border: '1px solid',
+                            borderColor: result.is_available ? 'success.main' : 'error.main',
+                            backgroundColor: result.is_available ? 'success.50' : 'error.50',
+                            borderRadius: 2
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            {result.is_available ? (
+                              <Box sx={{ color: 'success.main', mr: 1 }}>✅</Box>
+                            ) : (
+                              <Box sx={{ color: 'error.main', mr: 1 }}>❌</Box>
+                            )}
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                              {result.medicine_name}
+                            </Typography>
+                          </Box>
+                          
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            {result.license_code}
+                          </Typography>
+                          
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2">
+                              Yêu cầu: <strong>{result.expected_quantity}</strong>
+                            </Typography>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                color: result.is_available ? 'success.main' : 'error.main',
+                                fontWeight: 600
+                              }}
+                            >
+                              Có sẵn: <strong>{result.available_quantity}</strong>
+                            </Typography>
+                          </Box>
+                          
+                          {!result.is_available && (
+                            <Alert severity="error" sx={{ mt: 1, py: 0 }}>
+                              <Typography variant="caption">
+                                Thiếu: {result.expected_quantity - result.available_quantity}
+                              </Typography>
+                            </Alert>
+                          )}
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+
+                {/* Summary */}
+                {stockCheckResults.length > 0 && (
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                      Tóm Tắt Tồn Kho:
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                      <Chip 
+                        label={`Tổng: ${stockCheckResults.length} thuốc`} 
+                        color="primary" 
+                        variant="outlined" 
+                      />
+                      <Chip 
+                        label={`Đủ: ${stockCheckResults.filter(r => r.is_available).length} thuốc`} 
+                        color="success" 
+                        variant="outlined" 
+                      />
+                      <Chip 
+                        label={`Thiếu: ${stockCheckResults.filter(r => !r.is_available).length} thuốc`} 
+                        color="error" 
+                        variant="outlined" 
+                      />
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            )}
+
             {/* Total Amount bottom right */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 4, mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
@@ -818,11 +1102,27 @@ function ExportOrderPage() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
-          <Button onClick={() => setOpenForm(false)} disabled={formLoading} variant="outlined" sx={{ minWidth: 120 }}>
+          <Button onClick={() => setOpenForm(false)} disabled={formLoading || isCheckingStock} variant="outlined" sx={{ minWidth: 120 }}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} variant="contained" disabled={formLoading} sx={{ minWidth: 120 }}>
-            {formLoading ? 'Creating...' : 'Create Order'}
+          <Button 
+            onClick={(e) => {
+              handleSubmit(e);
+            }} 
+            variant="contained" 
+            disabled={formLoading || isCheckingStock || (stockCheckResults.length > 0 && !stockCheckResults.every(r => r.is_available))} 
+            sx={{ 
+              minWidth: 120,
+              bgcolor: stockCheckResults.length > 0 && !stockCheckResults.every(r => r.is_available) ? 'error.main' : 'primary.main',
+              '&:hover': {
+                bgcolor: stockCheckResults.length > 0 && !stockCheckResults.every(r => r.is_available) ? 'error.dark' : 'primary.dark'
+              }
+            }}
+          >
+            {formLoading ? 'Creating...' : 
+             isCheckingStock ? 'Checking Stock...' : 
+             stockCheckResults.length > 0 && !stockCheckResults.every(r => r.is_available) ? '❌ Insufficient Stock' :
+             'Create Order'}
           </Button>
         </DialogActions>
       </Dialog>
