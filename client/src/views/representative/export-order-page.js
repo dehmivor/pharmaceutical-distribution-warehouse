@@ -67,13 +67,14 @@ function ExportOrderPage() {
     }
   };
 
-  // Lấy danh sách thuốc từ contract khi chọn contract
+  // Lấy danh sách thuốc từ contract khi chọn contract (bao gồm cả phụ lục)
   const fetchContractMedicines = async (contractId) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/contract/${contractId}`, { headers: getAuthHeaders() });
-      const contract = response.data.data;
-      setContractMedicines(contract.current_items || contract.items || []);
+      const response = await axios.get(`${API_BASE_URL}/api/contract/${contractId}/medicines`, { headers: getAuthHeaders() });
+      console.log('Contract medicines loaded:', response.data.data);
+      setContractMedicines(response.data.data || []);
     } catch (error) {
+      console.error('Error fetching contract medicines:', error);
       setContractMedicines([]);
     }
   };
