@@ -241,7 +241,8 @@ function ExportOrderPage() {
       // Refresh table after delete
       await fetchOrders();
     } catch (error) {
-      setError(error.response?.data?.error || error.message);
+      const errorMessage = error.response?.data?.error || error.message;
+      setError(`Failed to delete order: ${errorMessage}`);
     } finally {
       handleActionMenuClose();
     }
@@ -823,14 +824,20 @@ function ExportOrderPage() {
           <VisibilityIcon sx={{ mr: 1 }} />
           View Details
         </MenuItem>
-        <MenuItem onClick={() => handleEditOrder(selectedOrderForAction)}>
-          <EditIcon sx={{ mr: 1 }} />
-          Edit
-        </MenuItem>
-        <MenuItem onClick={() => handleDeleteOrder(selectedOrderForAction)}>
-          <DeleteIcon sx={{ mr: 1 }} />
-          Delete
-        </MenuItem>
+        {/* Chỉ hiển thị nút edit cho draft và rejected orders */}
+        {selectedOrderForAction && (selectedOrderForAction.status === 'draft' || selectedOrderForAction.status === 'rejected') && (
+          <MenuItem onClick={() => handleEditOrder(selectedOrderForAction)}>
+            <EditIcon sx={{ mr: 1 }} />
+            Edit
+          </MenuItem>
+        )}
+        {/* Chỉ hiển thị nút delete cho draft và cancelled orders */}
+        {selectedOrderForAction && (selectedOrderForAction.status === 'draft' || selectedOrderForAction.status === 'cancelled') && (
+          <MenuItem onClick={() => handleDeleteOrder(selectedOrderForAction)}>
+            <DeleteIcon sx={{ mr: 1 }} />
+            Delete
+          </MenuItem>
+        )}
       </Menu>
 
       {/* Details Dialog */}

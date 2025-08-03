@@ -227,7 +227,8 @@ function ImportOrderPage() {
       fetchOrders();
     } catch (error) {
       console.error('Error deleting order:', error);
-      setError(error.response?.data?.error || error.message);
+      const errorMessage = error.response?.data?.error || error.message;
+      setError(`Failed to delete order: ${errorMessage}`);
     }
   };
 
@@ -681,12 +682,18 @@ function ImportOrderPage() {
                 </TableCell>
                 <TableCell>
                   <Box display="flex" gap={1}>
-                    <IconButton color="primary" onClick={() => handleOpenForm(order)} title="Edit order">
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton color="error" onClick={() => handleDelete(order._id)} title="Delete order">
-                      <DeleteIcon />
-                    </IconButton>
+                    {/* Chỉ hiển thị nút edit cho draft và rejected orders */}
+                    {(order.status === 'draft' || order.status === 'rejected') && (
+                      <IconButton color="primary" onClick={() => handleOpenForm(order)} title="Edit order">
+                        <EditIcon />
+                      </IconButton>
+                    )}
+                    {/* Chỉ hiển thị nút delete cho draft và cancelled orders */}
+                    {(order.status === 'draft' || order.status === 'cancelled') && (
+                      <IconButton color="error" onClick={() => handleDelete(order._id)} title="Delete order">
+                        <DeleteIcon />
+                      </IconButton>
+                    )}
                     <IconButton color="info" onClick={() => handleOpenDetails(order)}>
                       <InfoIcon />
                     </IconButton>
