@@ -273,7 +273,7 @@ const getExportOrderDetail = async (req, res) => {
 };
 
 
-const createExportOrder = async (req, res, next) => {
+const createExportOrder = async (req, res) => {
   try {
     const userId = req.user && req.user.userId;
     if (!userId) {
@@ -282,7 +282,10 @@ const createExportOrder = async (req, res, next) => {
     const newOrder = await exportOrderService.createExportOrder(req.body, userId);
     res.status(201).json({ success: true, data: newOrder });
   } catch (error) {
-    next(error);
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
   }
 };
 
