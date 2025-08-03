@@ -290,12 +290,8 @@ const CheckOrders = () => {
                 <TableRow key={order._id} hover>
                   <TableCell>{order._id.slice(-6)}</TableCell>
                   <TableCell>{formatDate(order.inventory_check_date)}</TableCell>
-                  <TableCell>
-                    <Typography>{order.warehouse_manager_id?.email.split('@')[0] || 'N/A'}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography>{order.created_by?.email.split('@')[0] || 'N/A'}</Typography>
-                  </TableCell>
+                  <TableCell>{order.warehouse_manager_id?.email.split('@')[0] || 'N/A'}</TableCell>
+                  <TableCell>{order.created_by?.email.split('@')[0] || 'N/A'}</TableCell>
                   <TableCell>
                     <Chip label={order.status} size="small" color={getStatusColor(order.status)} variant="filled" />
                   </TableCell>
