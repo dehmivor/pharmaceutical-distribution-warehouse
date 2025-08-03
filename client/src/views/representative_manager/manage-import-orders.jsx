@@ -26,14 +26,18 @@ import {
   TextField,
   Typography,
   Alert,
-  IconButton
+  IconButton,
+  InputAdornment,
+  TablePagination
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Visibility as ViewIcon,
   Refresh as RefreshIcon,
   CheckCircle as ApproveIcon,
-  Cancel as RejectIcon
+  Cancel as RejectIcon,
+  Search as SearchIcon,
+  FilterList as FilterIcon
 } from '@mui/icons-material';
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
@@ -62,11 +66,30 @@ const RepresentativeManagerImportOrders = () => {
   const [statusDialog, setStatusDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    search: '',
+    status: '',
+    contract_type: '',
+    created_by: ''
+  });
+
+  // Filter options
+  const [filterOptions, setFilterOptions] = useState({
+    status: [],
+    contract_type: [],
+    created_by: []
+  });
+
   const [contracts, setContracts] = useState([]);
   const [detailsDialog, setDetailsDialog] = useState(false);
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState(null);
+  const [contractMedicines, setContractMedicines] = useState([]);
+  const [loadingMedicines, setLoadingMedicines] = useState(false);
   const { createNotification } = useNotifications();
 
   const fetchOrders = useCallback(async () => {
@@ -75,13 +98,54 @@ const RepresentativeManagerImportOrders = () => {
       setError('');
 
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      console.log('Fetching from:', `${backendUrl}/api/import-orders`);
+      console.log('Auth headers:', getAuthHeaders());
+      
       const response = await axios.get(`${backendUrl}/api/import-orders`, {
         headers: getAuthHeaders(),
         timeout: 10000 // 10 seconds timeout
       });
+      
+      console.log('API Response:', response.data);
 
       if (response.data.success) {
-        setOrders(response.data.data || []);
+        const allOrders = response.data.data || [];
+        console.log('All import orders:', allOrders);
+        
+        // Client-side filtering
+        let filteredOrders = allOrders.filter((order) => {
+          const matchesSearch = !filters.search || 
+            order._id?.toLowerCase().includes(filters.search.toLowerCase()) ||
+            order.contract_id?.partner_id?.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+            order.contract_id?.contract_code?.toLowerCase().includes(filters.search.toLowerCase());
+          
+          const matchesStatus = !filters.status || order.status === filters.status;
+          const matchesContractType = !filters.contract_type || order.contract_id?.contract_type === filters.contract_type;
+          const matchesCreatedBy = !filters.created_by || order.created_by?.email === filters.created_by;
+          
+          return matchesSearch && matchesStatus && matchesContractType && matchesCreatedBy;
+        });
+
+        // Client-side pagination
+        const startIndex = page * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+        
+        setOrders(paginatedOrders);
+        setTotalCount(filteredOrders.length);
+        console.log('Filtered orders:', filteredOrders);
+        console.log('Paginated orders:', paginatedOrders);
+        
+        // Generate filter options from data
+        const statusOptions = [...new Set(allOrders.map(order => order.status))];
+        const contractTypeOptions = [...new Set(allOrders.map(order => order.contract_id?.contract_type).filter(Boolean))];
+        const createdByOptions = [...new Set(allOrders.map(order => order.created_by?.email).filter(Boolean))];
+        
+        setFilterOptions({
+          status: statusOptions,
+          contract_type: contractTypeOptions,
+          created_by: createdByOptions.map(email => ({ email }))
+        });
       } else {
         throw new Error(response.data.error || 'Failed to fetch orders');
       }
@@ -104,7 +168,7 @@ const RepresentativeManagerImportOrders = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, rowsPerPage, filters]);
 
   const fetchContracts = useCallback(async () => {
     try {
@@ -118,6 +182,33 @@ const RepresentativeManagerImportOrders = () => {
       }
     } catch (error) {
       console.error('Error fetching contracts:', error);
+    }
+  }, []);
+
+  // Fetch active contract medicines including annexes
+  const fetchContractMedicines = useCallback(async (contractId) => {
+    if (!contractId) {
+      setContractMedicines([]);
+      return;
+    }
+    
+    try {
+      setLoadingMedicines(true);
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.get(`${backendUrl}/api/contract/${contractId}/medicines`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.data.success) {
+        setContractMedicines(response.data.data || []);
+      } else {
+        setContractMedicines([]);
+      }
+    } catch (error) {
+      console.error('Error fetching contract medicines:', error);
+      setContractMedicines([]);
+    } finally {
+      setLoadingMedicines(false);
     }
   }, []);
 
@@ -198,10 +289,15 @@ const RepresentativeManagerImportOrders = () => {
     setSelectedOrder(null);
   }, []);
 
-  const handleViewDetails = useCallback((order) => {
+  const handleViewDetails = useCallback(async (order) => {
     setSelectedOrderForDetails(order);
     setDetailsDialog(true);
-  }, []);
+    
+    // Fetch contract medicines when viewing details
+    if (order.contract_id?._id) {
+      await fetchContractMedicines(order.contract_id._id);
+    }
+  }, [fetchContractMedicines]);
 
   const handleCloseDetailsDialog = useCallback(() => {
     setDetailsDialog(false);
@@ -268,17 +364,36 @@ const RepresentativeManagerImportOrders = () => {
     }
   };
 
-  // Filter orders based on search and status
-  const filteredOrders = orders.filter((order) => {
-    const matchesSearch =
-      searchTerm === '' ||
-      order._id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.contract_id?.partner_id?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+  // Handle filter change
+  const handleFilterChange = (field, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+    setPage(0); // Reset to first page when filtering
+  };
 
-    const matchesStatus = statusFilter === '' || order.status === statusFilter;
+  // Handle page change
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
 
-    return matchesSearch && matchesStatus;
-  });
+  // Handle rows per page change
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      status: '',
+      contract_type: '',
+      created_by: ''
+    });
+    setPage(0);
+  };
 
   if (loading || isLoading) {
     return (
@@ -302,34 +417,107 @@ const RepresentativeManagerImportOrders = () => {
       <Typography variant="body1" color="text.secondary" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
         Approve or reject draft import orders
       </Typography>
-      {/* Search and Filter */}
-      <Paper sx={{ p: 2, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'center' }}>
-        <TextField
-          label="Search Orders"
-          variant="outlined"
-          size="small"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ minWidth: 200 }}
-        />
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Status Filter</InputLabel>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status Filter">
-            <MenuItem value="">All Status</MenuItem>
-            <MenuItem value="draft">Draft</MenuItem>
-            <MenuItem value="approved">Approved</MenuItem>
-            <MenuItem value="rejected">Rejected</MenuItem>
-            <MenuItem value="delivered">Delivered</MenuItem>
-            <MenuItem value="checked">Checked</MenuItem>
-            <MenuItem value="arranged">Arranged</MenuItem>
-            <MenuItem value="completed">Completed</MenuItem>
-            <MenuItem value="cancelled">Cancelled</MenuItem>
-          </Select>
-        </FormControl>
-        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchOrders} disabled={loading} sx={{ height: 40 }}>
-          Refresh
-        </Button>
-      </Paper>
+      
+      {/* Filters */}
+      <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
+            <FilterIcon sx={{ color: 'primary.main', fontSize: 24 }} />
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+              Bộ Lọc Tìm Kiếm
+            </Typography>
+          </Box>
+          <Grid container spacing={3} alignItems="center">
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                fullWidth
+                label="Tìm kiếm"
+                value={filters.search}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                variant="outlined"
+                size="medium"
+                placeholder="Order ID, Supplier name..."
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: 'text.secondary' }} />
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="medium">
+                <InputLabel>Trạng thái</InputLabel>
+                <Select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  label="Trạng thái"
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  {filterOptions?.status?.map((status) => (
+                    <MenuItem key={status} value={status}>
+                      {status}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="medium">
+                <InputLabel>Loại hợp đồng</InputLabel>
+                <Select
+                  value={filters.contract_type}
+                  onChange={(e) => handleFilterChange('contract_type', e.target.value)}
+                  label="Loại hợp đồng"
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  {filterOptions?.contract_type?.map((type) => (
+                    <MenuItem key={type} value={type}>
+                      {type === 'economic' ? 'Kinh tế' : type === 'principal' ? 'Nguyên tắc' : type}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <FormControl fullWidth size="medium">
+                <InputLabel>Người tạo</InputLabel>
+                <Select
+                  value={filters.created_by}
+                  onChange={(e) => handleFilterChange('created_by', e.target.value)}
+                  label="Người tạo"
+                >
+                  <MenuItem value="">Tất cả</MenuItem>
+                  {filterOptions?.created_by?.map((user) => (
+                    <MenuItem key={user.email} value={user.email}>
+                      {user.email}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={fetchOrders}
+                disabled={loading}
+                sx={{ px: 3, py: 1.2, borderRadius: 2 }}
+              >
+                Làm mới
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={clearFilters}
+                sx={{ px: 3, py: 1.2, borderRadius: 2 }}
+              >
+                Xóa bộ lọc
+              </Button>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
       {/* Error Alert */}
       {error && (
         <Alert severity="error" sx={{ mb: 2, maxWidth: 600, mx: 'auto' }} onClose={() => setError('')}>
@@ -343,104 +531,117 @@ const RepresentativeManagerImportOrders = () => {
         </Alert>
       )}
       {/* Orders Table */}
-      <Card sx={{ borderRadius: 2, boxShadow: 2 }}>
-        <CardContent>
-          <TableContainer>
-            <Table>
-              <TableHead>
+      <Card sx={{ border: '1px solid #e0e0e0' }}>
+        <Box
+          sx={{
+            p: 3,
+            borderBottom: '1px solid #e0e0e0',
+            bgcolor: 'grey.50'
+          }}
+        >
+          <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+            Danh Sách Import Orders
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Tổng cộng {totalCount} orders
+          </Typography>
+        </Box>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'grey.50' }}>
+                <TableCell sx={{ fontWeight: 600 }}>Order ID</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Supplier</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Created By</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Created Date</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Total Amount</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {orders.length === 0 ? (
                 <TableRow>
-                  <TableCell>
-                    <strong>Order ID</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Supplier</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Status</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Created By</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Created Date</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Total Amount</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Actions</strong>
+                  <TableCell colSpan={7} align="center">
+                    <Typography color="text.secondary">{loading ? 'Loading orders...' : 'No orders found'}</Typography>
                   </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredOrders.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center">
-                      <Typography color="text.secondary">{loading ? 'Loading orders...' : 'No orders found'}</Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredOrders.map((order) => {
-                    console.log(order._id, order.status, user.role, canEditOrder(order));
-                    return (
-                      <TableRow key={order._id} hover>
-                        <TableCell>{order._id}</TableCell>
-                        <TableCell>{order.contract_id?.partner_id?.name || 'N/A'}</TableCell>
-                        <TableCell>
-                          <Chip label={order.status?.toUpperCase()} color={getStatusColor(order.status)} size="small" />
-                        </TableCell>
-                        <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
-                        <TableCell>{formatDate(order.createdAt)}</TableCell>
-                        <TableCell>{formatCurrency(order.total_amount)}</TableCell>
-                        <TableCell>
-                          <Box display="flex" gap={1}>
-                            {/* Chỉ representative_manager mới thấy nút Approve/Cancel khi order là draft */}
-                            {userRole === 'representative_manager' && canEditOrder(order) && (
-                              <>
-                                <Button
-                                  size="small"
-                                  color="success"
-                                  variant="outlined"
-                                  onClick={() =>
-                                    handleOpenStatusDialog({
-                                      _id: order._id,
-                                      status: order.status,
-                                      nextStatus: 'approved'
-                                    })
-                                  }
-                                >
-                                  Approve
-                                </Button>
-                                <Button
-                                  size="small"
-                                  color="error"
-                                  variant="outlined"
-                                  onClick={() =>
-                                    handleOpenStatusDialog({
-                                      _id: order._id,
-                                      status: order.status,
-                                      nextStatus: 'rejected' // Đảm bảo luôn là 'rejected'
-                                    })
-                                  }
-                                >
-                                  Reject
-                                </Button>
-                              </>
-                            )}
-                            {isOrderLocked(order) && <Chip label="LOCKED" color="error" size="small" variant="outlined" />}
-                            <IconButton size="small" color="info" title="View Details" onClick={() => handleViewDetails(order)}>
-                              <ViewIcon />
-                            </IconButton>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </CardContent>
+              ) : (
+                orders.map((order) => {
+                  console.log(order._id, order.status, user.role, canEditOrder(order));
+                  return (
+                    <TableRow key={order._id} hover>
+                      <TableCell>{order._id}</TableCell>
+                      <TableCell>{order.contract_id?.partner_id?.name || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Chip label={order.status?.toUpperCase()} color={getStatusColor(order.status)} size="small" />
+                      </TableCell>
+                      <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
+                      <TableCell>{formatDate(order.createdAt)}</TableCell>
+                      <TableCell>{formatCurrency(order.total_amount)}</TableCell>
+                      <TableCell>
+                        <Box display="flex" gap={1} justifyContent="center">
+                          {/* Chỉ representative_manager mới thấy nút Approve/Cancel khi order là draft */}
+                          {userRole === 'representative_manager' && canEditOrder(order) && (
+                            <>
+                              <Button
+                                size="small"
+                                color="success"
+                                variant="outlined"
+                                onClick={() =>
+                                  handleOpenStatusDialog({
+                                    _id: order._id,
+                                    status: order.status,
+                                    nextStatus: 'approved'
+                                  })
+                                }
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="small"
+                                color="error"
+                                variant="outlined"
+                                onClick={() =>
+                                  handleOpenStatusDialog({
+                                    _id: order._id,
+                                    status: order.status,
+                                    nextStatus: 'rejected' // Đảm bảo luôn là 'rejected'
+                                  })
+                                }
+                              >
+                                Reject
+                              </Button>
+                            </>
+                          )}
+                          {isOrderLocked(order) && <Chip label="LOCKED" color="error" size="small" variant="outlined" />}
+                          <IconButton size="small" color="info" title="View Details" onClick={() => handleViewDetails(order)}>
+                            <ViewIcon />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={totalCount}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelRowsPerPage="Số hàng mỗi trang:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
+          sx={{
+            borderTop: '1px solid #e0e0e0',
+            bgcolor: 'grey.50'
+          }}
+        />
       </Card>
       {/* Status Change Dialog */}
       <StatusChangeDialog
@@ -463,19 +664,30 @@ const RepresentativeManagerImportOrders = () => {
               {/* Basic Info */}
               <Paper sx={{ p: 2, mb: 3 }}>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Order ID
                     </Typography>
                     <Typography variant="body2">{selectedOrderForDetails._id}</Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Contract
                     </Typography>
                     <Typography variant="body2">{selectedOrderForDetails.contract_id?.contract_code}</Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={2}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Contract Type
+                    </Typography>
+                    <Chip
+                      label={selectedOrderForDetails.contract_id?.contract_type === 'principal' ? 'Principal' : 'Economic'}
+                      color={selectedOrderForDetails.contract_id?.contract_type === 'principal' ? 'primary' : 'secondary'}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Status
                     </Typography>
@@ -485,11 +697,19 @@ const RepresentativeManagerImportOrders = () => {
                       size="small"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Total Amount
                     </Typography>
                     <Typography variant="body2">{formatCurrency(selectedOrderForDetails.total_amount)}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={2}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Active Annexes
+                    </Typography>
+                    <Typography variant="body2">
+                      {selectedOrderForDetails.contract_id?.annexes?.filter(a => a.status === 'active').length || 0}
+                    </Typography>
                   </Grid>
                 </Grid>
               </Paper>
@@ -551,7 +771,7 @@ const RepresentativeManagerImportOrders = () => {
                 {/* Contract Table */}
                 <Grid item xs={12} md={6}>
                   <Typography variant="h6" gutterBottom>
-                    Contract Items
+                    Active Contract Items (Including Annexes)
                   </Typography>
                   <TableContainer component={Paper}>
                     <Table size="small">
@@ -560,30 +780,42 @@ const RepresentativeManagerImportOrders = () => {
                           <TableCell>Medicine</TableCell>
                           <TableCell align="right">Quantity</TableCell>
                           <TableCell align="right">Unit Price</TableCell>
-                          <TableCell align="right">Status</TableCell>
+                          <TableCell align="right">Source</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {selectedOrderForDetails.contract_id?.items?.map((item, index) => (
-                          <TableRow key={index}>
-                            <TableCell>
-                              {item.medicine_id?.medicine_name || 'N/A'}
-                              <br />
-                              <Typography variant="caption" color="text.secondary">
-                                {item.medicine_id?.license_code || 'N/A'}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right">{item.quantity || 'N/A'}</TableCell>
-                            <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
-                            <TableCell align="center">
-                              <Chip label="ACTIVE" color="success" size="small" variant="outlined" />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {(!selectedOrderForDetails.contract_id?.items || selectedOrderForDetails.contract_id?.items.length === 0) && (
+                        {loadingMedicines ? (
                           <TableRow>
                             <TableCell colSpan={4} align="center">
-                              <Typography color="text.secondary">No contract items found</Typography>
+                              <Typography color="text.secondary">Loading contract medicines...</Typography>
+                            </TableCell>
+                          </TableRow>
+                        ) : contractMedicines.length > 0 ? (
+                          contractMedicines.map((item, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                {item.medicine_id?.medicine_name || 'N/A'}
+                                <br />
+                                <Typography variant="caption" color="text.secondary">
+                                  {item.medicine_id?.license_code || 'N/A'}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">{item.quantity || item.min_order_quantity || 'N/A'}</TableCell>
+                              <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
+                              <TableCell align="center">
+                                <Chip 
+                                  label={item.source || 'CONTRACT'} 
+                                  color={item.source === 'ANNEX' ? 'warning' : 'success'} 
+                                  size="small" 
+                                  variant="outlined" 
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} align="center">
+                              <Typography color="text.secondary">No active contract medicines found</Typography>
                             </TableCell>
                           </TableRow>
                         )}
@@ -593,30 +825,80 @@ const RepresentativeManagerImportOrders = () => {
                 </Grid>
               </Grid>
 
+              {/* Annexes Information */}
+              {selectedOrderForDetails.contract_id?.annexes?.filter(a => a.status === 'active').length > 0 && (
+                <Paper sx={{ p: 2, mt: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Active Annexes Information
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {selectedOrderForDetails.contract_id.annexes
+                      .filter(annex => annex.status === 'active')
+                      .map((annex, index) => (
+                        <Grid item xs={12} sm={6} md={4} key={index}>
+                          <Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#f8f9fa' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                              Annex: {annex.annex_code}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Signed: {formatDate(annex.signed_date)}
+                            </Typography>
+                            {annex.medicine_changes && (
+                              <Box sx={{ mt: 1 }}>
+                                {annex.medicine_changes.add_items?.length > 0 && (
+                                  <Typography variant="body2" color="success.main">
+                                    + Added: {annex.medicine_changes.add_items.length} medicines
+                                  </Typography>
+                                )}
+                                {annex.medicine_changes.remove_items?.length > 0 && (
+                                  <Typography variant="body2" color="error.main">
+                                    - Removed: {annex.medicine_changes.remove_items.length} medicines
+                                  </Typography>
+                                )}
+                                {annex.medicine_changes.update_prices?.length > 0 && (
+                                  <Typography variant="body2" color="warning.main">
+                                    ~ Updated: {annex.medicine_changes.update_prices.length} prices
+                                  </Typography>
+                                )}
+                              </Box>
+                            )}
+                          </Box>
+                        </Grid>
+                      ))}
+                  </Grid>
+                </Paper>
+              )}
+
               {/* Validation Summary */}
               <Paper sx={{ p: 2, mt: 3 }}>
                 <Typography variant="h6" gutterBottom>
-                  Validation Summary
+                  Validation Summary (vs Active Contract Medicines)
                 </Typography>
                 <Grid container spacing={2}>
                   {selectedOrderForDetails.details?.map((detail, index) => {
-                    const contractItem = selectedOrderForDetails.contract_id?.items?.find(
+                    const contractItem = contractMedicines.find(
                       (item) => item.medicine_id?._id === detail.medicine_id?._id
                     );
 
-                    const isQuantityValid = contractItem ? detail.quantity >= contractItem.quantity : false;
+                    const isQuantityValid = contractItem ? detail.quantity >= (contractItem.quantity || contractItem.min_order_quantity || 1) : false;
                     const isPriceValid = contractItem ? detail.unit_price === contractItem.unit_price : false;
+                    const isInContract = !!contractItem;
 
                     return (
                       <Grid item xs={12} sm={6} md={4} key={index}>
-                        <Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                        <Box sx={{ 
+                          p: 1, 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: 1,
+                          backgroundColor: isInContract ? 'transparent' : '#fff3cd'
+                        }}>
                           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
                             {detail.medicine_id?.medicine_name}
                           </Typography>
                           <Typography variant="body2">
                             Quantity: {detail.quantity}
                             <span style={{ color: isQuantityValid ? 'green' : 'red', marginLeft: 8 }}>
-                              {isQuantityValid ? '✓ Valid' : `✗ Contract: ${contractItem?.quantity || 'N/A'}`}
+                              {isQuantityValid ? '✓ Valid' : `✗ Min: ${contractItem?.quantity || contractItem?.min_order_quantity || 'N/A'}`}
                             </span>
                           </Typography>
                           <Typography variant="body2">
@@ -625,9 +907,14 @@ const RepresentativeManagerImportOrders = () => {
                               {isPriceValid ? '✓ Match' : '✗ Mismatch'}
                             </span>
                           </Typography>
-                          {!contractItem && (
+                          {contractItem && (
+                            <Typography variant="body2" color="text.secondary">
+                              Source: {contractItem.source || 'CONTRACT'}
+                            </Typography>
+                          )}
+                          {!isInContract && (
                             <Typography variant="body2" color="error">
-                              ⚠️ Not in contract
+                              ⚠️ Not in active contract medicines
                             </Typography>
                           )}
                         </Box>

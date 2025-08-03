@@ -61,6 +61,7 @@ function ImportOrderPage() {
   // Filter state
   const [filters, setFilters] = useState({
     contract_code: '',
+    contract_type: '',
     supplier: '',
     date_filter: '',
     created_by: ''
@@ -70,6 +71,7 @@ function ImportOrderPage() {
 
   // Form states
   const [formData, setFormData] = useState({
+    contract_type: '', // Thêm contract_type
     contract_id: '',
     details: [
       {
@@ -149,6 +151,7 @@ function ImportOrderPage() {
   const fetchContracts = async () => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      // Chỉ lấy hợp đồng Supplier và active, không filter theo contract_type nữa
       const response = await axios.get(
         `${backendUrl}/api/contract?partner_type=Supplier&status=active`,
         { headers: getAuthHeaders() }
@@ -224,18 +227,35 @@ function ImportOrderPage() {
       fetchOrders();
     } catch (error) {
       console.error('Error deleting order:', error);
-      setError(error.response?.data?.error || error.message);
+      const errorMessage = error.response?.data?.error || error.message;
+      setError(`Failed to delete order: ${errorMessage}`);
     }
   };
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'contract_id') {
+    if (name === 'contract_type') {
+      // Khi chọn contract_type, reset contract_id và details (chỉ khi tạo mới)
       setFormData((prev) => ({
         ...prev,
         [name]: value,
-        details: []
+        contract_id: '',
+        details: selectedOrder ? prev.details : [] // Giữ nguyên details khi update
       }));
+      // Reset contract medicines khi thay đổi contract type (chỉ khi tạo mới)
+      if (!selectedOrder) {
+        setContractMedicines([]);
+      }
+    } else if (name === 'contract_id') {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        details: selectedOrder ? prev.details : [] // Giữ nguyên details khi update
+      }));
+      // Reset contract medicines khi thay đổi contract (chỉ khi tạo mới)
+      if (!selectedOrder) {
+        setContractMedicines([]);
+      }
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -255,9 +275,15 @@ function ImportOrderPage() {
     if (field === 'medicine_id') {
       const selectedMedicine = contractMedicines.find((med) => med.medicine_id._id === value);
       if (selectedMedicine) {
-        newDetails[index].unit_price = selectedMedicine.unit_price || 0;
-        // Tự động set số lượng bằng với số lượng trong contract
-        newDetails[index].quantity = selectedMedicine.quantity || selectedMedicine.min_order_quantity || 1;
+        if (formData.contract_type === 'principal') {
+          // Với principal contract, chỉ set giá trị mặc định, người dùng có thể chỉnh sửa
+          newDetails[index].unit_price = selectedMedicine.unit_price || 0;
+          newDetails[index].quantity = selectedMedicine.min_order_quantity || 1;
+        } else {
+          // Với economic contract, giữ nguyên logic cũ
+          newDetails[index].unit_price = selectedMedicine.unit_price || 0;
+          newDetails[index].quantity = selectedMedicine.quantity || selectedMedicine.min_order_quantity || 1;
+        }
         console.log('Selected medicine:', selectedMedicine.medicine_id.medicine_name, 'Unit price:', selectedMedicine.unit_price, 'Quantity:', newDetails[index].quantity);
       }
     }
@@ -299,6 +325,28 @@ function ImportOrderPage() {
     e.preventDefault();
     setFormLoading(true);
 
+    // Validate: phải chọn contract_type và contract_id
+    if (!formData.contract_type || !formData.contract_id) {
+      setError('Vui lòng chọn loại hợp đồng và hợp đồng cụ thể!');
+      setFormLoading(false);
+      return;
+    }
+
+    // Kiểm tra nếu là economic contract và đang tạo mới (không phải update)
+    if (formData.contract_type === 'economic' && !selectedOrder) {
+      // Kiểm tra xem đã có import order nào với contract này chưa
+      const existingOrder = orders.find(order => 
+        order.contract_id._id === formData.contract_id && 
+        order.status !== 'cancelled'
+      );
+      
+      if (existingOrder) {
+        setError(`Đã tồn tại import order với hợp đồng này ở trạng thái "${existingOrder.status}". Chỉ có thể tạo mới khi order cũ có trạng thái "cancelled".`);
+        setFormLoading(false);
+        return;
+      }
+    }
+
     // Validate: không cho chọn trùng thuốc
     const medicineIds = formData.details.map((d) => d.medicine_id);
     const hasDuplicate = new Set(medicineIds).size !== medicineIds.length;
@@ -314,21 +362,40 @@ function ImportOrderPage() {
         setFormLoading(false);
         return;
       }
-      // Validate: số lượng nhập phải >= min_order_quantity từ hợp đồng
+      
       const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
-      if (contractItem && detail.quantity < contractItem.min_order_quantity) {
-        setError(
-          `Số lượng nhập cho thuốc "${contractItem.medicine_id.medicine_name}" phải tối thiểu là ${contractItem.min_order_quantity}`
-        );
-        setFormLoading(false);
-        return;
-      }
-      // Validate: số lượng nhập không vượt quá max_quantity hoặc 1000
-      const maxQ = contractItem?.max_quantity || 1000;
-      if (detail.quantity > maxQ) {
-        setError(`Số lượng nhập cho thuốc "${contractItem?.medicine_id?.medicine_name || ''}" không được vượt quá ${maxQ}`);
-        setFormLoading(false);
-        return;
+      
+      if (formData.contract_type === 'economic') {
+        // Với economic contract, giữ nguyên validation cũ
+        // Validate: số lượng nhập phải >= min_order_quantity từ hợp đồng
+        if (contractItem && detail.quantity < contractItem.min_order_quantity) {
+          setError(
+            `Số lượng nhập cho thuốc "${contractItem.medicine_id.medicine_name}" phải tối thiểu là ${contractItem.min_order_quantity}`
+          );
+          setFormLoading(false);
+          return;
+        }
+        // Validate: số lượng nhập không vượt quá max_quantity hoặc 1000
+        const maxQ = contractItem?.max_quantity || 1000;
+        if (detail.quantity > maxQ) {
+          setError(`Số lượng nhập cho thuốc "${contractItem?.medicine_id?.medicine_name || ''}" không được vượt quá ${maxQ}`);
+          setFormLoading(false);
+          return;
+        }
+      } else if (formData.contract_type === 'principal') {
+        // Với principal contract, chỉ validate cơ bản
+        // Validate: số lượng nhập phải >= 1
+        if (detail.quantity < 1) {
+          setError(`Số lượng nhập cho thuốc phải tối thiểu là 1`);
+          setFormLoading(false);
+          return;
+        }
+        // Validate: số lượng nhập không vượt quá 10000 (giới hạn cao hơn cho principal)
+        if (detail.quantity > 10000) {
+          setError(`Số lượng nhập cho thuốc không được vượt quá 10,000`);
+          setFormLoading(false);
+          return;
+        }
       }
     }
 
@@ -379,6 +446,7 @@ function ImportOrderPage() {
   const handleOpenForm = (order = null) => {
     if (order) {
       setFormData({
+        contract_type: order.contract_id?.contract_type || '', // Thêm contract_type
         contract_id: order.contract_id._id || order.contract_id,
         details: order.details.map((d) => ({
           ...d,
@@ -387,6 +455,7 @@ function ImportOrderPage() {
       });
     } else {
       setFormData({
+        contract_type: '', // Thêm contract_type
         contract_id: '',
         details: []
       });
@@ -399,6 +468,7 @@ function ImportOrderPage() {
     setSelectedOrder(null);
     setOpenForm(false);
     setFormData({
+      contract_type: '', // Thêm contract_type
       contract_id: '',
       details: []
     });
@@ -447,15 +517,23 @@ function ImportOrderPage() {
   const clearFilters = () => {
     setFilters({
       contract_code: '',
+      contract_type: '',
       supplier: '',
       date_filter: '',
       created_by: ''
     });
   };
 
+  // Filter contracts based on selected contract_type
+  const filteredContracts = contracts.filter(contract => {
+    if (!formData.contract_type) return true;
+    return contract.contract_type === formData.contract_type;
+  });
+
   // Filter orders based on current filters
   const filteredOrders = orders.filter((order) => {
     if (filters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(filters.contract_code.toLowerCase())) return false;
+    if (filters.contract_type && order.contract_id?.contract_type !== filters.contract_type) return false;
     if (filters.supplier && order.contract_id?.partner_id?.name !== filters.supplier) return false;
     if (filters.created_by && order.created_by?.email !== filters.created_by) return false;
     return true;
@@ -494,7 +572,7 @@ function ImportOrderPage() {
             <Typography variant="h6" sx={{ color: 'primary.main' }}>Bộ Lọc Tìm Kiếm</Typography>
           </Box>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
                 label="Mã hợp đồng"
@@ -510,14 +588,27 @@ function ImportOrderPage() {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth>
+                <InputLabel>Loại hợp đồng</InputLabel>
+                <Select
+                  value={filters.contract_type}
+                  onChange={(e) => handleFilterChange('contract_type', e.target.value)}
+                  label="Loại hợp đồng"
+                >
+                  <MenuItem value="">Tất cả loại hợp đồng</MenuItem>
+                  <MenuItem value="economic">Economic Contract</MenuItem>
+                  <MenuItem value="principal">Principal Contract</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
               <FormControl fullWidth>
                 <InputLabel>Nhà cung cấp</InputLabel>
                 <Select
                   value={filters.supplier}
                   onChange={(e) => handleFilterChange('supplier', e.target.value)}
                   label="Nhà cung cấp"
-                  sx={{ minWidth: '140px' }}
                 >
                   <MenuItem value="">Tất cả nhà cung cấp</MenuItem>
                   {suppliers.map((supplier) => (
@@ -528,14 +619,13 @@ function ImportOrderPage() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth>
                 <InputLabel>Người tạo</InputLabel>
                 <Select
                   value={filters.created_by}
                   onChange={(e) => handleFilterChange('created_by', e.target.value)}
                   label="Người tạo"
-                  sx={{ minWidth: '200px' }}
                 >
                   <MenuItem value="">Tất cả</MenuItem>
                   {userEmails.length > 0 && (
@@ -553,7 +643,7 @@ function ImportOrderPage() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={2}>
+            <Grid item xs={12} sm={6} md={3}>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: '100%' }}>
                 <Button
                   variant="outlined"
@@ -573,6 +663,7 @@ function ImportOrderPage() {
           <TableHead>
             <TableRow>
               <TableCell sx={{ minWidth: 120 }}>Contract Code</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>Contract Type</TableCell>
               <TableCell sx={{ minWidth: 150 }}>Supplier</TableCell>
               <TableCell sx={{ minWidth: 150 }}>Warehouse Manager</TableCell>
               <TableCell sx={{ minWidth: 120 }}>Created By</TableCell>
@@ -587,6 +678,14 @@ function ImportOrderPage() {
             {paginatedOrders.map((order) => (
               <TableRow key={order._id} hover>
                 <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
+                <TableCell>
+                  <Chip 
+                    label={order.contract_id?.contract_type === 'principal' ? 'Principal' : 'Economic'} 
+                    color={order.contract_id?.contract_type === 'principal' ? 'primary' : 'secondary'} 
+                    size="small" 
+                    variant="outlined"
+                  />
+                </TableCell>
                 <TableCell>{order.contract_id?.partner_id?.name || 'N/A'}</TableCell>
                 <TableCell>{order.warehouse_manager_id?.email || 'N/A'}</TableCell>
                 <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
@@ -598,12 +697,18 @@ function ImportOrderPage() {
                 </TableCell>
                 <TableCell>
                   <Box display="flex" gap={1}>
-                    <IconButton color="primary" onClick={() => handleOpenForm(order)} title="Edit order">
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton color="error" onClick={() => handleDelete(order._id)} title="Delete order">
-                      <DeleteIcon />
-                    </IconButton>
+                    {/* Chỉ hiển thị nút edit cho draft và rejected orders */}
+                    {(order.status === 'draft' || order.status === 'rejected') && (
+                      <IconButton color="primary" onClick={() => handleOpenForm(order)} title="Edit order">
+                        <EditIcon />
+                      </IconButton>
+                    )}
+                    {/* Chỉ hiển thị nút delete cho draft và cancelled orders */}
+                    {(order.status === 'draft' || order.status === 'cancelled') && (
+                      <IconButton color="error" onClick={() => handleDelete(order._id)} title="Delete order">
+                        <DeleteIcon />
+                      </IconButton>
+                    )}
                     <IconButton color="info" onClick={() => handleOpenDetails(order)}>
                       <InfoIcon />
                     </IconButton>
@@ -627,11 +732,43 @@ function ImportOrderPage() {
 
       {/* Form Dialog */}
       <Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>{selectedOrder ? 'Edit Import Order' : 'Create New Import Order'}</DialogTitle>
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>
+          {selectedOrder ? 'Edit Import Order' : 'Create New Import Order'}
+          {selectedOrder ? (
+            <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontWeight: 400 }}>
+              You can only edit medicines in this order
+            </Typography>
+          ) : formData.contract_type === 'principal' ? (
+            <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontWeight: 400 }}>
+              Principal Contract - Quantity can be edited
+            </Typography>
+          ) : formData.contract_type === 'economic' && (
+            <Typography variant="body2" sx={{ mt: 1, color: 'warning.main', fontWeight: 400 }}>
+              ⚠️ Economic Contract - Chỉ cho phép 1 order/contract (trừ khi order cũ bị cancelled)
+            </Typography>
+          )}
+        </DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, position: 'relative', minHeight: 400 }}>
-            {/* Row: Contract select + Order Details title + Add Medicine */}
+                        {/* Row: Contract select + Order Details title + Add Medicine */}
             <Grid container alignItems="center" spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Contract Type</InputLabel>
+                  <Select
+                    name="contract_type"
+                    value={formData.contract_type}
+                    onChange={handleFormChange}
+                    label="Contract Type"
+                    required
+                    disabled={!!selectedOrder}
+                  >
+                    <MenuItem value="">Select Contract Type</MenuItem>
+                    <MenuItem value="economic">Economic Contract</MenuItem>
+                    <MenuItem value="principal">Principal Contract</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth>
                   <InputLabel>Contract</InputLabel>
@@ -641,8 +778,10 @@ function ImportOrderPage() {
                     onChange={handleFormChange}
                     label="Contract"
                     required
+                    disabled={!formData.contract_type || !!selectedOrder}
                   >
-                    {contracts.map((contract) => (
+                    <MenuItem value="">Select Contract</MenuItem>
+                    {filteredContracts.map((contract) => (
                       <MenuItem key={contract._id} value={contract._id}>
                         {contract.contract_code} - {contract.partner_id?.name}
                       </MenuItem>
@@ -650,21 +789,41 @@ function ImportOrderPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={5} sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-start', md: 'center' } }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>Order Details</Typography>
+              <Grid item xs={12} md={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-start', md: 'center' } }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Order Details
+                  {selectedOrder ? (
+                    <Typography variant="caption" sx={{ display: 'block', color: 'warning.main', fontWeight: 400 }}>
+                      (Edit medicines only)
+                    </Typography>
+                  ) : formData.contract_type === 'principal' && (
+                    <Typography variant="caption" sx={{ display: 'block', color: 'primary.main', fontWeight: 400 }}>
+                      (Editable quantities)
+                    </Typography>
+                  )}
+                </Typography>
               </Grid>
               <Grid item xs={12} md={3} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
-                <Button onClick={addDetail} variant="outlined" size="medium" disabled={!formData.contract_id} sx={{ minWidth: 140, fontWeight: 600 }}>
-                  Add Medicine
+                <Button onClick={addDetail} variant="outlined" size="medium" disabled={!formData.contract_type || !formData.contract_id || medicinesLoading} sx={{ minWidth: 140, fontWeight: 600 }}>
+                  {selectedOrder ? 'Add Medicine' : (formData.contract_type === 'principal' ? 'Add Medicine (Quantity Editable)' : 'Add Medicine')}
                 </Button>
               </Grid>
             </Grid>
             {/* Medicines List */}
             <Grid container spacing={2}>
-              {formData.details.length === 0 && !formData.contract_id && (
+              {formData.details.length === 0 && (!formData.contract_type || !formData.contract_id) && !medicinesLoading && (
                 <Grid item xs={12}>
                   <Alert severity="info" sx={{ mb: 2 }}>
-                    Please select a Contract first to load available medicines
+                    {selectedOrder 
+                      ? "You can only edit medicines in this order"
+                      : !formData.contract_type 
+                        ? "Please select a Contract Type first" 
+                        : !formData.contract_id 
+                          ? "Please select a Contract to load available medicines"
+                          : formData.contract_type === 'principal'
+                            ? "Please add medicines to your order (Principal contract allows quantity editing)"
+                            : "Please add medicines to your order"
+                    }
                   </Alert>
                 </Grid>
               )}
@@ -680,13 +839,19 @@ function ImportOrderPage() {
                             onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
                             label="Medicine"
                             required
+                            disabled={!formData.contract_id || medicinesLoading}
                             sx={{ minWidth: 200, maxWidth: 240 }}
                           >
-                            {contractMedicines.map((med) => (
-                              <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
-                                {med.medicine_id.medicine_name} - {med.medicine_id.license_code}
-                              </MenuItem>
-                            ))}
+                            <MenuItem value="">Select Medicine</MenuItem>
+                            {medicinesLoading ? (
+                              <MenuItem disabled>Loading medicines...</MenuItem>
+                            ) : (
+                              contractMedicines.map((med) => (
+                                <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
+                                  {med.medicine_id.medicine_name} - {med.medicine_id.license_code}
+                                </MenuItem>
+                              ))
+                            )}
                           </Select>
                         </FormControl>
                       </Grid>
@@ -696,12 +861,21 @@ function ImportOrderPage() {
                           label="Quantity"
                           type="number"
                           value={detail.quantity}
-                          InputProps={{ readOnly: true }}
+                          onChange={(e) => handleDetailChange(index, 'quantity', parseInt(e.target.value) || 0)}
+                          InputProps={{ 
+                            readOnly: formData.contract_type !== 'principal',
+                            min: 1
+                          }}
                           required
+                          disabled={!detail.medicine_id || medicinesLoading}
                           helperText={(() => {
                             const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
                             if (contractItem) {
-                              return `Từ hợp đồng: ${contractItem.quantity || contractItem.min_order_quantity || 1}`;
+                              if (formData.contract_type === 'principal') {
+                                return `Min: ${contractItem.min_order_quantity || 1} (Có thể chỉnh sửa)`;
+                              } else {
+                                return `Từ hợp đồng: ${contractItem.quantity || contractItem.min_order_quantity || 1}`;
+                              }
                             }
                             return '';
                           })()}
@@ -716,20 +890,23 @@ function ImportOrderPage() {
                           value={detail.unit_price}
                           InputProps={{ readOnly: true }}
                           required
+                          disabled={!detail.medicine_id || medicinesLoading}
+                          helperText="(Từ hợp đồng)"
                           sx={{ minWidth: 120, maxWidth: 140 }}
                         />
                       </Grid>
-                      <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
+                      <Grid item sx={{ flex: '1 0 0', minWidth: 120, maxWidth: 160 }}>
                         <TextField
                           fullWidth
                           label="Total"
                           value={(detail.quantity * detail.unit_price).toLocaleString()}
                           InputProps={{ readOnly: true }}
+                          disabled={!detail.medicine_id || medicinesLoading}
                           sx={{ minWidth: 120, maxWidth: 140 }}
                         />
                       </Grid>
                       <Grid item sx={{ flex: '0 0 56px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <IconButton color="error" onClick={() => removeDetail(index)} disabled={formData.details.length === 1}>
+                        <IconButton color="error" onClick={() => removeDetail(index)} disabled={formData.details.length === 1 || !detail.medicine_id || medicinesLoading}>
                           <DeleteIcon />
                         </IconButton>
                       </Grid>
@@ -739,18 +916,25 @@ function ImportOrderPage() {
               ))}
             </Grid>
             {/* Total Amount bottom right */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 4, mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Total Amount: {calculateTotal().toLocaleString()} VND
-              </Typography>
-            </Box>
+            {formData.details.some(detail => detail.medicine_id) && !medicinesLoading && (
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 4, mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Total Amount: {calculateTotal().toLocaleString()} VND
+                </Typography>
+              </Box>
+            )}
           </Box>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
-          <Button onClick={handleCloseForm} disabled={formLoading} variant="outlined" sx={{ minWidth: 120 }}>
+          <Button onClick={handleCloseForm} disabled={formLoading || medicinesLoading} variant="outlined" sx={{ minWidth: 120 }}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} variant="contained" disabled={formLoading} sx={{ minWidth: 120 }}>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained" 
+            disabled={formLoading || medicinesLoading || !formData.contract_type || !formData.contract_id || formData.details.length === 0 || !formData.details.some(detail => detail.medicine_id)} 
+            sx={{ minWidth: 120 }}
+          >
             {formLoading ? 'Saving...' : selectedOrder ? 'Update' : 'Create'}
           </Button>
         </DialogActions>
@@ -769,10 +953,22 @@ function ImportOrderPage() {
                     <Typography>
                       <strong>Contract:</strong> {selectedOrder.contract_id?.contract_code}
                     </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <Typography component="span">
+                        <strong>Contract Type:</strong>
+                      </Typography>
+                      <Chip 
+                        label={selectedOrder.contract_id?.contract_type === 'principal' ? 'Principal' : 'Economic'} 
+                        color={selectedOrder.contract_id?.contract_type === 'principal' ? 'primary' : 'secondary'} 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ ml: 1 }}
+                      />
+                    </Box>
                     <Typography>
                       <strong>Supplier:</strong> {selectedOrder.contract_id?.partner_id?.name}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <Typography component="span">
                         <strong>Status:</strong>
                       </Typography>
