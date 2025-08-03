@@ -216,9 +216,6 @@ function CheckInspections() {
 
         if (Array.isArray(inspectionsData)) {
           const processedInspections = inspectionsData.map((inspection) => {
-            const firstCheckItem = inspection.check_list?.[0] || null;
-            const med = firstCheckItem?.medicine_id || null;
-
             return {
               _id: inspection._id,
               inventory_check_order_id: inspection.inventory_check_order_id?._id || inspection.inventory_check_order_id,
@@ -227,15 +224,7 @@ function CheckInspections() {
               notes: inspection.notes,
               check_by: inspection.check_by,
               date: inspection.createdAt || inspection.updatedAt || null,
-              item: med
-                ? {
-                    medicine_id: med._id,
-                    medicine_name: med.medicine_name,
-                    license_code: med.license_code,
-                    expectedQuantity: firstCheckItem.expected_quantity,
-                    actualQuantity: firstCheckItem.actual_quantity
-                  }
-                : null
+              check_list: inspection.check_list || [] // giữ nguyên mảng
             };
           });
           setInspections(processedInspections);
@@ -542,60 +531,62 @@ function CheckInspections() {
               </AccordionSummary>
               <AccordionDetails>
                 {inspections.length > 0 ? (
-                  <>
-                    <Table size="small" aria-label="checked-items">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Tên mặt hàng</TableCell>
-                          <TableCell align="right">Số lượng dự kiến</TableCell>
-                          <TableCell align="right">Số lượng thực tế</TableCell>
-                          <TableCell>Vị trí</TableCell>
-                          <TableCell align="right">Tồn kho</TableCell>
-                          <TableCell>Người kiểm</TableCell>
-                          <TableCell align="center">Hành động</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {inspections.map((inspection) => (
-                          <TableRow key={inspection._id}>
-                            <TableCell>{inspection.item?.medicine_name ?? 'Không xác định'}</TableCell>
-                            <TableCell align="right">{inspection.item?.expectedQuantity ?? '-'}</TableCell>
-                            <TableCell align="right">{inspection.item?.actualQuantity ?? '-'}</TableCell>
-                            <TableCell>{getLocationLabel(inspection.location_id)}</TableCell>
-                            <TableCell align="right">
-                              {inventoryItems.find((m) => m.id === (inspection.item?.medicine_id || ''))?.stock || '-'}
-                            </TableCell>
-                            <TableCell>
-                              {inspection.check_by ? inspection.check_by.email || inspection.check_by.name || 'Không có' : 'Không có'}
-                            </TableCell>
-                            <TableCell align="center">
-                              <IconButton
-                                aria-label="delete"
-                                size="small"
-                                color="error"
-                                onClick={() => handleDeleteInspection(inspection._id)}
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                  <Stack spacing={2}>
+                    {inspections.map((inspection) => (
+                      <Paper
+                        key={inspection._id}
+                        variant="outlined"
+                        sx={{ p: 2, bgcolor: 'background.paper', position: 'relative' }}
+                        elevation={0}
+                      >
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            Vị trí: {getLocationLabel(inspection.location_id)} - Trạng thái: {inspection.status}
+                          </Typography>
 
-                    <TablePagination
-                      component="div"
-                      count={totalCount}
-                      page={page}
-                      onPageChange={handleChangePage}
-                      rowsPerPage={rowsPerPage}
-                      onRowsPerPageChange={handleChangeRowsPerPage}
-                      rowsPerPageOptions={[5, 10, 25, 50]}
-                      labelRowsPerPage="Số hàng mỗi trang:"
-                      labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
-                      sx={{ mt: 2 }}
-                    />
-                  </>
+                          <IconButton aria-label="delete" size="small" color="error" onClick={() => handleDeleteInspection(inspection._id)}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+
+                        <Table size="small" aria-label="check-list-items">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Tên thuốc</TableCell>
+                              <TableCell>License code</TableCell>
+                              <TableCell align="right">Số lượng dự kiến</TableCell>
+                              <TableCell align="right">Số lượng thực tế</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {inspection.check_list.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={4} align="center">
+                                  Không có thuốc trong phiếu kiểm
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              inspection.check_list.map((checkItem, idx) => {
+                                const med = checkItem.medicine_id;
+                                return (
+                                  <TableRow key={idx}>
+                                    <TableCell>{med?.medicine_name || 'Không xác định'}</TableCell>
+                                    <TableCell>{med?.license_code || '-'}</TableCell>
+                                    <TableCell align="right">{checkItem.expected_quantity}</TableCell>
+                                    <TableCell align="right">{checkItem.actual_quantity}</TableCell>
+                                  </TableRow>
+                                );
+                              })
+                            )}
+                          </TableBody>
+                        </Table>
+
+                        <Typography variant="body2" sx={{ mt: 1 }}>
+                          Ghi chú: {inspection.notes || '-'}
+                        </Typography>
+                      </Paper>
+                    ))}
+                  </Stack>
                 ) : (
                   <Typography>Chưa có phiếu kiểm kê nào.</Typography>
                 )}
