@@ -1,23 +1,21 @@
-const ExportOrder = require("../models/ExportOrder");
-const packageService = require('../services/packageService');
+const ExportOrder = require('../models/ExportOrder');
 const batchService = require('../services/batchService');
-const User = require("../models/User");
-const Package = require("../models/Package"); // Assuming you have a Package model defined
-const LogLocationChange = require("../models/LogLocationChange");
-const { EXPORT_ORDER_STATUSES, USER_ROLES } = require("../utils/constants");
+const User = require('../models/User');
+const Package = require('../models/Package'); // Assuming you have a Package model defined
+const LogLocationChange = require('../models/LogLocationChange');
+const { EXPORT_ORDER_STATUSES, USER_ROLES } = require('../utils/constants');
 const exportOrderService = require('../services/exportOrderService');
 const mongoose = require('mongoose');
 
 // Helper function for population to ensure consistent data structure
 const populateOptions = [
-  { path: "contract_id", select: "contract_code" },
-  { path: "created_by", select: "email" },
-  { path: "warehouse_manager_id", select: "email" }, // Populating assigned staff's email
-  { path: "details.medicine_id", select: "medicine_name unit_of_measure" }, // Populating medicine details
-  { path: "details.actual_item.package_id", select: "package_code" }, // Populate package_code from Package model
-  { path: "details.actual_item.created_by", select: "email" }, // Populate email from User model for who packed it
-]
-
+  { path: 'contract_id', select: 'contract_code' },
+  { path: 'created_by', select: 'email' },
+  { path: 'warehouse_manager_id', select: 'email' }, // Populating assigned staff's email
+  { path: 'details.medicine_id', select: 'medicine_name unit_of_measure' }, // Populating medicine details
+  { path: 'details.actual_item.package_id', select: 'package_code' }, // Populate package_code from Package model
+  { path: 'details.actual_item.created_by', select: 'email' }, // Populate email from User model for who packed it
+];
 
 const getAllExportOrders = async (req, res, next) => {
   try {
@@ -25,25 +23,17 @@ const getAllExportOrders = async (req, res, next) => {
     const result = await exportOrderService.getExportOrders(
       { status, warehouse_manager_id, created_by },
       parseInt(page),
-      parseInt(limit)
+      parseInt(limit),
     );
     res.status(200).json({ success: true, data: result.orders, pagination: result.pagination });
   } catch (error) {
     next(error);
   }
-}
-
+};
 
 const getExportOrders = async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      status,
-      createdAt,
-      warehouse_manager_id,
-      created_by,
-    } = req.query;
+    const { page = 1, limit = 10, status, createdAt, warehouse_manager_id, created_by } = req.query;
 
     const params = {
       status: status || undefined,
@@ -55,7 +45,7 @@ const getExportOrders = async (req, res) => {
     const result = await exportOrderService.getExportOrdersFilter(
       params,
       parseInt(page, 10),
-      parseInt(limit, 10)
+      parseInt(limit, 10),
     );
 
     res.status(200).json({
@@ -69,55 +59,63 @@ const getExportOrders = async (req, res) => {
   }
 };
 
-
-
 const assignStaffToExportOrder = async (req, res, next) => {
   try {
-    const { id } = req.params
-    const { staffId } = req.body
+    const { id } = req.params;
+    const { staffId } = req.body;
     // Validate staffId is a valid User with WAREHOUSE role
-    const staff = await User.findById(staffId)
+    const staff = await User.findById(staffId);
     if (!staff || staff.role !== USER_ROLES.WAREHOUSE) {
-      return res.status(400).json({ success: false, error: "Invalid staff ID or staff is not a warehouse employee." })
+      return res
+        .status(400)
+        .json({ success: false, error: 'Invalid staff ID or staff is not a warehouse employee.' });
     }
     const order = await ExportOrder.findByIdAndUpdate(
       id,
       { warehouse_manager_id: staffId }, // Assigning staff to warehouse_manager_id
       { new: true, runValidators: true },
-    ).populate(populateOptions)
+    ).populate(populateOptions);
     if (!order) {
-      return res.status(404).json({ success: false, error: "Export Order not found" })
+      return res.status(404).json({ success: false, error: 'Export Order not found' });
     }
-    res.status(200).json({ success: true, data: order })
+    res.status(200).json({ success: true, data: order });
   } catch (error) {
-    next(error)
+    next(error);
   }
-}
+};
 
 const updatePackingDetails = async (req, res, next) => {
   try {
-    const { id } = req.params
-    const { details } = req.body // Array of { medicine_id, expected_quantity, actual_item, unit_price }
+    const { id } = req.params;
+    const { details } = req.body; // Array of { medicine_id, expected_quantity, actual_item, unit_price }
 
     // Basic validation for details array structure
-    if (!Array.isArray(details) || details.some((d) => !d.medicine_id || !Array.isArray(d.actual_item))) {
+    if (
+      !Array.isArray(details) ||
+      details.some((d) => !d.medicine_id || !Array.isArray(d.actual_item))
+    ) {
       return res.status(400).json({
         success: false,
         error:
           "Invalid packing details format. 'details' must be an array of objects with 'medicine_id' and 'actual_item' array.",
-      })
+      });
     }
 
     // Validate each actual_item entry within each detail
     for (const detail of details) {
       for (const item of detail.actual_item) {
         // Ensure package_id and created_by are present and quantity is a positive number
-        if (!item.package_id || typeof item.quantity !== "number" || item.quantity < 0 || !item.created_by) {
+        if (
+          !item.package_id ||
+          typeof item.quantity !== 'number' ||
+          item.quantity < 0 ||
+          !item.created_by
+        ) {
           return res.status(400).json({
             success: false,
             error:
               "Invalid actual_item format. Each item must have 'package_id', 'quantity' (non-negative number), and 'created_by'.",
-          })
+          });
         }
         // Optional: You might want to add more robust validation here,
         // e.g., checking if package_id and created_by exist in your database.
@@ -132,17 +130,17 @@ const updatePackingDetails = async (req, res, next) => {
       id,
       { details: details }, // Update the entire details array
       { new: true, runValidators: true },
-    ).populate(populateOptions)
+    ).populate(populateOptions);
 
     if (!order) {
-      return res.status(404).json({ success: false, error: "Export Order not found" })
+      return res.status(404).json({ success: false, error: 'Export Order not found' });
     }
 
-    res.status(200).json({ success: true, data: order })
+    res.status(200).json({ success: true, data: order });
   } catch (error) {
-    next(error)
+    next(error);
   }
-}
+};
 
 const completeExportOrder = async (req, res) => {
   const { id } = req.params;
@@ -152,17 +150,24 @@ const completeExportOrder = async (req, res) => {
     // Tìm đơn xuất kho
     const exportOrder = await ExportOrder.findById(id).populate(populateOptions);
     if (!exportOrder) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy đơn xuất kho" });
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn xuất kho' });
     }
 
     // Kiểm tra trạng thái đơn
     if (exportOrder.status !== EXPORT_ORDER_STATUSES.APPROVED) {
-      return res.status(400).json({ success: false, message: "Đơn xuất kho phải ở trạng thái đã phê duyệt để hoàn thành" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: 'Đơn xuất kho phải ở trạng thái đã phê duyệt để hoàn thành',
+        });
     }
 
     // Kiểm tra quyền người dùng
-    if (user.role !== "warehouse_manager") {
-      return res.status(403).json({ success: false, message: "Chỉ quản lý kho mới có thể hoàn thành đơn xuất kho" });
+    if (user.role !== 'warehouse_manager') {
+      return res
+        .status(403)
+        .json({ success: false, message: 'Chỉ quản lý kho mới có thể hoàn thành đơn xuất kho' });
     }
 
     // Bắt đầu transaction để đảm bảo tính nguyên tử
@@ -184,7 +189,9 @@ const completeExportOrder = async (req, res) => {
 
           // Kiểm tra số lượng đủ để giảm
           if (pkg.quantity < quantityToRemove) {
-            throw new Error(`Số lượng trong package ${packageId} không đủ cho thuốc ${detail.medicine_id}`);
+            throw new Error(
+              `Số lượng trong package ${packageId} không đủ cho thuốc ${detail.medicine_id}`,
+            );
           }
 
           // Giảm số lượng trong package
@@ -196,14 +203,14 @@ const completeExportOrder = async (req, res) => {
             [
               {
                 location_id: pkg.location_id,
-                type: "remove",
+                type: 'remove',
                 batch_id: pkg.batch_id,
                 quantity: quantityToRemove,
                 export_order_id: exportOrder._id,
                 ware_house_id: user.userId,
               },
             ],
-            { session }
+            { session },
           );
         }
       }
@@ -216,7 +223,11 @@ const completeExportOrder = async (req, res) => {
       await session.commitTransaction();
       session.endSession();
 
-      return res.json({ success: true, message: "Đơn xuất kho đã hoàn thành thành công", data: exportOrder });
+      return res.json({
+        success: true,
+        message: 'Đơn xuất kho đã hoàn thành thành công',
+        data: exportOrder,
+      });
     } catch (error) {
       // Hủy transaction nếu có lỗi
       await session.abortTransaction();
@@ -224,26 +235,28 @@ const completeExportOrder = async (req, res) => {
       throw error;
     }
   } catch (error) {
-    console.error("Lỗi khi hoàn thành đơn xuất kho:", error);
-    return res.status(500).json({ success: false, message: error.message || "Lỗi server khi hoàn thành đơn xuất kho" });
+    console.error('Lỗi khi hoàn thành đơn xuất kho:', error);
+    return res
+      .status(500)
+      .json({ success: false, message: error.message || 'Lỗi server khi hoàn thành đơn xuất kho' });
   }
 };
 
 const cancelExportOrder = async (req, res, next) => {
   try {
-    const { id } = req.params
-    const order = await ExportOrder.findById(id)
+    const { id } = req.params;
+    const order = await ExportOrder.findById(id);
     if (!order) {
-      return res.status(404).json({ success: false, error: "Export Order not found" })
+      return res.status(404).json({ success: false, error: 'Export Order not found' });
     }
-    order.status = EXPORT_ORDER_STATUSES.CANCELLED
-    await order.save()
-    const populatedOrder = await ExportOrder.findById(id).populate(populateOptions)
-    res.status(200).json({ success: true, data: populatedOrder })
+    order.status = EXPORT_ORDER_STATUSES.CANCELLED;
+    await order.save();
+    const populatedOrder = await ExportOrder.findById(id).populate(populateOptions);
+    res.status(200).json({ success: true, data: populatedOrder });
   } catch (error) {
-    next(error)
+    next(error);
   }
-}
+};
 
 const getExportOrderDetail = async (req, res) => {
   try {
@@ -272,7 +285,6 @@ const getExportOrderDetail = async (req, res) => {
   }
 };
 
-
 const createExportOrder = async (req, res, next) => {
   try {
     const userId = req.user && req.user.userId;
@@ -286,7 +298,6 @@ const createExportOrder = async (req, res, next) => {
   }
 };
 
-
 const deleteExportOrder = async (req, res, next) => {
   try {
     const user = req.user;
@@ -298,7 +309,6 @@ const deleteExportOrder = async (req, res, next) => {
   }
 };
 
-
 const updateExportOrder = async (req, res, next) => {
   try {
     const user = req.user;
@@ -309,7 +319,6 @@ const updateExportOrder = async (req, res, next) => {
     next(error);
   }
 };
-
 
 const getPackagesNeededForExport = async (req, res) => {
   try {
@@ -331,76 +340,78 @@ const getPackagesNeededForExport = async (req, res) => {
     }
 
     // 2) For each line, compute how many are still needed
-    const needs = await Promise.all(order.details.map(async detail => {
-      const { _id: detailId, medicine_id, expected_quantity, actual_item } = detail;
-      const pickedTotal = actual_item.reduce((sum, i) => sum + i.quantity, 0);
-      const neededQty = expected_quantity - pickedTotal;
-      if (neededQty <= 0) return null;
+    const needs = await Promise.all(
+      order.details.map(async (detail) => {
+        const { _id: detailId, medicine_id, expected_quantity, actual_item } = detail;
+        const pickedTotal = actual_item.reduce((sum, i) => sum + i.quantity, 0);
+        const neededQty = expected_quantity - pickedTotal;
+        if (neededQty <= 0) return null;
 
-      // 3) Fetch all valid batches
-      const batches = await batchService.getValidBatches(medicine_id._id);
+        // 3) Fetch all valid batches
+        const batches = await batchService.getValidBatches(medicine_id._id);
 
-      // 4) Map of picked per package
-      const pickedByPackage = actual_item.reduce((map, i) => {
-        const pid = i.package_id._id.toString();
-        map[pid] = (map[pid] || 0) + i.quantity;
-        return map;
-      }, {});
+        // 4) Map of picked per package
+        const pickedByPackage = actual_item.reduce((map, i) => {
+          const pid = i.package_id._id.toString();
+          map[pid] = (map[pid] || 0) + i.quantity;
+          return map;
+        }, {});
 
-      let remaining = neededQty;
-      const selectedPackages = [];
+        let remaining = neededQty;
+        const selectedPackages = [];
 
-      for (const batch of batches) {
-        if (remaining <= 0) break;
-
-        const pkgs = await packageService.getPackagesByBatch(batch._id);
-
-        // sort by least available first
-        pkgs.sort((a, b) => {
-          const availA = a.quantity - (pickedByPackage[a._id.toString()] || 0);
-          const availB = b.quantity - (pickedByPackage[b._id.toString()] || 0);
-          return availA - availB;
-        });
-
-        for (const pkgDoc of pkgs) {
+        for (const batch of batches) {
           if (remaining <= 0) break;
-          if (!pkgDoc.location_id) continue;
 
-          const pid = pkgDoc._id.toString();
-          const alreadyPicked = pickedByPackage[pid] || 0;
-          const avail = pkgDoc.quantity - alreadyPicked;
-          if (avail <= 0) continue;
+          const pkgs = await packageService.getPackagesByBatch(batch._id);
 
-          const take = Math.min(avail, remaining);
-          remaining -= take;
-
-          selectedPackages.push({
-            package_id: pkgDoc._id,
-            batch_id: {
-              _id:        batch._id,
-              batch_code: batch.batch_code,
-              expiry_date: batch.expiry_date,
-            },
-            take_quantity: take,
-            location: {
-              bay:       pkgDoc.location_id.bay,
-              row:       pkgDoc.location_id.row,
-              column:    pkgDoc.location_id.column,
-              area_name: pkgDoc.location_id.area_id?.name || null,
-            },
+          // sort by least available first
+          pkgs.sort((a, b) => {
+            const availA = a.quantity - (pickedByPackage[a._id.toString()] || 0);
+            const availB = b.quantity - (pickedByPackage[b._id.toString()] || 0);
+            return availA - availB;
           });
+
+          for (const pkgDoc of pkgs) {
+            if (remaining <= 0) break;
+            if (!pkgDoc.location_id) continue;
+
+            const pid = pkgDoc._id.toString();
+            const alreadyPicked = pickedByPackage[pid] || 0;
+            const avail = pkgDoc.quantity - alreadyPicked;
+            if (avail <= 0) continue;
+
+            const take = Math.min(avail, remaining);
+            remaining -= take;
+
+            selectedPackages.push({
+              package_id: pkgDoc._id,
+              batch_id: {
+                _id: batch._id,
+                batch_code: batch.batch_code,
+                expiry_date: batch.expiry_date,
+              },
+              take_quantity: take,
+              location: {
+                bay: pkgDoc.location_id.bay,
+                row: pkgDoc.location_id.row,
+                column: pkgDoc.location_id.column,
+                area_name: pkgDoc.location_id.area_id?.name || null,
+              },
+            });
+          }
         }
-      }
 
-      return {
-        detail_id: detailId,
-        medicine_id,
-        needed_quantity: neededQty,
-        packages: selectedPackages,
-      };
-    }));
+        return {
+          detail_id: detailId,
+          medicine_id,
+          needed_quantity: neededQty,
+          packages: selectedPackages,
+        };
+      }),
+    );
 
-    const outstanding = needs.filter(x => x && x.packages.length > 0);
+    const outstanding = needs.filter((x) => x && x.packages.length > 0);
 
     return res.json({
       success: true,
@@ -443,11 +454,11 @@ const addExportInspection = async (req, res) => {
     const created_by = user_id;
 
     // 3) Delegate to service
-    const newInspection = await exportOrderService.addExportInspection(
-      orderId,
-      detailId,
-      { package_id, quantity, created_by }
-    );
+    const newInspection = await exportOrderService.addExportInspection(orderId, detailId, {
+      package_id,
+      quantity,
+      created_by,
+    });
 
     // 4) Respond
     return res.status(201).json({
@@ -474,16 +485,16 @@ const approveExportOrder = async (req, res, next) => {
     if (req.user.role !== 'representative_manager') {
       return res.status(403).json({
         success: false,
-        error: 'Only representative managers can approve export orders'
+        error: 'Only representative managers can approve export orders',
       });
     }
 
     const approvedOrder = await exportOrderService.approveExportOrder(id, userId);
-    
+
     res.status(200).json({
       success: true,
       data: approvedOrder,
-      message: 'Export order approved successfully'
+      message: 'Export order approved successfully',
     });
   } catch (error) {
     next(error);
@@ -500,7 +511,7 @@ const assignWarehouseManager = async (req, res, next) => {
     if (req.user.role !== 'warehouse_manager') {
       return res.status(403).json({
         success: false,
-        error: 'Only representative managers can assign warehouse managers'
+        error: 'Only representative managers can assign warehouse managers',
       });
     }
 
@@ -508,16 +519,16 @@ const assignWarehouseManager = async (req, res, next) => {
     if (!warehouse_manager_id) {
       return res.status(400).json({
         success: false,
-        error: 'warehouse_manager_id is required'
+        error: 'warehouse_manager_id is required',
       });
     }
 
     const assignedOrder = await exportOrderService.assignWarehouseManager(id, warehouse_manager_id);
-    
+
     res.status(200).json({
       success: true,
       data: assignedOrder,
-      message: 'Warehouse manager assigned successfully'
+      message: 'Warehouse manager assigned successfully',
     });
   } catch (error) {
     next(error);
@@ -538,5 +549,5 @@ module.exports = {
   getPackagesNeededForExport,
   addExportInspection,
   approveExportOrder,
-  assignWarehouseManager
-}
+  assignWarehouseManager,
+};
