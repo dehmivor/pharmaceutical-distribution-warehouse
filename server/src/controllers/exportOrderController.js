@@ -509,7 +509,6 @@ const approveExportOrder = async (req, res, next) => {
 const rejectExportOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { reason } = req.body;
     const userId = req.user._id;
 
     // Kiểm tra quyền - chỉ representative_manager mới được reject
@@ -520,15 +519,7 @@ const rejectExportOrder = async (req, res, next) => {
       });
     }
 
-    // Validate reason
-    if (!reason || reason.trim().length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Rejection reason is required',
-      });
-    }
-
-    const rejectedOrder = await exportOrderService.rejectExportOrder(id, userId, reason);
+    const rejectedOrder = await exportOrderService.rejectExportOrder(id, userId);
 
     res.status(200).json({
       success: true,

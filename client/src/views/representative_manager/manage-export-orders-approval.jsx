@@ -61,7 +61,6 @@ function ManageExportOrdersApproval() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [orderToReject, setOrderToReject] = useState(null);
   const [rejectLoading, setRejectLoading] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [orderToView, setOrderToView] = useState(null);
   
@@ -220,24 +219,18 @@ function ManageExportOrdersApproval() {
   const handleOpenRejectDialog = (order) => {
     setOrderToReject(order);
     setRejectDialogOpen(true);
-    setRejectReason(''); // Clear previous reason
   };
   const handleCloseRejectDialog = () => {
     setRejectDialogOpen(false);
     setOrderToReject(null);
-    setRejectReason('');
   };
   const handleReject = async () => {
     if (!orderToReject) return;
-    if (!rejectReason) {
-      setError('Vui lòng nhập lý do từ chối.');
-      return;
-    }
     setRejectLoading(true);
     try {
       await axios.put(
         `${API_BASE_URL}/api/export-orders/${orderToReject._id}/reject`,
-        { reason: rejectReason },
+        { reason: '' }, // Always send an empty reason for rejection
         { headers: getAuthHeaders() }
       );
       setSuccess('Order rejected!');
@@ -251,7 +244,7 @@ function ManageExportOrdersApproval() {
           status: 'unread',
           priority: 'high',
           title: 'Export order rejected',
-          message: `Export Order ${orderToReject._id} has been rejected. Reason: ${rejectReason}`
+          message: `Export Order ${orderToReject._id} has been rejected.`
         });
       } catch (notifError) {
         console.error('Failed to create notification:', notifError);
@@ -478,17 +471,6 @@ function ManageExportOrdersApproval() {
         <DialogTitle>Reject Export Order</DialogTitle>
         <DialogContent>
           <Typography>Bạn có chắc chắn muốn từ chối đơn xuất này?</Typography>
-          <TextField
-            fullWidth
-            label="Lý do từ chối"
-            multiline
-            rows={4}
-            variant="outlined"
-            margin="normal"
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            sx={{ mt: 2 }}
-          />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseRejectDialog}>Cancel</Button>
@@ -521,13 +503,8 @@ function ManageExportOrdersApproval() {
                       <Chip label={orderToView.status} color="info" size="small" sx={{ ml: 1 }} />
                     </Box>
                     <Typography variant="body2">
-                      <b>Warehouse Manager:</b> {orderToView.warehouse_manager_id?.email || '-'}
+                      <strong>Warehouse Manager:</strong> {orderToView.warehouse_manager_id?.email || '-'}
                     </Typography>
-                    {orderToView.rejection_reason && (
-                      <Typography variant="body2" sx={{ mt: 1 }}>
-                        <b>Lý do từ chối:</b> {orderToView.rejection_reason}
-                      </Typography>
-                    )}
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>

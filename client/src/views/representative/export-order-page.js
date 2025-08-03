@@ -1247,11 +1247,6 @@ function ExportOrderPage() {
                     <Typography>
                       <strong>Warehouse Manager:</strong> {selectedOrder.warehouse_manager_id?.email}
                     </Typography>
-                    {selectedOrder.rejection_reason && (
-                      <Typography sx={{ mt: 1, color: 'error.main' }}>
-                        <strong>Lý do từ chối:</strong> {selectedOrder.rejection_reason}
-                      </Typography>
-                    )}
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>

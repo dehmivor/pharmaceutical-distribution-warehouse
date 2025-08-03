@@ -33,10 +33,6 @@ const exportOrderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    rejection_reason: {
-      type: String,
-      trim: true,
-    },
     details: [exportOrderDetailsSchema],
   },
   { timestamps: true }, // Add timestamps for createdAt and updatedAt
@@ -81,9 +77,8 @@ exportOrderSchema.pre('save', async function (next) {
           return next(new Error('Representative can only edit draft or rejected orders'));
         }
         
-        // Nếu đang chuyển từ rejected về draft, xóa rejection_reason
+        // Nếu đang chuyển từ rejected về draft, xóa approval_by
         if (originalDoc.status === 'rejected' && this.status === 'draft') {
-          this.rejection_reason = undefined;
           this.approval_by = undefined;
         }
       }

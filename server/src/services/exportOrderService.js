@@ -89,10 +89,9 @@ async function approveExportOrder(orderId, rmId) {
  * RM từ chối export order (chuyển trạng thái sang rejected)
  * @param {String} orderId - ID export order
  * @param {String} rmId - ID RM từ chối
- * @param {String} reason - Lý do từ chối
  * @returns {Promise<ExportOrder>}
  */
-async function rejectExportOrder(orderId, rmId, reason) {
+async function rejectExportOrder(orderId, rmId) {
   const order = await ExportOrder.findById(orderId);
   if (!order) throw new Error('Export order not found');
   if (order.status !== 'draft') {
@@ -100,7 +99,6 @@ async function rejectExportOrder(orderId, rmId, reason) {
   }
   order.status = EXPORT_ORDER_STATUSES.REJECTED;
   order.approval_by = rmId;
-  order.rejection_reason = reason; // Thêm lý do từ chối
   await order.save();
 
   return await ExportOrder.findById(orderId).populate(populateOptions);
@@ -266,7 +264,6 @@ async function updateExportOrder(orderId, updateData, user) {
   // Nếu đang sửa rejected order, tự động chuyển về draft
   if (order.status === 'rejected') {
     order.status = EXPORT_ORDER_STATUSES.DRAFT;
-    order.rejection_reason = undefined;
     order.approval_by = undefined;
   }
   
