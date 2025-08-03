@@ -334,6 +334,21 @@ function ExportOrderPage() {
       return;
     }
 
+    // Kiểm tra nếu là economic contract và đang tạo mới (không phải update)
+    if (formData.contract_type === 'economic' && !selectedOrder) {
+      // Kiểm tra xem đã có export order nào với contract này chưa
+      const existingOrder = orders.find(order => 
+        order.contract_id._id === formData.contract_id && 
+        order.status !== 'cancelled'
+      );
+      
+      if (existingOrder) {
+        setError(`Đã tồn tại export order với hợp đồng này ở trạng thái "${existingOrder.status}". Chỉ có thể tạo mới khi order cũ có trạng thái "cancelled".`);
+        setFormLoading(false);
+        return;
+      }
+    }
+
     // Validate: không cho chọn trùng thuốc
     const medicineIds = formData.details.map((d) => d.medicine_id);
     const hasDuplicate = new Set(medicineIds).size !== medicineIds.length;
@@ -610,9 +625,13 @@ function ExportOrderPage() {
             <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontWeight: 400 }}>
               You can only edit medicines in this order
             </Typography>
-          ) : formData.contract_type === 'principal' && (
+          ) : formData.contract_type === 'principal' ? (
             <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontWeight: 400 }}>
               Principal Contract - Quantity can be edited
+            </Typography>
+          ) : formData.contract_type === 'economic' && (
+            <Typography variant="body2" sx={{ mt: 1, color: 'warning.main', fontWeight: 400 }}>
+              ⚠️ Economic Contract - Chỉ cho phép 1 order/contract (trừ khi order cũ bị cancelled)
             </Typography>
           )}
         </DialogTitle>
