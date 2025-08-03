@@ -557,7 +557,7 @@ export default function ManageExportOrders() {
             setMessageDialog({ open: true, title: "Lỗi", content: "Không có token xác thực. Vui lòng đăng nhập lại." })
             return
           }
-          const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/assign-warehouse-manager`, {
+          const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/assign-staff`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
