@@ -67,6 +67,8 @@ const RepresentativeManagerImportOrders = () => {
   const [contracts, setContracts] = useState([]);
   const [detailsDialog, setDetailsDialog] = useState(false);
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState(null);
+  const [contractMedicines, setContractMedicines] = useState([]);
+  const [loadingMedicines, setLoadingMedicines] = useState(false);
   const { createNotification } = useNotifications();
 
   const fetchOrders = useCallback(async () => {
@@ -118,6 +120,33 @@ const RepresentativeManagerImportOrders = () => {
       }
     } catch (error) {
       console.error('Error fetching contracts:', error);
+    }
+  }, []);
+
+  // Fetch active contract medicines including annexes
+  const fetchContractMedicines = useCallback(async (contractId) => {
+    if (!contractId) {
+      setContractMedicines([]);
+      return;
+    }
+    
+    try {
+      setLoadingMedicines(true);
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.get(`${backendUrl}/api/contract/${contractId}/medicines`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (response.data.success) {
+        setContractMedicines(response.data.data || []);
+      } else {
+        setContractMedicines([]);
+      }
+    } catch (error) {
+      console.error('Error fetching contract medicines:', error);
+      setContractMedicines([]);
+    } finally {
+      setLoadingMedicines(false);
     }
   }, []);
 
@@ -198,10 +227,15 @@ const RepresentativeManagerImportOrders = () => {
     setSelectedOrder(null);
   }, []);
 
-  const handleViewDetails = useCallback((order) => {
+  const handleViewDetails = useCallback(async (order) => {
     setSelectedOrderForDetails(order);
     setDetailsDialog(true);
-  }, []);
+    
+    // Fetch contract medicines when viewing details
+    if (order.contract_id?._id) {
+      await fetchContractMedicines(order.contract_id._id);
+    }
+  }, [fetchContractMedicines]);
 
   const handleCloseDetailsDialog = useCallback(() => {
     setDetailsDialog(false);
@@ -463,19 +497,30 @@ const RepresentativeManagerImportOrders = () => {
               {/* Basic Info */}
               <Paper sx={{ p: 2, mb: 3 }}>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Order ID
                     </Typography>
                     <Typography variant="body2">{selectedOrderForDetails._id}</Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Contract
                     </Typography>
                     <Typography variant="body2">{selectedOrderForDetails.contract_id?.contract_code}</Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={2}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Contract Type
+                    </Typography>
+                    <Chip
+                      label={selectedOrderForDetails.contract_id?.contract_type === 'principal' ? 'Principal' : 'Economic'}
+                      color={selectedOrderForDetails.contract_id?.contract_type === 'principal' ? 'primary' : 'secondary'}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Status
                     </Typography>
@@ -485,11 +530,19 @@ const RepresentativeManagerImportOrders = () => {
                       size="small"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
+                  <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
                       Total Amount
                     </Typography>
                     <Typography variant="body2">{formatCurrency(selectedOrderForDetails.total_amount)}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={2}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Active Annexes
+                    </Typography>
+                    <Typography variant="body2">
+                      {selectedOrderForDetails.contract_id?.annexes?.filter(a => a.status === 'active').length || 0}
+                    </Typography>
                   </Grid>
                 </Grid>
               </Paper>
@@ -551,7 +604,7 @@ const RepresentativeManagerImportOrders = () => {
                 {/* Contract Table */}
                 <Grid item xs={12} md={6}>
                   <Typography variant="h6" gutterBottom>
-                    Contract Items
+                    Active Contract Items (Including Annexes)
                   </Typography>
                   <TableContainer component={Paper}>
                     <Table size="small">
@@ -560,30 +613,42 @@ const RepresentativeManagerImportOrders = () => {
                           <TableCell>Medicine</TableCell>
                           <TableCell align="right">Quantity</TableCell>
                           <TableCell align="right">Unit Price</TableCell>
-                          <TableCell align="right">Status</TableCell>
+                          <TableCell align="right">Source</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {selectedOrderForDetails.contract_id?.items?.map((item, index) => (
-                          <TableRow key={index}>
-                            <TableCell>
-                              {item.medicine_id?.medicine_name || 'N/A'}
-                              <br />
-                              <Typography variant="caption" color="text.secondary">
-                                {item.medicine_id?.license_code || 'N/A'}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right">{item.quantity || 'N/A'}</TableCell>
-                            <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
-                            <TableCell align="center">
-                              <Chip label="ACTIVE" color="success" size="small" variant="outlined" />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {(!selectedOrderForDetails.contract_id?.items || selectedOrderForDetails.contract_id?.items.length === 0) && (
+                        {loadingMedicines ? (
                           <TableRow>
                             <TableCell colSpan={4} align="center">
-                              <Typography color="text.secondary">No contract items found</Typography>
+                              <Typography color="text.secondary">Loading contract medicines...</Typography>
+                            </TableCell>
+                          </TableRow>
+                        ) : contractMedicines.length > 0 ? (
+                          contractMedicines.map((item, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                {item.medicine_id?.medicine_name || 'N/A'}
+                                <br />
+                                <Typography variant="caption" color="text.secondary">
+                                  {item.medicine_id?.license_code || 'N/A'}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">{item.quantity || item.min_order_quantity || 'N/A'}</TableCell>
+                              <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
+                              <TableCell align="center">
+                                <Chip 
+                                  label={item.source || 'CONTRACT'} 
+                                  color={item.source === 'ANNEX' ? 'warning' : 'success'} 
+                                  size="small" 
+                                  variant="outlined" 
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={4} align="center">
+                              <Typography color="text.secondary">No active contract medicines found</Typography>
                             </TableCell>
                           </TableRow>
                         )}
@@ -593,30 +658,80 @@ const RepresentativeManagerImportOrders = () => {
                 </Grid>
               </Grid>
 
+              {/* Annexes Information */}
+              {selectedOrderForDetails.contract_id?.annexes?.filter(a => a.status === 'active').length > 0 && (
+                <Paper sx={{ p: 2, mt: 3 }}>
+                  <Typography variant="h6" gutterBottom>
+                    Active Annexes Information
+                  </Typography>
+                  <Grid container spacing={2}>
+                    {selectedOrderForDetails.contract_id.annexes
+                      .filter(annex => annex.status === 'active')
+                      .map((annex, index) => (
+                        <Grid item xs={12} sm={6} md={4} key={index}>
+                          <Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#f8f9fa' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                              Annex: {annex.annex_code}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              Signed: {formatDate(annex.signed_date)}
+                            </Typography>
+                            {annex.medicine_changes && (
+                              <Box sx={{ mt: 1 }}>
+                                {annex.medicine_changes.add_items?.length > 0 && (
+                                  <Typography variant="body2" color="success.main">
+                                    + Added: {annex.medicine_changes.add_items.length} medicines
+                                  </Typography>
+                                )}
+                                {annex.medicine_changes.remove_items?.length > 0 && (
+                                  <Typography variant="body2" color="error.main">
+                                    - Removed: {annex.medicine_changes.remove_items.length} medicines
+                                  </Typography>
+                                )}
+                                {annex.medicine_changes.update_prices?.length > 0 && (
+                                  <Typography variant="body2" color="warning.main">
+                                    ~ Updated: {annex.medicine_changes.update_prices.length} prices
+                                  </Typography>
+                                )}
+                              </Box>
+                            )}
+                          </Box>
+                        </Grid>
+                      ))}
+                  </Grid>
+                </Paper>
+              )}
+
               {/* Validation Summary */}
               <Paper sx={{ p: 2, mt: 3 }}>
                 <Typography variant="h6" gutterBottom>
-                  Validation Summary
+                  Validation Summary (vs Active Contract Medicines)
                 </Typography>
                 <Grid container spacing={2}>
                   {selectedOrderForDetails.details?.map((detail, index) => {
-                    const contractItem = selectedOrderForDetails.contract_id?.items?.find(
+                    const contractItem = contractMedicines.find(
                       (item) => item.medicine_id?._id === detail.medicine_id?._id
                     );
 
-                    const isQuantityValid = contractItem ? detail.quantity >= contractItem.quantity : false;
+                    const isQuantityValid = contractItem ? detail.quantity >= (contractItem.quantity || contractItem.min_order_quantity || 1) : false;
                     const isPriceValid = contractItem ? detail.unit_price === contractItem.unit_price : false;
+                    const isInContract = !!contractItem;
 
                     return (
                       <Grid item xs={12} sm={6} md={4} key={index}>
-                        <Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                        <Box sx={{ 
+                          p: 1, 
+                          border: '1px solid #e0e0e0', 
+                          borderRadius: 1,
+                          backgroundColor: isInContract ? 'transparent' : '#fff3cd'
+                        }}>
                           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
                             {detail.medicine_id?.medicine_name}
                           </Typography>
                           <Typography variant="body2">
                             Quantity: {detail.quantity}
                             <span style={{ color: isQuantityValid ? 'green' : 'red', marginLeft: 8 }}>
-                              {isQuantityValid ? '✓ Valid' : `✗ Contract: ${contractItem?.quantity || 'N/A'}`}
+                              {isQuantityValid ? '✓ Valid' : `✗ Min: ${contractItem?.quantity || contractItem?.min_order_quantity || 'N/A'}`}
                             </span>
                           </Typography>
                           <Typography variant="body2">
@@ -625,9 +740,14 @@ const RepresentativeManagerImportOrders = () => {
                               {isPriceValid ? '✓ Match' : '✗ Mismatch'}
                             </span>
                           </Typography>
-                          {!contractItem && (
+                          {contractItem && (
+                            <Typography variant="body2" color="text.secondary">
+                              Source: {contractItem.source || 'CONTRACT'}
+                            </Typography>
+                          )}
+                          {!isInContract && (
                             <Typography variant="body2" color="error">
-                              ⚠️ Not in contract
+                              ⚠️ Not in active contract medicines
                             </Typography>
                           )}
                         </Box>
