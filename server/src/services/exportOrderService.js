@@ -28,9 +28,10 @@ const populateOptions = [
  */
 async function createExportOrder(data, userId) {
   const { created_by, details, ...rest } = data;
-  let finalDetails = details;
+  let finalDetails = details || [];
 
-  if (!Array.isArray(details) || details.length === 0) {
+  // Nếu không có details hoặc details rỗng, cần contract_id để auto-generate
+  if (!Array.isArray(finalDetails) || finalDetails.length === 0) {
     if (!rest.contract_id) {
       throw new Error('Contract ID is required to auto-generate export order details');
     }
@@ -59,6 +60,7 @@ async function createExportOrder(data, userId) {
     status: EXPORT_ORDER_STATUSES.DRAFT,
     created_by: userId,
   });
+  
   const savedOrder = await order.save();
 
   return await ExportOrder.findById(savedOrder._id).populate(populateOptions);
@@ -83,20 +85,7 @@ async function approveExportOrder(orderId, rmId) {
   return await ExportOrder.findById(orderId).populate(populateOptions);
 }
 
-/**
- * Gán warehouse manager cho export order
- * @param {String} orderId - ID export order
- * @param {String} warehouseManagerId - ID warehouse manager
- * @returns {Promise<ExportOrder>}
- */
-async function assignWarehouseManager(orderId, warehouseManagerId) {
-  const order = await ExportOrder.findById(orderId);
-  if (!order) throw new Error('Export order not found');
-  order.warehouse_manager_id = warehouseManagerId;
-  await order.save();
 
-  return await ExportOrder.findById(orderId).populate(populateOptions);
-}
 
 /**
  * Get export order by ID with full population
@@ -347,7 +336,6 @@ module.exports = {
   createExportOrder,
   getExportOrdersFilter,
   approveExportOrder,
-  assignWarehouseManager,
   getExportOrderById,
   getExportOrders,
   deleteExportOrder,

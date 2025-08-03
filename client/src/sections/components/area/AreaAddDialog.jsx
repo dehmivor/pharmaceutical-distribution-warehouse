@@ -64,16 +64,44 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
       newErrors.name = 'Tên khu vực không được quá 100 ký tự';
     }
 
-    // Validate temperature format
-    if (formData.storage_conditions.temperature && 
-        !/^\d+-\d+$|^-\d+$|^\d+$/.test(formData.storage_conditions.temperature)) {
-      newErrors.temperature = 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X" (chỉ số)';
+    // Validate temperature format and logic
+    if (formData.storage_conditions.temperature) {
+      const tempValue = formData.storage_conditions.temperature.trim();
+      if (!/^\d+-\d+$|^-\d+$|^\d+$/.test(tempValue)) {
+        newErrors.temperature = 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X" (°C)';
+      } else {
+        // Validate temperature range logic
+        if (tempValue.includes('-')) {
+          const [min, max] = tempValue.split('-').map(Number);
+          if (min > max) {
+            newErrors.temperature = 'Nhiệt độ tối thiểu phải nhỏ hơn hoặc bằng nhiệt độ tối đa';
+          }
+        }
+      }
     }
 
-    // Validate humidity format
-    if (formData.storage_conditions.humidity && 
-        !/^\d+$|^\d+-\d+$/.test(formData.storage_conditions.humidity)) {
-      newErrors.humidity = 'Độ ẩm phải có định dạng "X" hoặc "X-Y" (chỉ số)';
+    // Validate humidity format and logic
+    if (formData.storage_conditions.humidity) {
+      const humidityValue = formData.storage_conditions.humidity.trim();
+      if (!/^\d+$|^\d+-\d+$/.test(humidityValue)) {
+        newErrors.humidity = 'Độ ẩm phải có định dạng "X" hoặc "X-Y" (%)';
+      } else {
+        // Validate humidity range logic
+        if (humidityValue.includes('-')) {
+          const [min, max] = humidityValue.split('-').map(Number);
+          if (min > max) {
+            newErrors.humidity = 'Độ ẩm tối thiểu phải nhỏ hơn hoặc bằng độ ẩm tối đa';
+          }
+          if (max > 100) {
+            newErrors.humidity = 'Độ ẩm tối đa không được vượt quá 100%';
+          }
+        } else {
+          const humidity = Number(humidityValue);
+          if (humidity > 100) {
+            newErrors.humidity = 'Độ ẩm không được vượt quá 100%';
+          }
+        }
+      }
     }
 
     // Validate description length
