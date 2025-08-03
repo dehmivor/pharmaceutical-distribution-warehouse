@@ -83,20 +83,7 @@ async function approveExportOrder(orderId, rmId) {
   return await ExportOrder.findById(orderId).populate(populateOptions);
 }
 
-/**
- * Gán warehouse manager cho export order
- * @param {String} orderId - ID export order
- * @param {String} warehouseManagerId - ID warehouse manager
- * @returns {Promise<ExportOrder>}
- */
-async function assignWarehouseManager(orderId, warehouseManagerId) {
-  const order = await ExportOrder.findById(orderId);
-  if (!order) throw new Error('Export order not found');
-  order.warehouse_manager_id = warehouseManagerId;
-  await order.save();
 
-  return await ExportOrder.findById(orderId).populate(populateOptions);
-}
 
 /**
  * Get export order by ID with full population
@@ -347,7 +334,6 @@ module.exports = {
   createExportOrder,
   getExportOrdersFilter,
   approveExportOrder,
-  assignWarehouseManager,
   getExportOrderById,
   getExportOrders,
   deleteExportOrder,

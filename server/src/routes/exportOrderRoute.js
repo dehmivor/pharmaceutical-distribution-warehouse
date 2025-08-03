@@ -38,10 +38,7 @@ router
   .route('/:id/approve')
   .put(authorize('representative_manager'), exportOrderController.approveExportOrder);
 
-// Gán warehouse manager cho export order - chỉ representative_manager
-router
-  .route('/:id/assign-warehouse-manager')
-  .put(authorize('warehouse_manager'), exportOrderController.assignWarehouseManager);
+
 
 // Cập nhật chi tiết đóng gói - có thể truy cập bởi cả warehouse và warehouse_manager
 router

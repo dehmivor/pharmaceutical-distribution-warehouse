@@ -17,10 +17,6 @@ import {
   DialogActions,
   Snackbar,
   Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Grid,
   Chip
 } from '@mui/material';
@@ -48,19 +44,13 @@ function ManageExportOrdersApproval() {
   const [success, setSuccess] = useState(null);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [orderToApprove, setOrderToApprove] = useState(null);
-  const [warehouseManagers, setWarehouseManagers] = useState([]);
-  const [selectedWM, setSelectedWM] = useState('');
   const [approveLoading, setApproveLoading] = useState(false);
-  const [assignLoading, setAssignLoading] = useState(false);
-  const [assignWMDialogOpen, setAssignWMDialogOpen] = useState(false);
-  const [orderToAssignWM, setOrderToAssignWM] = useState(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [orderToView, setOrderToView] = useState(null);
   const { createNotification } = useNotifications();
 
   useEffect(() => {
     fetchOrders();
-    fetchWarehouseManagers();
   }, []);
 
   const fetchOrders = async () => {
@@ -72,17 +62,6 @@ function ManageExportOrdersApproval() {
       setError(error.response?.data?.error || error.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchWarehouseManagers = async () => {
-    try {
-      const response = await axiosInstance.get('/accounts?role=warehouse_manager', {
-        headers: getAuthHeaders()
-      });
-      setWarehouseManagers(response.data.data || []);
-    } catch (error) {
-      setWarehouseManagers([]);
     }
   };
 
@@ -126,35 +105,6 @@ function ManageExportOrdersApproval() {
     }
   };
 
-  const handleOpenAssignWMDialog = (order) => {
-    setOrderToAssignWM(order);
-    fetchWarehouseManagers();
-    setAssignWMDialogOpen(true);
-  };
-  const handleCloseAssignWMDialog = () => {
-    setAssignWMDialogOpen(false);
-    setOrderToAssignWM(null);
-    setSelectedWM('');
-  };
-  const handleAssignWM = async () => {
-    if (!selectedWM || !orderToAssignWM) return;
-    setAssignLoading(true);
-    try {
-      await axios.put(
-        `${API_BASE_URL}/api/export-orders/${orderToAssignWM._id}/assign-warehouse-manager`,
-        { warehouse_manager_id: selectedWM },
-        { headers: getAuthHeaders() }
-      );
-      setSuccess('Warehouse manager assigned!');
-      fetchOrders();
-      handleCloseAssignWMDialog();
-    } catch (error) {
-      setError(error.response?.data?.error || error.message);
-    } finally {
-      setAssignLoading(false);
-    }
-  };
-
   const handleOpenDetailsDialog = (order) => {
     setOrderToView(order);
     setDetailsDialogOpen(true);
@@ -176,7 +126,6 @@ function ManageExportOrdersApproval() {
               <TableCell sx={{ fontWeight: 700, textAlign: 'center' }}>Contract</TableCell>
               <TableCell sx={{ fontWeight: 700, textAlign: 'center' }}>Created By</TableCell>
               <TableCell sx={{ fontWeight: 700, textAlign: 'center' }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 700, textAlign: 'center' }}>Warehouse Manager</TableCell>
               <TableCell sx={{ fontWeight: 700, textAlign: 'center' }}>Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -192,26 +141,13 @@ function ManageExportOrdersApproval() {
                     size="small"
                   />
                 </TableCell>
-                <TableCell
-                  sx={{
-                    textAlign: 'center',
-                    fontWeight: order.warehouse_manager_id ? 600 : 400,
-                    color: order.warehouse_manager_id ? 'text.primary' : 'text.disabled'
-                  }}
-                >
-                  {order.warehouse_manager_id?.email || '-'}
-                </TableCell>
                 <TableCell sx={{ textAlign: 'center' }}>
                   <Box display="flex" gap={1} justifyContent="center">
-                    {order.status === 'draft' ? (
+                    {order.status === 'draft' && (
                       <Button variant="contained" color="success" onClick={() => handleOpenApproveDialog(order)}>
                         Approve
                       </Button>
-                    ) : order.status === 'approved' && !order.warehouse_manager_id ? (
-                      <Button variant="contained" color="primary" onClick={() => handleOpenAssignWMDialog(order)}>
-                        Gán WM
-                      </Button>
-                    ) : null}
+                    )}
                     <Button variant="outlined" color="info" onClick={() => handleOpenDetailsDialog(order)}>
                       Xem chi tiết
                     </Button>
@@ -221,7 +157,7 @@ function ManageExportOrdersApproval() {
             ))}
             {orders.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} align="center">
+                <TableCell colSpan={4} align="center">
                   No export orders to process.
                 </TableCell>
               </TableRow>
@@ -239,27 +175,6 @@ function ManageExportOrdersApproval() {
           <Button onClick={handleCloseApproveDialog}>Cancel</Button>
           <Button onClick={handleApprove} color="success" variant="contained" disabled={approveLoading}>
             {approveLoading ? 'Approving...' : 'Approve'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <Dialog open={assignWMDialogOpen} onClose={handleCloseAssignWMDialog}>
-        <DialogTitle>Gán Warehouse Manager</DialogTitle>
-        <DialogContent>
-          <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel>Warehouse Manager</InputLabel>
-            <Select value={selectedWM} onChange={(e) => setSelectedWM(e.target.value)} label="Warehouse Manager" required>
-              {warehouseManagers.map((wm) => (
-                <MenuItem key={wm._id} value={wm._id}>
-                  {wm.email}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseAssignWMDialog}>Cancel</Button>
-          <Button onClick={handleAssignWM} variant="contained" disabled={assignLoading || !selectedWM}>
-            {assignLoading ? 'Assigning...' : 'Assign WM'}
           </Button>
         </DialogActions>
       </Dialog>
