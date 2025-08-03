@@ -159,7 +159,21 @@ const updateCheckOrderStatus = async (req, res) => {
       });
     }
 
+    if (status?.toLowerCase() === 'processing') {
+      const otherProcessingOrders =
+        await inventoryService.getProcessingCheckOrdersExcept(checkOrderId);
+
+      if (Array.isArray(otherProcessingOrders) && otherProcessingOrders.length > 0) {
+        return res.json({
+          success: true,
+          updated: false,
+          message: 'Đang có 1 đợt kiểm kê khác!',
+        });
+      }
+    }
+
     const updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
+
     if (!updatedCheckOrder) {
       return res.status(404).json({
         success: false,
@@ -169,13 +183,17 @@ const updateCheckOrderStatus = async (req, res) => {
 
     return res.json({
       success: true,
+      updated: true,
       data: updatedCheckOrder,
+      message: 'Cập nhật trạng thái thành công',
     });
   } catch (error) {
     console.error('Error updating check order status:', error);
+
     return res.status(500).json({
       success: false,
-      message: 'An error occurred while updating the check order status',
+      message: 'Lỗi xảy ra khi cập nhật trạng thái đơn kiểm kê',
+      error: error.message ?? 'Unknown error',
     });
   }
 };

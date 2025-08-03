@@ -286,7 +286,6 @@ function CheckInspections() {
       .finally(() => setLoading(false));
   };
 
-  // Tạo phiếu kiểm loạt và cập nhật trạng thái khi đơn chưa processing
   useEffect(() => {
     const createInspectionsAndUpdateStatus = async () => {
       if (!checkOrderId || !checkBy || !orderData) return;
@@ -294,22 +293,62 @@ function CheckInspections() {
 
       setLoading(true);
       try {
-        await axios.post(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {}, { headers: getAuthHeaders() });
-
-        enqueueSnackbar('Đã tạo phiếu kiểm kê cho tất cả vị trí.', { variant: 'success' });
-
-        await axios.patch(
+        const updateRes = await axios.patch(
           `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
           { status: 'processing' },
           { headers: getAuthHeaders() }
         );
 
-        enqueueSnackbar('Cập nhật trạng thái đơn kiểm kê thành công.', { variant: 'success' });
+        // Xử lý thông báo dựa trên trường updated trong response
+        if (updateRes.data?.success) {
+          if (updateRes.data.updated === false) {
+            // Trạng thái không được update do có đợt kiểm kê khác đang processing
+            enqueueSnackbar(updateRes.data.message || 'Đang có đợt kiểm kê khác, trạng thái giữ nguyên.', {
+              variant: 'info'
+            });
+          } else if (updateRes.data.updated === true) {
+            // Update trạng thái thành công, tiếp tục tạo phiếu kiểm kê
+            enqueueSnackbar(updateRes.data.message || 'Cập nhật trạng thái đơn kiểm kê thành công.', {
+              variant: 'success'
+            });
 
-        fetchInspections(0, rowsPerPage);
+            const createRes = await axios.post(
+              `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
+              {},
+              { headers: getAuthHeaders() }
+            );
+
+            enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
+              variant: createRes.data?.success ? 'success' : 'info'
+            });
+
+            fetchInspections(0, rowsPerPage);
+          } else {
+            // Nếu không có trường updated, vẫn tạm tin update thành công
+            enqueueSnackbar(updateRes.data.message || 'Cập nhật trạng thái đơn kiểm kê thành công.', {
+              variant: 'success'
+            });
+            // Gọi tạo phiếu
+            const createRes = await axios.post(
+              `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
+              {},
+              { headers: getAuthHeaders() }
+            );
+            enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
+              variant: createRes.data?.success ? 'success' : 'info'
+            });
+            fetchInspections(0, rowsPerPage);
+          }
+        } else {
+          // Nếu success false
+          enqueueSnackbar(updateRes.data.message || 'Không thể tạo phiếu kiểm kê vì cập nhật trạng thái không thành công.', {
+            variant: 'error'
+          });
+        }
       } catch (error) {
+        const errorMsg = error.response?.data?.message || 'Tạo phiếu hoặc cập nhật trạng thái thất bại.';
         console.error('Lỗi khi tạo phiếu hoặc cập nhật trạng thái:', error);
-        enqueueSnackbar('Tạo phiếu hoặc cập nhật trạng thái thất bại.', { variant: 'error' });
+        enqueueSnackbar(errorMsg, { variant: 'error' });
       } finally {
         setLoading(false);
       }
@@ -319,13 +358,11 @@ function CheckInspections() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkOrderId, checkBy, orderData]);
 
-  // Xử lý đổi trang
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
     fetchInspections(newPage, rowsPerPage);
   };
 
-  // Xử lý đổi số hàng/trang
   const handleChangeRowsPerPage = (event) => {
     const newRpp = parseInt(event.target.value, 10);
     setRowsPerPage(newRpp);
@@ -333,7 +370,6 @@ function CheckInspections() {
     fetchInspections(0, newRpp);
   };
 
-  // Xóa phiếu kiểm kê
   const handleDeleteInspection = (inspectionId) => {
     if (!inspectionId || inspectionId.length !== 24) {
       enqueueSnackbar('ID phiếu kiểm kê không hợp lệ để xóa.', { variant: 'error' });
@@ -353,11 +389,9 @@ function CheckInspections() {
       });
   };
 
-  // Danh sách mặt hàng chưa kiểm
   const checkedMedicineIds = new Set(inspections.map((insp) => insp.item?.medicine_id).filter(Boolean));
   const uncheckedMedicines = inventoryItems.filter((item) => !checkedMedicineIds.has(item.id));
 
-  // Lấy label vị trí mô tả
   const getLocationLabel = (location) => {
     if (!location) return '';
     const areaName = location.area_id?.name || 'Không xác định';
@@ -366,7 +400,6 @@ function CheckInspections() {
 
   return (
     <Box sx={{ padding: 4 }}>
-      {/* Tiêu đề và nút Refresh */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
