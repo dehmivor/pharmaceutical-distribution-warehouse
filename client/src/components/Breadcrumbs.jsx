@@ -72,21 +72,92 @@ export default function Breadcrumbs({ data }) {
         return;
       }
 
-      // Use original logic for all other pages
-      for (const menu of menuItems?.items) {
-        if (menu.type && menu.type === 'group') {
-          const matchedParents = findParentElements(menu.children || [], location);
-          dataHandler(matchedParents || []);
-          if (matchedParents) break;
+      // Get user role to determine which menu to check
+      let userRole = null;
+      if (typeof window !== 'undefined') {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            userRole = user.role;
+          } catch (error) {
+            console.error('Error parsing user from localStorage:', error);
+          }
         }
       }
 
-      // Also check supervisor menu
-      for (const menu of menuItems?.supervisor) {
+      // Check menu based on user role
+      let menuFound = false;
+
+      // Check items menu first (common menu)
+      for (const menu of menuItems?.items) {
         if (menu.type && menu.type === 'group') {
           const matchedParents = findParentElements(menu.children || [], location);
-          dataHandler(matchedParents || []);
-          if (matchedParents) break;
+          if (matchedParents) {
+            dataHandler(matchedParents);
+            menuFound = true;
+            break;
+          }
+        }
+      }
+
+      // If not found in items, check role-specific menu
+      if (!menuFound) {
+        if (userRole === 'supervisor' && menuItems?.supervisor) {
+          for (const menu of menuItems.supervisor) {
+            if (menu.type && menu.type === 'group') {
+              const matchedParents = findParentElements(menu.children || [], location);
+              if (matchedParents) {
+                dataHandler(matchedParents);
+                menuFound = true;
+                break;
+              }
+            }
+          }
+        } else if (userRole === 'representative' && menuItems?.representative) {
+          for (const menu of menuItems.representative) {
+            if (menu.type && menu.type === 'group') {
+              const matchedParents = findParentElements(menu.children || [], location);
+              if (matchedParents) {
+                dataHandler(matchedParents);
+                menuFound = true;
+                break;
+              }
+            }
+          }
+        } else if (userRole === 'representative_manager' && menuItems?.representativeManager) {
+          for (const menu of menuItems.representativeManager) {
+            if (menu.type && menu.type === 'group') {
+              const matchedParents = findParentElements(menu.children || [], location);
+              if (matchedParents) {
+                dataHandler(matchedParents);
+                menuFound = true;
+                break;
+              }
+            }
+          }
+        } else if (userRole === 'warehouse' && menuItems?.warehouse) {
+          for (const menu of menuItems.warehouse) {
+            if (menu.type && menu.type === 'group') {
+              const matchedParents = findParentElements(menu.children || [], location);
+              if (matchedParents) {
+                dataHandler(matchedParents);
+                menuFound = true;
+                break;
+              }
+            }
+          }
+        } else if (userRole === 'warehouse_manager' && menuItems?.warehouseManager) {
+          for (const menu of menuItems.warehouseManager) {
+            if (menu.type && menu.type === 'group') {
+              const matchedParents = findParentElements(menu.children || [], location);
+              if (matchedParents) {
+                dataHandler(matchedParents);
+                menuFound = true;
+                break;
+              }
+            }
+          }
         }
       }
     }

@@ -1,6 +1,6 @@
 const representative = {
-  id: 'group-manage',
-  title: 'Manage',
+  id: 'group-representative',
+  title: 'Representative',
   icon: 'IconBrandAsana',
   type: 'group',
   children: [
@@ -19,28 +19,28 @@ const representative = {
       icon: 'IconFileInvoice'
     },
     {
-      id: 'manage-debt',
+      id: 'rp-manage-debt',
       title: 'Manage Debt',
       type: 'item',
       url: '/rp-manage-debt',
       icon: 'IconCreditCard'
     },
     {
-      id: 'manage-import-orders',
+      id: 'rp-import-orders',
       title: 'Manage Import Orders',
       type: 'item',
       url: '/rp-import-orders',
       icon: 'IconShoppingCart'
     },
     {
-      id: 'manage-export-orders',
+      id: 'rp-export-orders',
       title: 'Manage Export Orders',
       type: 'item',
       url: '/rp-export-orders',
       icon: 'IconFileExport'
     },
     {
-      id: 'create-bills',
+      id: 'rp-create-bills',
       title: 'Create Bills',
       type: 'item',
       url: '/rp-create-bills',
