@@ -181,11 +181,11 @@ function ImportOrderPage() {
     }
     setMedicinesLoading(true);
     try {
-      const response = await axiosInstance.get(`/contract/${contractId}`, {
+      const response = await axiosInstance.get(`/contract/${contractId}/medicines`, {
         headers: getAuthHeaders()
       });
-      console.log('Contract medicines loaded:', response.data.data?.items);
-      setContractMedicines(response.data.data?.items || []);
+      console.log('Contract medicines loaded:', response.data.data);
+      setContractMedicines(response.data.data || []);
     } catch (error) {
       console.error('Error fetching contract medicines:', error);
       setError('Failed to load contract medicines');
