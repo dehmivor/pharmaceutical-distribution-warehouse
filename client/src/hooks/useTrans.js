@@ -5,7 +5,15 @@ import { ThemeI18n } from '@/config';
 
 export default function useTrans() {
   const { i18n } = useConfig();
-  console.log('i18n đã được cập nhật để lấy ngôn ngữ', i18n);
 
-  return i18n === ThemeI18n.VN ? vi : en;
+  const trans = i18n === ThemeI18n.VN ? vi : en;
+
+  return new Proxy(trans, {
+    get(target, prop) {
+      if (prop in target) {
+        return target[prop];
+      }
+      return `{trans.${String(prop)}}`;
+    },
+  });
 }
