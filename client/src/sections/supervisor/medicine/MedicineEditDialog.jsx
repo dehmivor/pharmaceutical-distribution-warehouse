@@ -168,17 +168,58 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
 
     // Storage conditions validation (optional)
     if (formValues.storage_conditions.temperature.trim()) {
-      if (!/^\d+-\d+$|^-\d+$|^\d+$/.test(formValues.storage_conditions.temperature)) {
+      const tempValue = formValues.storage_conditions.temperature.trim();
+      if (!/^\d+-\d+$|^-\d+$|^\d+$/.test(tempValue)) {
         newErrors.storage_conditions = {
           ...newErrors.storage_conditions,
-          temperature: 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X" (chỉ số, không bao gồm °C)'
+          temperature: 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X" (°C)'
         };
+      } else {
+        // Validate temperature range logic
+        if (tempValue.includes('-')) {
+          const [min, max] = tempValue.split('-').map(Number);
+          if (min > max) {
+            newErrors.storage_conditions = {
+              ...newErrors.storage_conditions,
+              temperature: 'Nhiệt độ tối thiểu phải nhỏ hơn hoặc bằng nhiệt độ tối đa'
+            };
+          }
+        }
       }
     }
 
     if (formValues.storage_conditions.humidity.trim()) {
-      if (!/^\d+$|^\d+-\d+$/.test(formValues.storage_conditions.humidity)) {
-        newErrors.storage_conditions = { ...newErrors.storage_conditions, humidity: 'Độ ẩm phải có định dạng "X" hoặc "X-Y"' };
+      const humidityValue = formValues.storage_conditions.humidity.trim();
+      if (!/^\d+$|^\d+-\d+$/.test(humidityValue)) {
+        newErrors.storage_conditions = { 
+          ...newErrors.storage_conditions, 
+          humidity: 'Độ ẩm phải có định dạng "X" hoặc "X-Y"' 
+        };
+      } else {
+        // Validate humidity range logic
+        if (humidityValue.includes('-')) {
+          const [min, max] = humidityValue.split('-').map(Number);
+          if (min > max) {
+            newErrors.storage_conditions = {
+              ...newErrors.storage_conditions,
+              humidity: 'Độ ẩm tối thiểu phải nhỏ hơn hoặc bằng độ ẩm tối đa'
+            };
+          }
+          if (max > 100) {
+            newErrors.storage_conditions = {
+              ...newErrors.storage_conditions,
+              humidity: 'Độ ẩm tối đa không được vượt quá 100%'
+            };
+          }
+        } else {
+          const humidity = Number(humidityValue);
+          if (humidity > 100) {
+            newErrors.storage_conditions = {
+              ...newErrors.storage_conditions,
+              humidity: 'Độ ẩm không được vượt quá 100%'
+            };
+          }
+        }
       }
     }
 
@@ -241,13 +282,9 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
         storage_conditions: Object.keys(storageConditions).length > 0 ? storageConditions : null
       };
 
-      // Only include threshold fields if they have values
-      if (formValues.min_stock_threshold) {
-        payload.min_stock_threshold = parseFloat(formValues.min_stock_threshold);
-      }
-      if (formValues.max_stock_threshold) {
-        payload.max_stock_threshold = parseFloat(formValues.max_stock_threshold);
-      }
+      // Always include threshold fields - null if empty, parsed number if has value
+      payload.min_stock_threshold = formValues.min_stock_threshold ? parseFloat(formValues.min_stock_threshold) : null;
+      payload.max_stock_threshold = formValues.max_stock_threshold ? parseFloat(formValues.max_stock_threshold) : null;
 
       await onSubmit(payload);
       onClose();
