@@ -1,254 +1,386 @@
+// components/CheckOrderDetail.js
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
-import { Box, CircularProgress, Alert, Typography, Paper, Grid, Chip, Button, Stack, LinearProgress, Divider } from '@mui/material';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  Accordion, AccordionSummary, AccordionDetails, Box, Container, Grid, Stack, Typography,
+  CircularProgress, Alert, Snackbar, IconButton, Table, TableHead, TableBody, TableRow,
+  TableCell, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField,
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { useTheme } from '@mui/material/styles';
 
-// Lấy header Authorization từ localStorage
 const getAuthHeaders = () => {
-  if (typeof window === 'undefined') return {};
-  const token = localStorage.getItem('auth-token');
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
+    ...(token && { Authorization: `Bearer ${token}` })
   };
 };
 
-const formatDate = (d) => (d ? new Date(d).toLocaleDateString('vi-VN') : '');
-const formatDateTime = (d) => (d ? new Date(d).toLocaleString('vi-VN', { hour12: false }) : '');
+const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+const userId = userData.userId;
 
-const getStatusColor = (status) => {
-  switch (status) {
-    case 'pending':
-      return 'warning';
-    case 'processing':
-      return 'info';
-    case 'completed':
-      return 'success';
-    case 'cancelled':
-      return 'error';
-    case 'checking':
-      return 'primary';
-    default:
-      return 'default';
-  }
-};
+export default function CheckOrderDetail() {
+  const theme = useTheme();
+  const { orderId } = useParams();
 
-// Màu pie chart mặc định cho các phần
-const PIE_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+  const [order, setOrder] = useState(null);
+  const [inspections, setInspections] = useState([]);
+  const [loadingOrder, setLoadingOrder] = useState(false);
+  const [loadingInspections, setLoadingInspections] = useState(false);
+  const [error, setError] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' });
 
-export default function CheckOrderDetailPage() {
-  const id = useParams();
-  const [orderData, setOrderData] = useState(null);
-  const [logLocation, setLogLocation] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
+  // Modal state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [step, setStep] = useState('verify'); // 'verify' or 'packages'
+  const [locationInput, setLocationInput] = useState('');
+  const [verifyError, setVerifyError] = useState('');
+  const [selectedInspection, setSelectedInspection] = useState(null);
+  const [packages, setPackages] = useState([]);
+  const [quantities, setQuantities] = useState({});
+  const [package_id, setPackage_id] = useState('')
 
-  // Ví dụ giả lập dữ liệu kết quả kiểm kê (thực tế bạn bổ sung từ API)
-  // Giả sử bạn có: total items, checked items, discrepancy items
-  const inventoryResultData = orderData
-    ? [
-        { name: 'Đã kiểm kê', value: orderData.checkedItems || 70 },
-        { name: 'Chưa kiểm kê', value: orderData.uncheckedItems || 20 },
-        { name: 'Chênh lệch', value: orderData.discrepancies || 10 }
-      ]
-    : [];
 
-  const totalCount = inventoryResultData.reduce((acc, cur) => acc + cur.value, 0) || 0;
 
-  // Tính phần trăm cho progress bar
-  const percentChecked = orderData?.checkedItems ? Math.round((orderData.checkedItems / totalCount) * 100) : 0;
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError('');
+  const fetchOrder = async () => {
+    setLoadingOrder(true);
+    setError(null);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${id?.checkOrderId}`, {
-        headers: getAuthHeaders()
-      });
-
-      if (res.data.success) {
-        setOrderData(res.data.data.checkorder);
-        setLogLocation(res.data.data.loglocation || []);
+      const { data } = await axios.get(
+        `/api/inventory-check-orders/${orderId}`,
+        { headers: getAuthHeaders() }
+      );
+      if (data.success) {
+        setOrder(data.data);
       } else {
-        setError(res.data.message || 'Lỗi khi tải dữ liệu');
+        throw new Error(data.error || 'Failed to load order');
       }
     } catch (err) {
-      setError('Lỗi khi tải dữ liệu');
       console.error(err);
+      setError(err.message);
+      setSnackbar({ open: true, message: err.message, severity: 'error' });
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setLoadingOrder(false);
     }
   };
 
-  useEffect(() => {
-    if (!id) return;
-    fetchData();
-  }, [id]);
 
-  // Nút reload thủ công
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchData();
+  const fetchInspections = async () => {
+    if (!orderId) return;
+    setLoadingInspections(true);
+    try {
+      const { data } = await axios.get(`/api/inventory-check-inspections/${orderId}/inspections`, { headers: getAuthHeaders() });
+      if (data.success) setInspections(data.data);
+      else throw new Error(data.error || 'Failed to load inspections');
+    } catch (err) {
+      setError(err.message);
+      setSnackbar({ open: true, message: err.message, severity: 'error' });
+    } finally {
+      setLoadingInspections(false);
+    }
   };
 
-  if (loading && !refreshing)
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <CircularProgress />
-      </Box>
-    );
+  useEffect(() => { fetchOrder(); fetchInspections(); }, [orderId]);
 
-  if (error)
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">{error}</Alert>
-        <Button sx={{ mt: 2 }} variant="contained" onClick={handleRefresh}>
-          Thử lại
-        </Button>
-      </Box>
-    );
 
-  if (!orderData) return null;
+  const handleRefresh = () => { fetchInspections(); };
+
+  const handleProceed = (ins) => {
+    setSelectedInspection(ins);
+    setLocationInput(''); setVerifyError('');
+    setStep('verify');
+    setPackages([]);
+    setDialogOpen(true);
+  };
+
+  const handleDialogClose = async () => {
+    setDialogOpen(false);
+    setSelectedInspection(null);
+    if (step === 'packages') {
+      await changelocationStatus('draft')
+    }
+    fetchInspections();
+  };
+
+  const changelocationStatus = async (locationStatus) => {
+    await axios.patch(
+      `/api/inventory-check-inspections/${selectedInspection._id}/status`,
+      { status: locationStatus }, { headers: getAuthHeaders() }
+    ).then(() => {
+    }).catch(() => setSnackbar({ open: true, message: 'Failed to update status', severity: 'error' }));
+  };
+
+  const addSelfToChangeBy = async (val) => {
+    await axios.patch(
+      `/api/inventory-check-inspections/${val}/checker`,
+      { checkBy: userId }, { headers: getAuthHeaders() }
+    ).then(() => {
+    }).catch(() => setSnackbar({ open: true, message: 'Failed to assign self', severity: 'error' }));
+  }
+
+
+  // Verify location input
+  const handleLocationChange = (e) => {
+    const val = e.target.value;
+    setLocationInput(val);
+    if (val.length === 24) {
+      if (val !== selectedInspection.location_id._id) {
+        setVerifyError('Location does not match selected inspection.');
+      } else {
+        setVerifyError('');
+        //add check_by
+        addSelfToChangeBy(selectedInspection._id)
+        //change status 
+        changelocationStatus('checking')
+        // fetch packages
+        fetchPackages(val)
+        setStep('packages');
+        // default quantities
+        const qtys = {};
+        packages.forEach(pkg => qtys[pkg._id] = pkg.quantity);
+        setQuantities(qtys);
+      }
+    } else setVerifyError('');
+  };
+
+  const fetchPackages = async (location_id) => {
+    await axios.get(`/api/packages/location/${location_id}`, { headers: getAuthHeaders() })
+      .then(res => res.data.success && setPackages(res.data.data.packages))
+      .catch(() => setSnackbar({ open: true, message: 'Failed to load packages', severity: 'error' }));
+  }
+
+  // Handle quantity inputs
+  const handleQtyChange = (pkgId, val) => {
+    setQuantities(q => ({ ...q, [pkgId]: Number(val) }));
+  };
+
+  // Confirm proceed: change status
+  const handleConfirm = () => {
+    handleDialogClose();
+  };
+
+  const handleScanPackages = () => {
+
+  }
+
+
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box>
-          <Typography variant="h4" gutterBottom>
-            Chi tiết Phiếu Kiểm Kê
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Mã Phiếu: {orderData._id}
-          </Typography>
-        </Box>
-        <Button variant="outlined" onClick={handleRefresh} disabled={refreshing}>
-          {refreshing ? 'Đang làm mới...' : 'Làm mới'}
-        </Button>
-      </Stack>
+    <Box sx={{ background: theme.palette.background.default, minHeight: '100vh', py: 4 }}>
+      <Container>
+        <Typography variant="h4" gutterBottom>Check Inventory Order Detail</Typography>
 
-      {/* Thông tin cơ bản */}
-      <Paper sx={{ p: 3, mb: 4 }} elevation={3}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary">
-              Trạng thái:
-            </Typography>
-            <Chip variant="outlined" label={orderData.status} color={getStatusColor(orderData.status)} size="small" />
-          </Grid>
+        {/* Order Detail Section */}
+        <Accordion defaultExpanded>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">Order Detail</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            {loadingOrder ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : error ? (
+              <Alert severity="error">{error}</Alert>
+            ) : order ? (
+              <Grid container spacing={2} mb={2}>
+                <Grid item xs={12} sm={4}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Status
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {order.status}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Inventory Date
+                  </Typography>
+                  <Typography variant="body1">
+                    {new Date(order.inventory_check_date).toLocaleDateString()}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Created At
+                  </Typography>
+                  <Typography variant="body1">
+                    {new Date(order.createdAt).toLocaleString()}
+                  </Typography>
+                </Grid>
 
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ngày kiểm kê:
-            </Typography>
-            <Typography variant="body1">{formatDate(orderData.inventory_check_date)}</Typography>
-          </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Warehouse Manager
+                  </Typography>
+                  <Typography variant="body1">
+                    {order.warehouse_manager_id.email}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Created By
+                  </Typography>
+                  <Typography variant="body1">
+                    {order.created_by.email}
+                  </Typography>
+                </Grid>
 
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Warehouse Manager ID:
-            </Typography>
-            <Typography variant="body1">{orderData.warehouse_manager_id}</Typography>
-          </Grid>
+                {order.notes && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Notes
+                    </Typography>
+                    <Typography variant="body1">
+                      {order.notes}
+                    </Typography>
+                  </Grid>
+                )}
+              </Grid>
+            ) : (
+              <Typography>No order details to display.</Typography>
+            )}
+          </AccordionDetails>
+        </Accordion>
 
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Người tạo (Created By):
-            </Typography>
-            {/* Nếu created_by có email: lấy phần trước @ nếu không thì hiển thị thẳng */}
-            <Typography variant="body1">
-              {(orderData.created_by.email && orderData.created_by.email.split('@')[0]) || orderData.created_by}
-            </Typography>
-          </Grid>
+        {/* Inspections Section */}
+        <Accordion defaultExpanded>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">Inspections</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Stack direction="row" spacing={1} mb={2}>
+              <IconButton size="small" onClick={handleRefresh}><RefreshIcon fontSize="small" /></IconButton>
+            </Stack>
 
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ghi chú:
-            </Typography>
-            <Typography variant="body1">{orderData.notes || 'Không có ghi chú'}</Typography>
-          </Grid>
+            {loadingInspections ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : error ? (
+              <Alert severity="error">{error}</Alert>
+            ) : (
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Location</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Action</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {inspections.map(ins => {
+                    const loc = ins.location_id;
+                    const locStr = `${loc.area_id.name} - ${loc.bay} - ${loc.row} - ${loc.column}`;
+                    return (
+                      <TableRow key={ins._id}>
+                        <TableCell>{locStr}</TableCell>
+                        <TableCell>{ins.status}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            disabled={ins.status === 'checked' || (ins.status === 'checking' && ins.check_by != userId)}
+                            onClick={() => handleProceed(ins)}
+                          >{ins.check_by === userId ? 'Continue' : 'Proceed'}</Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </AccordionDetails>
+        </Accordion>
+      </Container>
 
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ngày tạo:
-            </Typography>
-            <Typography variant="body1">{formatDateTime(orderData.createdAt)}</Typography>
-          </Grid>
+      {/* Proceed Dialog */}
+      <Dialog open={dialogOpen} onClose={() => { }} disableEscapeKeyDown>
+        <DialogTitle>Inspection {step === 'verify' ? 'Location Verification' : 'Packages'}</DialogTitle>
+        <DialogContent>
+          {step === 'verify' ? (
+            <TextField
+              label="Scan Location ID"
+              value={locationInput}
+              onChange={handleLocationChange}
+              fullWidth
+              error={!!verifyError}
+              helperText={verifyError}
+              inputProps={{ maxLength: 24 }}
+              style={{ marginTop: '8px' }}
+            />
+          ) : (
+            <>
+              <TextField
+                label="Scan Package ID"
+                value={package_id}
+                onChange={handleScanPackages}
+                fullWidth
+                error={!!verifyError}
+                helperText={verifyError}
+                inputProps={{ maxLength: 24 }}
+                style={{ marginTop: '8px' }}
+              />
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>ID</TableCell>
+                    <TableCell>Medicine</TableCell>
+                    <TableCell>Batch</TableCell>
+                    <TableCell>Expected Qty</TableCell>
+                    <TableCell>Actual Qty</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {packages.map(pkg => (
+                    <TableRow key={pkg._id}>
+                      <TableCell>{pkg._id.slice(-4)}</TableCell>
+                      <TableCell>{`${pkg.batch_id.medicine_id.medicine_name} - ${pkg.batch_id.medicine_id.license_code}`}</TableCell>
+                      <TableCell>{pkg.batch_id.batch_code}</TableCell>
+                      <TableCell>{pkg.quantity}</TableCell>
+                      <TableCell>
+                        <TextField
+                          type="number"
+                          value={quantities[pkg._id] || pkg.quantity}
+                          onChange={e => handleQtyChange(pkg._id, e.target.value)}
+                          size="small"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {step === 'verify' ? (
+            <Button onClick={handleDialogClose}>Abort</Button>
+          ) : (
+            <>
+              <Button onClick={handleDialogClose}>Cancel</Button>
+              <Button variant="contained" onClick={handleConfirm}>Confirm</Button></>
+          )}
+        </DialogActions>
+      </Dialog>
 
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ngày cập nhật:
-            </Typography>
-            <Typography variant="body1">{formatDateTime(orderData.updatedAt)}</Typography>
-          </Grid>
-        </Grid>
-      </Paper>
 
-      {/* Phần trăm đã kiểm kê */}
-      <Paper sx={{ p: 3, mb: 4 }} elevation={3}>
-        <Typography variant="h6" gutterBottom>
-          Trạng thái kiểm kê: {percentChecked}% đã kiểm kê
-        </Typography>
-        <LinearProgress variant="determinate" value={percentChecked} sx={{ height: 15, borderRadius: 2 }} />
-      </Paper>
 
-      {/* Biểu đồ kết quả kiểm kê */}
-      <Paper sx={{ p: 3, mb: 4 }} elevation={3} style={{ height: 300 }}>
-        <Typography variant="h6" gutterBottom>
-          Tổng quan kết quả kiểm kê
-        </Typography>
-        {totalCount > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={inventoryResultData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              >
-                {inventoryResultData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => `${value} mục`} />
-              <Legend verticalAlign="bottom" height={36} />
-            </PieChart>
-          </ResponsiveContainer>
-        ) : (
-          <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 8 }}>
-            Chưa có dữ liệu kết quả kiểm kê
-          </Typography>
-        )}
-      </Paper>
-
-      {/* Lịch sử thay đổi vị trí */}
-      <Paper sx={{ p: 3 }} elevation={3}>
-        <Typography variant="h6" gutterBottom>
-          Lịch sử thay đổi vị trí
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
-        {logLocation.length > 0 ? (
-          logLocation.map((log, index) => (
-            <Box key={index} sx={{ mb: 1 }}>
-              <Typography variant="body2">
-                {formatDateTime(log.createdAt)} - {log.old_location} → {log.new_location}
-              </Typography>
-            </Box>
-          ))
-        ) : (
-          <Typography variant="body2" color="text.secondary">
-            Không có lịch sử thay đổi vị trí.
-          </Typography>
-        )}
-      </Paper>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar(sn => ({ ...sn, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbar(sn => ({ ...sn, open: false }))} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
