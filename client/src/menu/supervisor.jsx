@@ -134,15 +134,15 @@ const supervisor = {
       icon: 'IconContract',
       children: [
         {
-          id: 'retailer-contracts',
-          title: 'Retailer Contracts',
+          id: 'retailer-management',
+          title: 'Quản lý Nhà bán lẻ',
           type: 'item',
           url: '/sp-retailer-contracts',
           icon: 'IconBuildingStore'
         },
         {
-          id: 'supplier-contracts',
-          title: 'Supplier Contracts',
+          id: 'supplier-management',
+          title: 'Quản lý Nhà cung cấp',
           type: 'item',
           url: '/sp-supplier-contracts',
           icon: 'IconTruck'

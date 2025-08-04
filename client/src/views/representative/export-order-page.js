@@ -1,9 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Chip, TextField, Grid, MenuItem, FormControl, InputLabel, Select, IconButton, Menu, TablePagination, Card, CardContent
+  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Chip, TextField, Grid, MenuItem, FormControl, InputLabel, Select, IconButton, Menu, TablePagination, Card, CardContent, CircularProgress
 } from '@mui/material';
-import { Add as AddIcon, MoreVert as MoreVertIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, Refresh as RefreshIcon, FilterList as FilterListIcon } from '@mui/icons-material';
+import { Add as AddIcon, MoreVert as MoreVertIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, Refresh as RefreshIcon, FilterList as FilterListIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -21,7 +21,11 @@ function ExportOrderPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [openForm, setOpenForm] = useState(false);
-  const [formData, setFormData] = useState({ contract_id: '', details: [] });
+  const [formData, setFormData] = useState({ 
+    contract_type: '', 
+    contract_id: '', 
+    details: [] 
+  });
   const [contracts, setContracts] = useState([]);
   const [contractMedicines, setContractMedicines] = useState([]);
   const [formLoading, setFormLoading] = useState(false);
@@ -31,6 +35,11 @@ function ExportOrderPage() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedOrderForAction, setSelectedOrderForAction] = useState(null);
 
+  // Thêm state cho stock validation
+  const [stockCheckResults, setStockCheckResults] = useState([]);
+  const [isCheckingStock, setIsCheckingStock] = useState(false);
+  const [stockValidationError, setStockValidationError] = useState(null);
+
   // Pagination state
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -39,6 +48,7 @@ function ExportOrderPage() {
   const [filters, setFilters] = useState({
     status: '',
     contract_code: '',
+    contract_type: '',
     date_filter: '',
     created_by: ''
   });
@@ -61,18 +71,20 @@ function ExportOrderPage() {
   const fetchContracts = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/contract?status=active&partner_type=Retailer`, { headers: getAuthHeaders() });
-      setContracts(response.data.data.contracts || []);
+      const activeContracts = (response.data.data.contracts || []).filter(
+        (c) => c.status === 'active' && c.partner_type === 'Retailer'
+      );
+      setContracts(activeContracts);
     } catch (error) {
       setError('Failed to load contracts');
     }
   };
 
-  // Lấy danh sách thuốc từ contract khi chọn contract
+  // Lấy danh sách thuốc từ contract khi chọn contract (bao gồm cả phụ lục)
   const fetchContractMedicines = async (contractId) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/contract/${contractId}`, { headers: getAuthHeaders() });
-      const contract = response.data.data;
-      setContractMedicines(contract.current_items || contract.items || []);
+      const response = await axios.get(`${API_BASE_URL}/api/contract/${contractId}/medicines`, { headers: getAuthHeaders() });
+      setContractMedicines(response.data.data || []);
     } catch (error) {
       setContractMedicines([]);
     }
@@ -93,18 +105,104 @@ function ExportOrderPage() {
         }
       });
 
-      setUserEmails(Array.from(emails).sort());
+      setUserEmails(Array.from(emails));
     } catch (error) {
       console.error('Error fetching user emails:', error);
-      setUserEmails([]);
     }
   };
+
+  // Function để kiểm tra tồn kho với debounce
+  const checkStockAvailability = async (details) => {
+    if (!details || details.length === 0) {
+      setStockCheckResults([]);
+      return { success: true, all_available: true };
+    }
+
+    // Chỉ kiểm tra những detail có đủ thông tin
+    const validDetails = details.filter(detail => 
+      detail.medicine_id && detail.expected_quantity > 0
+    );
+
+    if (validDetails.length === 0) {
+      setStockCheckResults([]);
+      return { success: true, all_available: true };
+    }
+
+    try {
+      setIsCheckingStock(true);
+      setStockValidationError(null);
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/export-orders/check-stock`,
+        { details: validDetails },
+        { headers: getAuthHeaders() }
+      );
+
+      if (response.data.success) {
+        setStockCheckResults(response.data.data.stock_check_results);
+        return {
+          success: true,
+          ...response.data.data
+        };
+      } else {
+        throw new Error(response.data.message || 'Failed to check stock');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+      setStockValidationError(errorMessage);
+      return { success: false, all_available: false, error: errorMessage };
+    } finally {
+      setIsCheckingStock(false);
+    }
+  };
+
+  // Debounced stock check function
+  const debouncedStockCheck = useCallback(
+    debounce((details) => {
+      checkStockAvailability(details);
+    }, 800),
+    []
+  );
+
+  // Debounce utility function
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
 
   useEffect(() => {
     fetchOrders();
     fetchContracts();
     fetchUserEmails();
   }, []);
+
+  // Reset stock check results when form is closed
+  useEffect(() => {
+    if (!openForm && !openEditForm) {
+      setStockCheckResults([]);
+      setStockValidationError(null);
+      setIsCheckingStock(false);
+    }
+  }, [openForm, openEditForm]);
+
+  // Auto check stock when form opens with details
+  useEffect(() => {
+    if ((openForm || openEditForm) && formData.details.length > 0) {
+      const validDetails = formData.details.filter(detail => 
+        detail.medicine_id && detail.expected_quantity > 0
+      );
+      if (validDetails.length > 0) {
+        debouncedStockCheck(formData.details);
+      }
+    }
+  }, [openForm, openEditForm, formData.details.length]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -123,8 +221,28 @@ function ExportOrderPage() {
   // Khi chọn contract, reset details về rỗng
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'contract_id') {
-      setFormData((prev) => ({ ...prev, contract_id: value, details: [] }));
+    if (name === 'contract_type') {
+      // Khi chọn contract_type, reset contract_id và details (chỉ khi tạo mới)
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        contract_id: '',
+        details: selectedOrder ? prev.details : [] // Giữ nguyên details khi update
+      }));
+      // Reset contract medicines khi thay đổi contract type (chỉ khi tạo mới)
+      if (!selectedOrder) {
+        setContractMedicines([]);
+      }
+    } else if (name === 'contract_id') {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        details: selectedOrder ? prev.details : [] // Giữ nguyên details khi update
+      }));
+      // Reset contract medicines khi thay đổi contract (chỉ khi tạo mới)
+      if (!selectedOrder) {
+        setContractMedicines([]);
+      }
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
@@ -133,22 +251,48 @@ function ExportOrderPage() {
   // Khi chọn thuốc, tự động fill số lượng và giá từ contract
   const handleDetailChange = (index, field, value) => {
     const newDetails = [...formData.details];
+    
+    // If medicine changes, get unit price and quantity from contract
     if (field === 'medicine_id') {
-      // Không cho chọn trùng thuốc
-      if (newDetails.some((d, i) => d.medicine_id === value && i !== index)) return;
       const selectedMedicine = contractMedicines.find((med) => med.medicine_id._id === value);
       if (selectedMedicine) {
-        newDetails[index].unit_price = selectedMedicine.unit_price || 0;
-        newDetails[index].expected_quantity = selectedMedicine.quantity || 0;
+        if (formData.contract_type === 'principal') {
+          // Với principal contract, chỉ set giá trị mặc định, người dùng có thể chỉnh sửa
+          newDetails[index].unit_price = selectedMedicine.unit_price || 0;
+          newDetails[index].expected_quantity = selectedMedicine.min_order_quantity || 1;
+        } else {
+          // Với economic contract, giữ nguyên logic cũ
+          newDetails[index].unit_price = selectedMedicine.unit_price || 0;
+          newDetails[index].expected_quantity = selectedMedicine.quantity || selectedMedicine.min_order_quantity || 1;
+        }
       }
       newDetails[index][field] = value;
-    } else if (field === 'quantity' || field === 'unit_price') {
-      // Không cho phép sửa quantity và unit_price - chúng được tự động fill từ contract
-      return;
+    } else if (field === 'expected_quantity') {
+      // Xử lý thay đổi quantity
+      if (formData.contract_type === 'economic') {
+        // Economic contract: không cho phép sửa quantity
+        return;
+      }
+      // Principal contract: cho phép sửa quantity
+      newDetails[index][field] = Number(value);
+    } else if (field === 'unit_price') {
+      // Xử lý thay đổi unit_price
+      if (formData.contract_type === 'economic') {
+        // Economic contract: không cho phép sửa unit_price
+        return;
+      }
+      // Principal contract: cho phép sửa unit_price
+      newDetails[index][field] = Number(value);
     } else {
       newDetails[index][field] = value;
     }
+    
     setFormData((prev) => ({ ...prev, details: newDetails }));
+
+    // Tự động kiểm tra tồn kho khi thay đổi thuốc hoặc số lượng (với debounce)
+    if (field === 'medicine_id' || field === 'expected_quantity' || field === 'unit_price') {
+      debouncedStockCheck(newDetails);
+    }
   };
 
   // Add Medicine: thêm dòng mới với medicine_id rỗng
@@ -179,6 +323,7 @@ function ExportOrderPage() {
 
   const handleEditOrder = (order) => {
     setFormData({
+      contract_type: order.contract_id?.contract_type || '',
       contract_id: order.contract_id._id || order.contract_id,
       details: order.details.map((d) => ({
         medicine_id: typeof d.medicine_id === 'object' ? d.medicine_id._id : d.medicine_id,
@@ -189,6 +334,28 @@ function ExportOrderPage() {
     setSelectedOrder(order);
     setOpenEditForm(true);
     handleActionMenuClose();
+    
+    // Thông báo nếu đang sửa rejected order
+    if (order.status === 'rejected') {
+      setSuccess('Đang sửa export order bị từ chối. Order sẽ tự động chuyển về trạng thái draft sau khi lưu.');
+    }
+    
+    // Auto-check stock khi mở edit form
+    const details = order.details.map((d) => ({
+      medicine_id: typeof d.medicine_id === 'object' ? d.medicine_id._id : d.medicine_id,
+      expected_quantity: d.expected_quantity,
+      unit_price: d.unit_price
+    }));
+    
+    // Fetch contract medicines trước khi check stock
+    if (order.contract_id?._id || order.contract_id) {
+      fetchContractMedicines(order.contract_id._id || order.contract_id).then(() => {
+        // Check stock sau khi có contract medicines
+        checkStockAvailability(details);
+      });
+    } else {
+      checkStockAvailability(details);
+    }
   };
 
   const handleDeleteOrder = async (order) => {
@@ -205,7 +372,8 @@ function ExportOrderPage() {
       // Refresh table after delete
       await fetchOrders();
     } catch (error) {
-      setError(error.response?.data?.error || error.message);
+      const errorMessage = error.response?.data?.error || error.message;
+      setError(`Failed to delete order: ${errorMessage}`);
     } finally {
       handleActionMenuClose();
     }
@@ -219,7 +387,10 @@ function ExportOrderPage() {
   const handleCloseEditForm = () => {
     setSelectedOrder(null);
     setOpenEditForm(false);
-    setFormData({ contract_id: '', details: [] });
+    setFormData({ contract_type: '', contract_id: '', details: [] });
+    setStockCheckResults([]); // Reset stock check results
+    setStockValidationError(null);
+    setIsCheckingStock(false);
   };
 
   const getStatusColor = (status) => {
@@ -228,6 +399,8 @@ function ExportOrderPage() {
         return 'default';
       case 'approved':
         return 'success';
+      case 'rejected':
+        return 'error';
       case 'delivered':
         return 'info';
       case 'checked':
@@ -256,6 +429,7 @@ function ExportOrderPage() {
     setFilters({
       status: '',
       contract_code: '',
+      contract_type: '',
       date_filter: '',
       created_by: ''
     });
@@ -265,6 +439,7 @@ function ExportOrderPage() {
   const filteredOrders = orders.filter((order) => {
     if (filters.status && order.status !== filters.status) return false;
     if (filters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(filters.contract_code.toLowerCase())) return false;
+    if (filters.contract_type && order.contract_id?.contract_type !== filters.contract_type) return false;
     if (filters.created_by && order.created_by?.email !== filters.created_by) return false;
     return true;
   });
@@ -287,34 +462,108 @@ function ExportOrderPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Validate contract
-    if (!formData.contract_id) {
-      setError('Please select a contract.');
+    
+    // Validate: phải chọn contract_type và contract_id
+    if (!formData.contract_type || !formData.contract_id) {
+      setError('Vui lòng chọn loại hợp đồng và hợp đồng cụ thể!');
+      setFormLoading(false);
       return;
     }
-    // Validate details
-    if (!formData.details.length) {
-      setError('Please add at least one medicine.');
+
+    // Kiểm tra nếu là economic contract và đang tạo mới (không phải update)
+    if (formData.contract_type === 'economic' && !selectedOrder) {
+      // Kiểm tra xem đã có export order nào với contract này chưa
+      const existingOrder = orders.find(order => 
+        order.contract_id._id === formData.contract_id && 
+        order.status !== 'cancelled'
+      );
+      
+      if (existingOrder) {
+        setError(`Đã tồn tại export order với hợp đồng này ở trạng thái "${existingOrder.status}". Chỉ có thể tạo mới khi order cũ có trạng thái "cancelled".`);
+        setFormLoading(false);
+        return;
+      }
+    }
+
+    // Validate: không cho chọn trùng thuốc
+    const medicineIds = formData.details.map((d) => d.medicine_id);
+    const hasDuplicate = new Set(medicineIds).size !== medicineIds.length;
+    if (hasDuplicate) {
+      setError('Không được chọn trùng thuốc trong cùng một phiếu xuất!');
+      setFormLoading(false);
       return;
     }
-    // Validate từng dòng: đã chọn thuốc, không trùng thuốc, số lượng > 0
-    const seen = new Set();
-    for (let i = 0; i < formData.details.length; i++) {
-      const d = formData.details[i];
-      if (!d.medicine_id) {
-        setError(`Please select a medicine for row ${i + 1}.`);
+
+    // Validate: số lượng và đơn giá > 0
+    for (const detail of formData.details) {
+      
+      if (!detail.medicine_id || detail.expected_quantity <= 0 || detail.unit_price <= 0) {
+        setError('Vui lòng nhập đầy đủ, số lượng và đơn giá phải lớn hơn 0!');
+        setFormLoading(false);
         return;
       }
-      if (seen.has(d.medicine_id)) {
-        setError('Duplicate medicine selected. Each medicine can only be selected once.');
-        return;
-      }
-      seen.add(d.medicine_id);
-      if (!d.expected_quantity || Number(d.expected_quantity) <= 0) {
-        setError(`Quantity must be greater than 0 for row ${i + 1}.`);
-        return;
+      
+      const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
+      
+      if (formData.contract_type === 'economic') {
+        // Với economic contract, giữ nguyên validation cũ
+        // Validate: số lượng nhập phải >= min_order_quantity từ hợp đồng
+        if (contractItem && detail.expected_quantity < contractItem.min_order_quantity) {
+          setError(
+            `Số lượng xuất cho thuốc "${contractItem.medicine_id.medicine_name}" phải tối thiểu là ${contractItem.min_order_quantity}`
+          );
+          setFormLoading(false);
+          return;
+        }
+        // Validate: số lượng nhập không vượt quá max_quantity hoặc 1000
+        const maxQ = contractItem?.max_quantity || 1000;
+        if (detail.expected_quantity > maxQ) {
+          setError(`Số lượng xuất cho thuốc "${contractItem?.medicine_id?.medicine_name || ''}" không được vượt quá ${maxQ}`);
+          setFormLoading(false);
+          return;
+        }
+      } else if (formData.contract_type === 'principal') {
+        // Với principal contract, chỉ validate cơ bản
+        // Validate: số lượng nhập phải >= 1
+        if (detail.expected_quantity < 1) {
+          setError(`Số lượng xuất cho thuốc phải tối thiểu là 1`);
+          setFormLoading(false);
+          return;
+        }
+        // Validate: số lượng nhập không vượt quá 10000 (giới hạn cao hơn cho principal)
+        if (detail.expected_quantity > 10000) {
+          setError(`Số lượng xuất cho thuốc không được vượt quá 10,000`);
+          setFormLoading(false);
+          return;
+        }
       }
     }
+    
+    // Kiểm tra tồn kho trước khi tạo export order
+    const stockCheck = await checkStockAvailability(formData.details);
+    
+    if (!stockCheck.success) {
+      const errorMsg = stockCheck.error || stockValidationError || 'Lỗi kiểm tra tồn kho';
+      setError(`Lỗi kiểm tra tồn kho: ${errorMsg}`);
+      setFormLoading(false);
+      return;
+    }
+
+    if (!stockCheck.all_available) {
+      const insufficientItems = stockCheck.insufficient_items || [];
+      if (insufficientItems.length > 0) {
+        const errorMessage = insufficientItems.map(item => 
+          `"${item.medicine_name}" (${item.license_code}): Yêu cầu ${item.expected_quantity}, có sẵn ${item.available_quantity}`
+        ).join('\n');
+        
+        setError(`Không đủ tồn kho cho các thuốc sau:\n${errorMessage}`);
+      } else {
+        setError('Không đủ tồn kho cho một số thuốc trong đơn hàng');
+      }
+      setFormLoading(false);
+      return;
+    }
+
     setFormLoading(true);
     try {
       // Loại bỏ created_by và warehouse_manager_id nếu có trong formData
@@ -334,22 +583,52 @@ function ExportOrderPage() {
         method = 'post';
       }
 
-      await axios({
+      const response = await axios({
         method,
         url,
         data: payload,
         headers: getAuthHeaders()
       });
 
-      setSuccess(selectedOrder ? 'Export order updated successfully' : 'Export order created successfully');
+      // Thông báo khác nhau cho create và update
+      let successMessage = '';
+      if (selectedOrder) {
+        if (selectedOrder.status === 'rejected') {
+          successMessage = 'Export order đã được sửa và chuyển về trạng thái draft thành công!';
+        } else {
+          successMessage = 'Export order updated successfully';
+        }
+      } else {
+        successMessage = 'Export order created successfully';
+      }
+
+      setSuccess(successMessage);
       setOpenForm(false);
       setOpenEditForm(false);
-      setFormData({ contract_id: '', details: [] });
+      setFormData({ contract_type: '', contract_id: '', details: [] });
       setSelectedOrder(null);
+      setStockCheckResults([]); // Reset stock check results
       // Refresh table after create/update
       await fetchOrders();
     } catch (error) {
-      setError(error.response?.data?.error || error.message);
+      console.error('❌ Error creating export order:', error);
+      console.error('❌ Error response:', error.response);
+      console.error('❌ Error message:', error.message);
+      
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error.response) {
+        // Server responded with error status
+        errorMessage = error.response.data?.error || error.response.data?.message || error.response.statusText;
+      } else if (error.request) {
+        // Request was made but no response received
+        errorMessage = 'No response from server. Please check your connection.';
+      } else {
+        // Something else happened
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setFormLoading(false);
     }
@@ -382,7 +661,7 @@ function ExportOrderPage() {
             <Typography variant="h6" sx={{ color: 'primary.main' }}>Bộ Lọc Tìm Kiếm</Typography>
           </Box>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={3}>
+              <Grid item xs={12} sm={6} md={2}>
                 <TextField
                   fullWidth
                   label="Mã hợp đồng"
@@ -398,14 +677,27 @@ function ExportOrderPage() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid item xs={12} sm={6} md={2}>
+                <FormControl fullWidth>
+                  <InputLabel>Loại hợp đồng</InputLabel>
+                  <Select
+                    value={filters.contract_type}
+                    onChange={(e) => handleFilterChange('contract_type', e.target.value)}
+                    label="Loại hợp đồng"
+                  >
+                    <MenuItem value="">Tất cả loại hợp đồng</MenuItem>
+                    <MenuItem value="economic">Economic Contract</MenuItem>
+                    <MenuItem value="principal">Principal Contract</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2}>
                 <FormControl fullWidth>
                   <InputLabel>Trạng thái</InputLabel>
                   <Select
                     value={filters.status}
                     onChange={(e) => handleFilterChange('status', e.target.value)}
                     label="Trạng thái"
-                    sx={{ minWidth: '140px' }}
                   >
                     <MenuItem value="">Tất cả trạng thái</MenuItem>
                     <MenuItem value="draft">Draft</MenuItem>
@@ -417,18 +709,15 @@ function ExportOrderPage() {
                   </Select>
                 </FormControl>
               </Grid>
-
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6} md={3}>
                 <FormControl fullWidth>
-                  <InputLabel>Tất cả</InputLabel>
+                  <InputLabel>Người tạo</InputLabel>
                   <Select
                     value={filters.created_by}
                     onChange={(e) => handleFilterChange('created_by', e.target.value)}
                     label="Người tạo"
-                    sx={{ minWidth: '200px' }}
                   >
-                    <MenuItem value="">Tất cả </MenuItem>
-
+                    <MenuItem value="">Tất cả</MenuItem>
                     {userEmails.length > 0 && (
                       <MenuItem disabled>
                         <Typography variant="caption" color="text.secondary">
@@ -444,7 +733,7 @@ function ExportOrderPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid item xs={12} sm={6} md={3}>
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: '100%' }}>
                   <Button
                     variant="outlined"
@@ -463,6 +752,7 @@ function ExportOrderPage() {
           <TableHead>
             <TableRow>
               <TableCell>Contract</TableCell>
+              <TableCell>Contract Type</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Created By</TableCell>
               <TableCell>Warehouse Manager</TableCell>
@@ -486,6 +776,14 @@ function ExportOrderPage() {
               paginatedOrders.map((order) => (
                 <TableRow key={order._id} hover>
                   <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={order.contract_id?.contract_type === 'principal' ? 'Principal' : 'Economic'} 
+                      color={order.contract_id?.contract_type === 'principal' ? 'primary' : 'secondary'} 
+                      size="small" 
+                      variant="outlined"
+                    />
+                  </TableCell>
                   <TableCell><Chip label={order.status} color={getStatusColor(order.status)} size="small" /></TableCell>
                   <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
                   <TableCell>{order.warehouse_manager_id?.email || 'N/A'}</TableCell>
@@ -514,11 +812,43 @@ function ExportOrderPage() {
         />
       </TableContainer>
             <Dialog open={openForm} onClose={() => setOpenForm(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>Create Export Order</DialogTitle>
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>
+          {selectedOrder ? 'Edit Export Order' : 'Create Export Order'}
+          {selectedOrder ? (
+            <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontWeight: 400 }}>
+              You can only edit medicines in this order
+            </Typography>
+          ) : formData.contract_type === 'principal' ? (
+            <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontWeight: 400 }}>
+              Principal Contract - Quantity can be edited
+            </Typography>
+          ) : formData.contract_type === 'economic' && (
+            <Typography variant="body2" sx={{ mt: 1, color: 'warning.main', fontWeight: 400 }}>
+              ⚠️ Economic Contract - Chỉ cho phép 1 order/contract (trừ khi order cũ bị cancelled)
+            </Typography>
+          )}
+        </DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, position: 'relative', minHeight: 400 }}>
             {/* Row: Contract select + Order Details title + Add Medicine */}
             <Grid container alignItems="center" spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} md={4}>
+                <FormControl fullWidth>
+                  <InputLabel>Contract Type</InputLabel>
+                  <Select
+                    name="contract_type"
+                    value={formData.contract_type}
+                    onChange={handleFormChange}
+                    label="Contract Type"
+                    required
+                    disabled={!!selectedOrder}
+                  >
+                    <MenuItem value="">Select Contract Type</MenuItem>
+                    <MenuItem value="economic">Economic Contract</MenuItem>
+                    <MenuItem value="principal">Principal Contract</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth>
                   <InputLabel>Contract</InputLabel>
@@ -528,8 +858,13 @@ function ExportOrderPage() {
                     onChange={handleFormChange}
                     label="Contract"
                     required
+                    disabled={!formData.contract_type || !!selectedOrder}
                   >
-                    {contracts.map((contract) => (
+                    <MenuItem value="">Select Contract</MenuItem>
+                    {contracts.filter(contract => {
+                      if (!formData.contract_type) return true;
+                      return contract.contract_type === formData.contract_type;
+                    }).map((contract) => (
                       <MenuItem key={contract._id} value={contract._id}>
                         {contract.contract_code} - {contract.partner_id?.name}
                       </MenuItem>
@@ -537,21 +872,36 @@ function ExportOrderPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={5} sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-start', md: 'center' } }}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>Order Details</Typography>
-              </Grid>
-              <Grid item xs={12} md={3} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
-                <Button onClick={addDetail} variant="outlined" size="medium" disabled={!formData.contract_id} sx={{ minWidth: 140, fontWeight: 600 }}>
-                  Add Medicine
-                </Button>
+              <Grid item xs={12} md={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-start', md: 'center' } }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Order Details
+                  {selectedOrder ? (
+                    <Typography variant="caption" sx={{ display: 'block', color: 'warning.main', fontWeight: 400 }}>
+                      (Edit medicines only)
+                    </Typography>
+                  ) : formData.contract_type === 'principal' && (
+                    <Typography variant="caption" sx={{ display: 'block', color: 'primary.main', fontWeight: 400 }}>
+                      (Editable quantities)
+                    </Typography>
+                  )}
+                </Typography>
               </Grid>
             </Grid>
             {/* Medicines List */}
             <Grid container spacing={2}>
-              {formData.details.length === 0 && !formData.contract_id && (
+              {formData.details.length === 0 && (!formData.contract_type || !formData.contract_id) && (
                 <Grid item xs={12}>
                   <Alert severity="info" sx={{ mb: 2 }}>
-                    Please select a Contract first to load available medicines
+                    {selectedOrder 
+                      ? "You can only edit medicines in this order"
+                      : !formData.contract_type 
+                        ? "Please select a Contract Type first" 
+                        : !formData.contract_id 
+                          ? "Please select a Contract to load available medicines"
+                          : formData.contract_type === 'principal'
+                            ? "Please add medicines to your order (Principal contract allows quantity editing)"
+                            : "Please add medicines to your order"
+                    }
                   </Alert>
                 </Grid>
               )}
@@ -585,12 +935,17 @@ function ExportOrderPage() {
                           label="Quantity"
                           type="number"
                           value={detail.expected_quantity}
-                          InputProps={{ readOnly: true }}
+                          onChange={(e) => handleDetailChange(index, 'expected_quantity', parseInt(e.target.value) || 0)}
                           required
+                          disabled={!detail.medicine_id || formData.contract_type === 'economic'}
                           helperText={(() => {
                             const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
                             if (contractItem) {
-                              return `Từ hợp đồng: ${contractItem.quantity || contractItem.min_order_quantity || 1}`;
+                              if (formData.contract_type === 'principal') {
+                                return `Min: ${contractItem.min_order_quantity || 1} (Có thể chỉnh sửa)`;
+                              } else {
+                                return `Từ hợp đồng: ${contractItem.quantity || contractItem.min_order_quantity || 1} (Economic - Không thể sửa)`;
+                              }
                             }
                             return '';
                           })()}
@@ -603,8 +958,16 @@ function ExportOrderPage() {
                           label="Unit Price"
                           type="number"
                           value={detail.unit_price}
-                          InputProps={{ readOnly: true }}
+                          onChange={(e) => handleDetailChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
                           required
+                          disabled={!detail.medicine_id || formData.contract_type === 'economic'}
+                          helperText={(() => {
+                            if (formData.contract_type === 'principal') {
+                              return '(Có thể chỉnh sửa)';
+                            } else {
+                              return '(Từ hợp đồng - Economic - Không thể sửa)';
+                            }
+                          })()}
                           sx={{ minWidth: 120, maxWidth: 140 }}
                         />
                       </Grid>
@@ -627,6 +990,158 @@ function ExportOrderPage() {
                 </Grid>
               ))}
             </Grid>
+            {/* Add Medicine Button */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+              <Button onClick={addDetail} variant="outlined" size="medium" disabled={!formData.contract_type || !formData.contract_id} sx={{ minWidth: 140, fontWeight: 600 }}>
+                {selectedOrder ? 'Add Medicine' : (formData.contract_type === 'principal' ? 'Add Medicine (Quantity Editable)' : 'Add Medicine')}
+              </Button>
+            </Box>
+
+            {/* Check Stock Button */}
+            {formData.details.length > 0 && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 2 }}>
+                <Button 
+                  onClick={() => checkStockAvailability(formData.details)} 
+                  variant="outlined" 
+                  color="primary"
+                  disabled={isCheckingStock || formData.details.length === 0}
+                  sx={{ minWidth: 160, fontWeight: 600 }}
+                >
+                  {isCheckingStock ? 'Đang kiểm tra...' : '🔍 Kiểm tra tồn kho'}
+                </Button>
+                
+              </Box>
+            )}
+
+            {/* Stock Availability Information */}
+            {formData.details.length > 0 && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                  📊 Thông Tin Tồn Kho
+                </Typography>
+                
+                {isCheckingStock && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box sx={{ mr: 1 }}>⏳</Box>
+                      Đang kiểm tra tồn kho...
+                    </Box>
+                  </Alert>
+                )}
+
+                {stockValidationError && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box sx={{ mr: 1 }}>⚠️</Box>
+                      Lỗi kiểm tra tồn kho: {stockValidationError}
+                    </Box>
+                  </Alert>
+                )}
+
+                {/* Overall Validation Status */}
+                {stockCheckResults.length > 0 && (
+                  <Alert 
+                    severity={stockCheckResults.every(r => r.is_available) ? 'success' : 'error'} 
+                    sx={{ mb: 2 }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box sx={{ mr: 1 }}>
+                        {stockCheckResults.every(r => r.is_available) ? '✅' : '❌'}
+                      </Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                        {stockCheckResults.every(r => r.is_available) 
+                          ? 'Đủ tồn kho - Có thể tạo export order' 
+                          : 'Thiếu tồn kho - Không thể tạo export order'
+                        }
+                      </Typography>
+                    </Box>
+                  </Alert>
+                )}
+
+                {stockCheckResults.length > 0 && (
+                  <Grid container spacing={2}>
+                    {stockCheckResults.map((result, index) => (
+                      <Grid item xs={12} sm={6} md={4} key={index}>
+                        <Paper 
+                          sx={{ 
+                            p: 2, 
+                            border: '1px solid',
+                            borderColor: result.is_available ? 'success.main' : 'error.main',
+                            backgroundColor: result.is_available ? 'success.50' : 'error.50',
+                            borderRadius: 2
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            {result.is_available ? (
+                              <Box sx={{ color: 'success.main', mr: 1 }}>✅</Box>
+                            ) : (
+                              <Box sx={{ color: 'error.main', mr: 1 }}>❌</Box>
+                            )}
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                              {result.medicine_name}
+                            </Typography>
+                          </Box>
+                          
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            {result.license_code}
+                          </Typography>
+                          
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2">
+                              Yêu cầu: <strong>{result.expected_quantity}</strong>
+                            </Typography>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                color: result.is_available ? 'success.main' : 'error.main',
+                                fontWeight: 600
+                              }}
+                            >
+                              Có sẵn: <strong>{result.available_quantity}</strong>
+                            </Typography>
+                          </Box>
+                          
+                          {!result.is_available && (
+                            <Alert severity="error" sx={{ mt: 1, py: 0 }}>
+                              <Typography variant="caption">
+                                Thiếu: {result.expected_quantity - result.available_quantity}
+                              </Typography>
+                            </Alert>
+                          )}
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+
+                {/* Summary */}
+                {stockCheckResults.length > 0 && (
+                  <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                      Tóm Tắt Tồn Kho:
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                      <Chip 
+                        label={`Tổng: ${stockCheckResults.length} thuốc`} 
+                        color="primary" 
+                        variant="outlined" 
+                      />
+                      <Chip 
+                        label={`Đủ: ${stockCheckResults.filter(r => r.is_available).length} thuốc`} 
+                        color="success" 
+                        variant="outlined" 
+                      />
+                      <Chip 
+                        label={`Thiếu: ${stockCheckResults.filter(r => !r.is_available).length} thuốc`} 
+                        color="error" 
+                        variant="outlined" 
+                      />
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            )}
+
             {/* Total Amount bottom right */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 4, mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
@@ -638,11 +1153,27 @@ function ExportOrderPage() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
-          <Button onClick={() => setOpenForm(false)} disabled={formLoading} variant="outlined" sx={{ minWidth: 120 }}>
+          <Button onClick={() => setOpenForm(false)} disabled={formLoading || isCheckingStock} variant="outlined" sx={{ minWidth: 120 }}>
             Cancel
           </Button>
-          <Button type="submit" variant="contained" disabled={formLoading} sx={{ minWidth: 120 }}>
-            {formLoading ? 'Creating...' : 'Create Order'}
+          <Button 
+            onClick={(e) => {
+              handleSubmit(e);
+            }} 
+            variant="contained" 
+            disabled={formLoading || isCheckingStock || (stockCheckResults.length > 0 && !stockCheckResults.every(r => r.is_available))} 
+            sx={{ 
+              minWidth: 120,
+              bgcolor: stockCheckResults.length > 0 && !stockCheckResults.every(r => r.is_available) ? 'error.main' : 'primary.main',
+              '&:hover': {
+                bgcolor: stockCheckResults.length > 0 && !stockCheckResults.every(r => r.is_available) ? 'error.dark' : 'primary.dark'
+              }
+            }}
+          >
+            {formLoading ? 'Creating...' : 
+             isCheckingStock ? 'Checking Stock...' : 
+             stockCheckResults.length > 0 && !stockCheckResults.every(r => r.is_available) ? '❌ Insufficient Stock' :
+             'Create Order'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -663,14 +1194,20 @@ function ExportOrderPage() {
           <VisibilityIcon sx={{ mr: 1 }} />
           View Details
         </MenuItem>
-        <MenuItem onClick={() => handleEditOrder(selectedOrderForAction)}>
-          <EditIcon sx={{ mr: 1 }} />
-          Edit
-        </MenuItem>
-        <MenuItem onClick={() => handleDeleteOrder(selectedOrderForAction)}>
-          <DeleteIcon sx={{ mr: 1 }} />
-          Delete
-        </MenuItem>
+        {/* Chỉ hiển thị nút edit cho draft và rejected orders */}
+        {selectedOrderForAction && (selectedOrderForAction.status === 'draft' || selectedOrderForAction.status === 'rejected') && (
+          <MenuItem onClick={() => handleEditOrder(selectedOrderForAction)}>
+            <EditIcon sx={{ mr: 1 }} />
+            Edit
+          </MenuItem>
+        )}
+        {/* Chỉ hiển thị nút delete cho draft và cancelled orders */}
+        {selectedOrderForAction && (selectedOrderForAction.status === 'draft' || selectedOrderForAction.status === 'cancelled') && (
+          <MenuItem onClick={() => handleDeleteOrder(selectedOrderForAction)}>
+            <DeleteIcon sx={{ mr: 1 }} />
+            Delete
+          </MenuItem>
+        )}
       </Menu>
 
       {/* Details Dialog */}
@@ -686,6 +1223,18 @@ function ExportOrderPage() {
                     <Typography>
                       <strong>Contract:</strong> {selectedOrder.contract_id?.contract_code}
                     </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <Typography component="span">
+                        <strong>Contract Type:</strong>
+                      </Typography>
+                      <Chip 
+                        label={selectedOrder.contract_id?.contract_type === 'principal' ? 'Principal' : 'Economic'} 
+                        color={selectedOrder.contract_id?.contract_type === 'principal' ? 'primary' : 'secondary'} 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ ml: 1 }}
+                      />
+                    </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <Typography component="span">
                         <strong>Status:</strong>
@@ -789,11 +1338,15 @@ function ExportOrderPage() {
                       label="Quantity"
                       type="number"
                       value={detail.expected_quantity}
-                      onChange={(e) => handleDetailChange(index, 'quantity', e.target.value)}
+                      onChange={(e) => handleDetailChange(index, 'expected_quantity', e.target.value)}
                       fullWidth
                       required
-                      disabled
-                      helperText="Tự động từ hợp đồng"
+                      disabled={formData.contract_type === 'economic'}
+                      helperText={
+                        formData.contract_type === 'economic' 
+                          ? "Tự động từ hợp đồng (Economic)" 
+                          : "Có thể chỉnh sửa (Principal)"
+                      }
                       sx={{
                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
                         '& .MuiInputBase-input.Mui-disabled': {
@@ -811,8 +1364,12 @@ function ExportOrderPage() {
                       onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
                       fullWidth
                       required
-                      disabled
-                      helperText="Tự động từ hợp đồng"
+                      disabled={formData.contract_type === 'economic'}
+                      helperText={
+                        formData.contract_type === 'economic' 
+                          ? "Tự động từ hợp đồng (Economic)" 
+                          : "Có thể chỉnh sửa (Principal)"
+                      }
                       sx={{
                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
                         '& .MuiInputBase-input.Mui-disabled': {
@@ -836,9 +1393,93 @@ function ExportOrderPage() {
               </Box>
             ))}
             <Button onClick={addDetail} sx={{ mt: 2 }}>Add Medicine</Button>
+            
+            {/* Stock Availability Information */}
+            {stockCheckResults.length > 0 && (
+              <Box sx={{ mt: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1, bgcolor: '#fafafa' }}>
+                <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  🔍 Thông tin tồn kho
+                  {isCheckingStock && <CircularProgress size={16} />}
+                </Typography>
+                
+                {stockValidationError && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    Lỗi kiểm tra tồn kho: {stockValidationError}
+                  </Alert>
+                )}
+                
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: '#f5f5f5' }}>
+                        <TableCell><strong>Thuốc</strong></TableCell>
+                        <TableCell align="right"><strong>Yêu cầu</strong></TableCell>
+                        <TableCell align="right"><strong>Có sẵn</strong></TableCell>
+                        <TableCell align="center"><strong>Trạng thái</strong></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {stockCheckResults.map((result, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Typography variant="body2">
+                              <strong>{result.medicine_name}</strong>
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {result.license_code}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">{result.expected_quantity}</TableCell>
+                          <TableCell align="right">{result.available_quantity}</TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={result.is_available ? '✅ Đủ' : '❌ Thiếu'}
+                              color={result.is_available ? 'success' : 'error'}
+                              size="small"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                
+                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Tổng: {stockCheckResults.length} loại thuốc | 
+                    Đủ: {stockCheckResults.filter(r => r.is_available).length} | 
+                    Thiếu: {stockCheckResults.filter(r => !r.is_available).length}
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => checkStockAvailability(formData.details)}
+                    disabled={isCheckingStock}
+                    startIcon={<SearchIcon />}
+                  >
+                    🔍 Kiểm tra lại
+                  </Button>
+                </Box>
+              </Box>
+            )}
+            
             <DialogActions>
               <Button onClick={handleCloseEditForm} disabled={formLoading}>Cancel</Button>
-              <Button type="submit" variant="contained" disabled={formLoading}>{formLoading ? 'Saving...' : 'Update'}</Button>
+              <Button 
+                type="submit" 
+                variant="contained" 
+                disabled={
+                  formLoading || 
+                  isCheckingStock || 
+                  (stockCheckResults.length > 0 && !stockCheckResults.every(r => r.is_available))
+                }
+              >
+                {formLoading ? 'Saving...' : 
+                 isCheckingStock ? 'Checking Stock...' :
+                 stockCheckResults.length > 0 && !stockCheckResults.every(r => r.is_available) ? 'Insufficient Stock' :
+                 'Update'
+                }
+              </Button>
             </DialogActions>
           </Box>
         </DialogContent>

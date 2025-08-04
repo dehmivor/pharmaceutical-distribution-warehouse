@@ -4,7 +4,6 @@ const Batch = require('./Batch');
 const Package = require('./Package');
 const ImportOrder = require('./ImportOrder');
 const Area = require('./Area');
-const Inventory = require('./Inventory');
 const Location = require('./Location');
 const Supplier = require('./Supplier');
 const Notification = require('./Notification');
@@ -22,7 +21,6 @@ module.exports = {
   Package,
   ImportOrder,
   Area,
-  Inventory,
   Location,
   Supplier,
   Notification,

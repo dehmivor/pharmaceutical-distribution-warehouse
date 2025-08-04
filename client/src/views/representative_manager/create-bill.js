@@ -45,10 +45,10 @@ export default function CreateDebtNoteTab() {
   const createBill = async (billData) => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const response = await fetch(`${backendUrl}/api/bills`, {
-        method: 'POST',
+      const token = localStorage.getItem('auth-token');
+      const response = await axios.post(`${backendUrl}/api/bills`, {
         headers: {
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify(billData)
       });

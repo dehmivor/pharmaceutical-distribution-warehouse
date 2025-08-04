@@ -59,4 +59,32 @@ exportOrderSchema.pre('save', async function (next) {
   next();
 });
 
+// Validation: Cho phép Representative sửa rejected orders và chuyển về draft
+exportOrderSchema.pre('save', async function (next) {
+  // Nếu đây là update (không phải create mới)
+  if (!this.isNew) {
+    const User = mongoose.model('User');
+    
+    // Lấy thông tin user hiện tại từ context (sẽ được set trong service)
+    const currentUser = this.currentUser;
+    
+    if (currentUser && currentUser.role === 'representative') {
+      // Representative chỉ có thể sửa draft hoặc rejected orders
+      const originalDoc = await this.constructor.findById(this._id);
+      if (originalDoc) {
+        const allowedStatuses = ['draft', 'rejected'];
+        if (!allowedStatuses.includes(originalDoc.status)) {
+          return next(new Error('Representative can only edit draft or rejected orders'));
+        }
+        
+        // Nếu đang chuyển từ rejected về draft, xóa approval_by
+        if (originalDoc.status === 'rejected' && this.status === 'draft') {
+          this.approval_by = undefined;
+        }
+      }
+    }
+  }
+  next();
+});
+
 module.exports = mongoose.model("ExportOrder", exportOrderSchema)

@@ -1,7 +1,7 @@
 'use client';
 
 import bwipjs from 'bwip-js/browser';
-import PrintIcon from '@mui/icons-material/Print';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -446,8 +446,12 @@ function ImportOrderDetail() {
                                   <LocationOnIcon fontSize="small" />
                                 </IconButton>
 
-                                <IconButton size="small" color="primary" onClick={() => handlePrintLabel(pkg)}>
-                                  <PrintIcon fontSize="small" />
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handlePrintLabel(pkg)}
+                                >
+                                  <ReceiptIcon fontSize="small" />
                                 </IconButton>
                               </TableCell>
                             </TableRow>
@@ -487,8 +491,12 @@ function ImportOrderDetail() {
                                   : '—'}
                               </TableCell>
                               <TableCell>
-                                <IconButton size="small" color="primary" onClick={() => handlePrintLabel(pkg)}>
-                                  <PrintIcon fontSize="small" />
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handlePrintLabel(pkg)}
+                                >
+                                  <ReceiptIcon fontSize="small" />
                                 </IconButton>
                               </TableCell>
                             </TableRow>
@@ -515,6 +523,7 @@ function ImportOrderDetail() {
                   value={locForm.location_id}
                   onChange={(e) => setLocForm({ ...locForm, location_id: e.target.value })}
                   onKeyDown={onLocationKeyDown}
+                  inputProps={{ maxLength: 24 }}
                 />
                 <Button onClick={handleLookupLocation} variant="outlined">
                   Auto‑fill
@@ -603,6 +612,7 @@ function ImportOrderDetail() {
                   value={searchPackageId}
                   onChange={(e) => setSearchPackageId(e.target.value)}
                   autoFocus
+                  inputProps={{ maxLength: 24 }}
                 />
                 <Button type="submit" variant="contained">
                   Search

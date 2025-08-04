@@ -1221,6 +1221,92 @@ const contractService = {
 
     return currentItems;
   },
+
+  // Lấy tất cả thuốc có status active từ hợp đồng, bao gồm cả thuốc trong phụ lục
+  async getActiveContractMedicines(id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error('Invalid contract ID');
+    }
+
+    const contract = await Contract.findById(id)
+      .populate('items.medicine_id', 'medicine_name license_code status')
+      .populate('annexes.medicine_changes.add_items.medicine_id', 'medicine_name license_code status')
+      .populate('annexes.medicine_changes.remove_items.medicine_id', 'medicine_name license_code status')
+      .populate('annexes.medicine_changes.update_prices.medicine_id', 'medicine_name license_code status');
+
+    if (!contract) {
+      throw new Error('Contract not found');
+    }
+
+    // Bắt đầu với danh sách thuốc từ hợp đồng gốc (chỉ lấy thuốc có status active)
+    let currentItems = contract.items.filter(item => 
+      item.medicine_id && item.medicine_id.status === 'active'
+    ).map(item => ({
+      medicine_id: item.medicine_id,
+      unit_price: item.unit_price,
+      quantity: item.quantity || 1,
+      min_order_quantity: item.min_order_quantity || 1,
+      max_quantity: item.max_quantity || 1000
+    }));
+
+    // Áp dụng các thay đổi từ phụ lục active
+    if (contract.annexes && contract.annexes.length > 0) {
+      const activeAnnexes = contract.annexes
+        .filter(annex => annex.status === ANNEX_STATUSES.ACTIVE)
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+      activeAnnexes.forEach(annex => {
+        if (annex.medicine_changes) {
+          const { add_items, remove_items, update_prices } = annex.medicine_changes;
+
+          // Thêm thuốc mới (chỉ lấy thuốc có status active)
+          if (add_items && add_items.length > 0) {
+            const activeAddItems = add_items.filter(item => 
+              item.medicine_id && item.medicine_id.status === 'active'
+            );
+            
+            activeAddItems.forEach(addItem => {
+              // Kiểm tra xem thuốc đã tồn tại chưa
+              const existingItem = currentItems.find(
+                item => item.medicine_id._id.toString() === addItem.medicine_id._id.toString()
+              );
+              if (!existingItem) {
+                currentItems.push({
+                  medicine_id: addItem.medicine_id,
+                  unit_price: addItem.unit_price,
+                  quantity: addItem.quantity || 1,
+                  min_order_quantity: addItem.min_order_quantity || 1,
+                  max_quantity: addItem.max_quantity || 1000
+                });
+              }
+            });
+          }
+
+          // Xóa thuốc
+          if (remove_items && remove_items.length > 0) {
+            const removeIds = remove_items.map(item => item.medicine_id._id.toString());
+            currentItems = currentItems.filter(
+              item => !removeIds.includes(item.medicine_id._id.toString())
+            );
+          }
+
+          // Cập nhật giá
+          if (update_prices && update_prices.length > 0) {
+            update_prices.forEach(updateItem => {
+              const existingItem = currentItems.find(
+                item => item.medicine_id._id.toString() === updateItem.medicine_id._id.toString()
+              );
+              if (existingItem) {
+                existingItem.unit_price = updateItem.unit_price;
+              }
+            });
+          }
+        }
+      });
+    }
+
+    return currentItems;
+  },
 };
 
 module.exports = contractService;
