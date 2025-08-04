@@ -141,10 +141,16 @@ const medicineController = {
         license_code,
         category,
         storage_conditions,
-        min_stock_threshold: min_stock_threshold || 0,
-        max_stock_threshold: max_stock_threshold || 0,
         unit_of_measure,
       };
+
+      // Only include threshold fields if they are provided
+      if (min_stock_threshold !== undefined) {
+        medicineData.min_stock_threshold = min_stock_threshold;
+      }
+      if (max_stock_threshold !== undefined) {
+        medicineData.max_stock_threshold = max_stock_threshold;
+      }
 
       const result = await medicineService.createMedicine(medicineData);
 
@@ -180,17 +186,30 @@ const medicineController = {
       }
 
       // Validate thresholds
-      if (updateData.min_stock_threshold !== undefined && updateData.min_stock_threshold < 0) {
+      if (updateData.min_stock_threshold !== undefined && updateData.min_stock_threshold !== null && updateData.min_stock_threshold < 0) {
         return res.status(400).json({
           success: false,
           message: 'Ngưỡng tồn kho tối thiểu không được âm',
         });
       }
 
-      if (updateData.max_stock_threshold !== undefined && updateData.max_stock_threshold < 0) {
+      if (updateData.max_stock_threshold !== undefined && updateData.max_stock_threshold !== null && updateData.max_stock_threshold < 0) {
         return res.status(400).json({
           success: false,
           message: 'Ngưỡng tồn kho tối đa không được âm',
+        });
+      }
+
+      if (
+        updateData.min_stock_threshold !== undefined &&
+        updateData.min_stock_threshold !== null &&
+        updateData.max_stock_threshold !== undefined &&
+        updateData.max_stock_threshold !== null &&
+        updateData.max_stock_threshold < updateData.min_stock_threshold
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ngưỡng tồn kho tối đa phải lớn hơn hoặc bằng ngưỡng tối thiểu',
         });
       }
 

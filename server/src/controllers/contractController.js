@@ -255,19 +255,44 @@ const getContractHistory = asyncHandler(async (req, res) => {
   const { id } = req.params;
   
   const history = await contractService.getContractHistory(id);
-  res.status(200).json({ success: true, data: history });
+  if (!history) {
+    return res.status(404).json({ success: false, message: 'Contract not found' });
+  }
+
+  res.status(200).json({ 
+    success: true, 
+    data: history 
+  });
+});
+
+const getActiveContractMedicines = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const medicines = await contractService.getActiveContractMedicines(id);
+    res.status(200).json({ 
+      success: true, 
+      data: medicines 
+    });
+  } catch (error) {
+    res.status(400).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
 });
 
 module.exports = {
   getAllContracts,
   getContractById,
   createContract,
-  deleteContract,
   updateContract,
   updateContractStatus,
+  deleteContract,
   createAnnex,
   updateAnnex,
   updateAnnexStatus,
   deleteAnnex,
   getContractHistory,
+  getActiveContractMedicines,
 };

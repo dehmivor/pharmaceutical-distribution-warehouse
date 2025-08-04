@@ -89,8 +89,8 @@ export default function SupervisorHomePage() {
       color: '#7b1fa2',
       url: '/contract-management',
       subItems: [
-        { title: 'Retailer Contracts', icon: IconBuildingStore, url: '/sp-retailer-contracts' },
-        { title: 'Supplier Contracts', icon: IconTruck, url: '/sp-supplier-contracts' }
+        { title: 'Quản lý Nhà bán lẻ', icon: IconBuildingStore, url: '/sp-retailer-contracts' },
+        { title: 'Quản lý Nhà cung cấp', icon: IconTruck, url: '/sp-supplier-contracts' }
       ]
     }
   ];

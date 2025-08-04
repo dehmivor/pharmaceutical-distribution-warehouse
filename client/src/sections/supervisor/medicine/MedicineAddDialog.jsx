@@ -138,17 +138,58 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
 
     // Storage conditions validation (optional)
     if (formData.storage_conditions.temperature.trim()) {
-      if (!/^\d+-\d+$|^-\d+$|^\d+$/.test(formData.storage_conditions.temperature)) {
+      const tempValue = formData.storage_conditions.temperature.trim();
+      if (!/^\d+-\d+$|^-\d+$|^\d+$/.test(tempValue)) {
         newErrors.storage_conditions = {
           ...newErrors.storage_conditions,
           temperature: 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X"'
         };
+      } else {
+        // Validate temperature range logic
+        if (tempValue.includes('-')) {
+          const [min, max] = tempValue.split('-').map(Number);
+          if (min > max) {
+            newErrors.storage_conditions = {
+              ...newErrors.storage_conditions,
+              temperature: 'Nhiệt độ tối thiểu phải nhỏ hơn hoặc bằng nhiệt độ tối đa'
+            };
+          }
+        }
       }
     }
 
     if (formData.storage_conditions.humidity.trim()) {
-      if (!/^\d+$|^\d+-\d+$/.test(formData.storage_conditions.humidity)) {
-        newErrors.storage_conditions = { ...newErrors.storage_conditions, humidity: 'Độ ẩm phải có định dạng "X" hoặc "X-Y"' };
+      const humidityValue = formData.storage_conditions.humidity.trim();
+      if (!/^\d+$|^\d+-\d+$/.test(humidityValue)) {
+        newErrors.storage_conditions = { 
+          ...newErrors.storage_conditions, 
+          humidity: 'Độ ẩm phải có định dạng "X" hoặc "X-Y"' 
+        };
+      } else {
+        // Validate humidity range logic
+        if (humidityValue.includes('-')) {
+          const [min, max] = humidityValue.split('-').map(Number);
+          if (min > max) {
+            newErrors.storage_conditions = {
+              ...newErrors.storage_conditions,
+              humidity: 'Độ ẩm tối thiểu phải nhỏ hơn hoặc bằng độ ẩm tối đa'
+            };
+          }
+          if (max > 100) {
+            newErrors.storage_conditions = {
+              ...newErrors.storage_conditions,
+              humidity: 'Độ ẩm tối đa không được vượt quá 100%'
+            };
+          }
+        } else {
+          const humidity = Number(humidityValue);
+          if (humidity > 100) {
+            newErrors.storage_conditions = {
+              ...newErrors.storage_conditions,
+              humidity: 'Độ ẩm không được vượt quá 100%'
+            };
+          }
+        }
       }
     }
 

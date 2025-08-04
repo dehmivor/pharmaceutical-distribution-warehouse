@@ -28,9 +28,10 @@ const populateOptions = [
  */
 async function createExportOrder(data, userId) {
   const { created_by, details, ...rest } = data;
-  let finalDetails = details;
+  let finalDetails = details || [];
 
-  if (!Array.isArray(details) || details.length === 0) {
+  // Nếu không có details hoặc details rỗng, cần contract_id để auto-generate
+  if (!Array.isArray(finalDetails) || finalDetails.length === 0) {
     if (!rest.contract_id) {
       throw new Error('Contract ID is required to auto-generate export order details');
     }
@@ -59,6 +60,7 @@ async function createExportOrder(data, userId) {
     status: EXPORT_ORDER_STATUSES.DRAFT,
     created_by: userId,
   });
+  
   const savedOrder = await order.save();
 
   return await ExportOrder.findById(savedOrder._id).populate(populateOptions);
@@ -84,19 +86,24 @@ async function approveExportOrder(orderId, rmId) {
 }
 
 /**
- * Gán warehouse manager cho export order
+ * RM từ chối export order (chuyển trạng thái sang rejected)
  * @param {String} orderId - ID export order
- * @param {String} warehouseManagerId - ID warehouse manager
+ * @param {String} rmId - ID RM từ chối
  * @returns {Promise<ExportOrder>}
  */
-async function assignWarehouseManager(orderId, warehouseManagerId) {
+async function rejectExportOrder(orderId, rmId) {
   const order = await ExportOrder.findById(orderId);
   if (!order) throw new Error('Export order not found');
-  order.warehouse_manager_id = warehouseManagerId;
+  if (order.status !== 'draft') {
+    throw new Error('Only draft orders can be rejected');
+  }
+  order.status = EXPORT_ORDER_STATUSES.REJECTED;
+  order.approval_by = rmId;
   await order.save();
 
   return await ExportOrder.findById(orderId).populate(populateOptions);
 }
+
 
 /**
  * Get export order by ID with full population
@@ -240,12 +247,26 @@ async function deleteExportOrder(orderId, user) {
 async function updateExportOrder(orderId, updateData, user) {
   const order = await ExportOrder.findById(orderId);
   if (!order) throw new Error('Export order not found');
-  if (order.status !== EXPORT_ORDER_STATUSES.DRAFT) {
-    throw new Error('Can only update draft export orders');
+  
+  // Representative chỉ có thể sửa draft hoặc rejected orders
+  if (!['draft', 'rejected'].includes(order.status)) {
+    throw new Error('Can only update draft or rejected export orders');
   }
+  
+  // Representative chỉ có thể sửa orders của mình
   if (user.role !== 'representative' || order.created_by.toString() !== user.userId) {
-    throw new Error('You can only update your own draft export orders');
+    throw new Error('You can only update your own export orders');
   }
+  
+  // Set currentUser context cho validation middleware
+  order.currentUser = user;
+  
+  // Nếu đang sửa rejected order, tự động chuyển về draft
+  if (order.status === 'rejected') {
+    order.status = EXPORT_ORDER_STATUSES.DRAFT;
+    order.approval_by = undefined;
+  }
+  
   let details = updateData.details;
   if (!Array.isArray(details) || details.length === 0) {
     if (!updateData.contract_id && !order.contract_id) {
@@ -270,6 +291,7 @@ async function updateExportOrder(orderId, updateData, user) {
       unit_price: item.unit_price || 0,
     }));
   }
+  
   if (updateData.contract_id) {
     // Kiểm tra contract mới cũng phải là Retailer contract
     const Contract = require('../models/Contract');
@@ -282,6 +304,7 @@ async function updateExportOrder(orderId, updateData, user) {
     }
     order.contract_id = updateData.contract_id;
   }
+  
   order.details = details;
   await order.save();
   return await ExportOrder.findById(orderId).populate(populateOptions);
@@ -343,15 +366,106 @@ async function addExportInspection(orderId, detailId, inspectionData) {
   return detail.actual_item[detail.actual_item.length - 1];
 }
 
+/**
+ * Kiểm tra tồn kho cho export order
+ * @param {Array} details - Chi tiết export order
+ * @returns {Promise<Object>} - Kết quả kiểm tra tồn kho
+ */
+async function checkStockAvailability(details) {
+  try {
+    const Batch = require('../models/Batch');
+    const Package = require('../models/Package');
+    const Medicine = require('../models/Medicine');
+
+    const stockCheckResults = [];
+
+    for (const detail of details) {
+      const { medicine_id, expected_quantity } = detail;
+
+      // Lấy thông tin thuốc
+      const medicine = await Medicine.findById(medicine_id).select('medicine_name license_code');
+      if (!medicine) {
+        stockCheckResults.push({
+          medicine_id,
+          medicine_name: 'Unknown',
+          license_code: 'Unknown',
+          expected_quantity,
+          available_quantity: 0,
+          is_available: false,
+          error: 'Medicine not found'
+        });
+        continue;
+      }
+
+      // Tìm tất cả batch của thuốc này
+      const batches = await Batch.find({ medicine_id }).lean();
+      
+      if (batches.length === 0) {
+        stockCheckResults.push({
+          medicine_id,
+          medicine_name: medicine.medicine_name,
+          license_code: medicine.license_code,
+          expected_quantity,
+          available_quantity: 0,
+          is_available: false,
+          error: 'No batches found for this medicine'
+        });
+        continue;
+      }
+
+      const batchIds = batches.map(batch => batch._id);
+
+      // Tính tổng số lượng có sẵn từ tất cả package
+      const packages = await Package.find({ 
+        batch_id: { $in: batchIds }
+      }).lean();
+
+      const availableQuantity = packages.reduce((sum, pkg) => sum + (pkg.quantity || 0), 0);
+
+      stockCheckResults.push({
+        medicine_id,
+        medicine_name: medicine.medicine_name,
+        license_code: medicine.license_code,
+        expected_quantity,
+        available_quantity: availableQuantity,
+        is_available: availableQuantity >= expected_quantity,
+        error: availableQuantity >= expected_quantity ? null : 'Insufficient stock'
+      });
+    }
+
+    const allAvailable = stockCheckResults.every(result => result.is_available);
+    const insufficientItems = stockCheckResults.filter(result => !result.is_available);
+
+    return {
+      success: true,
+      data: {
+        all_available: allAvailable,
+        stock_check_results: stockCheckResults,
+        insufficient_items: insufficientItems,
+        total_items: stockCheckResults.length,
+        available_items: stockCheckResults.filter(result => result.is_available).length
+      }
+    };
+  } catch (error) {
+    console.error('Error checking stock availability:', error);
+    return {
+      success: false,
+      message: 'Error checking stock availability',
+      error: error.message
+    };
+  }
+}
+
 module.exports = {
   createExportOrder,
   getExportOrdersFilter,
   approveExportOrder,
-  assignWarehouseManager,
+  rejectExportOrder, // Thêm function reject
   getExportOrderById,
   getExportOrders,
   deleteExportOrder,
   updateExportOrder,
   getExportOrderDetail,
   addExportInspection,
+  checkStockAvailability // Thêm function mới
 };

@@ -207,12 +207,12 @@ const annexSchema = new mongoose.Schema(
       type: Date,
       required: [true, 'Signed date is required'],
       validate: {
-        validator: function(value) {
+        validator: function (value) {
           // Ngày ký phải sau ngày tạo hợp đồng
           return value >= this.parent().start_date;
         },
-        message: 'Signed date must be after contract start date'
-      }
+        message: 'Signed date must be after contract start date',
+      },
     },
     created_at: {
       type: Date,
@@ -223,52 +223,54 @@ const annexSchema = new mongoose.Schema(
 );
 
 // Sub-schema cho item trong hợp đồng
-const itemContractSchema = new mongoose.Schema({
-  medicine_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Medicine',
-    required: [true, 'Medicine ID is required'],
-  },
-  quantity: {
-    type: Number,
-    min: [1, 'Quantity must be a positive integer'],
-    required: function() {
-      return this.parent().contract_type === CONTRACT_TYPES.ECONOMIC;
+const itemContractSchema = new mongoose.Schema(
+  {
+    medicine_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Medicine',
+      required: [true, 'Medicine ID is required'],
     },
-  },
-  min_order_quantity: {
-    type: Number,
-    min: [1, 'Minimum order quantity must be a positive integer'],
-    
-  },
-  unit_price: {
-    type: Number,
-    min: [0, 'Unit price cannot be negative'],
-    required: [true, 'Unit price is required'],
-  },
+    quantity: {
+      type: Number,
+      min: [1, 'Quantity must be a positive integer'],
+      required: function () {
+        return this.parent().contract_type === CONTRACT_TYPES.ECONOMIC;
+      },
+    },
+    min_order_quantity: {
+      type: Number,
+      min: [1, 'Minimum order quantity must be a positive integer'],
+    },
+    unit_price: {
+      type: Number,
+      min: [0, 'Unit price cannot be negative'],
+      required: [true, 'Unit price is required'],
+    },
   },
   { _id: false },
 );
 
 // Sub-schema cho export inspection
-const exportInspectionSchema = new mongoose.Schema({
-  package_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Package',
-    required: [true, 'Package ID is required'],
+const exportInspectionSchema = new mongoose.Schema(
+  {
+    package_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Package',
+      required: [true, 'Package ID is required'],
+    },
+    quantity: {
+      type: Number,
+      required: [true, 'Quantity is required'],
+      min: [1, 'Quantity must be a positive integer'],
+    },
+    created_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'Created by is required'],
+    },
   },
-  quantity: {
-    type: Number, 
-    required: [true, 'Quantity is required'],
-    min: [1, 'Quantity must be a positive integer'],
-  },
-  created_by: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: [true, 'Created by is required'],
-  },
-}, { _id: false });
-
+  { _id: false },
+);
 
 // Sub-schema cho export order details
 const exportOrderDetailsSchema = new mongoose.Schema({
@@ -289,23 +291,31 @@ const exportOrderDetailsSchema = new mongoose.Schema({
   },
 });
 
-const checkItemSchema = new mongoose.Schema({
-  medicine_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Medicine',
-    required: [true, 'Medicine ID is required'],
+const checkItemSchema = new mongoose.Schema(
+  {
+    package_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Package',
+      required: [true, 'Package ID is required'],
+    },
+    expected_quantity: {
+      type: Number,
+      required: [true, 'Quantity is required'],
+      min: [0, 'Quantity cannot be negative'],
+    },
+    actual_quantity: {
+      type: Number,
+      required: [true, 'Quantity is required'],
+      min: [0, 'Quantity cannot be negative'],
+    },
+    type: {
+      type: String,
+      enum: ['under_expected', 'over_expected', 'valid'],
+      default: 'valid',
+    },
   },
-  expected_quantity: {
-    type: Number,
-    required: [true, 'Quantity is required'],
-    min: [0, 'Quantity cannot be negative'],
-  },
-  actual_quantity: {
-    type: Number,
-    required: [true, 'Quantity is required'],
-    min: [0, 'Quantity cannot be negative'],
-  }
-}, { _id: false } );
+  { _id: false },
+);
 
 // Xuất sub-schema để sử dụng ở các file khác
 module.exports = {
@@ -318,5 +328,5 @@ module.exports = {
   annexSchema,
   itemContractSchema,
   exportOrderDetailsSchema,
-  checkItemSchema
+  checkItemSchema,
 };

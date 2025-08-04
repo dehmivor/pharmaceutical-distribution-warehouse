@@ -626,9 +626,71 @@ const locationValidator = {
   ],
 };
 
+const packageValidator = {
+  validateGetAllPackages: [
+    check('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    check('limit')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Limit must be a positive integer'),
+    check('medicine_id')
+      .optional()
+      .custom((value) => {
+        if (value && value !== '') {
+          const mongoose = require('mongoose');
+          if (!mongoose.Types.ObjectId.isValid(value)) {
+            throw new Error('Invalid medicine_id');
+          }
+        }
+        return true;
+      }),
+    check('area_id')
+      .optional()
+      .custom((value) => {
+        if (value && value !== '') {
+          const mongoose = require('mongoose');
+          if (!mongoose.Types.ObjectId.isValid(value)) {
+            throw new Error('Invalid area_id');
+          }
+        }
+        return true;
+      }),
+  ],
+  validateGetPackageById: [
+    check('id')
+      .exists()
+      .withMessage('Package ID is required')
+      .isMongoId()
+      .withMessage('Invalid package ID'),
+  ],
+  validateUpdatePackage: [
+    isMongoId('id').withMessage('Invalid package ID'),
+    body('newLocationId')
+      .optional()
+      .isMongoId()
+      .withMessage('Invalid new location ID'),
+    body('quantity')
+      .optional()
+      .isInt({ min: 0 })
+      .withMessage('Quantity must be a non-negative integer'),
+  ],
+  validateUpdatePackageLocation: [
+    isMongoId('id').withMessage('Invalid package ID'),
+    body('newLocationId')
+      .exists()
+      .withMessage('New location ID is required')
+      .isMongoId()
+      .withMessage('Invalid new location ID'),
+  ],
+};
+
 module.exports = {
   contractValidator,
   inventoryCheckOrderValidator,
   areaValidator,
   locationValidator,
+  packageValidator,
 };

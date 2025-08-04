@@ -5,7 +5,6 @@ const {
   authenticateToken,
   authorizeSupervisor,
   authorizeSelfOrSupervisor,
-  authorizeRole,
   validateObjectId,
   checkAccountStatus,
   preventSelfPrivilegeEscalation,

@@ -11,14 +11,14 @@ export default function ContractManagementPage() {
 
   const contractSections = [
     {
-      title: 'Retailer Contracts',
-      description: 'Manage contracts with retailers',
+      title: 'Quản lý Nhà bán lẻ',
+      description: 'Thêm, sửa, xóa và quản lý thông tin nhà bán lẻ',
       icon: IconBuildingStore,
       url: '/sp-retailer-contracts'
     },
     {
-      title: 'Supplier Contracts',
-      description: 'Manage contracts with suppliers',
+      title: 'Quản lý Nhà cung cấp',
+      description: 'Thêm, sửa, xóa và quản lý thông tin nhà cung cấp',
       icon: IconTruck,
       url: '/sp-supplier-contracts'
     }

@@ -1,4 +1,3 @@
-const packageService = require('../services/packageService');
 const batchService = require('../services/batchService');
 const Package = require('../models/Package');
 const Area = require('../models/Area');
@@ -7,6 +6,7 @@ const Batch = require('../models/Batch');
 const LogLocationChange = require('../models/LogLocationChange');
 const locationLogService = require('../services/logLocationChangeService');
 const mongoose = require('mongoose');
+const packageService = require('../services/packageService');
 
 const packageController = {
   // ✅ Get all packages
@@ -404,7 +404,8 @@ const packageController = {
   clearLocation: async (req, res) => {
     try {
       const { packageId } = req.params;
-      const { ware_house_id, import_order_id, export_order_id, inventory_check_order_id } = req.body;
+      const { ware_house_id, import_order_id, export_order_id, inventory_check_order_id } =
+        req.body;
 
       if (!packageId || !ware_house_id) {
         return res.status(400).json({
@@ -416,7 +417,9 @@ const packageController = {
       // 1) Fetch the current package to get batch and quantity
       const pkg = await Package.findById(packageId);
       if (!pkg) {
-        return res.status(404).json({ success: false, message: `No package found with id ${packageId}` });
+        return res
+          .status(404)
+          .json({ success: false, message: `No package found with id ${packageId}` });
       }
 
       const { batch_id, quantity, location_id } = pkg;
@@ -426,8 +429,8 @@ const packageController = {
 
       // 3) Create a location removal log entry
       const log = await LogLocationChange.create({
-        location_id: location_id,                 // indicate removal
-        type: 'remove',                    // removal type
+        location_id: location_id, // indicate removal
+        type: 'remove', // removal type
         batch_id: batch_id,
         quantity: quantity,
         ware_house_id,
@@ -443,7 +446,9 @@ const packageController = {
       if (err.kind === 'ObjectId') {
         return res.status(400).json({ success: false, message: 'Invalid packageId format' });
       }
-      return res.status(500).json({ success: false, message: 'Server error clearing package location' });
+      return res
+        .status(500)
+        .json({ success: false, message: 'Server error clearing package location' });
     }
   },
 
@@ -460,8 +465,9 @@ const packageController = {
       } = req.body;
 
       // Validate ObjectId formats up‐front
-      if (!mongoose.Types.ObjectId.isValid(packageId)
-        || !mongoose.Types.ObjectId.isValid(location_id)
+      if (
+        !mongoose.Types.ObjectId.isValid(packageId) ||
+        !mongoose.Types.ObjectId.isValid(location_id)
       ) {
         return res.status(400).json({
           success: false,
@@ -539,26 +545,25 @@ const packageController = {
       // 3) Find all location_ids for packages with the same batch
       const sameBatchLocationIds = await Package.distinct('location_id', {
         batch_id: batchId,
-        location_id: { $exists: true, $ne: null }
+        location_id: { $exists: true, $ne: null },
       });
 
       // 4) Find all batch IDs for this medicine
-      const sameMedicineBatchIds = await Batch.find({ medicine_id: medicineId })
-        .distinct('_id');
+      const sameMedicineBatchIds = await Batch.find({ medicine_id: medicineId }).distinct('_id');
 
       // 5) Find all location_ids for packages with those batch IDs
       const sameMedicineLocationIds = await Package.distinct('location_id', {
         batch_id: { $in: sameMedicineBatchIds },
-        location_id: { $exists: true, $ne: null }
+        location_id: { $exists: true, $ne: null },
       });
 
       // 6) Load full Location docs, populating area
       const sameBatchLocations = await Location.find({
-        _id: { $in: sameBatchLocationIds }
+        _id: { $in: sameBatchLocationIds },
       }).populate('area_id');
 
       const sameMedicineLocations = await Location.find({
-        _id: { $in: sameMedicineLocationIds }
+        _id: { $in: sameMedicineLocationIds },
       }).populate('area_id');
 
       return res.json({
@@ -566,7 +571,7 @@ const packageController = {
         data: {
           sameBatchLocations,
           sameMedicineLocations,
-        }
+        },
       });
     } catch (err) {
       console.error('❌ Error in getRelatedLocations:', err);
@@ -602,18 +607,20 @@ const packageController = {
       const results = [];
 
       for (const batch of batches) {
-        const packages = await Package.find({ batch_id: batch._id, location_id: { $ne: null } })
-          .populate({
-            path: 'location_id',
-            select: 'bay row column area_id',
-            populate: {
-              path: 'area_id',
-              select: 'name',
-            },
-          });
+        const packages = await Package.find({
+          batch_id: batch._id,
+          location_id: { $ne: null },
+        }).populate({
+          path: 'location_id',
+          select: 'bay row column area_id',
+          populate: {
+            path: 'area_id',
+            select: 'name',
+          },
+        });
 
         // Map packages to desired format
-        const cleanedPackages = packages.map(pkg => ({
+        const cleanedPackages = packages.map((pkg) => ({
           _id: pkg._id,
           quantity: pkg.quantity,
           package_code: pkg.package_code,
@@ -651,6 +658,148 @@ const packageController = {
     }
   },
 
+  // V2 methods for Supervisor Package Management
+  getAllPackagesV2: async (req, res) => {
+    try {
+      const { page = 1, limit = 10, medicine_id, area_id } = req.query;
+      const { validationResult } = require('express-validator');
+      const errors = validationResult(req);
+
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error',
+          errors: errors.array(),
+        });
+      }
+
+      const result = await packageService.getAllPackagesV2({
+        page: Number.parseInt(page),
+        limit: Number.parseInt(limit),
+        medicine_id,
+        area_id,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: result.packages,
+        pagination: result.pagination,
+      });
+    } catch (error) {
+      console.error('Error getting packages V2:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error getting packages',
+        error: error.message,
+      });
+    }
+  },
+
+  getPackageByIdV2: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { validationResult } = require('express-validator');
+      const errors = validationResult(req);
+
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error',
+          errors: errors.array(),
+        });
+      }
+
+      const result = await packageService.getPackageByIdV2(id);
+
+      if (!result.success) {
+        return res.status(404).json(result);
+      }
+
+      res.status(200).json({
+        success: true,
+        data: result.package,
+      });
+    } catch (error) {
+      console.error('Error getting package V2:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error getting package',
+        error: error.message,
+      });
+    }
+  },
+
+  updatePackageLocationV2: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { newLocationId } = req.body;
+      const { validationResult } = require('express-validator');
+      const errors = validationResult(req);
+
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error',
+          errors: errors.array(),
+        });
+      }
+
+      const result = await packageService.updatePackageLocationV2(id, newLocationId);
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Package location updated successfully',
+        data: result.package,
+      });
+    } catch (error) {
+      console.error('Error updating package location V2:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error updating package location',
+        error: error.message,
+      });
+    }
+  },
+
+  updatePackageV2: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { newLocationId, quantity } = req.body;
+      const { validationResult } = require('express-validator');
+      const errors = validationResult(req);
+
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation error',
+          errors: errors.array(),
+        });
+      }
+
+      const result = await packageService.updatePackageV2(id, { newLocationId, quantity });
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Package updated successfully',
+        data: result.package,
+      });
+    } catch (error) {
+      console.error('Error updating package V2:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error updating package',
+        error: error.message,
+      });
+    }
+  },
 };
 
 module.exports = packageController;

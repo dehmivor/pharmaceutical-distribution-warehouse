@@ -20,17 +20,14 @@ import {
   InputAdornment,
   MenuItem,
   Stack,
-  Paper
+  Paper,
+  Tooltip,
+  Alert
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DetailsIcon from '@mui/icons-material/Details';
 import DeleteIcon from '@mui/icons-material/Delete';
-import {
-  Refresh as RefreshIcon,
-  Search as SearchIcon,
-  ArrowUpward as ArrowUpwardIcon,
-  ArrowDownward as ArrowDownwardIcon
-} from '@mui/icons-material';
+import { Search as SearchIcon, ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
 import { useSnackbar } from 'notistack';
@@ -42,14 +39,14 @@ function CheckInspections() {
   const { enqueueSnackbar } = useSnackbar();
   const router = useRouter();
 
-  // State filter, sort, search
+  // States filter, sort, search
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [sortDirection, setSortDirection] = useState('asc'); // 'asc' hoặc 'desc'
+  const [sortDirection, setSortDirection] = useState('asc');
 
-  // Các state cũ
+  // Other states
   const [loading, setLoading] = useState(true);
   const [checkBy, setCheckBy] = useState(null);
   const [orderData, setOrderData] = useState(null);
@@ -63,7 +60,6 @@ function CheckInspections() {
 
   const { checkOrderId } = useParams();
 
-  // Các trạng thái ví dụ (có thể tùy biến theo backend)
   const statusOptions = ['pending', 'processing', 'completed', 'cancelled'];
 
   const getAuthHeaders = () => {
@@ -75,7 +71,7 @@ function CheckInspections() {
     };
   };
 
-  // Load user hiện tại
+  // Load current user info from localStorage
   useEffect(() => {
     const userString = localStorage.getItem('user');
     if (userString) {
@@ -100,7 +96,7 @@ function CheckInspections() {
       });
   }, []);
 
-  // Load chi tiết đơn và xử lý trạng thái
+  // Load check order details and inventory items
   useEffect(() => {
     if (!checkOrderId) return;
 
@@ -134,7 +130,6 @@ function CheckInspections() {
               }));
               setInventoryItems(items);
             }
-            // Đơn chưa processing, sẽ đợi useEffect tạo phiếu
           }
         } else {
           enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
@@ -151,7 +146,7 @@ function CheckInspections() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkOrderId]);
 
-  // Hàm xử lý đổi filter field
+  // Handle filter change
   const handleFilterChange = (field, value) => {
     switch (field) {
       case 'search':
@@ -171,13 +166,13 @@ function CheckInspections() {
     }
   };
 
-  // Xử lý khi nhấn nút Search (tải dữ liệu mới với filter, sort)
+  // Search button clicked
   const handleSearchClick = () => {
     setPage(0);
     fetchInspections(0, rowsPerPage);
   };
 
-  // Reset filter, sort về mặc định
+  // Reset filters & sort
   const handleReset = () => {
     setSearchTerm('');
     setFilterLocation('');
@@ -188,13 +183,13 @@ function CheckInspections() {
     fetchInspections(0, rowsPerPage);
   };
 
-  // Hàm fetch inspections với query filter, sort
+  // Fetch inspections data with query params
   const fetchInspections = (pageParam = page, rowsPerPageParam = rowsPerPage) => {
     if (!checkOrderId) return;
     setLoading(true);
 
     const params = {
-      page: pageParam + 1, // backend pagination start from 1
+      page: pageParam + 1,
       limit: rowsPerPageParam
     };
 
@@ -215,32 +210,19 @@ function CheckInspections() {
         setTotalCount(total);
 
         if (Array.isArray(inspectionsData)) {
-          const processedInspections = inspectionsData.map((inspection) => {
-            const firstCheckItem = inspection.check_list?.[0] || null;
-            const med = firstCheckItem?.medicine_id || null;
-
-            return {
-              _id: inspection._id,
-              inventory_check_order_id: inspection.inventory_check_order_id?._id || inspection.inventory_check_order_id,
-              status: inspection.status,
-              location_id: inspection.location_id,
-              notes: inspection.notes,
-              check_by: inspection.check_by,
-              date: inspection.createdAt || inspection.updatedAt || null,
-              item: med
-                ? {
-                    medicine_id: med._id,
-                    medicine_name: med.medicine_name,
-                    license_code: med.license_code,
-                    expectedQuantity: firstCheckItem.expected_quantity,
-                    actualQuantity: firstCheckItem.actual_quantity
-                  }
-                : null
-            };
-          });
+          const processedInspections = inspectionsData.map((inspection) => ({
+            _id: inspection._id,
+            inventory_check_order_id: inspection.inventory_check_order_id?._id || inspection.inventory_check_order_id,
+            status: inspection.status,
+            location_id: inspection.location_id,
+            notes: inspection.notes,
+            check_by: inspection.check_by,
+            date: inspection.createdAt || inspection.updatedAt || null,
+            check_list: inspection.check_list || []
+          }));
           setInspections(processedInspections);
 
-          // Lấy userId duy nhất
+          // Fetch user data for check_by
           const uniqueUserIds = [...new Set(processedInspections.map((i) => i.check_by?._id || i.check_by).filter(Boolean))];
 
           if (uniqueUserIds.length > 0) {
@@ -286,7 +268,6 @@ function CheckInspections() {
       .finally(() => setLoading(false));
   };
 
-  // Tạo phiếu kiểm loạt và cập nhật trạng thái khi đơn chưa processing
   useEffect(() => {
     const createInspectionsAndUpdateStatus = async () => {
       if (!checkOrderId || !checkBy || !orderData) return;
@@ -294,38 +275,70 @@ function CheckInspections() {
 
       setLoading(true);
       try {
-        await axios.post(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {}, { headers: getAuthHeaders() });
-
-        enqueueSnackbar('Đã tạo phiếu kiểm kê cho tất cả vị trí.', { variant: 'success' });
-
-        await axios.patch(
+        const updateRes = await axios.patch(
           `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
           { status: 'processing' },
           { headers: getAuthHeaders() }
         );
 
-        enqueueSnackbar('Cập nhật trạng thái đơn kiểm kê thành công.', { variant: 'success' });
+        if (updateRes.data?.success) {
+          if (updateRes.data.updated === false) {
+            enqueueSnackbar(updateRes.data.message || 'Đang có đợt kiểm kê khác, trạng thái giữ nguyên.', {
+              variant: 'info'
+            });
+          } else if (updateRes.data.updated === true) {
+            enqueueSnackbar(updateRes.data.message || 'Cập nhật trạng thái đơn kiểm kê thành công.', {
+              variant: 'success'
+            });
 
-        fetchInspections(0, rowsPerPage);
+            const createRes = await axios.post(
+              `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
+              {},
+              { headers: getAuthHeaders() }
+            );
+
+            enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
+              variant: createRes.data?.success ? 'success' : 'info'
+            });
+
+            fetchInspections(0, rowsPerPage);
+          } else {
+            enqueueSnackbar(updateRes.data.message || 'Cập nhật trạng thái đơn kiểm kê thành công.', {
+              variant: 'success'
+            });
+
+            const createRes = await axios.post(
+              `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
+              {},
+              { headers: getAuthHeaders() }
+            );
+            enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
+              variant: createRes.data?.success ? 'success' : 'info'
+            });
+            fetchInspections(0, rowsPerPage);
+          }
+        } else {
+          enqueueSnackbar(updateRes.data.message || 'Không thể tạo phiếu kiểm kê vì cập nhật trạng thái không thành công.', {
+            variant: 'error'
+          });
+        }
       } catch (error) {
+        const errorMsg = error.response?.data?.message || 'Tạo phiếu hoặc cập nhật trạng thái thất bại.';
         console.error('Lỗi khi tạo phiếu hoặc cập nhật trạng thái:', error);
-        enqueueSnackbar('Tạo phiếu hoặc cập nhật trạng thái thất bại.', { variant: 'error' });
+        enqueueSnackbar(errorMsg, { variant: 'error' });
       } finally {
         setLoading(false);
       }
     };
 
     createInspectionsAndUpdateStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkOrderId, checkBy, orderData]);
 
-  // Xử lý đổi trang
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
     fetchInspections(newPage, rowsPerPage);
   };
 
-  // Xử lý đổi số hàng/trang
   const handleChangeRowsPerPage = (event) => {
     const newRpp = parseInt(event.target.value, 10);
     setRowsPerPage(newRpp);
@@ -333,31 +346,10 @@ function CheckInspections() {
     fetchInspections(0, newRpp);
   };
 
-  // Xóa phiếu kiểm kê
-  const handleDeleteInspection = (inspectionId) => {
-    if (!inspectionId || inspectionId.length !== 24) {
-      enqueueSnackbar('ID phiếu kiểm kê không hợp lệ để xóa.', { variant: 'error' });
-      return;
-    }
-    axios
-      .delete(`${backendUrl}/api/inventory/${inspectionId}`, {
-        headers: getAuthHeaders()
-      })
-      .then(() => {
-        enqueueSnackbar('Phiếu kiểm kê đã được xóa.', { variant: 'success' });
-        fetchInspections(page, rowsPerPage);
-      })
-      .catch((error) => {
-        console.error('Failed to delete inspection:', error);
-        enqueueSnackbar('Xóa phiếu kiểm kê thất bại.', { variant: 'error' });
-      });
-  };
+  const countUncheckedInspections = inspections.filter((insp) => insp.check_list.some((item) => item.actual_quantity === 0)).length;
 
-  // Danh sách mặt hàng chưa kiểm
-  const checkedMedicineIds = new Set(inspections.map((insp) => insp.item?.medicine_id).filter(Boolean));
-  const uncheckedMedicines = inventoryItems.filter((item) => !checkedMedicineIds.has(item.id));
+  const countCheckedInspections = inspections.filter((insp) => insp.check_list.some((item) => item.actual_quantity > 0)).length;
 
-  // Lấy label vị trí mô tả
   const getLocationLabel = (location) => {
     if (!location) return '';
     const areaName = location.area_id?.name || 'Không xác định';
@@ -366,7 +358,27 @@ function CheckInspections() {
 
   return (
     <Box sx={{ padding: 4 }}>
-      {/* Tiêu đề và nút Refresh */}
+      {/* Alert Thông tin checkorder */}
+      {orderData && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+            Thông tin Phiếu Kiểm Kê: <strong>{orderData._id}</strong>
+          </Typography>
+          <Typography variant="body2">
+            Warehouse Manager: {orderData.warehouse_manager_id.email} | Người tạo: {orderData.created_by?.email || '-'} | Ngày kiểm kê:{' '}
+            {orderData.inventory_check_date ? new Date(orderData.inventory_check_date).toLocaleDateString('vi-VN') : '-'} | Trạng thái:{' '}
+            {orderData.status}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Ghi chú: {orderData.notes || '-'}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1, fontSize: '0.875rem' }}>
+            Ngày tạo: {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString('vi-VN') : '-'} | Ngày cập nhật:{' '}
+            {orderData.updatedAt ? new Date(orderData.updatedAt).toLocaleString('vi-VN') : '-'}
+          </Typography>
+        </Alert>
+      )}
+
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
@@ -474,30 +486,59 @@ function CheckInspections() {
           </>
         ) : (
           <>
-            <Accordion defaultExpanded sx={{ mb: 5 }}>
+            <Accordion defaultExpanded sx={{ mb: 3 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="h6">Mặt hàng chưa kiểm ({uncheckedMedicines.length})</Typography>
+                <Typography variant="h6">Mặt hàng chưa kiểm ({countUncheckedInspections} phiếu)</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                {uncheckedMedicines.length === 0 ? (
-                  <Typography>Không còn mặt hàng nào chưa kiểm.</Typography>
+                {inspections.length === 0 || countUncheckedInspections === 0 ? (
+                  <Typography>Không có phiếu kiểm kê chưa kiểm.</Typography>
                 ) : (
-                  <Table size="small" aria-label="unchecked-items">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Tên mặt hàng</TableCell>
-                        <TableCell align="right">Tồn kho</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {uncheckedMedicines.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell>{item.name}</TableCell>
-                          <TableCell align="right">{item.stock}</TableCell>
-                        </TableRow>
+                  <Stack spacing={2}>
+                    {inspections
+                      .filter((inspection) => inspection.check_list.some((item) => item.actual_quantity === 0))
+                      .map((inspection) => (
+                        <Paper
+                          key={inspection._id}
+                          variant="outlined"
+                          sx={{ p: 2, bgcolor: 'background.paper', position: 'relative' }}
+                          elevation={0}
+                        >
+                          <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+                            Vị trí: {getLocationLabel(inspection.location_id)} - Trạng thái: {inspection.status}
+                          </Typography>
+
+                          <Table size="small" aria-label="check-list-items">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Tên thuốc</TableCell>
+                                <TableCell>License code</TableCell>
+                                <TableCell align="right">Số lượng dự kiến</TableCell>
+                                <TableCell align="right">Số lượng thực tế</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {inspection.check_list
+                                .filter((item) => item.actual_quantity === 0)
+                                .map((checkItem, idx) => {
+                                  const medicine = checkItem.package_id?.batch_id?.medicine_id;
+                                  return (
+                                    <TableRow key={idx}>
+                                      <TableCell>{medicine?.medicine_name || 'Không xác định'}</TableCell>
+                                      <TableCell>{medicine?.license_code || '-'}</TableCell>
+                                      <TableCell align="right">{checkItem.expected_quantity}</TableCell>
+                                      <TableCell align="right">{checkItem.actual_quantity}</TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                            </TableBody>
+                          </Table>
+                          <Typography variant="body2" sx={{ mt: 1 }}>
+                            Ghi chú: {inspection.notes || '-'}
+                          </Typography>
+                        </Paper>
                       ))}
-                    </TableBody>
-                  </Table>
+                  </Stack>
                 )}
               </AccordionDetails>
             </Accordion>
@@ -505,50 +546,58 @@ function CheckInspections() {
             {/* Mặt hàng đã kiểm */}
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="h6">Mặt hàng đã kiểm ({totalCount})</Typography>
+                <Typography variant="h6">Mặt hàng đã kiểm ({countCheckedInspections} phiếu)</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                {inspections.length > 0 ? (
+                {inspections.length === 0 || countCheckedInspections === 0 ? (
+                  <Typography>Không có phiếu kiểm kê đã kiểm.</Typography>
+                ) : (
                   <>
-                    <Table size="small" aria-label="checked-items">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Tên mặt hàng</TableCell>
-                          <TableCell align="right">Số lượng dự kiến</TableCell>
-                          <TableCell align="right">Số lượng thực tế</TableCell>
-                          <TableCell>Vị trí</TableCell>
-                          <TableCell align="right">Tồn kho</TableCell>
-                          <TableCell>Người kiểm</TableCell>
-                          <TableCell align="center">Hành động</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {inspections.map((inspection) => (
-                          <TableRow key={inspection._id}>
-                            <TableCell>{inspection.item?.medicine_name ?? 'Không xác định'}</TableCell>
-                            <TableCell align="right">{inspection.item?.expectedQuantity ?? '-'}</TableCell>
-                            <TableCell align="right">{inspection.item?.actualQuantity ?? '-'}</TableCell>
-                            <TableCell>{getLocationLabel(inspection.location_id)}</TableCell>
-                            <TableCell align="right">
-                              {inventoryItems.find((m) => m.id === (inspection.item?.medicine_id || ''))?.stock || '-'}
-                            </TableCell>
-                            <TableCell>
-                              {inspection.check_by ? inspection.check_by.email || inspection.check_by.name || 'Không có' : 'Không có'}
-                            </TableCell>
-                            <TableCell align="center">
-                              <IconButton
-                                aria-label="delete"
-                                size="small"
-                                color="error"
-                                onClick={() => handleDeleteInspection(inspection._id)}
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
+                    <Stack spacing={2}>
+                      {inspections
+                        .filter((inspection) => inspection.check_list.some((item) => item.actual_quantity > 0))
+                        .map((inspection) => (
+                          <Paper
+                            key={inspection._id}
+                            variant="outlined"
+                            sx={{ p: 2, bgcolor: 'background.paper', position: 'relative' }}
+                            elevation={0}
+                          >
+                            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+                              Vị trí: {getLocationLabel(inspection.location_id)} - Trạng thái: {inspection.status}
+                            </Typography>
+
+                            <Table size="small" aria-label="check-list-items">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>Tên thuốc</TableCell>
+                                  <TableCell>License code</TableCell>
+                                  <TableCell align="right">Số lượng dự kiến</TableCell>
+                                  <TableCell align="right">Số lượng thực tế</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {inspection.check_list
+                                  .filter((item) => item.actual_quantity > 0)
+                                  .map((checkItem, idx) => {
+                                    const medicine = checkItem.package_id?.batch_id?.medicine_id;
+                                    return (
+                                      <TableRow key={idx}>
+                                        <TableCell>{medicine?.medicine_name || 'Không xác định'}</TableCell>
+                                        <TableCell>{medicine?.license_code || '-'}</TableCell>
+                                        <TableCell align="right">{checkItem.expected_quantity}</TableCell>
+                                        <TableCell align="right">{checkItem.actual_quantity}</TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                              </TableBody>
+                            </Table>
+                            <Typography variant="body2" sx={{ mt: 1 }}>
+                              Ghi chú: {inspection.notes || '-'}
+                            </Typography>
+                          </Paper>
                         ))}
-                      </TableBody>
-                    </Table>
+                    </Stack>
 
                     <TablePagination
                       component="div"
@@ -559,12 +608,10 @@ function CheckInspections() {
                       onRowsPerPageChange={handleChangeRowsPerPage}
                       rowsPerPageOptions={[5, 10, 25, 50]}
                       labelRowsPerPage="Số hàng mỗi trang:"
-                      labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
+                      labelDisplayedRows={({ from, to, count }) => `${from}-${to} trong ${count !== -1 ? count : `hơn ${to}`}`}
                       sx={{ mt: 2 }}
                     />
                   </>
-                ) : (
-                  <Typography>Chưa có phiếu kiểm kê nào.</Typography>
                 )}
               </AccordionDetails>
             </Accordion>
