@@ -56,17 +56,17 @@ const createCheckInspection = async (req, res) => {
 
     const createdInspections = await Promise.all(
       allLocations.map(async (location) => {
-        // Lấy package trong vị trí, populate batch và medicine (theo logic getLocationInfo)
+        // Lấy packages trong vị trí, populate batch và medicine
         const packages = await Package.find({ location_id: location._id }).populate({
           path: 'batch_id',
           populate: {
             path: 'medicine_id',
-            select: 'medicine_name license_code', // theo schema medicine_model bạn gửi trước đó
+            select: 'medicine_name license_code',
           },
         });
 
+        // Nếu không có package ở location => check_list rỗng
         if (!packages || packages.length === 0) {
-          // Nếu không có package ở location => check_list rỗng
           return inventoryService.createCheckInspection({
             inventory_check_order_id: checkOrderId,
             status: INVENTORY_CHECK_INSPECTION_STATUSES.DRAFT,
@@ -76,27 +76,13 @@ const createCheckInspection = async (req, res) => {
           });
         }
 
-        // Gom nhóm tổng số lượng expected_quantity theo medicine_id, giống như medicineSummary
-        const medicineMap = new Map();
-
-        packages.forEach((pkg) => {
-          const batch = pkg.batch_id;
-          if (batch && batch.medicine_id) {
-            const medIdStr = batch.medicine_id._id.toString();
-            const current = medicineMap.get(medIdStr) || {
-              medicine_id: batch.medicine_id._id,
-              expected_quantity: 0,
-            };
-            current.expected_quantity += pkg.quantity;
-            medicineMap.set(medIdStr, current);
-          }
-        });
-
-        // Tạo check_list dựa trên medicineMap
-        const check_list = Array.from(medicineMap.values()).map((item) => ({
-          medicine_id: item.medicine_id,
-          expected_quantity: item.expected_quantity,
-          actual_quantity: 0, // khởi tạo 0
+        // Tạo check_list dựa trên packages, mỗi package tạo 1 item check
+        // Vì theo model mới, check_list là array các package_id kèm expected và actual quantity
+        const check_list = packages.map((pkg) => ({
+          package_id: pkg._id,
+          expected_quantity: pkg.quantity,
+          actual_quantity: 0, // khởi tạo mặc định = 0
+          type: 'valid', // mặc định 'valid', có thể logic khác để đánh dấu under/over nếu cần
         }));
 
         return inventoryService.createCheckInspection({
@@ -125,6 +111,8 @@ const createCheckInspection = async (req, res) => {
     });
   }
 };
+
+const removeCheckResult = async (req, res) => {};
 
 const deleteCheckInspection = async (req, res) => {
   try {
