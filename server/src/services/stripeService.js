@@ -1,6 +1,7 @@
 const Stripe = require('stripe');
 const stripe = new Stripe(process.env.STRIPE_API_KEY, { apiVersion: '2022-11-15' });
-
+const { updateBillStatus } = require('./billService');
+const { BILL_STATUSES } = require('../utils/constants');
 const frontendUrl = process.env.CLIENT_URL || 'http://localhost:3000';
 
 async function createCheckoutSession({
@@ -30,15 +31,15 @@ async function createCheckoutSession({
       },
     ],
     mode: 'payment',
-    success_url: `${frontendUrl}/success`,
-    cancel_url: `${frontendUrl}/not-found`,
+    success_url: successUrl || `${frontendUrl}/success`,
+    cancel_url: cancelUrl || `${frontendUrl}/not-found`,
     metadata: {
       billId,
       paymentType,
     },
   });
 
-  return session.url; // trả về url checkout để redirect client
+  return session.url;
 }
 
 async function createPaymentImport(billId, amount, successUrl, cancelUrl) {
@@ -69,7 +70,7 @@ const processWebhookEvent = async (req, res) => {
 
   try {
     event = stripe.webhooks.constructEvent(
-      req.body, // phải là raw body (buffer)
+      req.body, // raw body (buffer) cho webhook verify
       sig,
       process.env.STRIPE_WEBHOOK_SECRET,
     );
@@ -78,41 +79,67 @@ const processWebhookEvent = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Xử lý các event bạn quan tâm
-  switch (event.type) {
-    case 'checkout.session.completed': {
-      const session = event.data.object;
-      const billId = session.metadata.billId;
+  const session = event.data?.object;
+  const billId = session?.metadata?.billId;
 
-      try {
-        await updateBillStatus(billId, 'COMPLETED');
-        console.log(`Bill ${billId} updated to COMPLETED`);
-      } catch (error) {
-        console.error('Lỗi cập nhật trạng thái bill:', error);
-      }
-      break;
-    }
-    case 'checkout.session.expired': {
-      const session = event.data.object;
-      const billId = session.metadata.billId;
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        if (billId) {
+          const amountPaid = session.amount_total || session.amount_subtotal || 0;
 
-      try {
-        await updateBillStatus(billId, 'CANCELED');
-        console.log(`Bill ${billId} updated to CANCELED (expired)`);
-      } catch (error) {
-        console.error('Lỗi cập nhật trạng thái bill:', error);
-      }
-      break;
+          const totalAmount = await getBillTotalAmount(billId);
+
+          if (amountPaid >= totalAmount) {
+            await updateBillStatus(billId, BILL_STATUSES.COMPLETED);
+            console.log(`Bill ${billId} updated to COMPLETED`);
+          } else if (amountPaid > 0) {
+            await updateBillStatus(billId, BILL_STATUSES.PARTIAL);
+            console.log(`Bill ${billId} updated to PARTIAL`);
+          } else {
+            await updateBillStatus(billId, BILL_STATUSES.PENDING);
+            console.log(`Bill ${billId} remains PENDING`);
+          }
+        }
+        break;
+
+      case 'payment_intent.succeeded':
+        if (billId) {
+          const paymentIntent = event.data.object;
+          const amountPaid = paymentIntent.amount_received || 0;
+          const totalAmount = await getBillTotalAmount(billId);
+
+          if (amountPaid >= totalAmount) {
+            await updateBillStatus(billId, BILL_STATUSES.COMPLETED);
+            console.log(`Bill ${billId} updated to COMPLETED (payment_intent.succeeded)`);
+          } else if (amountPaid > 0) {
+            await updateBillStatus(billId, BILL_STATUSES.PARTIAL);
+            console.log(`Bill ${billId} updated to PARTIAL (payment_intent.succeeded)`);
+          } else {
+            await updateBillStatus(billId, BILL_STATUSES.PENDING);
+            console.log(`Bill ${billId} remains PENDING`);
+          }
+        }
+        break;
+
+      case 'checkout.session.expired':
+      case 'checkout.session.async_payment_failed':
+      case 'payment_intent.payment_failed':
+        if (billId) {
+          await updateBillStatus(billId, BILL_STATUSES.CANCELLED);
+          console.log(`Bill ${billId} updated to CANCELLED (payment failed or expired)`);
+        }
+        break;
+
+      default:
+        console.log(`Unhandled event type ${event.type}`);
     }
-    // Thêm các case khác nếu cần
-    default:
-      console.log(`Unhandled event type ${event.type}`);
+  } catch (error) {
+    console.error('Lỗi cập nhật trạng thái bill:', error);
   }
 
-  // Gửi phản hồi thành công cho Stripe
   res.json({ received: true });
 };
-
 module.exports = {
   createCheckoutSession,
   createPaymentExport,

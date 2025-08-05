@@ -164,12 +164,10 @@ const EXPORT_ORDER_STATUSES = {
 const BILL_STATUSES = {
   DRAFT: 'draft',
   PENDING: 'pending',
-  PAID: 'paid',
-  OVERDUE: 'overdue',
-  CANCELLED: 'cancelled',
   PARTIAL: 'partial',
+  CANCELLED: 'cancelled',
+  OVERDUE: 'overdue',
   COMPLETED: 'completed',
-  UNPAID: 'unpaid',
 };
 
 const INVENTORY_CHECK_ORDER_STATUSES = {

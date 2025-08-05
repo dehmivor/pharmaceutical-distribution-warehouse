@@ -154,8 +154,8 @@ function ManageBills() {
         bill.type === 'IMPORT' ? `/api/stripe/create-payment-import/${bill._id}` : `/api/stripe/create-payment-export/${bill._id}`;
 
       const amount = Math.round(calcAmount(bill.details));
-      const successUrl = window.location.origin + '/payment-success';
-      const cancelUrl = window.location.origin + '/payment-cancel';
+      const successUrl = window.location.origin + '/success';
+      const cancelUrl = window.location.origin + '/not-found';
 
       const response = await axios.post(`${backendUrl}${endpoint}`, {
         amount,
