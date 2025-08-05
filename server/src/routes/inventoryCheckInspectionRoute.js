@@ -11,7 +11,7 @@ router.use(authenticate);
 // Get all check inventory inspection by order id
 router.get(
   '/:orderId/inspections',
-  authorize(['warehouse']),
+  authorize(['warehouse', 'warehouse_manager']),
   inventoryCheckInspectionController.getInspectionsByOrderIdController,
 );
 
