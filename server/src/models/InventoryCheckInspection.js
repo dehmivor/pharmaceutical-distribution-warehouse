@@ -15,7 +15,7 @@ const inventoryCheckInspectionSchema = new mongoose.Schema({
       values: Object.values(INVENTORY_CHECK_INSPECTION_STATUSES),
       message: `Status must be one of: ${Object.values(INVENTORY_CHECK_INSPECTION_STATUSES).join(', ')}`,
     },
-    default: INVENTORY_CHECK_INSPECTION_STATUSES.PENDING,
+    default: INVENTORY_CHECK_INSPECTION_STATUSES.DRAFT,
   },
   location_id: {
     type: mongoose.Schema.Types.ObjectId,

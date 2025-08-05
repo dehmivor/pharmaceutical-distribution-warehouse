@@ -27,4 +27,5 @@ module.exports = {
   inventoryCheckOrderRoutes: require('./inventoryCheckOrderRoute'),
   inventoryRoutes: require('./inventoryRoutes'),
   dashboardRoutes: require('./dashboardRoute'),
+  inventoryCheckInspectionRoutes: require('./inventoryCheckInspectionRoute')
 };

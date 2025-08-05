@@ -558,7 +558,7 @@ export default function ManageExportOrders() {
             return
           }
           const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/assign-warehouse-manager`, {
-            method: "PATCH",
+            method: "PUT",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,

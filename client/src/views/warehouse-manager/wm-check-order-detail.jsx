@@ -1,178 +1,233 @@
-'use client';
+"use client"
 
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import axios from 'axios';
-import { Box, CircularProgress, Alert, Typography, Paper, Grid, Chip, Button, Stack, LinearProgress, Divider } from '@mui/material';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
+import axios from "axios"
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Box,
+  Container,
+  Grid,
+  Stack,
+  Typography,
+  CircularProgress,
+  Alert,
+  Snackbar,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Button,
+  Chip,
+} from "@mui/material"
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
+import RefreshIcon from "@mui/icons-material/Refresh"
+import { useTheme } from "@mui/material/styles"
 
 // Lấy header Authorization từ localStorage
 const getAuthHeaders = () => {
-  if (typeof window === 'undefined') return {};
-  const token = localStorage.getItem('auth-token');
+  const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null
   return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
-  };
-};
+    "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
+  }
+}
 
-const formatDate = (d) => (d ? new Date(d).toLocaleDateString('vi-VN') : '');
-const formatDateTime = (d) => (d ? new Date(d).toLocaleString('vi-VN', { hour12: false }) : '');
-
+const formatDate = (d) => (d ? new Date(d).toLocaleDateString("vi-VN") : "")
+const formatDateTime = (d) => (d ? new Date(d).toLocaleString("vi-VN", { hour12: false }) : "")
 const getStatusColor = (status) => {
   switch (status) {
-    case 'pending':
-      return 'warning';
-    case 'processing':
-      return 'info';
-    case 'completed':
-      return 'success';
-    case 'cancelled':
-      return 'error';
-    case 'checking':
-      return 'primary';
+    case "pending":
+      return "warning"
+    case "processing":
+      return "info"
+    case "completed":
+      return "success"
+    case "cancelled":
+      return "error"
+    case "checking":
+      return "primary"
+    case "checked":
+      return "success"
+    case "draft":
+      return "default"
+    case "valid":
+      return "success"
+    case "over_expected":
+      return "error"
+    case "under_expected":
+      return "error"
     default:
-      return 'default';
+      return "default"
   }
-};
+}
 
-// Màu pie chart mặc định cho các phần
-const PIE_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+export default function CheckOrderDetail() {
+  const theme = useTheme()
+  const { checkOrderId } = useParams()
 
-export default function CheckOrderDetailPage() {
-  const id = useParams();
-  const [orderData, setOrderData] = useState(null);
-  const [logLocation, setLogLocation] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
+  const [order, setOrder] = useState(null)
+  const [inspections, setInspections] = useState([])
+  const [loadingOrder, setLoadingOrder] = useState(true)
+  const [loadingInspections, setLoadingInspections] = useState(true)
+  const [error, setError] = useState(null)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "error" })
 
-  // Ví dụ giả lập dữ liệu kết quả kiểm kê (thực tế bạn bổ sung từ API)
-  const inventoryResultData = orderData
-    ? [
-        { name: 'Đã kiểm kê', value: orderData.checkedItems || 70 },
-        { name: 'Chưa kiểm kê', value: orderData.uncheckedItems || 20 },
-        { name: 'Chênh lệch', value: orderData.discrepancies || 10 }
-      ]
-    : [];
-
-  const totalCount = inventoryResultData.reduce((acc, cur) => acc + cur.value, 0) || 0;
-
-  // Tính phần trăm cho progress bar
-  const percentChecked = orderData?.checkedItems ? Math.round((orderData.checkedItems / totalCount) * 100) : 0;
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError('');
+  const fetchOrder = async () => {
+    setLoadingOrder(true)
+    setError(null)
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${id?.checkOrderId}`, {
-        headers: getAuthHeaders()
-      });
-
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
+        headers: getAuthHeaders(),
+      })
       if (res.data.success) {
-        setOrderData(res.data.data.checkorder);
-        setLogLocation(res.data.data.loglocation || []);
+        setOrder(res.data.data.checkorder)
       } else {
-        setError(res.data.message || 'Lỗi khi tải dữ liệu');
+        throw new Error(res.data.message || "Failed to load order")
       }
     } catch (err) {
-      setError('Lỗi khi tải dữ liệu');
-      console.error(err);
+      console.error(err)
+      setError(err.message)
+      setSnackbar({ open: true, message: err.message, severity: "error" })
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setLoadingOrder(false)
     }
-  };
+  }
 
-  const handleCompleteCheck = async (orderId) => {
-    if (orderData.status !== 'processing') {
-      setError('Chỉ các đơn kiểm kê đang xử lý mới có thể hoàn thành');
-      return;
-    }
-
+  const fetchInspections = async () => {
+    if (!checkOrderId) return
+    setLoadingInspections(true)
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const response = await axios.patch(`${backendUrl}/api/inventory/check-order/${orderId}`, {
-        status: 'completed',
-      }, {
-        headers: getAuthHeaders(),
-      });
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const { data: inspectionsData } = await axios.get(
+        `${backendUrl}/api/inventory-check-inspections/${checkOrderId}/inspections`,
+        {
+          headers: getAuthHeaders(),
+        },
+      )
 
-      if (response.data.success) {
-        setOrderData((prev) => ({ ...prev, status: 'completed' }));
-        setSuccess('Đơn kiểm kê đã được hoàn thành thành công');
-        fetchData(); // Làm mới dữ liệu trang
+      if (inspectionsData.success) {
+        const inspectionsWithItems = await Promise.all(
+          inspectionsData.data.map(async (inspection) => {
+            try {
+              const { data: itemsData } = await axios.get(
+                `${backendUrl}/api/inventory-check-inspections/${inspection._id}/check-items`,
+                {
+                  headers: getAuthHeaders(),
+                },
+              )
+              return {
+                ...inspection,
+                check_items: itemsData.success ? itemsData.data : [],
+              }
+            } catch (itemErr) {
+              console.error(`Failed to load check items for inspection ${inspection._id}:`, itemErr)
+              return { ...inspection, check_items: [] } // Return inspection even if items fail
+            }
+          }),
+        )
+        setInspections(inspectionsWithItems)
       } else {
-        setError(response.data.message || 'Không thể hoàn thành đơn kiểm kê');
+        throw new Error(inspectionsData.error || "Failed to load inspections")
       }
     } catch (err) {
-      console.error(err);
-      setError('Đã xảy ra lỗi khi hoàn thành đơn kiểm kê');
+      setError(err.message)
+      setSnackbar({ open: true, message: err.message, severity: "error" })
+    } finally {
+      setLoadingInspections(false)
     }
-  };
-
-  const handleClearInspections = async (orderId) => {
-    try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const response = await axios.patch(`${backendUrl}/api/inventory/check-order/${orderId}/clear-inspections`, {}, {
-        headers: getAuthHeaders(),
-      });
-
-      if (response.data.success) {
-        setSuccess('Đã xóa toàn bộ số lượng thực tế và đặt lại trạng thái phiếu kiểm con');
-        fetchData(); // Làm mới dữ liệu trang
-      } else {
-        setError(response.data.message || 'Không thể xóa phiếu kiểm con');
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Đã xảy ra lỗi khi xóa phiếu kiểm con');
-    }
-  };
-
-  const handleCancelOrder = async (orderId) => {
-    try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const response = await axios.patch(`${backendUrl}/api/inventory/check-order/${orderId}`, {
-        status: 'cancelled',
-      }, {
-        headers: getAuthHeaders(),
-      });
-
-      if (response.data.success) {
-        setOrderData((prev) => ({ ...prev, status: 'cancelled' }));
-        setSuccess('Đơn kiểm kê đã được hủy thành công');
-        fetchData(); // Làm mới dữ liệu trang
-      } else {
-        setError(response.data.message || 'Không thể hủy đơn kiểm kê');
-      }
-    } catch (err) {
-      console.error(err);
-      setError('Đã xảy ra lỗi khi hủy đơn kiểm kê');
-    }
-  };
+  }
 
   useEffect(() => {
-    if (!id) return;
-    fetchData();
-  }, [id]);
+    if (!checkOrderId) return
+    fetchOrder()
+    fetchInspections()
+  }, [checkOrderId])
 
-  // Nút reload thủ công
   const handleRefresh = () => {
-    setRefreshing(true);
-    fetchData();
-  };
+    fetchOrder()
+    fetchInspections()
+  }
 
-  if (loading && !refreshing)
+  const handleCompleteCheck = async () => {
+    if (!order) return
+
+    // Client-side validation logic
+    const overExpectedPackages = new Set()
+    const underExpectedPackages = new Set()
+
+    inspections.forEach((inspection) => {
+      inspection.check_items.forEach((item) => {
+        if (item.type === "over_expected") {
+          overExpectedPackages.add(item.package_id._id)
+        } else if (item.type === "under_expected") {
+          underExpectedPackages.add(item.package_id._id)
+        }
+      })
+    })
+
+    let validationFailed = false
+    if (overExpectedPackages.size > 0) {
+      for (const packageId of overExpectedPackages) {
+        if (!underExpectedPackages.has(packageId)) {
+          validationFailed = true
+          break
+        }
+      }
+    }
+
+    if (validationFailed) {
+      setSnackbar({
+        open: true,
+        message: "Không thể hoàn thành đơn: Một số thùng 'over_expected' không có thùng 'under_expected' tương ứng.",
+        severity: "error",
+      })
+      return
+    }
+
+    // Proceed with API call if validation passes
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const response = await axios.patch(
+        `${backendUrl}/api/inventory/check-order/${order._id}`,
+        {
+          status: "completed",
+        },
+        {
+          headers: getAuthHeaders(),
+        },
+      )
+      if (response.data.success) {
+        setOrder((prev) => ({ ...prev, status: "completed" }))
+        setSnackbar({ open: true, message: "Đơn kiểm kê đã được hoàn thành thành công", severity: "success" })
+        fetchOrder() // Refresh order data
+        fetchInspections() // Refresh inspections data
+      } else {
+        setSnackbar({
+          open: true,
+          message: response.data.message || "Không thể hoàn thành đơn kiểm kê",
+          severity: "error",
+        })
+      }
+    } catch (err) {
+      console.error(err)
+      setSnackbar({ open: true, message: "Đã xảy ra lỗi khi hoàn thành đơn kiểm kê", severity: "error" })
+    }
+  }
+
+  if (loadingOrder || loadingInspections) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
+      <Box sx={{ p: 3, textAlign: "center" }}>
         <CircularProgress />
       </Box>
-    );
+    )
+  }
 
-  if (error)
+  if (error) {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">{error}</Alert>
@@ -180,181 +235,206 @@ export default function CheckOrderDetailPage() {
           Thử lại
         </Button>
       </Box>
-    );
+    )
+  }
 
-  if (!orderData) return null;
+  if (!order) return null
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box>
-          <Typography variant="h4" gutterBottom>
-            Chi tiết Phiếu Kiểm Kê
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Mã Phiếu: {orderData._id}
-          </Typography>
-        </Box>
-        <Button variant="outlined" onClick={handleRefresh} disabled={refreshing}>
-          {refreshing ? 'Đang làm mới...' : 'Làm mới'}
-        </Button>
-      </Stack>
-
-      {success && (
-        <Alert severity="success" onClose={() => setSuccess('')} sx={{ mb: 2 }}>
-          {success}
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Thông tin cơ bản */}
-      <Paper sx={{ p: 3, mb: 4 }} elevation={3}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary">
-              Trạng thái:
+    <Box sx={{ background: theme.palette.background.default, minHeight: "100vh", py: 4 }}>
+      <Container>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
+          <Box>
+            <Typography variant="h4" gutterBottom>
+              Check Inventory Order Detail
             </Typography>
-            <Chip variant="outlined" label={orderData.status} color={getStatusColor(orderData.status)} size="small" />
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ngày kiểm kê:
+            <Typography variant="subtitle1" color="text.secondary">
+              Order ID: {order._id}
             </Typography>
-            <Typography variant="body1">{formatDate(orderData.inventory_check_date)}</Typography>
-          </Grid>
+          </Box>
+          <Button variant="outlined" onClick={handleRefresh}>
+            <RefreshIcon fontSize="small" sx={{ mr: 1 }} /> Làm mới
+          </Button>
+        </Stack>
 
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Warehouse Manager ID:
-            </Typography>
-            <Typography variant="body1">{orderData.warehouse_manager_id}</Typography>
-          </Grid>
+        {/* Order Detail Section */}
+        <Accordion defaultExpanded sx={{ mb: 2 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">Order Detail</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Grid container spacing={2} mb={2}>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Status
+                </Typography>
+                <Chip variant="outlined" label={order.status} color={getStatusColor(order.status)} size="small" />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Inventory Date
+                </Typography>
+                <Typography variant="body1">{formatDate(order.inventory_check_date)}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Created At
+                </Typography>
+                <Typography variant="body1">{formatDateTime(order.createdAt)}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Warehouse Manager
+                </Typography>
+                <Typography variant="body1">
+                  {order.warehouse_manager_id?.email || order.warehouse_manager_id}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Created By
+                </Typography>
+                <Typography variant="body1">{order.created_by?.email || order.created_by}</Typography>
+              </Grid>
+              {order.notes && (
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Notes
+                  </Typography>
+                  <Typography variant="body1">{order.notes}</Typography>
+                </Grid>
+              )}
+            </Grid>
+          </AccordionDetails>
+        </Accordion>
 
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Người tạo (Created By):
-            </Typography>
-            <Typography variant="body1">
-              {(orderData.created_by.email && orderData.created_by.email.split('@')[0]) || orderData.created_by}
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ghi chú:
-            </Typography>
-            <Typography variant="body1">{orderData.notes || 'Không có ghi chú'}</Typography>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ngày tạo:
-            </Typography>
-            <Typography variant="body1">{formatDateTime(orderData.createdAt)}</Typography>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ngày cập nhật:
-            </Typography>
-            <Typography variant="body1">{formatDateTime(orderData.updatedAt)}</Typography>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Phần trăm đã kiểm kê */}
-      <Paper sx={{ p: 3, mb: 4 }} elevation={3}>
-        <Typography variant="h6" gutterBottom>
-          Trạng thái kiểm kê: {percentChecked}% đã kiểm kê
-        </Typography>
-        <LinearProgress variant="determinate" value={percentChecked} sx={{ height: 15, borderRadius: 2 }} />
-      </Paper>
-
-      {/* Biểu đồ kết quả kiểm kê */}
-      <Paper sx={{ p: 3, mb: 4 }} elevation={3} style={{ height: 300 }}>
-        <Typography variant="h6" gutterBottom>
-          Tổng quan kết quả kiểm kê
-        </Typography>
-        {totalCount > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={inventoryResultData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              >
-                {inventoryResultData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => `${value} mục`} />
-              <Legend verticalAlign="bottom" height={36} />
-            </PieChart>
-          </ResponsiveContainer>
-        ) : (
-          <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 8 }}>
-            Chưa có dữ liệu kết quả kiểm kê
-          </Typography>
-        )}
-      </Paper>
-
-      {/* Lịch sử thay đổi vị trí */}
-      <Paper sx={{ p: 3, mb: 4 }} elevation={3}>
-        <Typography variant="h6" gutterBottom>
-          Lịch sử thay đổi vị trí
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
-        {logLocation.length > 0 ? (
-          logLocation.map((log, index) => (
-            <Box key={index} sx={{ mb: 1 }}>
-              <Typography variant="body2">
-                {formatDateTime(log.createdAt)} - {log.old_location} → {log.new_location}
+        {/* Inspections Section */}
+        <Accordion defaultExpanded>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">Inspections</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            {loadingInspections ? (
+              <Box sx={{ display: "flex", justifyContent: "center", width: "100%", py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : inspections.length > 0 ? (
+              <Stack spacing={2}>
+                {inspections.map((ins) => {
+                  const loc = ins.location_id
+                  const locStr = loc
+                    ? `${loc.area_id?.name || ""} - ${loc.bay || ""} - ${loc.row || ""} - ${loc.column || ""}`
+                    : "N/A"
+                  return (
+                    <Accordion key={ins._id} sx={{ border: "1px solid #e0e0e0", boxShadow: "none" }}>
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Grid container spacing={1} alignItems="center">
+                          <Grid item xs={12} sm={4}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Location:
+                            </Typography>
+                            <Typography variant="body1" fontWeight="medium">
+                              {locStr}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Status:
+                            </Typography>
+                            <Chip label={ins.status} color={getStatusColor(ins.status)} size="small" />
+                          </Grid>
+                          <Grid item xs={12} sm={4}>
+                            <Typography variant="subtitle2" color="text.secondary">
+                              Checked By:
+                            </Typography>
+                            <Typography variant="body1">{ins.check_by?.email || ins.check_by || "N/A"}</Typography>
+                          </Grid>
+                        </Grid>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                          Packages in this Location:
+                        </Typography>
+                        {ins.check_items && ins.check_items.length > 0 ? (
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>ID</TableCell>
+                                <TableCell>Medicine</TableCell>
+                                <TableCell>Batch</TableCell>
+                                <TableCell>Expected</TableCell>
+                                <TableCell>Actual</TableCell>
+                                <TableCell>Status</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {ins.check_items.map((item) => {
+                                const pkgId = item.package_id?._id
+                                const chipLabel = item.type
+                                  .replace(/_/g, " ")
+                                  .replace(/\b\w/g, (char) => char.toUpperCase()) // Format "over_expected" to "Over Expected"
+                                const chip = <Chip label={chipLabel} size="small" color={getStatusColor(item.type)} />
+                                return (
+                                  <TableRow key={pkgId}>
+                                    <TableCell>{pkgId?.slice(-4)}</TableCell>
+                                    <TableCell>
+                                      {`${item?.package_id?.batch_id?.medicine_id?.medicine_name || "N/A"} - ${item?.package_id?.batch_id?.medicine_id?.license_code || "N/A"}`}
+                                    </TableCell>
+                                    <TableCell>{item?.package_id?.batch_id?.batch_code || "N/A"}</TableCell>
+                                    <TableCell>{item?.expected_quantity || 0}</TableCell>
+                                    <TableCell>{item?.actual_quantity || 0}</TableCell>
+                                    <TableCell>{chip}</TableCell>
+                                  </TableRow>
+                                )
+                              })}
+                            </TableBody>
+                          </Table>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                            No packages found for this inspection.
+                          </Typography>
+                        )}
+                      </AccordionDetails>
+                    </Accordion>
+                  )
+                })}
+              </Stack>
+            ) : (
+              <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 4 }}>
+                No inspections to display.
               </Typography>
-            </Box>
-          ))
-        ) : (
-          <Typography variant="body2" color="text.secondary">
-            Không có lịch sử thay đổi vị trí.
-          </Typography>
-        )}
-      </Paper>
+            )}
+          </AccordionDetails>
+        </Accordion>
 
-      {/* Nút hành động */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, gap: 2 }}>
-        <Button
-          variant="contained"
-          color="secondary"
-          onClick={() => handleClearInspections(orderData._id)}
-          disabled={orderData.status !== 'processing'}
+        {/* Action Button */}
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleCompleteCheck}
+            disabled={order.status !== "processing"} // Only enable if order is processing
+          >
+            Hoàn thành kiểm kê
+          </Button>
+        </Box>
+      </Container>
+
+      {/* Snackbar for messages */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
         >
-          Clear
-        </Button>
-        <Button
-          variant="contained"
-          color="error"
-          onClick={() => handleCancelOrder(orderData._id)}
-          disabled={orderData.status === 'cancelled' || orderData.status === 'completed'}
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => handleCompleteCheck(orderData._id)}
-          disabled={orderData.status !== 'processing'}
-        >
-          Hoàn thành kiểm kê
-        </Button>
-      </Box>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
-  );
+  )
 }
