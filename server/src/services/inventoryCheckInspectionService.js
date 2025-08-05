@@ -1,6 +1,7 @@
 const InventoryCheckInspection = require('../models/InventoryCheckInspection');
 const InventoryCheckOrder = require('../models/InventoryCheckOrder');
 const PackageService = require("./packageService")
+const { INVENTORY_CHECK_INSPECTION_STATUSES } = require("../utils/constants")
 
 const getInspectionsByOrderId = async (orderId) => {
   // 1) Ensure order exists (throws if not found)
@@ -152,6 +153,47 @@ const upsertCheckItem = async(inspectionId, item) => {
   return inspection;
 }
 
+const clearInspectionsByOrderId = async (orderId) => {
+  // Find all inspections related to the given checkOrderId
+  const inspections = await InventoryCheckInspection.find({ inventory_check_order_id: orderId })
+
+  if (!inspections || inspections.length === 0) {
+    return null // Or throw an error if no inspections are found
+  }
+
+  const updatedInspections = []
+  for (const inspection of inspections) {
+    // Reset actual_quantity to 0 and type to 'valid' for all check_list items
+    const updatedCheckList = inspection.check_list.map((item) => ({
+      ...item.toObject(), // Convert Mongoose document to plain object
+      actual_quantity: 0,
+      type: "valid", // Reset to valid as per "đặt lại trạng thái order là draft" implies a clean slate
+    }))
+
+    // Update the inspection status to DRAFT
+    inspection.status = INVENTORY_CHECK_INSPECTION_STATUSES.DRAFT
+    inspection.check_list = updatedCheckList
+
+    await inspection.save()
+    updatedInspections.push(inspection)
+  }
+
+  return updatedInspections
+}
+
+const updateCheckOrderStatus = async (checkOrderId, status) => {
+  const updatedOrder = await InventoryCheckOrder.findByIdAndUpdate(
+    checkOrderId,
+    { status },
+    { new: true, runValidators: true },
+  )
+  if (!updatedOrder) {
+    const err = new Error("Check Order not found")
+    err.statusCode = 404
+    throw err
+  }
+  return updatedOrder
+}
 
 
 module.exports = {
@@ -160,7 +202,9 @@ module.exports = {
   addCheckBy,
   createInitialCheckItem,
   getCheckItemsByInspectionId,
-  upsertCheckItem
+  upsertCheckItem,
+  clearInspectionsByOrderId,
+  updateCheckOrderStatus
 };
 
 
