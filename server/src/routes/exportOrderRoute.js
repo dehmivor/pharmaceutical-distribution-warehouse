@@ -51,11 +51,6 @@ router
   .route('/:id/reject')
   .put(authorize('representative_manager'), exportOrderController.rejectExportOrder);
 
-// Assign warehouse manager - chỉ supervisor và warehouse_manager
-router
-  .route('/:id/assign-warehouse-manager')
-  .patch(authorize(['supervisor', 'warehouse_manager']), exportOrderController.assignWarehouseManager);
-
 // Cập nhật chi tiết đóng gói - có thể truy cập bởi cả warehouse và warehouse_manager
 router
   .route('/:id/update-packing')
