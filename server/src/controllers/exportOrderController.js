@@ -531,6 +531,21 @@ const rejectExportOrder = async (req, res, next) => {
   }
 };
 
+// Assign warehouse manager
+const assignWarehouseManager = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { warehouse_manager_id } = req.body;
+    if (!warehouse_manager_id) {
+      return res.status(400).json({ success: false, error: 'warehouse_manager_id is required' });
+    }
+    const updatedOrder = await exportOrderService.assignWarehouseManager(id, warehouse_manager_id);
+    res.status(200).json({ success: true, data: updatedOrder });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
 /**
  * Kiểm tra tồn kho cho export order
  * @param {Object} req - Request object
@@ -595,5 +610,6 @@ module.exports = {
   addExportInspection,
   approveExportOrder,
   rejectExportOrder, // Thêm function mới
-  checkStockForExportOrder // Thêm function mới
+  checkStockForExportOrder, // Thêm function mới
+  assignWarehouseManager // Thêm function mới
 }

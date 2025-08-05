@@ -367,6 +367,32 @@ async function addExportInspection(orderId, detailId, inspectionData) {
 }
 
 /**
+ * Assign warehouse manager cho export order
+ * @param {String} orderId - ID export order
+ * @param {String} warehouseManagerId - ID warehouse manager
+ * @returns {Promise<ExportOrder>}
+ */
+async function assignWarehouseManager(orderId, warehouseManagerId) {
+  const order = await ExportOrder.findById(orderId);
+  if (!order) throw new Error('Export order not found');
+  
+  // Kiểm tra warehouse manager có tồn tại và có role đúng không
+  const User = require('../models/User');
+  const warehouseManager = await User.findById(warehouseManagerId);
+  if (!warehouseManager) {
+    throw new Error('Warehouse manager not found');
+  }
+  if (warehouseManager.role !== 'warehouse_manager') {
+    throw new Error('User is not a warehouse manager');
+  }
+  
+  order.warehouse_manager_id = warehouseManagerId;
+  await order.save();
+
+  return await ExportOrder.findById(orderId).populate(populateOptions);
+}
+
+/**
  * Kiểm tra tồn kho cho export order
  * @param {Array} details - Chi tiết export order
  * @returns {Promise<Object>} - Kết quả kiểm tra tồn kho
@@ -467,5 +493,6 @@ module.exports = {
   updateExportOrder,
   getExportOrderDetail,
   addExportInspection,
-  checkStockAvailability // Thêm function mới
+  checkStockAvailability, // Thêm function mới
+  assignWarehouseManager // Thêm function mới
 };
