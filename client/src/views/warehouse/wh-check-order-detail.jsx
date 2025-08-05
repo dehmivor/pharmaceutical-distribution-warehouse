@@ -1,254 +1,562 @@
+// components/CheckOrderDetail.js
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
-import { Box, CircularProgress, Alert, Typography, Paper, Grid, Chip, Button, Stack, LinearProgress, Divider } from '@mui/material';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Box,
+  Container,
+  Grid,
+  Stack,
+  Typography,
+  CircularProgress,
+  Alert,
+  Snackbar,
+  IconButton,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Chip
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { useTheme } from '@mui/material/styles';
 
-// Lấy header Authorization từ localStorage
 const getAuthHeaders = () => {
-  if (typeof window === 'undefined') return {};
-  const token = localStorage.getItem('auth-token');
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {})
+    ...(token && { Authorization: `Bearer ${token}` })
   };
 };
 
-const formatDate = (d) => (d ? new Date(d).toLocaleDateString('vi-VN') : '');
-const formatDateTime = (d) => (d ? new Date(d).toLocaleString('vi-VN', { hour12: false }) : '');
+const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+const userId = userData.userId;
 
-const getStatusColor = (status) => {
-  switch (status) {
-    case 'pending':
-      return 'warning';
-    case 'processing':
-      return 'info';
-    case 'completed':
-      return 'success';
-    case 'cancelled':
-      return 'error';
-    case 'checking':
-      return 'primary';
-    default:
-      return 'default';
-  }
-};
+export default function CheckOrderDetail() {
+  const theme = useTheme();
+  const { orderId } = useParams();
 
-// Màu pie chart mặc định cho các phần
-const PIE_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+  const [order, setOrder] = useState(null);
+  const [inspections, setInspections] = useState([]);
+  const [loadingOrder, setLoadingOrder] = useState(false);
+  const [loadingInspections, setLoadingInspections] = useState(false);
+  const [error, setError] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' });
 
-export default function CheckOrderDetailPage() {
-  const id = useParams();
-  const [orderData, setOrderData] = useState(null);
-  const [logLocation, setLogLocation] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
+  // Modal state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [step, setStep] = useState('verify'); // 'verify' or 'packages'
+  const [locationInput, setLocationInput] = useState('');
+  const [verifyError, setVerifyError] = useState('');
+  const [selectedInspection, setSelectedInspection] = useState(null);
+  const [packages, setPackages] = useState([]);
+  const [quantities, setQuantities] = useState({});
+  const [package_id, setPackage_id] = useState('');
+  const [unexpected, setUnexpected] = useState([]);
+  const [scannedId, setScannedId] = useState('');
 
-  // Ví dụ giả lập dữ liệu kết quả kiểm kê (thực tế bạn bổ sung từ API)
-  // Giả sử bạn có: total items, checked items, discrepancy items
-  const inventoryResultData = orderData
-    ? [
-        { name: 'Đã kiểm kê', value: orderData.checkedItems || 70 },
-        { name: 'Chưa kiểm kê', value: orderData.uncheckedItems || 20 },
-        { name: 'Chênh lệch', value: orderData.discrepancies || 10 }
-      ]
-    : [];
-
-  const totalCount = inventoryResultData.reduce((acc, cur) => acc + cur.value, 0) || 0;
-
-  // Tính phần trăm cho progress bar
-  const percentChecked = orderData?.checkedItems ? Math.round((orderData.checkedItems / totalCount) * 100) : 0;
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError('');
+  const fetchOrder = async () => {
+    setLoadingOrder(true);
+    setError(null);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${id?.checkOrderId}`, {
-        headers: getAuthHeaders()
-      });
-
-      if (res.data.success) {
-        setOrderData(res.data.data.checkorder);
-        setLogLocation(res.data.data.loglocation || []);
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const { data } = await axios.get(`${backendUrl}/api/inventory-check-orders/${orderId}`, { headers: getAuthHeaders() });
+      if (data.success) {
+        setOrder(data.data);
       } else {
-        setError(res.data.message || 'Lỗi khi tải dữ liệu');
+        throw new Error(data.error || 'Failed to load order');
       }
     } catch (err) {
-      setError('Lỗi khi tải dữ liệu');
       console.error(err);
+      setError(err.message);
+      setSnackbar({ open: true, message: err.message, severity: 'error' });
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setLoadingOrder(false);
+    }
+  };
+
+  const fetchInspections = async () => {
+    if (!orderId) return;
+    setLoadingInspections(true);
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const { data } = await axios.get(`${backendUrl}/api/inventory-check-inspections/${orderId}/inspections`, {
+        headers: getAuthHeaders()
+      });
+      if (data.success) setInspections(data.data);
+      else throw new Error(data.error || 'Failed to load inspections');
+    } catch (err) {
+      setError(err.message);
+      setSnackbar({ open: true, message: err.message, severity: 'error' });
+    } finally {
+      setLoadingInspections(false);
     }
   };
 
   useEffect(() => {
-    if (!id) return;
-    fetchData();
-  }, [id]);
+    fetchOrder();
+    fetchInspections();
+  }, [orderId]);
 
-  // Nút reload thủ công
   const handleRefresh = () => {
-    setRefreshing(true);
-    fetchData();
+    fetchInspections();
   };
 
-  if (loading && !refreshing)
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <CircularProgress />
-      </Box>
-    );
+  const handleProceed = (ins) => {
+    setSelectedInspection(ins);
+    setLocationInput('');
+    setVerifyError('');
+    setStep('verify');
+    setPackages([]);
+    setDialogOpen(true);
+  };
 
-  if (error)
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">{error}</Alert>
-        <Button sx={{ mt: 2 }} variant="contained" onClick={handleRefresh}>
-          Thử lại
-        </Button>
-      </Box>
-    );
+  const handleDialogClose = async () => {
+    setDialogOpen(false);
+    setSelectedInspection(null);
+    if (step === 'packages') {
+      await changelocationStatus('draft');
+    }
+    setUnexpected([]);
+    fetchInspections();
+  };
 
-  if (!orderData) return null;
+  const changelocationStatus = async (locationStatus) => {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    await axios
+      .patch(
+        `${backendUrl}/api/inventory-check-inspections/${selectedInspection._id}/status`,
+        { status: locationStatus },
+        { headers: getAuthHeaders() }
+      )
+      .then(() => {})
+      .catch(() => setSnackbar({ open: true, message: 'Failed to update status', severity: 'error' }));
+  };
+
+  const addSelfToChangeBy = async (val) => {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    await axios
+      .patch(`${backendUrl}/api/inventory-check-inspections/${val}/checker`, { checkBy: userId }, { headers: getAuthHeaders() })
+      .then(() => {})
+      .catch(() => setSnackbar({ open: true, message: 'Failed to assign self', severity: 'error' }));
+  };
+
+  // Verify location input
+  const handleLocationChange = (e) => {
+    const val = e.target.value;
+    setLocationInput(val);
+    if (val.length === 24) {
+      if (val !== selectedInspection.location_id._id) {
+        setVerifyError('Location does not match selected inspection.');
+      } else {
+        setVerifyError('');
+        //add check_by
+        addSelfToChangeBy(selectedInspection._id);
+        //change status
+        changelocationStatus('checking');
+        // fetch packages
+        fetchCheckItems(selectedInspection._id);
+        setStep('packages');
+      }
+    } else setVerifyError('');
+  };
+
+  // Fetch the inspection's own check_list items
+  const fetchCheckItems = async (inspectionId) => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const { data } = await axios.get(`${backendUrl}/api/inventory-check-inspections/${inspectionId}/check-items`, {
+        headers: getAuthHeaders()
+      });
+      if (data.success) {
+        setPackages(data.data);
+        // initialize editable quantities
+        const init = {};
+        data.data.forEach((item) => {
+          init[item.package_id._id] = item.actual_quantity;
+        });
+        setQuantities(init);
+      } else {
+        throw new Error(data.error || 'Failed to load check items');
+      }
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message, severity: 'error' });
+    }
+  };
+
+  // Handle quantity inputs
+  const handleQtyChange = (pkgId, val) => {
+    setQuantities((q) => ({ ...q, [pkgId]: Number(val) }));
+  };
+
+  // Confirm proceed: change status
+  const handleConfirm = () => {
+    handleDialogClose();
+  };
+
+  const handleScanPackages = async (val) => {
+    setPackage_id(val);
+    if (val.length !== 24) return;
+
+    setScannedId(val); // mark just this one
+    setVerifyError('');
+
+    // try expected list
+    let idx = packages.findIndex((p) => p.package_id._id === val);
+    if (idx > -1) {
+      // it's expected: no API call
+      return;
+    }
+    // try unexpected list
+    idx = unexpected.findIndex((p) => p._id === val);
+    if (idx > -1) {
+      // it's expected: no API call
+      return;
+    }
+
+    // otherwise fetch unexpected
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const { data } = await axios.get(`/api/packages/${val}`, { headers: getAuthHeaders() });
+      if (!data.success) throw new Error(data.message || 'Not found');
+
+      setUnexpected((u) => [...u, data.data]);
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message, severity: 'error' });
+    }
+  };
+
+  const handleMissing = (item) => {
+    setPackages((pkgs) =>
+      pkgs.map((p) => {
+        if (p.package_id._id === item.package_id._id) {
+          // toggle between under_expected and valid
+          const newType = p.type === 'under_expected' ? 'valid' : 'under_expected';
+          return { ...p, type: newType };
+        }
+        return p;
+      })
+    );
+  };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box>
-          <Typography variant="h4" gutterBottom>
-            Chi tiết Phiếu Kiểm Kê
-          </Typography>
-          <Typography variant="subtitle1" color="text.secondary">
-            Mã Phiếu: {orderData._id}
-          </Typography>
-        </Box>
-        <Button variant="outlined" onClick={handleRefresh} disabled={refreshing}>
-          {refreshing ? 'Đang làm mới...' : 'Làm mới'}
-        </Button>
-      </Stack>
-
-      {/* Thông tin cơ bản */}
-      <Paper sx={{ p: 3, mb: 4 }} elevation={3}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary">
-              Trạng thái:
-            </Typography>
-            <Chip variant="outlined" label={orderData.status} color={getStatusColor(orderData.status)} size="small" />
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ngày kiểm kê:
-            </Typography>
-            <Typography variant="body1">{formatDate(orderData.inventory_check_date)}</Typography>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Warehouse Manager ID:
-            </Typography>
-            <Typography variant="body1">{orderData.warehouse_manager_id}</Typography>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Người tạo (Created By):
-            </Typography>
-            {/* Nếu created_by có email: lấy phần trước @ nếu không thì hiển thị thẳng */}
-            <Typography variant="body1">
-              {(orderData.created_by.email && orderData.created_by.email.split('@')[0]) || orderData.created_by}
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ghi chú:
-            </Typography>
-            <Typography variant="body1">{orderData.notes || 'Không có ghi chú'}</Typography>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ngày tạo:
-            </Typography>
-            <Typography variant="body1">{formatDateTime(orderData.createdAt)}</Typography>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Ngày cập nhật:
-            </Typography>
-            <Typography variant="body1">{formatDateTime(orderData.updatedAt)}</Typography>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Phần trăm đã kiểm kê */}
-      <Paper sx={{ p: 3, mb: 4 }} elevation={3}>
-        <Typography variant="h6" gutterBottom>
-          Trạng thái kiểm kê: {percentChecked}% đã kiểm kê
+    <Box sx={{ background: theme.palette.background.default, minHeight: '100vh', py: 4 }}>
+      <Container>
+        <Typography variant="h4" gutterBottom>
+          Check Inventory Order Detail
         </Typography>
-        <LinearProgress variant="determinate" value={percentChecked} sx={{ height: 15, borderRadius: 2 }} />
-      </Paper>
-
-      {/* Biểu đồ kết quả kiểm kê */}
-      <Paper sx={{ p: 3, mb: 4 }} elevation={3} style={{ height: 300 }}>
-        <Typography variant="h6" gutterBottom>
-          Tổng quan kết quả kiểm kê
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+          Update the quantity of each location with package id
         </Typography>
-        {totalCount > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={inventoryResultData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-              >
-                {inventoryResultData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => `${value} mục`} />
-              <Legend verticalAlign="bottom" height={36} />
-            </PieChart>
-          </ResponsiveContainer>
-        ) : (
-          <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 8 }}>
-            Chưa có dữ liệu kết quả kiểm kê
-          </Typography>
-        )}
-      </Paper>
 
-      {/* Lịch sử thay đổi vị trí */}
-      <Paper sx={{ p: 3 }} elevation={3}>
-        <Typography variant="h6" gutterBottom>
-          Lịch sử thay đổi vị trí
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
-        {logLocation.length > 0 ? (
-          logLocation.map((log, index) => (
-            <Box key={index} sx={{ mb: 1 }}>
-              <Typography variant="body2">
-                {formatDateTime(log.createdAt)} - {log.old_location} → {log.new_location}
+        {/* Order Detail Section */}
+        <Accordion defaultExpanded>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">Order Detail</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            {loadingOrder ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : error ? (
+              <Alert severity="error">{error}</Alert>
+            ) : order ? (
+              <Grid container spacing={2} mb={2}>
+                <Grid item xs={12} sm={4}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Status
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {order.status}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Inventory Date
+                  </Typography>
+                  <Typography variant="body1">{new Date(order.inventory_check_date).toLocaleDateString()}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Created At
+                  </Typography>
+                  <Typography variant="body1">{new Date(order.createdAt).toLocaleString()}</Typography>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Warehouse Manager
+                  </Typography>
+                  <Typography variant="body1">{order.warehouse_manager_id.email}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Created By
+                  </Typography>
+                  <Typography variant="body1">{order.created_by.email}</Typography>
+                </Grid>
+
+                {order.notes && (
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Notes
+                    </Typography>
+                    <Typography variant="body1">{order.notes}</Typography>
+                  </Grid>
+                )}
+              </Grid>
+            ) : (
+              <Typography>No order details to display.</Typography>
+            )}
+          </AccordionDetails>
+        </Accordion>
+
+        {/* Inspections Section */}
+        <Accordion defaultExpanded>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">Inspections</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Stack direction="row" spacing={1} mb={2}>
+              <IconButton size="small" onClick={handleRefresh}>
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+
+            {loadingInspections ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : error ? (
+              <Alert severity="error">{error}</Alert>
+            ) : (
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Location</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Action</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {inspections.map((ins) => {
+                    const loc = ins.location_id;
+                    const locStr = `${loc.area_id.name} - ${loc.bay} - ${loc.row} - ${loc.column}`;
+                    return (
+                      <TableRow key={ins._id}>
+                        <TableCell>{locStr}</TableCell>
+                        <TableCell>{ins.status}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            color={ins.status === 'checking' ? 'warning' : 'primary'}
+                            disabled={ins.status === 'checked' || (ins.status === 'checking' && ins.check_by != userId)}
+                            onClick={() => handleProceed(ins)}
+                          >
+                            {ins.status === 'checking' ? 'Continue' : 'Proceed'}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </AccordionDetails>
+        </Accordion>
+      </Container>
+
+      {/* Proceed Dialog */}
+      <Dialog open={dialogOpen} onClose={() => {}} disableEscapeKeyDown>
+        <DialogTitle>Inspection {step === 'verify' ? 'Location Verification' : 'Packages'}</DialogTitle>
+        <DialogContent>
+          {step === 'verify' ? (
+            <TextField
+              label="Scan Location ID"
+              value={locationInput}
+              onChange={handleLocationChange}
+              fullWidth
+              error={!!verifyError}
+              helperText={verifyError}
+              inputProps={{ maxLength: 24 }}
+              style={{ marginTop: '8px' }}
+            />
+          ) : (
+            <>
+              {/* Scan input */}
+              <TextField
+                label="Scan Package ID"
+                value={package_id}
+                onChange={(e) => {
+                  const val = e.target.value.trim();
+                  setPackage_id(val);
+                  if (val.length === 24) handleScanPackages(val);
+                }}
+                fullWidth
+                error={!!verifyError}
+                helperText={verifyError}
+                inputProps={{ maxLength: 24 }}
+                sx={{ mb: 2 }}
+              />
+
+              {/* Expected packages */}
+              <Typography variant="subtitle2" gutterBottom>
+                Expected packages
               </Typography>
-            </Box>
-          ))
-        ) : (
-          <Typography variant="body2" color="text.secondary">
-            Không có lịch sử thay đổi vị trí.
-          </Typography>
-        )}
-      </Paper>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>ID</TableCell>
+                    <TableCell>Medicine</TableCell>
+                    <TableCell>Batch</TableCell>
+                    <TableCell>Expected</TableCell>
+                    <TableCell>Actual</TableCell>
+                    <TableCell>Action</TableCell>
+                    <TableCell>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {packages.map((item) => {
+                    const pkgId = item.package_id?._id;
+                    const isThis = pkgId === scannedId;
+                    // decide chip
+                    let chip = <Chip label="Unscanned" size="small" color="warning" />;
+                    if (isThis) {
+                      chip =
+                        quantities[pkgId] === item.expected_quantity ? (
+                          <Chip label="Normal" size="small" color="success" />
+                        ) : (
+                          <Chip label="Abnormal" size="small" color="error" />
+                        );
+                    }
+                    return (
+                      <TableRow key={pkgId} sx={isThis ? { bgcolor: 'action.selected' } : {}}>
+                        <TableCell>{pkgId?.slice(-4)}</TableCell>
+                        <TableCell>
+                          {`${item?.package_id?.batch_id?.medicine_id?.medicine_name} - ${item?.package_id?.batch_id?.medicine_id?.license_code}`}
+                        </TableCell>
+                        <TableCell>{item?.package_id?.batch_id?.batch_code}</TableCell>
+                        <TableCell>{item?.expected_quantity}</TableCell>
+                        <TableCell>
+                          <TextField
+                            type="number"
+                            value={quantities[pkgId]}
+                            onChange={(e) => handleQtyChange(pkgId, e.target.value)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {item?.type === 'under_expected' ? (
+                            <Button variant="outlined" size="small" onClick={() => handleMissing(item)}>
+                              Undo
+                            </Button>
+                          ) : (
+                            <Button variant="contained" size="small" color="error" onClick={() => handleMissing(item)}>
+                              Missing
+                            </Button>
+                          )}
+                        </TableCell>
+                        <TableCell>{chip}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+
+              {/* Unexpected packages */}
+              <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>
+                Unexpected packages
+              </Typography>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>ID</TableCell>
+                    <TableCell>Medicine</TableCell>
+                    <TableCell>Batch</TableCell>
+                    <TableCell>Expected</TableCell>
+                    <TableCell>Actual</TableCell>
+                    <TableCell>Delete</TableCell>
+                    <TableCell>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {unexpected.map((item) => {
+                    const pkgId = item._id;
+                    const isThis = pkgId === scannedId;
+                    // always abnormal when scanned, otherwise unscanned
+                    const chip = isThis ? (
+                      <Chip label="Abnormal" size="small" color="error" />
+                    ) : (
+                      <Chip label="Unscanned" size="small" color="warning" />
+                    );
+
+                    return (
+                      <TableRow key={pkgId} sx={isThis ? { bgcolor: 'action.selected' } : {}}>
+                        <TableCell>{item._id.slice(-4)}</TableCell>
+                        <TableCell>{`${item.batch_id.medicine_id.medicine_name} - ${item.batch_id.medicine_id.license_code}`}</TableCell>
+                        <TableCell>{item.batch_id.batch_code}</TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setUnexpected((u) => u.filter((x) => x._id !== item._id));
+                            }}
+                          >
+                            🗑️
+                          </IconButton>
+                        </TableCell>
+                        <TableCell>
+                          <Chip label="Abnormal" size="small" color="error" />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {step === 'verify' ? (
+            <Button onClick={handleDialogClose}>Abort</Button>
+          ) : (
+            <>
+              <Button onClick={handleDialogClose}>Abort</Button>
+              <Button variant="contained" onClick={handleConfirm}>
+                Confirm
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

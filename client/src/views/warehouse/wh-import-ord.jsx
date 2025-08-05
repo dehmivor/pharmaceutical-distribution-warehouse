@@ -293,14 +293,6 @@ export default function ManageImportOrders() {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            router.push(`/update-location/${menuOrder?._id}`);
-            handleMenuClose();
-          }}
-        >
-          Update Location
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
             router.push(`/wh-import-orders/${menuOrder?._id}`);
             handleMenuClose();
           }}

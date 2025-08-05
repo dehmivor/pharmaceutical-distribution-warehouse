@@ -10,13 +10,13 @@ const getAllInventoryCheckOrders = asyncHandler(async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { 
-    page = 1, 
-    limit = 10, 
-    status, 
-    startDate, 
-    endDate, 
-    warehouse_manager_id 
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    startDate,
+    endDate,
+    warehouse_manager_id
   } = req.query;
 
   const filters = {
@@ -29,7 +29,7 @@ const getAllInventoryCheckOrders = asyncHandler(async (req, res) => {
   };
 
   const result = await inventoryCheckOrderService.getAllInventoryCheckOrders(filters);
-  
+
   if (!result.success) {
     return res.status(500).json({
       success: false,
@@ -70,7 +70,7 @@ const createInventoryCheckOrder = asyncHandler(async (req, res) => {
   };
 
   const result = await inventoryCheckOrderService.createInventoryCheckOrder(inventoryCheckOrderData);
-  
+
   if (!result.success) {
     return res.status(400).json({
       success: false,
@@ -96,7 +96,7 @@ const getInventoryCheckOrderById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   const result = await inventoryCheckOrderService.getInventoryCheckOrderById(id);
-  
+
   if (!result.success) {
     return res.status(404).json({
       success: false,
@@ -129,7 +129,7 @@ const updateInventoryCheckOrder = asyncHandler(async (req, res) => {
   }
 
   const result = await inventoryCheckOrderService.updateInventoryCheckOrder(id, updateData);
-  
+
   if (!result.success) {
     return res.status(400).json({
       success: false,
@@ -144,6 +144,8 @@ const updateInventoryCheckOrder = asyncHandler(async (req, res) => {
     message: result.message,
   });
 });
+
+
 
 module.exports = {
   getAllInventoryCheckOrders,

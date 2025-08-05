@@ -116,6 +116,7 @@ app.use('/api/bills', route.billRoutes);
 app.use('/api/supplier', route.supplierRoutes);
 app.use('/api/retailer', route.retailerRoutes);
 app.use('/api/contract', route.contractRoutes);
+app.use('/api/inventory-check-inspections', route.inventoryCheckInspectionRoutes);
 app.use('/api/inventory-check-orders', route.inventoryCheckOrderRoutes);
 app.use('/api/inventory', route.inventoryRoutes);
 app.use('/api/dashboard', route.dashboardRoutes);

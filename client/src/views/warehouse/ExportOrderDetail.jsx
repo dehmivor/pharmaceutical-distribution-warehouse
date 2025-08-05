@@ -355,7 +355,7 @@ export default function ExportOrderDetail() {
     <Box sx={{ background: theme.palette.background.default, minHeight: '100vh', py: 4 }}>
       <Container>
         <Typography variant="h4" gutterBottom>
-          Export Order Detail
+          Export Order #{order._id}
         </Typography>
         <Typography variant="body1" color="text.secondary" mb={3}>
           Packing and Counting Medicines
