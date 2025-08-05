@@ -6,9 +6,36 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import {
-  Accordion, AccordionSummary, AccordionDetails, Box, Button, Container, Divider, Dialog, DialogTitle, DialogContent, DialogActions,
-  FormControl, InputLabel, MenuItem, Select, Stack, TextField, Typography, CircularProgress, Alert, IconButton, Table, TableHead,
-  TableBody, TableRow, TableContainer, TableCell, Tooltip, Paper, Grid
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Box,
+  Button,
+  Container,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Typography,
+  CircularProgress,
+  Alert,
+  IconButton,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableContainer,
+  TableCell,
+  Tooltip,
+  Paper,
+  Grid
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -16,6 +43,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { useTheme } from '@mui/material/styles';
+import { constant } from 'lodash-es';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -61,7 +89,6 @@ function ImportOrderDetail() {
   const [confirmFinishInspection, setConfirmFinishInspection] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
-
 
   // Initial fetch: order + inspections + initial packages
   useEffect(() => {
@@ -339,10 +366,8 @@ function ImportOrderDetail() {
   const isValid =
     // must have at least one package row
     packages.length > 0 &&
-
     //every row quantity != 0
-    packages.every(p => p.quantity != 0) &&
-
+    packages.every((p) => p.quantity != 0) &&
     // every row has a selected batch
     packages.every((p) => Boolean(p.batch_id)) &&
     // every row has a quantity
@@ -601,17 +626,59 @@ function ImportOrderDetail() {
 
   const handleFinalize = async () => {
     try {
-      await axios.patch(
+      const response = await axios.patch(
         `/api/import-orders/${orderId}/status`,
         { status: 'completed' },
         {
           headers: getAuthHeaders()
         }
       );
-      setOrder((prev) => ({ ...prev, status: 'completed' }));
-      enableAccordion('other');
+
+      if (response.status >= 200 && response.status < 300) {
+        const orderData = response.data.data;
+
+        setOrder((prev) => ({ ...prev, status: 'completed' }));
+        enableAccordion('other');
+
+        console.log('data trả về lúc completed', response.data.data);
+
+        const billDetails = (orderData.details || []).map((item) => ({
+          medicine_lisence_code: item.medicine_id.license_code,
+          quantity: item.quantity,
+          unit_price: item.unit_price
+        }));
+
+        if (billDetails.length === 0) {
+          setError('Không có chi tiết đơn hàng để tạo bill');
+          return;
+        }
+
+        const billPayload = {
+          import_order_id: orderData._id,
+          type: 'IMPORT',
+          status: 'PENDING',
+          details: billDetails
+        };
+
+        console.log('bill data', billPayload);
+        try {
+          const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+          const createBillRes = await axios.post(`${backendUrl}/api/bills`, billPayload, {
+            headers: getAuthHeaders()
+          });
+
+          if (createBillRes.data.success) {
+            console.log('Bill mới đã được tạo:', createBillRes.data.data);
+          } else {
+            setError('Lỗi khi tạo bill: ' + createBillRes.data.message);
+          }
+        } catch (billErr) {
+          console.error('Lỗi khi gọi API tạo bill:', billErr);
+          setError('Lỗi khi tạo bill mới');
+        }
+      }
     } catch (err) {
-      console.error('Error updating status:', err);
+      console.error('Lỗi khi cập nhật trạng thái đơn:', err);
       setError('Lỗi khi cập nhật trạng thái đơn');
     }
   };
@@ -812,8 +879,8 @@ function ImportOrderDetail() {
               <Divider />
 
               {/* ▶︎ VALIDITY STATUS */}
-              {
-                !packagesDone && (isValid ? (
+              {!packagesDone &&
+                (isValid ? (
                   <Alert severity="success" sx={{ mb: 2 }}>
                     Valid input
                   </Alert>
@@ -829,9 +896,7 @@ function ImportOrderDetail() {
                         const diff = packedQty - netQty;
                         if (diff === 0) return null;
                         // look up the human name from your inspections list
-                        const med = uniqueInspections.find(
-                          (i) => i.medicine_id.license_code === license
-                        )?.medicine_id;
+                        const med = uniqueInspections.find((i) => i.medicine_id.license_code === license)?.medicine_id;
                         const name = med?.medicine_name || license;
                         const verb = diff > 0 ? 'over' : 'under';
                         return ` ${name} is ${Math.abs(diff)} unit ${verb}`;
@@ -839,9 +904,7 @@ function ImportOrderDetail() {
                       .filter(Boolean)
                       .join('; ')}
                   </Alert>
-                ))
-              }
-
+                ))}
 
               <Button variant="contained" disabled={!isValid || saving || packagesDone} onClick={handleContinuePackages}>
                 {saving ? 'Saving…' : 'Continue to Put Away'}
