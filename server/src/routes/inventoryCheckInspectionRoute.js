@@ -11,7 +11,7 @@ router.use(authenticate);
 // Get all check inventory inspection by order id
 router.get(
   '/:orderId/inspections',
-  authorize(['warehouse']),
+  authorize(['warehouse', 'warehouse_manager']),
   inventoryCheckInspectionController.getInspectionsByOrderIdController,
 );
 
@@ -44,6 +44,17 @@ router.patch(
   inventoryCheckInspectionController.updateCheckItem
 );
 
+router.patch(
+  "/:orderId/clear-inspections", // Use orderId as the parameter
+  authorize(["warehouse", "warehouse_manager"]),
+  inventoryCheckInspectionController.clearInspectionsController,
+)
+
+router.patch(
+  "/:orderId/status", // New route for order status updates
+  authorize(["warehouse", "warehouse_manager"]),
+  inventoryCheckInspectionController.updateCheckOrderStatusController,
+)
 
 module.exports = router; 
 

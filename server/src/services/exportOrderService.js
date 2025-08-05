@@ -456,6 +456,28 @@ async function checkStockAvailability(details) {
   }
 }
 
+async function assignWarehouseManager(orderId, warehouseManagerId) {
+  const order = await ExportOrder.findById(orderId);
+  if (!order) throw new Error('Export order not found');
+  order.warehouse_manager_id = warehouseManagerId;
+  await order.save();
+
+  return await ExportOrder.findById(orderId).populate(populateOptions);
+}
+
+/**
+ * Get export order by ID with full population
+ * @param {String} orderId - ID export order
+ * @returns {Promise<ExportOrder>}
+ */
+async function getExportOrderById(orderId) {
+  const order = await ExportOrder.findById(orderId).populate(populateOptions);
+  if (!order) {
+    throw new Error('Export order not found');
+  }
+  return order;
+}
+
 module.exports = {
   createExportOrder,
   getExportOrdersFilter,
@@ -467,5 +489,6 @@ module.exports = {
   updateExportOrder,
   getExportOrderDetail,
   addExportInspection,
-  checkStockAvailability // Thêm function mới
+  checkStockAvailability,
+  assignWarehouseManager // Thêm function mới
 };

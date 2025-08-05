@@ -1,4 +1,4 @@
-const { getInspectionsByOrderId, changeInspectionStatus, addCheckBy, createInitialCheckItem,getCheckItemsByInspectionId, upsertCheckItem } = require('../services/inventoryCheckInspectionService');
+const { getInspectionsByOrderId, changeInspectionStatus, addCheckBy, createInitialCheckItem,getCheckItemsByInspectionId, upsertCheckItem, clearInspectionsByOrderId } = require('../services/inventoryCheckInspectionService');
 
 const getInspectionsByOrderIdController = async (req, res) => {
   const { orderId } = req.params;
@@ -94,6 +94,38 @@ const updateCheckItem = async (req, res) => {
   }
 };
 
+const clearInspectionsController = async (req, res) => {
+  const { orderId } = req.params
+  try {
+    const updatedInspections = await clearInspectionsByOrderId(orderId)
+    if (!updatedInspections || updatedInspections.length === 0) {
+      return res.status(404).json({ success: false, message: "No inspections found to clear or already cleared." })
+    }
+    return res.json({ success: true, message: "Inspections cleared and reset to draft.", data: updatedInspections })
+  } catch (err) {
+    console.error("Error clearing inspections:", err)
+    const status = err.statusCode || 500
+    const message = err.message || "An error occurred while clearing inspections"
+    return res.status(status).json({ success: false, error: message })
+  }
+}
+
+const updateCheckOrderStatusController = async (req, res) => {
+  const { orderId } = req.params
+  const { status } = req.body
+  if (!status) {
+    return res.status(400).json({ success: false, error: "Status is required" })
+  }
+  try {
+    const updatedOrder = await updateCheckOrderStatus(orderId, status)
+    return res.json({ success: true, data: updatedOrder, message: "Order status updated successfully." })
+  } catch (err) {
+    console.error("Error updating check order status:", err)
+    const statusCode = err.statusCode || 500
+    const message = err.message || "An error occurred while updating order status"
+    return res.status(statusCode).json({ success: false, error: message })
+  }
+}
 
 module.exports = {
   getInspectionsByOrderIdController,
@@ -101,5 +133,7 @@ module.exports = {
   setInspectionChecker,
   initializeCheckItems,
   getCheckItems,
-  updateCheckItem
+  updateCheckItem,
+  clearInspectionsController,
+  updateCheckOrderStatusController,
 }; 
