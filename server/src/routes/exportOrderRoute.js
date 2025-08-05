@@ -88,4 +88,8 @@ router.get('/:orderId/packages-needed', exportOrderController.getPackagesNeededF
 
 router.post('/:orderId/details/:detailId/inspections', exportOrderController.addExportInspection);
 
+router
+  .route('/:id/assign-warehouse-manager')
+  .put(authorize('warehouse_manager'), exportOrderController.assignWarehouseManager);
+
 module.exports = router;
