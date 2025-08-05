@@ -36,8 +36,7 @@ import {
   Store as RetailerIcon,
   Add as AddIcon,
   Remove as RemoveIcon,
-  Business as BusinessIcon,
-  Description
+  Business as BusinessIcon
 } from '@mui/icons-material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';

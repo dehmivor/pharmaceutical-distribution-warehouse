@@ -131,8 +131,8 @@ const updateContract = asyncHandler(async (req, res) => {
   }
   
   
-  if (contract.status !== CONTRACT_STATUSES.DRAFT && contract.status !== CONTRACT_STATUSES.CANCELLED) {
-    return res.status(400).json({ success: false, message: 'Only draft and cancelled contracts can be updated' });
+  if (contract.status !== CONTRACT_STATUSES.DRAFT && contract.status !== CONTRACT_STATUSES.REJECTED) {
+    return res.status(400).json({ success: false, message: 'Only draft and rejected contracts can be updated' });
   }
 
   const updatedContract = await contractService.updateContract(id, req.body);
