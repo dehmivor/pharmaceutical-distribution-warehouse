@@ -53,8 +53,18 @@ const createPaymentImport = async (req, res) => {
   }
 };
 
+const handleWebhook = async (req, res) => {
+  try {
+    await stripeService.processWebhookEvent(req, res);
+  } catch (error) {
+    console.error('Webhook xử lý lỗi:', error);
+    res.status(500).send(`Webhook handler failed: ${error.message}`);
+  }
+};
+
 module.exports = {
   createPaymentIntentController,
   createPaymentExport,
   createPaymentImport,
+  handleWebhook,
 };

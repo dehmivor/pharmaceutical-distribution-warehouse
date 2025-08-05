@@ -24,7 +24,7 @@ async function createCheckoutSession({
           product_data: {
             name: `Thanh toán công nợ (${paymentType === 'import' ? 'Nhập' : 'Xuất'}) - Phiếu ${billId}`,
           },
-          unit_amount: amount, // Số tiền (đơn vị nhỏ nhất)
+          unit_amount: amount,
         },
         quantity: 1,
       },
@@ -63,8 +63,59 @@ async function createPaymentExport(billId, amount, successUrl, cancelUrl) {
   });
 }
 
+const processWebhookEvent = async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body, // phải là raw body (buffer)
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET,
+    );
+  } catch (err) {
+    console.log('Webhook signature verification failed.', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Xử lý các event bạn quan tâm
+  switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object;
+      const billId = session.metadata.billId;
+
+      try {
+        await updateBillStatus(billId, 'COMPLETED');
+        console.log(`Bill ${billId} updated to COMPLETED`);
+      } catch (error) {
+        console.error('Lỗi cập nhật trạng thái bill:', error);
+      }
+      break;
+    }
+    case 'checkout.session.expired': {
+      const session = event.data.object;
+      const billId = session.metadata.billId;
+
+      try {
+        await updateBillStatus(billId, 'CANCELED');
+        console.log(`Bill ${billId} updated to CANCELED (expired)`);
+      } catch (error) {
+        console.error('Lỗi cập nhật trạng thái bill:', error);
+      }
+      break;
+    }
+    // Thêm các case khác nếu cần
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+  }
+
+  // Gửi phản hồi thành công cho Stripe
+  res.json({ received: true });
+};
+
 module.exports = {
   createCheckoutSession,
   createPaymentExport,
   createPaymentImport,
+  processWebhookEvent,
 };
