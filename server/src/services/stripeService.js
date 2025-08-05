@@ -1,6 +1,8 @@
 const Stripe = require('stripe');
 const stripe = new Stripe(process.env.STRIPE_API_KEY, { apiVersion: '2022-11-15' });
 
+const frontendUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+
 async function createCheckoutSession({
   billId,
   amount,
@@ -12,8 +14,6 @@ async function createCheckoutSession({
   if (!billId || !amount) {
     throw new Error('Missing billId or amount');
   }
-
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
@@ -30,8 +30,8 @@ async function createCheckoutSession({
       },
     ],
     mode: 'payment',
-    success_url: `${backendUrl}/success`,
-    cancel_url: `${backendUrl}/not-found`,
+    success_url: `${frontendUrl}/success`,
+    cancel_url: `${frontendUrl}/not-found`,
     metadata: {
       billId,
       paymentType,
