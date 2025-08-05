@@ -44,6 +44,17 @@ router.patch(
   inventoryCheckInspectionController.updateCheckItem
 );
 
+router.patch(
+  "/:orderId/clear-inspections", // Use orderId as the parameter
+  authorize(["warehouse", "warehouse_manager"]),
+  inventoryCheckInspectionController.clearInspectionsController,
+)
+
+router.patch(
+  "/:orderId/status", // New route for order status updates
+  authorize(["warehouse", "warehouse_manager"]),
+  inventoryCheckInspectionController.updateCheckOrderStatusController,
+)
 
 module.exports = router; 
 

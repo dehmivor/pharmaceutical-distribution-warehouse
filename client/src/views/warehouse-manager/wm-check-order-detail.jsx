@@ -81,6 +81,7 @@ export default function CheckOrderDetail() {
     setError(null)
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      // Updated URL to match the new consolidated route structure
       const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
         headers: getAuthHeaders(),
       })
@@ -192,8 +193,9 @@ export default function CheckOrderDetail() {
     // Proceed with API call if validation passes
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      // Updated URL to match the new consolidated route structure
       const response = await axios.patch(
-        `${backendUrl}/api/inventory/check-order/${order._id}`,
+        `${backendUrl}/api/inventory-check-inspections/${order._id}/status`,
         {
           status: "completed",
         },
@@ -219,6 +221,71 @@ export default function CheckOrderDetail() {
     }
   }
 
+  const handleClearInspections = async () => {
+    if (!order) return
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      // Corrected URL path
+      const response = await axios.patch(
+        `${backendUrl}/api/inventory-check-inspections/${order._id}/clear-inspections`,
+        {}, // Empty body as per your route definition
+        {
+          headers: getAuthHeaders(),
+        },
+      )
+      if (response.data.success) {
+        setSnackbar({
+          open: true,
+          message: "Đã xóa toàn bộ số lượng thực tế và đặt lại trạng thái phiếu kiểm con",
+          severity: "success",
+        })
+        fetchOrder() // Refresh order data to get updated status
+        fetchInspections() // Refresh inspections data to get cleared quantities and draft status
+      } else {
+        setSnackbar({
+          open: true,
+          message: response.data.message || "Không thể xóa phiếu kiểm con",
+          severity: "error",
+        })
+      }
+    } catch (err) {
+      console.error(err)
+      setSnackbar({ open: true, message: "Đã xảy ra lỗi khi xóa phiếu kiểm con", severity: "error" })
+    }
+  }
+
+  const handleCancelOrder = async () => {
+    if (!order) return
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      // Updated URL to match the new consolidated route structure
+      const response = await axios.patch(
+        `${backendUrl}/api/inventory-check-inspections/${order._id}/status`,
+        {
+          status: "cancelled",
+        },
+        {
+          headers: getAuthHeaders(),
+        },
+      )
+      if (response.data.success) {
+        setOrder((prev) => ({ ...prev, status: "cancelled" }))
+        setSnackbar({ open: true, message: "Đơn kiểm kê đã được hủy thành công", severity: "success" })
+        fetchOrder() // Refresh order data
+        fetchInspections() // Refresh inspections data
+      } else {
+        setSnackbar({
+          open: true,
+          message: response.data.message || "Không thể hủy đơn kiểm kê",
+          severity: "error",
+        })
+      }
+    } catch (err) {
+      console.error(err)
+      setSnackbar({ open: true, message: "Đã xảy ra lỗi khi hủy đơn kiểm kê", severity: "error" })
+    }
+  }
+
   if (loadingOrder || loadingInspections) {
     return (
       <Box sx={{ p: 3, textAlign: "center" }}>
@@ -239,6 +306,9 @@ export default function CheckOrderDetail() {
   }
 
   if (!order) return null
+
+  const isProcessing = order.status === "processing"
+  const isCancelledOrCompleted = order.status === "cancelled" || order.status === "completed"
 
   return (
     <Box sx={{ background: theme.palette.background.default, minHeight: "100vh", py: 4 }}>
@@ -407,13 +477,29 @@ export default function CheckOrderDetail() {
           </AccordionDetails>
         </Accordion>
 
-        {/* Action Button */}
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4 }}>
+        {/* Action Buttons */}
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4, gap: 2 }}>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleClearInspections}
+            disabled={!isProcessing} // Only enabled if order is processing
+          >
+            Clear
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleCancelOrder}
+            disabled={isCancelledOrCompleted} // Disabled if already cancelled or completed
+          >
+            Cancel
+          </Button>
           <Button
             variant="contained"
             color="primary"
             onClick={handleCompleteCheck}
-            disabled={order.status !== "processing"} // Only enable if order is processing
+            disabled={!isProcessing} // Only enabled if order is processing
           >
             Hoàn thành kiểm kê
           </Button>
