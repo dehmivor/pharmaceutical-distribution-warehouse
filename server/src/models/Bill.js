@@ -36,6 +36,11 @@ const billSchema = new mongoose.Schema({
     message: `Status must be one of: ${Object.values(BILL_STATUSES).join(', ')}`,
     default: 'PENDING',
   },
+  amountPaid: {
+    type: Number,
+    default: 0,
+    min: [0, 'Amount paid cannot be negative'],
+  },
   details: [billDetailsSchema],
 });
 
