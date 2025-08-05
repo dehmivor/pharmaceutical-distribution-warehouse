@@ -67,23 +67,15 @@ const getStatusChip = (status) => {
   };
 
   const config = statusConfig[status] || statusConfig.pending;
-  
-  return (
-    <Chip
-      icon={config.icon}
-      label={config.label}
-      color={config.color}
-      size="small"
-      variant="outlined"
-    />
-  );
+
+  return <Chip icon={config.icon} label={config.label} color={config.color} size="small" variant="outlined" />;
 };
 
 const formatDate = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
   const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
-  
+
   if (diffInHours < 1) {
     return 'Just now';
   } else if (diffInHours < 24) {
@@ -169,9 +161,7 @@ const SupervisorRecentActivity = () => {
           {activities.map((activity, index) => (
             <React.Fragment key={activity.id}>
               <ListItem sx={{ px: 0, py: 1 }}>
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  {getActivityIcon(activity.type)}
-                </ListItemIcon>
+                <ListItemIcon sx={{ minWidth: 40 }}>{getActivityIcon(activity.type)}</ListItemIcon>
                 <ListItemText
                   disableTypography
                   primary={
@@ -199,7 +189,7 @@ const SupervisorRecentActivity = () => {
                   secondary={
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 0.5 }}>
                       <Typography variant="caption" component="div" color="text.secondary">
-                        {activity.description.includes('|') ? activity.description.split('|')[1]?.trim() : activity.description}
+                        {activity.description.includes('|') ? activity.description.split(',')[1]?.trim() : activity.description}
                       </Typography>
                       <Typography variant="caption" component="div" color="text.secondary">
                         {formatDate(activity.timestamp)}
@@ -225,4 +215,4 @@ const SupervisorRecentActivity = () => {
   );
 };
 
-export default SupervisorRecentActivity; 
+export default SupervisorRecentActivity;

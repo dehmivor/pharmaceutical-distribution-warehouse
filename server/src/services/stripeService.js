@@ -172,7 +172,7 @@ const processWebhookEvent = async (req, res) => {
   try {
     if (eventType === 'checkout.session.completed') {
       const billIdsStr = session?.metadata?.billIds || '';
-      const billIds = billIdsStr ? billIdsStr.split('|') : [];
+      const billIds = billIdsStr ? billIdsStr.split(',') : [];
       const singleBillId = session?.metadata?.billId;
 
       const amountPaid = session.amount_total || session.amount_subtotal || 0;
@@ -252,7 +252,7 @@ const processWebhookEvent = async (req, res) => {
       eventType === 'payment_intent.payment_failed'
     ) {
       const billIdsStr = session?.metadata?.billIds || '';
-      const billIds = billIdsStr ? billIdsStr.split('|') : [];
+      const billIds = billIdsStr ? billIdsStr.split(',') : [];
       const singleBillId = session?.metadata?.billId;
 
       if (billIds.length > 0) {
