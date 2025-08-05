@@ -7,7 +7,7 @@ import axios from 'axios';
 import {
   Accordion, AccordionSummary, AccordionDetails, Box, Container, Grid, Stack, Typography,
   CircularProgress, Alert, Snackbar, IconButton, Table, TableHead, TableBody, TableRow,
-  TableCell, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField,
+  TableCell, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Chip
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -44,6 +44,8 @@ export default function CheckOrderDetail() {
   const [packages, setPackages] = useState([]);
   const [quantities, setQuantities] = useState({});
   const [package_id, setPackage_id] = useState('')
+  const [unexpected, setUnexpected] = useState([]);
+  const [scannedId, setScannedId] = useState('');
 
 
 
@@ -104,6 +106,7 @@ export default function CheckOrderDetail() {
     if (step === 'packages') {
       await changelocationStatus('draft')
     }
+    setUnexpected([]);
     fetchInspections();
   };
 
@@ -138,21 +141,35 @@ export default function CheckOrderDetail() {
         //change status 
         changelocationStatus('checking')
         // fetch packages
-        fetchPackages(val)
+        fetchCheckItems(selectedInspection._id)
         setStep('packages');
-        // default quantities
-        const qtys = {};
-        packages.forEach(pkg => qtys[pkg._id] = pkg.quantity);
-        setQuantities(qtys);
       }
     } else setVerifyError('');
   };
 
-  const fetchPackages = async (location_id) => {
-    await axios.get(`/api/packages/location/${location_id}`, { headers: getAuthHeaders() })
-      .then(res => res.data.success && setPackages(res.data.data.packages))
-      .catch(() => setSnackbar({ open: true, message: 'Failed to load packages', severity: 'error' }));
-  }
+  // Fetch the inspection's own check_list items
+  const fetchCheckItems = async (inspectionId) => {
+    try {
+      const { data } = await axios.get(
+        `/api/inventory-check-inspections/${inspectionId}/check-items`,
+        { headers: getAuthHeaders() }
+      );
+      if (data.success) {
+        setPackages(data.data);
+        // initialize editable quantities
+        const init = {};
+        data.data.forEach(item => {
+          init[item.package_id._id] = item.actual_quantity;
+        });
+        setQuantities(init);
+      } else {
+        throw new Error(data.error || 'Failed to load check items');
+      }
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message, severity: 'error' });
+    }
+  };
+
 
   // Handle quantity inputs
   const handleQtyChange = (pkgId, val) => {
@@ -164,9 +181,55 @@ export default function CheckOrderDetail() {
     handleDialogClose();
   };
 
-  const handleScanPackages = () => {
+  const handleScanPackages = async (val) => {
+    setPackage_id(val);
+    if (val.length !== 24) return;
 
-  }
+    setScannedId(val);          // mark just this one
+    setVerifyError('');
+
+    // try expected list
+    let idx = packages.findIndex(p => p.package_id._id === val);
+    if (idx > -1) {
+      // it's expected: no API call
+      return;
+    }
+    // try unexpected list
+    idx = unexpected.findIndex(p => p._id === val);
+    if (idx > -1) {
+      // it's expected: no API call
+      return;
+    }
+
+    // otherwise fetch unexpected
+    try {
+      const { data } = await axios.get(
+        `/api/packages/${val}`,
+        { headers: getAuthHeaders() }
+      );
+      if (!data.success) throw new Error(data.message || 'Not found');
+
+      setUnexpected(u => [
+        ...u,
+        data.data
+      ]);
+    } catch (err) {
+      setSnackbar({ open: true, message: err.message, severity: 'error' });
+    }
+  };
+
+  const handleMissing = (item) => {
+    setPackages(pkgs =>
+      pkgs.map(p => {
+        if (p.package_id._id === item.package_id._id) {
+          // toggle between under_expected and valid
+          const newType = p.type === 'under_expected' ? 'valid' : 'under_expected';
+          return { ...p, type: newType };
+        }
+        return p;
+      })
+    );
+  };
 
 
 
@@ -285,9 +348,10 @@ export default function CheckOrderDetail() {
                           <Button
                             variant="contained"
                             size="small"
+                            color={ins.status === 'checking' ? 'warning' : 'primary'}
                             disabled={ins.status === 'checked' || (ins.status === 'checking' && ins.check_by != userId)}
                             onClick={() => handleProceed(ins)}
-                          >{ins.check_by === userId ? 'Continue' : 'Proceed'}</Button>
+                          >{ins.status === 'checking' ? 'Continue' : 'Proceed'}</Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -316,43 +380,146 @@ export default function CheckOrderDetail() {
             />
           ) : (
             <>
+              {/* Scan input */}
               <TextField
                 label="Scan Package ID"
                 value={package_id}
-                onChange={handleScanPackages}
+                onChange={e => {
+                  const val = e.target.value.trim();
+                  setPackage_id(val);
+                  if (val.length === 24) handleScanPackages(val);
+                }}
                 fullWidth
                 error={!!verifyError}
                 helperText={verifyError}
                 inputProps={{ maxLength: 24 }}
-                style={{ marginTop: '8px' }}
+                sx={{ mb: 2 }}
               />
-              <Table>
+
+              {/* Expected packages */}
+              <Typography variant="subtitle2" gutterBottom>Expected packages</Typography>
+              <Table size="small">
                 <TableHead>
                   <TableRow>
                     <TableCell>ID</TableCell>
                     <TableCell>Medicine</TableCell>
                     <TableCell>Batch</TableCell>
-                    <TableCell>Expected Qty</TableCell>
-                    <TableCell>Actual Qty</TableCell>
+                    <TableCell>Expected</TableCell>
+                    <TableCell>Actual</TableCell>
+                    <TableCell>Action</TableCell>
+                    <TableCell>Status</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {packages.map(pkg => (
-                    <TableRow key={pkg._id}>
-                      <TableCell>{pkg._id.slice(-4)}</TableCell>
-                      <TableCell>{`${pkg.batch_id.medicine_id.medicine_name} - ${pkg.batch_id.medicine_id.license_code}`}</TableCell>
-                      <TableCell>{pkg.batch_id.batch_code}</TableCell>
-                      <TableCell>{pkg.quantity}</TableCell>
-                      <TableCell>
-                        <TextField
-                          type="number"
-                          value={quantities[pkg._id] || pkg.quantity}
-                          onChange={e => handleQtyChange(pkg._id, e.target.value)}
-                          size="small"
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {packages.map(item => {
+                    const pkgId = item.package_id._id;
+                    const isThis = pkgId === scannedId;
+                    // decide chip
+                    let chip = <Chip label="Unscanned" size="small" color="warning" />;
+                    if (isThis) {
+                      chip = quantities[pkgId] === item.expected_quantity
+                        ? <Chip label="Normal" size="small" color="success" />
+                        : <Chip label="Abnormal" size="small" color="error" />;
+                    }
+                    return (
+                      <TableRow
+                        key={pkgId}
+                        sx={isThis ? { bgcolor: 'action.selected' } : {}}
+                      >
+                        <TableCell>{pkgId.slice(-4)}</TableCell>
+                        <TableCell>
+                          {`${item.package_id.batch_id.medicine_id.medicine_name} - ${item.package_id.batch_id.medicine_id.license_code
+                            }`}
+                        </TableCell>
+                        <TableCell>{item.package_id.batch_id.batch_code}</TableCell>
+                        <TableCell>{item.expected_quantity}</TableCell>
+                        <TableCell>
+                          <TextField
+                            type="number"
+                            value={quantities[pkgId]}
+                            onChange={e => handleQtyChange(pkgId, e.target.value)}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {item.type === 'under_expected' ? (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleMissing(item)}
+                            >
+                              Undo
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="contained"
+                              size="small"
+                              color="error"
+                              onClick={() => handleMissing(item)}
+                            >
+                              Missing
+                            </Button>
+                          )}
+                        </TableCell>
+                        <TableCell>{chip}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+
+              {/* Unexpected packages */}
+              <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>Unexpected packages</Typography>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>ID</TableCell>
+                    <TableCell>Medicine</TableCell>
+                    <TableCell>Batch</TableCell>
+                    <TableCell>Expected</TableCell>
+                    <TableCell>Actual</TableCell>
+                    <TableCell>Delete</TableCell>
+                    <TableCell>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {unexpected.map(item => {
+                    const pkgId = item._id;
+                    const isThis = pkgId === scannedId;
+                    // always abnormal when scanned, otherwise unscanned
+                    const chip = isThis
+                      ? <Chip label="Abnormal" size="small" color="error" />
+                      : <Chip label="Unscanned" size="small" color="warning" />;
+
+                    return (
+                      <TableRow
+                        key={pkgId}
+                        sx={isThis ? { bgcolor: 'action.selected' } : {}}
+                      >
+                        <TableCell>{item._id.slice(-4)}</TableCell>
+                        <TableCell>
+                          {`${item.batch_id.medicine_id.medicine_name} - ${item.batch_id.medicine_id.license_code
+                            }`}
+                        </TableCell>
+                        <TableCell>{item.batch_id.batch_code}</TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell>{item.quantity}</TableCell>
+                        <TableCell>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setUnexpected(u => u.filter(x => x._id !== item._id));
+                            }}
+                          >
+                            🗑️
+                          </IconButton>
+                        </TableCell>
+                        <TableCell>
+                          <Chip label="Abnormal" size="small" color="error" />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </>
@@ -363,7 +530,7 @@ export default function CheckOrderDetail() {
             <Button onClick={handleDialogClose}>Abort</Button>
           ) : (
             <>
-              <Button onClick={handleDialogClose}>Cancel</Button>
+              <Button onClick={handleDialogClose}>Abort</Button>
               <Button variant="contained" onClick={handleConfirm}>Confirm</Button></>
           )}
         </DialogActions>

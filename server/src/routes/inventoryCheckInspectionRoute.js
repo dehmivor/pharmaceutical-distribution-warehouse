@@ -27,6 +27,23 @@ router.patch(
   inventoryCheckInspectionController.setInspectionChecker
 );
 
+router.post(
+  '/:inspectionId/check-items/initialize',
+  authorize(['warehouse', 'warehouse_manager']),
+  inventoryCheckInspectionController.initializeCheckItems
+);
+
+router.get(
+  '/:inspectionId/check-items',
+  authorize(['warehouse', 'warehouse_manager']),
+  inventoryCheckInspectionController.getCheckItems
+);
+
+router.patch(
+  '/:inspectionId/check-items',
+  inventoryCheckInspectionController.updateCheckItem
+);
+
 
 module.exports = router; 
 

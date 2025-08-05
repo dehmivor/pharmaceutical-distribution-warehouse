@@ -1,4 +1,4 @@
-const { getInspectionsByOrderId, changeInspectionStatus, addCheckBy } = require('../services/inventoryCheckInspectionService');
+const { getInspectionsByOrderId, changeInspectionStatus, addCheckBy, createInitialCheckItem,getCheckItemsByInspectionId, upsertCheckItem } = require('../services/inventoryCheckInspectionService');
 
 const getInspectionsByOrderIdController = async (req, res) => {
   const { orderId } = req.params;
@@ -48,10 +48,58 @@ const setInspectionChecker = async (req, res) => {
   }
 };
 
+const initializeCheckItems = async (req, res) => {
+  const { inspectionId } = req.params;
+  try {
+    const updated = await createInitialCheckItem(inspectionId);
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    const status = err.statusCode || 500;
+    res.status(status).json({ success: false, error: err.message });
+  }
+};
+
+const getCheckItems = async (req, res) => {
+  try {
+    const items = await getCheckItemsByInspectionId(req.params.inspectionId);
+    res.json({ success: true, data: items });
+  } catch (err) {
+    const status = err.statusCode || 500;
+    res.status(status).json({ success: false, error: err.message });
+  }
+};
+
+const updateCheckItem = async (req, res) => {
+  const { inspectionId } = req.params;
+  const { package_id, expected_quantity, actual_quantity, type } = req.body;
+
+  if (!package_id || expected_quantity == null || actual_quantity == null) {
+    return res.status(400).json({
+      success: false,
+      error: 'package_id, expected_quantity and actual_quantity are required'
+    });
+  }
+
+  try {
+    const updatedInspection = await upsertCheckItem(inspectionId, {
+      package_id,
+      expected_quantity,
+      actual_quantity,
+      type,
+    });
+    res.json({ success: true, data: updatedInspection });
+  } catch (err) {
+    const status = err.statusCode || 500;
+    res.status(status).json({ success: false, error: err.message });
+  }
+};
 
 
 module.exports = {
   getInspectionsByOrderIdController,
   updateInspectionStatus,
-  setInspectionChecker
+  setInspectionChecker,
+  initializeCheckItems,
+  getCheckItems,
+  updateCheckItem
 }; 
