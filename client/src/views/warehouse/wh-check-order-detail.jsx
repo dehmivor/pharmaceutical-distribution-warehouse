@@ -33,6 +33,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useTheme } from '@mui/material/styles';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -66,14 +67,13 @@ export default function CheckOrderDetail() {
   const [quantities, setQuantities] = useState({});
   const [package_id, setPackage_id] = useState('');
   const [unexpected, setUnexpected] = useState([]);
-  const [scannedId, setScannedId] = useState('');
+  const [scannedIds, setScannedIds] = useState([]);
 
   const fetchOrder = async () => {
     setLoadingOrder(true);
     setError(null);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const { data } = await axios.get(`${backendUrl}/api/inventory-check-orders/${orderId}`, { headers: getAuthHeaders() });
+      const { data } = await axios.get(`/api/inventory-check-orders/${orderId}`, { headers: getAuthHeaders() });
       if (data.success) {
         setOrder(data.data);
       } else {
@@ -92,8 +92,7 @@ export default function CheckOrderDetail() {
     if (!orderId) return;
     setLoadingInspections(true);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const { data } = await axios.get(`${backendUrl}/api/inventory-check-inspections/${orderId}/inspections`, {
+      const { data } = await axios.get(`/api/inventory-check-inspections/${orderId}/inspections`, {
         headers: getAuthHeaders()
       });
       if (data.success) setInspections(data.data);
@@ -132,25 +131,33 @@ export default function CheckOrderDetail() {
     }
     setUnexpected([]);
     fetchInspections();
+    setPackage_id('');
+  };
+
+  const finalize = async () => {
+    setDialogOpen(false);
+    setSelectedInspection(null);
+    await changelocationStatus('checked');
+    setUnexpected([]);
+    fetchInspections();
+    setPackage_id('');
   };
 
   const changelocationStatus = async (locationStatus) => {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     await axios
       .patch(
-        `${backendUrl}/api/inventory-check-inspections/${selectedInspection._id}/status`,
+        `/api/inventory-check-inspections/${selectedInspection._id}/status`,
         { status: locationStatus },
         { headers: getAuthHeaders() }
       )
-      .then(() => {})
+      .then(() => { })
       .catch(() => setSnackbar({ open: true, message: 'Failed to update status', severity: 'error' }));
   };
 
   const addSelfToChangeBy = async (val) => {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     await axios
-      .patch(`${backendUrl}/api/inventory-check-inspections/${val}/checker`, { checkBy: userId }, { headers: getAuthHeaders() })
-      .then(() => {})
+      .patch(`/api/inventory-check-inspections/${val}/checker`, { checkBy: userId }, { headers: getAuthHeaders() })
+      .then(() => { })
       .catch(() => setSnackbar({ open: true, message: 'Failed to assign self', severity: 'error' }));
   };
 
@@ -177,21 +184,21 @@ export default function CheckOrderDetail() {
   // Fetch the inspection's own check_list items
   const fetchCheckItems = async (inspectionId) => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const { data } = await axios.get(`${backendUrl}/api/inventory-check-inspections/${inspectionId}/check-items`, {
-        headers: getAuthHeaders()
+      const { data } = await axios.get(
+        `/api/inventory-check-inspections/${inspectionId}/check-items`,
+        { headers: getAuthHeaders() }
+      );
+      if (!data.success) throw new Error(data.error || 'Failed to load check items');
+
+      setPackages(data.data);
+
+      // initialize editable quantities = expected_quantity
+      const init = {};
+      data.data.forEach(item => {
+        init[item.package_id._id] = item.expected_quantity;
       });
-      if (data.success) {
-        setPackages(data.data);
-        // initialize editable quantities
-        const init = {};
-        data.data.forEach((item) => {
-          init[item.package_id._id] = item.actual_quantity;
-        });
-        setQuantities(init);
-      } else {
-        throw new Error(data.error || 'Failed to load check items');
-      }
+      setQuantities(init);
+
     } catch (err) {
       setSnackbar({ open: true, message: err.message, severity: 'error' });
     }
@@ -203,15 +210,67 @@ export default function CheckOrderDetail() {
   };
 
   // Confirm proceed: change status
-  const handleConfirm = () => {
-    handleDialogClose();
+  const handleConfirm = async () => {
+    if (!selectedInspection) return;
+
+    const inspectionId = selectedInspection._id;
+    const url = `/api/inventory-check-inspections/${inspectionId}/check-items`;
+    const headers = getAuthHeaders();
+
+    // Build all PATCH promises…
+    const updates = [];
+
+    // 1) Expected packages (whether “valid” or “under_expected”)
+    packages.forEach(item => {
+      const pkgId = item.package_id._id;
+      updates.push(
+        axios.patch(
+          url,
+          {
+            package_id: pkgId,
+            expected_quantity: item.expected_quantity,
+            actual_quantity: quantities[pkgId],
+            type: item.type  // either 'valid' or 'under_expected'
+          },
+          { headers }
+        )
+      );
+    });
+
+    // 2) Unexpected packages → always 'over_expected'
+    unexpected.forEach(item => {
+      const pkgId = item._id;
+      updates.push(
+        axios.patch(
+          url,
+          {
+            package_id: pkgId,
+            expected_quantity: item.quantity,
+            actual_quantity: quantities[pkgId] ?? item.quantity,
+            type: 'over_expected'
+          },
+          { headers }
+        )
+      );
+    });
+
+    // Run them all in parallel
+    try {
+      await Promise.all(updates);
+      setSnackbar({ open: true, message: 'Check items updated!', severity: 'success' });
+      finalize()
+    } catch (err) {
+      console.error('Error updating check items:', err);
+      setSnackbar({ open: true, message: 'Failed to save changes', severity: 'error' });
+    }
   };
+
 
   const handleScanPackages = async (val) => {
     setPackage_id(val);
     if (val.length !== 24) return;
 
-    setScannedId(val); // mark just this one
+    setScannedIds(ids => ids.includes(val) ? ids : [...ids, val]);
     setVerifyError('');
 
     // try expected list
@@ -229,7 +288,6 @@ export default function CheckOrderDetail() {
 
     // otherwise fetch unexpected
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const { data } = await axios.get(`/api/packages/${val}`, { headers: getAuthHeaders() });
       if (!data.success) throw new Error(data.message || 'Not found');
 
@@ -368,7 +426,7 @@ export default function CheckOrderDetail() {
                             disabled={ins.status === 'checked' || (ins.status === 'checking' && ins.check_by != userId)}
                             onClick={() => handleProceed(ins)}
                           >
-                            {ins.status === 'checking' ? 'Continue' : 'Proceed'}
+                            {(ins.status === 'checking' && ins.check_by != userId) ? 'Continue' : 'Proceed'}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -382,7 +440,7 @@ export default function CheckOrderDetail() {
       </Container>
 
       {/* Proceed Dialog */}
-      <Dialog open={dialogOpen} onClose={() => {}} disableEscapeKeyDown>
+      <Dialog open={dialogOpen} onClose={() => { }} disableEscapeKeyDown>
         <DialogTitle>Inspection {step === 'verify' ? 'Location Verification' : 'Packages'}</DialogTitle>
         <DialogContent>
           {step === 'verify' ? (
@@ -431,21 +489,19 @@ export default function CheckOrderDetail() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {packages.map((item) => {
-                    const pkgId = item.package_id?._id;
-                    const isThis = pkgId === scannedId;
-                    // decide chip
-                    let chip = <Chip label="Unscanned" size="small" color="warning" />;
-                    if (isThis) {
-                      chip =
-                        quantities[pkgId] === item.expected_quantity ? (
-                          <Chip label="Normal" size="small" color="success" />
-                        ) : (
-                          <Chip label="Abnormal" size="small" color="error" />
-                        );
+                  {packages.map(item => {
+                    const pkgId = item.package_id._id;
+                    const isScanned = scannedIds.includes(pkgId);
+                    let chip;
+                    if (!isScanned) {
+                      chip = <Chip label="Unscanned" size="small" color="warning" />;
+                    } else if (quantities[pkgId] === item.expected_quantity) {
+                      chip = <Chip label="Normal" size="small" color="success" />;
+                    } else {
+                      chip = <Chip label="Abnormal" size="small" color="error" />;
                     }
                     return (
-                      <TableRow key={pkgId} sx={isThis ? { bgcolor: 'action.selected' } : {}}>
+                      <TableRow key={pkgId} sx={isScanned ? { bgcolor: 'action.selected' } : {}}>
                         <TableCell>{pkgId?.slice(-4)}</TableCell>
                         <TableCell>
                           {`${item?.package_id?.batch_id?.medicine_id?.medicine_name} - ${item?.package_id?.batch_id?.medicine_id?.license_code}`}
@@ -495,36 +551,40 @@ export default function CheckOrderDetail() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {unexpected.map((item) => {
+                  {unexpected.map(item => {
                     const pkgId = item._id;
-                    const isThis = pkgId === scannedId;
-                    // always abnormal when scanned, otherwise unscanned
-                    const chip = isThis ? (
-                      <Chip label="Abnormal" size="small" color="error" />
-                    ) : (
-                      <Chip label="Unscanned" size="small" color="warning" />
-                    );
-
+                    const isScanned = scannedIds.includes(pkgId);
+                    const chip = isScanned
+                      ? <Chip label="Abnormal" size="small" color="error" />
+                      : <Chip label="Unscanned" size="small" color="warning" />;
                     return (
-                      <TableRow key={pkgId} sx={isThis ? { bgcolor: 'action.selected' } : {}}>
-                        <TableCell>{item._id.slice(-4)}</TableCell>
-                        <TableCell>{`${item.batch_id.medicine_id.medicine_name} - ${item.batch_id.medicine_id.license_code}`}</TableCell>
+                      <TableRow key={pkgId} sx={isScanned ? { bgcolor: 'action.selected' } : {}}>
+                        <TableCell>{pkgId.slice(-4)}</TableCell>
+                        <TableCell>
+                          {`${item.batch_id.medicine_id.medicine_name} - ${item.batch_id.medicine_id.license_code}`}
+                        </TableCell>
                         <TableCell>{item.batch_id.batch_code}</TableCell>
                         <TableCell>{item.quantity}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
+                        {/* Editable actual quantity */}
+                        <TableCell> 
+                          <TextField
+                            type="number"
+                            value={quantities[pkgId] ?? item.quantity}
+                            onChange={(e) => handleQtyChange(pkgId, e.target.value)}
+                            size="small"
+                          />
+                        </TableCell>
                         <TableCell>
                           <IconButton
                             size="small"
-                            onClick={() => {
-                              setUnexpected((u) => u.filter((x) => x._id !== item._id));
-                            }}
+                            onClick={() =>
+                              setUnexpected((u) => u.filter((x) => x._id !== pkgId))
+                            }
                           >
-                            🗑️
+                            <DeleteIcon fontSize="small" />
                           </IconButton>
                         </TableCell>
-                        <TableCell>
-                          <Chip label="Abnormal" size="small" color="error" />
-                        </TableCell>
+                        <TableCell>{chip}</TableCell>
                       </TableRow>
                     );
                   })}
