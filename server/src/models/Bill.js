@@ -18,8 +18,6 @@ const billSchema = new mongoose.Schema({
   },
   voucher_code: {
     type: String,
-    unique: true,
-    sparse: true,
     required: function () {
       return this.type === 'PAYMENT_VOUCHER';
     },

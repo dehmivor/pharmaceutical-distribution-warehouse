@@ -2,6 +2,7 @@ const InventoryCheckInspection = require('../models/InventoryCheckInspection');
 const InventoryCheckOrder = require('../models/InventoryCheckOrder');
 const mongoose = require('mongoose');
 const LogLocationChange = require('../models/LogLocationChange');
+
 const getInspectionsFromCheckOrder = async (checkOrderId, page, limit) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(checkOrderId)) {
@@ -15,7 +16,7 @@ const getInspectionsFromCheckOrder = async (checkOrderId, page, limit) => {
       inventory_check_order_id: checkOrderId,
     });
 
-    // Lấy dữ liệu phân trang
+    // Lấy dữ liệu phân trang, populate các trường liên quan
     const inspections = await InventoryCheckInspection.find({
       inventory_check_order_id: checkOrderId,
     })
@@ -30,8 +31,14 @@ const getInspectionsFromCheckOrder = async (checkOrderId, page, limit) => {
       })
       .populate('check_by', 'username email')
       .populate({
-        path: 'check_list.medicine_id',
-        select: 'medicine_name license_code',
+        path: 'check_list.package_id',
+        populate: {
+          path: 'batch_id',
+          populate: {
+            path: 'medicine_id',
+            select: 'medicine_name license_code',
+          },
+        },
       })
       .skip(skip)
       .limit(limit)
@@ -43,6 +50,7 @@ const getInspectionsFromCheckOrder = async (checkOrderId, page, limit) => {
     throw error;
   }
 };
+
 const createCheckInspection = async (inspectionData) => {
   try {
     // Kiểm tra trạng thái đơn kiểm kê
@@ -86,10 +94,12 @@ const getCheckOrderById = async (checkOrderId) => {
       throw new Error('Invalid check order ID');
     }
 
-    const checkorderData = await InventoryCheckOrder.findById(checkOrderId).populate(
-      'created_by',
-      'username email',
-    );
+    const checkorderData = await InventoryCheckOrder.findById(checkOrderId)
+      .populate('warehouse_manager_id')
+      .populate({
+        path: 'created_by',
+        select: 'username email',
+      });
 
     const loglocation = await LogLocationChange.find({
       inventory_check_order_id: checkOrderId,

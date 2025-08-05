@@ -65,7 +65,7 @@ const assignStaffToExportOrder = async (req, res, next) => {
     const { staffId } = req.body;
     // Validate staffId is a valid User with WAREHOUSE role
     const staff = await User.findById(staffId);
-    if (!staff || staff.role !== USER_ROLES.WAREHOUSE) {
+    if (!staff || staff.role !== USER_ROLES.WAREHOUSEMANAGER) {
       return res
         .status(400)
         .json({ success: false, error: 'Invalid staff ID or staff is not a warehouse employee.' });
