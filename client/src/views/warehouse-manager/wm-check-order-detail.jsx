@@ -193,9 +193,9 @@ export default function CheckOrderDetail() {
     // Proceed with API call if validation passes
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-      // Updated URL to match the new consolidated route structure
+      // Corrected URL to use the inventory/check-order route
       const response = await axios.patch(
-        `${backendUrl}/api/inventory-check-inspections/${order._id}/status`,
+        `${backendUrl}/api/inventory/check-order/${order._id}`,
         {
           status: "completed",
         },
@@ -225,7 +225,6 @@ export default function CheckOrderDetail() {
     if (!order) return
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-      // Corrected URL path
       const response = await axios.patch(
         `${backendUrl}/api/inventory-check-inspections/${order._id}/clear-inspections`,
         {}, // Empty body as per your route definition
@@ -258,9 +257,9 @@ export default function CheckOrderDetail() {
     if (!order) return
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-      // Updated URL to match the new consolidated route structure
+      // Corrected URL to use the inventory/check-order route
       const response = await axios.patch(
-        `${backendUrl}/api/inventory-check-inspections/${order._id}/status`,
+        `${backendUrl}/api/inventory/check-order/${order._id}`,
         {
           status: "cancelled",
         },
