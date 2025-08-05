@@ -105,6 +105,11 @@ const ContractManagement = () => {
 
   // Fetch contracts
   const fetchContracts = async () => {
+    // Don't fetch if role context is still loading
+    if (isLoading) {
+      return;
+    }
+    
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -113,8 +118,11 @@ const ContractManagement = () => {
         ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== ''))
       });
 
-      if (userRole === 'representative') {
-        params.append('created_by', user.userId ?? user.id); //TODO : fix bug /auth/me + permissions
+      if (userRole === 'representative' && user) {
+        const userId = user.userId ?? user.id;
+        if (userId) {
+          params.append('created_by', userId);
+        }
       }
       const response = await axiosInstance.get(`/api/contract?${params}`, {
         headers: getAuthHeaders()
@@ -319,6 +327,10 @@ const ContractManagement = () => {
     if (!isLoading) {
         fetchSuppliers();
         fetchRetailers();
+        // Only fetch contracts on initial load when role context is ready
+        if (userRole) {
+          fetchContracts();
+        }
     }
   }, [isLoading, userRole]);
 
