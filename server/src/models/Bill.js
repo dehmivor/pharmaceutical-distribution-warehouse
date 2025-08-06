@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { billDetailsSchema } = require('./subSchemas');
+const { BILL_STATUSES } = require('../utils/constants');
 
 const billSchema = new mongoose.Schema({
   import_order_id: {
@@ -31,11 +32,14 @@ const billSchema = new mongoose.Schema({
   status: {
     type: String,
     required: [true, 'Status is required'],
-    enum: {
-      values: ['PENDING', 'COMPLETED', 'CANCELED'],
-      message: 'Status must be one of: PENDING, COMPLETED, CANCELED',
-    },
+    values: Object.values(BILL_STATUSES),
+    message: `Status must be one of: ${Object.values(BILL_STATUSES).join(', ')}`,
     default: 'PENDING',
+  },
+  amountPaid: {
+    type: Number,
+    default: 0,
+    min: [0, 'Amount paid cannot be negative'],
   },
   details: [billDetailsSchema],
 });
