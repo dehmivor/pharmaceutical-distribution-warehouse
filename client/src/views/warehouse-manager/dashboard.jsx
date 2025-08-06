@@ -94,16 +94,16 @@ const RecentOrdersTable = ({ orders, title }) => (
             </TableRow>
           </TableHead>
           <TableBody>
-            {orders.slice(0, 5).map((order) => (
-              <TableRow key={order._id} hover>
+            {orders && orders.slice(0, 5).map((order) => (
+              <TableRow key={order.id || order._id} hover>
                 <TableCell>
                   <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                    {order._id.slice(-8).toUpperCase()}
+                    {(order.id || order._id || '').toString().slice(-8).toUpperCase()}
                   </Typography>
                 </TableCell>
                 <TableCell>
                   <Chip
-                    label={order.status}
+                    label={order.status || 'Unknown'}
                     size="small"
                     color={
                       order.status === 'completed' ? 'success' :
@@ -114,7 +114,7 @@ const RecentOrdersTable = ({ orders, title }) => (
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" color="text.secondary">
-                    {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                    {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
                   </Typography>
                 </TableCell>
                 <TableCell>
@@ -213,7 +213,7 @@ const WarehouseManagerDashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Inventory Items"
-            value={dashboardData.stats.totalInventory}
+            value={dashboardData.stats?.totalInventory || 0}
             icon={<InventoryIcon />}
             color="primary"
             subtitle="Active items in stock"
@@ -222,7 +222,7 @@ const WarehouseManagerDashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Pending Import Orders"
-            value={dashboardData.stats.pendingImportOrders}
+            value={dashboardData.stats?.pendingImportOrders || 0}
             icon={<ShippingIcon />}
             color="warning"
             subtitle="Awaiting processing"
@@ -231,7 +231,7 @@ const WarehouseManagerDashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Pending Export Orders"
-            value={dashboardData.stats.pendingExportOrders}
+            value={dashboardData.stats?.pendingExportOrders || 0}
             icon={<AssignmentIcon />}
             color="info"
             subtitle="Ready for shipment"
@@ -240,7 +240,7 @@ const WarehouseManagerDashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Completed Orders"
-            value={dashboardData.stats.completedOrders}
+            value={dashboardData.stats?.completedOrders || 0}
             icon={<CheckCircleIcon />}
             color="success"
             subtitle="This month"
@@ -253,7 +253,7 @@ const WarehouseManagerDashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Low Stock Items"
-            value={dashboardData.stats.lowStockItems}
+            value={dashboardData.stats?.lowStockItems || 0}
             icon={<WarningIcon />}
             color="error"
             subtitle="Need attention"
@@ -262,7 +262,7 @@ const WarehouseManagerDashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Inventory Value"
-            value={`${dashboardData.stats.totalValue.toLocaleString()} VND`}
+            value={`${(dashboardData.stats?.totalValue || 0).toLocaleString()} VND`}
             icon={<TrendingUpIcon />}
             color="secondary"
             subtitle="Current stock value"
@@ -281,13 +281,13 @@ const WarehouseManagerDashboard = () => {
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
           <RecentOrdersTable
-            orders={dashboardData.recentImportOrders}
+            orders={dashboardData.recentImportOrders || []}
             title="Recent Import Orders"
           />
         </Grid>
         <Grid item xs={12} md={6}>
           <RecentOrdersTable
-            orders={dashboardData.recentExportOrders}
+            orders={dashboardData.recentExportOrders || []}
             title="Recent Export Orders"
           />
         </Grid>
@@ -312,28 +312,28 @@ const WarehouseManagerDashboard = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {dashboardData.lowStockMedicines.map((item) => (
-                      <TableRow key={item._id} hover>
+                    {(dashboardData.lowStockMedicines || []).map((item) => (
+                      <TableRow key={item.id || item._id} hover>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                            {item.medicine_id?.medicine_name || 'N/A'}
+                            {item.name || item.medicine_id?.medicine_name || 'N/A'}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="error">
-                            {item.quantity}
+                            {item.currentStock || item.quantity || 0}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
-                            {item.min_quantity || 10}
+                            {item.minStock || item.min_quantity || 10}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={item.quantity === 0 ? 'Out of Stock' : 'Low Stock'}
+                            label={item.status || (item.currentStock === 0 ? 'Out of Stock' : 'Low Stock')}
                             size="small"
-                            color={item.quantity === 0 ? 'error' : 'warning'}
+                            color={item.status === 'critical' || item.currentStock === 0 ? 'error' : 'warning'}
                           />
                         </TableCell>
                       </TableRow>

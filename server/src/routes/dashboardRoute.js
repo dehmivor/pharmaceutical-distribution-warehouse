@@ -18,6 +18,9 @@ router.get('/warehouse-manager', dashboardController.getWarehouseManagerDashboar
 // Get Warehouse Manager Chart Data
 router.get('/warehouse-manager/chart', dashboardController.getWarehouseManagerChart);
 
+// Get Supervisor Dashboard Data
+router.get('/supervisor', dashboardController.getSupervisorDashboard);
+
 // Get Supervisor Recent Activity
 router.get('/supervisor/recent-activity', dashboardController.getSupervisorRecentActivity);
 

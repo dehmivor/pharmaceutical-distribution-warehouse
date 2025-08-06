@@ -127,13 +127,36 @@ const getWarehouseManagerChart = async (req, res) => {
   }
 };
 
+// Get Supervisor Dashboard Data
+const getSupervisorDashboard = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+
+    const dashboardData = await DashboardService.getSupervisorDashboard(userId);
+
+    const response = {
+      success: true,
+      data: dashboardData,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching supervisor dashboard data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch supervisor dashboard data',
+      details: error.message,
+    });
+  }
+};
+
 // Get Supervisor Recent Activity
 const getSupervisorRecentActivity = async (req, res) => {
   try {
     const { id: userId } = req.user;
     const { limit = 10 } = req.query;
 
-    // const recentActivity = await DashboardService.getSupervisorRecentActivity(userId, parseInt(limit));
+    const recentActivity = await DashboardService.getSupervisorRecentActivity(userId, parseInt(limit));
 
     const response = {
       success: true,
@@ -156,5 +179,6 @@ module.exports = {
   getDashboardStats,
   getWarehouseManagerDashboard,
   getWarehouseManagerChart,
+  getSupervisorDashboard,
   getSupervisorRecentActivity,
 };
