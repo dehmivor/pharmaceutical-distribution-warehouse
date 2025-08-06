@@ -2,6 +2,7 @@ const ExportOrder = require('../models/ExportOrder');
 const batchService = require('../services/batchService');
 const User = require('../models/User');
 const Package = require('../models/Package'); // Assuming you have a Package model defined
+const packageService = require('../services/packageService')
 const LogLocationChange = require('../models/LogLocationChange');
 const { EXPORT_ORDER_STATUSES, USER_ROLES } = require('../utils/constants');
 const exportOrderService = require('../services/exportOrderService');

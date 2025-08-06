@@ -1,10 +1,17 @@
-// payment.route.js
 const express = require('express');
-const stripeController = require('../controllers/stripeController');
+const { stripeController } = require('../controllers');
 const router = express.Router();
 
-router.post('/create-payment-intent', stripeController.createPaymentIntentController);
-router.post('/create-payment-import/:paymentId', stripeController.createPaymentImport);
-router.post('/create-payment-export/:paymentId', stripeController.createPaymentExport);
+// Thanh toán 1 hóa đơn nhiều lần (partial payment) - POST /payment-intent
+router.post('/payment-intent', stripeController.createPaymentIntentController);
+
+// Thanh toán nhiều hóa đơn 1 lần (gom tổng) - POST /payments/multi
+router.post('/payments/multi', stripeController.createMultiPayment);
+
+// Thanh toán 1 hóa đơn 1 lần (checkout session) - POST /payments/:paymentId
+router.post('/payments/:paymentId', stripeController.createPaymentSingle);
+
+// Webhook Stripe
+router.post('/webhook', express.raw({ type: 'application/json' }), stripeController.handleWebhook);
 
 module.exports = router;

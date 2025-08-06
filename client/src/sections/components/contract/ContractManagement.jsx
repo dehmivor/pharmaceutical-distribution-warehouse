@@ -98,7 +98,6 @@ const ContractManagement = () => {
 
   // Annex dialog states
   const [openAnnexDialog, setOpenAnnexDialog] = useState(false);
-  const [selectedAnnex, setSelectedAnnex] = useState(null);
   const [annexMode, setAnnexMode] = useState('create');
 
   const [error, setError] = useState('');
@@ -106,6 +105,11 @@ const ContractManagement = () => {
 
   // Fetch contracts
   const fetchContracts = async () => {
+    // Don't fetch if role context is still loading
+    if (isLoading) {
+      return;
+    }
+    
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -114,8 +118,11 @@ const ContractManagement = () => {
         ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== ''))
       });
 
-      if (userRole === 'representative') {
-        params.append('created_by', user.userId ?? user.id); //TODO : fix bug /auth/me + permissions
+      if (userRole === 'representative' && user) {
+        const userId = user.userId ?? user.id;
+        if (userId) {
+          params.append('created_by', userId);
+        }
       }
       const response = await axiosInstance.get(`/api/contract?${params}`, {
         headers: getAuthHeaders()
@@ -305,8 +312,6 @@ const ContractManagement = () => {
 
   // Annex handlers
   const handleOpenAnnexDialog = (contract) => {
-    console.log('=== DEBUG handleOpenAnnexDialog ===');
-    console.log('contract:', contract);
     setSelectedContract(contract);
     setOpenAnnexDialog(true);
   };
@@ -314,7 +319,6 @@ const ContractManagement = () => {
   const handleAnnexSuccess = () => {
     setOpenAnnexDialog(false);
     setSelectedContract(null);
-    setSelectedAnnex(null);
     setSuccess('Thao tác phụ lục thành công');
     fetchContracts();
   };
@@ -323,6 +327,10 @@ const ContractManagement = () => {
     if (!isLoading) {
         fetchSuppliers();
         fetchRetailers();
+        // Only fetch contracts on initial load when role context is ready
+        if (userRole) {
+          fetchContracts();
+        }
     }
   }, [isLoading, userRole]);
 
@@ -623,22 +631,11 @@ const ContractManagement = () => {
                               size="small"
                               onClick={async () => {
                                 // Find existing annex that can be edited (draft or rejected)
-                                console.log('=== DEBUG ContractManagement annex logic ===');
-                                console.log('contract.annexes:', contract.annexes);
-                                console.log('contract.annexes.map(a => ({code: a.annex_code, status: a.status})):', 
-                                  contract.annexes?.map(a => ({code: a.annex_code, status: a.status})));
-                                console.log('Annexes with rejected status:', 
-                                  contract.annexes?.filter(a => a.status === 'rejected').map(a => ({code: a.annex_code, status: a.status})));
-                                
                                 const existingAnnex = contract.annexes?.find(annex => 
                                   annex.status === 'draft' || annex.status === 'rejected'
                                 );
                                 
-                                console.log('existingAnnex:', existingAnnex);
-                                console.log('existingAnnex.status:', existingAnnex?.status);
-                                
                                 // Force refresh data to ensure sync
-                                console.log('=== FORCE REFRESH DATA ===');
                                 await fetchContracts();
                                 
                                 // Let AnnexDialog handle the logic based on fresh data

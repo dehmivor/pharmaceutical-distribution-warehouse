@@ -27,19 +27,13 @@ import {
 } from '@mui/material';
 import {
   Close as CloseIcon,
-  Save as SaveIcon,
   Description as ContractIcon,
-  Person as UserIcon,
   LocalShipping as SupplierIcon,
+  Store as RetailerIcon,
   Event as EventIcon,
   Inventory as InventoryIcon,
-  MonetizationOn as PriceIcon,
   Add as AddIcon,
-  Remove as RemoveIcon,
-  Update as UpdateIcon,
-  Schedule as ScheduleIcon,
   Edit as EditIcon,
-  Visibility as ViewIcon,
   AttachFile as AnnexIcon
 } from '@mui/icons-material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';

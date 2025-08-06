@@ -21,5 +21,6 @@ module.exports = {
   exportOrderController: require('./exportOrderController'),
   userController: require('./userController'),
   inventoryController: require('./inventoryController'),
-  inventoryCheckInspectionController: require('./inventoryCheckInspectionController')
+  inventoryCheckInspectionController: require('./inventoryCheckInspectionController'),
+  logLocationChangeController: require('./logLocationChangeController')
 };

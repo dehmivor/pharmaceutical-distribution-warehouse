@@ -82,6 +82,7 @@ app.use('/api/batch', route.batchRoutes);
 app.use('/api/packages', route.packageRoutes);
 app.use('/api/areas', route.areaRoutes);
 app.use('/api/locations', route.locationRoutes);
+app.use('/api/log-location-changes', route.locationRoutes);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
@@ -112,6 +113,7 @@ app.use(
 app.use('/api/import-orders', route.importOrderRoutes);
 // app.use('/api/export-orders', route.exportOrderRoutes);
 app.use('/api/stripe', route.stripeRoutes);
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use('/api/bills', route.billRoutes);
 app.use('/api/supplier', route.supplierRoutes);
 app.use('/api/retailer', route.retailerRoutes);

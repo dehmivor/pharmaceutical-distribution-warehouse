@@ -148,7 +148,14 @@ const supervisor = {
           icon: 'IconTruck'
         }
       ]
-    }
+    },
+    {
+      id: 'log-management',
+      title: 'Log Management',
+      type: 'item',
+      url: '/sp-location-log',
+      icon: 'IconMapPin',
+    },
   ]
 };
 
