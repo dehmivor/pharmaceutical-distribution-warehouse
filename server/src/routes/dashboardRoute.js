@@ -18,6 +18,18 @@ router.get('/warehouse-manager', dashboardController.getWarehouseManagerDashboar
 // Get Warehouse Manager Chart Data
 router.get('/warehouse-manager/chart', dashboardController.getWarehouseManagerChart);
 
+// Get Warehouse Manager Detailed Stats
+router.get('/warehouse-manager/stats', dashboardController.getWarehouseManagerDetailedStats);
+
+// Get Warehouse Manager Top Medicines
+router.get('/warehouse-manager/top-medicines', dashboardController.getWarehouseManagerTopMedicines);
+
+// Get Warehouse Manager Alerts
+router.get('/warehouse-manager/alerts', dashboardController.getWarehouseManagerAlerts);
+
+// Get Supervisor Dashboard Data
+router.get('/supervisor', dashboardController.getSupervisorDashboard);
+
 // Get Supervisor Recent Activity
 router.get('/supervisor/recent-activity', dashboardController.getSupervisorRecentActivity);
 

@@ -127,13 +127,107 @@ const getWarehouseManagerChart = async (req, res) => {
   }
 };
 
+// Get Warehouse Manager Detailed Stats
+const getWarehouseManagerDetailedStats = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+
+    const detailedStats = await DashboardService.getWarehouseManagerDetailedStats(userId);
+
+    const response = {
+      success: true,
+      data: detailedStats,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching warehouse manager detailed stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch warehouse manager detailed stats',
+      details: error.message,
+    });
+  }
+};
+
+// Get Warehouse Manager Top Medicines
+const getWarehouseManagerTopMedicines = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+    const { limit = 10 } = req.query;
+
+    const topMedicines = await DashboardService.getWarehouseManagerTopMedicines(userId, parseInt(limit));
+
+    const response = {
+      success: true,
+      data: topMedicines,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching warehouse manager top medicines:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch warehouse manager top medicines',
+      details: error.message,
+    });
+  }
+};
+
+// Get Warehouse Manager Alerts
+const getWarehouseManagerAlerts = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+    const { limit = 10 } = req.query;
+
+    const alerts = await DashboardService.getWarehouseManagerAlerts(userId, parseInt(limit));
+
+    const response = {
+      success: true,
+      data: alerts,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching warehouse manager alerts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch warehouse manager alerts',
+      details: error.message,
+    });
+  }
+};
+
+// Get Supervisor Dashboard Data
+const getSupervisorDashboard = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+
+    const dashboardData = await DashboardService.getSupervisorDashboard(userId);
+
+    const response = {
+      success: true,
+      data: dashboardData,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching supervisor dashboard data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch supervisor dashboard data',
+      details: error.message,
+    });
+  }
+};
+
 // Get Supervisor Recent Activity
 const getSupervisorRecentActivity = async (req, res) => {
   try {
     const { id: userId } = req.user;
     const { limit = 10 } = req.query;
 
-    // const recentActivity = await DashboardService.getSupervisorRecentActivity(userId, parseInt(limit));
+    const recentActivity = await DashboardService.getSupervisorRecentActivity(userId, parseInt(limit));
 
     const response = {
       success: true,
@@ -156,5 +250,9 @@ module.exports = {
   getDashboardStats,
   getWarehouseManagerDashboard,
   getWarehouseManagerChart,
+  getWarehouseManagerDetailedStats,
+  getWarehouseManagerTopMedicines,
+  getWarehouseManagerAlerts,
+  getSupervisorDashboard,
   getSupervisorRecentActivity,
 };

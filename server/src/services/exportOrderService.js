@@ -366,6 +366,8 @@ async function addExportInspection(orderId, detailId, inspectionData) {
   return detail.actual_item[detail.actual_item.length - 1];
 }
 
+
+
 /**
  * Kiểm tra tồn kho cho export order
  * @param {Array} details - Chi tiết export order

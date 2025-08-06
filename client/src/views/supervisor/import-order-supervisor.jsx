@@ -22,17 +22,12 @@ import {
   Chip,
   TextField,
   Grid,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
   Button,
   CircularProgress,
   Stack
 } from '@mui/material';
 import {
   Info as InfoIcon,
-  Edit as EditIcon,
   ForkLeft as ForwardIcon,
   Refresh as RefreshIcon,
   Search as SearchIcon
@@ -94,7 +89,6 @@ export default function ImportOrderSupervisor() {
   const [success, setSuccess] = useState(null);
 
   const [openDetails, setOpenDetails] = useState(false);
-  const [openEditDialog, setOpenEditDialog] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
   // Pagination and filtering
@@ -106,15 +100,8 @@ export default function ImportOrderSupervisor() {
   const [filterAssigned, setFilterAssigned] = useState('all'); // 'all', 'assigned', 'unassigned'
   const [filterStatus, setFilterStatus] = useState('All Status');
 
-  const [warehouseManagers, setWarehouseManagers] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
   const { createNotification } = useNotifications('685c2c032aaf8fe6edb3a26f');
-
-  // Edit form states
-  const [editForm, setEditForm] = useState({
-    status: '',
-    warehouse_manager_id: ''
-  });
 
   // Inline status edit
   const [editingStatusOrderId, setEditingStatusOrderId] = useState(null);
@@ -160,19 +147,7 @@ export default function ImportOrderSupervisor() {
     }
   }, [page, rowsPerPage]);
 
-  // Fetch warehouse managers
-  const fetchWarehouseManagers = async () => {
-    try {
-      const response = await axiosInstance.get('/accounts?role=warehouse_manager');
-      setWarehouseManagers(response.data.data || []);
-    } catch {
-      setWarehouseManagers([]);
-    }
-  };
 
-  useEffect(() => {
-    fetchWarehouseManagers();
-  }, []);
 
   useEffect(() => {
     fetchOrders();
@@ -200,55 +175,9 @@ export default function ImportOrderSupervisor() {
   };
 
   // Edit dialog open/close and form change handlers
-  const handleOpenEditDialog = (order) => {
-    setSelectedOrder(order);
-    setEditForm({
-      status: order.status || '',
-      warehouse_manager_id: order.warehouse_manager_id?._id || ''
-    });
-    setOpenEditDialog(true);
-  };
 
-  const handleCloseEditDialog = () => {
-    setSelectedOrder(null);
-    setEditForm({
-      status: '',
-      warehouse_manager_id: ''
-    });
-    setOpenEditDialog(false);
-  };
 
-  const handleEditFormChange = (field, value) => {
-    setEditForm((prev) => ({
-      ...prev,
-      [field]: value
-    }));
-  };
 
-  const handleUpdateOrder = async () => {
-    if (!selectedOrder) return;
-    try {
-      setActionLoading(true);
-
-      if (editForm.status !== selectedOrder.status) {
-        await axiosInstance.patch(`/import-orders/${selectedOrder._id}/status`, { status: editForm.status });
-      }
-
-      if (editForm.warehouse_manager_id !== (selectedOrder.warehouse_manager_id?._id || '')) {
-        await axiosInstance.patch(`/import-orders/${selectedOrder._id}/assign-warehouse-manager`, {
-          warehouse_manager_id: editForm.warehouse_manager_id
-        });
-      }
-
-      setSuccess('Order updated successfully');
-      handleCloseEditDialog();
-      fetchOrders();
-    } catch (error) {
-      setError(error.response?.data?.error || error.message);
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
   // Details dialog open/close
   const handleOpenDetails = async (order) => {
@@ -440,16 +369,6 @@ export default function ImportOrderSupervisor() {
                     <TableCell>{order.warehouse_manager_id?.email || 'Not Assigned'}</TableCell>
                     <TableCell>
                       <Box display="flex" gap={1}>
-                        {order.status === IMPORT_ORDER_STATUSES.DELIVERED && (
-                          <IconButton
-                            color="primary"
-                            onClick={() => handleOpenEditDialog(order)}
-                            disabled={actionLoading}
-                            title="Assign warehouse manager"
-                          >
-                            <EditIcon />
-                          </IconButton>
-                        )}
                         <IconButton color="info" onClick={() => handleOpenDetails(order)}>
                           <InfoIcon />
                         </IconButton>
@@ -479,39 +398,7 @@ export default function ImportOrderSupervisor() {
         />
       </TableContainer>
 
-      {/* Edit Dialog */}
-      <Dialog open={openEditDialog} onClose={handleCloseEditDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Assign Warehouse Manager</DialogTitle>
-        <DialogContent>
-          <Box sx={{ mt: 2 }}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Warehouse Manager</InputLabel>
-              <Select
-                value={editForm.warehouse_manager_id}
-                onChange={(e) => handleEditFormChange('warehouse_manager_id', e.target.value)}
-                label="Warehouse Manager"
-              >
-                <MenuItem value="">
-                  <em>None</em>
-                </MenuItem>
-                {warehouseManagers.map((manager) => (
-                  <MenuItem key={manager._id} value={manager._id}>
-                    {manager.name} ({manager.email})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseEditDialog} disabled={actionLoading}>
-            Cancel
-          </Button>
-          <Button onClick={handleUpdateOrder} variant="contained" disabled={actionLoading}>
-            {actionLoading ? <CircularProgress size={20} /> : 'Assign'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+
 
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
