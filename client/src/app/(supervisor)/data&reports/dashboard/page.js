@@ -2,10 +2,10 @@
 import dynamic from 'next/dynamic';
 
 // @project
-const DashboardPage = dynamic(() => import('@/views/admin/dashboard'));
+const SupervisorDashboardPage = dynamic(() => import('@/views/supervisor/supervisor-dashboard'));
 
-/***************************  DASHBOARD PAGE  ***************************/
+/***************************  SUPERVISOR DASHBOARD PAGE  ***************************/
 
-export default function DashboardPages() {
-  return <DashboardPage />;
+export default function SupervisorDashboardPages() {
+  return <SupervisorDashboardPage />;
 }

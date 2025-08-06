@@ -869,60 +869,7 @@ const RepresentativeManagerImportOrders = () => {
                 </Paper>
               )}
 
-              {/* Validation Summary */}
-              <Paper sx={{ p: 2, mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Validation Summary (vs Active Contract Medicines)
-                </Typography>
-                <Grid container spacing={2}>
-                  {selectedOrderForDetails.details?.map((detail, index) => {
-                    const contractItem = contractMedicines.find(
-                      (item) => item.medicine_id?._id === detail.medicine_id?._id
-                    );
 
-                    const isQuantityValid = contractItem ? detail.quantity >= (contractItem.quantity || contractItem.min_order_quantity || 1) : false;
-                    const isPriceValid = contractItem ? detail.unit_price === contractItem.unit_price : false;
-                    const isInContract = !!contractItem;
-
-                    return (
-                      <Grid item xs={12} sm={6} md={4} key={index}>
-                        <Box sx={{ 
-                          p: 1, 
-                          border: '1px solid #e0e0e0', 
-                          borderRadius: 1,
-                          backgroundColor: isInContract ? 'transparent' : '#fff3cd'
-                        }}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                            {detail.medicine_id?.medicine_name}
-                          </Typography>
-                          <Typography variant="body2">
-                            Quantity: {detail.quantity}
-                            <span style={{ color: isQuantityValid ? 'green' : 'red', marginLeft: 8 }}>
-                              {isQuantityValid ? '✓ Valid' : `✗ Min: ${contractItem?.quantity || contractItem?.min_order_quantity || 'N/A'}`}
-                            </span>
-                          </Typography>
-                          <Typography variant="body2">
-                            Price: {formatCurrency(detail.unit_price)}
-                            <span style={{ color: isPriceValid ? 'green' : 'red', marginLeft: 8 }}>
-                              {isPriceValid ? '✓ Match' : '✗ Mismatch'}
-                            </span>
-                          </Typography>
-                          {contractItem && (
-                            <Typography variant="body2" color="text.secondary">
-                              Source: {contractItem.source || 'CONTRACT'}
-                            </Typography>
-                          )}
-                          {!isInContract && (
-                            <Typography variant="body2" color="error">
-                              ⚠️ Not in active contract medicines
-                            </Typography>
-                          )}
-                        </Box>
-                      </Grid>
-                    );
-                  })}
-                </Grid>
-              </Paper>
             </Box>
           )}
         </DialogContent>
