@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Grid,
@@ -17,7 +17,13 @@ import {
   TableHead,
   TableRow,
   IconButton,
-  Tooltip
+  Tooltip,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Divider,
+  Skeleton
 } from '@mui/material';
 import {
   Inventory as InventoryIcon,
@@ -26,20 +32,19 @@ import {
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
   TrendingUp as TrendingUpIcon,
-  Visibility as VisibilityIcon
+  Visibility as VisibilityIcon,
+  Notifications as NotificationsIcon,
+  Medication as MedicationIcon,
+  Info as InfoIcon,
+  Error as ErrorIcon,
+  Success as SuccessIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
-import axios from 'axios';
 import WarehouseManagerChart from '@/sections/dashboard/WarehouseManagerChart';
+import useWarehouseManagerDashboard from '@/hooks/useWarehouseManagerDashboard';
+import DashboardStats from '@/components/DashboardStats';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-const getAuthHeaders = () => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
-  return {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` })
-  };
-};
 
 const StatCard = ({ title, value, icon, color, subtitle }) => (
   <Card sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
@@ -106,9 +111,11 @@ const RecentOrdersTable = ({ orders, title }) => (
                     label={order.status || 'Unknown'}
                     size="small"
                     color={
-                      order.status === 'completed' ? 'success' :
-                      order.status === 'pending' ? 'warning' :
-                      order.status === 'cancelled' ? 'error' : 'default'
+                      order.status === 'completed'
+                        ? 'success'
+                        : order.status === 'pending'
+                        ? 'warning'
+                        : 'default'
                     }
                   />
                 </TableCell>
@@ -120,7 +127,7 @@ const RecentOrdersTable = ({ orders, title }) => (
                 <TableCell>
                   <Tooltip title="View Details">
                     <IconButton size="small" color="primary">
-                      <VisibilityIcon fontSize="small" />
+                      <VisibilityIcon />
                     </IconButton>
                   </Tooltip>
                 </TableCell>
@@ -133,65 +140,226 @@ const RecentOrdersTable = ({ orders, title }) => (
   </Card>
 );
 
-const WarehouseManagerDashboard = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [dashboardData, setDashboardData] = useState({
-    stats: {
-      totalInventory: 0,
-      pendingImportOrders: 0,
-      pendingExportOrders: 0,
-      completedOrders: 0,
-      lowStockItems: 0,
-      totalValue: 0
-    },
-    recentImportOrders: [],
-    recentExportOrders: [],
-    lowStockMedicines: [],
-    chartData: null
-  });
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch warehouse manager dashboard data from API
-      const [dashboardResponse, chartResponse] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/dashboard/warehouse-manager`, {
-          headers: getAuthHeaders()
-        }),
-        axios.get(`${API_BASE_URL}/api/dashboard/warehouse-manager/chart`, {
-          headers: getAuthHeaders()
-        })
-      ]);
-
-      if (dashboardResponse.data.success && chartResponse.data.success) {
-        setDashboardData({
-          ...dashboardResponse.data.data,
-          chartData: chartResponse.data.data
-        });
-      } else {
-        setError('Failed to load dashboard data');
-      }
-
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
+const AlertsSection = ({ alerts }) => {
+  if (!alerts || alerts.length === 0) {
+    return (
+      <Card sx={{ height: '100%' }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <NotificationsIcon color="primary" />
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              System Alerts
+            </Typography>
+          </Box>
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <SuccessIcon color="success" sx={{ fontSize: 48, mb: 2 }} />
+            <Typography variant="body2" color="text.secondary">
+              No alerts at the moment. All systems are running normally.
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  }
+  const getAlertIcon = (severity) => {
+    switch (severity) {
+      case 'error':
+        return <ErrorIcon color="error" />;
+      case 'warning':
+        return <WarningIcon color="warning" />;
+      case 'info':
+        return <InfoIcon color="info" />;
+      case 'success':
+        return <SuccessIcon color="success" />;
+      default:
+        return <InfoIcon />;
     }
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  const getAlertColor = (severity) => {
+    switch (severity) {
+      case 'error':
+        return 'error';
+      case 'warning':
+        return 'warning';
+      case 'info':
+        return 'info';
+      case 'success':
+        return 'success';
+      default:
+        return 'default';
+    }
+  };
+
+  return (
+    <Card sx={{ height: '100%' }}>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <NotificationsIcon color="primary" />
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            System Alerts
+          </Typography>
+        </Box>
+        <List sx={{ p: 0 }}>
+          {(alerts || []).map((alert, index) => (
+            <React.Fragment key={index}>
+              <ListItem sx={{ px: 0 }}>
+                <ListItemIcon>
+                  {getAlertIcon(alert.severity)}
+                </ListItemIcon>
+                <ListItemText
+                  primary={
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
+                      {alert.title}
+                    </Typography>
+                  }
+                  secondary={
+                    <Box component="span">
+                      <Box component="span" sx={{ display: 'block', mb: 0.5 }}>
+                        {alert.message}
+                      </Box>
+                      <Box component="span" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                        {new Date(alert.timestamp).toLocaleString('vi-VN')}
+                      </Box>
+                    </Box>
+                  }
+                />
+                <Chip
+                  label={alert.severity}
+                  size="small"
+                  color={getAlertColor(alert.severity)}
+                />
+              </ListItem>
+              {index < alerts.length - 1 && <Divider />}
+            </React.Fragment>
+          ))}
+        </List>
+      </CardContent>
+    </Card>
+  );
+};
+
+const DashboardSkeleton = () => (
+  <Box sx={{ p: 3 }}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Skeleton variant="text" width={300} height={40} />
+      <Skeleton variant="circular" width={40} height={40} />
+    </Box>
+    
+    {/* Statistics Cards Skeleton */}
+    <Grid container spacing={3} sx={{ mb: 4 }}>
+      {[1, 2, 3, 4].map((item) => (
+        <Grid item xs={12} sm={6} md={3} key={item}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Skeleton variant="text" width="60%" height={40} />
+              <Skeleton variant="text" width="40%" height={20} />
+              <Skeleton variant="circular" width={60} height={60} sx={{ ml: 'auto', mt: 1 }} />
+            </CardContent>
+          </Card>
+        </Grid>
+      ))}
+    </Grid>
+    
+    {/* Chart Skeleton */}
+    <Card sx={{ mb: 4 }}>
+      <CardContent>
+        <Skeleton variant="text" width={200} height={30} sx={{ mb: 2 }} />
+        <Skeleton variant="rectangular" width="100%" height={300} />
+      </CardContent>
+    </Card>
+    
+    {/* Tables Skeleton */}
+    <Grid container spacing={3}>
+      {[1, 2, 3].map((item) => (
+        <Grid item xs={12} md={4} key={item}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Skeleton variant="text" width={150} height={30} sx={{ mb: 2 }} />
+              {[1, 2, 3, 4, 5].map((row) => (
+                <Skeleton key={row} variant="text" width="100%" height={20} sx={{ mb: 1 }} />
+              ))}
+            </CardContent>
+          </Card>
+        </Grid>
+      ))}
+    </Grid>
+  </Box>
+);
+
+const TopMedicinesSection = ({ topMedicines }) => {
+  if (!topMedicines || topMedicines.length === 0) {
+    return (
+      <Card sx={{ height: '100%' }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <MedicationIcon color="primary" />
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              Top Medicines
+            </Typography>
+          </Box>
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <MedicationIcon color="disabled" sx={{ fontSize: 48, mb: 2 }} />
+            <Typography variant="body2" color="text.secondary">
+              No medicine data available at the moment.
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+  <Card sx={{ height: '100%' }}>
+    <CardContent>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <MedicationIcon color="primary" />
+        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+          Top Medicines
+        </Typography>
+      </Box>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Medicine Name</TableCell>
+              <TableCell>Total Imported</TableCell>
+              <TableCell>Total Value</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {(topMedicines || []).map((medicine) => (
+              <TableRow key={medicine.id} hover>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    {medicine.name}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="primary">
+                    {medicine.totalImported?.toLocaleString() || 0}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    {medicine.totalValue?.toLocaleString() || 0} VND
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </CardContent>
+  </Card>
+  );
+};
+
+const WarehouseManagerDashboard = () => {
+  const { dashboardData, loading, refreshing, error, lastUpdated, refreshDashboard } = useWarehouseManagerDashboard();
 
   if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {
@@ -204,9 +372,37 @@ const WarehouseManagerDashboard = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold' }}>
-        Warehouse Manager Dashboard
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+            Warehouse Manager Dashboard
+          </Typography>
+          {lastUpdated && (
+            <Typography variant="caption" color="text.secondary">
+              Last updated: {lastUpdated.toLocaleString('vi-VN')}
+            </Typography>
+          )}
+        </Box>
+        <Tooltip title="Refresh Dashboard">
+          <IconButton 
+            onClick={refreshDashboard} 
+            color="primary"
+            disabled={refreshing}
+            sx={{ 
+              backgroundColor: 'primary.light',
+              '&:hover': { backgroundColor: 'primary.main', color: 'white' }
+            }}
+          >
+            <RefreshIcon sx={{ 
+              animation: refreshing ? 'spin 1s linear infinite' : 'none',
+              '@keyframes spin': {
+                '0%': { transform: 'rotate(0deg)' },
+                '100%': { transform: 'rotate(360deg)' }
+              }
+            }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -268,7 +464,28 @@ const WarehouseManagerDashboard = () => {
             subtitle="Current stock value"
           />
         </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Monthly Import Orders"
+            value={dashboardData.detailedStats?.monthly?.importOrders || 0}
+            icon={<ShippingIcon />}
+            color="primary"
+            subtitle="This month"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Monthly Export Orders"
+            value={dashboardData.detailedStats?.monthly?.exportOrders || 0}
+            icon={<AssignmentIcon />}
+            color="success"
+            subtitle="This month"
+          />
+        </Grid>
       </Grid>
+
+      {/* Detailed Statistics */}
+      <DashboardStats detailedStats={dashboardData.detailedStats} />
 
       {/* Chart Section */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -278,7 +495,7 @@ const WarehouseManagerDashboard = () => {
       </Grid>
 
       {/* Recent Orders and Low Stock */}
-      <Grid container spacing={3}>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
           <RecentOrdersTable
             orders={dashboardData.recentImportOrders || []}
@@ -293,14 +510,23 @@ const WarehouseManagerDashboard = () => {
         </Grid>
       </Grid>
 
-      {/* Low Stock Medicines */}
-      <Grid container spacing={3} sx={{ mt: 2 }}>
-        <Grid item xs={12}>
-          <Card>
+      {/* New Sections: Alerts, Top Medicines, and Low Stock */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} md={4}>
+          <AlertsSection alerts={dashboardData.alerts} />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <TopMedicinesSection topMedicines={dashboardData.topMedicines} />
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                Low Stock Medicines
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <WarningIcon color="warning" />
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  Low Stock Medicines
+                </Typography>
+              </Box>
               <TableContainer>
                 <Table size="small">
                   <TableHead>
