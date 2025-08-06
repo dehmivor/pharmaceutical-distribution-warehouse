@@ -58,6 +58,23 @@ const mockPackages = [
   }
 ];
 
+const mockLocations = [
+  {
+    _id: 'location-1',
+    area_id: 'area-1',
+    bay: 'A',
+    row: '1',
+    column: '1'
+  },
+  {
+    _id: 'location-2',
+    area_id: 'area-1',
+    bay: 'A',
+    row: '1',
+    column: '2'
+  }
+];
+
 // Test logic
 function testExportOrderComplete() {
   console.log('=== Test Export Order Complete Logic ===');
@@ -124,6 +141,23 @@ function testExportOrderComplete() {
         const oldLocationId = pkg.location_id;
         pkg.location_id = null;
         console.log(`  - Removed from location ${oldLocationId}`);
+        
+        // Kiểm tra xem có package nào khác đang sử dụng location này không
+        const packagesUsingLocation = mockPackages.filter(p => 
+          p.location_id === oldLocationId && p._id !== pkg._id
+        ).length;
+        
+        if (packagesUsingLocation === 0) {
+          // Xóa location nếu không có package nào sử dụng
+          const locationIndex = mockLocations.findIndex(l => l._id === oldLocationId);
+          if (locationIndex !== -1) {
+            mockLocations.splice(locationIndex, 1);
+            console.log(`  - DELETED location ${oldLocationId} - no packages using it`);
+          }
+        } else {
+          console.log(`  - Location ${oldLocationId} kept - ${packagesUsingLocation} other packages using it`);
+        }
+        
         console.log(`  - Log: REMOVE from location ${oldLocationId}`);
       }
     }
@@ -132,6 +166,11 @@ function testExportOrderComplete() {
   console.log('\n=== Final Package States ===');
   mockPackages.forEach(pkg => {
     console.log(`Package ${pkg._id}: quantity=${pkg.quantity}, location=${pkg.location_id}`);
+  });
+  
+  console.log('\n=== Final Location States ===');
+  mockLocations.forEach(loc => {
+    console.log(`Location ${loc._id}: ${loc.bay}-${loc.row}-${loc.column}`);
   });
 }
 

@@ -280,8 +280,21 @@ const completeExportOrder = async (req, res) => {
             pkg.location_id = null;
             await pkg.save({ session });
 
-            // Ghi log xóa vị trí
+            // Xóa location thực sự khỏi database nếu không có package nào khác sử dụng
             if (oldLocationId) {
+              // Kiểm tra xem có package nào khác đang sử dụng location này không
+              const packagesUsingLocation = await Package.countDocuments({
+                location_id: oldLocationId,
+                _id: { $ne: pkg._id } // Loại trừ package hiện tại
+              }).session(session);
+
+              if (packagesUsingLocation === 0) {
+                // Xóa location nếu không có package nào sử dụng
+                await Location.findByIdAndDelete(oldLocationId).session(session);
+                console.log(`Deleted location ${oldLocationId} - no packages using it`);
+              }
+
+              // Ghi log xóa vị trí
               await LogLocationChange.create(
                 [{
                   location_id: oldLocationId,
