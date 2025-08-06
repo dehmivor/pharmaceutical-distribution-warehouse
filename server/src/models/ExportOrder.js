@@ -33,6 +33,7 @@ const exportOrderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+
     details: [exportOrderDetailsSchema],
   },
   { timestamps: true }, // Add timestamps for createdAt and updatedAt

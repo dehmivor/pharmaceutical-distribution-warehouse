@@ -7,6 +7,8 @@ const LogLocationChange = require('../models/LogLocationChange');
 const { EXPORT_ORDER_STATUSES, USER_ROLES } = require('../utils/constants');
 const exportOrderService = require('../services/exportOrderService');
 const mongoose = require('mongoose');
+const InventoryCheckInspection = require('../models/InventoryCheckInspection');
+const Location = require('../models/Location');
 
 // Helper function for population to ensure consistent data structure
 const populateOptions = [
@@ -213,6 +215,86 @@ const completeExportOrder = async (req, res) => {
             ],
             { session },
           );
+        }
+      }
+
+      // Xử lý InventoryCheckInspection - cập nhật package quantities và locations
+      // Tìm tất cả package IDs từ export order
+      const exportPackageIds = [];
+      for (const detail of exportOrder.details) {
+        for (const item of detail.actual_item) {
+          exportPackageIds.push(item.package_id._id);
+        }
+      }
+
+      // Tìm inspections có chứa các package này
+      const inspections = await InventoryCheckInspection.find({
+        status: 'checked', // Chỉ xử lý những inspection đã hoàn thành
+        'check_list.package_id': { $in: exportPackageIds }
+      }).populate('check_list.package_id').session(session);
+
+      for (const inspection of inspections) {
+        for (const checkItem of inspection.check_list) {
+          const packageId = checkItem.package_id._id;
+          
+          // Chỉ xử lý những package có trong export order
+          if (!exportPackageIds.includes(packageId.toString())) {
+            continue;
+          }
+
+          const actualQuantity = checkItem.actual_quantity;
+          const type = checkItem.type;
+
+          // Tìm package
+          const pkg = await Package.findById(packageId).session(session);
+          if (!pkg) {
+            console.warn(`Package ${packageId} không tồn tại trong inspection ${inspection._id}`);
+            continue;
+          }
+
+          // 1. Cập nhật actual_quantity vào quantity của package
+          pkg.quantity = actualQuantity;
+          await pkg.save({ session });
+
+          // 2. Xử lý theo type
+          if (type === 'over_expected') {
+            // Cập nhật location_id của package thành location_id của inspection
+            pkg.location_id = inspection.location_id;
+            await pkg.save({ session });
+
+            // Ghi log thay đổi vị trí
+            await LogLocationChange.create(
+              [{
+                location_id: inspection.location_id,
+                type: 'add',
+                batch_id: pkg.batch_id,
+                quantity: actualQuantity,
+                export_order_id: exportOrder._id,
+                ware_house_id: user.userId,
+              }],
+              { session }
+            );
+          } else if (type === 'under_expected') {
+            // Xóa location_id của package
+            const oldLocationId = pkg.location_id;
+            pkg.location_id = null;
+            await pkg.save({ session });
+
+            // Ghi log xóa vị trí
+            if (oldLocationId) {
+              await LogLocationChange.create(
+                [{
+                  location_id: oldLocationId,
+                  type: 'remove',
+                  batch_id: pkg.batch_id,
+                  quantity: actualQuantity,
+                  export_order_id: exportOrder._id,
+                  ware_house_id: user.userId,
+                }],
+                { session }
+              );
+            }
+          }
         }
       }
 
