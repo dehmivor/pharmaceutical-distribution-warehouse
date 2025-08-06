@@ -113,6 +113,7 @@ app.use(
 app.use('/api/import-orders', route.importOrderRoutes);
 // app.use('/api/export-orders', route.exportOrderRoutes);
 app.use('/api/stripe', route.stripeRoutes);
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use('/api/bills', route.billRoutes);
 app.use('/api/supplier', route.supplierRoutes);
 app.use('/api/retailer', route.retailerRoutes);

@@ -120,7 +120,6 @@ export default function ManageExportOrders() {
     setAnchorEl(e.currentTarget)
     setMenuOrder(order)
   }
-
   const handleMenuClose = () => {
     setAnchorEl(null)
     setMenuOrder(null)
@@ -168,14 +167,12 @@ export default function ManageExportOrders() {
       const currentDate = date !== null ? date : filterDate
       const currentStatus = status !== null ? status : filterStatus
       const currentAssignedToMe = assignedToMe !== null ? assignedToMe : filterAssignedToMe
-
       const qp = new URLSearchParams()
       qp.append("page", (currentPage + 1).toString())
       qp.append("limit", currentLimit.toString())
       if (currentDate) qp.append("createdAt", currentDate)
       if (currentStatus) qp.append("status", currentStatus)
       if (currentAssignedToMe && currentUserId) qp.append("warehouse_manager_id", currentUserId)
-
       const url = `${backendUrl}/api/export-orders${qp.toString() ? `?${qp.toString()}` : ""}`
       const resp = await axios.get(url, { headers: getAuthHeaders() })
       if (!resp.data.success) {
@@ -482,7 +479,6 @@ export default function ManageExportOrders() {
           const updatedOrder = await res.json()
           setOrders((prev) => prev.map((order) => (order._id === orderId ? updatedOrder.data : order)))
           setMessageDialog({ open: true, title: "Thành công", content: "Đơn hàng đã hoàn thành!" })
-          // Refresh the orders list
           await fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe)
         } catch (error) {
           setMessageDialog({
@@ -557,6 +553,7 @@ export default function ManageExportOrders() {
             setMessageDialog({ open: true, title: "Lỗi", content: "Không có token xác thực. Vui lòng đăng nhập lại." })
             return
           }
+
           const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/assign-warehouse-manager`, {
             method: "PUT",
             headers: {
@@ -565,10 +562,12 @@ export default function ManageExportOrders() {
             },
             body: JSON.stringify({ warehouse_manager_id: currentUserId }),
           })
+
           if (!res.ok) {
             const errorData = await res.json()
             throw new Error(errorData.error || "Failed to assign warehouse manager")
           }
+
           const updatedOrder = await res.json()
           setOrders((prev) => prev.map((order) => (order._id === orderId ? updatedOrder.data : order)))
           setMessageDialog({ open: true, title: "Thành công", content: "Đơn hàng đã được phân công cho bạn!" })
@@ -715,16 +714,19 @@ export default function ManageExportOrders() {
         >
           Detail
         </MenuItem>
-        {currentUserRole === USER_ROLES.WAREHOUSEMANAGER && !menuOrder?.warehouse_manager_id && (
-          <MenuItem
-            onClick={() => {
-              handleAssignToMyself(menuOrder._id)
-            }}
-          >
-            Assign order to myself
-          </MenuItem>
-        )}
+        {currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
+          !menuOrder?.warehouse_manager_id &&
+          menuOrder?.status === "approved" && ( // Added condition for "approved" status
+            <MenuItem
+              onClick={() => {
+                handleAssignToMyself(menuOrder._id)
+              }}
+            >
+              Assign order to myself
+            </MenuItem>
+          )}
       </Menu>
+
       <Dialog open={viewDetailsDialogOpen} onClose={handleCloseViewDetailsDialog} maxWidth="md" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>Chi tiết Đơn hàng Xuất kho</DialogTitle>
         <DialogContent dividers sx={{ pt: 2 }}>
@@ -789,7 +791,7 @@ export default function ManageExportOrders() {
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
                       {(() => {
-                        const dateString = selectedOrder.updatedAt || selectedOrder.updatedAt
+                        const dateString = selectedOrder.completedAt || selectedOrder.cancelledAt
                         const date = dateString ? new Date(dateString) : null
                         return date && !isNaN(date.getTime()) ? date.toLocaleDateString("vi-VN") : "N/A"
                       })()}
@@ -845,9 +847,6 @@ export default function ManageExportOrders() {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button onClick={handleCloseViewDetailsDialog} variant="outlined" color="secondary">
-            Đóng
-          </Button>
           {(currentUserRole === USER_ROLES.WAREHOUSE ||
             (currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
               selectedOrder?.warehouse_manager_id?._id === currentUserId)) && (
@@ -858,7 +857,7 @@ export default function ManageExportOrders() {
                 handleOpenPackingDialog(selectedOrder)
               }}
             >
-              Chi Tiết Đóng gói
+              Chi Tiết Đóng gói {/* Changed button text */}
             </Button>
           )}
           {currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
@@ -875,6 +874,7 @@ export default function ManageExportOrders() {
             )}
         </DialogActions>
       </Dialog>
+
       <Dialog
         open={
           packingDialogOpen &&
@@ -943,6 +943,25 @@ export default function ManageExportOrders() {
                                 ? `${pkg.batch.batch_code}, Vị trí: ${pkg.location.area_name || "N/A"} - ${pkg.location.bay || "N/A"} - ${pkg.location.row || "N/A"} - ${pkg.location.column || "N/A"}`
                                 : "Gói không xác định"}
                             </Typography>
+                            <TextField
+                              type="number"
+                              size="small"
+                              inputProps={{ min: 0, max: maxQuantity }}
+                              value={sp.quantity}
+                              onChange={(e) => handleQuantityChange(detail.medicine_id, sp.package_id, e.target.value)}
+                              sx={{ width: 90 }}
+                              disabled={selectedOrder?.status === "completed"} // Disabled if order is completed
+                              error={isInvalidQuantity}
+                              helperText={isInvalidQuantity ? `Tối đa ${maxQuantity}` : ""}
+                            />
+                            <IconButton
+                              color="error"
+                              onClick={() => removePackage(detail.medicine_id, sp.package_id)}
+                              disabled={selectedOrder?.status === "completed"} // Disabled if order is completed
+                              size="small"
+                            >
+                              <Delete fontSize="small" />
+                            </IconButton>
                           </Box>
                         )
                       })}
@@ -967,8 +986,16 @@ export default function ManageExportOrders() {
           <Button onClick={handleClosePackingDialog} variant="outlined" color="secondary">
             Đóng
           </Button>
+          {selectedOrder?.status !== "completed" &&
+            currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
+            selectedOrder?.warehouse_manager_id?._id === currentUserId && (
+              <Button variant="contained" color="primary" onClick={handleUpdatePacking}>
+                Cập nhật
+              </Button>
+            )}
         </DialogActions>
       </Dialog>
+
       <ModalConfirm
         open={confirmDialog.open}
         title={confirmDialog.title}
