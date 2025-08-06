@@ -122,6 +122,7 @@ app.use('/api/inventory-check-inspections', route.inventoryCheckInspectionRoutes
 app.use('/api/inventory-check-orders', route.inventoryCheckOrderRoutes);
 app.use('/api/inventory', route.inventoryRoutes);
 app.use('/api/dashboard', route.dashboardRoutes);
+app.use('/api/reports', route.reportRoutes);
 
 // app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
 

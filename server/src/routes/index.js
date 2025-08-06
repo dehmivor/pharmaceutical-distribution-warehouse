@@ -28,5 +28,6 @@ module.exports = {
   inventoryRoutes: require('./inventoryRoutes'),
   dashboardRoutes: require('./dashboardRoute'),
   inventoryCheckInspectionRoutes: require('./inventoryCheckInspectionRoute'),
-  logLocationChangeRoute: require('./logLocationChangeRoute')
+  logLocationChangeRoute: require('./logLocationChangeRoute'),
+  reportRoutes: require('./reportRoute'),
 };
