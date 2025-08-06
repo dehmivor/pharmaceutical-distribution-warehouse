@@ -3,6 +3,7 @@ const ImportOrder = require('../models/ImportOrder');
 const Contract = require('../models/Contract');
 const Medicine = require('../models/Medicine');
 const mongoose = require('mongoose');
+const Bill = require('../models/Bill'); // Added Bill model import
 
 class DashboardService {
   // Get overview data for representative dashboard
@@ -248,7 +249,13 @@ class DashboardService {
         contractCode: order.contract_id?.contract_code || 'N/A',
         warehouseManager: order.created_by?.email || 'N/A',
         status: order.status,
-        totalValue: order.details && Array.isArray(order.details) ? order.details.reduce((sum, detail) => sum + (detail.expected_quantity * detail.unit_price), 0) : 0,
+        totalValue:
+          order.details && Array.isArray(order.details)
+            ? order.details.reduce(
+                (sum, detail) => sum + detail.expected_quantity * detail.unit_price,
+                0,
+              )
+            : 0,
         createdAt: order.createdAt,
       }));
     } catch (error) {
@@ -313,12 +320,16 @@ class DashboardService {
         exportOrders: {
           totalOrders: exportOrders[0]?.totalOrders || 0,
           totalValue: exportOrders[0]?.totalValue || 0,
-          avgValue: exportOrders[0]?.totalOrders ? Math.round(exportOrders[0].totalValue / exportOrders[0].totalOrders) : 0,
+          avgValue: exportOrders[0]?.totalOrders
+            ? Math.round(exportOrders[0].totalValue / exportOrders[0].totalOrders)
+            : 0,
         },
         importOrders: {
           totalOrders: importOrders[0]?.totalOrders || 0,
           totalValue: importOrders[0]?.totalValue || 0,
-          avgValue: importOrders[0]?.totalOrders ? Math.round(importOrders[0].totalValue / importOrders[0].totalOrders) : 0,
+          avgValue: importOrders[0]?.totalOrders
+            ? Math.round(importOrders[0].totalValue / importOrders[0].totalOrders)
+            : 0,
         },
         contracts: {
           totalContracts: contracts,
@@ -364,51 +375,51 @@ class DashboardService {
         completedImportOrders,
         completedExportOrders,
         totalImportOrders,
-        totalExportOrders
+        totalExportOrders,
       ] = await Promise.all([
         // Pending import orders
         ImportOrder.countDocuments({ status: 'pending' }),
-        
+
         // Pending export orders
         ExportOrder.countDocuments({ status: 'pending' }),
-        
+
         // Completed import orders this month
         ImportOrder.countDocuments({
           status: 'completed',
-          createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+          createdAt: { $gte: startOfMonth, $lte: endOfMonth },
         }),
-        
+
         // Completed export orders this month
         ExportOrder.countDocuments({
           status: 'completed',
-          createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+          createdAt: { $gte: startOfMonth, $lte: endOfMonth },
         }),
 
         // Total import orders for inventory calculation
         ImportOrder.aggregate([
           {
-            $unwind: '$details'
+            $unwind: '$details',
           },
           {
             $group: {
               _id: null,
-              totalQuantity: { $sum: '$details.quantity' }
-            }
-          }
+              totalQuantity: { $sum: '$details.quantity' },
+            },
+          },
         ]),
 
         // Total export orders for inventory calculation
         ExportOrder.aggregate([
           {
-            $unwind: '$details'
+            $unwind: '$details',
           },
           {
             $group: {
               _id: null,
-              totalQuantity: { $sum: '$details.expected_quantity' }
-            }
-          }
-        ])
+              totalQuantity: { $sum: '$details.expected_quantity' },
+            },
+          },
+        ]),
       ]);
 
       // Calculate total inventory (imported - exported)
@@ -419,18 +430,18 @@ class DashboardService {
       // Calculate total value from actual import orders
       const totalValueData = await ImportOrder.aggregate([
         {
-          $unwind: '$details'
+          $unwind: '$details',
         },
         {
           $group: {
             _id: null,
             totalValue: {
               $sum: {
-                $multiply: ['$details.quantity', '$details.unit_price']
-              }
-            }
-          }
-        }
+                $multiply: ['$details.quantity', '$details.unit_price'],
+              },
+            },
+          },
+        },
       ]);
 
       const totalValue = totalValueData[0]?.totalValue || 0;
@@ -463,7 +474,10 @@ class DashboardService {
         id: order._id,
         orderCode: order.order_code,
         status: order.status,
-        totalValue: order.details && Array.isArray(order.details) ? order.details.reduce((sum, detail) => sum + (detail.quantity * detail.unit_price), 0) : 0,
+        totalValue:
+          order.details && Array.isArray(order.details)
+            ? order.details.reduce((sum, detail) => sum + detail.quantity * detail.unit_price, 0)
+            : 0,
         createdAt: order.createdAt,
       }));
     } catch (error) {
@@ -483,7 +497,13 @@ class DashboardService {
         id: order._id,
         orderCode: order.order_code,
         status: order.status,
-        totalValue: order.details && Array.isArray(order.details) ? order.details.reduce((sum, detail) => sum + (detail.expected_quantity * detail.unit_price), 0) : 0,
+        totalValue:
+          order.details && Array.isArray(order.details)
+            ? order.details.reduce(
+                (sum, detail) => sum + detail.expected_quantity * detail.unit_price,
+                0,
+              )
+            : 0,
         createdAt: order.createdAt,
       }));
     } catch (error) {
@@ -497,38 +517,41 @@ class DashboardService {
       // Calculate current inventory from import and export orders
       const inventoryData = await ImportOrder.aggregate([
         {
-          $unwind: '$details'
+          $unwind: '$details',
         },
         {
           $group: {
             _id: '$details.medicine_id',
-            totalImported: { $sum: '$details.quantity' }
-          }
-        }
+            totalImported: { $sum: '$details.quantity' },
+          },
+        },
       ]);
 
       const exportData = await ExportOrder.aggregate([
         {
-          $unwind: '$details'
+          $unwind: '$details',
         },
         {
           $group: {
             _id: '$details.medicine_id',
-            totalExported: { $sum: '$details.expected_quantity' }
-          }
-        }
+            totalExported: { $sum: '$details.expected_quantity' },
+          },
+        },
       ]);
 
       // Create a map of current inventory
       const inventoryMap = new Map();
-      
+
       // Add imported quantities
-      inventoryData.forEach(item => {
-        inventoryMap.set(item._id.toString(), (inventoryMap.get(item._id.toString()) || 0) + item.totalImported);
+      inventoryData.forEach((item) => {
+        inventoryMap.set(
+          item._id.toString(),
+          (inventoryMap.get(item._id.toString()) || 0) + item.totalImported,
+        );
       });
-      
+
       // Subtract exported quantities
-      exportData.forEach(item => {
+      exportData.forEach((item) => {
         const current = inventoryMap.get(item._id.toString()) || 0;
         inventoryMap.set(item._id.toString(), Math.max(0, current - item.totalExported));
       });
@@ -539,15 +562,17 @@ class DashboardService {
 
       for (const [medicineId, currentStock] of inventoryMap) {
         if (count >= limit) break;
-        
+
         // Consider items with stock < 50 as low stock
         if (currentStock < 50) {
           // Try to get medicine name from database
           let medicineName = `Medicine ${medicineId.slice(-6)}`; // Default name
           let minStock = 50; // Default min stock
-          
+
           try {
-            const medicine = await Medicine.findById(medicineId).select('medicine_name min_stock_threshold');
+            const medicine = await Medicine.findById(medicineId).select(
+              'medicine_name min_stock_threshold',
+            );
             if (medicine) {
               medicineName = medicine.medicine_name;
               minStock = medicine.min_stock_threshold || 50;
@@ -555,7 +580,7 @@ class DashboardService {
           } catch (error) {
             console.log('Could not fetch medicine details for ID:', medicineId);
           }
-          
+
           lowStockItems.push({
             id: medicineId,
             name: medicineName,
@@ -741,45 +766,45 @@ class DashboardService {
         weeklyImportOrders,
         weeklyExportOrders,
         totalMedicines,
-        expiringMedicines
+        expiringMedicines,
       ] = await Promise.all([
         // Monthly import orders
         ImportOrder.countDocuments({
-          createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+          createdAt: { $gte: startOfMonth, $lte: endOfMonth },
         }),
-        
+
         // Monthly export orders
         ExportOrder.countDocuments({
-          createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+          createdAt: { $gte: startOfMonth, $lte: endOfMonth },
         }),
-        
+
         // Weekly import orders
         ImportOrder.countDocuments({
-          createdAt: { $gte: startOfWeek }
+          createdAt: { $gte: startOfWeek },
         }),
-        
+
         // Weekly export orders
         ExportOrder.countDocuments({
-          createdAt: { $gte: startOfWeek }
+          createdAt: { $gte: startOfWeek },
         }),
 
         // Total unique medicines
         ImportOrder.aggregate([
           {
-            $unwind: '$details'
+            $unwind: '$details',
           },
           {
             $group: {
-              _id: '$details.medicine_id'
-            }
+              _id: '$details.medicine_id',
+            },
           },
           {
-            $count: 'total'
-          }
+            $count: 'total',
+          },
         ]),
 
         // Medicines expiring soon (mock data for now)
-        Promise.resolve(5)
+        Promise.resolve(5),
       ]);
 
       return {
@@ -794,7 +819,7 @@ class DashboardService {
         inventory: {
           totalMedicines: totalMedicines[0]?.total || 0,
           expiringMedicines,
-        }
+        },
       };
     } catch (error) {
       throw new Error(`Failed to get warehouse manager detailed stats: ${error.message}`);
@@ -807,34 +832,34 @@ class DashboardService {
       // Get medicines with highest import quantities
       const topImportMedicines = await ImportOrder.aggregate([
         {
-          $unwind: '$details'
+          $unwind: '$details',
         },
         {
           $group: {
             _id: '$details.medicine_id',
             totalImported: { $sum: '$details.quantity' },
-            totalValue: { $sum: { $multiply: ['$details.quantity', '$details.unit_price'] } }
-          }
+            totalValue: { $sum: { $multiply: ['$details.quantity', '$details.unit_price'] } },
+          },
         },
         {
-          $sort: { totalImported: -1 }
+          $sort: { totalImported: -1 },
         },
         {
-          $limit: limit
-        }
+          $limit: limit,
+        },
       ]);
 
       // Get medicine names
-      const medicineIds = topImportMedicines.map(item => item._id);
+      const medicineIds = topImportMedicines.map((item) => item._id);
       const medicines = await Medicine.find({ _id: { $in: medicineIds } }).select('medicine_name');
 
       // Map medicine names to results
       const medicineMap = new Map();
-      medicines.forEach(medicine => {
+      medicines.forEach((medicine) => {
         medicineMap.set(medicine._id.toString(), medicine.medicine_name);
       });
 
-      return topImportMedicines.map(item => ({
+      return topImportMedicines.map((item) => ({
         id: item._id,
         name: medicineMap.get(item._id.toString()) || `Medicine ${item._id.toString().slice(-6)}`,
         totalImported: item.totalImported,
@@ -859,7 +884,7 @@ class DashboardService {
           message: `${lowStockMedicines.length} medicines are running low on stock`,
           severity: 'warning',
           timestamp: new Date(),
-          data: lowStockMedicines
+          data: lowStockMedicines,
         });
       }
 
@@ -874,7 +899,7 @@ class DashboardService {
           message: `${pendingImportOrders} import orders are pending approval`,
           severity: 'info',
           timestamp: new Date(),
-          count: pendingImportOrders
+          count: pendingImportOrders,
         });
       }
 
@@ -885,7 +910,7 @@ class DashboardService {
           message: `${pendingExportOrders} export orders are pending processing`,
           severity: 'info',
           timestamp: new Date(),
-          count: pendingExportOrders
+          count: pendingExportOrders,
         });
       }
 
@@ -896,7 +921,7 @@ class DashboardService {
           title: 'System Status',
           message: 'All systems are running normally',
           severity: 'success',
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
 
@@ -1130,7 +1155,10 @@ class DashboardService {
           description: `Contract: ${order.contract_id?.contract_code || 'N/A'} | Created by ${order.created_by?.email || 'N/A'}`,
           status: order.status,
           timestamp: order.createdAt,
-          value: order.details && Array.isArray(order.details) ? order.details.reduce((sum, detail) => sum + (detail.quantity * detail.unit_price), 0) : 0,
+          value:
+            order.details && Array.isArray(order.details)
+              ? order.details.reduce((sum, detail) => sum + detail.quantity * detail.unit_price, 0)
+              : 0,
           contractCode: order.contract_id?.contract_code || 'N/A',
           orderCode: order.order_code,
         });
@@ -1145,7 +1173,13 @@ class DashboardService {
           description: `Contract: ${order.contract_id?.contract_code || 'N/A'} | Created by ${order.created_by?.email || 'N/A'}`,
           status: order.status,
           timestamp: order.createdAt,
-          value: order.details && Array.isArray(order.details) ? order.details.reduce((sum, detail) => sum + (detail.expected_quantity * detail.unit_price), 0) : 0,
+          value:
+            order.details && Array.isArray(order.details)
+              ? order.details.reduce(
+                  (sum, detail) => sum + detail.expected_quantity * detail.unit_price,
+                  0,
+                )
+              : 0,
           contractCode: order.contract_id?.contract_code || 'N/A',
           orderCode: order.order_code,
         });
@@ -1157,6 +1191,286 @@ class DashboardService {
         .slice(0, limit);
     } catch (error) {
       throw new Error(`Failed to get supervisor recent activity: ${error.message}`);
+    }
+  }
+
+  // ==================== DEBT DASHBOARD METHODS ====================
+
+  // Get debt overview data
+  static async getDebtOverview(userId) {
+    try {
+      const now = new Date();
+      const startOfWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const startOfLastWeek = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+      // Get all bills
+      const allBills = await Bill.find()
+        .populate('import_order_id', 'order_code contract_id')
+        .populate('export_order_id', 'order_code contract_id')
+        .populate('import_order_id.contract_id', 'contract_code partner_type')
+        .populate('export_order_id.contract_id', 'contract_code partner_type');
+
+      // Calculate total debt
+      const totalDebt = allBills.reduce((sum, bill) => {
+        const billValue = bill.details.reduce(
+          (detailSum, detail) => detailSum + detail.quantity * detail.unit_price,
+          0,
+        );
+        return sum + billValue;
+      }, 0);
+
+      // Calculate overdue debt
+      const overdueDebt = allBills
+        .filter((bill) => bill.status === 'overdue')
+        .reduce((sum, bill) => {
+          const billValue = bill.details.reduce(
+            (detailSum, detail) => detailSum + detail.quantity * detail.unit_price,
+            0,
+          );
+          return sum + billValue;
+        }, 0);
+
+      // Calculate paid amount
+      const paidAmount = allBills.reduce((sum, bill) => sum + (bill.amountPaid || 0), 0);
+
+      // Calculate upcoming debt (bills due in next 30 days)
+      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const upcomingDebt = allBills
+        .filter((bill) => {
+          // Mock logic: consider bills with status 'pending' as upcoming
+          return bill.status === 'pending';
+        })
+        .reduce((sum, bill) => {
+          const billValue = bill.details.reduce(
+            (detailSum, detail) => detailSum + detail.quantity * detail.unit_price,
+            0,
+          );
+          return sum + billValue;
+        }, 0);
+
+      // Calculate weekly changes (mock data for now)
+      const weeklyChange = {
+        totalDebt: Math.round(totalDebt * 0.082), // 8.2% increase
+        overdueDebt: Math.round(overdueDebt * 0.125), // 12.5% increase
+        paidAmount: Math.round(paidAmount * 0.153), // 15.3% increase
+        upcomingDebt: Math.round(upcomingDebt * -0.051), // 5.1% decrease
+      };
+
+      return {
+        totalDebt,
+        overdueDebt,
+        paidAmount,
+        upcomingDebt,
+        weeklyChange,
+      };
+    } catch (error) {
+      throw new Error(`Failed to get debt overview: ${error.message}`);
+    }
+  }
+
+  // Get debt chart data
+  static async getDebtChartData(userId, months = 12) {
+    try {
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - months);
+
+      // Get bills in date range
+      const bills = await Bill.find({
+        createdAt: { $gte: startDate },
+      }).populate('import_order_id export_order_id');
+
+      // Generate monthly data
+      const monthlyData = [];
+      const quarterlyData = [];
+
+      for (let i = months - 1; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+
+        // Filter bills for this month
+        const monthBills = bills.filter((bill) => {
+          const billDate = new Date(bill.createdAt);
+          return billDate.getFullYear() === year && billDate.getMonth() + 1 === month;
+        });
+
+        // Calculate values for this month
+        const totalDebt = monthBills.reduce((sum, bill) => {
+          const billValue = bill.details.reduce(
+            (detailSum, detail) => detailSum + detail.quantity * detail.unit_price,
+            0,
+          );
+          return sum + billValue;
+        }, 0);
+
+        const overdueDebt = monthBills
+          .filter((bill) => bill.status === 'overdue')
+          .reduce((sum, bill) => {
+            const billValue = bill.details.reduce(
+              (detailSum, detail) => detailSum + detail.quantity * detail.unit_price,
+              0,
+            );
+            return sum + billValue;
+          }, 0);
+
+        const paidAmount = monthBills.reduce((sum, bill) => sum + (bill.amountPaid || 0), 0);
+
+        monthlyData.push({
+          month: `${year}-${String(month).padStart(2, '0')}`,
+          totalDebt: Math.round(totalDebt / 1000), // Convert to thousands
+          overdue: Math.round(overdueDebt / 1000),
+          paid: Math.round(paidAmount / 1000),
+        });
+
+        // Quarterly data (every 3 months)
+        if (month % 3 === 0) {
+          quarterlyData.push({
+            quarter: `Q${Math.floor(month / 3)}`,
+            totalDebt: Math.round(totalDebt / 1000),
+            overdue: Math.round(overdueDebt / 1000),
+            paid: Math.round(paidAmount / 1000),
+          });
+        }
+      }
+
+      return {
+        monthly: monthlyData,
+        quarterly: quarterlyData,
+      };
+    } catch (error) {
+      throw new Error(`Failed to get debt chart data: ${error.message}`);
+    }
+  }
+
+  // Get debt analysis data
+  static async getDebtAnalysis(userId, period = 'monthly') {
+    try {
+      const bills = await Bill.find()
+        .populate('import_order_id', 'contract_id')
+        .populate('export_order_id', 'contract_id')
+        .populate('import_order_id.contract_id', 'contract_code partner_type')
+        .populate('export_order_id.contract_id', 'contract_code partner_type');
+
+      // Group bills by customer/partner
+      const customerDebtMap = new Map();
+
+      bills.forEach((bill) => {
+        let customerName = 'Unknown';
+        let customerType = 'Unknown';
+
+        if (bill.import_order_id?.contract_id) {
+          customerName = bill.import_order_id.contract_id.contract_code;
+          customerType = bill.import_order_id.contract_id.partner_type;
+        } else if (bill.export_order_id?.contract_id) {
+          customerName = bill.export_order_id.contract_id.contract_code;
+          customerType = bill.export_order_id.contract_id.partner_type;
+        }
+
+        const billValue = bill.details.reduce(
+          (sum, detail) => sum + detail.quantity * detail.unit_price,
+          0,
+        );
+
+        if (customerDebtMap.has(customerName)) {
+          customerDebtMap.get(customerName).totalValue += billValue;
+          customerDebtMap.get(customerName).billCount += 1;
+        } else {
+          customerDebtMap.set(customerName, {
+            name: customerName,
+            type: customerType,
+            totalValue: billValue,
+            billCount: 1,
+          });
+        }
+      });
+
+      // Convert to array and sort by total value
+      const customerDebts = Array.from(customerDebtMap.values())
+        .sort((a, b) => b.totalValue - a.totalValue)
+        .slice(0, 10);
+
+      // Calculate progress percentages (mock logic)
+      const totalSystemDebt = customerDebts.reduce((sum, customer) => sum + customer.totalValue, 0);
+
+      const analysisData = customerDebts.map((customer, index) => ({
+        title: customer.name,
+        value: `₫${customer.totalValue.toLocaleString()}`,
+        progress: {
+          value: Math.round((customer.totalValue / totalSystemDebt) * 100) || 10 + index * 5,
+        },
+        type: customer.type,
+        billCount: customer.billCount,
+      }));
+
+      return {
+        monthly: analysisData,
+        quarterly: analysisData.map((item) => ({
+          ...item,
+          value: `₫${(parseInt(item.value.replace(/[₫,]/g, '')) * 3).toLocaleString()}`,
+          progress: { value: Math.min(100, item.progress.value * 1.2) },
+        })),
+      };
+    } catch (error) {
+      throw new Error(`Failed to get debt analysis: ${error.message}`);
+    }
+  }
+
+  // Get debt receivable/payable data
+  static async getDebtReceivablePayable(userId) {
+    try {
+      const bills = await Bill.find()
+        .populate('import_order_id', 'contract_id')
+        .populate('export_order_id', 'contract_id')
+        .populate('import_order_id.contract_id', 'partner_type')
+        .populate('export_order_id.contract_id', 'partner_type');
+
+      // Separate receivable (money we need to collect) and payable (money we need to pay)
+      const receivable = bills.filter((bill) => {
+        // Export orders are receivable (customers owe us)
+        return bill.export_order_id && bill.status !== 'completed';
+      });
+
+      const payable = bills.filter((bill) => {
+        // Import orders are payable (we owe suppliers)
+        return bill.import_order_id && bill.status !== 'completed';
+      });
+
+      // Calculate monthly trends (mock data for now)
+      const monthlyReceivable = [
+        1200, 1100, 1150, 1250, 1300, 1200, 1190, 1180, 1150, 1170, 1200, 1220,
+      ];
+      const monthlyPayable = [900, 850, 870, 910, 930, 890, 860, 820, 800, 810, 830, 840];
+
+      const quarterlyReceivable = [3450, 3800, 3500, 3800];
+      const quarterlyPayable = [2600, 2750, 2500, 2550];
+
+      return {
+        receivable: {
+          monthly: monthlyReceivable,
+          quarterly: quarterlyReceivable,
+          total: receivable.reduce((sum, bill) => {
+            const billValue = bill.details.reduce(
+              (detailSum, detail) => detailSum + detail.quantity * detail.unit_price,
+              0,
+            );
+            return sum + billValue;
+          }, 0),
+        },
+        payable: {
+          monthly: monthlyPayable,
+          quarterly: quarterlyPayable,
+          total: payable.reduce((sum, bill) => {
+            const billValue = bill.details.reduce(
+              (detailSum, detail) => detailSum + detail.quantity * detail.unit_price,
+              0,
+            );
+            return sum + billValue;
+          }, 0),
+        },
+      };
+    } catch (error) {
+      throw new Error(`Failed to get debt receivable/payable: ${error.message}`);
     }
   }
 }
