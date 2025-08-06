@@ -148,14 +148,12 @@ const updatePackingDetails = async (req, res, next) => {
 const completeExportOrder = async (req, res) => {
   const { id } = req.params;
   const user = req.user; // Giả sử user được gắn vào req bởi middleware xác thực
-
   try {
     // Tìm đơn xuất kho
     const exportOrder = await ExportOrder.findById(id).populate(populateOptions);
     if (!exportOrder) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy đơn xuất kho' });
     }
-
     // Kiểm tra trạng thái đơn
     if (exportOrder.status !== EXPORT_ORDER_STATUSES.APPROVED) {
       return res
@@ -165,42 +163,35 @@ const completeExportOrder = async (req, res) => {
           message: 'Đơn xuất kho phải ở trạng thái đã phê duyệt để hoàn thành',
         });
     }
-
     // Kiểm tra quyền người dùng
     if (user.role !== 'warehouse_manager') {
       return res
         .status(403)
         .json({ success: false, message: 'Chỉ quản lý kho mới có thể hoàn thành đơn xuất kho' });
     }
-
     // Bắt đầu transaction để đảm bảo tính nguyên tử
     const session = await mongoose.startSession();
     session.startTransaction();
-
     try {
       // Lặp qua từng chi tiết trong đơn xuất kho
       for (const detail of exportOrder.details) {
         for (const item of detail.actual_item) {
           const packageId = item.package_id._id;
           const quantityToRemove = item.quantity;
-
           // Tìm package
           const pkg = await Package.findById(packageId).session(session);
           if (!pkg) {
             throw new Error(`Không tìm thấy package ${packageId}`);
           }
-
           // Kiểm tra số lượng đủ để giảm
           if (pkg.quantity < quantityToRemove) {
             throw new Error(
               `Số lượng trong package ${packageId} không đủ cho thuốc ${detail.medicine_id}`,
             );
           }
-
           // Giảm số lượng trong package
           pkg.quantity -= quantityToRemove;
           await pkg.save({ session });
-
           // Ghi log thay đổi vị trí
           await LogLocationChange.create(
             [
@@ -217,108 +208,12 @@ const completeExportOrder = async (req, res) => {
           );
         }
       }
-
-      // Xử lý InventoryCheckInspection - cập nhật package quantities và locations
-      // Tìm tất cả package IDs từ export order
-      const exportPackageIds = [];
-      for (const detail of exportOrder.details) {
-        for (const item of detail.actual_item) {
-          exportPackageIds.push(item.package_id._id);
-        }
-      }
-
-      // Tìm inspections có chứa các package này
-      const inspections = await InventoryCheckInspection.find({
-        status: 'checked', // Chỉ xử lý những inspection đã hoàn thành
-        'check_list.package_id': { $in: exportPackageIds }
-      }).populate('check_list.package_id').session(session);
-
-      for (const inspection of inspections) {
-        for (const checkItem of inspection.check_list) {
-          const packageId = checkItem.package_id._id;
-          
-          // Chỉ xử lý những package có trong export order
-          if (!exportPackageIds.includes(packageId.toString())) {
-            continue;
-          }
-
-          const actualQuantity = checkItem.actual_quantity;
-          const type = checkItem.type;
-
-          // Tìm package
-          const pkg = await Package.findById(packageId).session(session);
-          if (!pkg) {
-            console.warn(`Package ${packageId} không tồn tại trong inspection ${inspection._id}`);
-            continue;
-          }
-
-          // 1. Cập nhật actual_quantity vào quantity của package
-          pkg.quantity = actualQuantity;
-          await pkg.save({ session });
-
-          // 2. Xử lý theo type
-          if (type === 'over_expected') {
-            // Cập nhật location_id của package thành location_id của inspection
-            pkg.location_id = inspection.location_id;
-            await pkg.save({ session });
-
-            // Ghi log thay đổi vị trí
-            await LogLocationChange.create(
-              [{
-                location_id: inspection.location_id,
-                type: 'add',
-                batch_id: pkg.batch_id,
-                quantity: actualQuantity,
-                export_order_id: exportOrder._id,
-                ware_house_id: user.userId,
-              }],
-              { session }
-            );
-          } else if (type === 'under_expected') {
-            // Xóa location_id của package
-            const oldLocationId = pkg.location_id;
-            pkg.location_id = null;
-            await pkg.save({ session });
-
-            // Xóa location thực sự khỏi database nếu không có package nào khác sử dụng
-            if (oldLocationId) {
-              // Kiểm tra xem có package nào khác đang sử dụng location này không
-              const packagesUsingLocation = await Package.countDocuments({
-                location_id: oldLocationId,
-                _id: { $ne: pkg._id } // Loại trừ package hiện tại
-              }).session(session);
-
-              if (packagesUsingLocation === 0) {
-                // Xóa location nếu không có package nào sử dụng
-                await Location.findByIdAndDelete(oldLocationId).session(session);
-                console.log(`Deleted location ${oldLocationId} - no packages using it`);
-              }
-
-              // Ghi log xóa vị trí
-              await LogLocationChange.create(
-                [{
-                  location_id: oldLocationId,
-                  type: 'remove',
-                  batch_id: pkg.batch_id,
-                  quantity: actualQuantity,
-                  export_order_id: exportOrder._id,
-                  ware_house_id: user.userId,
-                }],
-                { session }
-              );
-            }
-          }
-        }
-      }
-
       // Cập nhật trạng thái đơn xuất kho
       exportOrder.status = EXPORT_ORDER_STATUSES.COMPLETED;
       await exportOrder.save({ session });
-
       // Commit transaction
       await session.commitTransaction();
       session.endSession();
-
       return res.json({
         success: true,
         message: 'Đơn xuất kho đã hoàn thành thành công',
