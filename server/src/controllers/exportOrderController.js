@@ -208,6 +208,49 @@ const completeExportOrder = async (req, res) => {
           );
         }
       }
+      // Xử lý InventoryCheckInspection - cập nhật package quantities và locations
+      // Tìm tất cả package IDs từ export order
+      const exportPackageIds = [];
+      for (const detail of exportOrder.details) {
+        for (const item of detail.actual_item) {
+          exportPackageIds.push(item.package_id._id);
+        }
+      }
+
+      // Tìm inspections có chứa các package này
+      const inspections = await InventoryCheckInspection.find({
+        status: 'checked', // Chỉ xử lý những inspection đã hoàn thành
+        'check_list.package_id': { $in: exportPackageIds }
+      }).populate('check_list.package_id').session(session);
+
+      for (const inspection of inspections) {
+        for (const checkItem of inspection.check_list) {
+          const packageId = checkItem.package_id._id;
+          const type = checkItem.type;
+          const actualQuantity = checkItem.actual_quantity;
+
+          // Chỉ xử lý những package có trong export order
+          if (!exportPackageIds.includes(packageId.toString())) {
+            continue;
+          }
+
+          // Tìm package
+          const pkg = await Package.findById(packageId).session(session);
+          if (!pkg) continue;
+
+          // 1. Cập nhật actual_quantity vào quantity của package nếu type là valid hoặc over_expected
+          if (type === 'valid' || type === 'over_expected') {
+            pkg.quantity = actualQuantity;
+          }
+
+          // 2. Nếu type là over_expected thì cập nhật location_id
+          if (type === 'over_expected') {
+            pkg.location_id = inspection.location_id;
+          }
+
+          await pkg.save({ session });
+        }
+      }
       // Cập nhật trạng thái đơn xuất kho
       exportOrder.status = EXPORT_ORDER_STATUSES.COMPLETED;
       await exportOrder.save({ session });
