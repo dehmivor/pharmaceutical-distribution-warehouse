@@ -24,7 +24,8 @@ import {
   Grid,
   Button,
   CircularProgress,
-  Stack
+  Stack,
+  MenuItem
 } from '@mui/material';
 import {
   Info as InfoIcon,
@@ -33,7 +34,6 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 import axios from 'axios';
-import useNotifications from '@/hooks/useNotification';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -97,18 +97,9 @@ export default function ImportOrderSupervisor() {
   const [totalCount, setTotalCount] = useState(0);
 
   const [filterDate, setFilterDate] = useState('');
-  const [filterAssigned, setFilterAssigned] = useState('all'); // 'all', 'assigned', 'unassigned'
   const [filterStatus, setFilterStatus] = useState('All Status');
 
   const [actionLoading, setActionLoading] = useState(false);
-  const { createNotification } = useNotifications('685c2c032aaf8fe6edb3a26f');
-
-  // Inline status edit
-  const [editingStatusOrderId, setEditingStatusOrderId] = useState(null);
-  const [editStatusValue, setEditStatusValue] = useState('');
-
-  // Confirm dialog for status change
-  const [confirmDialog, setConfirmDialog] = useState({ open: false, orderId: null, newStatus: '' });
 
   // Fetch orders with filter, pagination
   const fetchOrders = useCallback(async () => {
@@ -124,13 +115,6 @@ export default function ImportOrderSupervisor() {
       if (filterDate) params.createdAt = filterDate;
       if (filterStatus && filterStatus !== 'All Status') params.status = filterStatus;
 
-      if (filterAssigned === 'unassigned') {
-        params.warehouse_manager_id = '0'; // backend should interpret as "unassigned"
-      } else if (filterAssigned === 'assigned') {
-        params.warehouse_manager_id = 'nonzero'; // example placeholder, backend support needed
-      }
-      // 'all' means no filter on assign
-
       const response = await axiosInstance.get('/import-orders', { params });
       if (response.data.success || response.data.data) {
         setOrders(response.data.data || []);
@@ -145,7 +129,7 @@ export default function ImportOrderSupervisor() {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage]);
+  }, [page, rowsPerPage, filterDate, filterStatus]);
 
 
 
@@ -169,7 +153,6 @@ export default function ImportOrderSupervisor() {
 
   const handleResetFilters = () => {
     setFilterDate('');
-    setFilterAssigned('all');
     setFilterStatus('All Status');
     setPage(1);
   };
@@ -180,25 +163,9 @@ export default function ImportOrderSupervisor() {
 
 
   // Details dialog open/close
-  const handleOpenDetails = async (order) => {
+  const handleOpenDetails = (order) => {
     setSelectedOrder(order);
     setOpenDetails(true);
-
-    try {
-      const userInfo = JSON.parse(localStorage.getItem('user-info') || '{}');
-
-      await createNotification({
-        recipient_id: order.warehouse_manager_id?._id,
-        sender_id: userInfo._id,
-        type: 'import_order_assigned',
-        title: `Phiếu nhập số ${order.import_order_code || order._id} đã được giao`,
-        content: `Supervisor đã giao phiếu nhập số ${order.import_order_code || order._id} cho bạn.`,
-        status: 'unread',
-        created_at: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Lỗi khi tạo thông báo:', error);
-    }
   };
 
   const handleCloseDetails = () => {
@@ -206,30 +173,7 @@ export default function ImportOrderSupervisor() {
     setOpenDetails(false);
   };
 
-  // Inline status change with confirm dialog
-  const handleStatusChange = (orderId, newStatus) => {
-    setConfirmDialog({ open: true, orderId, newStatus });
-  };
 
-  const handleConfirmStatusChange = async () => {
-    const { orderId, newStatus } = confirmDialog;
-    try {
-      setActionLoading(true);
-      await axiosInstance.patch(`/import-orders/${orderId}/status`, { status: newStatus });
-      setEditingStatusOrderId(null);
-      setSuccess('Status updated successfully');
-      fetchOrders();
-    } catch (error) {
-      setError(error.response?.data?.error || error.message);
-    } finally {
-      setActionLoading(false);
-      setConfirmDialog({ open: false, orderId: null, newStatus: '' });
-    }
-  };
-
-  const handleCancelStatusChange = () => {
-    setConfirmDialog({ open: false, orderId: null, newStatus: '' });
-  };
 
   const formatCurrency = (value) => {
     if (!value) return '-';
@@ -257,7 +201,7 @@ export default function ImportOrderSupervisor() {
             Import Orders Management
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Supervisor can view, approve and reject import order
+            Supervisor can view import orders
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => fetchOrders()} disabled={loading}>
@@ -276,11 +220,7 @@ export default function ImportOrderSupervisor() {
             InputLabelProps={{ shrink: true }}
             size="small"
           />
-          <TextField select label="Assigned" value={filterAssigned} onChange={(e) => setFilterAssigned(e.target.value)} size="small">
-            <MenuItem value="all">All</MenuItem>
-            <MenuItem value="assigned">Assigned</MenuItem>
-            <MenuItem value="unassigned">Unassigned</MenuItem>
-          </TextField>
+
           <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
             <MenuItem value="All Status">All Status</MenuItem>
             {Object.values(IMPORT_ORDER_STATUSES).map((s) => (
@@ -334,37 +274,11 @@ export default function ImportOrderSupervisor() {
                     <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
                     <TableCell align="right">{formatCurrency(totalAmount)}</TableCell>
                     <TableCell>
-                      {editingStatusOrderId === order._id ? (
-                        <FormControl size="small" fullWidth>
-                          <Select
-                            value={editStatusValue}
-                            onChange={(e) => {
-                              if (order.status === IMPORT_ORDER_STATUSES.APPROVED && e.target.value === IMPORT_ORDER_STATUSES.DELIVERED) {
-                                handleStatusChange(order._id, e.target.value);
-                              }
-                            }}
-                            onBlur={() => setEditingStatusOrderId(null)}
-                            autoFocus
-                          >
-                            {order.status === IMPORT_ORDER_STATUSES.APPROVED && (
-                              <MenuItem value={IMPORT_ORDER_STATUSES.DELIVERED}>Delivered</MenuItem>
-                            )}
-                          </Select>
-                        </FormControl>
-                      ) : (
-                        <Chip
-                          label={order.status}
-                          color={getStatusColor(order.status)}
-                          size="small"
-                          onClick={() => {
-                            if (order.status === IMPORT_ORDER_STATUSES.APPROVED) {
-                              setEditingStatusOrderId(order._id);
-                              setEditStatusValue(order.status);
-                            }
-                          }}
-                          style={{ cursor: order.status === IMPORT_ORDER_STATUSES.APPROVED ? 'pointer' : 'default' }}
-                        />
-                      )}
+                      <Chip
+                        label={order.status}
+                        color={getStatusColor(order.status)}
+                        size="small"
+                      />
                     </TableCell>
                     <TableCell>{order.warehouse_manager_id?.email || 'Not Assigned'}</TableCell>
                     <TableCell>
@@ -585,22 +499,7 @@ export default function ImportOrderSupervisor() {
         </DialogActions>
       </Dialog>
 
-      {/* Confirm Status Change Dialog */}
-      <Dialog open={confirmDialog.open} onClose={handleCancelStatusChange}>
-        <DialogTitle>Xác nhận đổi trạng thái</DialogTitle>
-        <DialogContent>
-          Bạn có chắc chắn muốn đổi trạng thái đơn hàng này? <br />
-          <b>Hành động này không thể hoàn tác.</b>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancelStatusChange} color="secondary">
-            No
-          </Button>
-          <Button onClick={handleConfirmStatusChange} color="primary" autoFocus disabled={actionLoading}>
-            {actionLoading ? <CircularProgress size={20} /> : 'Yes'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+
 
       {/* Snackbar: Error */}
       <Snackbar
