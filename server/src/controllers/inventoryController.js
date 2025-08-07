@@ -180,18 +180,18 @@ const updateCheckOrderStatus = async (req, res) => {
       });
     }
 
-    // if (status?.toLowerCase() === 'processing') {
-    //   const otherProcessingOrders =
-    //     await inventoryService.getProcessingCheckOrdersExcept(checkOrderId);
+    if (status?.toLowerCase() === 'processing') {
+      const otherProcessingOrders =
+        await inventoryService.getProcessingCheckOrdersExcept(checkOrderId);
 
-    //   if (Array.isArray(otherProcessingOrders) && otherProcessingOrders.length > 0) {
-    //     return res.json({
-    //       success: true,
-    //       updated: false,
-    //       message: 'Đang có 1 đợt kiểm kê khác!',
-    //     });
-    //   }
-    // }
+      if (Array.isArray(otherProcessingOrders) && otherProcessingOrders.length > 0) {
+        return res.json({
+          success: true,
+          updated: false,
+          message: 'Đang có 1 đợt kiểm kê khác!',
+        });
+      }
+    }
 
     const updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
 
