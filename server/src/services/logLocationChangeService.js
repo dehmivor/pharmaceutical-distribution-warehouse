@@ -1,4 +1,5 @@
 const LogLocationChange = require('../models/LogLocationChange');
+const { getBatchById } = require('./batchService');
 
 
 const logLocationChangeService = {
@@ -34,7 +35,7 @@ const logLocationChangeService = {
     getLogLocationChange: async ({
         locationId,
         batchId,
-        order,          // single order ID for import/export/inventory_check
+        order,
         warehouseId,
         startDate,
         endDate,
@@ -42,12 +43,10 @@ const logLocationChangeService = {
         limit = 20,
     }) => {
         const query = {};
-
         if (locationId) query.location_id = locationId;
         if (batchId) query.batch_id = batchId;
         if (warehouseId) query.ware_house_id = warehouseId;
 
-        // Consolidated order filter
         if (order) {
             query.$or = [
                 { import_order_id: order },
@@ -55,7 +54,6 @@ const logLocationChangeService = {
                 { inventory_check_order_id: order },
             ];
         }
-
         if (startDate || endDate) {
             query.updated_at = {};
             if (startDate) query.updated_at.$gte = new Date(startDate);
@@ -69,11 +67,44 @@ const logLocationChangeService = {
                 .sort({ updated_at: -1 })
                 .skip(skip)
                 .limit(limit)
+                .populate({
+                    path: 'location_id',
+                    select: 'bay row column',
+                    populate: { path: 'area_id', model: 'Area', select: 'name' }
+                })
+                .populate({ path: 'ware_house_id', select: '_id email' })
                 .lean(),
         ]);
 
         const pages = Math.ceil(total / limit);
-        return { total, pages, page, limit, data: docs };
+
+        // Now enrich each doc with full batch details from getBatchById
+        const data = await Promise.all(docs.map(async doc => {
+            // build location string
+            let locationString = '';
+            if (doc.location_id?.area_id) {
+                const { name } = doc.location_id.area_id;
+                const { bay, row, column } = doc.location_id;
+                locationString = `${name}-B:${bay}-R:${row}-C:${column}`;
+            }
+
+            // fetch batch info
+            let batch = null;
+            try {
+                batch = await getBatchById(doc.batch_id);
+            } catch {
+                // if batch not found or error, leave as null
+            }
+
+            return {
+                ...doc,
+                location: locationString,
+                user: doc.ware_house_id, // { _id, email }
+                batch,                       // full batch with populated medicine_id
+            };
+        }));
+
+        return { total, pages, page, limit, data };
     }
 
 }

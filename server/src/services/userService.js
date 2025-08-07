@@ -10,7 +10,4 @@ const userService = {
     }
 }
 
-
-module.exports = {
-    userService
-};
+module.exports = userService;
