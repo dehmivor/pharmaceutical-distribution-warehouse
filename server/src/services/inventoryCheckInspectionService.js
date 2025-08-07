@@ -198,7 +198,7 @@ const applyInspectionResults = async (checkOrderId) => {
           continue
         }
 
-        // 1. Update quantity of the Package
+        // 1. Cập nhật quantity của Package theo actual_quantity từ inspection
         pkg.quantity = item.actual_quantity
 
         // 2. Handle location changes based on item type
