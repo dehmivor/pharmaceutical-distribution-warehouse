@@ -11,7 +11,7 @@ const {
   deleteCheckItem
 } = require("../services/inventoryCheckInspectionService")
 
-const { INVENTORY_CHECK_INSPECTION_STATUSES } = require("../utils/constants")
+const { INVENTORY_CHECK_ORDER_STATUSES } = require("../utils/constants")
 
 const getInspectionsByOrderIdController = async (req, res) => {
   const { orderId } = req.params
@@ -124,7 +124,7 @@ const updateCheckOrderStatusController = async (req, res) => {
   }
   try {
     let updatedOrder
-    if (status === INVENTORY_CHECK_INSPECTION_STATUSES.COMPLETED) {
+    if (status === INVENTORY_CHECK_ORDER_STATUSES.COMPLETED) {
       // If completing the order, apply inspection results first
       await applyInspectionResults(orderId) // This function handles package and location updates
       updatedOrder = await updateCheckOrderStatus(orderId, status) // Then update order status
