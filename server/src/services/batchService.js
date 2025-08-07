@@ -18,6 +18,31 @@ const getValidBatches = async (medicineId) => {
   return batches;
 };
 
+const getBatchById = async (batchId) => {
+  if (!batchId) {
+    const err = new Error('batchId is required');
+    err.statusCode = 400;
+    throw err;
+  }
+  const batch = await Batch.findById(batchId)
+    .populate({
+      path: 'medicine_id',
+      select: '_id medicine_name license_code'
+    })
+    .select('-quality_status -createdAt -updatedAt -__v')
+    .lean();
+
+  if (!batch) {
+    const err = new Error(`Batch ${batchId} not found`);
+    err.statusCode = 404;
+    throw err;
+  }
+
+  return batch;
+}
+
+
 module.exports = {
   getValidBatches,
+  getBatchById
 };
