@@ -2,6 +2,8 @@
 const Medicine = require('../models/Medicine');
 const Batch = require('../models/Batch');
 const Package = require('../models/Package');
+const axios = require('axios');
+
 // const constants = require('../utils/constants');
 const { MEDICINE_STATUSES } = require('../utils/constants');
 const medicineService = {
@@ -438,9 +440,9 @@ const medicineService = {
       }
 
       // 1. Tìm tất cả Batch chứa medicine này
-      
+
       const batches = await Batch.find({ medicine_id: medicineId }).lean();
-      
+
       if (batches.length === 0) {
         return {
           success: true,
@@ -453,7 +455,7 @@ const medicineService = {
       const batchIds = batches.map(batch => batch._id);
 
       // 2. Tìm tất cả Package chứa các Batch này và tính tổng quantity
-      const packages = await Package.find({ 
+      const packages = await Package.find({
         batch_id: { $in: batchIds }
       }).lean();
 
@@ -481,6 +483,46 @@ const medicineService = {
       };
     }
   },
+
+  getMedicineSummary: async (licenseCode) => {
+    if (!licenseCode) {
+      const err = new Error('licenseCode is required');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const url = `https://drugbank.vn/services/drugbank/api/public/thuoc/${encodeURIComponent(licenseCode)}`;
+    let resp;
+    try {
+      resp = await axios.get(url);
+    } catch (err) {
+      // If the upstream returns 404, bubble as our 404
+      if (err.response && err.response.status === 404) {
+        const notFound = new Error(`Medicine with code ${licenseCode} not found`);
+        notFound.statusCode = 404;
+        throw notFound;
+      }
+      // Other network or server errors
+      const e = new Error('Error fetching from DrugBank API');
+      e.statusCode = 502;
+      throw e;
+    }
+
+    const data = resp.data;
+    // Some valid responses may still have state != 202 → treat as not found
+    if (data.state !== 202) {
+      const notFound = new Error(`Medicine with code ${licenseCode} not found`);
+      notFound.statusCode = 404;
+      throw notFound;
+    }
+
+    return {
+      medicine_name: data.tenThuoc,
+      license_code: data.soDangKy,
+      category: data.phanLoai,
+      unit_of_measure: data.baoChe
+    };
+  }
 };
 
 module.exports = medicineService;

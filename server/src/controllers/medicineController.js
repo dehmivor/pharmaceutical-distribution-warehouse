@@ -320,6 +320,19 @@ const medicineController = {
       });
     }
   },
+
+  getDrugInfo: async (req, res) => {
+    try {
+      const { code } = req.params;   // e.g. /api/drugs/VN-17635-14
+      const summary = await medicineService.getMedicineSummary(code);
+      res.json({ success: true, data: summary });
+    } catch (err) {
+      console.error(err);
+      const status = err.statusCode || 500;
+      res.status(status).json({ success: false, error: err.message });
+    }
+  }
+
 };
 
 module.exports = medicineController;
