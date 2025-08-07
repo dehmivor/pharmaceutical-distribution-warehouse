@@ -51,7 +51,6 @@ router
   .route('/:id/reject')
   .put(authorize('representative_manager'), exportOrderController.rejectExportOrder);
 
-
 // Cập nhật chi tiết đóng gói - có thể truy cập bởi cả warehouse và warehouse_manager
 router
   .route('/:id/update-packing')

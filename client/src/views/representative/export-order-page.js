@@ -71,10 +71,7 @@ function ExportOrderPage() {
   const fetchContracts = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/api/contract?status=active&partner_type=Retailer`, { headers: getAuthHeaders() });
-      const activeContracts = (response.data.data.contracts || []).filter(
-        (c) => c.status === 'active' && c.partner_type === 'Retailer'
-      );
-      setContracts(activeContracts);
+      setContracts(response.data.data.contracts || []);
     } catch (error) {
       setError('Failed to load contracts');
     }
@@ -218,6 +215,18 @@ function ExportOrderPage() {
     }
   }, [formData.contract_id]);
 
+  // Auto-fill all medicines for Economic contracts
+  useEffect(() => {
+    if (formData.contract_type === 'economic' && contractMedicines.length > 0 && !selectedOrder) {
+      const autoFilledDetails = contractMedicines.map((med) => ({
+        medicine_id: med.medicine_id._id,
+        expected_quantity: med.quantity || med.min_order_quantity || 1,
+        unit_price: med.unit_price || 0
+      }));
+      setFormData((prev) => ({ ...prev, details: autoFilledDetails }));
+    }
+  }, [formData.contract_type, contractMedicines, selectedOrder]);
+
   // Khi chọn contract, reset details về rỗng
   const handleFormChange = (e) => {
     const { name, value } = e.target;
@@ -257,7 +266,7 @@ function ExportOrderPage() {
       const selectedMedicine = contractMedicines.find((med) => med.medicine_id._id === value);
       if (selectedMedicine) {
         if (formData.contract_type === 'principal') {
-          // Với principal contract, chỉ set giá trị mặc định, người dùng có thể chỉnh sửa
+          // Với principal contract, chỉ set giá trị mặc định, người dùng chỉ có thể chỉnh sửa quantity
           newDetails[index].unit_price = selectedMedicine.unit_price || 0;
           newDetails[index].expected_quantity = selectedMedicine.min_order_quantity || 1;
         } else {
@@ -277,12 +286,8 @@ function ExportOrderPage() {
       newDetails[index][field] = Number(value);
     } else if (field === 'unit_price') {
       // Xử lý thay đổi unit_price
-      if (formData.contract_type === 'economic') {
-        // Economic contract: không cho phép sửa unit_price
-        return;
-      }
-      // Principal contract: cho phép sửa unit_price
-      newDetails[index][field] = Number(value);
+      // Cả economic và principal contract đều không cho phép sửa unit_price
+      return;
     } else {
       newDetails[index][field] = value;
     }
@@ -290,7 +295,7 @@ function ExportOrderPage() {
     setFormData((prev) => ({ ...prev, details: newDetails }));
 
     // Tự động kiểm tra tồn kho khi thay đổi thuốc hoặc số lượng (với debounce)
-    if (field === 'medicine_id' || field === 'expected_quantity' || field === 'unit_price') {
+    if (field === 'medicine_id' || field === 'expected_quantity') {
       debouncedStockCheck(newDetails);
     }
   };
@@ -391,6 +396,16 @@ function ExportOrderPage() {
     setStockCheckResults([]); // Reset stock check results
     setStockValidationError(null);
     setIsCheckingStock(false);
+  };
+
+  const handleCloseForm = () => {
+    setOpenForm(false);
+    setSelectedOrder(null);
+    setFormData({ contract_type: '', contract_id: '', details: [] });
+    setStockCheckResults([]); // Reset stock check results
+    setStockValidationError(null);
+    setIsCheckingStock(false);
+    setFormLoading(false);
   };
 
   const getStatusColor = (status) => {
@@ -603,7 +618,7 @@ function ExportOrderPage() {
       }
 
       setSuccess(successMessage);
-      setOpenForm(false);
+      handleCloseForm();
       setOpenEditForm(false);
       setFormData({ contract_type: '', contract_id: '', details: [] });
       setSelectedOrder(null);
@@ -811,7 +826,7 @@ function ExportOrderPage() {
           sx={{ px: 2, py: 1 }}
         />
       </TableContainer>
-            <Dialog open={openForm} onClose={() => setOpenForm(false)} maxWidth="md" fullWidth>
+            <Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
         <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>
           {selectedOrder ? 'Edit Export Order' : 'Create Export Order'}
           {selectedOrder ? (
@@ -900,7 +915,9 @@ function ExportOrderPage() {
                           ? "Please select a Contract to load available medicines"
                           : formData.contract_type === 'principal'
                             ? "Please add medicines to your order (Principal contract allows quantity editing)"
-                            : "Please add medicines to your order"
+                            : formData.contract_type === 'economic'
+                              ? "Economic contract: All medicines will be auto-filled from contract"
+                              : "Please add medicines to your order"
                     }
                   </Alert>
                 </Grid>
@@ -942,7 +959,7 @@ function ExportOrderPage() {
                             const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
                             if (contractItem) {
                               if (formData.contract_type === 'principal') {
-                                return `Min: ${contractItem.min_order_quantity || 1} (Có thể chỉnh sửa)`;
+                                return `Min: ${contractItem.min_order_quantity || 1} (Có thể chỉnh sửa quantity)`;
                               } else {
                                 return `Từ hợp đồng: ${contractItem.quantity || contractItem.min_order_quantity || 1} (Economic - Không thể sửa)`;
                               }
@@ -962,10 +979,10 @@ function ExportOrderPage() {
                           required
                           disabled={!detail.medicine_id || formData.contract_type === 'economic'}
                           helperText={(() => {
-                            if (formData.contract_type === 'principal') {
-                              return '(Có thể chỉnh sửa)';
-                            } else {
+                            if (formData.contract_type === 'economic') {
                               return '(Từ hợp đồng - Economic - Không thể sửa)';
+                            } else {
+                              return '(Từ hợp đồng - Không thể sửa)';
                             }
                           })()}
                           sx={{ minWidth: 120, maxWidth: 140 }}
@@ -990,12 +1007,20 @@ function ExportOrderPage() {
                 </Grid>
               ))}
             </Grid>
-            {/* Add Medicine Button */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-              <Button onClick={addDetail} variant="outlined" size="medium" disabled={!formData.contract_type || !formData.contract_id} sx={{ minWidth: 140, fontWeight: 600 }}>
-                {selectedOrder ? 'Add Medicine' : (formData.contract_type === 'principal' ? 'Add Medicine (Quantity Editable)' : 'Add Medicine')}
-              </Button>
-            </Box>
+            {/* Add Medicine Button - Only show for Principal contracts */}
+            {formData.contract_type !== 'economic' && (
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                <Button 
+                  onClick={addDetail} 
+                  variant="outlined" 
+                  size="medium" 
+                  disabled={!formData.contract_type || !formData.contract_id} 
+                  sx={{ minWidth: 140, fontWeight: 600 }}
+                >
+                  {selectedOrder ? 'Add Medicine' : (formData.contract_type === 'principal' ? 'Add Medicine (Quantity Only)' : 'Add Medicine')}
+                </Button>
+              </Box>
+            )}
 
             {/* Check Stock Button */}
             {formData.details.length > 0 && (
@@ -1153,7 +1178,7 @@ function ExportOrderPage() {
           </Box>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
-          <Button onClick={() => setOpenForm(false)} disabled={formLoading || isCheckingStock} variant="outlined" sx={{ minWidth: 120 }}>
+          <Button onClick={handleCloseForm} disabled={formLoading || isCheckingStock} variant="outlined" sx={{ minWidth: 120 }}>
             Cancel
           </Button>
           <Button 

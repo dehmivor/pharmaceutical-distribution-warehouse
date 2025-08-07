@@ -381,14 +381,25 @@ const getValidStatusTransitions = async (req, res) => {
   }
 };
 
-// Assign warehouse manager
+// Assign warehouse manager (chỉ có thể tự assign cho chính mình)
 const assignWarehouseManager = async (req, res) => {
   try {
     const { id } = req.params;
     const { warehouse_manager_id } = req.body;
+    const currentUserId = req.user.userId; // ID của warehouse manager hiện tại
+    
     if (!warehouse_manager_id) {
       return res.status(400).json({ success: false, error: 'warehouse_manager_id is required' });
     }
+    
+    // Kiểm tra warehouse manager chỉ có thể assign cho chính mình
+    if (warehouse_manager_id !== currentUserId) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Warehouse manager can only assign orders to themselves' 
+      });
+    }
+    
     const updatedOrder = await importOrderService.assignWarehouseManager(id, warehouse_manager_id);
     res.status(200).json({ success: true, data: updatedOrder });
   } catch (error) {

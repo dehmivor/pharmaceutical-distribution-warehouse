@@ -214,6 +214,18 @@ function ImportOrderPage() {
     }
   }, [formData.contract_id]);
 
+  // Auto-fill all medicines for Economic contracts
+  useEffect(() => {
+    if (formData.contract_type === 'economic' && contractMedicines.length > 0 && !selectedOrder) {
+      const autoFilledDetails = contractMedicines.map((med) => ({
+        medicine_id: med.medicine_id._id,
+        quantity: med.quantity || med.min_order_quantity || 1,
+        unit_price: med.unit_price || 0
+      }));
+      setFormData((prev) => ({ ...prev, details: autoFilledDetails }));
+    }
+  }, [formData.contract_type, contractMedicines, selectedOrder]);
+
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this order?')) {
       return;
@@ -472,6 +484,7 @@ function ImportOrderPage() {
       contract_id: '',
       details: []
     });
+    setFormLoading(false);
   };
 
   const handleOpenDetails = (order) => {
@@ -804,9 +817,17 @@ function ImportOrderPage() {
                 </Typography>
               </Grid>
               <Grid item xs={12} md={3} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
-                <Button onClick={addDetail} variant="outlined" size="medium" disabled={!formData.contract_type || !formData.contract_id || medicinesLoading} sx={{ minWidth: 140, fontWeight: 600 }}>
-                  {selectedOrder ? 'Add Medicine' : (formData.contract_type === 'principal' ? 'Add Medicine (Quantity Editable)' : 'Add Medicine')}
-                </Button>
+                {formData.contract_type !== 'economic' && (
+                  <Button 
+                    onClick={addDetail} 
+                    variant="outlined" 
+                    size="medium" 
+                    disabled={!formData.contract_type || !formData.contract_id || medicinesLoading} 
+                    sx={{ minWidth: 140, fontWeight: 600 }}
+                  >
+                    {selectedOrder ? 'Add Medicine' : 'Add Medicine (Quantity Editable)'}
+                  </Button>
+                )}
               </Grid>
             </Grid>
             {/* Medicines List */}
@@ -822,7 +843,9 @@ function ImportOrderPage() {
                           ? "Please select a Contract to load available medicines"
                           : formData.contract_type === 'principal'
                             ? "Please add medicines to your order (Principal contract allows quantity editing)"
-                            : "Please add medicines to your order"
+                            : formData.contract_type === 'economic'
+                              ? "Economic contract: All medicines will be auto-filled from contract"
+                              : "Please add medicines to your order"
                     }
                   </Alert>
                 </Grid>
