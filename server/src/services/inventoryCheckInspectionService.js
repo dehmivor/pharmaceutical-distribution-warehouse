@@ -141,8 +141,7 @@ const clearInspectionsByOrderId = async (orderId) => {
   for (const inspection of inspections) {
     const updatedCheckList = inspection.check_list.map((item) => ({
       ...item.toObject(),
-      actual_quantity: 0,
-      type: "valid",
+      actual_quantity: 0
     }))
 
     inspection.status = INVENTORY_CHECK_INSPECTION_STATUSES.DRAFT
@@ -274,6 +273,20 @@ const applyInspectionResults = async (checkOrderId) => {
   }
 }
 
+const deleteCheckItem = async (inspectionId, packageId) => {
+  const inspection = await InventoryCheckInspection.findById(inspectionId)
+  if (!inspection) {
+    const err = new Error("Inspection not found")
+    err.statusCode = 404
+    throw err
+  }
+
+  // Use $pull to remove the item from the check_list array
+  inspection.check_list.pull({ package_id: packageId })
+  await inspection.save()
+  return inspection
+}
+
 module.exports = {
   getInspectionsByOrderId,
   changeInspectionStatus,
@@ -284,4 +297,5 @@ module.exports = {
   clearInspectionsByOrderId,
   updateCheckOrderStatus,
   applyInspectionResults, // Export the new service function
+  deleteCheckItem, // Export the deleteCheckItem service function
 }

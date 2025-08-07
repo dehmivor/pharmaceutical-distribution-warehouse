@@ -8,6 +8,7 @@ const {
   clearInspectionsByOrderId,
   updateCheckOrderStatus,
   applyInspectionResults, // New import
+  deleteCheckItem
 } = require("../services/inventoryCheckInspectionService")
 
 const { INVENTORY_CHECK_INSPECTION_STATUSES } = require("../utils/constants")
@@ -141,6 +142,19 @@ const updateCheckOrderStatusController = async (req, res) => {
   }
 }
 
+const deleteCheckItemController = async (req, res) => {
+  const { inspectionId, packageId } = req.params
+  try {
+    const updatedInspection = await deleteCheckItem(inspectionId, packageId)
+    res.json({ success: true, data: updatedInspection, message: "Check item deleted successfully." })
+  } catch (err) {
+    console.error("Error deleting check item:", err)
+    const status = err.statusCode || 500
+    const message = err.message || "An error occurred while deleting the check item"
+    return res.status(status).json({ success: false, error: message })
+  }
+}
+
 module.exports = {
   getInspectionsByOrderIdController,
   updateInspectionStatus,
@@ -150,4 +164,5 @@ module.exports = {
   updateCheckItem,
   clearInspectionsController,
   updateCheckOrderStatusController,
+  deleteCheckItemController,
 }

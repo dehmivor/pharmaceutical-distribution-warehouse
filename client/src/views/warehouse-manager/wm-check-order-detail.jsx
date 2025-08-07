@@ -1,30 +1,11 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import axios from "axios"
-import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Box,
-  Container,
-  Grid,
-  Stack,
-  Typography,
-  CircularProgress,
-  Alert,
-  Snackbar,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  Button,
-  Chip,
-} from "@mui/material"
+import { Accordion, AccordionSummary, AccordionDetails, Box, Container, Grid, Stack, Typography, CircularProgress, Alert, Snackbar, Table, TableHead, TableBody, TableRow, TableCell, Button, Chip, IconButton } from "@mui/material" // Added IconButton
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import RefreshIcon from "@mui/icons-material/Refresh"
+import DeleteIcon from "@mui/icons-material/Delete" // Added DeleteIcon
 import { useTheme } from "@mui/material/styles"
 
 // Lấy header Authorization từ localStorage
@@ -68,7 +49,6 @@ const getStatusColor = (status) => {
 export default function CheckOrderDetail() {
   const theme = useTheme()
   const { checkOrderId } = useParams()
-
   const [order, setOrder] = useState(null)
   const [inspections, setInspections] = useState([])
   const [loadingOrder, setLoadingOrder] = useState(true)
@@ -110,7 +90,6 @@ export default function CheckOrderDetail() {
           headers: getAuthHeaders(),
         },
       )
-
       if (inspectionsData.success) {
         const inspectionsWithItems = await Promise.all(
           inspectionsData.data.map(async (inspection) => {
@@ -156,11 +135,9 @@ export default function CheckOrderDetail() {
 
   const handleCompleteCheck = async () => {
     if (!order) return
-
     // Client-side validation logic
     const overExpectedPackages = new Set()
     const underExpectedPackages = new Set()
-
     inspections.forEach((inspection) => {
       inspection.check_items.forEach((item) => {
         if (item.type === "over_expected") {
@@ -170,7 +147,6 @@ export default function CheckOrderDetail() {
         }
       })
     })
-
     let validationFailed = false
     if (overExpectedPackages.size > 0) {
       for (const packageId of overExpectedPackages) {
@@ -180,7 +156,6 @@ export default function CheckOrderDetail() {
         }
       }
     }
-
     if (validationFailed) {
       setSnackbar({
         open: true,
@@ -189,7 +164,6 @@ export default function CheckOrderDetail() {
       })
       return
     }
-
     // Proceed with API call if validation passes
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
@@ -285,6 +259,32 @@ export default function CheckOrderDetail() {
     }
   }
 
+  // New function to handle deleting a check item
+  const handleDeleteItem = async (inspectionId, packageId) => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const response = await axios.delete(
+        `${backendUrl}/api/inventory-check-inspections/${inspectionId}/check-items/${packageId}`,
+        {
+          headers: getAuthHeaders(),
+        },
+      )
+      if (response.data.success) {
+        setSnackbar({ open: true, message: "Mục kiểm kê đã được xóa thành công", severity: "success" })
+        fetchInspections() // Refresh inspections data
+      } else {
+        setSnackbar({
+          open: true,
+          message: response.data.message || "Không thể xóa mục kiểm kê",
+          severity: "error",
+        })
+      }
+    } catch (err) {
+      console.error(err)
+      setSnackbar({ open: true, message: "Đã xảy ra lỗi khi xóa mục kiểm kê", severity: "error" })
+    }
+  }
+
   if (loadingOrder || loadingInspections) {
     return (
       <Box sx={{ p: 3, textAlign: "center" }}>
@@ -305,7 +305,6 @@ export default function CheckOrderDetail() {
   }
 
   if (!order) return null
-
   const isProcessing = order.status === "processing"
   const isCancelledOrCompleted = order.status === "cancelled" || order.status === "completed"
 
@@ -325,7 +324,6 @@ export default function CheckOrderDetail() {
             <RefreshIcon fontSize="small" sx={{ mr: 1 }} /> Làm mới
           </Button>
         </Stack>
-
         {/* Order Detail Section */}
         <Accordion defaultExpanded sx={{ mb: 2 }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -376,7 +374,6 @@ export default function CheckOrderDetail() {
             </Grid>
           </AccordionDetails>
         </Accordion>
-
         {/* Inspections Section */}
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -434,6 +431,7 @@ export default function CheckOrderDetail() {
                                 <TableCell>Expected</TableCell>
                                 <TableCell>Actual</TableCell>
                                 <TableCell>Status</TableCell>
+                                <TableCell>Delete</TableCell> {/* Added Delete column header */}
                               </TableRow>
                             </TableHead>
                             <TableBody>
@@ -453,6 +451,17 @@ export default function CheckOrderDetail() {
                                     <TableCell>{item?.expected_quantity || 0}</TableCell>
                                     <TableCell>{item?.actual_quantity || 0}</TableCell>
                                     <TableCell>{chip}</TableCell>
+                                    <TableCell>
+                                      {/* Delete button */}
+                                      <IconButton
+                                        aria-label="delete"
+                                        size="small"
+                                        onClick={() => handleDeleteItem(ins._id, pkgId)}
+                                        disabled={isCancelledOrCompleted} // Disable if order is cancelled or completed
+                                      >
+                                        <DeleteIcon fontSize="small" />
+                                      </IconButton>
+                                    </TableCell>
                                   </TableRow>
                                 )
                               })}
@@ -475,7 +484,6 @@ export default function CheckOrderDetail() {
             )}
           </AccordionDetails>
         </Accordion>
-
         {/* Action Buttons */}
         <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4, gap: 2 }}>
           <Button
@@ -503,23 +511,22 @@ export default function CheckOrderDetail() {
             Hoàn thành kiểm kê
           </Button>
         </Box>
-      </Container>
-
-      {/* Snackbar for messages */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
+        {/* Snackbar for messages */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
           onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          <Alert
+            onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </Container>
     </Box>
   )
 }
