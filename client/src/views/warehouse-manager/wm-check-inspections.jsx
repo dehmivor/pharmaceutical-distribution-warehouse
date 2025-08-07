@@ -491,7 +491,7 @@ function CheckInspections() {
                 <Typography variant="h6">Mặt hàng chưa kiểm ({countUncheckedInspections} phiếu)</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                {inspections.length === 0 || countUncheckedInspections === 0 ? (
+                {inspections.length === 0 || insp.check_list.length === 0 || countUncheckedInspections === 0 ? (
                   <Typography>Không có phiếu kiểm kê chưa kiểm.</Typography>
                 ) : (
                   <Stack spacing={2}>
