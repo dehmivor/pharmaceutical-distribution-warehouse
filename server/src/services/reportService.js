@@ -10,32 +10,34 @@ class ReportService {
   // Get comprehensive report data
   static async getComprehensiveReport(filters = {}) {
     try {
-      const { startDate, endDate, period = 'monthly', status, type, partnerType } = filters;
+      const {
+        startDate,
+        endDate,
+        period = 'monthly',
+        status,
+        type,
+        partnerType,
+        page = 1,
+        limit = 10,
+      } = filters;
 
-      const dateFilter = {};
-      if (startDate && endDate) {
-        dateFilter.createdAt = {
-          $gte: new Date(startDate),
-          $lte: new Date(endDate),
-        };
-      }
+      console.log('Filters received:', filters);
 
-      const statusFilter = status ? { status } : {};
-      const typeFilter = type ? { type } : {};
-
-      // Filter partnerType requires checking in nested populated data, so handle later after fetching bills
+      const statusFilter = status && status !== 'all' ? { status: status.toUpperCase() } : {};
+      const typeFilter = type && type !== 'all' ? { type } : {};
 
       const combinedFilter = {
-        ...dateFilter,
         ...statusFilter,
         ...typeFilter,
       };
+
+      console.log('Combined filter:', JSON.stringify(combinedFilter, null, 2));
 
       // Find bills and populate nested references
       let bills = await Bill.find(combinedFilter)
         .populate({
           path: 'import_order_id',
-          select: 'order_code contract_id',
+          select: 'order_code contract_id status updatedAt',
           populate: {
             path: 'contract_id',
             select: 'contract_code partner_type partner_id',
@@ -43,13 +45,52 @@ class ReportService {
         })
         .populate({
           path: 'export_order_id',
-          select: 'order_code contract_id',
+          select: 'order_code contract_id status updatedAt',
           populate: {
             path: 'contract_id',
             select: 'contract_code partner_type partner_id',
           },
         })
         .sort({ createdAt: -1 });
+
+      console.log('Found bills:', bills.length);
+
+      // Debug: Check if bills have populated import_order_id
+      bills.forEach((bill, index) => {
+        console.log(`Bill ${index + 1} (${bill._id}):`);
+        console.log('  - createdAt:', bill.createdAt);
+        console.log('  - updatedAt:', bill.updatedAt);
+        console.log('  - import_order_id:', bill.import_order_id ? 'EXISTS' : 'NULL');
+        console.log('  - import_order_id.updatedAt:', bill.import_order_id?.updatedAt);
+        console.log('  - import_order_id.status:', bill.import_order_id?.status);
+        console.log('  - export_order_id:', bill.export_order_id ? 'EXISTS' : 'NULL');
+        console.log('  - export_order_id.updatedAt:', bill.export_order_id?.updatedAt);
+        console.log('  - export_order_id.status:', bill.export_order_id?.status);
+      });
+
+      // Apply date filtering based on Bill's createdAt/updatedAt
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        console.log('Date filter range:', { startDate, endDate, start, end });
+
+        bills = bills.filter((bill) => {
+          // Use Bill's createdAt for date filtering since it has timestamps now
+          const billDateToFilter = bill.createdAt;
+          console.log(`Bill ${bill._id}: createdAt =`, billDateToFilter);
+
+          const isInRange =
+            billDateToFilter && billDateToFilter >= start && billDateToFilter <= end;
+          console.log(
+            `Bill ${bill._id}: Date in range? ${isInRange} (${billDateToFilter} >= ${start} && ${billDateToFilter} <= ${end})`,
+          );
+
+          return isInRange;
+        });
+
+        console.log('Bills after date filtering:', bills.length);
+      }
 
       // Filter by partnerType if provided (since partnerType is nested)
       if (partnerType) {
@@ -60,8 +101,17 @@ class ReportService {
         });
       }
 
+      // Apply pagination
+      const totalBills = bills.length;
+      const skip = (page - 1) * limit;
+      const paginatedBills = bills.slice(skip, skip + limit);
+
+      console.log(
+        `Pagination: page=${page}, limit=${limit}, total=${totalBills}, showing=${paginatedBills.length}`,
+      );
+
       // Process bills
-      const processedBills = bills.map((bill) => {
+      const processedBills = paginatedBills.map((bill) => {
         const billValue = bill.details.reduce(
           (sum, detail) => sum + detail.quantity * detail.unit_price,
           0,
@@ -72,6 +122,8 @@ class ReportService {
         let partnerId = 'N/A';
         let orderCode = 'N/A';
         let orderType = 'N/A';
+        let billCreatedAt = bill.createdAt; // Use Bill's createdAt
+        let billUpdatedAt = bill.updatedAt; // Use Bill's updatedAt
 
         if (bill.import_order_id) {
           contractCode = bill.import_order_id.contract_id?.contract_code || 'N/A';
@@ -87,9 +139,19 @@ class ReportService {
           orderType = 'EXPORT';
         }
 
+        // Determine bill status based on amount paid
+        let billStatus = 'pending';
+        if (bill.amountPaid > 0) {
+          if (bill.amountPaid >= billValue) {
+            billStatus = 'completed';
+          } else {
+            billStatus = 'partial';
+          }
+        }
+
         return {
           id: bill._id.toString(),
-          billCode: bill.bill_code || 'N/A',
+          billCode: bill.bill_code || `BILL_${bill._id.toString().slice(-8)}`,
           voucherCode: bill.voucher_code || 'N/A',
           contractCode,
           partnerType: partnerTypeVal,
@@ -97,14 +159,14 @@ class ReportService {
           orderCode,
           orderType,
           billType: bill.type,
-          status: bill.status.toLowerCase(),
+          status: billStatus,
           totalValue: billValue,
           amountPaid: bill.amountPaid || 0,
           remainingAmount: billValue - (bill.amountPaid || 0),
           paymentDate: bill.payment_date || null,
           dueDate: bill.due_date || null,
-          createdAt: bill.createdAt,
-          updatedAt: bill.updatedAt,
+          createdAt: billCreatedAt,
+          updatedAt: billUpdatedAt,
           details: bill.details.map((detail) => ({
             medicineCode: detail.medicine_lisence_code,
             quantity: detail.quantity,
@@ -116,22 +178,32 @@ class ReportService {
 
       // Summary statistics
       const summary = {
-        totalBills: processedBills.length,
+        totalBills: totalBills, // Use total count, not just current page
         totalValue: processedBills.reduce((sum, bill) => sum + bill.totalValue, 0),
         totalPaid: processedBills.reduce((sum, bill) => sum + bill.amountPaid, 0),
         totalRemaining: processedBills.reduce((sum, bill) => sum + bill.remainingAmount, 0),
         overdueBills: processedBills.filter((bill) => bill.status === 'overdue').length,
         pendingBills: processedBills.filter((bill) => bill.status === 'pending').length,
         completedBills: processedBills.filter((bill) => bill.status === 'completed').length,
+        partialBills: processedBills.filter((bill) => bill.status === 'partial').length,
         importBills: processedBills.filter((bill) => bill.orderType === 'IMPORT').length,
         exportBills: processedBills.filter((bill) => bill.orderType === 'EXPORT').length,
       };
+
+      console.log('Processed bills:', processedBills.length);
+      console.log('Summary:', summary);
 
       return {
         success: true,
         data: {
           bills: processedBills,
           summary,
+          pagination: {
+            page,
+            limit,
+            total: totalBills,
+            totalPages: Math.ceil(totalBills / limit),
+          },
           filters: {
             startDate,
             endDate,

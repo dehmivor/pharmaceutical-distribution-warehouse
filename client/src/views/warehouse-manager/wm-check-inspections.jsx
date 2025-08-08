@@ -96,55 +96,53 @@ function CheckInspections() {
       });
   }, []);
 
-  // Load check order details and inventory items
   useEffect(() => {
-    if (!checkOrderId) return;
-
-    const fetchOrderAndDecide = async () => {
-      setLoading(true);
-      try {
-        const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
-          headers: getAuthHeaders()
-        });
-        if (res.data?.success && res.data.data) {
-          const order = res.data.data.checkorder;
-          setOrderData(order);
-
-          if (order.status?.toLowerCase() === 'processing') {
-            enqueueSnackbar('Toàn kho đang trong trạng thái khóa, không thể tạo phiếu mới', { variant: 'info' });
-            if (Array.isArray(order.items)) {
-              const items = order.items.map((item) => ({
-                id: item.medicine_id._id,
-                name: item.medicine_id.medicine_name,
-                stock: item.stock
-              }));
-              setInventoryItems(items);
-            }
-            fetchInspections(0, rowsPerPage);
-          } else {
-            if (Array.isArray(order.items)) {
-              const items = order.items.map((item) => ({
-                id: item.medicine_id._id,
-                name: item.medicine_id.medicine_name,
-                stock: item.stock
-              }));
-              setInventoryItems(items);
-            }
-          }
-        } else {
-          enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
-        }
-      } catch (error) {
-        console.error('Failed to load check order:', error);
-        enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrderAndDecide();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkOrderId]);
+  // Load check order details and inventory items
+
+  const fetchOrderAndDecide = async () => {
+    if (!checkOrderId) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
+        headers: getAuthHeaders()
+      });
+      if (res.data?.success && res.data.data) {
+        const order = res.data.data.checkorder;
+        setOrderData(order);
+
+        if (order.status?.toLowerCase() === 'processing') {
+          enqueueSnackbar('Toàn kho đang trong trạng thái khóa, không thể tạo phiếu mới', { variant: 'info' });
+          if (Array.isArray(order.items)) {
+            const items = order.items.map((item) => ({
+              id: item.medicine_id._id,
+              name: item.medicine_id.medicine_name,
+              stock: item.stock
+            }));
+            setInventoryItems(items);
+          }
+          fetchInspections(0, rowsPerPage);
+        } else {
+          if (Array.isArray(order.items)) {
+            const items = order.items.map((item) => ({
+              id: item.medicine_id._id,
+              name: item.medicine_id.medicine_name,
+              stock: item.stock
+            }));
+            setInventoryItems(items);
+          }
+        }
+      } else {
+        enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
+      }
+    } catch (error) {
+      console.error('Failed to load check order:', error);
+      enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handle filter change
   const handleFilterChange = (field, value) => {
@@ -300,7 +298,7 @@ function CheckInspections() {
             enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
               variant: createRes.data?.success ? 'success' : 'info'
             });
-
+            await fetchOrderAndDecide();
             fetchInspections(0, rowsPerPage);
           } else {
             enqueueSnackbar(updateRes.data.message || 'Cập nhật trạng thái đơn kiểm kê thành công.', {
@@ -358,27 +356,6 @@ function CheckInspections() {
 
   return (
     <Box sx={{ padding: 4 }}>
-      {/* Alert Thông tin checkorder */}
-      {orderData && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            Thông tin Phiếu Kiểm Kê: <strong>{orderData._id}</strong>
-          </Typography>
-          <Typography variant="body2">
-            Warehouse Manager: {orderData.warehouse_manager_id.email} | Người tạo: {orderData.created_by?.email || '-'} | Ngày kiểm kê:{' '}
-            {orderData.inventory_check_date ? new Date(orderData.inventory_check_date).toLocaleDateString('vi-VN') : '-'} | Trạng thái:{' '}
-            {orderData.status}
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            Ghi chú: {orderData.notes || '-'}
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1, fontSize: '0.875rem' }}>
-            Ngày tạo: {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString('vi-VN') : '-'} | Ngày cập nhật:{' '}
-            {orderData.updatedAt ? new Date(orderData.updatedAt).toLocaleString('vi-VN') : '-'}
-          </Typography>
-        </Alert>
-      )}
-
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
@@ -399,6 +376,32 @@ function CheckInspections() {
           Xem thống kê chi tiết của đợt kiểm kê này
         </Button>
       </Box>
+
+      {orderData && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+            Thông tin Phiếu Kiểm Kê: <strong>{orderData._id}</strong>
+          </Typography>
+          <Typography variant="body2">
+            Warehouse Manager: {orderData.warehouse_manager_id.email} | Người tạo: {orderData.created_by?.email || '-'} | Ngày kiểm kê:{' '}
+            {orderData.inventory_check_date ? new Date(orderData.inventory_check_date).toLocaleDateString('vi-VN') : '-'} | Trạng thái:{' '}
+            {orderData.status === 'pending'
+              ? 'chưa bắt đầu'
+              : orderData.status === 'processing'
+                ? 'đang tiến hành'
+                : orderData.status === 'completed'
+                  ? 'đã hoàn thành'
+                  : orderData.status}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            Ghi chú: {orderData.notes || '-'}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1, fontSize: '0.875rem' }}>
+            Ngày tạo: {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString('vi-VN') : '-'} | Ngày cập nhật:{' '}
+            {orderData.updatedAt ? new Date(orderData.updatedAt).toLocaleString('vi-VN') : '-'}
+          </Typography>
+        </Alert>
+      )}
 
       {/* UI filter, search, sort */}
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
@@ -491,7 +494,7 @@ function CheckInspections() {
                 <Typography variant="h6">Mặt hàng chưa kiểm ({countUncheckedInspections} phiếu)</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                {inspections.length === 0 || insp.check_list.length === 0 || countUncheckedInspections === 0 ? (
+                {inspections.length === 0 || inspections.check_list?.length === 0 || countUncheckedInspections === 0 ? (
                   <Typography>Không có phiếu kiểm kê chưa kiểm.</Typography>
                 ) : (
                   <Stack spacing={2}>
@@ -505,7 +508,14 @@ function CheckInspections() {
                           elevation={0}
                         >
                           <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-                            Vị trí: {getLocationLabel(inspection.location_id)} - Trạng thái: {inspection.status}
+                            Vị trí: {getLocationLabel(inspection.location_id)} - Trạng thái:{' '}
+                            {inspection.status === 'draft'
+                              ? 'Chưa kiểm'
+                              : inspection.status === 'checking'
+                                ? 'Đang kiểm'
+                                : inspection.status === 'checked'
+                                  ? 'Đã kiểm'
+                                  : inspection.status}
                           </Typography>
 
                           <Table size="small" aria-label="check-list-items">
