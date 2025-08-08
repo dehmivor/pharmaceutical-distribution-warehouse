@@ -7,7 +7,7 @@ const Medicine = require('../models/Medicine');
 const User = require('../models/User');
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/pharmaceutical-warehouse', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/pdw', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -48,7 +48,7 @@ const seedReportData = async () => {
       {
         medicine_name: 'Omeprazole 20mg',
         license_code: 'MED004',
-        category: 'thuốc kê đơn',
+        category: 'thuốc không kê đơn',
         unit_of_measure: 'viên',
         min_stock_threshold: 60,
         max_stock_threshold: 600,
@@ -66,123 +66,31 @@ const seedReportData = async () => {
     ]);
 
     // Create sample users
-    const users = await User.create([
-      {
-        email: 'supervisor@example.com',
-        password: 'password123',
-        role: 'supervisor',
-        status: 'active',
-      },
-      {
-        email: 'representative@example.com',
-        password: 'password123',
-        role: 'representative',
-        status: 'active',
-      },
-      {
-        email: 'warehouse_manager@example.com',
-        password: 'password123',
-        role: 'warehouse_manager',
-        status: 'active',
-      },
-    ]);
-
-    // Create sample contracts
-    const contracts = await Contract.create([
-      {
-        contract_code: 'CT-2024-001',
-        contract_type: 'economic',
-        created_by: users[1]._id,
-        partner_id: 'supplier1',
-        partner_type: 'Supplier',
-        start_date: new Date('2024-01-01'),
-        end_date: new Date('2024-12-31'),
-        status: 'active',
-        items: [
-          {
-            medicine_id: medicines[0]._id,
-            quantity: 1000,
-            unit_price: 5000,
-          },
-          {
-            medicine_id: medicines[1]._id,
-            quantity: 800,
-            unit_price: 6000,
-          },
-        ],
-      },
-      {
-        contract_code: 'CT-2024-002',
-        contract_type: 'economic',
-        created_by: users[1]._id,
-        partner_id: 'retailer1',
-        partner_type: 'Retailer',
-        start_date: new Date('2024-01-01'),
-        end_date: new Date('2024-12-31'),
-        status: 'active',
-        items: [
-          {
-            medicine_id: medicines[0]._id,
-            quantity: 500,
-            unit_price: 8000,
-          },
-          {
-            medicine_id: medicines[2]._id,
-            quantity: 300,
-            unit_price: 12000,
-          },
-        ],
-      },
-      {
-        contract_code: 'CT-2024-003',
-        contract_type: 'economic',
-        created_by: users[1]._id,
-        partner_id: 'supplier2',
-        partner_type: 'Supplier',
-        start_date: new Date('2024-01-01'),
-        end_date: new Date('2024-12-31'),
-        status: 'active',
-        items: [
-          {
-            medicine_id: medicines[3]._id,
-            quantity: 600,
-            unit_price: 15000,
-          },
-          {
-            medicine_id: medicines[4]._id,
-            quantity: 400,
-            unit_price: 8000,
-          },
-        ],
-      },
-      {
-        contract_code: 'CT-2024-004',
-        contract_type: 'economic',
-        created_by: users[1]._id,
-        partner_id: 'retailer2',
-        partner_type: 'Retailer',
-        start_date: new Date('2024-01-01'),
-        end_date: new Date('2024-12-31'),
-        status: 'active',
-        items: [
-          {
-            medicine_id: medicines[1]._id,
-            quantity: 300,
-            unit_price: 10000,
-          },
-          {
-            medicine_id: medicines[4]._id,
-            quantity: 200,
-            unit_price: 12000,
-          },
-        ],
-      },
-    ]);
+    // const users = await User.create([
+    //   {
+    //     email: 'minhtam_sp@example.com',
+    //     password: 'password123',
+    //     role: 'supervisor',
+    //     status: 'active',
+    //   },
+    //   {
+    //     email: 'minhtam_rp@example.com',
+    //     password: 'password123',
+    //     role: 'representative',
+    //     status: 'active',
+    //   },
+    //   {
+    //     email: 'minhtam_wm@example.com',
+    //     password: 'password123',
+    //     role: 'warehouse_manager',
+    //     status: 'active',
+    //   },
+    // ]);
 
     // Create sample import orders
     const importOrders = await ImportOrder.create([
       {
-        contract_id: contracts[0]._id,
+        contract_id: '6891a8968765718beec834ac',
         warehouse_manager_id: users[2]._id,
         status: 'completed',
         created_by: users[1]._id,
@@ -202,7 +110,7 @@ const seedReportData = async () => {
         ],
       },
       {
-        contract_id: contracts[0]._id,
+        contract_id: '6891a8968765718beec834ac',
         warehouse_manager_id: users[2]._id,
         status: 'completed',
         created_by: users[1]._id,
@@ -217,7 +125,7 @@ const seedReportData = async () => {
         ],
       },
       {
-        contract_id: contracts[2]._id,
+        contract_id: '6891a8968765718beec834ac',
         warehouse_manager_id: users[2]._id,
         status: 'completed',
         created_by: users[1]._id,
@@ -237,7 +145,7 @@ const seedReportData = async () => {
         ],
       },
       {
-        contract_id: contracts[2]._id,
+        contract_id: '6891a8968765718beec834ac',
         warehouse_manager_id: users[2]._id,
         status: 'pending',
         created_by: users[1]._id,
@@ -255,7 +163,7 @@ const seedReportData = async () => {
     // Create sample export orders
     const exportOrders = await ExportOrder.create([
       {
-        contract_id: contracts[1]._id,
+        contract_id: '6891a8968765718beec834ac',
         warehouse_manager_id: users[2]._id,
         status: 'completed',
         created_by: users[1]._id,
@@ -275,7 +183,7 @@ const seedReportData = async () => {
         ],
       },
       {
-        contract_id: contracts[1]._id,
+        contract_id: '6891a8968765718beec834ac',
         warehouse_manager_id: users[2]._id,
         status: 'completed',
         created_by: users[1]._id,
@@ -290,7 +198,7 @@ const seedReportData = async () => {
         ],
       },
       {
-        contract_id: contracts[3]._id,
+        contract_id: '6891a8968765718beec834ac',
         warehouse_manager_id: users[2]._id,
         status: 'completed',
         created_by: users[1]._id,
@@ -310,7 +218,7 @@ const seedReportData = async () => {
         ],
       },
       {
-        contract_id: contracts[3]._id,
+        contract_id: '6891a8968765718beec834ac',
         warehouse_manager_id: users[2]._id,
         status: 'pending',
         created_by: users[1]._id,
