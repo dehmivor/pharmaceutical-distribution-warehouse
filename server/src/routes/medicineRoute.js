@@ -21,4 +21,7 @@ router.delete('/:id', medicineController.deleteMedicine);
 
 router.get('/all/v1', medicineController.getAllMedicines);
 
+router.get('/info/:code', medicineController.getDrugInfo);
+
+
 module.exports = router;

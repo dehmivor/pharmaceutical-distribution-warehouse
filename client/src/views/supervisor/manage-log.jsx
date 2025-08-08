@@ -21,32 +21,32 @@ const getAuthHeaders = () => {
 
 export default function ManageLog() {
   // logs + paging
-  const [orders, setOrders]       = useState([]);
-  const [loading, setLoading]     = useState(false);
-  const [error, setError]         = useState(null);
-  const [page, setPage]           = useState(0);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalCount, setTotalCount]   = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   // pending inputs
   const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate]     = useState('');
-  const [worker, setWorker]       = useState('');
-  const [order, setOrder]         = useState('');
-  const [area, setArea]           = useState('');
-  const [bay, setBay]             = useState('');
-  const [row, setRow]             = useState('');
-  const [column, setColumn]       = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [worker, setWorker] = useState('');
+  const [order, setOrder] = useState('');
+  const [area, setArea] = useState('');
+  const [bay, setBay] = useState('');
+  const [row, setRow] = useState('');
+  const [column, setColumn] = useState('');
 
   // applied filters
   const [apStartDate, setApStartDate] = useState('');
-  const [apEndDate,   setApEndDate]   = useState('');
-  const [apWorker,    setApWorker]    = useState('');
-  const [apOrder,     setApOrder]     = useState('');
-  const [apArea,      setApArea]      = useState('');
-  const [apBay,       setApBay]       = useState('');
-  const [apRow,       setApRow]       = useState('');
-  const [apColumn,    setApColumn]    = useState('');
+  const [apEndDate, setApEndDate] = useState('');
+  const [apWorker, setApWorker] = useState('');
+  const [apOrder, setApOrder] = useState('');
+  const [apArea, setApArea] = useState('');
+  const [apBay, setApBay] = useState('');
+  const [apRow, setApRow] = useState('');
+  const [apColumn, setApColumn] = useState('');
 
   // areas dropdown
   const [areas, setAreas] = useState([]);
@@ -59,7 +59,7 @@ export default function ManageLog() {
           setAreas(res.data.data.areas);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // fetch logs
@@ -68,16 +68,16 @@ export default function ManageLog() {
     setError(null);
 
     const qs = new URLSearchParams({
-      page:       (page + 1).toString(),
-      limit:      rowsPerPage.toString(),
+      page: (page + 1).toString(),
+      limit: rowsPerPage.toString(),
       ...(apStartDate && { startDate: apStartDate }),
-      ...(apEndDate   && { endDate:   apEndDate   }),
-      ...(apWorker    && { localPart: apWorker }),
-      ...(apOrder     && { order:     apOrder  }),
-      ...(apArea      && { areaId:    apArea   }),
-      ...(apBay       && { bay:       apBay    }),
-      ...(apRow       && { row:       apRow    }),
-      ...(apColumn    && { column:    apColumn }),
+      ...(apEndDate && { endDate: apEndDate }),
+      ...(apWorker && { localPart: apWorker }),
+      ...(apOrder && { order: apOrder }),
+      ...(apArea && { areaId: apArea }),
+      ...(apBay && { bay: apBay }),
+      ...(apRow && { row: apRow }),
+      ...(apColumn && { column: apColumn }),
     }).toString();
 
     try {
@@ -115,14 +115,6 @@ export default function ManageLog() {
     setRowsPerPage(+e.target.value);
     setPage(0);
   };
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', height: '50vh', alignItems: 'center' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -251,7 +243,22 @@ export default function ManageLog() {
       </Paper>
 
       {/* Results Table */}
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{ position: 'relative' }}>
+        {loading && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              bgcolor: 'rgba(255,255,255,0.7)',
+              zIndex: 1,
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        )}
         <Table>
           <TableHead>
             <TableRow>
@@ -273,9 +280,9 @@ export default function ManageLog() {
               </TableRow>
             ) : (
               orders.map(log => {
-                const locId    = log.location || '----';
-                const userLoc  = log.ware_house_id?.email.split('@')[0] || '----';
-                const orderId  = (
+                const locId = log.location || '----';
+                const userLoc = log.ware_house_id?.email.split('@')[0] || '----';
+                const orderId = (
                   log.import_order_id ||
                   log.export_order_id ||
                   log.inventory_check_order_id ||
