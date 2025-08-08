@@ -10,16 +10,8 @@ class ReportService {
   // Get comprehensive report data
   static async getComprehensiveReport(filters = {}) {
     try {
-      const {
-        startDate,
-        endDate,
-        period = 'monthly', // monthly, quarterly, weekly
-        status,
-        type,
-        partnerType,
-      } = filters;
+      const { startDate, endDate, period = 'monthly', status, type, partnerType } = filters;
 
-      // Build date filter
       const dateFilter = {};
       if (startDate && endDate) {
         dateFilter.createdAt = {
@@ -28,25 +20,22 @@ class ReportService {
         };
       }
 
-      // Build status filter
       const statusFilter = status ? { status } : {};
-
-      // Build type filter
       const typeFilter = type ? { type } : {};
 
-      // Combine filters
+      // Filter partnerType requires checking in nested populated data, so handle later after fetching bills
+
       const combinedFilter = {
         ...dateFilter,
         ...statusFilter,
         ...typeFilter,
       };
 
-      // Get bills with populated data
-      const bills = await Bill.find(combinedFilter)
-        .populate('import_order_id', 'order_code contract_id')
-        .populate('export_order_id', 'order_code contract_id')
+      // Find bills and populate nested references
+      let bills = await Bill.find(combinedFilter)
         .populate({
           path: 'import_order_id',
+          select: 'order_code contract_id',
           populate: {
             path: 'contract_id',
             select: 'contract_code partner_type partner_id',
@@ -54,6 +43,7 @@ class ReportService {
         })
         .populate({
           path: 'export_order_id',
+          select: 'order_code contract_id',
           populate: {
             path: 'contract_id',
             select: 'contract_code partner_type partner_id',
@@ -61,7 +51,16 @@ class ReportService {
         })
         .sort({ createdAt: -1 });
 
-      // Process bills data
+      // Filter by partnerType if provided (since partnerType is nested)
+      if (partnerType) {
+        bills = bills.filter((bill) => {
+          const importPartnerType = bill.import_order_id?.contract_id?.partner_type;
+          const exportPartnerType = bill.export_order_id?.contract_id?.partner_type;
+          return importPartnerType === partnerType || exportPartnerType === partnerType;
+        });
+      }
+
+      // Process bills
       const processedBills = bills.map((bill) => {
         const billValue = bill.details.reduce(
           (sum, detail) => sum + detail.quantity * detail.unit_price,
@@ -69,41 +68,41 @@ class ReportService {
         );
 
         let contractCode = 'N/A';
-        let partnerType = 'N/A';
+        let partnerTypeVal = 'N/A';
         let partnerId = 'N/A';
         let orderCode = 'N/A';
         let orderType = 'N/A';
 
         if (bill.import_order_id) {
           contractCode = bill.import_order_id.contract_id?.contract_code || 'N/A';
-          partnerType = bill.import_order_id.contract_id?.partner_type || 'N/A';
+          partnerTypeVal = bill.import_order_id.contract_id?.partner_type || 'N/A';
           partnerId = bill.import_order_id.contract_id?.partner_id || 'N/A';
           orderCode = bill.import_order_id.order_code || 'N/A';
           orderType = 'IMPORT';
         } else if (bill.export_order_id) {
           contractCode = bill.export_order_id.contract_id?.contract_code || 'N/A';
-          partnerType = bill.export_order_id.contract_id?.partner_type || 'N/A';
+          partnerTypeVal = bill.export_order_id.contract_id?.partner_type || 'N/A';
           partnerId = bill.export_order_id.contract_id?.partner_id || 'N/A';
           orderCode = bill.export_order_id.order_code || 'N/A';
           orderType = 'EXPORT';
         }
 
         return {
-          id: bill._id,
+          id: bill._id.toString(),
           billCode: bill.bill_code || 'N/A',
           voucherCode: bill.voucher_code || 'N/A',
           contractCode,
-          partnerType,
+          partnerType: partnerTypeVal,
           partnerId,
           orderCode,
           orderType,
           billType: bill.type,
-          status: bill.status,
+          status: bill.status.toLowerCase(),
           totalValue: billValue,
           amountPaid: bill.amountPaid || 0,
           remainingAmount: billValue - (bill.amountPaid || 0),
-          paymentDate: bill.payment_date,
-          dueDate: bill.due_date,
+          paymentDate: bill.payment_date || null,
+          dueDate: bill.due_date || null,
           createdAt: bill.createdAt,
           updatedAt: bill.updatedAt,
           details: bill.details.map((detail) => ({
@@ -115,7 +114,7 @@ class ReportService {
         };
       });
 
-      // Calculate summary statistics
+      // Summary statistics
       const summary = {
         totalBills: processedBills.length,
         totalValue: processedBills.reduce((sum, bill) => sum + bill.totalValue, 0),
