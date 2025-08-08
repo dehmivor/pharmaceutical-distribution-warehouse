@@ -54,4 +54,11 @@ router.patch(
   inventoryCheckInspectionController.updateCheckOrderStatusController,
 )
 
+// New route to delete a specific check item from an inspection
+router.delete(
+  "/:inspectionId/check-items/:packageId",
+  authorize(["warehouse", "warehouse_manager"]),
+  inventoryCheckInspectionController.deleteCheckItemController,
+)
+
 module.exports = router

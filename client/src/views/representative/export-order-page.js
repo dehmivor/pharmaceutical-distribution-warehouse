@@ -934,6 +934,7 @@ function ExportOrderPage() {
                             onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
                             label="Medicine"
                             required
+                            disabled={formData.contract_type === 'economic'}
                             sx={{ minWidth: 200, maxWidth: 240 }}
                           >
                             {contractMedicines.filter((med) =>
@@ -952,7 +953,13 @@ function ExportOrderPage() {
                           label="Quantity"
                           type="number"
                           value={detail.expected_quantity}
-                          onChange={(e) => handleDetailChange(index, 'expected_quantity', parseInt(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value) || 0;
+                            // Prevent negative values
+                            const validValue = Math.max(1, value);
+                            handleDetailChange(index, 'expected_quantity', validValue);
+                          }}
+                          InputProps={{ min: 1 }}
                           required
                           disabled={!detail.medicine_id || formData.contract_type === 'economic'}
                           helperText={(() => {
@@ -973,9 +980,16 @@ function ExportOrderPage() {
                         <TextField
                           fullWidth
                           label="Unit Price"
-                          type="number"
+                          type="text"
                           value={detail.unit_price}
-                          onChange={(e) => handleDetailChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value) || 0;
+                            handleDetailChange(index, 'unit_price', value);
+                          }}
+                          InputProps={{
+                            inputMode: 'decimal',
+                            pattern: '[0-9]*[.,]?[0-9]*'
+                          }}
                           required
                           disabled={!detail.medicine_id || formData.contract_type === 'economic'}
                           helperText={(() => {
@@ -1014,7 +1028,13 @@ function ExportOrderPage() {
                   onClick={addDetail} 
                   variant="outlined" 
                   size="medium" 
-                  disabled={!formData.contract_type || !formData.contract_id} 
+                  disabled={
+                    !formData.contract_type || 
+                    !formData.contract_id || 
+                    (formData.contract_type === 'principal' && 
+                     contractMedicines.length > 0 && 
+                     formData.details.length >= contractMedicines.length)
+                  } 
                   sx={{ minWidth: 140, fontWeight: 600 }}
                 >
                   {selectedOrder ? 'Add Medicine' : (formData.contract_type === 'principal' ? 'Add Medicine (Quantity Only)' : 'Add Medicine')}
@@ -1022,21 +1042,7 @@ function ExportOrderPage() {
               </Box>
             )}
 
-            {/* Check Stock Button */}
-            {formData.details.length > 0 && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, gap: 2 }}>
-                <Button 
-                  onClick={() => checkStockAvailability(formData.details)} 
-                  variant="outlined" 
-                  color="primary"
-                  disabled={isCheckingStock || formData.details.length === 0}
-                  sx={{ minWidth: 160, fontWeight: 600 }}
-                >
-                  {isCheckingStock ? 'Đang kiểm tra...' : '🔍 Kiểm tra tồn kho'}
-                </Button>
-                
-              </Box>
-            )}
+
 
             {/* Stock Availability Information */}
             {formData.details.length > 0 && (
