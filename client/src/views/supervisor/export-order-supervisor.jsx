@@ -24,7 +24,10 @@ import {
   Grid,
   Button,
   CircularProgress,
-  Stack
+  Stack,
+  MenuItem,
+  FormControl,
+  Select
 } from '@mui/material';
 import {
   Info as InfoIcon,
@@ -72,13 +75,12 @@ const getStatusColor = (status) =>
     cancelled: 'error'
   })[status] || 'default';
 
-const IMPORT_ORDER_STATUSES = {
+const EXPORT_ORDER_STATUSES = {
   DRAFT: 'draft',
   APPROVED: 'approved',
-  DELIVERED: 'delivered',
-  CHECKED: 'checked',
-  ARRANGED: 'arranged',
+  REJECTED: 'rejected',
   COMPLETED: 'completed',
+  RETURNED: 'returned',
   CANCELLED: 'cancelled'
 };
 
@@ -190,9 +192,9 @@ export default function ExportOrderSupervisor() {
       await createNotification({
         recipient_id: order.warehouse_manager_id?._id,
         sender_id: userInfo._id,
-        type: 'import_order_assigned',
-        title: `Phiếu nhập số ${order.import_order_code || order._id} đã được giao`,
-        content: `Supervisor đã giao phiếu nhập số ${order.import_order_code || order._id} cho bạn.`,
+        type: 'export_order_assigned',
+        title: `Phiếu xuất số ${order.export_order_code || order._id} đã được giao`,
+        content: `Supervisor đã giao phiếu xuất số ${order.export_order_code || order._id} cho bạn.`,
         status: 'unread',
         created_at: new Date().toISOString()
       });
@@ -215,7 +217,7 @@ export default function ExportOrderSupervisor() {
     const { orderId, newStatus } = confirmDialog;
     try {
       setActionLoading(true);
-      await axiosInstance.patch(`/import-orders/${orderId}/status`, { status: newStatus });
+      await axiosInstance.patch(`/export-orders/${orderId}/status`, { status: newStatus });
       setEditingStatusOrderId(null);
       setSuccess('Status updated successfully');
       fetchOrders();
@@ -283,7 +285,7 @@ export default function ExportOrderSupervisor() {
           </TextField>
           <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
             <MenuItem value="All Status">All Status</MenuItem>
-            {Object.values(IMPORT_ORDER_STATUSES).map((s) => (
+            {Object.values(EXPORT_ORDER_STATUSES).map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
               </MenuItem>
@@ -339,15 +341,15 @@ export default function ExportOrderSupervisor() {
                           <Select
                             value={editStatusValue}
                             onChange={(e) => {
-                              if (order.status === IMPORT_ORDER_STATUSES.APPROVED && e.target.value === IMPORT_ORDER_STATUSES.DELIVERED) {
+                              if (order.status === EXPORT_ORDER_STATUSES.APPROVED && e.target.value === EXPORT_ORDER_STATUSES.COMPLETED) {
                                 handleStatusChange(order._id, e.target.value);
                               }
                             }}
                             onBlur={() => setEditingStatusOrderId(null)}
                             autoFocus
                           >
-                            {order.status === IMPORT_ORDER_STATUSES.APPROVED && (
-                              <MenuItem value={IMPORT_ORDER_STATUSES.DELIVERED}>Delivered</MenuItem>
+                            {order.status === EXPORT_ORDER_STATUSES.APPROVED && (
+                              <MenuItem value={EXPORT_ORDER_STATUSES.COMPLETED}>Completed</MenuItem>
                             )}
                           </Select>
                         </FormControl>
@@ -357,12 +359,12 @@ export default function ExportOrderSupervisor() {
                           color={getStatusColor(order.status)}
                           size="small"
                           onClick={() => {
-                            if (order.status === IMPORT_ORDER_STATUSES.APPROVED) {
+                            if (order.status === EXPORT_ORDER_STATUSES.APPROVED) {
                               setEditingStatusOrderId(order._id);
                               setEditStatusValue(order.status);
                             }
                           }}
-                          style={{ cursor: order.status === IMPORT_ORDER_STATUSES.APPROVED ? 'pointer' : 'default' }}
+                          style={{ cursor: order.status === EXPORT_ORDER_STATUSES.APPROVED ? 'pointer' : 'default' }}
                         />
                       )}
                     </TableCell>
@@ -402,7 +404,7 @@ export default function ExportOrderSupervisor() {
 
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
-        <DialogTitle>Import Order Details</DialogTitle>
+        <DialogTitle>Export Order Details</DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           {selectedOrder && (
             <Box sx={{ mt: 2 }}>
@@ -423,7 +425,7 @@ export default function ExportOrderSupervisor() {
                         <Typography variant="subtitle2" color="textSecondary">
                           Order Code
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.import_order_code || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.export_order_code || 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
