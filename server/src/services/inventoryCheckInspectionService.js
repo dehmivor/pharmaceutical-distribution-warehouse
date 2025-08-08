@@ -3,7 +3,7 @@ const InventoryCheckOrder = require("../models/InventoryCheckOrder")
 const Package = require("../models/Package") // Import Package model
 const Location = require("../models/Location") // Import Location model
 const mongoose = require("mongoose") // Import mongoose for transactions
-const { INVENTORY_CHECK_ORDER_STATUSES } = require("../utils/constants")
+const { INVENTORY_CHECK_INSPECTION_STATUSES } = require("../utils/constants")
 const PackageService = require("./packageService") // Declare PackageService variable
 
 const getInspectionsByOrderId = async (orderId) => {
@@ -177,33 +177,29 @@ const applyInspectionResults = async (checkOrderId) => {
 
   try {
     const inspections = await InventoryCheckInspection.find({ inventory_check_order_id: checkOrderId })
+      .populate({
+        path: "check_list.package_id",
+        model: "Package", // Ensure correct model reference
+      })
       .populate("location_id") // Populate the inspection's location
       .session(session)
 
     if (!inspections || inspections.length === 0) {
       throw new Error("No inspections found for this order to apply results.")
     }
-    
-    console.log(`Found ${inspections.length} inspections for order ${checkOrderId}`)
 
     for (const inspection of inspections) {
       const inspectionLocationId = inspection.location_id?._id // The location where the inspection happened
 
-      console.log(`Processing inspection ${inspection._id} with ${inspection.check_list.length} items`)
       for (const item of inspection.check_list) {
-        console.log(`Processing item: package_id = ${item.package_id}, actual_quantity = ${item.actual_quantity}, type = ${item.type}`)
-        // Get the actual package from database instead of relying on populate
-        const pkg = await Package.findById(item.package_id).session(session)
+        const pkg = item.package_id // This is the populated Package document
         if (!pkg) {
           console.warn(`Package with ID ${item.package_id} not found for inspection item. Skipping.`)
           continue
         }
 
         // 1. Cập nhật quantity của Package theo actual_quantity từ inspection
-        console.log(`Updating package ${pkg._id}: old quantity = ${pkg.quantity}, new quantity = ${item.actual_quantity}`)
-        
-        // Prepare update data
-        const updateData = { quantity: item.actual_quantity }
+        pkg.quantity = item.actual_quantity
 
         // 2. Handle location changes based on item type
         const currentPackageLocationId = pkg.location_id
@@ -217,9 +213,8 @@ const applyInspectionResults = async (checkOrderId) => {
             continue
           }
 
-          // Update package's location AND quantity
-          updateData.location_id = inspectionLocationId
-          updateData.quantity = item.actual_quantity
+          // Update package's location
+          pkg.location_id = inspectionLocationId
 
           // Mark new location as unavailable
           await Location.findByIdAndUpdate(inspectionLocationId, { available: false }, { session })
@@ -236,28 +231,38 @@ const applyInspectionResults = async (checkOrderId) => {
               await Location.findByIdAndUpdate(currentPackageLocationId, { available: true }, { session })
             }
           }
-        } 
+        } else if (item.type === "under_expected") {
+          // Package was expected here but not found. Clear its location.
+          if (pkg.location_id) {
+            const oldLocationId = pkg.location_id
+            pkg.location_id = null // Clear location
+
+            // Mark old location as available
+            // Check if any other package is still in the old location before marking it available
+            const otherPackagesInOldLocation = await Package.countDocuments({
+              location_id: oldLocationId,
+              _id: { $ne: pkg._id }, // Exclude the current package
+            }).session(session)
+
+            if (otherPackagesInOldLocation === 0) {
+              await Location.findByIdAndUpdate(oldLocationId, { available: true }, { session })
+            }
+          }
+        }
         // For 'valid' or other types, only quantity is updated, location remains as is.
 
-        // Update package using findByIdAndUpdate instead of save
-        const updatedPackage = await Package.findByIdAndUpdate(
-          pkg._id,
-          updateData,
-          { new: true, session }
-        )
-        console.log(`Package ${pkg._id} updated - Type: ${item.type}, Quantity: ${updatedPackage.quantity}, Location: ${updatedPackage.location_id}`)
+        await pkg.save({ session }) // Save the updated package
       }
     }
 
     // Update the InventoryCheckOrder status to completed
     await InventoryCheckOrder.findByIdAndUpdate(
       checkOrderId,
-      { status: INVENTORY_CHECK_ORDER_STATUSES.COMPLETED },
+      { status: INVENTORY_CHECK_INSPECTION_STATUSES.COMPLETED },
       { new: true, session },
     )
 
     await session.commitTransaction()
-    console.log("Transaction committed successfully")
     return { success: true, message: "Inspection results applied and order completed." }
   } catch (error) {
     await session.abortTransaction()
