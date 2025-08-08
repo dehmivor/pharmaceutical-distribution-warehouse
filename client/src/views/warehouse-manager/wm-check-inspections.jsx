@@ -356,7 +356,27 @@ function CheckInspections() {
 
   return (
     <Box sx={{ padding: 4 }}>
-      {/* Alert Thông tin checkorder */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Danh sách phiếu kiểm kê con cho 1 đợt
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Quản lý và theo dõi các phiếu kiểm kê cho đợt kiểm kê toàn kho
+          </Typography>
+        </Box>
+
+        <Button
+          variant="contained"
+          color="warning"
+          startIcon={<DetailsIcon />}
+          onClick={() => router.push(`/wh-inventory/check-orders/${checkOrderId}`)}
+          disabled={loading}
+        >
+          Xem thống kê chi tiết của đợt kiểm kê này
+        </Button>
+      </Box>
+
       {orderData && (
         <Alert severity="info" sx={{ mb: 3 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
@@ -382,27 +402,6 @@ function CheckInspections() {
           </Typography>
         </Alert>
       )}
-
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h4" gutterBottom>
-            Danh sách phiếu kiểm kê con cho 1 đợt
-          </Typography>
-          <Typography variant="body1" color="text.secondary" mb={3}>
-            Quản lý và theo dõi các phiếu kiểm kê cho đợt kiểm kê toàn kho
-          </Typography>
-        </Box>
-
-        <Button
-          variant="contained"
-          color="warning"
-          startIcon={<DetailsIcon />}
-          onClick={() => router.push(`/wh-inventory/check-orders/${checkOrderId}`)}
-          disabled={loading}
-        >
-          Xem thống kê chi tiết của đợt kiểm kê này
-        </Button>
-      </Box>
 
       {/* UI filter, search, sort */}
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>

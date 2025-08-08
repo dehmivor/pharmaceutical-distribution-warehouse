@@ -259,12 +259,6 @@ export default function Report() {
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
-            <Filter sx={{ color: 'primary.main', fontSize: 24 }} />
-            <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-              Bộ Lọc Tìm Kiếm
-            </Typography>
-          </Box>
           <Grid container spacing={2} alignItems="center">
             {/* Filter inputs */}
             <Grid item xs={12} md={3}>
