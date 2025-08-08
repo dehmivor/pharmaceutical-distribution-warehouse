@@ -3,14 +3,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Alert, Box, Button, Chip, CircularProgress, IconButton,
-  MenuItem, Paper, Snackbar, Table, TableBody, TableCell,
+  Alert, Box, Button, Chip, CircularProgress,
+  Paper, Snackbar, Table, TableBody, TableCell,
   TableContainer, TableHead, TablePagination, TableRow,
-  TextField, Typography, Stack
+  TextField, Typography, Stack, MenuItem
 } from '@mui/material';
 import { Refresh as RefreshIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
-import { useRouter } from 'next/navigation';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -21,85 +20,118 @@ const getAuthHeaders = () => {
 };
 
 export default function ManageLog() {
-  const router = useRouter();
-
-  const [orders, setOrders]           = useState([]);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState(null);
-  const [snackbar, setSnackbar]       = useState({ open: false, message: '', severity: 'error' });
-  const [page, setPage]               = useState(0);
+  // logs + paging
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalCount, setTotalCount]   = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
-  // Fetch logs from backend
+  // pending inputs
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [worker, setWorker] = useState('');
+  const [order, setOrder] = useState('');
+  const [area, setArea] = useState('');
+  const [bay, setBay] = useState('');
+  const [row, setRow] = useState('');
+  const [column, setColumn] = useState('');
+
+  // applied filters
+  const [apStartDate, setApStartDate] = useState('');
+  const [apEndDate, setApEndDate] = useState('');
+  const [apWorker, setApWorker] = useState('');
+  const [apOrder, setApOrder] = useState('');
+  const [apArea, setApArea] = useState('');
+  const [apBay, setApBay] = useState('');
+  const [apRow, setApRow] = useState('');
+  const [apColumn, setApColumn] = useState('');
+
+  // areas dropdown
+  const [areas, setAreas] = useState([]);
+
+  // fetch areas once
+  useEffect(() => {
+    axios.get('/api/areas', { headers: getAuthHeaders() })
+      .then(res => {
+        if (res.data.success) {
+          setAreas(res.data.data.areas);
+        }
+      })
+      .catch(() => { });
+  }, []);
+
+  // fetch logs
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     setError(null);
 
+    const qs = new URLSearchParams({
+      page: (page + 1).toString(),
+      limit: rowsPerPage.toString(),
+      ...(apStartDate && { startDate: apStartDate }),
+      ...(apEndDate && { endDate: apEndDate }),
+      ...(apWorker && { localPart: apWorker }),
+      ...(apOrder && { order: apOrder }),
+      ...(apArea && { areaId: apArea }),
+      ...(apBay && { bay: apBay }),
+      ...(apRow && { row: apRow }),
+      ...(apColumn && { column: apColumn }),
+    }).toString();
+
     try {
-      
+      const { data } = await axios.get(`/api/log-location-changes?${qs}`, {
+        headers: getAuthHeaders()
+      });
+      if (data.success) {
+        setOrders(data.data);
+        setTotalCount(data.total);
+      } else {
+        throw new Error(data.error || 'Failed to load logs');
+      }
     } catch (err) {
       console.error(err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage]);
+  }, [
+    page, rowsPerPage,
+    apStartDate, apEndDate,
+    apWorker, apOrder,
+    apArea, apBay, apRow, apColumn
+  ]);
 
+  // initial & on-change
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
 
-  const handleRefresh = () => {
-    fetchLogs();
-  };
-
-  const handleSearchClick = () => {
-    // In the future you could set filters here before refetch
-    fetchLogs();
-  };
-
-  const handleReset = () => {
-    // clear any additional filters you add, then refetch
-    fetchLogs();
-  };
-
-  const handleChangePage = (_, newPage) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (e) => {
-    setRowsPerPage(parseInt(e.target.value, 10));
+  // handlers
+  const handleRefresh = () => fetchLogs();
+  const handleChangePage = (_, newPage) => setPage(newPage);
+  const handleChangeRowsPerPage = e => {
+    setRowsPerPage(+e.target.value);
     setPage(0);
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', height: '50vh', alignItems: 'center' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ p: 3 }}>
-      {/* Error Snackbar */}
       <Snackbar
         open={Boolean(error)}
         autoHideDuration={6000}
         onClose={() => setError(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert severity="error" onClose={() => setError(null)}>
-          {error}
-        </Alert>
+        <Alert severity="error">{error}</Alert>
       </Snackbar>
 
       {/* Top Bar */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, alignItems: 'center' }}>
         <Box>
-          <Typography variant="h4" gutterBottom>Location Log Management</Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="h4">Location Log Management</Typography>
+          <Typography variant="body2" color="text.secondary">
             Manage and track location changes
           </Typography>
         </Box>
@@ -107,36 +139,133 @@ export default function ManageLog() {
           variant="outlined"
           startIcon={<RefreshIcon />}
           onClick={handleRefresh}
-          disabled={loading}
         >
           Refresh
         </Button>
       </Box>
 
-      {/* Actions */}
-      <Box component={Paper} sx={{ p: 2, mb: 3 }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <Button
-            variant="contained"
-            startIcon={<SearchIcon />}
-            onClick={handleSearchClick}
-          >
-            Search
-          </Button>
-          <Button variant="outlined" onClick={handleReset}>
-            Reset
-          </Button>
-        </Stack>
-      </Box>
+      {/* Filters */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Stack spacing={2}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              label="Start Date"
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="End Date"
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              inputProps={{ min: startDate || undefined }}
+            />
+            <TextField
+              label="Worker"
+              value={worker}
+              onChange={e => setWorker(e.target.value)}
+            />
+            <TextField
+              label="Order"
+              value={order}
+              onChange={e => setOrder(e.target.value)}
+            />
+          </Stack>
 
-      {/* Logs Table */}
-      <TableContainer component={Paper}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+            <TextField
+              select
+              label="Area"
+              value={area}
+              onChange={e => setArea(e.target.value)}
+            >
+              <MenuItem value="">All Areas</MenuItem>
+              {areas.map(a => (
+                <MenuItem key={a._id} value={a._id}>{a.name}</MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              label="Bay"
+              value={bay}
+              onChange={e => setBay(e.target.value)}
+            />
+            <TextField
+              label="Row"
+              value={row}
+              onChange={e => setRow(e.target.value)}
+            />
+            <TextField
+              label="Column"
+              value={column}
+              onChange={e => setColumn(e.target.value)}
+            />
+          </Stack>
+
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Button
+              variant="contained"
+              startIcon={<SearchIcon />}
+              onClick={() => {
+                setApStartDate(startDate);
+                setApEndDate(endDate);
+                setApWorker(worker);
+                setApOrder(order);
+                setApArea(area);
+                setApBay(bay);
+                setApRow(row);
+                setApColumn(column);
+                setPage(0);
+              }}
+            >
+              Search
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                // clear both pending & applied
+                setStartDate(''); setEndDate('');
+                setWorker(''); setOrder('');
+                setArea(''); setBay(''); setRow(''); setColumn('');
+                setApStartDate(''); setApEndDate('');
+                setApWorker(''); setApOrder('');
+                setApArea(''); setApBay(''); setApRow(''); setApColumn('');
+                setPage(0);
+              }}
+            >
+              Reset
+            </Button>
+          </Stack>
+        </Stack>
+      </Paper>
+
+      {/* Results Table */}
+      <TableContainer component={Paper} sx={{ position: 'relative' }}>
+        {loading && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              bgcolor: 'rgba(255,255,255,0.7)',
+              zIndex: 1,
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        )}
         <Table>
           <TableHead>
             <TableRow>
               <TableCell>Location</TableCell>
               <TableCell>Type</TableCell>
               <TableCell>Quantity</TableCell>
+              <TableCell>Batch</TableCell>
               <TableCell>Order ID</TableCell>
               <TableCell>User</TableCell>
               <TableCell>At</TableCell>
@@ -145,24 +274,23 @@ export default function ManageLog() {
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No log entries available.
-                  </Typography>
+                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                  No log entries available.
                 </TableCell>
               </TableRow>
             ) : (
               orders.map(log => {
-                // trim last 4 chars
-                const locId  = log.location_id?._id?.slice(-4)  || '----';
-                const userId = log.ware_house_id?._id?.slice(-4) || '----';
-                // pick the non-null order id
+                const locId = log.location || '----';
+                const userLoc = log.ware_house_id?.email.split('@')[0] || '----';
                 const orderId = (
                   log.import_order_id ||
                   log.export_order_id ||
                   log.inventory_check_order_id ||
                   {}
                 ).toString().slice(-4);
+                const batchTxt = log.batch
+                  ? `${log.batch.batch_code}: ${log.batch.medicine_id?.medicine_name}`
+                  : '—';
 
                 return (
                   <TableRow key={log._id} hover>
@@ -175,11 +303,10 @@ export default function ManageLog() {
                       />
                     </TableCell>
                     <TableCell>{log.quantity}</TableCell>
+                    <TableCell>{batchTxt}</TableCell>
                     <TableCell>{orderId}</TableCell>
-                    <TableCell>{userId}</TableCell>
-                    <TableCell>
-                      {new Date(log.updated_at).toLocaleString()}
-                    </TableCell>
+                    <TableCell>{userLoc}</TableCell>
+                    <TableCell>{new Date(log.updated_at).toLocaleString()}</TableCell>
                   </TableRow>
                 );
               })

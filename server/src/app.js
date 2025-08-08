@@ -82,7 +82,7 @@ app.use('/api/batch', route.batchRoutes);
 app.use('/api/packages', route.packageRoutes);
 app.use('/api/areas', route.areaRoutes);
 app.use('/api/locations', route.locationRoutes);
-app.use('/api/log-location-changes', route.locationRoutes);
+app.use('/api/log-location-changes', route.logLocationChangeRoute);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);

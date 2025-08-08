@@ -8,9 +8,10 @@ const {
   clearInspectionsByOrderId,
   updateCheckOrderStatus,
   applyInspectionResults, // New import
+  deleteCheckItem
 } = require("../services/inventoryCheckInspectionService")
 
-const { INVENTORY_CHECK_INSPECTION_STATUSES } = require("../utils/constants")
+const { INVENTORY_CHECK_ORDER_STATUSES } = require("../utils/constants")
 
 const getInspectionsByOrderIdController = async (req, res) => {
   const { orderId } = req.params
@@ -123,7 +124,7 @@ const updateCheckOrderStatusController = async (req, res) => {
   }
   try {
     let updatedOrder
-    if (status === INVENTORY_CHECK_INSPECTION_STATUSES.COMPLETED) {
+    if (status === INVENTORY_CHECK_ORDER_STATUSES.COMPLETED) {
       // If completing the order, apply inspection results first
       await applyInspectionResults(orderId) // This function handles package and location updates
       updatedOrder = await updateCheckOrderStatus(orderId, status) // Then update order status
@@ -141,6 +142,19 @@ const updateCheckOrderStatusController = async (req, res) => {
   }
 }
 
+const deleteCheckItemController = async (req, res) => {
+  const { inspectionId, packageId } = req.params
+  try {
+    const updatedInspection = await deleteCheckItem(inspectionId, packageId)
+    res.json({ success: true, data: updatedInspection, message: "Check item deleted successfully." })
+  } catch (err) {
+    console.error("Error deleting check item:", err)
+    const status = err.statusCode || 500
+    const message = err.message || "An error occurred while deleting the check item"
+    return res.status(status).json({ success: false, error: message })
+  }
+}
+
 module.exports = {
   getInspectionsByOrderIdController,
   updateInspectionStatus,
@@ -150,4 +164,5 @@ module.exports = {
   updateCheckItem,
   clearInspectionsController,
   updateCheckOrderStatusController,
+  deleteCheckItemController,
 }

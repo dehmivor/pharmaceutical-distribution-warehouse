@@ -822,7 +822,14 @@ function ImportOrderPage() {
                     onClick={addDetail} 
                     variant="outlined" 
                     size="medium" 
-                    disabled={!formData.contract_type || !formData.contract_id || medicinesLoading} 
+                    disabled={
+                      !formData.contract_type || 
+                      !formData.contract_id || 
+                      medicinesLoading ||
+                      (formData.contract_type === 'principal' && 
+                       contractMedicines.length > 0 && 
+                       formData.details.length >= contractMedicines.length)
+                    } 
                     sx={{ minWidth: 140, fontWeight: 600 }}
                   >
                     {selectedOrder ? 'Add Medicine' : 'Add Medicine (Quantity Editable)'}
@@ -862,18 +869,29 @@ function ImportOrderPage() {
                             onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
                             label="Medicine"
                             required
-                            disabled={!formData.contract_id || medicinesLoading}
+                            disabled={!formData.contract_id || medicinesLoading || formData.contract_type === 'economic'}
                             sx={{ minWidth: 200, maxWidth: 240 }}
                           >
                             <MenuItem value="">Select Medicine</MenuItem>
                             {medicinesLoading ? (
                               <MenuItem disabled>Loading medicines...</MenuItem>
                             ) : (
-                              contractMedicines.map((med) => (
-                                <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
-                                  {med.medicine_id.medicine_name} - {med.medicine_id.license_code}
-                                </MenuItem>
-                              ))
+                              contractMedicines
+                                .filter((med) => {
+                                  // For principal contract, filter out already selected medicines
+                                  if (formData.contract_type === 'principal') {
+                                    return !formData.details.some((detail, i) => 
+                                      detail.medicine_id === med.medicine_id._id && i !== index
+                                    );
+                                  }
+                                  // For economic contract, show all medicines
+                                  return true;
+                                })
+                                .map((med) => (
+                                  <MenuItem key={med.medicine_id._id} value={med.medicine_id._id}>
+                                    {med.medicine_id.medicine_name} - {med.medicine_id.license_code}
+                                  </MenuItem>
+                                ))
                             )}
                           </Select>
                         </FormControl>
@@ -884,7 +902,12 @@ function ImportOrderPage() {
                           label="Quantity"
                           type="number"
                           value={detail.quantity}
-                          onChange={(e) => handleDetailChange(index, 'quantity', parseInt(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value) || 0;
+                            // Prevent negative values
+                            const validValue = Math.max(1, value);
+                            handleDetailChange(index, 'quantity', validValue);
+                          }}
                           InputProps={{ 
                             readOnly: formData.contract_type !== 'principal',
                             min: 1
@@ -928,11 +951,13 @@ function ImportOrderPage() {
                           sx={{ minWidth: 120, maxWidth: 140 }}
                         />
                       </Grid>
-                      <Grid item sx={{ flex: '0 0 56px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        <IconButton color="error" onClick={() => removeDetail(index)} disabled={formData.details.length === 1 || !detail.medicine_id || medicinesLoading}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Grid>
+                      {formData.contract_type !== 'economic' && (
+                        <Grid item sx={{ flex: '0 0 56px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                          <IconButton color="error" onClick={() => removeDetail(index)} disabled={formData.details.length === 1 || !detail.medicine_id || medicinesLoading}>
+                            <DeleteIcon />
+                          </IconButton>
+                        </Grid>
+                      )}
                     </Grid>
                   </Paper>
                 </Grid>

@@ -1,8 +1,9 @@
 const inventoryService = require('../services/inventoryService');
+const inventoryCheckInspectionService = require('../services/inventoryCheckInspectionService');
 const mongoose = require('mongoose');
 const Location = require('../models/Location');
 const Package = require('../models/Package');
-const { INVENTORY_CHECK_INSPECTION_STATUSES } = require('../utils/constants');
+const { INVENTORY_CHECK_ORDER_STATUSES } = require('../utils/constants');
 const getInspectionsFromCheckOrder = async (req, res) => {
   try {
     const checkOrderId = req.params.id;
@@ -180,20 +181,28 @@ const updateCheckOrderStatus = async (req, res) => {
       });
     }
 
-    // if (status?.toLowerCase() === 'processing') {
-    //   const otherProcessingOrders =
-    //     await inventoryService.getProcessingCheckOrdersExcept(checkOrderId);
+    if (status?.toLowerCase() === 'processing') {
+      const otherProcessingOrders =
+        await inventoryService.getProcessingCheckOrdersExcept(checkOrderId);
 
-    //   if (Array.isArray(otherProcessingOrders) && otherProcessingOrders.length > 0) {
-    //     return res.json({
-    //       success: true,
-    //       updated: false,
-    //       message: 'Đang có 1 đợt kiểm kê khác!',
-    //     });
-    //   }
-    // }
+      if (Array.isArray(otherProcessingOrders) && otherProcessingOrders.length > 0) {
+        return res.json({
+          success: true,
+          updated: false,
+          message: 'Đang có 1 đợt kiểm kê khác!',
+        });
+      }
+    }
 
-    const updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
+    let updatedCheckOrder;
+    if (status === INVENTORY_CHECK_ORDER_STATUSES.COMPLETED) {
+      // If completing the order, apply inspection results first
+      await inventoryCheckInspectionService.applyInspectionResults(checkOrderId);
+      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
+    } else {
+      // For other status updates (e.g., cancelled), just update the order status
+      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
+    }
 
     if (!updatedCheckOrder) {
       return res.status(404).json({

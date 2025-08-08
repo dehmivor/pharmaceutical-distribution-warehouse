@@ -128,38 +128,23 @@ const getLocationWithPackages = async (req, res) => {
 const getLocationById = async (req, res) => {
   try {
     const { locationId } = req.params;
-    if (!locationId) {
-      return res.status(400).json({
-        success: false,
-        message: 'locationId is required',
-      });
-    }
-
-    const location = await Location.findById(locationId).populate('area_id'); // bring in the area details
-
-    if (!location) {
-      return res.status(404).json({
-        success: false,
-        message: `No location found with id ${locationId}`,
-      });
-    }
-
-    return res.json({
-      success: true,
-      data: location,
-    });
+    const location = await locationService.getLocationById(locationId);
+    res.json({ success: true, data: location });
   } catch (err) {
     console.error('❌ Error fetching location:', err);
-    if (err.kind === 'ObjectId') {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid location ID format',
-      });
-    }
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching location',
-    });
+    const status = err.statusCode === 400 && err.message === 'locationId is required'
+      ? 400
+      : err.statusCode === 404
+        ? 404
+        : err.name === 'CastError'
+          ? 400
+          : 500;
+
+    const message = status === 400 && err.name === 'CastError'
+      ? 'Invalid location ID format'
+      : err.message;
+
+    res.status(status).json({ success: false, message });
   }
 };
 
