@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const reportController = require('../controllers/reportController');
-const { authenticateToken } = require('../middlewares/accountMiddleware');
+const authenticate = require('../middlewares/authenticate');
 
 // Apply authentication middleware to all report routes
-router.use(authenticateToken);
+router.use(authenticate);
 
 // Get comprehensive report
 router.get('/comprehensive', reportController.getComprehensiveReport);
