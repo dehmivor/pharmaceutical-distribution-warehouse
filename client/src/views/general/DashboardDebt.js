@@ -25,6 +25,13 @@ import { BarChart } from '@mui/x-charts';
 import { useRouter } from 'next/navigation';
 import { Fab } from '@mui/material';
 import { ArrowBackIosNewOutlined, ArrowCircleRight } from '@mui/icons-material';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import IconButton from '@mui/material/IconButton';
+import RefreshIcon from '@mui/icons-material/Refresh';
+
+// Custom hook for debt dashboard
+import useDebtDashboard from '@/hooks/useDebtDashboard';
 
 // Utility function for radius styles
 const getRadiusStyles = (radius, ...corners) => {
@@ -122,114 +129,56 @@ const MainCard = ({ children, ...props }) => {
   );
 };
 
-// Mock data for debt overview
-const debtOverview = [
-  {
-    title: 'Tổng Công Nợ',
-    value: '₫2,450,000',
-    compare: 'So với tuần trước',
-    chip: {
-      label: '8.2%',
-      color: 'error',
-      avatar: <TrendingUpIcon size={16} />
-    },
-    icon: <CreditCardIcon size={24} />
-  },
-  {
-    title: 'Công Nợ Quá Hạn',
-    value: '₫890,000',
-    compare: 'So với tuần trước',
-    chip: {
-      label: '12.5%',
-      color: 'error',
-      avatar: <TrendingUpIcon size={16} />
-    },
-    icon: <WarningIcon size={24} />
-  },
-  {
-    title: 'Đã Thanh Toán',
-    value: '₫1,560,000',
-    compare: 'So với tuần trước',
-    chip: {
-      label: '15.3%',
-      color: 'success',
-      avatar: <TrendingUpIcon size={16} />
-    },
-    icon: <CheckCircleIcon size={24} />
-  },
-  {
-    title: 'Sắp Đến Hạn',
-    value: '₫340,000',
-    compare: 'So với tuần trước',
-    chip: {
-      label: '5.1%',
-      color: 'warning',
-      avatar: <TrendingDownIcon size={16} />
-    },
-    icon: <AccessTimeIcon size={24} />
-  }
-];
-
-// Chart data
-const monthlyPoints = [
-  new Date(2024, 0, 1),
-  new Date(2024, 1, 1),
-  new Date(2024, 2, 1),
-  new Date(2024, 3, 1),
-  new Date(2024, 4, 1),
-  new Date(2024, 5, 1),
-  new Date(2024, 6, 1),
-  new Date(2024, 7, 1),
-  new Date(2024, 8, 1),
-  new Date(2024, 9, 1),
-  new Date(2024, 10, 1),
-  new Date(2024, 11, 1)
-];
-
-const quarterlyPoints = [new Date(2024, 0, 1), new Date(2024, 3, 1), new Date(2024, 6, 1), new Date(2024, 9, 1)];
-
-const monthlyData = {
-  totalDebt: [2450, 2380, 2520, 2680, 2590, 2450, 2320, 2180, 2090, 2150, 2280, 2450],
-  overdue: [890, 920, 950, 1020, 980, 890, 850, 800, 750, 780, 820, 890],
-  paid: [1560, 1460, 1570, 1660, 1610, 1560, 1470, 1380, 1340, 1370, 1460, 1560]
-};
-
-const quarterlyData = {
-  totalDebt: [2450, 2590, 2180, 2450],
-  overdue: [890, 980, 800, 890],
-  paid: [1560, 1610, 1380, 1560]
-};
-
-// Debt analysis data
-const debtAnalysisData = {
-  monthly: [
-    { title: 'Khách hàng A', value: '₫450,000', progress: { value: 75 } },
-    { title: 'Khách hàng B', value: '₫230,000', progress: { value: 45 } },
-    { title: 'Khách hàng C', value: '₫180,000', progress: { value: 30 } },
-    { title: 'Khách hàng D', value: '₫120,000', progress: { value: 20 } },
-    { title: 'Khách hàng E', value: '₫90,000', progress: { value: 15 } }
-  ],
-  quarterly: [
-    { title: 'Khách hàng A', value: '₫1,350,000', progress: { value: 85 } },
-    { title: 'Khách hàng B', value: '₫690,000', progress: { value: 60 } },
-    { title: 'Khách hàng C', value: '₫540,000', progress: { value: 45 } },
-    { title: 'Khách hàng D', value: '₫360,000', progress: { value: 30 } },
-    { title: 'Khách hàng E', value: '₫270,000', progress: { value: 25 } }
-  ]
-};
-
-// Tab Panel Component
-const TabPanel = ({ children, value, index, ...other }) => {
-  return (
-    <div role="tabpanel" hidden={value !== index} id={`simple-tabpanel-${index}`} aria-labelledby={`simple-tab-${index}`} {...other}>
-      {value === index && <Box sx={{ pt: 1.5 }}>{children}</Box>}
-    </div>
-  );
-};
-
 // Debt Overview Cards Component
-const DebtOverviewCards = () => {
+const DebtOverviewCards = ({ overviewData }) => {
   const theme = useTheme();
+
+  const debtOverview = [
+    {
+      title: 'Tổng Công Nợ',
+      value: `₫${overviewData.totalDebt?.toLocaleString() || '0'}`,
+      compare: 'So với tuần trước',
+      chip: {
+        label: `${overviewData.weeklyChange?.totalDebt || 0}%`,
+        color: 'error',
+        avatar: <TrendingUpIcon size={16} />
+      },
+      icon: <CreditCardIcon size={24} />
+    },
+    {
+      title: 'Công Nợ Quá Hạn',
+      value: `₫${overviewData.overdueDebt?.toLocaleString() || '0'}`,
+      compare: 'So với tuần trước',
+      chip: {
+        label: `${overviewData.weeklyChange?.overdueDebt || 0}%`,
+        color: 'error',
+        avatar: <TrendingUpIcon size={16} />
+      },
+      icon: <WarningIcon size={24} />
+    },
+    {
+      title: 'Đã Thanh Toán',
+      value: `₫${overviewData.paidAmount?.toLocaleString() || '0'}`,
+      compare: 'So với tuần trước',
+      chip: {
+        label: `${overviewData.weeklyChange?.paidAmount || 0}%`,
+        color: 'success',
+        avatar: <TrendingUpIcon size={16} />
+      },
+      icon: <CheckCircleIcon size={24} />
+    },
+    {
+      title: 'Sắp Đến Hạn',
+      value: `₫${overviewData.upcomingDebt?.toLocaleString() || '0'}`,
+      compare: 'So với tuần trước',
+      chip: {
+        label: `${overviewData.weeklyChange?.upcomingDebt || 0}%`,
+        color: 'warning',
+        avatar: <TrendingDownIcon size={16} />
+      },
+      icon: <AccessTimeIcon size={24} />
+    }
+  ];
 
   return (
     <Grid container sx={{ borderRadius: 4, boxShadow: theme.shadows[1], ...applyBorderWithRadius(16, theme) }}>
@@ -242,53 +191,8 @@ const DebtOverviewCards = () => {
   );
 };
 
-const HistoricalDebtCard = () => {
-  const theme = useTheme();
-
-  // Giả sử dùng dữ liệu tháng
-  const series = [
-    {
-      id: 'total_debt',
-      data: monthlyData.totalDebt,
-      label: 'Tổng Công Nợ',
-      color: theme.palette.error.main
-    }
-  ];
-
-  return (
-    <MainCard sx={{ height: '100%' }}>
-      <Stack spacing={2} height="100%">
-        <Typography variant="subtitle1">Lịch Sử Công Nợ</Typography>
-        <LineChart
-          series={series}
-          height={250}
-          xAxis={[
-            {
-              data: monthlyPoints,
-              scaleType: 'point',
-              valueFormatter: (date) => date.toLocaleDateString('vi-VN', { month: 'short' })
-            }
-          ]}
-          yAxis={[
-            {
-              scaleType: 'linear',
-              label: 'Số tiền (₫)',
-              valueFormatter: (value) => `₫${(value / 1000).toFixed(0)}K`
-            }
-          ]}
-          slotProps={{ legend: { hidden: false } }}
-          sx={{
-            '& .MuiLineElement-root': { strokeWidth: 2 },
-            '& .MuiMarkElement-root': { strokeWidth: 2 }
-          }}
-        />
-      </Stack>
-    </MainCard>
-  );
-};
-
 // Debt Chart Component
-const DebtChart = () => {
+const DebtChart = ({ chartData }) => {
   const theme = useTheme();
   const [view, setView] = useState('monthly');
 
@@ -296,25 +200,25 @@ const DebtChart = () => {
     setView(newValue);
   };
 
-  const currentData = view === 'monthly' ? monthlyData : quarterlyData;
-  const currentPoints = view === 'monthly' ? monthlyPoints : quarterlyPoints;
+  const currentData = view === 'monthly' ? chartData.monthly : chartData.quarterly;
+  const currentPoints = currentData.map((item, index) => new Date(item.month || item.quarter));
 
   const seriesData = [
     {
       id: 'total_debt',
-      data: currentData.totalDebt,
+      data: currentData.map((item) => item.totalDebt),
       color: theme.palette.error.main,
       label: 'Tổng Công Nợ'
     },
     {
       id: 'overdue',
-      data: currentData.overdue,
+      data: currentData.map((item) => item.overdue),
       color: theme.palette.warning.main,
       label: 'Quá Hạn'
     },
     {
       id: 'paid',
-      data: currentData.paid,
+      data: currentData.map((item) => item.paid),
       color: theme.palette.success.main,
       label: 'Đã Thanh Toán'
     }
@@ -359,7 +263,7 @@ const DebtChart = () => {
           {
             scaleType: 'linear',
             label: 'Số tiền (₫)',
-            valueFormatter: (value) => `₫${(value / 1000).toFixed(0)}K`
+            valueFormatter: (value) => `₫${(value * 1000).toFixed(0)}K`
           }
         ]}
         slotProps={{ legend: { hidden: false } }}
@@ -372,20 +276,8 @@ const DebtChart = () => {
   );
 };
 
-// Debt Analysis Component
-
-// Trong thực tế bạn sẽ lấy dữ liệu thật, mình tạo mock như sau:
-
-const debtReceivableData = {
-  monthly: [1200, 1100, 1150, 1250, 1300, 1200, 1190, 1180, 1150, 1170, 1200, 1220],
-  quarterly: [3450, 3800, 3500, 3800]
-};
-
-const debtPayableData = {
-  monthly: [900, 850, 870, 910, 930, 890, 860, 820, 800, 810, 830, 840],
-  quarterly: [2600, 2750, 2500, 2550]
-};
-const DebtReceivableChart = () => {
+// Debt Receivable Chart Component
+const DebtReceivableChart = ({ receivableData }) => {
   const theme = useTheme();
   const [view, setView] = useState('monthly');
 
@@ -393,8 +285,8 @@ const DebtReceivableChart = () => {
     setView(newValue);
   };
 
-  const data = view === 'monthly' ? debtReceivableData.monthly : debtReceivableData.quarterly;
-  const points = view === 'monthly' ? monthlyPoints : quarterlyPoints;
+  const data = view === 'monthly' ? receivableData.monthly : receivableData.quarterly;
+  const points = data.map((_, index) => new Date(2024, index, 1));
 
   return (
     <MainCard>
@@ -429,7 +321,7 @@ const DebtReceivableChart = () => {
             {
               scaleType: 'linear',
               label: 'Số tiền (₫)',
-              valueFormatter: (val) => `₫${(val / 1000).toFixed(0)}K`
+              valueFormatter: (val) => `₫${(val * 1000).toFixed(0)}K`
             }
           ]}
           slotProps={{ legend: { hidden: false } }}
@@ -439,7 +331,9 @@ const DebtReceivableChart = () => {
     </MainCard>
   );
 };
-const DebtPayableChart = () => {
+
+// Debt Payable Chart Component
+const DebtPayableChart = ({ payableData }) => {
   const theme = useTheme();
   const [view, setView] = useState('monthly');
 
@@ -447,8 +341,8 @@ const DebtPayableChart = () => {
     setView(newValue);
   };
 
-  const data = view === 'monthly' ? debtPayableData.monthly : debtPayableData.quarterly;
-  const points = view === 'monthly' ? monthlyPoints : quarterlyPoints;
+  const data = view === 'monthly' ? payableData.monthly : payableData.quarterly;
+  const points = data.map((_, index) => new Date(2024, index, 1));
 
   return (
     <MainCard>
@@ -483,7 +377,7 @@ const DebtPayableChart = () => {
             {
               scaleType: 'linear',
               label: 'Số tiền (₫)',
-              valueFormatter: (val) => `₫${(val / 1000).toFixed(0)}K`
+              valueFormatter: (val) => `₫${(val * 1000).toFixed(0)}K`
             }
           ]}
           slotProps={{ legend: { hidden: false } }}
@@ -494,7 +388,8 @@ const DebtPayableChart = () => {
   );
 };
 
-const DebtAnalysis = () => {
+// Debt Analysis Component
+const DebtAnalysis = ({ analysisData }) => {
   const theme = useTheme();
   const [period, setPeriod] = useState('monthly');
 
@@ -502,7 +397,7 @@ const DebtAnalysis = () => {
     setPeriod(newValue);
   };
 
-  const currentData = debtAnalysisData[period];
+  const currentData = analysisData[period] || [];
   const series = [
     {
       id: 'debt',
@@ -516,10 +411,10 @@ const DebtAnalysis = () => {
   return (
     <Grid container spacing={3}>
       <Grid item xs={12} md={4}>
-        <DebtReceivableChart />
+        <DebtReceivableChart receivableData={analysisData.receivable || { monthly: [], quarterly: [] }} />
       </Grid>
       <Grid item xs={12} md={4}>
-        <DebtPayableChart />
+        <DebtPayableChart payableData={analysisData.payable || { monthly: [], quarterly: [] }} />
       </Grid>
       <Grid item xs={12} md={4}>
         <MainCard>
@@ -535,7 +430,7 @@ const DebtAnalysis = () => {
               series={series}
               height={300}
               xAxis={[{ data: categories, scaleType: 'band' }]}
-              yAxis={[{ scaleType: 'linear', label: 'Số tiền (₫)', valueFormatter: (val) => `₫${(val / 1000).toFixed(0)}K` }]}
+              yAxis={[{ scaleType: 'linear', label: 'Số tiền (₫)', valueFormatter: (val) => `₫${(val * 1000).toFixed(0)}K` }]}
               slotProps={{ legend: { hidden: false } }}
             />
           </Stack>
@@ -548,17 +443,45 @@ const DebtAnalysis = () => {
 // Main Dashboard Component
 export default function DashboardDebt() {
   const router = useRouter();
+  const { dashboardData, loading, refreshing, error, lastUpdated, refreshDashboard } = useDebtDashboard();
+
   const handleReportClick = () => {
     router.push('/sp-report'); // đường dẫn màn báo cáo thống kê
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert
+          severity="error"
+          action={
+            <IconButton color="inherit" size="small" onClick={refreshDashboard}>
+              <RefreshIcon />
+            </IconButton>
+          }
+        >
+          {error}
+        </Alert>
+      </Box>
+    );
+  }
+
   return (
     <>
       <Grid container spacing={3}>
         <Grid size={12}>
-          <DebtOverviewCards />
+          <DebtOverviewCards overviewData={dashboardData.overview} />
         </Grid>
         <Grid size={12}>
-          <DebtChart />
+          <DebtChart chartData={dashboardData.chartData} />
         </Grid>
       </Grid>
 
