@@ -33,4 +33,18 @@ router.get('/supervisor', dashboardController.getSupervisorDashboard);
 // Get Supervisor Recent Activity
 router.get('/supervisor/recent-activity', dashboardController.getSupervisorRecentActivity);
 
-module.exports = router; 
+// ==================== DEBT DASHBOARD ROUTES ====================
+
+// Get Debt Overview Data
+router.get('/debt/overview', dashboardController.getDebtOverview);
+
+// Get Debt Chart Data
+router.get('/debt/chart', dashboardController.getDebtChartData);
+
+// Get Debt Analysis Data
+router.get('/debt/analysis', dashboardController.getDebtAnalysis);
+
+// Get Debt Receivable/Payable Data
+router.get('/debt/receivable-payable', dashboardController.getDebtReceivablePayable);
+
+module.exports = router;

@@ -174,7 +174,6 @@ const updateCheckOrderStatus = async (checkOrderId, status) => {
 const applyInspectionResults = async (checkOrderId) => {
   const session = await mongoose.startSession() // Start a session for transaction
   session.startTransaction()
-
   try {
     const inspections = await InventoryCheckInspection.find({ inventory_check_order_id: checkOrderId })
       .populate({
@@ -188,71 +187,97 @@ const applyInspectionResults = async (checkOrderId) => {
       throw new Error("No inspections found for this order to apply results.")
     }
 
+    console.log(`Found ${inspections.length} inspections for order ${checkOrderId}`)
+
+    // Map to store the final determined update for each package
+    // Key: package_id (string), Value: { item: InspectionCheckItem, inspectionLocationId: ObjectId }
+    const packageUpdatesMap = new Map()
+
     for (const inspection of inspections) {
       const inspectionLocationId = inspection.location_id?._id // The location where the inspection happened
+      console.log(`Processing inspection ${inspection._id} with ${inspection.check_list.length} items`)
 
       for (const item of inspection.check_list) {
-        const pkg = item.package_id // This is the populated Package document
-        if (!pkg) {
-          console.warn(`Package with ID ${item.package_id} not found for inspection item. Skipping.`)
+        const packageIdString = item.package_id.toString()
+        const existingEntry = packageUpdatesMap.get(packageIdString)
+
+        // Prioritization logic: 'over_expected' > 'valid' > 'under_expected'
+        // If current item is 'over_expected', it always takes precedence.
+        // If current item is 'valid' and existing is not 'over_expected', it takes precedence.
+        // Otherwise, existing entry (if any) remains.
+        if (!existingEntry) {
+          packageUpdatesMap.set(packageIdString, { item: item, inspectionLocationId: inspectionLocationId })
+        } else {
+          const existingType = existingEntry.item.type
+          const currentType = item.type
+
+          if (currentType === "over_expected") {
+            // Current is 'over_expected', it always takes precedence
+            packageUpdatesMap.set(packageIdString, { item: item, inspectionLocationId: inspectionLocationId })
+          } else if (currentType === "valid" && existingType !== "over_expected") {
+            // Current is 'valid', and existing is not 'over_expected' (so it's 'under_expected' or 'valid')
+            // 'valid' takes precedence over 'under_expected'. If existing is also 'valid', current 'valid' replaces it.
+            packageUpdatesMap.set(packageIdString, { item: item, inspectionLocationId: inspectionLocationId })
+          }
+          // If current is 'under_expected', it will only be set if no existing entry (handled by !existingEntry).
+          // It will not replace 'over_expected' or 'valid'.
+        }
+      }
+    }
+
+    // Now, iterate through the determined package updates and apply them
+    for (const [packageIdString, { item, inspectionLocationId }] of packageUpdatesMap.entries()) {
+      console.log(`Applying update for package: ${packageIdString}, actual_quantity = ${item.actual_quantity}, type = ${item.type}`)
+
+      const pkg = await Package.findById(packageIdString).session(session)
+      if (!pkg) {
+        console.warn(`Package with ID ${packageIdString} not found in database. Skipping update.`)
+        continue
+      }
+
+      const updateData = { quantity: item.actual_quantity }
+      const currentPackageLocationId = pkg.location_id
+
+      if (item.type === "over_expected") {
+        if (!inspectionLocationId) {
+          console.warn(
+            `Inspection for package ${packageIdString} has no location_id. Cannot move over_expected package.`,
+          )
           continue
         }
+        updateData.location_id = inspectionLocationId
 
-        // 1. Cập nhật quantity của Package theo actual_quantity từ inspection
-        pkg.quantity = item.actual_quantity
+        // Mark new location as unavailable
+        await Location.findByIdAndUpdate(inspectionLocationId, { available: false }, { session })
 
-        // 2. Handle location changes based on item type
-        const currentPackageLocationId = pkg.location_id
-
-        if (item.type === "over_expected") {
-          // Package was found here but not expected. Move it to this inspection's location.
-          if (!inspectionLocationId) {
-            console.warn(
-              `Inspection ${inspection._id} has no location_id. Cannot move over_expected package ${pkg._id}.`,
-            )
-            continue
-          }
-
-          // Update package's location
-          pkg.location_id = inspectionLocationId
-
-          // Mark new location as unavailable
-          await Location.findByIdAndUpdate(inspectionLocationId, { available: false }, { session })
-
-          // If package had a different old location, mark it as available
-          if (currentPackageLocationId && !currentPackageLocationId.equals(inspectionLocationId)) {
-            // Check if any other package is still in the old location before marking it available
-            const otherPackagesInOldLocation = await Package.countDocuments({
-              location_id: currentPackageLocationId,
-              _id: { $ne: pkg._id }, // Exclude the current package
-            }).session(session)
-
-            if (otherPackagesInOldLocation === 0) {
-              await Location.findByIdAndUpdate(currentPackageLocationId, { available: true }, { session })
-            }
-          }
-        } else if (item.type === "under_expected") {
-          // Package was expected here but not found. Clear its location.
-          if (pkg.location_id) {
-            const oldLocationId = pkg.location_id
-            pkg.location_id = null // Clear location
-
-            // Mark old location as available
-            // Check if any other package is still in the old location before marking it available
-            const otherPackagesInOldLocation = await Package.countDocuments({
-              location_id: oldLocationId,
-              _id: { $ne: pkg._id }, // Exclude the current package
-            }).session(session)
-
-            if (otherPackagesInOldLocation === 0) {
-              await Location.findByIdAndUpdate(oldLocationId, { available: true }, { session })
-            }
+        // If package had a different old location, mark it as available
+        if (currentPackageLocationId && !currentPackageLocationId.equals(inspectionLocationId)) {
+          const otherPackagesInOldLocation = await Package.countDocuments({
+            location_id: currentPackageLocationId,
+            _id: { $ne: pkg._id }, // Exclude the current package
+          }).session(session)
+          if (otherPackagesInOldLocation === 0) {
+            await Location.findByIdAndUpdate(currentPackageLocationId, { available: true }, { session })
           }
         }
-        // For 'valid' or other types, only quantity is updated, location remains as is.
-
-        await pkg.save({ session }) // Save the updated package
+      } else if (item.type === "under_expected" && item.actual_quantity === 0) {
+        // If a package is 'under_expected' and its actual quantity is 0, it means it's missing.
+        // In this case, we should also consider marking its original location as available if no other packages are there.
+        if (currentPackageLocationId) {
+          const otherPackagesInCurrentLocation = await Package.countDocuments({
+            location_id: currentPackageLocationId,
+            _id: { $ne: pkg._id }, // Exclude the current package
+          }).session(session)
+          if (otherPackagesInCurrentLocation === 0) {
+            await Location.findByIdAndUpdate(currentPackageLocationId, { available: true }, { session })
+          }
+        }
       }
+
+      const updatedPackage = await Package.findByIdAndUpdate(pkg._id, updateData, { new: true, session })
+      console.log(
+        `Package ${pkg._id} updated - Type: ${item.type}, Quantity: ${updatedPackage.quantity}, Location: ${updatedPackage.location_id}`,
+      )
     }
 
     // Update the InventoryCheckOrder status to completed

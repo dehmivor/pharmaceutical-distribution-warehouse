@@ -156,7 +156,10 @@ const getWarehouseManagerTopMedicines = async (req, res) => {
     const { id: userId } = req.user;
     const { limit = 10 } = req.query;
 
-    const topMedicines = await DashboardService.getWarehouseManagerTopMedicines(userId, parseInt(limit));
+    const topMedicines = await DashboardService.getWarehouseManagerTopMedicines(
+      userId,
+      parseInt(limit),
+    );
 
     const response = {
       success: true,
@@ -227,7 +230,10 @@ const getSupervisorRecentActivity = async (req, res) => {
     const { id: userId } = req.user;
     const { limit = 10 } = req.query;
 
-    const recentActivity = await DashboardService.getSupervisorRecentActivity(userId, parseInt(limit));
+    const recentActivity = await DashboardService.getSupervisorRecentActivity(
+      userId,
+      parseInt(limit),
+    );
 
     const response = {
       success: true,
@@ -245,6 +251,102 @@ const getSupervisorRecentActivity = async (req, res) => {
   }
 };
 
+// ==================== DEBT DASHBOARD CONTROLLERS ====================
+
+// Get Debt Overview Data
+const getDebtOverview = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+
+    const overviewData = await DashboardService.getDebtOverview(userId);
+
+    const response = {
+      success: true,
+      data: overviewData,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching debt overview data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch debt overview data',
+      details: error.message,
+    });
+  }
+};
+
+// Get Debt Chart Data
+const getDebtChartData = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+    const { months = 12 } = req.query;
+
+    const chartData = await DashboardService.getDebtChartData(userId, parseInt(months));
+
+    const response = {
+      success: true,
+      data: chartData,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching debt chart data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch debt chart data',
+      details: error.message,
+    });
+  }
+};
+
+// Get Debt Analysis Data
+const getDebtAnalysis = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+    const { period = 'monthly' } = req.query;
+
+    const analysisData = await DashboardService.getDebtAnalysis(userId, period);
+
+    const response = {
+      success: true,
+      data: analysisData,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching debt analysis data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch debt analysis data',
+      details: error.message,
+    });
+  }
+};
+
+// Get Debt Receivable/Payable Data
+const getDebtReceivablePayable = async (req, res) => {
+  try {
+    const { id: userId } = req.user;
+
+    const receivablePayableData = await DashboardService.getDebtReceivablePayable(userId);
+
+    const response = {
+      success: true,
+      data: receivablePayableData,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching debt receivable/payable data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch debt receivable/payable data',
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   getRepresentativeDashboard,
   getDashboardStats,
@@ -255,4 +357,8 @@ module.exports = {
   getWarehouseManagerAlerts,
   getSupervisorDashboard,
   getSupervisorRecentActivity,
+  getDebtOverview,
+  getDebtChartData,
+  getDebtAnalysis,
+  getDebtReceivablePayable,
 };
