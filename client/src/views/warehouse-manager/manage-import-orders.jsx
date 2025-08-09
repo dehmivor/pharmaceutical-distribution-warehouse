@@ -65,6 +65,7 @@ export default function ManageImportOrders() {
   const [filterDate, setFilterDate] = useState('');
   const [filterAssigned, setFilterAssigned] = useState('all');
   const [filterStatus, setFilterStatus] = useState('All Status');
+  const [filterType, setFilterType] = useState('all'); // all | internal | regular
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOrder, setMenuOrder] = useState(null);
 
@@ -165,7 +166,7 @@ export default function ManageImportOrders() {
 
   const fetchOrders = useCallback(
     async (opts) => {
-      const { page: p = 1, limit: l = rowsPerPage, importDate, assigned, status } = opts;
+      const { page: p = 1, limit: l = rowsPerPage, importDate, assigned, status, type } = opts;
 
       setLoading(true);
       setError(null);
@@ -188,8 +189,15 @@ export default function ManageImportOrders() {
         });
 
         if (resp.data.success) {
-          setOrders(resp.data.data);
-          setTotalCount(resp.data.pagination?.total ?? resp.data.data.length);
+          const raw = resp.data.data || [];
+          let filtered = raw;
+          if (type === 'internal') {
+            filtered = raw.filter((o) => !o.contract_id);
+          } else if (type === 'regular') {
+            filtered = raw.filter((o) => !!o.contract_id);
+          }
+          setOrders(filtered);
+          setTotalCount(resp.data.pagination?.total ?? filtered.length);
         } else {
           throw new Error(resp.data.error || 'Failed to load orders');
         }
@@ -210,9 +218,10 @@ export default function ManageImportOrders() {
       limit: rowsPerPage,
       importDate: filterDate,
       assigned: filterAssigned,
-      status: filterStatus
+      status: filterStatus,
+      type: filterType
     });
-  }, [page, rowsPerPage]);
+  }, [page, rowsPerPage, filterType]);
 
   // Load medicines when dialog opens
   useEffect(() => {
@@ -236,7 +245,8 @@ export default function ManageImportOrders() {
       limit: rowsPerPage,
       importDate: filterDate,
       assigned: filterAssigned,
-      status: filterStatus
+      status: filterStatus,
+      type: filterType
     });
   };
 
@@ -304,6 +314,11 @@ export default function ManageImportOrders() {
             <MenuItem value="unassigned">Unassigned</MenuItem>
             <MenuItem value="all">All</MenuItem>
           </TextField>
+          <TextField fullWidth select label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} size="small">
+            <MenuItem value="all">All Types</MenuItem>
+            <MenuItem value="internal">Internal</MenuItem>
+            <MenuItem value="regular">Regular</MenuItem>
+          </TextField>
           <TextField fullWidth select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
             <MenuItem value="All Status">All Status</MenuItem>
             {['draft', 'approved', 'rejected', 'delivered', 'checked', 'arranged', 'completed', 'cancelled'].map((s) => (
@@ -323,8 +338,9 @@ export default function ManageImportOrders() {
               setFilterDate('');
               setFilterAssigned('all');
               setFilterStatus('All Status');
+              setFilterType('all');
               setPage(1);
-              fetchOrders({ page: 1, limit: rowsPerPage });
+              fetchOrders({ page: 1, limit: rowsPerPage, type: 'all' });
             }}
           >
             Reset
