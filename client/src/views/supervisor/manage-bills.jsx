@@ -34,7 +34,9 @@ import { Elements, CardElement, useElements, useStripe } from '@stripe/react-str
 import { loadStripe } from '@stripe/stripe-js';
 
 // Initialize Stripe with your publishable key
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('auth-token');
@@ -632,16 +634,22 @@ function ManageBills() {
         <DialogTitle>Chi tiết hóa đơn</DialogTitle>
         <DialogContent dividers>
           {showStripePayment && clientSecret ? (
-            <Elements stripe={stripePromise}>
-              <StripePartialPayment
-                clientSecret={clientSecret}
-                onSuccess={onPartialPaymentSuccess}
-                onCancel={() => {
-                  setShowStripePayment(false);
-                  setClientSecret(null);
-                }}
-              />
-            </Elements>
+            stripePromise ? (
+              <Elements stripe={stripePromise}>
+                <StripePartialPayment
+                  clientSecret={clientSecret}
+                  onSuccess={onPartialPaymentSuccess}
+                  onCancel={() => {
+                    setShowStripePayment(false);
+                    setClientSecret(null);
+                  }}
+                />
+              </Elements>
+            ) : (
+              <Alert severity="error">
+                Stripe không được cấu hình. Vui lòng kiểm tra NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY trong file .env.local
+              </Alert>
+            )
           ) : (
             detailData && (
               <>
