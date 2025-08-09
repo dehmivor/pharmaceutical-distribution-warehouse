@@ -165,10 +165,13 @@ const completeExportOrder = async (req, res) => {
     }
 
     // Kiểm tra quyền người dùng
-    if (user.role !== 'warehouse_manager') {
+    const isInternal = !exportOrder.contract_id;
+    const isSupervisorAllowed = user.role === 'supervisor' && isInternal;
+    const isWarehouseManager = user.role === 'warehouse_manager';
+    if (!isSupervisorAllowed && !isWarehouseManager) {
       return res
         .status(403)
-        .json({ success: false, message: 'Chỉ quản lý kho mới có thể hoàn thành đơn xuất kho' });
+        .json({ success: false, message: 'Bạn không có quyền hoàn thành đơn xuất kho này' });
     }
 
     // Bắt đầu transaction để đảm bảo tính nguyên tử
@@ -250,6 +253,14 @@ const cancelExportOrder = async (req, res, next) => {
     if (!order) {
       return res.status(404).json({ success: false, error: 'Export Order not found' });
     }
+
+    const isInternal = !order.contract_id;
+    const isSupervisorAllowed = req.user.role === 'supervisor' && isInternal;
+    const isWarehouseManager = req.user.role === 'warehouse_manager';
+    if (!isSupervisorAllowed && !isWarehouseManager) {
+      return res.status(403).json({ success: false, error: 'Bạn không có quyền hủy đơn này' });
+    }
+
     order.status = EXPORT_ORDER_STATUSES.CANCELLED;
     await order.save();
     const populatedOrder = await ExportOrder.findById(id).populate(populateOptions);
@@ -300,6 +311,24 @@ const createExportOrder = async (req, res) => {
       success: false,
       error: error.message,
     });
+  }
+};
+
+// Create internal export order (WM) – contract_id null, status approved
+const createInternalExportOrder = async (req, res) => {
+  try {
+    const userId = req.user && req.user.userId;
+    if (!userId) return res.status(401).json({ success: false, error: 'Authentication required' });
+
+    // Optional guard: only WM
+    if (req.user.role !== USER_ROLES.WAREHOUSEMANAGER) {
+      return res.status(403).json({ success: false, error: 'Only warehouse manager can create internal export orders' });
+    }
+
+    const order = await exportOrderService.createInternalExportOrder(req.body, userId);
+    res.status(201).json({ success: true, data: order });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
   }
 };
 
@@ -633,4 +662,5 @@ module.exports = {
   rejectExportOrder, // Thêm function mới
   checkStockForExportOrder // Thêm function mới
   , assignWarehouseManager, // Thêm function mới
+  createInternalExportOrder,
 }

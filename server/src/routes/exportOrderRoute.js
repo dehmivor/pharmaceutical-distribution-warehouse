@@ -20,11 +20,7 @@ router
   .post(
     authorize(['representative', 'representative_manager']),
     exportOrderController.createExportOrder,
-  );
-
-// Lấy tất cả đơn hàng xuất kho - cho phép cả warehouse_manager, warehouse, representative_manager, representative
-router
-  .route('/')
+  )
   .get(
     authorize([
       'warehouse_manager',
@@ -34,6 +30,14 @@ router
       'supervisor',
     ]),
     exportOrderController.getExportOrders,
+  );
+
+// Tạo đơn xuất nội bộ - chỉ warehouse_manager
+router
+  .route('/internal')
+  .post(
+    authorize(['warehouse_manager']),
+    exportOrderController.createInternalExportOrder,
   );
 
 // Phân công nhân viên cho đơn hàng xuất kho - chỉ warehouse_manager
@@ -56,15 +60,15 @@ router
   .route('/:id/update-packing')
   .put(authorize(['warehouse_manager', 'warehouse']), exportOrderController.updatePackingDetails);
 
-// Hoàn thành đơn hàng xuất kho - chỉ warehouse_manager
+// Hoàn thành đơn hàng xuất kho - cho phép warehouse_manager; supervisor cho internal
 router
   .route('/:id/complete')
-  .put(authorize('warehouse_manager'), exportOrderController.completeExportOrder);
+  .put(authorize(['warehouse_manager', 'supervisor']), exportOrderController.completeExportOrder);
 
-// Hủy đơn hàng xuất kho - chỉ warehouse_manager
+// Hủy đơn hàng xuất kho - cho phép warehouse_manager; supervisor cho internal
 router
   .route('/:id/cancel')
-  .put(authorize('warehouse_manager'), exportOrderController.cancelExportOrder);
+  .put(authorize(['warehouse_manager', 'supervisor']), exportOrderController.cancelExportOrder);
 
 // Xóa export order - cho phép representative và representative_manager
 router
