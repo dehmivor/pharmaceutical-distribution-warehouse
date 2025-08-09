@@ -1,5 +1,5 @@
 'use client';
-import { Refresh as RefreshIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Search as SearchIcon, Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
   Alert,
@@ -20,7 +20,15 @@ import {
   TableRow,
   TextField,
   Typography,
-  Stack
+  Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
 import Menu from '@mui/material/Menu';
 import axios from 'axios';
@@ -52,12 +60,21 @@ export default function ManageImportOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
 
   const [filterDate, setFilterDate] = useState('');
   const [filterAssigned, setFilterAssigned] = useState('all');
   const [filterStatus, setFilterStatus] = useState('All Status');
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOrder, setMenuOrder] = useState(null);
+
+  // Internal order dialog states
+  const [openInternalDialog, setOpenInternalDialog] = useState(false);
+  const [internalOrderLoading, setInternalOrderLoading] = useState(false);
+  const [medicines, setMedicines] = useState([]);
+  const [internalOrderDetails, setInternalOrderDetails] = useState([
+    { medicine_id: '', quantity: 1 }
+  ]);
 
   // paging
   const [page, setPage] = useState(1); // 1-based
@@ -75,6 +92,76 @@ export default function ManageImportOrders() {
 
   const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const userId = userData.userId;
+
+  // Fetch medicines for internal order
+  const fetchMedicines = async () => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.get(`${backendUrl}/api/medicine/all/v1`, {
+        headers: getAuthHeaders()
+      });
+      if (response.data.success) {
+        setMedicines(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching medicines:', error);
+    }
+  };
+
+  // Create internal import order
+  const createInternalOrder = async () => {
+    setInternalOrderLoading(true);
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      
+      // Filter out empty medicine selections
+      const validDetails = internalOrderDetails.filter(detail => detail.medicine_id && detail.quantity > 0);
+      
+      if (validDetails.length === 0) {
+        throw new Error('Please add at least one medicine with quantity');
+      }
+
+             // Backend sẽ tự động set warehouse_manager_id và created_by
+       // Không cần gửi orderData vì endpoint internal sẽ tự xử lý
+
+      const response = await axios.post(`${backendUrl}/api/import-orders/internal`, {
+        orderDetails: validDetails
+      }, {
+        headers: getAuthHeaders()
+      });
+
+      if (response.data.success) {
+        setSuccess('Internal import order created successfully!');
+        setOpenInternalDialog(false);
+        setInternalOrderDetails([{ medicine_id: '', quantity: 1 }]);
+        fetchOrders({ page: 1, limit: rowsPerPage }); // Refresh the list
+      }
+    } catch (error) {
+      setError(error.response?.data?.error || error.message);
+    } finally {
+      setInternalOrderLoading(false);
+    }
+  };
+
+  // Handle internal order detail changes
+  const handleInternalDetailChange = (index, field, value) => {
+    const newDetails = [...internalOrderDetails];
+    newDetails[index][field] = value;
+    setInternalOrderDetails(newDetails);
+  };
+
+  // Add new medicine row
+  const addMedicineRow = () => {
+    setInternalOrderDetails([...internalOrderDetails, { medicine_id: '', quantity: 1 }]);
+  };
+
+  // Remove medicine row
+  const removeMedicineRow = (index) => {
+    if (internalOrderDetails.length > 1) {
+      const newDetails = internalOrderDetails.filter((_, i) => i !== index);
+      setInternalOrderDetails(newDetails);
+    }
+  };
 
   const fetchOrders = useCallback(
     async (opts) => {
@@ -127,6 +214,13 @@ export default function ManageImportOrders() {
     });
   }, [page, rowsPerPage]);
 
+  // Load medicines when dialog opens
+  useEffect(() => {
+    if (openInternalDialog) {
+      fetchMedicines();
+    }
+  }, [openInternalDialog]);
+
   // … your handlers …
   const handleChangePage = (_e, newZero) => {
     setPage(newZero + 1);
@@ -166,14 +260,24 @@ export default function ManageImportOrders() {
             Manage and inspect import orders, track their status, and perform inspections.
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={() => fetchOrders({ page: 1, limit: rowsPerPage })}
-          disabled={loading}
-        >
-          Refresh
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setOpenInternalDialog(true)}
+            color="primary"
+          >
+            Create Internal Order
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={() => fetchOrders({ page: 1, limit: rowsPerPage })}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+        </Stack>
       </Box>
 
       {/* ─── Filters ───────────────────────────────────── */}
@@ -234,6 +338,7 @@ export default function ManageImportOrders() {
           <TableHead>
             <TableRow>
               <TableCell>Import Date</TableCell>
+              <TableCell>Type</TableCell>
               <TableCell>Contract Code</TableCell>
               <TableCell>Supplier</TableCell>
               <TableCell>Manager Email</TableCell>
@@ -244,7 +349,7 @@ export default function ManageImportOrders() {
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
                     No orders available.
                   </Typography>
@@ -254,7 +359,16 @@ export default function ManageImportOrders() {
               orders.map((o) => (
                 <TableRow key={o._id} hover>
                   <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
+                  <TableCell>
+                    {o.contract_id ? (
+                      <Chip label="Regular" color="primary" size="small" variant="outlined" />
+                    ) : (
+                      <Chip label="Internal" color="warning" size="small" />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {o.contract_id?.contract_code || '—'}
+                  </TableCell>
                   <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
                   <TableCell>{o.warehouse_manager_id?.email || '—'}</TableCell>
                   <TableCell>
@@ -292,13 +406,124 @@ export default function ManageImportOrders() {
       >
         <MenuItem
           onClick={() => {
-            router.push(`/wm-import-orders/${menuOrder?._id}`);
+            // Check if this is an internal order (no contract_id)
+            if (!menuOrder?.contract_id) {
+              // Internal order - go to internal order detail page
+              router.push(`/internal-import-orders/${menuOrder?._id}`);
+            } else {
+              // Regular order - go to regular order detail page
+              router.push(`/wm-import-orders/${menuOrder?._id}`);
+            }
             handleMenuClose();
           }}
         >
           Order detail
         </MenuItem>
       </Menu>
+
+      {/* Internal Order Dialog */}
+      <Dialog 
+        open={openInternalDialog} 
+        onClose={() => setOpenInternalDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" component="div">Create Internal Import Order</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Create an internal import order for returned goods or inventory corrections
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle1" gutterBottom>
+              Order Details
+            </Typography>
+            {internalOrderDetails.map((detail, index) => (
+              <Grid container spacing={2} key={index} sx={{ mb: 2 }}>
+                <Grid item xs={6}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Medicine</InputLabel>
+                    <Select
+                      value={detail.medicine_id}
+                      onChange={(e) => handleInternalDetailChange(index, 'medicine_id', e.target.value)}
+                      label="Medicine"
+                    >
+                      {medicines.map((medicine) => (
+                        <MenuItem key={medicine._id} value={medicine._id}>
+                          {medicine.medicine_name} ({medicine.license_code})
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    fullWidth
+                    label="Quantity"
+                    type="number"
+                    size="small"
+                    value={detail.quantity}
+                    onChange={(e) => handleInternalDetailChange(index, 'quantity', parseInt(e.target.value) || 0)}
+                    inputProps={{ min: 1 }}
+                  />
+                </Grid>
+                <Grid item xs={2}>
+                  <IconButton 
+                    onClick={() => removeMedicineRow(index)}
+                    disabled={internalOrderDetails.length === 1}
+                    color="error"
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                </Grid>
+              </Grid>
+            ))}
+            <Button
+              variant="outlined"
+              onClick={addMedicineRow}
+              sx={{ mt: 1 }}
+            >
+              Add Medicine
+            </Button>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenInternalDialog(false)}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={createInternalOrder}
+            variant="contained"
+            disabled={internalOrderLoading}
+          >
+            {internalOrderLoading ? <CircularProgress size={20} /> : 'Create Order'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success/Error Snackbars */}
+      <Snackbar
+        open={!!success}
+        autoHideDuration={6000}
+        onClose={() => setSuccess(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setSuccess(null)} severity="success">
+          {success}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setError(null)} severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

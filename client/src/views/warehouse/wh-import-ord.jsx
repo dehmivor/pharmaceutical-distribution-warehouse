@@ -293,7 +293,12 @@ export default function ManageImportOrders() {
         </MenuItem>
         <MenuItem
           onClick={() => {
-            router.push(`/wh-import-orders/${menuOrder?._id}`);
+            // Internal orders have no contract_id, navigate to the new internal WH page
+            if (!menuOrder?.contract_id) {
+              router.push(`/wh-internal-import-orders/${menuOrder?._id}`);
+            } else {
+              router.push(`/wh-import-orders/${menuOrder?._id}`);
+            }
             handleMenuClose();
           }}
         >

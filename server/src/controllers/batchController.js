@@ -76,11 +76,11 @@ const batchController = {
       const { medicine_id, batch_code, production_date, expiry_date, supplier_id } = req.body;
 
       // 1) Validate presence
-      if (!medicine_id || !batch_code || !production_date || !expiry_date || !supplier_id) {
+      if (!medicine_id || !batch_code || !production_date || !expiry_date) {
         return res.status(400).json({
           success: false,
           message:
-            'medicine_id, batch_code, production_date, expiry_date, and supplier_id are all required',
+            'medicine_id, batch_code, production_date, and expiry_date are required',
         });
       }
 

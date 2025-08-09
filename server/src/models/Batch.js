@@ -40,7 +40,7 @@ const batchSchema = new mongoose.Schema(
     supplier_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Supplier',
-      required: [true, 'Supplier ID is required'],
+      required: false, // Allow null for internal orders
     },
   },
   {

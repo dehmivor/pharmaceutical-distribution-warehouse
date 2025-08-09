@@ -14,6 +14,13 @@ router.post(
   importOrderController.createImportOrder,
 );
 
+// Create internal import order - chỉ warehouse manager
+router.post(
+  '/internal',
+  authorize(['warehouse_manager']),
+  importOrderController.createInternalImportOrder,
+);
+
 // Get all import orders with filters - chỉ supervisor, representative, representative_manager và warehouse_manager
 router.get(
   '/',

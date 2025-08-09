@@ -37,6 +37,46 @@ const createImportOrder = async (req, res) => {
   }
 };
 
+// Create internal import order (for warehouse manager)
+const createInternalImportOrder = async (req, res) => {
+  try {
+    const { orderDetails } = req.body;
+
+    // Check if user is authenticated
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+      });
+    }
+
+    // Check if user is warehouse manager
+    if (req.user.role !== 'warehouse_manager') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only warehouse managers can create internal import orders',
+      });
+    }
+
+    // Truyền user context vào service
+    const userContext = { role: req.user.role, id: req.user.userId, _id: req.user.userId };
+    const newOrder = await importOrderService.createInternalImportOrder(
+      orderDetails,
+      userContext,
+    );
+
+    res.status(201).json({
+      success: true,
+      data: newOrder,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 // Get all import orders with filters
 const getImportOrders = async (req, res) => {
   try {
@@ -62,7 +102,8 @@ const getImportOrders = async (req, res) => {
     const result = await importOrderService.getImportOrders(
       params,
       parseInt(page, 10),
-      parseInt(limit, 10)
+      parseInt(limit, 10),
+      req.user?.role // Truyền user role để filter đơn nội bộ
     );
 
     res.status(200).json({
@@ -265,21 +306,35 @@ const updateOrderStatus = async (req, res) => {
 
       // Kiểm tra xem order có được gán cho warehouse manager này không
       const order = await importOrderService.getImportOrderById(id);
-      // So sánh quyền bằng email thay vì id
-      const managerEmail =
-        order.warehouse_manager_id && order.warehouse_manager_id.email
-          ? order.warehouse_manager_id.email
-          : null;
-      console.log('DEBUG so sánh quyền bằng email:', {
-        orderId: id,
-        warehouse_manager_email: managerEmail,
-        reqUserEmail: req.user.email,
-      });
-      if (!managerEmail || !req.user.email || managerEmail !== req.user.email) {
-        return res.status(403).json({
-          success: false,
-          error: 'You can only update orders assigned to you',
+      
+      // For internal orders (no contract_id), allow the creator to update
+      if (!order.contract_id) {
+        // Internal order - check if current user is the creator
+        if (order.created_by && order.created_by._id && req.user.userId) {
+          if (order.created_by._id.toString() !== req.user.userId) {
+            return res.status(403).json({
+              success: false,
+              error: 'You can only update internal orders created by you',
+            });
+          }
+        }
+      } else {
+        // Regular order - so sánh quyền bằng email
+        const managerEmail =
+          order.warehouse_manager_id && order.warehouse_manager_id.email
+            ? order.warehouse_manager_id.email
+            : null;
+        console.log('DEBUG so sánh quyền bằng email:', {
+          orderId: id,
+          warehouse_manager_email: managerEmail,
+          reqUserEmail: req.user.email,
         });
+        if (!managerEmail || !req.user.email || managerEmail !== req.user.email) {
+          return res.status(403).json({
+            success: false,
+            error: 'You can only update orders assigned to you',
+          });
+        }
       }
     }
 
@@ -316,6 +371,7 @@ const getImportOrdersByWarehouseManager = async (req, res) => {
       query,
       parseInt(page),
       parseInt(limit),
+      req.user?.role // Truyền user role để filter đơn nội bộ
     );
 
     res.status(200).json({
@@ -336,7 +392,7 @@ const getImportOrdersByContract = async (req, res) => {
   try {
     const { contractId } = req.params;
 
-    const orders = await importOrderService.getImportOrdersByContract(contractId);
+    const orders = await importOrderService.getImportOrdersByContract(contractId, req.user?.role);
 
     res.status(200).json({
       success: true,
@@ -409,6 +465,7 @@ const assignWarehouseManager = async (req, res) => {
 
 module.exports = {
   createImportOrder,
+  createInternalImportOrder,
   getImportOrders,
   getImportOrderById,
   updateImportOrder,
