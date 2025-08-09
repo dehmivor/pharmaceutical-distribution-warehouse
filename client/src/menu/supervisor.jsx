@@ -67,16 +67,16 @@ const supervisor = {
       icon: 'IconReceipt',
       children: [
         {
-          id: 'manage-bills',
-          title: 'Manage Bills',
+          id: 'pay-bills',
+          title: 'Pay Bills',
           type: 'item',
           url: '/sp-manage-bills'
         },
         {
-          id: 'sp-view-dashboard-bills',
-          title: 'View Dashboard Bills',
+          id: 'sp-reports-bills',
+          title: 'Report Bills',
           type: 'item',
-          url: '/sp-view-dashboard-bills'
+          url: '/sp-report'
         }
       ]
     },
@@ -154,8 +154,8 @@ const supervisor = {
       title: 'Log Management',
       type: 'item',
       url: '/sp-location-log',
-      icon: 'IconMapPin',
-    },
+      icon: 'IconMapPin'
+    }
   ]
 };
 
