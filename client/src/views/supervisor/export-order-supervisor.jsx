@@ -92,6 +92,7 @@ export default function ExportOrderSupervisor() {
 
   const [openDetails, setOpenDetails] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [pkgInfoMap, setPkgInfoMap] = useState({}); // packageId -> info (quantity, batch, location)
 
   // Pagination and filtering
   const [page, setPage] = useState(1); // 1-based page
@@ -99,7 +100,7 @@ export default function ExportOrderSupervisor() {
   const [totalCount, setTotalCount] = useState(0);
 
   const [filterDate, setFilterDate] = useState('');
-  const [filterAssigned, setFilterAssigned] = useState('all'); // 'all', 'assigned', 'unassigned'
+  const [filterType, setFilterType] = useState('all'); // all | internal | regular
   const [filterStatus, setFilterStatus] = useState('All Status');
 
   const [actionLoading, setActionLoading] = useState(false);
@@ -126,17 +127,13 @@ export default function ExportOrderSupervisor() {
       if (filterDate) params.createdAt = filterDate;
       if (filterStatus && filterStatus !== 'All Status') params.status = filterStatus;
 
-      if (filterAssigned === 'unassigned') {
-        params.warehouse_manager_id = '0'; // backend should interpret as "unassigned"
-      } else if (filterAssigned === 'assigned') {
-        params.warehouse_manager_id = 'nonzero'; // example placeholder, backend support needed
-      }
-      // 'all' means no filter on assign
-
       const response = await axiosInstance.get('/export-orders', { params });
       if (response.data.success || response.data.data) {
-        setOrders(response.data.data || []);
-        setTotalCount(response.data.pagination?.total || response.data.data?.length || 0);
+        let data = response.data.data || [];
+        if (filterType === 'internal') data = data.filter((o) => !o.contract_id);
+        else if (filterType === 'regular') data = data.filter((o) => !!o.contract_id);
+        setOrders(data);
+        setTotalCount(response.data.pagination?.total || data.length || 0);
       } else {
         throw new Error(response.data.error || 'Failed to fetch orders');
       }
@@ -147,7 +144,7 @@ export default function ExportOrderSupervisor() {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage]);
+  }, [page, rowsPerPage, filterDate, filterStatus, filterType]);
 
 
 
@@ -171,7 +168,7 @@ export default function ExportOrderSupervisor() {
 
   const handleResetFilters = () => {
     setFilterDate('');
-    setFilterAssigned('all');
+    setFilterType('all');
     setFilterStatus('All Status');
     setPage(1);
   };
@@ -185,27 +182,39 @@ export default function ExportOrderSupervisor() {
   const handleOpenDetails = async (order) => {
     setSelectedOrder(order);
     setOpenDetails(true);
-
     try {
-      const userInfo = JSON.parse(localStorage.getItem('user-info') || '{}');
-
-      await createNotification({
-        recipient_id: order.warehouse_manager_id?._id,
-        sender_id: userInfo._id,
-        type: 'export_order_assigned',
-        title: `Phiếu xuất số ${order.export_order_code || order._id} đã được giao`,
-        content: `Supervisor đã giao phiếu xuất số ${order.export_order_code || order._id} cho bạn.`,
-        status: 'unread',
-        created_at: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Lỗi khi tạo thông báo:', error);
+      // For internal orders, prefetch package info used in details table
+      if (!order.contract_id) {
+        const pkgIds = [];
+        (order.details || []).forEach((d) => {
+          (d.actual_item || []).forEach((it) => {
+            const id = it.package_id?._id || it.package_id;
+            if (id) pkgIds.push(id);
+          });
+        });
+        const uniqueIds = Array.from(new Set(pkgIds));
+        const results = await Promise.all(
+          uniqueIds.map((id) => axiosInstance.get(`/packages/v2/${id}`).catch(() => null)),
+        );
+        const map = {};
+        results.forEach((res, idx) => {
+          const id = uniqueIds[idx];
+          if (res && res.data && res.data.data) map[id] = res.data.data;
+        });
+        setPkgInfoMap(map);
+      } else {
+        setPkgInfoMap({});
+      }
+    } catch (_) {
+      // ignore package fetch errors in details view
+      setPkgInfoMap({});
     }
   };
 
   const handleCloseDetails = () => {
     setSelectedOrder(null);
     setOpenDetails(false);
+    setPkgInfoMap({});
   };
 
   // Inline status change with confirm dialog
@@ -217,12 +226,17 @@ export default function ExportOrderSupervisor() {
     const { orderId, newStatus } = confirmDialog;
     try {
       setActionLoading(true);
-      await axiosInstance.patch(`/export-orders/${orderId}/status`, { status: newStatus });
+      // Map status to endpoints
+      if (newStatus === EXPORT_ORDER_STATUSES.COMPLETED) {
+        await axiosInstance.put(`/export-orders/${orderId}/complete`);
+      } else if (newStatus === EXPORT_ORDER_STATUSES.CANCELLED) {
+        await axiosInstance.put(`/export-orders/${orderId}/cancel`);
+      }
       setEditingStatusOrderId(null);
       setSuccess('Status updated successfully');
       fetchOrders();
     } catch (error) {
-      setError(error.response?.data?.error || error.message);
+      setError(error.response?.data?.error || error.response?.data?.message || error.message);
     } finally {
       setActionLoading(false);
       setConfirmDialog({ open: false, orderId: null, newStatus: '' });
@@ -278,10 +292,10 @@ export default function ExportOrderSupervisor() {
             InputLabelProps={{ shrink: true }}
             size="small"
           />
-          <TextField select label="Assigned" value={filterAssigned} onChange={(e) => setFilterAssigned(e.target.value)} size="small">
+          <TextField select label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} size="small">
             <MenuItem value="all">All</MenuItem>
-            <MenuItem value="assigned">Assigned</MenuItem>
-            <MenuItem value="unassigned">Unassigned</MenuItem>
+            <MenuItem value="internal">Internal</MenuItem>
+            <MenuItem value="regular">Regular</MenuItem>
           </TextField>
           <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
             <MenuItem value="All Status">All Status</MenuItem>
@@ -307,6 +321,7 @@ export default function ExportOrderSupervisor() {
           <TableHead>
             <TableRow>
               <TableCell sx={{ minWidth: 120 }}>Order Code</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>Type</TableCell>
               <TableCell sx={{ minWidth: 120 }}>Contract Code</TableCell>
               <TableCell sx={{ minWidth: 150 }}>Supplier</TableCell>
               <TableCell sx={{ minWidth: 150 }}>Created By</TableCell>
@@ -327,10 +342,23 @@ export default function ExportOrderSupervisor() {
               </TableRow>
             ) : (
               orders.map((order) => {
-                const totalAmount = order.details?.reduce((acc, d) => acc + (d.quantity || 0) * (d.unit_price || 0), 0) || 0;
+                const totalAmount = (order.details || []).reduce((acc, d) => {
+                  const actual = Array.isArray(d.actual_item)
+                    ? d.actual_item.reduce((s, it) => s + (it.quantity || 0), 0)
+                    : 0;
+                  const qty = actual > 0 ? actual : (d.expected_quantity || 0);
+                  return acc + qty * (d.unit_price || 0);
+                }, 0);
                 return (
                   <TableRow hover key={order._id}>
                     <TableCell title={order._id}>{order._id ? `${order._id.slice(0, 6)}...${order._id.slice(-4)}` : 'N/A'}</TableCell>
+                    <TableCell>
+                      {order.contract_id ? (
+                        <Chip label="Regular" color="primary" size="small" variant="outlined" />
+                      ) : (
+                        <Chip label="Internal" color="warning" size="small" />
+                      )}
+                    </TableCell>
                     <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
                     <TableCell>{order.contract_id?.partner_id?.name || 'N/A'}</TableCell>
                     <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
@@ -341,15 +369,24 @@ export default function ExportOrderSupervisor() {
                           <Select
                             value={editStatusValue}
                             onChange={(e) => {
-                              if (order.status === EXPORT_ORDER_STATUSES.APPROVED && e.target.value === EXPORT_ORDER_STATUSES.COMPLETED) {
-                                handleStatusChange(order._id, e.target.value);
+                              // Supervisor: allow only INTERNAL and APPROVED to change to Completed or Cancelled
+                              const val = e.target.value;
+                              if (
+                                (!order.contract_id) &&
+                                order.status === EXPORT_ORDER_STATUSES.APPROVED &&
+                                (val === EXPORT_ORDER_STATUSES.COMPLETED || val === EXPORT_ORDER_STATUSES.CANCELLED)
+                              ) {
+                                handleStatusChange(order._id, val);
                               }
                             }}
                             onBlur={() => setEditingStatusOrderId(null)}
                             autoFocus
                           >
-                            {order.status === EXPORT_ORDER_STATUSES.APPROVED && (
+                            {(!order.contract_id) && order.status === EXPORT_ORDER_STATUSES.APPROVED && (
                               <MenuItem value={EXPORT_ORDER_STATUSES.COMPLETED}>Completed</MenuItem>
+                            )}
+                            {(!order.contract_id) && order.status === EXPORT_ORDER_STATUSES.APPROVED && (
+                              <MenuItem value={EXPORT_ORDER_STATUSES.CANCELLED}>Cancelled</MenuItem>
                             )}
                           </Select>
                         </FormControl>
@@ -359,16 +396,16 @@ export default function ExportOrderSupervisor() {
                           color={getStatusColor(order.status)}
                           size="small"
                           onClick={() => {
-                            if (order.status === EXPORT_ORDER_STATUSES.APPROVED) {
+                            if (!order.contract_id && order.status === EXPORT_ORDER_STATUSES.APPROVED) {
                               setEditingStatusOrderId(order._id);
                               setEditStatusValue(order.status);
                             }
                           }}
-                          style={{ cursor: order.status === EXPORT_ORDER_STATUSES.APPROVED ? 'pointer' : 'default' }}
+                          style={{ cursor: !order.contract_id && order.status === EXPORT_ORDER_STATUSES.APPROVED ? 'pointer' : 'default' }}
                         />
                       )}
                     </TableCell>
-                    <TableCell>{order.warehouse_manager_id?.email || 'Not Assigned'}</TableCell>
+                    <TableCell>{order.warehouse_manager_id?.email || order.created_by?.email || 'Not Assigned'}</TableCell>
                     <TableCell>
                       <Box display="flex" gap={1}>
                         <IconButton color="info" onClick={() => handleOpenDetails(order)}>
@@ -423,6 +460,16 @@ export default function ExportOrderSupervisor() {
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
+                          Type
+                        </Typography>
+                        {selectedOrder.contract_id ? (
+                          <Chip label="Regular" color="primary" size="small" variant="outlined" />
+                        ) : (
+                          <Chip label="Internal" color="warning" size="small" />
+                        )}
+                      </Grid>
+                      <Grid item xs={6} md={12}>
+                        <Typography variant="subtitle2" color="textSecondary">
                           Order Code
                         </Typography>
                         <Typography variant="body1">{selectedOrder.export_order_code || 'N/A'}</Typography>
@@ -437,33 +484,57 @@ export default function ExportOrderSupervisor() {
                   </Paper>
                 </Grid>
 
-                <Grid item xs={12} md={4}>
-                  <Typography variant="h6" gutterBottom>
-                    Contract Information
-                  </Typography>
-                  <Paper sx={{ p: 2, mb: 2 }}>
-                    <Grid container spacing={2}>
-                      <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">
-                          Contract Code
-                        </Typography>
-                        <Typography variant="body1">{selectedOrder.contract_id?.contract_code || 'N/A'}</Typography>
+                {selectedOrder.contract_id ? (
+                  <Grid item xs={12} md={4}>
+                    <Typography variant="h6" gutterBottom>
+                      Contract Information
+                    </Typography>
+                    <Paper sx={{ p: 2, mb: 2 }}>
+                      <Grid container spacing={2}>
+                        <Grid item xs={6} md={12}>
+                          <Typography variant="subtitle2" color="textSecondary">
+                            Contract Code
+                          </Typography>
+                          <Typography variant="body1">{selectedOrder.contract_id?.contract_code || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={6} md={12}>
+                          <Typography variant="subtitle2" color="textSecondary">
+                            Supplier
+                          </Typography>
+                          <Typography variant="body1">{selectedOrder.contract_id?.partner_id?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={6} md={12}>
+                          <Typography variant="subtitle2" color="textSecondary">
+                            Contract Status
+                          </Typography>
+                          <Typography variant="body1">{selectedOrder.supplier_contract_id?.status || 'N/A'}</Typography>
+                        </Grid>
                       </Grid>
-                      <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">
-                          Supplier
-                        </Typography>
-                        <Typography variant="body1">{selectedOrder.contract_id?.partner_id?.name || 'N/A'}</Typography>
+                    </Paper>
+                  </Grid>
+                ) : (
+                  <Grid item xs={12} md={4}>
+                    <Typography variant="h6" gutterBottom>
+                      Internal Information
+                    </Typography>
+                    <Paper sx={{ p: 2, mb: 2 }}>
+                      <Grid container spacing={2}>
+                        <Grid item xs={6} md={12}>
+                          <Typography variant="subtitle2" color="textSecondary">
+                            Created By
+                          </Typography>
+                          <Typography variant="body1">{selectedOrder.created_by?.email || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={6} md={12}>
+                          <Typography variant="subtitle2" color="textSecondary">
+                            Warehouse Manager
+                          </Typography>
+                          <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || selectedOrder.created_by?.email || 'Not Assigned'}</Typography>
+                        </Grid>
                       </Grid>
-                      <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">
-                          Contract Status
-                        </Typography>
-                        <Typography variant="body1">{selectedOrder.supplier_contract_id?.status || 'N/A'}</Typography>
-                      </Grid>
-                    </Grid>
-                  </Paper>
-                </Grid>
+                    </Paper>
+                  </Grid>
+                )}
 
                 <Grid item xs={12} md={4}>
                   <Typography variant="h6" gutterBottom>
@@ -481,13 +552,13 @@ export default function ExportOrderSupervisor() {
                         <Typography variant="subtitle2" color="textSecondary">
                           Warehouse Manager
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || 'Not Assigned'}</Typography>
+                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || selectedOrder.created_by?.email || 'Not Assigned'}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
                           Manager Email
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || selectedOrder.created_by?.email || 'N/A'}</Typography>
                       </Grid>
                     </Grid>
                   </Paper>
@@ -542,9 +613,24 @@ export default function ExportOrderSupervisor() {
                             <TableRow key={idx}>
                               <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
                               <TableCell>{detail.medicine_id?.license_code || 'N/A'}</TableCell>
-                              <TableCell align="right">{detail.quantity || 0}</TableCell>
+                              <TableCell align="right">{
+                                (() => {
+                                  const actual = Array.isArray(detail.actual_item)
+                                    ? detail.actual_item.reduce((s, it) => s + (it.quantity || 0), 0)
+                                    : 0;
+                                  return actual > 0 ? actual : (detail.expected_quantity || 0);
+                                })()
+                              }</TableCell>
                               <TableCell align="right">{formatCurrency(detail.unit_price)}</TableCell>
-                              <TableCell align="right">{formatCurrency((detail.quantity || 0) * (detail.unit_price || 0))}</TableCell>
+                              <TableCell align="right">{
+                                (() => {
+                                  const actual = Array.isArray(detail.actual_item)
+                                    ? detail.actual_item.reduce((s, it) => s + (it.quantity || 0), 0)
+                                    : 0;
+                                  const qty = actual > 0 ? actual : (detail.expected_quantity || 0);
+                                  return formatCurrency(qty * (detail.unit_price || 0));
+                                })()
+                              }</TableCell>
                             </TableRow>
                           ))}
                           <TableRow>
@@ -556,7 +642,13 @@ export default function ExportOrderSupervisor() {
                             <TableCell align="right">
                               <Typography variant="subtitle1" fontWeight="bold">
                                 {formatCurrency(
-                                  selectedOrder.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0) || 0
+                                  (selectedOrder.details || []).reduce((total, detail) => {
+                                    const actual = Array.isArray(detail.actual_item)
+                                      ? detail.actual_item.reduce((s, it) => s + (it.quantity || 0), 0)
+                                      : 0;
+                                    const qty = actual > 0 ? actual : (detail.expected_quantity || 0);
+                                    return total + qty * (detail.unit_price || 0);
+                                  }, 0)
                                 )}
                               </Typography>
                             </TableCell>
@@ -566,6 +658,63 @@ export default function ExportOrderSupervisor() {
                     </TableContainer>
                   </Paper>
                 </Grid>
+
+                {/* Packages for Internal Orders */}
+                {!selectedOrder.contract_id && (
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom>
+                      Packages
+                    </Typography>
+                    {(selectedOrder.details || []).map((detail, i) => (
+                      <Paper key={i} sx={{ p: 2, mb: 2 }}>
+                        <Typography variant="subtitle1" gutterBottom>
+                          {detail.medicine_id?.medicine_name || 'Unknown medicine'}
+                        </Typography>
+                        <TableContainer>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Package</TableCell>
+                                <TableCell>Batch</TableCell>
+                                <TableCell>Expiry</TableCell>
+                                <TableCell>Location</TableCell>
+                                <TableCell align="right">Current Stock</TableCell>
+                                <TableCell align="right">Destroy Qty</TableCell>
+                                <TableCell align="right">Remaining After</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {(detail.actual_item || []).map((it, idx2) => {
+                                const pid = it.package_id?._id || it.package_id;
+                                const info = pid ? pkgInfoMap[pid] : null;
+                                const qty = it.quantity || 0;
+                                const currentStock = info?.quantity ?? '-';
+                                const batchCode = info?.batch_id?.batch_code || info?.batch?.batch_code || '-';
+                                const expiry = info?.batch_id?.expiry_date || info?.batch?.expiry_date || null;
+                                const loc = info?.location_id || info?.location || null;
+                                const locText = loc ? `${loc.area_name || ''}-${loc.bay || ''}-${loc.row || ''}-${loc.column || ''}` : '-';
+                                const remaining = typeof currentStock === 'number'
+                                  ? (selectedOrder.status === 'completed' ? currentStock : Math.max(0, currentStock - qty))
+                                  : '-';
+                                return (
+                                  <TableRow key={idx2}>
+                                    <TableCell>{info?.package_code || it.package_id?.package_code || pid}</TableCell>
+                                    <TableCell>{batchCode}</TableCell>
+                                    <TableCell>{expiry ? new Date(expiry).toLocaleDateString() : '-'}</TableCell>
+                                    <TableCell>{locText}</TableCell>
+                                    <TableCell align="right">{typeof currentStock === 'number' ? currentStock : '-'}</TableCell>
+                                    <TableCell align="right">{qty}</TableCell>
+                                    <TableCell align="right">{remaining}</TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Paper>
+                    ))}
+                  </Grid>
+                )}
 
                 {/* Notes */}
                 {selectedOrder.notes && (

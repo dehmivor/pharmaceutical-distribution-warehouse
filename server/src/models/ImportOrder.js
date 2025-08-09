@@ -115,6 +115,15 @@ importOrderSchema.pre('save', function (next) {
     const userRole = this._userContext.role;
     const isNewOrder = this.isNew;
 
+    // Warehouse Manager có thể tạo đơn nội bộ với status delivered
+    if (userRole === 'warehouse_manager' && isNewOrder && !this.contract_id && this.status === 'delivered') {
+      // Đảm bảo warehouse_manager_id được set cho đơn nội bộ
+      if (!this.warehouse_manager_id) {
+        this.warehouse_manager_id = this._userContext.id || this._userContext._id;
+      }
+      return next(); // Cho phép warehouse manager tạo đơn nội bộ
+    }
+
     // Representative chỉ có thể tạo mới hoặc edit draft hoặc rejected orders
     if (userRole === 'representative') {
       if (!isNewOrder && this.status !== 'draft' && this.status !== 'rejected') {
@@ -149,6 +158,21 @@ importOrderSchema.pre('save', function (next) {
 
     const currentStatus = this._original?.status || 'draft';
     const newStatus = this.status;
+
+    // Warehouse Manager có thể tạo đơn nội bộ với status delivered
+    if (
+      this._userContext &&
+      this._userContext.role === 'warehouse_manager' &&
+      this.isNew &&
+      !this.contract_id &&
+      newStatus === 'delivered'
+    ) {
+      // Đảm bảo warehouse_manager_id được set cho đơn nội bộ
+      if (!this.warehouse_manager_id) {
+        this.warehouse_manager_id = this._userContext.id || this._userContext._id;
+      }
+      return next(); // Cho phép warehouse manager tạo đơn nội bộ
+    }
 
     // Nếu là representative và chuyển từ rejected về draft thì cho phép
     if (

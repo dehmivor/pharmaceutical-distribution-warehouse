@@ -55,6 +55,7 @@ export default function ManageImportOrders() {
 
   const [filterDate, setFilterDate] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterType, setFilterType] = useState('all'); // all | internal | regular
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOrder, setMenuOrder] = useState(null);
 
@@ -72,7 +73,7 @@ export default function ManageImportOrders() {
     setMenuOrder(null);
   };
 
-  const fetchOrders = async (customPage = null, customRowsPerPage = null, customDate = null, customStatus = null) => {
+  const fetchOrders = async (customPage = null, customRowsPerPage = null, customDate = null, customStatus = null, customType = null) => {
     setLoading(true);
     setError(null);
 
@@ -83,6 +84,7 @@ export default function ManageImportOrders() {
       const currentLimit = customRowsPerPage !== null ? customRowsPerPage : rowsPerPage;
       const currentDate = customDate !== null ? customDate : filterDate;
       const currentStatus = customStatus !== null ? customStatus : filterStatus;
+      const currentType = customType !== null ? customType : filterType;
 
       const currentStatusParams = currentStatus ? [currentStatus] : ['delivered', 'arranged'];
 
@@ -109,10 +111,15 @@ export default function ManageImportOrders() {
 
       if (resp.data.success) {
         const responseData = resp.data.data || [];
-        setOrders(responseData);
+        // Apply client-side type filter
+        let filtered = responseData;
+        if (currentType === 'internal') filtered = responseData.filter((o) => !o.contract_id);
+        else if (currentType === 'regular') filtered = responseData.filter((o) => !!o.contract_id);
+
+        setOrders(filtered);
 
         const pag = resp.data.pagination;
-        setTotalCount(pag?.total ?? data.length);
+        setTotalCount(pag?.total ?? filtered.length);
       } else {
         throw new Error(resp.data.error || 'Failed to load orders');
       }
@@ -126,8 +133,8 @@ export default function ManageImportOrders() {
   };
 
   useEffect(() => {
-    fetchOrders();
-  }, [page, rowsPerPage, filterDate, filterStatus]);
+    fetchOrders(undefined, undefined, undefined, undefined, filterType);
+  }, [page, rowsPerPage, filterDate, filterStatus, filterType]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -141,16 +148,17 @@ export default function ManageImportOrders() {
 
   const handleSearchClick = () => {
     setPage(0);
-    fetchOrders(0, rowsPerPage, filterDate, filterStatus);
+    fetchOrders(0, rowsPerPage, filterDate, filterStatus, filterType);
   };
 
   const handleRefresh = () => {
-    fetchOrders(page, rowsPerPage, filterDate, filterStatus);
+    fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterType);
   };
 
   const handleReset = () => {
     setFilterDate('');
     setFilterStatus('');
+    setFilterType('all');
     setPage(0);
   };
 
@@ -212,6 +220,18 @@ export default function ManageImportOrders() {
                 {s}
               </MenuItem>
             ))}
+          </TextField>
+          <TextField
+            fullWidth
+            select
+            label="Type"
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            size="small"
+          >
+            <MenuItem value="all">All Types</MenuItem>
+            <MenuItem value="internal">Internal</MenuItem>
+            <MenuItem value="regular">Regular</MenuItem>
           </TextField>
 
           <Button fullWidth variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
@@ -283,17 +303,24 @@ export default function ManageImportOrders() {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
+        {!!menuOrder?.contract_id && (
+          <MenuItem
+            onClick={() => {
+              router.push(`/wh-create-inspections/with-import-ord/${menuOrder?._id}`);
+              handleMenuClose();
+            }}
+          >
+            Create Inspection
+          </MenuItem>
+        )}
         <MenuItem
           onClick={() => {
-            router.push(`/wh-create-inspections/with-import-ord/${menuOrder?._id}`);
-            handleMenuClose();
-          }}
-        >
-          Create Inspection
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            router.push(`/wh-import-orders/${menuOrder?._id}`);
+            // Internal orders have no contract_id, navigate to the new internal WH page
+            if (!menuOrder?.contract_id) {
+              router.push(`/wh-internal-import-orders/${menuOrder?._id}`);
+            } else {
+              router.push(`/wh-import-orders/${menuOrder?._id}`);
+            }
             handleMenuClose();
           }}
         >
