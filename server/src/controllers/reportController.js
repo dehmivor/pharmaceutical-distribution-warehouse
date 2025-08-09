@@ -184,9 +184,17 @@ const exportReportToExcel = async (req, res) => {
     // Add worksheet to workbook
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Report');
 
-    // Generate filename
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `report_${reportType}_${timestamp}.xlsx`;
+    // Generate filename with date range
+    let filename = 'report_bill';
+    if (startDate && endDate) {
+      const startDateStr = new Date(startDate).toISOString().split('T')[0];
+      const endDateStr = new Date(endDate).toISOString().split('T')[0];
+      filename = `report_bill (${startDateStr} - ${endDateStr})`;
+    } else {
+      const timestamp = new Date().toISOString().split('T')[0];
+      filename = `report_bill (${timestamp})`;
+    }
+    filename += '.xlsx';
 
     // Set response headers
     res.setHeader(

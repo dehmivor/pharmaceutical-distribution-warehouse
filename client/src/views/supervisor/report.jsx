@@ -10,6 +10,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Typography,
   Button,
   Grid,
@@ -77,12 +78,18 @@ export default function Report() {
     summary: {},
     filters: {}
   });
+
+  // Pagination state
+  const [page, setPage] = useState(0); // 0-based for TablePagination
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [filters, setFilters] = useState({
-    startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10),
-    endDate: new Date().toISOString().slice(0, 10),
+    startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().slice(0, 10), // Previous month
+    endDate: new Date().toISOString().slice(0, 10), // Today
     period: 'monthly',
-    status: '',
-    type: '',
+    status: 'all',
+    type: 'all',
     partnerType: '',
     reportType: 'comprehensive'
   });
@@ -101,14 +108,33 @@ export default function Report() {
       if (filters.startDate) params.append('startDate', new Date(filters.startDate).toISOString());
       if (filters.endDate) params.append('endDate', new Date(filters.endDate).toISOString());
       if (filters.period) params.append('period', filters.period);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.type) params.append('type', filters.type);
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+      if (filters.type && filters.type !== 'all') params.append('type', filters.type);
       if (filters.partnerType) params.append('partnerType', filters.partnerType);
 
+      // Add pagination parameters
+      params.append('page', (page + 1).toString()); // Convert to 1-based for API
+      params.append('limit', rowsPerPage.toString());
+
+      console.log('Frontend filters:', filters);
+      console.log('Date conversion:', {
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        startDateISO: new Date(filters.startDate).toISOString(),
+        endDateISO: new Date(filters.endDate).toISOString()
+      });
+      console.log('Fetching report with params:', params.toString());
+      console.log('Auth headers:', getAuthHeaders());
       const response = await axios.get(`${API_BASE_URL}/api/reports/comprehensive?${params.toString()}`, { headers: getAuthHeaders() });
+
+      console.log('Report response:', response.data);
 
       if (response.data.success) {
         setReportData(response.data.data);
+        setTotalCount(response.data.data.pagination?.total || response.data.data.bills?.length || 0);
+        console.log('Report data set:', response.data.data);
+        console.log('Bills count:', response.data.data.bills?.length || 0);
+        console.log('Pagination info:', response.data.data.pagination);
       } else {
         setError('Failed to load report data');
       }
@@ -140,8 +166,8 @@ export default function Report() {
       if (filters.startDate) params.append('startDate', new Date(filters.startDate).toISOString());
       if (filters.endDate) params.append('endDate', new Date(filters.endDate).toISOString());
       if (filters.period) params.append('period', filters.period);
-      if (filters.status) params.append('status', filters.status);
-      if (filters.type) params.append('type', filters.type);
+      if (filters.status && filters.status !== 'all') params.append('status', filters.status);
+      if (filters.type && filters.type !== 'all') params.append('type', filters.type);
       if (filters.partnerType) params.append('partnerType', filters.partnerType);
       params.append('reportType', filters.reportType);
 
@@ -198,14 +224,26 @@ export default function Report() {
   useEffect(() => {
     fetchReportData();
     fetchTemplates();
-  }, [filters]);
+  }, [filters, page, rowsPerPage]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
   const handleFilterChange = (field, value) => {
+    console.log('Filter change:', field, value);
     setFilters((prev) => ({ ...prev, [field]: value }));
+    setPage(0); // Reset to first page when filters change
+  };
+
+  // Pagination handlers
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const getStatusColor = (status) => {
@@ -214,6 +252,8 @@ export default function Report() {
         return 'success';
       case 'pending':
         return 'warning';
+      case 'partial':
+        return 'info';
       case 'overdue':
         return 'error';
       default:
@@ -259,12 +299,6 @@ export default function Report() {
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
         <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
-            <Filter sx={{ color: 'primary.main', fontSize: 24 }} />
-            <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-              Bộ Lọc Tìm Kiếm
-            </Typography>
-          </Box>
           <Grid container spacing={2} alignItems="center">
             {/* Filter inputs */}
             <Grid item xs={12} md={3}>
@@ -308,9 +342,15 @@ export default function Report() {
                 <InputLabel label="Trạng thái" id="status-label">
                   Trạng thái
                 </InputLabel>
-                <Select labelId="status-label" value={filters.status || ''} onChange={(e) => handleFilterChange('status', e.target.value)}>
-                  <MenuItem value="">Tất cả</MenuItem>
+                <Select
+                  labelId="status-label"
+                  value={filters.status || 'all'}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  label="Trạng thái"
+                >
+                  <MenuItem value="all">Tất cả trạng thái</MenuItem>
                   <MenuItem value="pending">Chờ xử lý</MenuItem>
+                  <MenuItem value="partial">Thanh toán một phần</MenuItem>
                   <MenuItem value="completed">Hoàn thành</MenuItem>
                   <MenuItem value="overdue">Quá hạn</MenuItem>
                 </Select>
@@ -319,8 +359,13 @@ export default function Report() {
             <Grid item xs={12} md={2}>
               <FormControl fullWidth>
                 <InputLabel id="type-label">Loại</InputLabel>
-                <Select labelId="type-label" value={filters.type} onChange={(e) => handleFilterChange('type', e.target.value)} label="Loại">
-                  <MenuItem value="">Tất cả</MenuItem>
+                <Select
+                  labelId="type-label"
+                  value={filters.type || 'all'}
+                  onChange={(e) => handleFilterChange('type', e.target.value)}
+                  label="Loại"
+                >
+                  <MenuItem value="all">Tất cả loại</MenuItem>
                   <MenuItem value="IMPORT">Nhập hàng</MenuItem>
                   <MenuItem value="EXPORT">Xuất hàng</MenuItem>
                   <MenuItem value="PAYMENT_VOUCHER">Phiếu chi</MenuItem>
@@ -351,46 +396,74 @@ export default function Report() {
 
       {/* Comprehensive Report Table */}
       {activeTab === 0 && (
-        <TableContainer component={Paper} sx={{ maxHeight: '60vh' }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell>Mã Bill</TableCell>
-                <TableCell>Mã Hợp đồng</TableCell>
-                <TableCell>Loại đối tác</TableCell>
-                <TableCell>Mã đơn hàng</TableCell>
-                <TableCell>Loại đơn</TableCell>
-                <TableCell>Trạng thái</TableCell>
-                <TableCell align="right">Tổng giá trị</TableCell>
-                <TableCell align="right">Đã thanh toán</TableCell>
-                <TableCell align="right">Còn lại</TableCell>
-                <TableCell>Ngày tạo</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {reportData.bills?.map((bill) => (
-                <TableRow key={bill.id} hover>
-                  <TableCell>{bill.billCode}</TableCell>
-                  <TableCell>{bill.contractCode}</TableCell>
-                  <TableCell>
-                    <Chip label={bill.partnerType} size="small" color={bill.partnerType === 'Supplier' ? 'primary' : 'secondary'} />
-                  </TableCell>
-                  <TableCell>{bill.orderCode}</TableCell>
-                  <TableCell>
-                    <Chip label={bill.orderType} size="small" color={getTypeColor(bill.orderType)} />
-                  </TableCell>
-                  <TableCell>
-                    <Chip label={bill.status} size="small" color={getStatusColor(bill.status)} />
-                  </TableCell>
-                  <TableCell align="right">{formatCurrency(bill.totalValue)}</TableCell>
-                  <TableCell align="right">{formatCurrency(bill.amountPaid)}</TableCell>
-                  <TableCell align="right">{formatCurrency(bill.remainingAmount)}</TableCell>
-                  <TableCell>{formatDate(bill.createdAt)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <>
+          {reportData.bills && reportData.bills.length > 0 ? (
+            <>
+              <TableContainer component={Paper} sx={{ maxHeight: '60vh' }}>
+                <Table stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Mã Bill</TableCell>
+                      <TableCell>Mã Hợp đồng</TableCell>
+                      <TableCell>Loại đối tác</TableCell>
+                      <TableCell>Mã đơn hàng</TableCell>
+                      <TableCell>Loại đơn</TableCell>
+                      <TableCell>Trạng thái</TableCell>
+                      <TableCell align="right">Tổng giá trị</TableCell>
+                      <TableCell align="right">Đã thanh toán</TableCell>
+                      <TableCell align="right">Còn lại</TableCell>
+                      <TableCell>Ngày tạo</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {reportData.bills?.map((bill) => (
+                      <TableRow key={bill.id} hover>
+                        <TableCell>{bill.billCode}</TableCell>
+                        <TableCell>{bill.contractCode}</TableCell>
+                        <TableCell>
+                          <Chip label={bill.partnerType} size="small" color={bill.partnerType === 'Supplier' ? 'primary' : 'secondary'} />
+                        </TableCell>
+                        <TableCell>{bill.orderCode}</TableCell>
+                        <TableCell>
+                          <Chip label={bill.orderType} size="small" color={getTypeColor(bill.orderType)} />
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={bill.status} size="small" color={getStatusColor(bill.status)} />
+                        </TableCell>
+                        <TableCell align="right">{formatCurrency(bill.totalValue)}</TableCell>
+                        <TableCell align="right">{formatCurrency(bill.amountPaid)}</TableCell>
+                        <TableCell align="right">{formatCurrency(bill.remainingAmount)}</TableCell>
+                        <TableCell>{formatDate(bill.createdAt)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              {/* Pagination */}
+              <TablePagination
+                component="div"
+                count={totalCount}
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                labelRowsPerPage="Số hàng mỗi trang:"
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`}
+              />
+            </>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Không có dữ liệu để hiển thị
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Hãy thử thay đổi bộ lọc hoặc kiểm tra lại dữ liệu
+              </Typography>
+            </Box>
+          )}
+        </>
       )}
 
       {/* Upload Dialog */}

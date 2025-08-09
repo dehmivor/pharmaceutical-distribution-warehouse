@@ -2,47 +2,50 @@ const mongoose = require('mongoose');
 const { billDetailsSchema } = require('./subSchemas');
 const { BILL_STATUSES } = require('../utils/constants');
 
-const billSchema = new mongoose.Schema({
-  import_order_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ImportOrder',
-  },
-  export_order_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ExportOrder',
-  },
-  type: {
-    type: String,
-    required: true,
-    enum: ['IMPORT', 'EXPORT', 'PAYMENT_VOUCHER'],
-    default: 'IMPORT',
-  },
-  voucher_code: {
-    type: String,
-    required: function () {
-      return this.type === 'PAYMENT_VOUCHER';
+const billSchema = new mongoose.Schema(
+  {
+    import_order_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ImportOrder',
     },
-  },
-  payment_date: {
-    type: Date,
-    required: function () {
-      return this.type === 'PAYMENT_VOUCHER';
+    export_order_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ExportOrder',
     },
+    type: {
+      type: String,
+      required: true,
+      enum: ['IMPORT', 'EXPORT', 'PAYMENT_VOUCHER'],
+      default: 'IMPORT',
+    },
+    voucher_code: {
+      type: String,
+      required: function () {
+        return this.type === 'PAYMENT_VOUCHER';
+      },
+    },
+    payment_date: {
+      type: Date,
+      required: function () {
+        return this.type === 'PAYMENT_VOUCHER';
+      },
+    },
+    status: {
+      type: String,
+      required: [true, 'Status is required'],
+      values: Object.values(BILL_STATUSES),
+      message: `Status must be one of: ${Object.values(BILL_STATUSES).join(', ')}`,
+      default: 'PENDING',
+    },
+    amountPaid: {
+      type: Number,
+      default: 0,
+      min: [0, 'Amount paid cannot be negative'],
+    },
+    details: [billDetailsSchema],
   },
-  status: {
-    type: String,
-    required: [true, 'Status is required'],
-    values: Object.values(BILL_STATUSES),
-    message: `Status must be one of: ${Object.values(BILL_STATUSES).join(', ')}`,
-    default: 'PENDING',
-  },
-  amountPaid: {
-    type: Number,
-    default: 0,
-    min: [0, 'Amount paid cannot be negative'],
-  },
-  details: [billDetailsSchema],
-});
+  { timestamps: true },
+);
 
 billSchema.index({ voucher_code: 1 }, { unique: true, sparse: true });
 
