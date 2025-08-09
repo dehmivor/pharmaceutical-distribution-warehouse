@@ -44,7 +44,9 @@ import {
   Business as BusinessIcon,
   LocalPharmacy as MedicineIcon,
   Refresh,
-  Filter
+  Filter,
+  Filter1,
+  Search
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -221,10 +223,19 @@ export default function Report() {
     }
   };
 
+  // Initial data load
   useEffect(() => {
     fetchReportData();
     fetchTemplates();
-  }, [filters, page, rowsPerPage]);
+  }, []); // Only run on component mount
+
+  // Pagination changes
+  useEffect(() => {
+    if (page > 0 || rowsPerPage !== 10) {
+      // Avoid duplicate initial load
+      fetchReportData();
+    }
+  }, [page, rowsPerPage]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -233,7 +244,30 @@ export default function Report() {
   const handleFilterChange = (field, value) => {
     console.log('Filter change:', field, value);
     setFilters((prev) => ({ ...prev, [field]: value }));
-    setPage(0); // Reset to first page when filters change
+    // Note: Removed automatic page reset - now only happens on search
+  };
+
+  const handleSearch = () => {
+    setPage(0); // Reset to first page when searching
+    fetchReportData();
+  };
+
+  const handleReset = () => {
+    // Reset all filters to default values
+    setFilters({
+      startDate: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1).toISOString().slice(0, 10), // Previous month
+      endDate: new Date().toISOString().slice(0, 10), // Today
+      period: 'monthly',
+      status: 'all',
+      type: 'all',
+      partnerType: '',
+      reportType: 'comprehensive'
+    });
+    setPage(0); // Reset to first page
+    // Auto-fetch data after reset to show default results
+    setTimeout(() => {
+      fetchReportData();
+    }, 100); // Small delay to ensure state is updated
   };
 
   // Pagination handlers
@@ -285,9 +319,6 @@ export default function Report() {
             Tổng hợp báo cáo các loại bill trong hệ thống
           </Typography>
         </Box>
-        <Button variant="outlined" startIcon={<Refresh />}>
-          Refresh
-        </Button>
       </Box>
 
       {error && (
@@ -384,8 +415,13 @@ export default function Report() {
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
-              <Button size="small" variant="outlined" startIcon={<RefreshIcon />} onClick={fetchReportData} disabled={loading} fullWidth>
+              <Button size="small" variant="outlined" startIcon={<RefreshIcon />} onClick={handleReset} disabled={loading} fullWidth>
                 Reset
+              </Button>
+            </Grid>
+            <Grid item xs={12} md={2}>
+              <Button size="small" variant="contained" startIcon={<Search />} onClick={handleSearch} disabled={loading} fullWidth>
+                Search
               </Button>
             </Grid>
           </Grid>
@@ -401,18 +437,24 @@ export default function Report() {
             <>
               <TableContainer component={Paper} sx={{ maxHeight: '60vh' }}>
                 <Table stickyHeader>
-                  <TableHead>
+                  <TableHead sx={{ bgcolor: 'grey.50' }}>
                     <TableRow>
-                      <TableCell>Mã Bill</TableCell>
-                      <TableCell>Mã Hợp đồng</TableCell>
-                      <TableCell>Loại đối tác</TableCell>
-                      <TableCell>Mã đơn hàng</TableCell>
-                      <TableCell>Loại đơn</TableCell>
-                      <TableCell>Trạng thái</TableCell>
-                      <TableCell align="right">Tổng giá trị</TableCell>
-                      <TableCell align="right">Đã thanh toán</TableCell>
-                      <TableCell align="right">Còn lại</TableCell>
-                      <TableCell>Ngày tạo</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Mã Bill</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Mã Hợp đồng</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Loại đối tác</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Mã đơn hàng</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Loại đơn</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Trạng thái</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }} align="right">
+                        Tổng giá trị
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }} align="right">
+                        Đã thanh toán
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }} align="right">
+                        Còn lại
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Ngày tạo</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
