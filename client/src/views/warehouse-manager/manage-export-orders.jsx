@@ -31,11 +31,14 @@ import {
   Card,
   Divider,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Select,
+  InputLabel,
+  FormControl
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import axios from 'axios';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ModalConfirm from '../../views/general/ModalConfirm';
 
@@ -73,6 +76,7 @@ export default function ManageExportOrders() {
   const [filterDate, setFilterDate] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterAssignedToMe, setFilterAssignedToMe] = useState(false);
+  const [filterType, setFilterType] = useState('all'); // all | internal | regular
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOrder, setMenuOrder] = useState(null);
   const [page, setPage] = useState(0);
@@ -101,6 +105,13 @@ export default function ManageExportOrders() {
     title: 'Thông báo',
     content: ''
   });
+
+  // Internal Export Order dialog state
+  const [internalDialogOpen, setInternalDialogOpen] = useState(false);
+  const [medicines, setMedicines] = useState([]);
+  const [internalLines, setInternalLines] = useState([]); // [{ medicine_id, destroy_total, picked: [{package_id, destroy_qty, remaining_after, max}] }]
+  const [loadingMedicines, setLoadingMedicines] = useState(false);
+  const [creatingInternal, setCreatingInternal] = useState(false);
 
   const getAuthToken = () => localStorage.getItem('auth-token');
 
@@ -157,7 +168,7 @@ export default function ManageExportOrders() {
     fetchCurrentUserRole();
   }, [router]);
 
-  const fetchOrders = async (p = null, rpp = null, date = null, status = null, assignedToMe = null) => {
+  const fetchOrders = async (p = null, rpp = null, date = null, status = null, assignedToMe = null, type = null) => {
     setLoading(true);
     setError(null);
     try {
@@ -167,6 +178,7 @@ export default function ManageExportOrders() {
       const currentDate = date !== null ? date : filterDate;
       const currentStatus = status !== null ? status : filterStatus;
       const currentAssignedToMe = assignedToMe !== null ? assignedToMe : filterAssignedToMe;
+      const currentType = type !== null ? type : filterType;
       const qp = new URLSearchParams();
       qp.append('page', (currentPage + 1).toString());
       qp.append('limit', currentLimit.toString());
@@ -178,7 +190,10 @@ export default function ManageExportOrders() {
       if (!resp.data.success) {
         throw new Error(resp.data.error || 'Failed to load export orders');
       }
-      const data = resp.data.data || [];
+      let data = resp.data.data || [];
+      // Client-side type filtering
+      if (currentType === 'internal') data = data.filter((o) => !o.contract_id);
+      else if (currentType === 'regular') data = data.filter((o) => !!o.contract_id);
       setOrders(data);
       const pag = resp.data.pagination;
       setTotalCount(pag?.total ?? data.length);
@@ -189,6 +204,25 @@ export default function ManageExportOrders() {
       setTotalCount(0);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllMedicines = async () => {
+    setLoadingMedicines(true);
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const token = getAuthToken();
+      if (!token) throw new Error('No auth token found');
+      const res = await fetch(`${backendUrl}/api/medicine/all/v1`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Failed to load medicines');
+      setMedicines(data.data || []);
+    } catch (e) {
+      setMessageDialog({ open: true, title: 'Lỗi', content: e.message || 'Không thể tải danh sách thuốc' });
+    } finally {
+      setLoadingMedicines(false);
     }
   };
 
@@ -218,9 +252,9 @@ export default function ManageExportOrders() {
 
   useEffect(() => {
     if (!isRoleLoading && currentUserRole) {
-      fetchOrders();
+      fetchOrders(undefined, undefined, undefined, undefined, undefined, filterType);
     }
-  }, [page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe, isRoleLoading, currentUserRole]);
+  }, [page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe, isRoleLoading, currentUserRole, filterType]);
 
   useEffect(() => {
     if (selectedOrder && packingDialogOpen) {
@@ -253,17 +287,18 @@ export default function ManageExportOrders() {
 
   const handleSearchClick = useCallback(() => {
     setPage(0);
-    fetchOrders(0, rowsPerPage, filterDate, filterStatus, filterAssignedToMe);
-  }, [rowsPerPage, filterDate, filterStatus, filterAssignedToMe]);
+    fetchOrders(0, rowsPerPage, filterDate, filterStatus, filterAssignedToMe, filterType);
+  }, [rowsPerPage, filterDate, filterStatus, filterAssignedToMe, filterType]);
 
   const handleRefresh = useCallback(() => {
-    fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe);
-  }, [page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe]);
+    fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe, filterType);
+  }, [page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe, filterType]);
 
   const handleReset = useCallback(() => {
     setFilterDate('');
     setFilterStatus('');
     setFilterAssignedToMe(false);
+    setFilterType('all');
     setPage(0);
   }, []);
 
@@ -476,17 +511,16 @@ export default function ManageExportOrders() {
           setMessageDialog({ open: true, title: 'Thành công', content: 'Đơn hàng đã hoàn thành!' });
           await fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe);
 
-         const billDetails = (updatedOrder.data.details || []).map((item) => ({
-           medicine_lisence_code: item.medicine_id && item.medicine_id._id ? item.medicine_id._id.toString() : '', // thay thế cho license code
-           quantity: item.expected_quantity || 0,
-           unit_price: item.unit_price || 0
-         }));
+          const billDetails = (updatedOrder.data.details || []).map((item) => ({
+            medicine_lisence_code: item.medicine_id && item.medicine_id._id ? item.medicine_id._id.toString() : '', // thay thế cho license code
+            quantity: item.expected_quantity || 0,
+            unit_price: item.unit_price || 0
+          }));
 
-         // Kiểm tra xem có chi tiết hợp lệ không
-         if (billDetails.some((d) => !d.medicine_lisence_code)) {
-           throw new Error('Có chi tiết bill thiếu medicine_lisence_code. Vui lòng kiểm tra dữ liệu.');
-         }
-
+          // Kiểm tra xem có chi tiết hợp lệ không
+          if (billDetails.some((d) => !d.medicine_lisence_code)) {
+            throw new Error('Có chi tiết bill thiếu medicine_lisence_code. Vui lòng kiểm tra dữ liệu.');
+          }
 
           // 3. Tạo payload cho Bill với kiểu EXPORT
           const billPayload = {
@@ -621,6 +655,135 @@ export default function ManageExportOrders() {
     });
   };
 
+  // Internal Export: handlers
+  const openInternalDialog = async () => {
+    await fetchAllMedicines();
+    setInternalLines([]);
+    setInternalDialogOpen(true);
+  };
+  const closeInternalDialog = () => {
+    setInternalDialogOpen(false);
+    setInternalLines([]);
+  };
+
+  const addInternalLine = () => {
+    setInternalLines((prev) => [...prev, { medicine_id: '', destroy_total: 0, picked: [] }]);
+  };
+
+  const removeInternalLine = (index) => {
+    setInternalLines((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const changeInternalMedicine = async (index, medicineId) => {
+    setInternalLines((prev) => prev.map((l, i) => (i === index ? { ...l, medicine_id: medicineId, picked: [] } : l)));
+    try {
+      const pkgs = await fetchAvailablePackages(medicineId);
+      setAvailablePackages((prev) => ({ ...prev, [medicineId]: pkgs }));
+    } catch (e) {
+      setMessageDialog({ open: true, title: 'Lỗi', content: e.message || 'Không thể tải packages' });
+    }
+  };
+
+  const setDestroyTotal = (index, value) => {
+    const v = Number.parseInt(value) || 0;
+    setInternalLines((prev) => prev.map((l, i) => (i === index ? { ...l, destroy_total: v } : l)));
+  };
+
+  const addPickPackage = (lineIndex, packageId) => {
+    setInternalLines((prev) =>
+      prev.map((l, i) => {
+        if (i !== lineIndex) return l;
+        const medicineId = l.medicine_id;
+        const pkg = (availablePackages[medicineId] || []).find((p) => p._id === packageId);
+        if (!pkg) return l;
+        const exists = l.picked.some((p) => p.package_id === packageId);
+        if (exists) return l;
+        return {
+          ...l,
+          picked: [...l.picked, { package_id: packageId, destroy_qty: 0, remaining_after: pkg.quantity, max: pkg.quantity }]
+        };
+      })
+    );
+  };
+
+  const removePickPackage = (lineIndex, packageId) => {
+    setInternalLines((prev) =>
+      prev.map((l, i) => (i === lineIndex ? { ...l, picked: l.picked.filter((p) => p.package_id !== packageId) } : l))
+    );
+  };
+
+  const changeDestroyQty = (lineIndex, packageId, value) => {
+    const qty = Math.max(0, Number.parseInt(value) || 0);
+    setInternalLines((prev) =>
+      prev.map((l, i) => {
+        if (i !== lineIndex) return l;
+        return {
+          ...l,
+          picked: l.picked.map((p) => {
+            if (p.package_id !== packageId) return p;
+            const destroy = Math.min(qty, p.max);
+            const remaining = p.max - destroy;
+            return { ...p, destroy_qty: destroy, remaining_after: remaining };
+          })
+        };
+      })
+    );
+  };
+
+  const totalDestroyOfLine = (line) => line.picked.reduce((sum, p) => sum + (p.destroy_qty || 0), 0);
+
+  const canSubmitInternal = useMemo(() => {
+    if (!currentUserRole || currentUserRole !== USER_ROLES.WAREHOUSEMANAGER) return false;
+    if (internalLines.length === 0) return false;
+    for (const l of internalLines) {
+      if (!l.medicine_id) return false;
+      if (l.destroy_total <= 0) return false;
+      const totalPick = totalDestroyOfLine(l);
+      if (totalPick !== l.destroy_total) return false;
+      for (const p of l.picked) {
+        if (p.destroy_qty < 0 || p.destroy_qty > p.max) return false;
+      }
+    }
+    return true;
+  }, [internalLines, currentUserRole]);
+
+  const submitInternalOrder = async () => {
+    try {
+      setCreatingInternal(true);
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const token = getAuthToken();
+      if (!token) throw new Error('Không có token xác thực');
+
+      const details = internalLines.map((l) => ({
+        medicine_id: l.medicine_id,
+        expected_quantity: l.destroy_total,
+        actual_item: l.picked
+          .filter((p) => (p.destroy_qty || 0) > 0)
+          .map((p) => ({
+            package_id: p.package_id,
+            // quantity sent to API must be the destroy quantity (positive integer)
+            quantity: p.destroy_qty,
+            created_by: currentUserId
+          }))
+      }));
+
+      const res = await fetch(`${backendUrl}/api/export-orders/internal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ details })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || data.message || 'Tạo đơn xuất nội bộ thất bại');
+      setMessageDialog({ open: true, title: 'Thành công', content: 'Tạo đơn xuất nội bộ thành công (đã duyệt)!' });
+      closeInternalDialog();
+      await fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe, filterType);
+    } catch (e) {
+      setMessageDialog({ open: true, title: 'Lỗi', content: e.message || 'Không thể tạo đơn xuất nội bộ' });
+    } finally {
+      setCreatingInternal(false);
+    }
+  };
+
   if (loading || isRoleLoading || !currentUserRole) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', height: '50vh', alignItems: 'center' }}>
@@ -640,6 +803,11 @@ export default function ManageExportOrders() {
       )}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Export Orders Management</Typography>
+        {currentUserRole === USER_ROLES.WAREHOUSEMANAGER && (
+          <Button variant="contained" color="warning" onClick={openInternalDialog}>
+            Create Internal Export Order
+          </Button>
+        )}
       </Box>
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
@@ -658,6 +826,11 @@ export default function ManageExportOrders() {
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </MenuItem>
             ))}
+          </TextField>
+          <TextField select label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} size="small">
+            <MenuItem value="all">All Types</MenuItem>
+            <MenuItem value="internal">Internal</MenuItem>
+            <MenuItem value="regular">Regular</MenuItem>
           </TextField>
           <FormControlLabel
             control={
@@ -678,6 +851,7 @@ export default function ManageExportOrders() {
           <TableHead>
             <TableRow>
               <TableCell>Export Date</TableCell>
+              <TableCell>Type</TableCell>
               <TableCell>Contract Code</TableCell>
               <TableCell>Partner</TableCell>
               <TableCell>Manager Email</TableCell>
@@ -688,7 +862,7 @@ export default function ManageExportOrders() {
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
                     No export orders found.
                   </Typography>
@@ -698,11 +872,18 @@ export default function ManageExportOrders() {
               orders.map((o) => (
                 <TableRow key={o._id} hover>
                   <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {o.contract_id ? (
+                      <Chip label="Regular" color="primary" size="small" variant="outlined" />
+                    ) : (
+                      <Chip label="Internal" color="warning" size="small" />
+                    )}
+                  </TableCell>
                   <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
                   <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
-                  <TableCell>{o.warehouse_manager_id?.email || '—'}</TableCell>
+                  <TableCell>{o.created_by?.email || '—'}</TableCell>
                   <TableCell>
-                    <Chip label={o.status} color={getStatusBadge(o.status).props.color} size="small" />
+                    <Chip label={getStatusBadge(o.status).props.label} color={getStatusBadge(o.status).props.color} size="small" />
                   </TableCell>
                   <TableCell>
                     <IconButton onClick={(e) => handleMenuOpen(e, o)}>
@@ -718,9 +899,9 @@ export default function ManageExportOrders() {
           component="div"
           count={totalCount}
           page={page}
-          onPageChange={handleChangePage}
+          onPageChange={setPage}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
+          onRowsPerPageChange={(e) => setRowsPerPage(Number(e.target.value))}
           rowsPerPageOptions={[5, 10, 25, 50]}
         />
       </TableContainer>
@@ -739,8 +920,9 @@ export default function ManageExportOrders() {
           Detail
         </MenuItem>
         {currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
+          !!menuOrder?.contract_id &&
           !menuOrder?.warehouse_manager_id &&
-          menuOrder?.status === 'approved' && ( // Added condition for "approved" status
+          menuOrder?.status === 'approved' && (
             <MenuItem
               onClick={() => {
                 handleAssignToMyself(menuOrder._id);
@@ -796,7 +978,7 @@ export default function ManageExportOrders() {
                   <Typography variant="subtitle2" color="text.secondary">
                     Trạng thái:
                   </Typography>
-                  <Typography variant="body1" fontWeight="medium">
+                  <Typography component="div" variant="body1" fontWeight="medium">
                     {getStatusBadge(selectedOrder.status)}
                   </Typography>
                 </Grid>
@@ -1010,6 +1192,157 @@ export default function ManageExportOrders() {
                 Cập nhật
               </Button>
             )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Create Internal Export Order Dialog */}
+      <Dialog open={internalDialogOpen} onClose={closeInternalDialog} maxWidth="md" fullWidth>
+        <DialogTitle component="div">Tạo Đơn Xuất Nội Bộ</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            <Button variant="outlined" onClick={addInternalLine} disabled={loadingMedicines}>
+              Thêm mặt hàng
+            </Button>
+            {internalLines.length === 0 && (
+              <Typography variant="body2" color="text.secondary">
+                Chưa có mặt hàng nào. Nhấn "Thêm mặt hàng".
+              </Typography>
+            )}
+            {internalLines.map((line, idx) => {
+              const pkgList = availablePackages[line.medicine_id] || [];
+              const totalPicked = totalDestroyOfLine(line);
+              return (
+                <Card key={idx} variant="outlined" sx={{ p: 2 }}>
+                  <Grid container spacing={2} alignItems="center">
+                    <Grid item xs={12} sm={6} md={5}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel id={`medicine-${idx}`}>Thuốc</InputLabel>
+                        <Select
+                          labelId={`medicine-${idx}`}
+                          label="Thuốc"
+                          value={line.medicine_id}
+                          onChange={(e) => changeInternalMedicine(idx, e.target.value)}
+                        >
+                          {medicines.map((m) => (
+                            <MenuItem key={m._id} value={m._id}>
+                              {m.medicine_name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6} md={4}>
+                      <TextField
+                        type="number"
+                        size="small"
+                        label="SL cần hủy"
+                        value={line.destroy_total}
+                        onChange={(e) => setDestroyTotal(idx, e.target.value)}
+                        fullWidth
+                        inputProps={{ min: 0 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <Button
+                        variant="outlined"
+                        disabled={!line.medicine_id}
+                        onClick={async () => {
+                          if (!availablePackages[line.medicine_id]) {
+                            try {
+                              const pkgs = await fetchAvailablePackages(line.medicine_id);
+                              setAvailablePackages((prev) => ({ ...prev, [line.medicine_id]: pkgs }));
+                            } catch (e) {
+                              setMessageDialog({ open: true, title: 'Lỗi', content: e.message || 'Không thể tải packages' });
+                            }
+                          }
+                        }}
+                      >
+                        Tải thùng hàng
+                      </Button>
+                    </Grid>
+                  </Grid>
+
+                  <Divider sx={{ my: 2 }} />
+
+                  <Typography variant="subtitle2" gutterBottom>
+                    Chọn thùng hàng (SL tồn, nhập SL hủy → hệ thống tính SL còn lại)
+                  </Typography>
+
+                  {pkgList.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">
+                      {line.medicine_id ? 'Chưa có thùng phù hợp hoặc chưa tải.' : 'Chọn thuốc trước.'}
+                    </Typography>
+                  ) : (
+                    <Stack spacing={1.5}>
+                      {pkgList.map((pkg) => {
+                        const picked = line.picked.find((p) => p.package_id === pkg._id);
+                        return (
+                          <Box
+                            key={pkg._id}
+                            display="flex"
+                            alignItems="center"
+                            gap={2}
+                            sx={{ p: 1, border: '1px solid', borderColor: picked ? 'primary.main' : 'grey.300', borderRadius: 1 }}
+                          >
+                            <Typography variant="body2" flex={1}>
+                              {pkg.batch.batch_code} | Tồn: {pkg.quantity} | Vị trí: {pkg.location.area_name || ''}-{pkg.location.bay || ''}
+                              -{pkg.location.row || ''}-{pkg.location.column || ''}
+                            </Typography>
+                            {picked ? (
+                              <>
+                                <TextField
+                                  type="number"
+                                  size="small"
+                                  label="SL hủy"
+                                  value={picked.destroy_qty}
+                                  onChange={(e) => changeDestroyQty(idx, pkg._id, e.target.value)}
+                                  inputProps={{ min: 0, max: picked.max }}
+                                  sx={{ width: 110 }}
+                                />
+                                <Typography variant="body2" sx={{ minWidth: 120 }}>
+                                  Còn lại: {picked.remaining_after}
+                                </Typography>
+                                <IconButton color="error" onClick={() => removePickPackage(idx, pkg._id)} size="small">
+                                  <Delete fontSize="small" />
+                                </IconButton>
+                              </>
+                            ) : (
+                              <Button variant="text" onClick={() => addPickPackage(idx, pkg._id)}>
+                                Chọn
+                              </Button>
+                            )}
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  )}
+
+                  <Typography variant="body2" sx={{ mt: 2 }}>
+                    Đã phân bổ hủy: {totalPicked} / {line.destroy_total}
+                    {totalPicked !== line.destroy_total && (
+                      <Typography component="span" color="error" sx={{ ml: 1 }}>
+                        (Chưa đủ)
+                      </Typography>
+                    )}
+                  </Typography>
+
+                  <Box display="flex" justifyContent="flex-end" mt={1}>
+                    <Button color="error" onClick={() => removeInternalLine(idx)}>
+                      Xóa dòng
+                    </Button>
+                  </Box>
+                </Card>
+              );
+            })}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={closeInternalDialog}>
+            Đóng
+          </Button>
+          <Button variant="contained" onClick={submitInternalOrder} disabled={!canSubmitInternal || creatingInternal}>
+            {creatingInternal ? 'Đang tạo...' : 'Tạo đơn'}
+          </Button>
         </DialogActions>
       </Dialog>
 

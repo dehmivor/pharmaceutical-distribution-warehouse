@@ -67,6 +67,28 @@ async function createExportOrder(data, userId) {
 }
 
 /**
+ * Warehouse Manager tạo export order nội bộ (không contract) – tự động approved
+ * @param {{contract_id?: null, details: Array}} data
+ * @param {String} userId
+ */
+async function createInternalExportOrder(data, userId) {
+  const { details = [] } = data || {};
+  if (!Array.isArray(details) || details.length === 0) {
+    throw new Error('Details are required to create internal export order');
+  }
+
+  const order = new ExportOrder({
+    contract_id: null,
+    details,
+    status: EXPORT_ORDER_STATUSES.APPROVED,
+    created_by: userId,
+  });
+
+  const saved = await order.save();
+  return await ExportOrder.findById(saved._id).populate(populateOptions);
+}
+
+/**
  * RM duyệt export order (chỉ chuyển trạng thái sang approved)
  * @param {String} orderId - ID export order
  * @param {String} rmId - ID RM duyệt
@@ -492,5 +514,6 @@ module.exports = {
   getExportOrderDetail,
   addExportInspection,
   checkStockAvailability,
-  assignWarehouseManager // Thêm function mới
+  assignWarehouseManager, // Thêm function mới
+  createInternalExportOrder // Thêm function mới
 };

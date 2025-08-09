@@ -37,8 +37,30 @@ const createImportOrder = async (orderData, orderDetails, userContext = null) =>
   }
 };
 
+// Create internal import order (for warehouse manager)
+const createInternalImportOrder = async (orderDetails, userContext = null) => {
+  try {
+    // Validate user context
+    if (!userContext || userContext.role !== USER_ROLES.WAREHOUSEMANAGER) {
+      throw new Error('Only warehouse managers can create internal import orders');
+    }
+
+    const orderData = {
+      status: IMPORT_ORDER_STATUSES.DELIVERED, // Start with delivered status
+      contract_id: null, // No contract for internal orders
+      warehouse_manager_id: userContext.id || userContext._id, // Set to current warehouse manager
+      approval_by: null, // No approval needed
+      created_by: userContext.id || userContext._id // Set created_by to current user
+    };
+
+    return await createImportOrder(orderData, orderDetails, userContext);
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Get all import orders with pagination and filters
-const getImportOrders = async (params = {}, page = 1, limit = 10) => {
+const getImportOrders = async (params = {}, page = 1, limit = 10, userRole = null) => {
   const skip = (page - 1) * limit;
   const query = {};
 
@@ -63,6 +85,11 @@ const getImportOrders = async (params = {}, page = 1, limit = 10) => {
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
     query.createdAt = { $gte: start, $lt: end };
+  }
+
+  // 4) Filter internal orders for Representative and Representative Manager
+  if (userRole === 'representative' || userRole === 'representative_manager') {
+    query.contract_id = { $ne: null }; // Chỉ hiển thị đơn có contract (không hiển thị đơn nội bộ)
   }
 
   // 4) Query the DB
@@ -429,19 +456,27 @@ const getImportOrdersByWarehouseManager = async (
   query = {},
   page = 1,
   limit = 10,
+  userRole = null
 ) => {
   try {
     const searchQuery = { ...query, warehouse_manager_id: warehouseManagerId };
-    return await getImportOrders(searchQuery, page, limit);
+    return await getImportOrders(searchQuery, page, limit, userRole);
   } catch (error) {
     throw error;
   }
 };
 
 // Get import orders by contract
-const getImportOrdersByContract = async (contractId) => {
+const getImportOrdersByContract = async (contractId, userRole = null) => {
   try {
-    const orders = await ImportOrder.find({ contract_id: contractId })
+    const query = { contract_id: contractId };
+    
+    // Filter internal orders for Representative and Representative Manager
+    if (userRole === 'representative' || userRole === 'representative_manager') {
+      query.contract_id = { $ne: null }; // Chỉ hiển thị đơn có contract (không hiển thị đơn nội bộ)
+    }
+    
+    const orders = await ImportOrder.find(query)
       .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
@@ -593,6 +628,7 @@ function getManagerId(warehouse_manager_id) {
 
 module.exports = {
   createImportOrder,
+  createInternalImportOrder,
   getImportOrders,
   getImportOrderById,
   updateImportOrder,

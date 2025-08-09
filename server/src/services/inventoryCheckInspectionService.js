@@ -3,7 +3,7 @@ const InventoryCheckOrder = require("../models/InventoryCheckOrder")
 const Package = require("../models/Package") // Import Package model
 const Location = require("../models/Location") // Import Location model
 const mongoose = require("mongoose") // Import mongoose for transactions
-const { INVENTORY_CHECK_ORDER_STATUSES } = require("../utils/constants")
+const { INVENTORY_CHECK_INSPECTION_STATUSES } = require("../utils/constants")
 const PackageService = require("./packageService") // Declare PackageService variable
 
 const getInspectionsByOrderId = async (orderId) => {
@@ -176,6 +176,10 @@ const applyInspectionResults = async (checkOrderId) => {
   session.startTransaction()
   try {
     const inspections = await InventoryCheckInspection.find({ inventory_check_order_id: checkOrderId })
+      .populate({
+        path: "check_list.package_id",
+        model: "Package", // Ensure correct model reference
+      })
       .populate("location_id") // Populate the inspection's location
       .session(session)
 
@@ -279,12 +283,11 @@ const applyInspectionResults = async (checkOrderId) => {
     // Update the InventoryCheckOrder status to completed
     await InventoryCheckOrder.findByIdAndUpdate(
       checkOrderId,
-      { status: INVENTORY_CHECK_ORDER_STATUSES.COMPLETED },
+      { status: INVENTORY_CHECK_INSPECTION_STATUSES.COMPLETED },
       { new: true, session },
     )
 
     await session.commitTransaction()
-    console.log("Transaction committed successfully")
     return { success: true, message: "Inspection results applied and order completed." }
   } catch (error) {
     await session.abortTransaction()
