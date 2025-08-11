@@ -1,8 +1,8 @@
 const inventoryService = require('../services/inventoryService');
+const inventoryCheckInspectionService = require('../services/inventoryCheckInspectionService');
 const mongoose = require('mongoose');
 const Location = require('../models/Location');
 const Package = require('../models/Package');
-const { INVENTORY_CHECK_INSPECTION_STATUSES } = require('../utils/constants');
 const { INVENTORY_CHECK_ORDER_STATUSES } = require('../utils/constants');
 const getInspectionsFromCheckOrder = async (req, res) => {
   try {
@@ -194,7 +194,15 @@ const updateCheckOrderStatus = async (req, res) => {
       }
     }
 
-    const updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
+    let updatedCheckOrder;
+    if (status === INVENTORY_CHECK_ORDER_STATUSES.COMPLETED) {
+      // If completing the order, apply inspection results first
+      await inventoryCheckInspectionService.applyInspectionResults(checkOrderId);
+      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
+    } else {
+      // For other status updates (e.g., cancelled), just update the order status
+      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
+    }
 
     if (!updatedCheckOrder) {
       return res.status(404).json({
