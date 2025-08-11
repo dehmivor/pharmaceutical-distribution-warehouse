@@ -333,12 +333,7 @@ export default function ImportOrderSupervisor() {
                         </Typography>
                         <Typography variant="body1">{selectedOrder._id}</Typography>
                       </Grid>
-                      <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">
-                          Order Code
-                        </Typography>
-                        <Typography variant="body1">{selectedOrder.import_order_code || 'N/A'}</Typography>
-                      </Grid>
+                      {/* Order Code is hidden for all orders */}
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
                           Status
@@ -371,7 +366,7 @@ export default function ImportOrderSupervisor() {
                         <Typography variant="subtitle2" color="textSecondary">
                           Contract Status
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.supplier_contract_id?.status || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.contract_id?.status || 'N/A'}</Typography>
                       </Grid>
                     </Grid>
                   </Paper>
@@ -383,24 +378,22 @@ export default function ImportOrderSupervisor() {
                   </Typography>
                   <Paper sx={{ p: 2, mb: 2 }}>
                     <Grid container spacing={2}>
-                      <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">
-                          Warehouse
-                        </Typography>
-                        <Typography variant="body1">{selectedOrder.warehouse_id?.email || 'N/A'}</Typography>
-                      </Grid>
+                      {/* Warehouse is hidden for all orders */}
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
                           Warehouse Manager
                         </Typography>
                         <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || 'Not Assigned'}</Typography>
                       </Grid>
-                      <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">
-                          Manager Email
-                        </Typography>
-                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || 'N/A'}</Typography>
-                      </Grid>
+                      {/* Only show Manager Email for regular orders, not for internal orders */}
+                      {selectedOrder.contract_id && (
+                        <Grid item xs={6} md={12}>
+                          <Typography variant="subtitle2" color="textSecondary">
+                            Manager Email
+                          </Typography>
+                          <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || 'N/A'}</Typography>
+                        </Grid>
+                      )}
                     </Grid>
                   </Paper>
                 </Grid>
@@ -424,12 +417,15 @@ export default function ImportOrderSupervisor() {
                         </Typography>
                         <Typography variant="body1">{selectedOrder.created_by?.email || 'N/A'}</Typography>
                       </Grid>
-                      <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">
-                          Approved By
-                        </Typography>
-                        <Typography variant="body1">{selectedOrder.approval_by?.name || 'N/A'}</Typography>
-                      </Grid>
+                      {/* Only show Approved By for regular orders, not for internal orders */}
+                      {selectedOrder.contract_id && (
+                        <Grid item xs={6} md={12}>
+                          <Typography variant="subtitle2" color="textSecondary">
+                            Approved By
+                          </Typography>
+                          <Typography variant="body1">{selectedOrder.approved_by?.name || selectedOrder.approval_by?.name || 'N/A'}</Typography>
+                        </Grid>
+                      )}
                     </Grid>
                   </Paper>
                 </Grid>
@@ -445,8 +441,13 @@ export default function ImportOrderSupervisor() {
                             <TableCell>Medicine Name</TableCell>
                             <TableCell>License Code</TableCell>
                             <TableCell align="right">Quantity</TableCell>
-                            <TableCell align="right">Unit Price</TableCell>
-                            <TableCell align="right">Total</TableCell>
+                            {/* Only show pricing columns for regular orders */}
+                            {selectedOrder.contract_id && (
+                              <>
+                                <TableCell align="right">Unit Price</TableCell>
+                                <TableCell align="right">Total</TableCell>
+                              </>
+                            )}
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -455,24 +456,32 @@ export default function ImportOrderSupervisor() {
                               <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
                               <TableCell>{detail.medicine_id?.license_code || 'N/A'}</TableCell>
                               <TableCell align="right">{detail.quantity || 0}</TableCell>
-                              <TableCell align="right">{formatCurrency(detail.unit_price)}</TableCell>
-                              <TableCell align="right">{formatCurrency((detail.quantity || 0) * (detail.unit_price || 0))}</TableCell>
+                              {/* Only show pricing values for regular orders */}
+                              {selectedOrder.contract_id && (
+                                <>
+                                  <TableCell align="right">{formatCurrency(detail.unit_price)}</TableCell>
+                                  <TableCell align="right">{formatCurrency((detail.quantity || 0) * (detail.unit_price || 0))}</TableCell>
+                                </>
+                              )}
                             </TableRow>
                           ))}
-                          <TableRow>
-                            <TableCell colSpan={4}>
-                              <Typography variant="subtitle1" fontWeight="bold">
-                                Total Amount
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography variant="subtitle1" fontWeight="bold">
-                                {formatCurrency(
-                                  selectedOrder.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0) || 0
-                                )}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
+                          {/* Only show Total Amount row for regular orders */}
+                          {selectedOrder.contract_id && (
+                            <TableRow>
+                              <TableCell colSpan={5}>
+                                <Typography variant="subtitle1" fontWeight="bold">
+                                  Total Amount
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="subtitle1" fontWeight="bold">
+                                  {formatCurrency(
+                                    selectedOrder.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0) || 0
+                                  )}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          )}
                         </TableBody>
                       </Table>
                     </TableContainer>

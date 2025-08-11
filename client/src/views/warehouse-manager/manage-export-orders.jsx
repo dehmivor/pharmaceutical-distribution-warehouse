@@ -1,6 +1,6 @@
 'use client';
 
-import { Refresh as RefreshIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Search as SearchIcon, QrCodeScanner } from '@mui/icons-material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
   Alert,
@@ -34,7 +34,8 @@ import {
   FormControlLabel,
   Select,
   InputLabel,
-  FormControl
+  FormControl,
+  Tooltip
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 import axios from 'axios';
@@ -273,7 +274,7 @@ export default function ManageExportOrders() {
         }
       };
       fetchPackages();
-    }
+      }
   }, [selectedOrder, packingDialogOpen]);
 
   const handleChangePage = useCallback((_, newPage) => {
@@ -347,7 +348,7 @@ export default function ManageExportOrders() {
               selected_packages: detail.selected_packages.map((sp) => (sp.package_id === packageId ? { ...sp, quantity } : sp))
             }
           : detail
-      )
+    )
     );
   };
 
@@ -360,7 +361,7 @@ export default function ManageExportOrders() {
               selected_packages: [...detail.selected_packages, { package_id: packageId, quantity: 0, created_by: currentUserId }]
             }
           : detail
-      )
+    )
     );
     setShowingPackageListFor(null);
   };
@@ -374,7 +375,7 @@ export default function ManageExportOrders() {
               selected_packages: detail.selected_packages.filter((sp) => sp.package_id !== packageId)
             }
           : detail
-      )
+    )
     );
   };
 
@@ -446,7 +447,7 @@ export default function ManageExportOrders() {
           package_id: sp.package_id,
           quantity: sp.quantity,
           created_by: sp.created_by
-        }))
+      }))
       }));
       const res = await fetch(`${backendUrl}/api/export-orders/${selectedOrder._id}/update-packing`, {
         method: 'PUT',
@@ -710,6 +711,36 @@ export default function ManageExportOrders() {
     setInternalLines((prev) =>
       prev.map((l, i) => (i === lineIndex ? { ...l, picked: l.picked.filter((p) => p.package_id !== packageId) } : l))
     );
+  };
+
+  const handleScanPackage = (lineIndex, packageId) => {
+    // TODO: Implement barcode/QR scanner functionality
+    // For now, just add the package to the picked list
+    addPickPackage(lineIndex, packageId);
+    
+    // Show message about scan functionality
+    setMessageDialog({ 
+      open: true, 
+      title: 'Tính năng Scan Package', 
+      content: 'Tính năng quét barcode/QR code sẽ được implement trong phiên bản tiếp theo. Hiện tại đã tự động chọn package này.' 
+    });
+  };
+
+  const handleScanPackageForLine = (lineIndex) => {
+    // TODO: Implement barcode/QR scanner functionality
+    // For now, show a dialog to select package manually
+    setMessageDialog({ 
+      open: true, 
+      title: 'Quét Package', 
+      content: `Tính năng quét barcode/QR code sẽ được implement trong phiên bản tiếp theo. 
+      
+      Khi scan, hệ thống sẽ tự động:
+      1. Tìm package trong danh sách
+      2. Nhảy xuống và highlight package đó
+      3. Tự động chọn package và mở input nhập số lượng hủy
+      
+      Hiện tại bạn có thể chọn package thủ công bằng nút "Chọn".` 
+    });
   };
 
   const changeDestroyQty = (lineIndex, packageId, value) => {
@@ -1004,6 +1035,8 @@ export default function ManageExportOrders() {
                     </Typography>
                   </Grid>
                 )}
+                {/* Only show Total Value for regular orders, not for internal destruction orders */}
+                {selectedOrder.contract_id && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" color="text.secondary">
                     Tổng giá trị:
@@ -1012,6 +1045,7 @@ export default function ManageExportOrders() {
                     {formatCurrency(calculateTotalValue(selectedOrder))}
                   </Typography>
                 </Grid>
+                )}
                 {selectedOrder.note && (
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary">
@@ -1171,10 +1205,10 @@ export default function ManageExportOrders() {
                   <Typography variant="body2" sx={{ mt: 2, fontWeight: 'medium' }}>
                     Tổng chọn: {totalActualQuantity} / {detail.expected_quantity} {unitOfMeasure}
                     {currentUserRole === USER_ROLES.WAREHOUSE && isQuantityDeficient && selectedOrder?.status !== 'completed' && (
-                      <Typography component="span" color="error" sx={{ ml: 1 }}>
-                        (Thiếu {detail.expected_quantity - totalActualQuantity})
-                      </Typography>
-                    )}
+                        <Typography component="span" color="error" sx={{ ml: 1 }}>
+                          (Thiếu {detail.expected_quantity - totalActualQuantity})
+                        </Typography>
+                      )}
                   </Typography>
                 </Card>
               );
@@ -1197,7 +1231,7 @@ export default function ManageExportOrders() {
 
       {/* Create Internal Export Order Dialog */}
       <Dialog open={internalDialogOpen} onClose={closeInternalDialog} maxWidth="md" fullWidth>
-        <DialogTitle component="div">Tạo Đơn Xuất Nội Bộ</DialogTitle>
+        <DialogTitle component="div">Tạo phiếu xuất hủy</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
             <Button variant="outlined" onClick={addInternalLine} disabled={loadingMedicines}>
@@ -1231,7 +1265,7 @@ export default function ManageExportOrders() {
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid item xs={12}>
                       <TextField
                         type="number"
                         size="small"
@@ -1242,31 +1276,24 @@ export default function ManageExportOrders() {
                         inputProps={{ min: 0 }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={3}>
-                      <Button
-                        variant="outlined"
-                        disabled={!line.medicine_id}
-                        onClick={async () => {
-                          if (!availablePackages[line.medicine_id]) {
-                            try {
-                              const pkgs = await fetchAvailablePackages(line.medicine_id);
-                              setAvailablePackages((prev) => ({ ...prev, [line.medicine_id]: pkgs }));
-                            } catch (e) {
-                              setMessageDialog({ open: true, title: 'Lỗi', content: e.message || 'Không thể tải packages' });
-                            }
-                          }
-                        }}
-                      >
-                        Tải thùng hàng
-                      </Button>
-                    </Grid>
+
                   </Grid>
 
                   <Divider sx={{ my: 2 }} />
 
-                  <Typography variant="subtitle2" gutterBottom>
-                    Chọn thùng hàng (SL tồn, nhập SL hủy → hệ thống tính SL còn lại)
-                  </Typography>
+                  <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Typography variant="subtitle2">
+                      Chọn thùng hàng (SL tồn, nhập SL hủy → hệ thống tính SL còn lại)
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      startIcon={<QrCodeScanner />}
+                      onClick={() => handleScanPackageForLine(idx)}
+                      size="small"
+                    >
+                      Quét Package
+                    </Button>
+                  </Box>
 
                   {pkgList.length === 0 ? (
                     <Typography variant="body2" color="text.secondary">
@@ -1284,10 +1311,16 @@ export default function ManageExportOrders() {
                             gap={2}
                             sx={{ p: 1, border: '1px solid', borderColor: picked ? 'primary.main' : 'grey.300', borderRadius: 1 }}
                           >
-                            <Typography variant="body2" flex={1}>
-                              {pkg.batch.batch_code} | Tồn: {pkg.quantity} | Vị trí: {pkg.location.area_name || ''}-{pkg.location.bay || ''}
-                              -{pkg.location.row || ''}-{pkg.location.column || ''}
-                            </Typography>
+                            <Box flex={1}>
+                              <Typography variant="body2" gutterBottom>
+                                <strong>Batch:</strong> {pkg.batch.batch_code} | <strong>Tồn:</strong> {pkg.quantity} | <strong>Vị trí:</strong> {pkg.location.area_name || ''}-{pkg.location.bay || ''}-{pkg.location.row || ''}-{pkg.location.column || ''}
+                              </Typography>
+                              <Tooltip title={`Full Package ID: ${pkg._id}`} arrow>
+                                <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'medium', cursor: 'help' }}>
+                                  📦 Package ID: ...{pkg._id.slice(-6)}
+                                </Typography>
+                              </Tooltip>
+                            </Box>
                             {picked ? (
                               <>
                                 <TextField
