@@ -16,7 +16,14 @@ const populateOptions = [
   { path: 'created_by', select: 'name email role' },
   { path: 'approval_by', select: 'name email role' },
   { path: 'details.medicine_id', select: 'medicine_name license_code unit_of_measure' }, // Thêm unit_of_measure
-  { path: 'details.actual_item.package_id', select: 'package_code' }, // Thêm nếu cần
+  { 
+    path: 'details.actual_item.package_id', 
+    select: 'package_code quantity',
+    populate: [
+      { path: 'batch_id', select: 'batch_code expiry_date' },
+      { path: 'location_id', select: 'area_name bay row column' }
+    ]
+  }, // Populate đầy đủ package với batch và location
   { path: 'details.actual_item.created_by', select: 'email' }, // Thêm nếu cần
 ];
 
