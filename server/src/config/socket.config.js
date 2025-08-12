@@ -6,7 +6,7 @@ const setupSocketIO = (server, options = {}) => {
       const allowedOrigins = [
         'http://localhost:3000',
         'https://pharmaceutical-distribution-warehou.vercel.app',
-        process.env.CLIENT_URL
+        process.env.CLIENT_URL,
       ].filter(Boolean);
 
       // Cho phép kết nối từ localhost và vercel
@@ -30,8 +30,6 @@ const setupSocketIO = (server, options = {}) => {
   });
 
   io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.id}`);
-
     // Xử lý join nhiều room cùng lúc
     socket.on('joinRooms', (rooms) => {
       if (!rooms) return;

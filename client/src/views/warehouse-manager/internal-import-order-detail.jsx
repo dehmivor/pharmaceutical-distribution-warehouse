@@ -29,7 +29,10 @@ import {
   Typography,
   Stack,
   TextField,
-  Tooltip
+  Tooltip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -40,7 +43,8 @@ import {
   Delete as DeleteIcon,
   AddCircle as AddCircleIcon,
   DeleteForever as DeleteForeverIcon,
-  Receipt as ReceiptIcon
+  Receipt as ReceiptIcon,
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
@@ -768,6 +772,34 @@ const InternalImportOrderDetail = ({ orderId }) => {
     }
   };
 
+  const handleArrival = async () => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.patch(
+        `${backendUrl}/api/import-orders/${orderId}/status`,
+        { status: 'delivered' },
+        { headers: getAuthHeaders() }
+      );
+
+      if (response.data.success) {
+        setOrder((prev) => ({ ...prev, status: 'delivered' }));
+        setSnackbar({
+          open: true,
+          message: 'Order status updated to delivered.',
+          severity: 'success'
+        });
+        await fetchPutAway(); // Refresh packages after arrival
+      }
+    } catch (err) {
+      console.error('Error updating order status to delivered:', err);
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.error || 'Failed to update order status to delivered',
+        severity: 'error'
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -814,132 +846,60 @@ const InternalImportOrderDetail = ({ orderId }) => {
         </Box>
       </Box>
 
-      {/* Order Info Card */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" gutterBottom>
-                Order Information
-              </Typography>
-              <Stack spacing={1}>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Status:</Typography>
-                  <Chip 
-                    label={getStatusLabel(order.status)} 
-                    color={getStatusColor(order.status)}
-                    size="small"
-                  />
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Created by:</Typography>
-                  <Typography variant="body2">
-                    {order.created_by?.name || 'N/A'}
-                  </Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Created at:</Typography>
-                  <Typography variant="body2">
-                    {new Date(order.createdAt).toLocaleString()}
-                  </Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Warehouse Manager:</Typography>
-                  <Typography variant="body2">
-                    {order.warehouse_manager_id?.name || 'N/A'}
-                  </Typography>
-                </Box>
-              </Stack>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" gutterBottom>
-                Order Summary
-              </Typography>
-              <Stack spacing={1}>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Total Items:</Typography>
-                  <Typography variant="body2">{order.details?.length || 0}</Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Total Quantity:</Typography>
-                  <Typography variant="body2">{totalQuantity}</Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Total Amount:</Typography>
-                  <Typography variant="body2">
-                    ${totalAmount.toLocaleString()}
-                  </Typography>
-                </Box>
-                <Box display="flex" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">Type:</Typography>
-                  <Chip 
-                    label="Internal Order" 
-                    color="info" 
-                    size="small"
-                    variant="outlined"
-                  />
-                </Box>
-              </Stack>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
 
-      {/* Order Details */}
+      {/* Order Detail Section */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Order Details
-          </Typography>
-          <TableContainer component={Paper} variant="outlined">
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Medicine</TableCell>
-                  <TableCell align="right">Quantity</TableCell>
-                  <TableCell align="right">Unit Price</TableCell>
-                  <TableCell align="right">Total</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {order.details?.map((detail, index) => (
-                  <TableRow key={index}>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body2" fontWeight="medium">
-                          {detail.medicine_id?.medicine_name || 'N/A'}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {detail.medicine_id?.license_code || 'N/A'}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell align="right">
-                      {detail.quantity?.toLocaleString() || 0}
-                    </TableCell>
-                    <TableCell align="right">
-                      ${detail.unit_price?.toLocaleString() || 0}
-                    </TableCell>
-                    <TableCell align="right">
-                      ${((detail.quantity || 0) * (detail.unit_price || 0)).toLocaleString()}
-                    </TableCell>
-                  </TableRow>
+          <Accordion defaultExpanded>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="h6" fontWeight="bold">
+                Order Detail
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2} mb={2} alignItems="center">
+                <Grid item xs={12} sm={3}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Status:
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {order.status}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Contract:
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    N/A
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Supplier:
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    N/A
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={3} display="flex" justifyContent="flex-end" alignItems="center">
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ mb: 2 }} />
+
+              <Typography variant="subtitle1" mb={1} fontWeight="bold">
+                Items:
+              </Typography>
+              <Stack spacing={1} mb={2}>
+                {order.details?.map((d) => (
+                  <Typography key={d._id} variant="body2">
+                    • <strong>{d.medicine_id?.medicine_name}</strong> ({d.medicine_id?.license_code}): {d.quantity}
+                  </Typography>
                 ))}
-                <TableRow>
-                  <TableCell colSpan={3}>
-                    <Typography variant="body1" fontWeight="medium">
-                      Total
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body1" fontWeight="medium">
-                      ${totalAmount.toLocaleString()}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </TableContainer>
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
         </CardContent>
       </Card>
 

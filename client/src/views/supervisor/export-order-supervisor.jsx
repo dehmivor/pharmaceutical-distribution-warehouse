@@ -440,7 +440,9 @@ export default function ExportOrderSupervisor() {
 
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
-        <DialogTitle>Export Order Details</DialogTitle>
+        <DialogTitle>
+          {selectedOrder && !selectedOrder.contract_id ? 'Phiếu xuất hủy' : 'Export Order Details'}
+        </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           {selectedOrder && (
             <Box sx={{ mt: 2 }}>
@@ -543,12 +545,6 @@ export default function ExportOrderSupervisor() {
                     <Grid container spacing={2}>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
-                          Warehouse
-                        </Typography>
-                        <Typography variant="body1">{selectedOrder.warehouse_id?.email || 'N/A'}</Typography>
-                      </Grid>
-                      <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">
                           Warehouse Manager
                         </Typography>
                         <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || selectedOrder.created_by?.email || 'Not Assigned'}</Typography>
@@ -582,12 +578,7 @@ export default function ExportOrderSupervisor() {
                         </Typography>
                         <Typography variant="body1">{selectedOrder.created_by?.email || 'N/A'}</Typography>
                       </Grid>
-                      <Grid item xs={6} md={12}>
-                        <Typography variant="subtitle2" color="textSecondary">
-                          Approved By
-                        </Typography>
-                        <Typography variant="body1">{selectedOrder.approval_by?.name || 'N/A'}</Typography>
-                      </Grid>
+
                     </Grid>
                   </Paper>
                 </Grid>
@@ -603,8 +594,13 @@ export default function ExportOrderSupervisor() {
                             <TableCell>Medicine Name</TableCell>
                             <TableCell>License Code</TableCell>
                             <TableCell align="right">Quantity</TableCell>
-                            <TableCell align="right">Unit Price</TableCell>
-                            <TableCell align="right">Total</TableCell>
+                            {/* Only show pricing columns for regular orders */}
+                            {selectedOrder.contract_id && (
+                              <>
+                                <TableCell align="right">Unit Price</TableCell>
+                                <TableCell align="right">Total</TableCell>
+                              </>
+                            )}
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -620,38 +616,46 @@ export default function ExportOrderSupervisor() {
                                   return actual > 0 ? actual : (detail.expected_quantity || 0);
                                 })()
                               }</TableCell>
-                              <TableCell align="right">{formatCurrency(detail.unit_price)}</TableCell>
-                              <TableCell align="right">{
-                                (() => {
-                                  const actual = Array.isArray(detail.actual_item)
-                                    ? detail.actual_item.reduce((s, it) => s + (it.quantity || 0), 0)
-                                    : 0;
-                                  const qty = actual > 0 ? actual : (detail.expected_quantity || 0);
-                                  return formatCurrency(qty * (detail.unit_price || 0));
-                                })()
-                              }</TableCell>
+                              {/* Only show pricing values for regular orders */}
+                              {selectedOrder.contract_id && (
+                                <>
+                                  <TableCell align="right">{formatCurrency(detail.unit_price)}</TableCell>
+                                  <TableCell align="right">{
+                                    (() => {
+                                      const actual = Array.isArray(detail.actual_item)
+                                        ? detail.actual_item.reduce((s, it) => s + (it.quantity || 0), 0)
+                                        : 0;
+                                      const qty = actual > 0 ? actual : (detail.expected_quantity || 0);
+                                      return formatCurrency(qty * (detail.unit_price || 0));
+                                    })()
+                                  }</TableCell>
+                                </>
+                              )}
                             </TableRow>
                           ))}
-                          <TableRow>
-                            <TableCell colSpan={4}>
-                              <Typography variant="subtitle1" fontWeight="bold">
-                                Total Amount
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography variant="subtitle1" fontWeight="bold">
-                                {formatCurrency(
-                                  (selectedOrder.details || []).reduce((total, detail) => {
-                                    const actual = Array.isArray(detail.actual_item)
-                                      ? detail.actual_item.reduce((s, it) => s + (it.quantity || 0), 0)
-                                      : 0;
-                                    const qty = actual > 0 ? actual : (detail.expected_quantity || 0);
-                                    return total + qty * (detail.unit_price || 0);
-                                  }, 0)
-                                )}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
+                          {/* Only show Total Amount row for regular orders */}
+                          {selectedOrder.contract_id && (
+                            <TableRow>
+                              <TableCell colSpan={5}>
+                                <Typography variant="subtitle1" fontWeight="bold">
+                                  Total Amount
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography variant="subtitle1" fontWeight="bold">
+                                  {formatCurrency(
+                                    (selectedOrder.details || []).reduce((total, detail) => {
+                                      const actual = Array.isArray(detail.actual_item)
+                                        ? detail.actual_item.reduce((s, it) => s + (it.quantity || 0), 0)
+                                        : 0;
+                                      const qty = actual > 0 ? actual : (detail.expected_quantity || 0);
+                                      return total + qty * (detail.unit_price || 0);
+                                    }, 0)
+                                  )}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          )}
                         </TableBody>
                       </Table>
                     </TableContainer>
@@ -677,9 +681,7 @@ export default function ExportOrderSupervisor() {
                                 <TableCell>Batch</TableCell>
                                 <TableCell>Expiry</TableCell>
                                 <TableCell>Location</TableCell>
-                                <TableCell align="right">Current Stock</TableCell>
                                 <TableCell align="right">Destroy Qty</TableCell>
-                                <TableCell align="right">Remaining After</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
@@ -687,23 +689,17 @@ export default function ExportOrderSupervisor() {
                                 const pid = it.package_id?._id || it.package_id;
                                 const info = pid ? pkgInfoMap[pid] : null;
                                 const qty = it.quantity || 0;
-                                const currentStock = info?.quantity ?? '-';
-                                const batchCode = info?.batch_id?.batch_code || info?.batch?.batch_code || '-';
-                                const expiry = info?.batch_id?.expiry_date || info?.batch?.expiry_date || null;
-                                const loc = info?.location_id || info?.location || null;
+                                const batchCode = info?.batch_code || '-';
+                                const expiry = info?.expiry_date || null;
+                                const loc = info?.location || null;
                                 const locText = loc ? `${loc.area_name || ''}-${loc.bay || ''}-${loc.row || ''}-${loc.column || ''}` : '-';
-                                const remaining = typeof currentStock === 'number'
-                                  ? (selectedOrder.status === 'completed' ? currentStock : Math.max(0, currentStock - qty))
-                                  : '-';
                                 return (
                                   <TableRow key={idx2}>
                                     <TableCell>{info?.package_code || it.package_id?.package_code || pid}</TableCell>
                                     <TableCell>{batchCode}</TableCell>
                                     <TableCell>{expiry ? new Date(expiry).toLocaleDateString() : '-'}</TableCell>
                                     <TableCell>{locText}</TableCell>
-                                    <TableCell align="right">{typeof currentStock === 'number' ? currentStock : '-'}</TableCell>
                                     <TableCell align="right">{qty}</TableCell>
-                                    <TableCell align="right">{remaining}</TableCell>
                                   </TableRow>
                                 );
                               })}

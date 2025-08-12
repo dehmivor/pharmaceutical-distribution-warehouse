@@ -10,13 +10,9 @@ const server = http.createServer(app);
 mongoose
   .connect(config.db.uri, config.db.options)
   .then(() => {
-    console.log('✅ MongoDB connected');
-
     try {
       const io = setupSocketIO(server);
       app.locals.io = io;
-
-      console.log('✅ Socket.IO setup completed');
 
       server.listen(config.port, () => {
         console.log(`🚀 Server running at http://localhost:${config.port}`);
