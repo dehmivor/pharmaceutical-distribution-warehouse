@@ -116,7 +116,7 @@ const getCheckOrderById = async (checkOrderId) => {
   }
 };
 
-const updateCheckOrderStatus = async (checkOrderId, status) => {
+const updateCheckOrderStatus = async (checkOrderId, status, io) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(checkOrderId)) {
       throw new Error('Invalid check order ID');
@@ -147,10 +147,12 @@ const updateCheckOrderStatus = async (checkOrderId, status) => {
       });
 
       if (newNotification && io) {
+        console.log('Emitting newNotification to system room');
         io.to('system').emit('newNotification', newNotification);
+      } else {
+        console.log('Cannot emit: io =', io);
       }
     }
-
     return updatedCheckOrder;
   } catch (error) {
     console.error('Error updating check order status:', error);

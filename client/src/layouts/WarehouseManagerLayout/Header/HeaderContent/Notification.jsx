@@ -131,6 +131,31 @@ export default function Notification() {
 
   useEffect(() => {
     if (!userId) return;
+    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
+      withCredentials: true
+    });
+
+    // Thêm log để kiểm tra connection
+    socket.on('connect', () => {
+      console.log('Socket connected:', socket.id);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Socket disconnected');
+    });
+
+    socket.emit('joinRooms', [userId, 'system']);
+    console.log('Joined rooms:', [userId, 'system']); // ← Thêm log
+
+    socket.on('newNotification', (notification) => {
+      console.log('Received newNotification:', notification); // ← Thêm log
+      const newNoti = { ...notification, id: notification._id || notification.id };
+
+      setNotifications((prev) => {
+        if (prev.findIndex((n) => n.id === newNoti.id) !== -1) return prev;
+        return [newNoti, ...prev];
+      });
+    });
 
     const fetchNotifications = async () => {
       setLoading(true);
@@ -149,10 +174,6 @@ export default function Notification() {
     };
 
     fetchNotifications();
-
-    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
-      withCredentials: true
-    });
 
     socket.emit('joinRooms', [userId, 'system']);
 

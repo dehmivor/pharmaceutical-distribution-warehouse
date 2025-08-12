@@ -96,11 +96,87 @@ function CheckInspections() {
       });
   }, []);
 
+  // useEffect đầu tiên - chỉ để hiển thị detail (không có thông báo)
   useEffect(() => {
-    fetchOrderAndDecide();
+    fetchOrderForDisplay();
   }, [checkOrderId]);
-  // Load check order details and inventory items
 
+  // useEffect thứ hai - để update status (có thông báo)
+  useEffect(() => {
+    const createInspectionsAndUpdateStatus = async () => {
+      if (!checkOrderId || !checkBy || !orderData) return;
+      if (orderData.status?.toLowerCase() === 'processing') return;
+
+      setLoading(true);
+      try {
+        const updateRes = await axios.patch(
+          `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
+          { status: 'processing' },
+          { headers: getAuthHeaders() }
+        );
+
+        if (updateRes.data?.success && updateRes.data.updated === true) {
+          enqueueSnackbar(updateRes.data.message || 'Cập nhật trạng thái đơn kiểm kê thành công.', {
+            variant: 'success'
+          });
+
+          const createRes = await axios.post(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {}, { headers: getAuthHeaders() });
+
+          enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
+            variant: createRes.data?.success ? 'success' : 'info'
+          });
+
+          // Refresh data
+          await fetchOrderForDisplay();
+          fetchInspections(0, rowsPerPage);
+        } else if (updateRes.data?.updated === false) {
+          enqueueSnackbar(updateRes.data.message || 'Đang có đợt kiểm kê khác, trạng thái giữ nguyên.', {
+            variant: 'info'
+          });
+        }
+      } catch (error) {
+        const errorMsg = error.response?.data?.message || 'Tạo phiếu hoặc cập nhật trạng thái thất bại.';
+        console.error('Lỗi khi tạo phiếu hoặc cập nhật trạng thái:', error);
+        enqueueSnackbar(errorMsg, { variant: 'error' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    createInspectionsAndUpdateStatus();
+  }, [checkOrderId, checkBy]);
+
+  const fetchOrderForDisplay = async () => {
+    if (!checkOrderId) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
+        headers: getAuthHeaders()
+      });
+      if (res.data?.success && res.data.data) {
+        const order = res.data.data.checkorder;
+        setOrderData(order);
+
+        // Chỉ set inventory items, không có thông báo
+        if (Array.isArray(order.items)) {
+          const items = order.items.map((item) => ({
+            id: item.medicine_id._id,
+            name: item.medicine_id.medicine_name,
+            stock: item.stock
+          }));
+          setInventoryItems(items);
+        }
+        fetchInspections(0, rowsPerPage);
+      } else {
+        enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
+      }
+    } catch (error) {
+      console.error('Failed to load check order:', error);
+      enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
   const fetchOrderAndDecide = async () => {
     if (!checkOrderId) return;
     setLoading(true);
@@ -112,27 +188,21 @@ function CheckInspections() {
         const order = res.data.data.checkorder;
         setOrderData(order);
 
+        // Chỉ hiển thị thông báo khi status là processing
         if (order.status?.toLowerCase() === 'processing') {
           enqueueSnackbar('Toàn kho đang trong trạng thái khóa, không thể tạo phiếu mới', { variant: 'info' });
-          if (Array.isArray(order.items)) {
-            const items = order.items.map((item) => ({
-              id: item.medicine_id._id,
-              name: item.medicine_id.medicine_name,
-              stock: item.stock
-            }));
-            setInventoryItems(items);
-          }
-          fetchInspections(0, rowsPerPage);
-        } else {
-          if (Array.isArray(order.items)) {
-            const items = order.items.map((item) => ({
-              id: item.medicine_id._id,
-              name: item.medicine_id.medicine_name,
-              stock: item.stock
-            }));
-            setInventoryItems(items);
-          }
         }
+
+        // Luôn set inventory items
+        if (Array.isArray(order.items)) {
+          const items = order.items.map((item) => ({
+            id: item.medicine_id._id,
+            name: item.medicine_id.medicine_name,
+            stock: item.stock
+          }));
+          setInventoryItems(items);
+        }
+        fetchInspections(0, rowsPerPage);
       } else {
         enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
       }

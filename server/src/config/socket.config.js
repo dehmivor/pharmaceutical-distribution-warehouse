@@ -27,6 +27,9 @@ const setupSocketIO = (server, options = {}) => {
     socket.on('joinRooms', (rooms) => {
       if (!rooms) return;
 
+      console.log('User joining rooms:', rooms);
+
+      // Chỉ join 1 lần
       if (Array.isArray(rooms)) {
         rooms.forEach((room) => {
           socket.join(room);

@@ -173,6 +173,7 @@ const updateCheckOrderStatus = async (req, res) => {
   try {
     const checkOrderId = req.params.id;
     const { status } = req.body;
+    const io = req.app.locals.io;
 
     if (!mongoose.Types.ObjectId.isValid(checkOrderId)) {
       return res.status(400).json({
@@ -194,8 +195,11 @@ const updateCheckOrderStatus = async (req, res) => {
       }
     }
 
-    const updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
-
+    const updatedCheckOrder = await inventoryService.updateCheckOrderStatus(
+      checkOrderId,
+      status,
+      io,
+    );
     if (!updatedCheckOrder) {
       return res.status(404).json({
         success: false,
