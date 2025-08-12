@@ -405,10 +405,9 @@ function ImportOrderDetail() {
                 <RefreshIcon />
               </IconButton>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 2 }}>
-                <IconButton onClick={openSearchModal} size="small">
-                  <SearchIcon />
-                </IconButton>
-                <Typography variant="body2">Find by package ID</Typography>
+                <Button size="small" color="primary" onClick={openSearchModal} sx={{ ml: 2 }} startIcon={<SearchIcon />}>
+                  Find package by ID
+                </Button >
               </Stack>
               {loadingPutAway ? (
                 <CircularProgress />
@@ -526,13 +525,13 @@ function ImportOrderDetail() {
                   inputProps={{ maxLength: 24 }}
                 />
                 <Button onClick={handleLookupLocation} variant="outlined">
-                  Auto‑fill
+                  Check
                 </Button>
               </Stack>
 
               <FormControl fullWidth>
                 <InputLabel>Area</InputLabel>
-                <Select value={locForm.area_id || ''} label="Area" onChange={(e) => setLocForm({ ...locForm, area_id: e.target.value })}>
+                <Select value={locForm.area_id || ''} label="Area" onChange={(e) => setLocForm({ ...locForm, area_id: e.target.value })} disabled>
                   {Array.isArray(areas) &&
                     areas.map((a) => (
                       <MenuItem key={a._id} value={a._id}>
@@ -541,14 +540,9 @@ function ImportOrderDetail() {
                     ))}
                 </Select>
               </FormControl>
-              <TextField label="Bay" value={locForm.bay} onChange={(e) => setLocForm({ ...locForm, bay: e.target.value })} fullWidth />
-              <TextField label="Row" value={locForm.row} onChange={(e) => setLocForm({ ...locForm, row: e.target.value })} fullWidth />
-              <TextField
-                label="Level"
-                value={locForm.level}
-                onChange={(e) => setLocForm({ ...locForm, level: e.target.value })}
-                fullWidth
-              />
+              <TextField label="Bay" value={locForm.bay} onChange={(e) => setLocForm({ ...locForm, bay: e.target.value })} fullWidth disabled/>
+              <TextField label="Row" value={locForm.row} onChange={(e) => setLocForm({ ...locForm, row: e.target.value })} fullWidth disabled/>
+              <TextField label="Level" value={locForm.level} onChange={(e) => setLocForm({ ...locForm, level: e.target.value })} fullWidth disabled/>
               {locError && <Alert severity="error">{locError}</Alert>}
             </Stack>
           </DialogContent>

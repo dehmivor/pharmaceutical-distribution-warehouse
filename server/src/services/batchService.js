@@ -1,11 +1,15 @@
 const Batch = require('../models/Batch');
 
 const getValidBatches = async (medicineId) => {
-  const today = new Date();
+  if (!medicineId) throw new Error('medicineId is required');
+
+  // compute date one year from today
+  const minExpiry = new Date();
+  minExpiry.setFullYear(minExpiry.getFullYear() + 1);
 
   const batches = await Batch.find({
     medicine_id: medicineId,
-    expiry_date: { $gt: today },
+    expiry_date: { $gte: minExpiry }, // only batches expiring >= 1 year from now
   })
     .populate({
       path: 'medicine_id',

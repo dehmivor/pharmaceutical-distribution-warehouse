@@ -3,6 +3,24 @@ const medicineService = require('../services/medicineService');
 const { validationResult } = require('express-validator');
 const constants = require('../utils/constants');
 
+const toShortMonth = (ym) => {
+  if (typeof ym !== 'string') return ym;
+  const m = /^\s*(\d{4})-(\d{1,2})\s*$/.exec(ym);
+  if (m) {
+    const yy = m[1].slice(-2);
+    const mm = m[2].padStart(2, '0');
+    return `${yy}-${mm}`;
+  }
+  const parts = ym.split('-');
+  if (parts.length >= 2) {
+    const y = parts[0];
+    const yy = y.length === 4 ? y.slice(-2) : y;
+    const mm = parts[1].padStart(2, '0');
+    return `${yy}-${mm}`;
+  }
+  return ym;
+};
+
 const medicineController = {
   // ✅ Get all medicines with filters
   getMedicinesPaging: async (req, res) => {
@@ -330,6 +348,40 @@ const medicineController = {
       console.error(err);
       const status = err.statusCode || 500;
       res.status(status).json({ success: false, error: err.message });
+    }
+  },
+
+  getInventoryFlow: async (req, res) => {
+    try {
+      const licenseCode = (req.params.license_code || '').trim();
+      if (!licenseCode) {
+        return res.status(400).json({ success: false, error: 'license_code is required' });
+      }
+
+      const result = await medicineService.getInventoryFlowByLicenseCode(licenseCode);
+
+      // transform months to "YY-MM" format (oldest -> newest)
+      const months = (result._months || []).map(toShortMonth);
+
+      // Return only the shape the client expects
+      return res.json({
+        success: true,
+        meta: {
+          medicine_license_code: licenseCode,
+          months,
+        },
+        data: {
+          import: result.import,
+          export: result.export,
+        },
+      });
+    } catch (err) {
+      if (err && err.status === 404) {
+        return res.status(404).json({ success: false, error: err.message || 'Not found' });
+      }
+
+      console.error('medicineController.getInventoryFlow error:', err);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
   }
 

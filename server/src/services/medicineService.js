@@ -2,6 +2,9 @@
 const Medicine = require('../models/Medicine');
 const Batch = require('../models/Batch');
 const Package = require('../models/Package');
+const ExportOrder = require('../models/ExportOrder');
+const ImportOrder = require('../models/ImportOrder');
+const ImportInspection = require('../models/ImportInspection');
 const axios = require('axios');
 
 // const constants = require('../utils/constants');
@@ -522,7 +525,157 @@ const medicineService = {
       category: data.phanLoai,
       unit_of_measure: data.baoChe
     };
+  },
+
+  getInventoryFlowByLicenseCode: async(licenseCode) => {
+  if (!licenseCode) {
+    const err = new Error('licenseCode is required');
+    err.status = 400;
+    throw err;
   }
+
+  // 1) Find medicine
+  const medicine = await Medicine.findOne({ license_code: licenseCode.trim() }).exec();
+  if (!medicine) {
+    const err = new Error('Medicine not found');
+    err.status = 404;
+    throw err;
+  }
+
+  // 2) Compute 12-month window: start = first day of month 11 months ago, end = now
+  const now = new Date();
+  const startMonth = new Date(now.getFullYear(), now.getMonth() - 11, 1, 0, 0, 0, 0);
+
+  // helper: create months index map and zero-filled arrays
+  const months = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(startMonth.getFullYear(), startMonth.getMonth() + i, 1, 0, 0, 0, 0);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
+    months.push({ key, start: d });
+  }
+  const monthIndex = months.reduce((acc, m, idx) => { acc[m.key] = idx; return acc; }, {});
+
+  // zero-filled arrays (12 values)
+  const zeroArray = () => Array(12).fill(0);
+  const import_contracted = zeroArray();
+  const import_uncontracted = zeroArray();
+  const export_contracted = zeroArray();
+  const export_uncontracted = zeroArray();
+
+  // ---------- EXPORTS ----------
+  // 3) Query export orders referencing this medicine in details within the window and status completed
+  const exportQuery = {
+    status: 'completed',
+    updatedAt: { $gte: startMonth, $lte: now },
+    'details.medicine_id': medicine._id,
+  };
+
+  const exportOrders = await ExportOrder.find(exportQuery)
+    .sort({ updatedAt: 1 })
+    // populate contract_id so we can detect contracted/uncontracted easily (optional)
+    .populate('contract_id')
+    .exec();
+
+  for (const order of exportOrders) {
+    const updated = order.updatedAt || order.updatedAt;
+    if (!updated) continue; // safety
+    const key = `${updated.getFullYear()}-${String(updated.getMonth() + 1).padStart(2, '0')}`;
+    const idx = monthIndex[key];
+    // if order falls outside (shouldn't due to query) skip
+    if (typeof idx !== 'number') continue;
+
+    // Sum relevant detail(s) for this medicine within this order
+    let orderSum = 0;
+    if (Array.isArray(order.details)) {
+      for (const detail of order.details) {
+        if (!detail) continue;
+        // only sum details that refer to our medicine
+        if (detail.medicine_id && detail.medicine_id.toString() === medicine._id.toString()) {
+          // detail.actual_item is expected to be an array of export inspections
+          if (Array.isArray(detail.actual_item)) {
+            for (const item of detail.actual_item) {
+              // Per your spec we use `quantity` on exportInspectionSchema
+              const q = Number(item?.quantity ?? 0);
+              if (!Number.isNaN(q)) orderSum += q;
+            }
+          }
+        }
+      }
+    }
+
+    if (order.contract_id) {
+      export_contracted[idx] += orderSum;
+    } else {
+      export_uncontracted[idx] += orderSum;
+    }
+  }
+
+  // ---------- IMPORTS ----------
+  // 4) Find import orders updated in window that reference this medicine in their details
+  const importQuery = {
+    status: 'completed',
+    updatedAt: { $gte: startMonth, $lte: now },
+    'details.medicine_id': medicine._id,
+  };
+
+  const importOrders = await ImportOrder.find(importQuery)
+    .sort({ updatedAt: 1 })
+    .select('_id contract_id updatedAt')
+    .exec();
+
+  const importOrderIds = importOrders.map((o) => o._id);
+  // build a map for contract_id and updatedAt lookup
+  const importOrderMap = importOrders.reduce((acc, o) => {
+    acc[o._id.toString()] = { contract_id: o.contract_id, updatedAt: o.updatedAt };
+    return acc;
+  }, {});
+
+  // 5) Find import inspections for those orders and this medicine
+  //    then sum (actual_quantity - rejected_quantity) per inspection and assign to month/contract bucket
+  if (importOrderIds.length > 0) {
+    const inspections = await ImportInspection.find({
+      import_order_id: { $in: importOrderIds },
+      medicine_id: medicine._id,
+    }).exec();
+
+    for (const insp of inspections) {
+      const parent = importOrderMap[insp.import_order_id?.toString()];
+      if (!parent) continue;
+      const updated = parent.updatedAt;
+      if (!updated) continue;
+      const key = `${updated.getFullYear()}-${String(updated.getMonth() + 1).padStart(2, '0')}`;
+      const idx = monthIndex[key];
+      if (typeof idx !== 'number') continue;
+
+      const actual = Number(insp.actual_quantity ?? 0);
+      const rejected = Number(insp.rejected_quantity ?? 0);
+      const value = (Number.isNaN(actual) ? 0 : actual) - (Number.isNaN(rejected) ? 0 : rejected);
+
+      if (parent.contract_id) {
+        import_contracted[idx] += value;
+      } else {
+        import_uncontracted[idx] += value;
+      }
+    }
+  }
+
+  // Final object in requested format
+  const result = {
+    import: {
+      contracted_order: import_contracted,
+      uncontracted_order: import_uncontracted,
+    },
+    export: {
+      contracted_order: export_contracted,
+      uncontracted_order: export_uncontracted,
+    },
+    // optional: include month keys so caller knows which index corresponds to which month
+    _months: months.map((m) => m.key), // oldest -> newest
+  };
+
+  return result;
+}
+
 };
 
 module.exports = medicineService;

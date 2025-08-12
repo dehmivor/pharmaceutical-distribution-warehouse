@@ -3,6 +3,24 @@ const userService = require('../services/userService');
 const locationService = require('../services/locationService');
 
 
+const toShortMonth = (ym) => {
+  if (typeof ym !== 'string') return ym;
+  const m = /^\s*(\d{4})-(\d{1,2})\s*$/.exec(ym);
+  if (m) {
+    const yy = m[1].slice(-2);
+    const mm = m[2].padStart(2, '0');
+    return `${yy}-${mm}`;
+  }
+  const parts = ym.split('-');
+  if (parts.length >= 2) {
+    const y = parts[0];
+    const yy = y.length === 4 ? y.slice(-2) : y;
+    const mm = parts[1].padStart(2, '0');
+    return `${yy}-${mm}`;
+  }
+  return ym;
+};
+
 const logLocationChangeController = {
 
     getLogLocationChanges: async (req, res) => {
@@ -77,6 +95,36 @@ const logLocationChangeController = {
         } catch (err) {
             console.error('Error fetching log location changes:', err);
             return res.status(500).json({ success: false, error: 'Server error' });
+        }
+    },
+
+    getHistoryLast6Months: async (req, res) => {
+        try {
+            const licenseCode = (req.params.license_code || '').trim();
+            if (!licenseCode) {
+                return res.status(400).json({ success: false, error: 'license_code is required' });
+            }
+            const data = await logLocationChangeService.getHistoryLast6MonthsByLicenseCode(licenseCode);
+
+            // Return in requested format:
+            // { contracted_order: [...], months: [...] }
+            return res.json({
+                success: true,
+                meta: {
+                    medicine_license_code: licenseCode,
+                },
+                data: {
+                    quantity: data.contracted_order,
+                    months: data.months,
+                },
+            });
+        } catch (err) {
+            if (err && err.status === 404) {
+                return res.status(404).json({ success: false, error: err.message || 'Not found' });
+            }
+
+            console.error('medicineHistoryController.getHistoryLast6Months error:', err);
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
     }
 

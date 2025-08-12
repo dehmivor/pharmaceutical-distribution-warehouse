@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const medicineController = require('../controllers/medicineController');
 const authenticate = require('../middlewares/authenticate'); // Giả sử bạn có middleware này
+const authorize = require('../middlewares/authorize');
 
 // === MEDICINE ROUTES ===
 
@@ -22,6 +23,15 @@ router.delete('/:id', medicineController.deleteMedicine);
 router.get('/all/v1', medicineController.getAllMedicines);
 
 router.get('/info/:code', medicineController.getDrugInfo);
+
+router.get(
+    '/:license_code/inventory-flow-last-12-months',
+    authorize([
+        'representative',
+        'representative_manager',
+    ]),
+    medicineController.getInventoryFlow
+);
 
 
 module.exports = router;
