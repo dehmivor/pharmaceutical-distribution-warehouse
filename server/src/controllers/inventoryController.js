@@ -1,8 +1,8 @@
 const inventoryService = require('../services/inventoryService');
+const inventoryCheckInspectionService = require('../services/inventoryCheckInspectionService');
 const mongoose = require('mongoose');
 const Location = require('../models/Location');
 const Package = require('../models/Package');
-const { INVENTORY_CHECK_INSPECTION_STATUSES } = require('../utils/constants');
 const { INVENTORY_CHECK_ORDER_STATUSES } = require('../utils/constants');
 const getInspectionsFromCheckOrder = async (req, res) => {
   try {
@@ -173,6 +173,7 @@ const updateCheckOrderStatus = async (req, res) => {
   try {
     const checkOrderId = req.params.id;
     const { status } = req.body;
+    const io = req.app.locals.io;
 
     if (!mongoose.Types.ObjectId.isValid(checkOrderId)) {
       return res.status(400).json({
@@ -194,7 +195,17 @@ const updateCheckOrderStatus = async (req, res) => {
       }
     }
 
-    const updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
+    let updatedCheckOrder;
+    if (status === INVENTORY_CHECK_ORDER_STATUSES.COMPLETED) {
+      // Áp dụng kết quả kiểm kê trước khi cập nhật trạng thái nếu hoàn thành
+      await inventoryCheckInspectionService.applyInspectionResults(checkOrderId);
+
+      // Cập nhật trạng thái đơn kiểm kê, có truyền io nếu hàm support
+      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status, io);
+    } else {
+      // Cập nhật trạng thái cho các trường hợp khác như cancelled, processing, ...
+      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status, io);
+    }
 
     if (!updatedCheckOrder) {
       return res.status(404).json({

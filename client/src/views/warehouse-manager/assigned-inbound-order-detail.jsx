@@ -87,8 +87,15 @@ function ImportOrderDetail() {
   const userId = userData.userId;
 
   const [confirmFinishInspection, setConfirmFinishInspection] = useState(false);
+  const [batchOptions, setBatchOptions] = useState([]);
 
   const today = new Date().toISOString().split('T')[0];
+
+
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [inspectionLoading, setInspectionLoading] = useState(false);
+  const [packageLoading, setPackageLoading] = useState(false);
+  const [finalizeLoading, setFinalizeLoading] = useState(false);
 
   // Initial fetch: order + inspections + initial packages
   useEffect(() => {
@@ -258,7 +265,7 @@ function ImportOrderDetail() {
     }
   };
 
-  const [batchOptions, setBatchOptions] = useState([]);
+
 
   useEffect(() => {
     const opts = inspections
@@ -337,14 +344,7 @@ function ImportOrderDetail() {
     return acc;
   }, []);
 
-  // 1) Build map: medicineId → net inspected quantity
-  const netByMedicine = inspections.reduce((acc, ins) => {
-    const medId = ins.medicine_id?.license_code;
-    if (!medId) return acc;
-    const net = ins.actual_quantity - ins.rejected_quantity;
-    acc[medId] = (acc[medId] || 0) + net;
-    return acc;
-  }, {});
+
 
   function getLicenseCodeById(id, array) {
     const item = array.find((el) => el.id === id);
@@ -354,28 +354,69 @@ function ImportOrderDetail() {
     return match ? match[1] : null;
   }
 
-  // 3) Build map: medicineId → total packaged quantity
-  const packedByMedicine = packages.reduce((acc, pkg) => {
-    const medId = getLicenseCodeById(pkg.batch_id, allBatchOptions);
-    if (!medId) return acc;
-    acc[medId] = (acc[medId] || 0) + Number(pkg.quantity || 0);
-    return acc;
-  }, {});
+  function validatePackages({ packages, inspections, allBatchOptions, uniqueInspections }) {
+    // 1) quick checks
+    if (!packages || packages.length === 0) {
+      return { valid: false, message: 'You must add at least one package row.' };
+    }
 
-  // 4) Validation: non‑empty, every row has a batch, and the two maps match exactly
-  const isValid =
-    // must have at least one package row
-    packages.length > 0 &&
-    //every row quantity != 0
-    packages.every((p) => p.quantity != 0) &&
-    // every row has a selected batch
-    packages.every((p) => Boolean(p.batch_id)) &&
-    // every row has a quantity
-    packages.every((p) => Boolean(p.quantity)) &&
-    // same number of distinct medicines
-    Object.keys(netByMedicine).length === Object.keys(packedByMedicine).length &&
-    // every medicine’s net inspected qty equals packaged qty
-    Object.entries(netByMedicine).every(([medId, net]) => packedByMedicine[medId] === net);
+    // any row missing batch?
+    const missingBatch = packages.some((p) => !p.batch_id);
+    if (missingBatch) {
+      return { valid: false, message: 'Every package row must have a selected batch.' };
+    }
+
+    // any row with non-positive quantity?
+    const anyNonPositive = packages.some((p) => Number(p.quantity) <= 0 || p.quantity === '' || p.quantity == null);
+    if (anyNonPositive) {
+      return { valid: false, message: 'All package quantities must be greater than 0.' };
+    }
+
+    // 2) Build metrics: medicineId -> net inspected qty
+    const netByMedicine = inspections.reduce((acc, ins) => {
+      const medId = ins.medicine_id?.license_code;
+      if (!medId) return acc;
+      const net = Number(ins.actual_quantity || 0) - Number(ins.rejected_quantity || 0);
+      acc[medId] = (acc[medId] || 0) + net;
+      return acc;
+    }, {});
+
+    // 3) Build metrics: medicineId -> total packaged qty
+    const packedByMedicine = packages.reduce((acc, pkg) => {
+      const medId = getLicenseCodeById(pkg.batch_id, allBatchOptions);
+      if (!medId) return acc;
+      acc[medId] = (acc[medId] || 0) + Number(pkg.quantity || 0);
+      return acc;
+    }, {});
+
+    // 4) quick mismatch: distinct medicine counts
+    if (Object.keys(netByMedicine).length !== Object.keys(packedByMedicine).length) {
+      return { valid: false, message: 'Number of distinct medicines in packages does not match inspections.' };
+    }
+
+    // 5) detailed diff: find over/under per medicine
+    const diffs = Object.entries(netByMedicine).map(([medId, netQty]) => {
+      const packedQty = packedByMedicine[medId] || 0;
+      const diff = packedQty - netQty; // positive => over, negative => under
+      return { medId, netQty, packedQty, diff };
+    }).filter(d => d.diff !== 0);
+
+    if (diffs.length > 0) {
+      // Build a concise message; use uniqueInspections to map license -> human name when possible
+      const messages = diffs.map(d => {
+        const med = uniqueInspections.find((i) => i.medicine_id.license_code === d.medId)?.medicine_id;
+        const name = med?.medicine_name || d.medId;
+        const verb = d.diff > 0 ? 'over' : 'under';
+        return `${name} is ${Math.abs(d.diff)} unit ${verb}`;
+      });
+      return { valid: false, message: messages.join('; ') };
+    }
+
+    // all checks passed
+    return { valid: true, message: 'Valid input' };
+  }
+
+  const validation = validatePackages({ packages, inspections, allBatchOptions, uniqueInspections });
 
   const addPackageRow = () => {
     setPackages((pkgs) => [...pkgs, { batch_id: batchOptions[0]?.id || '', quantity: 0 }]);
@@ -403,7 +444,7 @@ function ImportOrderDetail() {
       // Remove it directly from the inspections array
       setInspections((prev) => prev.filter((insp) => insp._id !== inspectionId));
       fetchInspection();
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const onFinishClickInspection = async () => {
@@ -510,6 +551,7 @@ function ImportOrderDetail() {
 
   const handleArrival = async () => {
     try {
+      setAssignLoading(true)
       await handleSelfAssign();
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
@@ -520,6 +562,7 @@ function ImportOrderDetail() {
       );
       setOrder((prev) => ({ ...prev, status: 'delivered' }));
       enableAccordion('delivered');
+      setAssignLoading(false)
     } catch (err) {
       console.error('Error updating status:', err);
       setError('Lỗi khi cập nhật trạng thái đơn');
@@ -528,6 +571,7 @@ function ImportOrderDetail() {
 
   const handleFinishInspection = async () => {
     try {
+      setInspectionLoading(true)
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
         { status: 'checked' },
@@ -537,6 +581,7 @@ function ImportOrderDetail() {
       );
       setOrder((prev) => ({ ...prev, status: 'checked' }));
       enableAccordion('checked');
+      setInspectionLoading(false)
     } catch (err) {
       console.error('Error updating status:', err);
       setError('Lỗi khi cập nhật trạng thái đơn');
@@ -544,10 +589,11 @@ function ImportOrderDetail() {
   };
 
   const handleContinuePackages = async () => {
-    if (!isValid) return;
+    if (!validation.valid) return;
     setSaving(true);
 
     try {
+      setPackageLoading(true)
       // 1) Create any new batches
       const createdMap = {};
       for (let spec of newBatches) {
@@ -616,6 +662,7 @@ function ImportOrderDetail() {
 
       // 6) Refresh the list
       await fetchPutAway();
+      setPackageLoading(false)
     } catch (err) {
       console.error(err);
       setError('Error creating batches/packages');
@@ -626,6 +673,7 @@ function ImportOrderDetail() {
 
   const handleFinalize = async () => {
     try {
+      setFinalizeLoading(true)
       const response = await axios.patch(
         `/api/import-orders/${orderId}/status`,
         { status: 'completed' },
@@ -662,8 +710,7 @@ function ImportOrderDetail() {
 
         console.log('bill data', billPayload);
         try {
-          const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-          const createBillRes = await axios.post(`${backendUrl}/api/bills`, billPayload, {
+          const createBillRes = await axios.post(`/api/bills`, billPayload, {
             headers: getAuthHeaders()
           });
 
@@ -677,6 +724,7 @@ function ImportOrderDetail() {
           setError('Lỗi khi tạo bill mới');
         }
       }
+      setFinalizeLoading(false)
     } catch (err) {
       console.error('Lỗi khi cập nhật trạng thái đơn:', err);
       setError('Lỗi khi cập nhật trạng thái đơn');
@@ -746,7 +794,7 @@ function ImportOrderDetail() {
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={3} display="flex" justifyContent="flex-end" alignItems="center">
-                <Button variant="contained" disabled={order.status !== 'approved'} onClick={handleArrival} size="large">
+                <Button variant="contained" disabled={order.status !== 'approved'} onClick={handleArrival} size="large" loading={assignLoading}>
                   Arrived
                 </Button>
               </Grid>
@@ -825,6 +873,7 @@ function ImportOrderDetail() {
                 disabled={inspectionsDone}
                 onClick={onFinishClickInspection}
                 color={confirmFinishInspection ? 'warning' : 'primary'}
+                loading={inspectionLoading}
               >
                 {confirmFinishInspection ? 'Continue ?' : 'Finish inspection'}
               </Button>
@@ -839,9 +888,9 @@ function ImportOrderDetail() {
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={2}>
-              <IconButton size="small" color="primary" onClick={openBatchDialog} disabled={packagesDone} sx={{ ml: 2 }}>
-                <AddCircleIcon />
-              </IconButton>
+              <Button size="small" color="primary" onClick={openBatchDialog} disabled={packagesDone} sx={{ ml: 2 }} startIcon={<AddCircleIcon />}>
+                New batch
+              </Button >
               {packages.map((p, idx) => {
                 const opt = batchOptions.find((o) => o.id === p.batch_id) || {};
                 return (
@@ -879,34 +928,18 @@ function ImportOrderDetail() {
               <Divider />
 
               {/* ▶︎ VALIDITY STATUS */}
-              {!packagesDone &&
-                (isValid ? (
-                  <Alert severity="success" sx={{ mb: 2 }}>
-                    Valid input
-                  </Alert>
-                ) : (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    Invalid input
-                    {Object.entries(
-                      // iterate over all medicines we inspected
-                      netByMedicine
-                    )
-                      .map(([license, netQty]) => {
-                        const packedQty = packedByMedicine[license] || 0;
-                        const diff = packedQty - netQty;
-                        if (diff === 0) return null;
-                        // look up the human name from your inspections list
-                        const med = uniqueInspections.find((i) => i.medicine_id.license_code === license)?.medicine_id;
-                        const name = med?.medicine_name || license;
-                        const verb = diff > 0 ? 'over' : 'under';
-                        return ` ${name} is ${Math.abs(diff)} unit ${verb}`;
-                      })
-                      .filter(Boolean)
-                      .join('; ')}
-                  </Alert>
-                ))}
+              {!packagesDone && (
+                <Alert severity={validation.valid ? 'success' : 'error'} sx={{ mb: 2 }}>
+                  {validation.message}
+                </Alert>
+              )}
 
-              <Button variant="contained" disabled={!isValid || saving || packagesDone} onClick={handleContinuePackages}>
+              <Button
+                variant="contained"
+                disabled={!validation.valid || saving || packagesDone}
+                loading={packageLoading}
+                onClick={handleContinuePackages}
+              >
                 {saving ? 'Saving…' : 'Continue to Put Away'}
               </Button>
             </Stack>
@@ -967,6 +1000,7 @@ function ImportOrderDetail() {
                 variant="contained"
                 disabled={!putAway.length || !putAway.every((p) => p.location_id) || putAwayDone}
                 onClick={handleFinalize}
+                loading={finalizeLoading}
               >
                 Finalize
               </Button>
@@ -992,7 +1026,6 @@ function ImportOrderDetail() {
               <TextField
                 label="Production Date"
                 type="date"
-                InputLabelProps={{ shrink: true }}
                 value={newProdDate}
                 onChange={(e) => {
                   const prod = e.target.value;
@@ -1003,15 +1036,18 @@ function ImportOrderDetail() {
                     setNewExpiryDate(prod);
                   }
                 }}
-                inputProps={{ max: today }}
+                slotProps={{
+                  input: { max: today, },
+                  inputLabel: { shrink: true }
+                }}
               />
 
               <TextField
                 label="Expiry Date"
                 type="date"
-                InputLabelProps={{ shrink: true }}
-                inputProps={{
-                  min: newProdDate || undefined // disable dates before production
+                slotProps={{
+                  input: { min: newProdDate || undefined },
+                  inputLabel: { shrink: true }
                 }}
                 value={newExpiryDate}
                 onChange={(e) => setNewExpiryDate(e.target.value)}

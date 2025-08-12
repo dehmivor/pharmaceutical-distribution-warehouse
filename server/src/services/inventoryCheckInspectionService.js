@@ -2,8 +2,9 @@ const InventoryCheckInspection = require("../models/InventoryCheckInspection")
 const InventoryCheckOrder = require("../models/InventoryCheckOrder")
 const Package = require("../models/Package") // Import Package model
 const Location = require("../models/Location") // Import Location model
+const LogLocationChange = require("../models/LogLocationChange") // Import LogLocationChange model for logging location changes
 const mongoose = require("mongoose") // Import mongoose for transactions
-const { INVENTORY_CHECK_INSPECTION_STATUSES } = require("../utils/constants")
+const { INVENTORY_CHECK_ORDER_STATUSES } = require("../utils/constants")
 const PackageService = require("./packageService") // Declare PackageService variable
 
 const getInspectionsByOrderId = async (orderId) => {
@@ -175,11 +176,12 @@ const applyInspectionResults = async (checkOrderId) => {
   const session = await mongoose.startSession() // Start a session for transaction
   session.startTransaction()
   try {
+    const checkOrder = await InventoryCheckOrder.findById(checkOrderId).session(session)
+    if (!checkOrder) {
+      throw new Error("Inventory check order not found")
+    }
+
     const inspections = await InventoryCheckInspection.find({ inventory_check_order_id: checkOrderId })
-      .populate({
-        path: "check_list.package_id",
-        model: "Package", // Ensure correct model reference
-      })
       .populate("location_id") // Populate the inspection's location
       .session(session)
 
@@ -227,67 +229,163 @@ const applyInspectionResults = async (checkOrderId) => {
 
     // Now, iterate through the determined package updates and apply them
     for (const [packageIdString, { item, inspectionLocationId }] of packageUpdatesMap.entries()) {
-      console.log(`Applying update for package: ${packageIdString}, actual_quantity = ${item.actual_quantity}, type = ${item.type}`)
+      console.log(
+        `Applying update for package: ${packageIdString}, actual_quantity = ${item.actual_quantity}, type = ${item.type}`,
+      )
 
-      const pkg = await Package.findById(packageIdString).session(session)
+      const pkg = await Package.findById(packageIdString).populate("batch_id").session(session)
       if (!pkg) {
         console.warn(`Package with ID ${packageIdString} not found in database. Skipping update.`)
         continue
       }
 
-      const updateData = { quantity: item.actual_quantity }
       const currentPackageLocationId = pkg.location_id
+      const originalQuantity = pkg.quantity
 
-      if (item.type === "over_expected") {
-        if (!inspectionLocationId) {
-          console.warn(
-            `Inspection for package ${packageIdString} has no location_id. Cannot move over_expected package.`,
+      if (item.actual_quantity === 0) {
+        // Delete the package when quantity is 0
+        await Package.findByIdAndDelete(packageIdString, { session })
+        console.log(`Package ${packageIdString} deleted due to zero quantity`)
+
+        if (pkg.batch_id && currentPackageLocationId) {
+          await LogLocationChange.create(
+            [
+              {
+                location_id: currentPackageLocationId,
+                type: "remove",
+                batch_id: pkg.batch_id._id,
+                quantity: originalQuantity,
+                inventory_check_order_id: checkOrderId,
+                ware_house_id: checkOrder.warehouse_manager_id,
+              },
+            ],
+            { session },
           )
-          continue
+          console.log(`Created removal log for deleted package ${packageIdString}`)
         }
-        updateData.location_id = inspectionLocationId
 
-        // Mark new location as unavailable
-        await Location.findByIdAndUpdate(inspectionLocationId, { available: false }, { session })
-
-        // If package had a different old location, mark it as available
-        if (currentPackageLocationId && !currentPackageLocationId.equals(inspectionLocationId)) {
-          const otherPackagesInOldLocation = await Package.countDocuments({
-            location_id: currentPackageLocationId,
-            _id: { $ne: pkg._id }, // Exclude the current package
-          }).session(session)
-          if (otherPackagesInOldLocation === 0) {
-            await Location.findByIdAndUpdate(currentPackageLocationId, { available: true }, { session })
-          }
-        }
-      } else if (item.type === "under_expected" && item.actual_quantity === 0) {
-        // If a package is 'under_expected' and its actual quantity is 0, it means it's missing.
-        // In this case, we should also consider marking its original location as available if no other packages are there.
+        // Mark the package's current location as available if no other packages remain there
         if (currentPackageLocationId) {
           const otherPackagesInCurrentLocation = await Package.countDocuments({
             location_id: currentPackageLocationId,
-            _id: { $ne: pkg._id }, // Exclude the current package
+            _id: { $ne: pkg._id }, // Exclude the current package (though it's being deleted)
           }).session(session)
           if (otherPackagesInCurrentLocation === 0) {
             await Location.findByIdAndUpdate(currentPackageLocationId, { available: true }, { session })
+            console.log(`Location ${currentPackageLocationId} marked as available after package deletion`)
           }
         }
-      }
+      } else {
+        // Update package quantity and location if quantity > 0
+        const updateData = { quantity: item.actual_quantity }
 
-      const updatedPackage = await Package.findByIdAndUpdate(pkg._id, updateData, { new: true, session })
-      console.log(
-        `Package ${pkg._id} updated - Type: ${item.type}, Quantity: ${updatedPackage.quantity}, Location: ${updatedPackage.location_id}`,
-      )
+        if (item.type === "over_expected") {
+          if (!inspectionLocationId) {
+            console.warn(
+              `Inspection for package ${packageIdString} has no location_id. Cannot move over_expected package.`,
+            )
+            continue
+          }
+          updateData.location_id = inspectionLocationId
+
+          if (pkg.batch_id && currentPackageLocationId && !currentPackageLocationId.equals(inspectionLocationId)) {
+            // Log removal from old location
+            await LogLocationChange.create(
+              [
+                {
+                  location_id: currentPackageLocationId,
+                  type: "remove",
+                  batch_id: pkg.batch_id._id,
+                  quantity: originalQuantity,
+                  inventory_check_order_id: checkOrderId,
+                  ware_house_id: checkOrder.warehouse_manager_id,
+                },
+              ],
+              { session },
+            )
+
+            // Log addition to new location
+            await LogLocationChange.create(
+              [
+                {
+                  location_id: inspectionLocationId,
+                  type: "add",
+                  batch_id: pkg.batch_id._id,
+                  quantity: item.actual_quantity,
+                  inventory_check_order_id: checkOrderId,
+                  ware_house_id: checkOrder.warehouse_manager_id,
+                },
+              ],
+              { session },
+            )
+            console.log(`Created location change logs for package ${packageIdString}`)
+          }
+
+          // Mark new location as unavailable
+          await Location.findByIdAndUpdate(inspectionLocationId, { available: false }, { session })
+
+          // If package had a different old location, mark it as available
+          if (currentPackageLocationId && !currentPackageLocationId.equals(inspectionLocationId)) {
+            const otherPackagesInOldLocation = await Package.countDocuments({
+              location_id: currentPackageLocationId,
+              _id: { $ne: pkg._id }, // Exclude the current package
+            }).session(session)
+            if (otherPackagesInOldLocation === 0) {
+              await Location.findByIdAndUpdate(currentPackageLocationId, { available: true }, { session })
+            }
+          }
+        } else if (originalQuantity !== item.actual_quantity && pkg.batch_id && currentPackageLocationId) {
+          const quantityDifference = item.actual_quantity - originalQuantity
+          if (quantityDifference > 0) {
+            // Quantity increased - log as addition
+            await LogLocationChange.create(
+              [
+                {
+                  location_id: currentPackageLocationId,
+                  type: "add",
+                  batch_id: pkg.batch_id._id,
+                  quantity: quantityDifference,
+                  inventory_check_order_id: checkOrderId,
+                  ware_house_id: checkOrder.warehouse_manager_id,
+                },
+              ],
+              { session },
+            )
+          } else {
+            // Quantity decreased - log as removal
+            await LogLocationChange.create(
+              [
+                {
+                  location_id: currentPackageLocationId,
+                  type: "remove",
+                  batch_id: pkg.batch_id._id,
+                  quantity: Math.abs(quantityDifference),
+                  inventory_check_order_id: checkOrderId,
+                  ware_house_id: checkOrder.warehouse_manager_id,
+                },
+              ],
+              { session },
+            )
+          }
+          console.log(`Created quantity change log for package ${packageIdString}`)
+        }
+
+        const updatedPackage = await Package.findByIdAndUpdate(pkg._id, updateData, { new: true, session })
+        console.log(
+          `Package ${pkg._id} updated - Type: ${item.type}, Quantity: ${updatedPackage.quantity}, Location: ${updatedPackage.location_id}`,
+        )
+      }
     }
 
     // Update the InventoryCheckOrder status to completed
     await InventoryCheckOrder.findByIdAndUpdate(
       checkOrderId,
-      { status: INVENTORY_CHECK_INSPECTION_STATUSES.COMPLETED },
+      { status: INVENTORY_CHECK_ORDER_STATUSES.COMPLETED },
       { new: true, session },
     )
 
     await session.commitTransaction()
+    console.log("Transaction committed successfully")
     return { success: true, message: "Inspection results applied and order completed." }
   } catch (error) {
     await session.abortTransaction()

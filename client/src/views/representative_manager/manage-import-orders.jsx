@@ -44,7 +44,7 @@ import { useAuth } from '@/hooks/useAuth';
 import axios from 'axios';
 import StatusChangeDialog from '@/components/StatusChangeDialog';
 import { useRole } from '@/contexts/RoleContext';
-import useNotifications from '@/hooks/useNotification';
+
 import { sendError } from 'next/dist/server/api-utils';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -90,7 +90,6 @@ const RepresentativeManagerImportOrders = () => {
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState(null);
   const [contractMedicines, setContractMedicines] = useState([]);
   const [loadingMedicines, setLoadingMedicines] = useState(false);
-  const { createNotification } = useNotifications();
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -242,20 +241,7 @@ const RepresentativeManagerImportOrders = () => {
         setSelectedOrder(null);
         fetchOrders(); // Refresh the list
 
-        if (newStatus === 'approved' || newStatus === 'rejected') {
-          try {
-            await createNotification({
-              sender_id: user.userId,
-              type: 'import_order_status',
-              status: 'unread',
-              priority: 'high',
-              title: newStatus === 'approved' ? 'Import order approved' : 'Import order rejected',
-              message: `Import Order ${selectedOrder._id} has been ${newStatus}.`
-            });
-          } catch (notifError) {
-            console.error('Failed to create notification:', notifError);
-          }
-        }
+
       } else {
         throw new Error(response.data.error || 'Failed to update status');
       }

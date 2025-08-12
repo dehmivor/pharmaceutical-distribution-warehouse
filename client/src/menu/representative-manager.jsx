@@ -38,6 +38,13 @@ const representativeManager = {
       type: 'item',
       url: '/rm-handle-bill',
       icon: 'IconList'
+    },
+    {
+      id: 'rm-medicine-performance',
+      title: 'Medicine performance',
+      type: 'item',
+      url: '/rm-medicine-performance',
+      icon: 'IconChartHistogram'
     }
   ]
 };

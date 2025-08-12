@@ -19,7 +19,13 @@ const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
 
-    if (config.allowedOrigins.includes(origin)) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://pharmaceutical-distribution-warehou.vercel.app',
+      ...config.allowedOrigins
+    ];
+
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 
@@ -73,10 +79,10 @@ app.get('/api/test-auth', authenticate, (req, res) => {
 
 // Public routes
 app.use('/api/auth', route.authRoutes);
+app.use('/api/notifications', route.notificationRoute);
 app.use('/api/cron', route.cronRoutes);
 app.use('/api/medicine', route.medicineRoutes);
 app.use('/api/import-inspections', route.importInspectionRoutes);
-app.use('/api/notifications', route.notificationRoutes);
 app.use('/api/thingsboard', route.thingsboardRoutes);
 app.use('/api/batch', route.batchRoutes);
 app.use('/api/packages', route.packageRoutes);
@@ -123,17 +129,6 @@ app.use('/api/inventory-check-orders', route.inventoryCheckOrderRoutes);
 app.use('/api/inventory', route.inventoryRoutes);
 app.use('/api/dashboard', route.dashboardRoutes);
 app.use('/api/reports', authenticate, route.reportRoutes);
-
-// app.use('/api/warehouse', authenticate, authorize(['supervisor', 'warehouse']), warehouseRoutes);
-
-// app.use(
-//   '/api/representative',
-//   authenticate,
-//   authorize(['supervisor', 'representative']),
-//   representativeRoutes,
-// );
-
-// Shared routes cho multiple roles
 app.use(
   '/api/shared',
   authenticate,

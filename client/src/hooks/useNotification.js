@@ -1,363 +1,161 @@
-import useSWR, { mutate } from 'swr';
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import { io } from 'socket.io-client';
 
-const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-// Fetcher function sử dụng fetch API
-const fetcher = (url) =>
-  fetch(url).then((res) => {
-    if (!res.ok) {
-      throw new Error('Failed to fetch');
-    }
-    return res.json();
-  });
-
-// Fetcher cho POST/PUT/DELETE requests
-const mutationFetcher = async (url, options) => {
-  const response = await fetch(url, {
-    method: options.method || 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Request failed');
-  }
-
-  return response.json();
-};
-
-const useNotifications = (recipientId) => {
+export default function useNotification(userId) {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // SWR keys
-  const notificationsKey = recipientId ? `${backendUrl}/api/notifications/recipient/${recipientId}` : null;
-  const unreadCountKey = recipientId ? `${backendUrl}/api/notifications/recipient/${recipientId}/unread-count` : null;
-  const allNotificationsKey = `${backendUrl}/api/notifications`;
+  // Khởi tạo socket client
+  const [socket, setSocket] = useState(null);
 
-  // SWR hooks
-  const {
-    data: notificationsData,
-    error: notificationsError,
-    isLoading: notificationsLoading,
-    mutate: mutateNotifications
-  } = useSWR(notificationsKey, fetcher, {
-    // refreshInterval: 300000, // Auto refresh mỗi 30 giây
-    // revalidateOnFocus: true,
-    // dedupingInterval: 5000
-  });
-
-  const {
-    data: unreadCountData,
-    error: unreadCountError,
-    mutate: mutateUnreadCount
-  } = useSWR(unreadCountKey, fetcher, {
-    // refreshInterval: 1000000 // Refresh unread count mỗi 10 giây
-  });
-
-  const {
-    data: allNotificationsData,
-    error: allNotificationsError,
-    isLoading: allNotificationsLoading,
-    mutate: mutateAllNotifications
-  } = useSWR(allNotificationsKey, fetcher);
-
-  // Extract data from SWR responses
-  const notifications = notificationsData?.data || [];
-  const unreadCount = unreadCountData?.unreadCount || 0;
-  const allNotifications = allNotificationsData?.data || [];
-  const loading = notificationsLoading || allNotificationsLoading;
-  const swrError = notificationsError || unreadCountError || allNotificationsError;
-
-  // Lấy notifications với filter
-  const getNotificationsByRecipient = useCallback(
-    async (filters = {}) => {
-      if (!recipientId) return;
-
-      setError(null);
-      try {
-        const queryParams = new URLSearchParams(filters).toString();
-        const url = `${backendUrl}/api/notifications/recipient/${recipientId}${queryParams ? `?${queryParams}` : ''}`;
-
-        // Mutate SWR cache với URL mới
-        await mutate(url, fetcher(url), false);
-        await mutateNotifications();
-      } catch (err) {
-        setError(err.message || 'Error fetching notifications');
-      }
-    },
-    [recipientId, mutateNotifications]
-  );
+  // Load danh sách notification từ API backend
+  const fetchNotifications = useCallback(async () => {
+    if (!userId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/notifications`, {
+        params: { recipient_id: userId },
+        withCredentials: true
+      });
+      setNotifications(res.data);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
 
   // Tạo notification mới
-  const createNotification = useCallback(
-    async (notificationData) => {
-      setError(null);
-      try {
-        const response = await mutationFetcher(`${backendUrl}/api/notifications`, {
-          method: 'POST',
-          body: notificationData
-        });
-
-        if (response.success) {
-          // Optimistic update
-          await mutateNotifications(
-            (currentData) => ({
-              ...currentData,
-              data: [response.data, ...(currentData?.data || [])]
-            }),
-            false
-          );
-
-          // Update unread count nếu notification cho current user
-          if (response.data.recipient_id === recipientId && response.data.status === 'unread') {
-            await mutateUnreadCount(
-              (currentData) => ({
-                ...currentData,
-                unreadCount: (currentData?.unreadCount || 0) + 1
-              }),
-              false
-            );
-          }
-
-          // Revalidate để đảm bảo data consistency
-          await mutateNotifications();
-          await mutateUnreadCount();
-
-          return response.data;
-        }
-      } catch (err) {
-        setError(err.message || 'Error creating notification');
-        throw err;
-      }
-    },
-    [recipientId, mutateNotifications, mutateUnreadCount]
-  );
-
-  // Đánh dấu notification đã đọc
-  const markAsRead = useCallback(
-    async (notificationId) => {
-      setError(null);
-      try {
-        const response = await mutationFetcher(`${backendUrl}/api/notifications/${notificationId}/read`, {
-          method: 'PUT'
-        });
-
-        if (response.success) {
-          // Optimistic update
-          await mutateNotifications(
-            (currentData) => ({
-              ...currentData,
-              data: currentData?.data?.map((notif) => (notif.id === notificationId ? { ...notif, status: 'read' } : notif)) || []
-            }),
-            false
-          );
-
-          await mutateUnreadCount(
-            (currentData) => ({
-              ...currentData,
-              unreadCount: Math.max(0, (currentData?.unreadCount || 0) - 1)
-            }),
-            false
-          );
-
-          // Revalidate
-          await mutateNotifications();
-          await mutateUnreadCount();
-
-          return response.data;
-        }
-      } catch (err) {
-        setError(err.message || 'Error marking notification as read');
-        throw err;
-      }
-    },
-    [mutateNotifications, mutateUnreadCount]
-  );
-
-  // Đánh dấu tất cả đã đọc
-  const markAllAsRead = useCallback(async () => {
-    if (!recipientId) return;
-
-    setError(null);
+  const createNotification = async (data) => {
     try {
-      const response = await mutationFetcher(`${backendUrl}/api/notifications/recipient/${recipientId}/mark-all-read`, {
-        method: 'PUT'
+      const res = await axios.post(`${API_BASE_URL}/api/notifications`, data, {
+        withCredentials: true
       });
-
-      if (response.success) {
-        // Optimistic update
-        await mutateNotifications(
-          (currentData) => ({
-            ...currentData,
-            data: currentData?.data?.map((notif) => ({ ...notif, status: 'read' })) || []
-          }),
-          false
-        );
-
-        await mutateUnreadCount(
-          (currentData) => ({
-            ...currentData,
-            unreadCount: 0
-          }),
-          false
-        );
-
-        // Revalidate
-        await mutateNotifications();
-        await mutateUnreadCount();
-
-        return response;
-      }
+      // Thông báo realtime sẽ tự động được socket đẩy về, nhưng nếu muốn có thể cập nhật thủ công
+      // setNotifications(prev => [res.data, ...prev]);
+      return res.data;
     } catch (err) {
-      setError(err.message || 'Error marking all notifications as read');
+      setError(err);
       throw err;
     }
-  }, [recipientId, mutateNotifications, mutateUnreadCount]);
+  };
 
-  // Xóa notification cụ thể
-  const deleteNotification = useCallback(
-    async (notificationId) => {
-      setError(null);
-      try {
-        const response = await mutationFetcher(`${backendUrl}/api/notifications/${notificationId}`, {
-          method: 'DELETE'
-        });
-
-        if (response.success) {
-          const deletedNotif = notifications.find((notif) => notif.id === notificationId);
-
-          // Optimistic update
-          await mutateNotifications(
-            (currentData) => ({
-              ...currentData,
-              data: currentData?.data?.filter((notif) => notif.id !== notificationId) || []
-            }),
-            false
-          );
-
-          if (deletedNotif && deletedNotif.status === 'unread') {
-            await mutateUnreadCount(
-              (currentData) => ({
-                ...currentData,
-                unreadCount: Math.max(0, (currentData?.unreadCount || 0) - 1)
-              }),
-              false
-            );
-          }
-
-          // Revalidate
-          await mutateNotifications();
-          await mutateUnreadCount();
-
-          return response.data;
-        }
-      } catch (err) {
-        setError(err.message || 'Error deleting notification');
-        throw err;
-      }
-    },
-    [notifications, mutateNotifications, mutateUnreadCount]
-  );
-
-  // Xóa tất cả notifications
-  const clearAllNotifications = useCallback(async () => {
-    if (!recipientId) return;
-
-    setError(null);
+  // Xóa notification theo id
+  const deleteNotification = async (id) => {
     try {
-      const response = await mutationFetcher(`${backendUrl}/api/notifications/recipient/${recipientId}/clear-all`, {
-        method: 'DELETE'
+      await axios.delete(`${API_BASE_URL}/api/notifications/${id}`, {
+        withCredentials: true
       });
-
-      if (response.success) {
-        // Optimistic update
-        await mutateNotifications(
-          (currentData) => ({
-            ...currentData,
-            data: []
-          }),
-          false
-        );
-
-        await mutateUnreadCount(
-          (currentData) => ({
-            ...currentData,
-            unreadCount: 0
-          }),
-          false
-        );
-
-        // Revalidate
-        await mutateNotifications();
-        await mutateUnreadCount();
-
-        return response;
-      }
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
-      setError(err.message || 'Error clearing notifications');
+      setError(err);
       throw err;
     }
-  }, [recipientId, mutateNotifications, mutateUnreadCount]);
+  };
 
-  // Lấy tất cả notifications
-  const getAllNotifications = useCallback(async () => {
-    await mutateAllNotifications();
-  }, [mutateAllNotifications]);
-
-  // Filter notifications
-  const filterNotifications = useCallback(
-    (filters) => {
-      return notifications.filter((notification) => {
-        if (filters.type && notification.type !== filters.type) return false;
-        if (filters.status && notification.status !== filters.status) return false;
-        if (filters.priority && notification.priority !== filters.priority) return false;
-        return true;
+  // Đánh dấu notification là đã đọc
+  const markAsRead = async (id) => {
+    try {
+      const res = await axios.patch(`${API_BASE_URL}/api/notifications/${id}/read`, null, {
+        withCredentials: true
       });
-    },
-    [notifications]
-  );
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, status: res.data.status } : n)));
+      return res.data;
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  };
 
-  // Force refresh
-  const refreshNotifications = useCallback(() => {
-    mutateNotifications();
-    mutateUnreadCount();
-  }, [mutateNotifications, mutateUnreadCount]);
+  // Đánh dấu tất cả là đã đọc
+  const markAllAsRead = async () => {
+    if (!userId) return;
+    try {
+      await axios.patch(
+        `${API_BASE_URL}/api/notifications/mark-all-read`,
+        { recipient_id: userId },
+        {
+          withCredentials: true
+        }
+      );
+      setNotifications((prev) => prev.map((n) => ({ ...n, status: 'read' })));
+    } catch (err) {
+      setError(err);
+      throw err;
+    }
+  };
+
+  // Xóa tất cả notification trên client
+  const clearAll = () => {
+    setNotifications([]);
+  };
+
+  // Thiết lập websocket kết nối, lắng nghe realtime event
+  useEffect(() => {
+    if (!userId) return;
+
+    fetchNotifications();
+
+    const newSocket = io(API_BASE_URL, {
+      withCredentials: true,
+      transports: ['polling', 'websocket'],
+      timeout: 20000,
+      forceNew: true
+    });
+    
+    setSocket(newSocket);
+
+    // Xử lý lỗi kết nối
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      setError(error);
+    });
+
+    newSocket.on('connect', () => {
+      console.log('Socket connected successfully');
+      setError(null);
+      // Join rooms sau khi kết nối thành công
+      newSocket.emit('joinRooms', [userId, 'system']);
+    });
+
+    // Nhận notification realtime
+    newSocket.on('newNotification', (noti) => {
+      setNotifications((prev) => {
+        if (prev.findIndex((n) => n.id === noti.id) !== -1) return prev;
+        return [noti, ...prev];
+      });
+    });
+
+    // Xử lý realtime xóa notification
+    newSocket.on('deletedNotificationId', (id) => {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    });
+
+    return () => {
+      if (newSocket) {
+        newSocket.off('newNotification');
+        newSocket.off('deletedNotificationId');
+        newSocket.off('connect_error');
+        newSocket.off('connect');
+        newSocket.disconnect();
+      }
+      setSocket(null);
+    };
+  }, [userId, fetchNotifications]);
 
   return {
-    // State
     notifications,
-    allNotifications,
-    unreadCount,
     loading,
-    error: error || swrError?.message,
-
-    // Actions
-    getAllNotifications,
-    getNotificationsByRecipient,
+    error,
     createNotification,
+    deleteNotification,
     markAsRead,
     markAllAsRead,
-    deleteNotification,
-    clearAllNotifications,
-    refreshNotifications,
-    filterNotifications,
-
-    // Computed values
-    unreadNotifications: notifications.filter((n) => n.status === 'unread'),
-    readNotifications: notifications.filter((n) => n.status === 'read'),
-    notificationsByType: (type) => notifications.filter((n) => n.type === type),
-    notificationsByPriority: (priority) => notifications.filter((n) => n.priority === priority),
-
-    // SWR specific
-    isValidating: notificationsLoading,
-    mutateNotifications,
-    mutateUnreadCount
+    clearAll
   };
-};
-
-export default useNotifications;
+}

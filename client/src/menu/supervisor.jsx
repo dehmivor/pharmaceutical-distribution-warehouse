@@ -154,8 +154,8 @@ const supervisor = {
       title: 'Log Management',
       type: 'item',
       url: '/sp-location-log',
-      icon: 'IconMapPin'
-    }
+      icon: 'IconTimelineEventText',
+    },
   ]
 };
 
