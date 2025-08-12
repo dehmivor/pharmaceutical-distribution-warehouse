@@ -12,15 +12,22 @@ mongoose
   .then(() => {
     console.log('✅ MongoDB connected');
 
-    const io = setupSocketIO(server);
+    try {
+      const io = setupSocketIO(server);
+      app.locals.io = io;
 
-    app.locals.io = io;
+      console.log('✅ Socket.IO setup completed');
 
-    server.listen(config.port, () => {
-      console.log(`🚀 Server running at http://localhost:${config.port}`);
-    });
+      server.listen(config.port, () => {
+        console.log(`🚀 Server running at http://localhost:${config.port}`);
+        console.log(`🔌 Socket.IO server ready`);
+      });
 
-    module.exports.io = io;
+      module.exports.io = io;
+    } catch (error) {
+      console.error('❌ Socket.IO setup error:', error);
+      process.exit(1);
+    }
   })
   .catch((err) => {
     console.error('❌ MongoDB connection error:', err.message);

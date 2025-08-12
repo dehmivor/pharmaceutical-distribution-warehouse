@@ -19,7 +19,13 @@ const corsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
 
-    if (config.allowedOrigins.includes(origin)) {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://pharmaceutical-distribution-warehou.vercel.app',
+      ...config.allowedOrigins
+    ];
+
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
 

@@ -102,11 +102,26 @@ export default function useNotification(userId) {
     fetchNotifications();
 
     const newSocket = io(API_BASE_URL, {
-      withCredentials: true
+      withCredentials: true,
+      transports: ['polling', 'websocket'],
+      timeout: 20000,
+      forceNew: true
     });
+    
     setSocket(newSocket);
 
-    socket.emit('joinRooms', [userId, 'system']);
+    // Xử lý lỗi kết nối
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      setError(error);
+    });
+
+    newSocket.on('connect', () => {
+      console.log('Socket connected successfully');
+      setError(null);
+      // Join rooms sau khi kết nối thành công
+      newSocket.emit('joinRooms', [userId, 'system']);
+    });
 
     // Nhận notification realtime
     newSocket.on('newNotification', (noti) => {
@@ -122,9 +137,13 @@ export default function useNotification(userId) {
     });
 
     return () => {
-      newSocket.off('newNotification');
-      newSocket.off('deletedNotificationId');
-      newSocket.disconnect();
+      if (newSocket) {
+        newSocket.off('newNotification');
+        newSocket.off('deletedNotificationId');
+        newSocket.off('connect_error');
+        newSocket.off('connect');
+        newSocket.disconnect();
+      }
       setSocket(null);
     };
   }, [userId, fetchNotifications]);

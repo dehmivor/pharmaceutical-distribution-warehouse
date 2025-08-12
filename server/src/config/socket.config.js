@@ -3,20 +3,29 @@ const { Server } = require('socket.io');
 const setupSocketIO = (server, options = {}) => {
   const defaultCorsOptions = {
     origin: (origin, callback) => {
-      const allowedOrigins = [process.env.CLIENT_URL || 'http://localhost:3000'];
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'https://pharmaceutical-distribution-warehou.vercel.app',
+        process.env.CLIENT_URL
+      ].filter(Boolean);
 
+      // Cho phép kết nối từ localhost và vercel
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.log('Blocked origin:', origin);
         callback(new Error('Not allowed by CORS'));
       }
     },
     methods: ['GET', 'POST'],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
   };
 
   const io = new Server(server, {
     cors: options.cors || defaultCorsOptions,
+    transports: ['polling', 'websocket'],
+    allowEIO3: true,
     ...Object.fromEntries(Object.entries(options).filter(([key]) => key !== 'cors')),
   });
 
