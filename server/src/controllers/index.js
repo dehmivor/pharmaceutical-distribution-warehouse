@@ -9,7 +9,7 @@ module.exports = {
   batchController: require('./batchController'),
   importOrderController: require('./importOrderController'),
   locationController: require('./locationController'),
-
+  notificationController: require('./notificationController'),
   thingsboardController: require('./thingsboardController'),
   importInspectionController: require('./importInspectionController'),
   areaController: require('./areaController'),
@@ -22,5 +22,5 @@ module.exports = {
   userController: require('./userController'),
   inventoryController: require('./inventoryController'),
   inventoryCheckInspectionController: require('./inventoryCheckInspectionController'),
-  logLocationChangeController: require('./logLocationChangeController')
+  logLocationChangeController: require('./logLocationChangeController'),
 };

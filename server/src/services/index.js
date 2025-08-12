@@ -14,9 +14,9 @@ const supplierService = require('./supplierService');
 const retailerService = require('./retailerService');
 const stripeService = require('./stripeService.js');
 const inventoryService = require('./inventoryService');
-const inventoryCheckInspectionService = require('./inventoryCheckInspectionService.js')
-const logLocationChangeService = require('./logLocationChangeService.js')
-
+const inventoryCheckInspectionService = require('./inventoryCheckInspectionService.js');
+const logLocationChangeService = require('./logLocationChangeService.js');
+const notificationService = require('./notificationService.js');
 let mailtrapService = {};
 
 const loadMailtrap = async () => {
@@ -36,7 +36,7 @@ module.exports = new Promise(async (resolve) => {
     ...authService,
     ...cronService,
     ...emailService,
-  
+    ...notificationService,
     ...thingsboardService,
     ...importOrderService,
     ...inspectionService,
@@ -50,6 +50,6 @@ module.exports = new Promise(async (resolve) => {
     ...stripeService,
     ...inventoryService,
     ...inventoryCheckInspectionService,
-    ...logLocationChangeService
+    ...logLocationChangeService,
   });
 });

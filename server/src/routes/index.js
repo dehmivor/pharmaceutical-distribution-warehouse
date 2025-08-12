@@ -16,7 +16,7 @@ module.exports = {
   supplierRoutes: require('./supplierRoute'),
   retailerRoutes: require('./retailerRoute'),
   // warehouseRoutes: require('./warehouseRoute'),
-  // presentativeRoutes: require('./presentativeRoute'),
+  notificationRoute: require('./notificationRoute'),
   stripeRoutes: require('./stripeRoute'),
   billRoutes: require('./billRoute'),
   batchRoutes: require('./batchRoute'),

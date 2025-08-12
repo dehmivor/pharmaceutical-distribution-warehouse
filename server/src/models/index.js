@@ -6,7 +6,7 @@ const ImportOrder = require('./ImportOrder');
 const Area = require('./Area');
 const Location = require('./Location');
 const Supplier = require('./Supplier');
-
+const Notification = require('./Notification');
 const ImportInspection = require('./ImportInspection');
 const LogLocationChange = require('./LogLocationChange');
 const Bill = require('./Bill');
@@ -23,7 +23,7 @@ module.exports = {
   Area,
   Location,
   Supplier,
-
+  Notification,
   ImportInspection,
   LogLocationChange,
   Bill,
