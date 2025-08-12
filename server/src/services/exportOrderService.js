@@ -16,7 +16,14 @@ const populateOptions = [
   { path: 'created_by', select: 'name email role' },
   { path: 'approval_by', select: 'name email role' },
   { path: 'details.medicine_id', select: 'medicine_name license_code unit_of_measure' }, // Thêm unit_of_measure
-  { path: 'details.actual_item.package_id', select: 'package_code' }, // Thêm nếu cần
+  { 
+    path: 'details.actual_item.package_id', 
+    select: 'package_code quantity',
+    populate: [
+      { path: 'batch_id', select: 'batch_code expiry_date' },
+      { path: 'location_id', select: 'area_name bay row column' }
+    ]
+  }, // Populate đầy đủ package với batch và location
   { path: 'details.actual_item.created_by', select: 'email' }, // Thêm nếu cần
 ];
 
@@ -64,6 +71,28 @@ async function createExportOrder(data, userId) {
   const savedOrder = await order.save();
 
   return await ExportOrder.findById(savedOrder._id).populate(populateOptions);
+}
+
+/**
+ * Warehouse Manager tạo export order nội bộ (không contract) – tự động approved
+ * @param {{contract_id?: null, details: Array}} data
+ * @param {String} userId
+ */
+async function createInternalExportOrder(data, userId) {
+  const { details = [] } = data || {};
+  if (!Array.isArray(details) || details.length === 0) {
+    throw new Error('Details are required to create internal export order');
+  }
+
+  const order = new ExportOrder({
+    contract_id: null,
+    details,
+    status: EXPORT_ORDER_STATUSES.APPROVED,
+    created_by: userId,
+  });
+
+  const saved = await order.save();
+  return await ExportOrder.findById(saved._id).populate(populateOptions);
 }
 
 /**
@@ -492,5 +521,6 @@ module.exports = {
   getExportOrderDetail,
   addExportInspection,
   checkStockAvailability,
-  assignWarehouseManager // Thêm function mới
+  assignWarehouseManager, // Thêm function mới
+  createInternalExportOrder // Thêm function mới
 };

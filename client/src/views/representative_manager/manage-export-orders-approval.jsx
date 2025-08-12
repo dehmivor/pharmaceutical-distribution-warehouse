@@ -30,7 +30,7 @@ import {
   TablePagination
 } from '@mui/material';
 import axios from 'axios';
-import useNotifications from '@/hooks/useNotification';
+
 import {
   Search as SearchIcon,
   FilterList as FilterIcon
@@ -84,7 +84,7 @@ function ManageExportOrdersApproval() {
     created_by: []
   });
   
-  const { createNotification } = useNotifications();
+
 
   useEffect(() => {
     fetchOrders();
@@ -197,18 +197,7 @@ function ManageExportOrdersApproval() {
       fetchOrders();
       handleCloseApproveDialog();
 
-      // Create notification for approved order
-      try {
-        await createNotification({
-          type: 'export_order_status',
-          status: 'unread',
-          priority: 'high',
-          title: 'Export order approved',
-          message: `Export Order ${orderToApprove._id} has been approved.`
-        });
-      } catch (notifError) {
-        console.error('Failed to create notification:', notifError);
-      }
+
     } catch (error) {
       setError(error.response?.data?.error || error.message);
     } finally {
@@ -237,18 +226,7 @@ function ManageExportOrdersApproval() {
       fetchOrders();
       handleCloseRejectDialog();
 
-      // Create notification for rejected order
-      try {
-        await createNotification({
-          type: 'export_order_status',
-          status: 'unread',
-          priority: 'high',
-          title: 'Export order rejected',
-          message: `Export Order ${orderToReject._id} has been rejected.`
-        });
-      } catch (notifError) {
-        console.error('Failed to create notification:', notifError);
-      }
+
     } catch (error) {
       setError(error.response?.data?.error || error.message);
     } finally {

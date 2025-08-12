@@ -27,6 +27,8 @@ export const RoleProvider = ({ children }) => {
 
         if (response.ok) {
           const result = await response.json();
+          console.log('RoleContext - API response:', result);
+          console.log('RoleContext - User data:', result.data);
           setUser(result.data);
           setUserRole(result.data.role);
           localStorage.setItem('user', JSON.stringify(result.data));

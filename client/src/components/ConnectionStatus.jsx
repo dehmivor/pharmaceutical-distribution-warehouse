@@ -1,16 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography, IconButton, Tooltip } from '@mui/material';
-import { Wifi as WifiIcon, WifiOff as WifiOffIcon, Refresh as RefreshIcon } from '@mui/icons-material';
-import { useNotificationContext } from '@/contexts/NotificationContext';
+import { Box, Typography } from '@mui/material';
+import { Wifi as WifiIcon, WifiOff as WifiOffIcon } from '@mui/icons-material';
 
 const ConnectionStatus = () => {
-  const { isConnected, refreshNotifications, loading } = useNotificationContext();
-
-  const handleRefresh = () => {
-    refreshNotifications();
-  };
+  // Mock connection status for UI demonstration
+  const isConnected = true;
 
   return (
     <Box
@@ -32,23 +28,6 @@ const ConnectionStatus = () => {
       <Typography variant="caption" sx={{ fontWeight: 500 }}>
         {isConnected ? 'Live' : 'Offline'}
       </Typography>
-
-      <Tooltip title="Refresh notifications">
-        <IconButton
-          size="small"
-          onClick={handleRefresh}
-          disabled={loading}
-          sx={{
-            color: 'inherit',
-            p: 0.5,
-            '&:hover': {
-              backgroundColor: isConnected ? 'success.100' : 'warning.100'
-            }
-          }}
-        >
-          <RefreshIcon sx={{ fontSize: 14 }} />
-        </IconButton>
-      </Tooltip>
     </Box>
   );
 };

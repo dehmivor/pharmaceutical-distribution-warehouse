@@ -2,6 +2,8 @@ const InventoryCheckInspection = require('../models/InventoryCheckInspection');
 const InventoryCheckOrder = require('../models/InventoryCheckOrder');
 const mongoose = require('mongoose');
 const LogLocationChange = require('../models/LogLocationChange');
+const notificationService = require('./notificationService');
+const { io } = require('../server');
 
 const getInspectionsFromCheckOrder = async (checkOrderId, page, limit) => {
   try {
@@ -114,16 +116,43 @@ const getCheckOrderById = async (checkOrderId) => {
   }
 };
 
-const updateCheckOrderStatus = async (checkOrderId, status) => {
+const updateCheckOrderStatus = async (checkOrderId, status, io) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(checkOrderId)) {
       throw new Error('Invalid check order ID');
     }
 
-    const updatedCheckOrder = await InventoryCheckOrder.findByIdAndUpdate(checkOrderId, {
-      status: status,
-    });
+    const existingOrder = await InventoryCheckOrder.findById(checkOrderId);
+    if (!existingOrder) {
+      throw new Error('Check order not found');
+    }
 
+    const oldStatus = existingOrder.status;
+    existingOrder.status = status;
+    const updatedCheckOrder = await existingOrder.save();
+
+    if (oldStatus !== 'processing' && status.toLowerCase() === 'processing') {
+      const newNotification = await notificationService.createNotification({
+        recipient_id: null,
+        sender_id: null,
+        title: 'Kho đang thực hiện kiểm kê toàn kho',
+        message: `Đơn kiểm kê #${checkOrderId} đã được chuyển sang trạng thái đang xử lý lúc ${new Date().toLocaleString()}`,
+        type: 'system_alert',
+        priority: 'high',
+        status: 'unread',
+        metadata: {
+          checkOrderId: checkOrderId,
+          statusChangedTo: 'processing',
+        },
+      });
+
+      if (newNotification && io) {
+        console.log('Emitting newNotification to system room');
+        io.to('system').emit('newNotification', newNotification);
+      } else {
+        console.log('Cannot emit: io =', io);
+      }
+    }
     return updatedCheckOrder;
   } catch (error) {
     console.error('Error updating check order status:', error);

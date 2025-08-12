@@ -427,7 +427,7 @@ const packageService = {
       const package = await Package.findById(id)
         .populate({
           path: 'batch_id',
-          select: 'batch_code medicine_id',
+          select: 'batch_code medicine_id expiry_date',
           populate: {
             path: 'medicine_id',
             select: 'medicine_name',
@@ -455,6 +455,7 @@ const packageService = {
           _id: package._id,
           quantity: package.quantity,
           batch_code: package.batch_id?.batch_code,
+          expiry_date: package.batch_id?.expiry_date,
           medicine_name: package.batch_id?.medicine_id?.medicine_name,
           location: package.location_id
             ? {

@@ -22,5 +22,5 @@ module.exports = {
   userController: require('./userController'),
   inventoryController: require('./inventoryController'),
   inventoryCheckInspectionController: require('./inventoryCheckInspectionController'),
-  logLocationChangeController: require('./logLocationChangeController')
+  logLocationChangeController: require('./logLocationChangeController'),
 };

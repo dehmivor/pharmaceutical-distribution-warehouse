@@ -1,6 +1,6 @@
 const ImportOrder = require('../models/ImportOrder');
 const { IMPORT_ORDER_STATUSES, USER_ROLES } = require('../utils/constants');
-const { User, Notification, SupplierContract, Supplier } = require('../models');
+const { User, SupplierContract, Supplier } = require('../models');
 const mongoose = require('mongoose');
 
 // Create new import order
@@ -37,8 +37,30 @@ const createImportOrder = async (orderData, orderDetails, userContext = null) =>
   }
 };
 
+// Create internal import order (for warehouse manager)
+const createInternalImportOrder = async (orderDetails, userContext = null) => {
+  try {
+    // Validate user context
+    if (!userContext || userContext.role !== USER_ROLES.WAREHOUSEMANAGER) {
+      throw new Error('Only warehouse managers can create internal import orders');
+    }
+
+    const orderData = {
+      status: IMPORT_ORDER_STATUSES.DELIVERED, // Start with delivered status
+      contract_id: null, // No contract for internal orders
+      warehouse_manager_id: userContext.id || userContext._id, // Set to current warehouse manager
+      approval_by: null, // No approval needed
+      created_by: userContext.id || userContext._id // Set created_by to current user
+    };
+
+    return await createImportOrder(orderData, orderDetails, userContext);
+  } catch (error) {
+    throw error;
+  }
+};
+
 // Get all import orders with pagination and filters
-const getImportOrders = async (params = {}, page = 1, limit = 10) => {
+const getImportOrders = async (params = {}, page = 1, limit = 10, userRole = null) => {
   const skip = (page - 1) * limit;
   const query = {};
 
@@ -63,6 +85,11 @@ const getImportOrders = async (params = {}, page = 1, limit = 10) => {
     const end = new Date(start);
     end.setDate(end.getDate() + 1);
     query.createdAt = { $gte: start, $lt: end };
+  }
+
+  // 4) Filter internal orders for Representative and Representative Manager
+  if (userRole === 'representative' || userRole === 'representative_manager') {
+    query.contract_id = { $ne: null }; // Chỉ hiển thị đơn có contract (không hiển thị đơn nội bộ)
   }
 
   // 4) Query the DB
@@ -429,19 +456,27 @@ const getImportOrdersByWarehouseManager = async (
   query = {},
   page = 1,
   limit = 10,
+  userRole = null
 ) => {
   try {
     const searchQuery = { ...query, warehouse_manager_id: warehouseManagerId };
-    return await getImportOrders(searchQuery, page, limit);
+    return await getImportOrders(searchQuery, page, limit, userRole);
   } catch (error) {
     throw error;
   }
 };
 
 // Get import orders by contract
-const getImportOrdersByContract = async (contractId) => {
+const getImportOrdersByContract = async (contractId, userRole = null) => {
   try {
-    const orders = await ImportOrder.find({ contract_id: contractId })
+    const query = { contract_id: contractId };
+    
+    // Filter internal orders for Representative and Representative Manager
+    if (userRole === 'representative' || userRole === 'representative_manager') {
+      query.contract_id = { $ne: null }; // Chỉ hiển thị đơn có contract (không hiển thị đơn nội bộ)
+    }
+    
+    const orders = await ImportOrder.find(query)
       .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
       .populate('created_by', 'name email role')
@@ -548,22 +583,7 @@ const assignWarehouseManager = async (orderId, warehouseManagerId) => {
   order.warehouse_manager_id = warehouseManagerId;
   await order.save();
 
-  // Gửi notification cho tất cả warehouse
-  /* BROKEN
-  const warehouses = await User.find({ role: USER_ROLES.WAREHOUSE, status: 'active' });
-  const notifications = warehouses.map((wh) => ({
-    recipient_id: wh._id,
-    sender_id: user._id, // warehouse manager vừa được gán
-    title: 'Phiếu nhập đã được giao cho warehouse manager',
-    message: `Phiếu nhập ${order._id} đã được giao cho warehouse manager ${user.email}.`,
-    type: 'system',
-    status: 'unread',
-    createdAt: new Date(),
-  }));
-  if (notifications.length > 0) {
-    await Notification.insertMany(notifications);
-  }
-  */
+
   return await ImportOrder.findById(orderId)
     .populate({
       path: 'contract_id',
@@ -593,6 +613,7 @@ function getManagerId(warehouse_manager_id) {
 
 module.exports = {
   createImportOrder,
+  createInternalImportOrder,
   getImportOrders,
   getImportOrderById,
   updateImportOrder,
