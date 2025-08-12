@@ -423,16 +423,6 @@ function CheckInspections() {
             Quản lý và theo dõi các phiếu kiểm kê cho đợt kiểm kê toàn kho
           </Typography>
         </Box>
-
-        <Button
-          variant="contained"
-          color="warning"
-          startIcon={<DetailsIcon />}
-          onClick={() => router.push(`/wh-inventory/check-orders/${checkOrderId}`)}
-          disabled={loading}
-        >
-          Xem thống kê chi tiết của đợt kiểm kê này
-        </Button>
       </Box>
 
       {orderData && (
