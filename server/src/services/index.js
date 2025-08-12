@@ -1,7 +1,7 @@
 const authService = require('./authService');
 const cronService = require('./cronService');
 const emailService = require('./emailService');
-const notificationService = require('./notificationService');
+
 const thingsboardService = require('./thingsboardService');
 const importOrderService = require('./importOrderService');
 const inspectionService = require('./inspectionService');
@@ -36,7 +36,7 @@ module.exports = new Promise(async (resolve) => {
     ...authService,
     ...cronService,
     ...emailService,
-    ...notificationService,
+  
     ...thingsboardService,
     ...importOrderService,
     ...inspectionService,

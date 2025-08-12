@@ -1,8 +1,8 @@
 'use client';
 
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState } from 'react';
 
-// @mui
+// @mui imports như cũ
 import { keyframes, useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Badge from '@mui/material/Badge';
@@ -22,14 +22,12 @@ import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 
-// @project
+// @project imports như cũ
 import EmptyNotification from '@/components/header/empty-state/EmptyNotification';
 import MainCard from '@/components/MainCard';
 import NotificationItem from '@/components/NotificationItem';
-import SimpleBar from '@/components/third-party/SimpleBar';
-import useNotifications from '@/hooks/useNotification'; // Import hook
 
-// @assets
+// @assets imports giữ nguyên
 import { IconBell, IconCode, IconChevronDown, IconGitBranch, IconNote, IconGps } from '@tabler/icons-react';
 
 const swing = keyframes`
@@ -50,10 +48,9 @@ const swing = keyframes`
   }
 `;
 
-// Helper function để lấy icon dựa trên type
+// Hàm lấy icon giữ nguyên (bạn nhớ import đầy đủ các icon cần thiết, hoặc thay thế bằng icon bạn có)
 const getNotificationIcon = (type, badgeIcon) => {
   if (badgeIcon) {
-    // Có thể return custom icon component dựa trên badgeIcon
     switch (badgeIcon) {
       case 'temperature-alert.png':
         return <IconChevronDown size={14} />;
@@ -69,11 +66,11 @@ const getNotificationIcon = (type, badgeIcon) => {
 
   switch (type) {
     case 'security':
-      return <IconAlertTriangle size={14} />;
+      return <IconNote size={14} />; // Giả sử bạn không có IconAlertTriangle
     case 'document':
       return <IconCode size={14} />;
     case 'system':
-      return <IconSystem size={14} />;
+      return <IconNote size={14} />; // Không có IconSystem
     case 'location':
       return <IconGps size={14} />;
     default:
@@ -81,7 +78,7 @@ const getNotificationIcon = (type, badgeIcon) => {
   }
 };
 
-// Helper function để format thời gian
+// Hàm format thời gian giữ nguyên
 const formatDateTime = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -96,7 +93,7 @@ const formatDateTime = (dateString) => {
   return date.toLocaleDateString('vi-VN');
 };
 
-// Helper function để phân loại notifications theo thời gian
+// Phân loại notifications giữ nguyên
 const categorizeNotifications = (notifications) => {
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -116,7 +113,47 @@ const categorizeNotifications = (notifications) => {
   return { recent, older };
 };
 
-export default function Notification({ recipientId = '684d0166fdc7a71aa1fb544b' }) {
+// Data giả lập mẫu
+const mockNotifications = [
+  {
+    id: '1',
+    title: 'Hệ thống cập nhật',
+    message: 'Phiên bản hệ thống mới đã sẵn sàng cập nhật.',
+    createdAt: new Date(new Date().getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 giờ trước
+    status: 'unread',
+    type: 'system',
+    priority: 'normal',
+    action_url: 'https://example.com/system-update',
+    avatar_url: '',
+    badge_icon: 'export.png'
+  },
+  {
+    id: '2',
+    title: 'Báo động nhiệt độ',
+    message: 'Nhiệt độ vượt ngưỡng an toàn!',
+    createdAt: new Date(new Date().getTime() - 1 * 60 * 60 * 1000).toISOString(), // 1 giờ trước
+    status: 'unread',
+    type: 'security',
+    priority: 'high',
+    action_url: '',
+    avatar_url: '',
+    badge_icon: 'temperature-alert.png'
+  },
+  {
+    id: '3',
+    title: 'Tài liệu mới',
+    message: 'Bạn có một tài liệu mới được gửi.',
+    createdAt: new Date(new Date().getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 ngày trước
+    status: 'read',
+    type: 'document',
+    priority: 'normal',
+    action_url: 'https://example.com/document',
+    avatar_url: '',
+    badge_icon: ''
+  }
+];
+
+export default function Notification() {
   const theme = useTheme();
   const downSM = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -124,9 +161,10 @@ export default function Notification({ recipientId = '684d0166fdc7a71aa1fb544b' 
   const [innerAnchorEl, setInnerAnchorEl] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState('All notification');
 
-  // Sử dụng hook useNotifications
-  const { notifications, unreadCount, loading, error, markAsRead, markAllAsRead, clearAllNotifications, filterNotifications } =
-    useNotifications(recipientId);
+  // Sử dụng state để quản lý notifications mock data
+  const [notifications, setNotifications] = useState(mockNotifications);
+  const [loading, setLoading] = useState(false);
+  const unreadCount = notifications.filter((n) => n.status === 'unread').length;
 
   const open = Boolean(anchorEl);
   const innerOpen = Boolean(innerAnchorEl);
@@ -136,6 +174,8 @@ export default function Notification({ recipientId = '684d0166fdc7a71aa1fb544b' 
 
   const listcontent = ['All notification', 'Security', 'Document', 'System', 'Location'];
 
+  const filterNotifications = ({ type }) => notifications.filter((n) => n.type === type);
+
   // Lọc notifications dựa trên filter được chọn
   const getFilteredNotifications = () => {
     if (selectedFilter === 'All notification') {
@@ -144,7 +184,6 @@ export default function Notification({ recipientId = '684d0166fdc7a71aa1fb544b' 
     return filterNotifications({ type: selectedFilter.toLowerCase() });
   };
 
-  // Phân loại notifications đã lọc
   const { recent: recentNotifications, older: olderNotifications } = categorizeNotifications(getFilteredNotifications());
 
   const handleActionClick = (event) => {
@@ -160,34 +199,33 @@ export default function Notification({ recipientId = '684d0166fdc7a71aa1fb544b' 
     setInnerAnchorEl(null);
   };
 
-  // Xử lý đánh dấu đã đọc
-  const handleMarkAsRead = async (notificationId) => {
-    try {
-      await markAsRead(notificationId);
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
+  // Đánh dấu một thông báo là đã đọc (cập nhật trạng thái trong state)
+  const markAsRead = (notificationId) => {
+    setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, status: 'read' } : n)));
   };
 
-  // Xử lý đánh dấu tất cả đã đọc
-  const handleMarkAllAsRead = async () => {
-    try {
-      await markAllAsRead();
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
+  // Đánh dấu tất cả là đã đọc
+  const markAllAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, status: 'read' })));
   };
 
-  // Xử lý xóa tất cả
-  const handleClearAll = async () => {
-    try {
-      await clearAllNotifications();
-    } catch (error) {
-      console.error('Error clearing notifications:', error);
-    }
+  // Xóa tất cả notifications
+  const clearAllNotifications = () => {
+    setNotifications([]);
   };
 
-  // Transform data để phù hợp với NotificationItem component
+  const handleMarkAsRead = (notificationId) => {
+    markAsRead(notificationId);
+  };
+
+  const handleMarkAllAsRead = () => {
+    markAllAsRead();
+  };
+
+  const handleClearAll = () => {
+    clearAllNotifications();
+  };
+
   const transformNotificationData = (notification) => {
     return {
       avatar: notification.avatar_url
@@ -204,10 +242,6 @@ export default function Notification({ recipientId = '684d0166fdc7a71aa1fb544b' 
       notificationId: notification.id
     };
   };
-
-  if (error) {
-    console.error('Notification error:', error);
-  }
 
   return (
     <>
@@ -252,7 +286,7 @@ export default function Notification({ recipientId = '684d0166fdc7a71aa1fb544b' 
             <MainCard
               sx={{
                 borderRadius: 2,
-                boxShadow: theme.customShadows.tooltip,
+                boxShadow: theme.customShadows ? theme.customShadows.tooltip : '0 0 10px rgba(0,0,0,0.1)',
                 width: 1,
                 minWidth: { xs: 352 },
                 maxWidth: { xs: 352, md: 420 },
@@ -287,7 +321,14 @@ export default function Notification({ recipientId = '684d0166fdc7a71aa1fb544b' 
                         >
                           {({ TransitionProps }) => (
                             <Fade in={innerOpen} {...TransitionProps}>
-                              <MainCard sx={{ borderRadius: 2, boxShadow: theme.customShadows.tooltip, minWidth: 156, p: 0.5 }}>
+                              <MainCard
+                                sx={{
+                                  borderRadius: 2,
+                                  boxShadow: theme.customShadows ? theme.customShadows.tooltip : '0 0 10px rgba(0,0,0,0.1)',
+                                  minWidth: 156,
+                                  p: 0.5
+                                }}
+                              >
                                 <ClickAwayListener onClickAway={() => setInnerAnchorEl(null)}>
                                   <List disablePadding>
                                     {listcontent.map((item, index) => (
@@ -325,7 +366,7 @@ export default function Notification({ recipientId = '684d0166fdc7a71aa1fb544b' 
                   ) : (
                     <Fragment>
                       <CardContent sx={{ px: 0.5, py: 2, '&:last-child': { pb: 2 } }}>
-                        <SimpleBar sx={{ maxHeight: 405, height: 1 }}>
+                        <Box sx={{ maxHeight: 405, height: 1, overflowY: 'auto' }}>
                           <List disablePadding>
                             {recentNotifications.length > 0 && (
                               <>
@@ -408,7 +449,7 @@ export default function Notification({ recipientId = '684d0166fdc7a71aa1fb544b' 
                               </>
                             )}
                           </List>
-                        </SimpleBar>
+                        </Box>
                       </CardContent>
 
                       <CardActions sx={{ p: 1 }}>

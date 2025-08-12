@@ -1,75 +1,6 @@
 const cron = require('node-cron');
 const mongoose = require('mongoose');
-const { getNotificationById } = require('./notificationService');
-const { User, Batch, Notification } = require('../models'); // Đã định nghĩa model
-
-// Tạo notification cho user theo userId và data
-const createNotificationForUser = async (userId, notificationData) => {
-  try {
-    if (!userId) throw new Error('User ID is required');
-    if (!notificationData.title || !notificationData.message)
-      throw new Error('Title and message are required');
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      throw new Error('Invalid user ID');
-    }
-
-    const notification = new Notification({
-      recipient_id: userId,
-      sender_id: notificationData.sender_id || null,
-      title: notificationData.title,
-      message: notificationData.message,
-      type: notificationData.type || 'info',
-      priority: notificationData.priority || 'normal',
-      status: 'unread',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    await notification.save();
-
-    return await getNotificationById(notification._id);
-  } catch (error) {
-    console.error('Error creating notification:', error.message);
-    throw error;
-  }
-};
-
-// Gửi thông báo cho supervisors với danh sách batch và tháng hết hạn
-const notifyBatches = async (batchList, months) => {
-  if (!batchList || batchList.length === 0) return;
-
-  try {
-    const supervisors = await User.find({ role: 'supervisor' }).select('_id');
-    if (!supervisors.length) {
-      console.log('Không tìm thấy user có role supervisor để gửi thông báo');
-      return;
-    }
-
-    // Tạo danh sách Promise gửi notification song song
-    const allNotifications = [];
-
-    for (const batch of batchList) {
-      const medName = batch.medicine_id?.medicine_name || 'Unknown medicine';
-      const expiryDate = batch.expiry_date.toDateString();
-
-      const notificationData = {
-        title: 'Thông báo Batch thuốc sắp hết hạn',
-        message: `Batch ${batch.batch_code} của thuốc ${medName} sẽ hết hạn sau khoảng ${months} tháng (ngày hết hạn: ${expiryDate})`,
-        type: 'expiry_alert',
-        priority: 'high',
-      };
-
-      for (const sup of supervisors) {
-        allNotifications.push(createNotificationForUser(sup._id, notificationData));
-      }
-    }
-
-    await Promise.all(allNotifications);
-  } catch (error) {
-    console.error('Lỗi khi gửi thông báo batch:', error);
-  }
-};
+const { User, Batch } = require('../models');
 
 // Lấy batch hết hạn dưới 6 tháng kể từ refDate
 const getBatchesExpiredUnder6Months = async (refDate) => {
@@ -100,46 +31,201 @@ const getBatchesExpiringAtIntervals = async (refDate) => {
   const start8 = addMonths(refDate, 8);
   const end8 = addMonths(refDate, 9);
 
-  const sixMonths = await Batch.find({
+  const batches6 = await Batch.find({
     expiry_date: { $gte: start6, $lt: end6 },
   }).populate('medicine_id');
 
-  const sevenMonths = await Batch.find({
+  const batches7 = await Batch.find({
     expiry_date: { $gte: start7, $lt: end7 },
   }).populate('medicine_id');
 
-  const eightMonths = await Batch.find({
+  const batches8 = await Batch.find({
     expiry_date: { $gte: start8, $lt: end8 },
   }).populate('medicine_id');
 
-  return { sixMonths, sevenMonths, eightMonths };
+  return { batches6, batches7, batches8 };
 };
 
-// Cronjob chạy hàng ngày lúc 8h
-cron.schedule('0 8 * * *', async () => {
-  console.log('Bắt đầu chạy cronjob kiểm tra batch sắp hết hạn');
+// Lấy batch hết hạn trong khoảng thời gian cụ thể
+const getBatchesExpiringInRange = async (startDate, endDate) => {
+  const batches = await Batch.find({
+    expiry_date: { $gte: startDate, $lt: endDate },
+  }).populate('medicine_id');
 
-  try {
-    const refDate = new Date();
+  return batches;
+};
 
-    const expiredUnder6Months = await getBatchesExpiredUnder6Months(refDate);
-    await notifyBatches(expiredUnder6Months, '<6');
+// Lấy batch hết hạn trong tháng cụ thể
+const getBatchesExpiringInMonth = async (year, month) => {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
 
-    const batchesByInterval = await getBatchesExpiringAtIntervals(refDate);
-    await notifyBatches(batchesByInterval.sixMonths, 6);
-    await notifyBatches(batchesByInterval.sevenMonths, 7);
-    await notifyBatches(batchesByInterval.eightMonths, 8);
+  const batches = await Batch.find({
+    expiry_date: { $gte: startDate, $lt: endDate },
+  }).populate('medicine_id');
 
-    console.log('Cronjob kiểm tra batch hết hạn đã hoàn tất');
-  } catch (error) {
-    console.error('Lỗi khi chạy cronjob:', error);
-  }
-});
+  return batches;
+};
+
+// Lấy batch hết hạn trong quý cụ thể
+const getBatchesExpiringInQuarter = async (year, quarter) => {
+  const startMonth = (quarter - 1) * 3;
+  const startDate = new Date(year, startMonth, 1);
+  const endDate = new Date(year, startMonth + 3, 0);
+
+  const batches = await Batch.find({
+    expiry_date: { $gte: startDate, $lt: endDate },
+  }).populate('medicine_id');
+
+  return batches;
+};
+
+// Lấy batch hết hạn trong năm cụ thể
+const getBatchesExpiringInYear = async (year) => {
+  const startDate = new Date(year, 0, 1);
+  const endDate = new Date(year, 11, 31);
+
+  const batches = await Batch.find({
+    expiry_date: { $gte: startDate, $lt: endDate },
+  }).populate('medicine_id');
+
+  return batches;
+};
+
+// Lấy batch hết hạn trong khoảng ngày cụ thể
+const getBatchesExpiringInDateRange = async (startDate, endDate) => {
+  const batches = await Batch.find({
+    expiry_date: { $gte: startDate, $lt: endDate },
+  }).populate('medicine_id');
+
+  return batches;
+};
+
+// Lấy batch hết hạn trong khoảng thời gian cụ thể (theo giờ)
+const getBatchesExpiringInHourRange = async (startHour, endHour) => {
+  const now = new Date();
+  const startDate = new Date(now);
+  startDate.setHours(startHour, 0, 0, 0);
+
+  const endDate = new Date(now);
+  endDate.setHours(endHour, 0, 0, 0);
+
+  const batches = await Batch.find({
+    expiry_date: { $gte: startDate, $lt: endDate },
+  }).populate('medicine_id');
+
+  return batches;
+};
+
+// Lấy batch hết hạn trong khoảng thời gian cụ thể (theo phút)
+const getBatchesExpiringInMinuteRange = async (startMinute, endMinute) => {
+  const now = new Date();
+  const startDate = new Date(now);
+  startDate.setMinutes(startMinute, 0, 0);
+
+  const endDate = new Date(now);
+  endDate.setMinutes(endMinute, 0, 0);
+
+  const batches = await Batch.find({
+    expiry_date: { $gte: startDate, $lt: endDate },
+  }).populate('medicine_id');
+
+  return batches;
+};
+
+// Lấy batch hết hạn trong khoảng thời gian cụ thể (theo giây)
+const getBatchesExpiringInSecondRange = async (startSecond, endSecond) => {
+  const now = new Date();
+  const startDate = new Date(now);
+  startDate.setSeconds(startSecond, 0);
+
+  const endDate = new Date(now);
+  endDate.setSeconds(endSecond, 0);
+
+  const batches = await Batch.find({
+    expiry_date: { $gte: startDate, $lt: endDate },
+  }).populate('medicine_id');
+
+  return batches;
+};
+
+// Lấy batch hết hạn trong khoảng thời gian cụ thể (theo millisecond)
+const getBatchesExpiringInMillisecondRange = async (startMillisecond, endMillisecond) => {
+  const now = new Date();
+  const startDate = new Date(now);
+  startDate.setMilliseconds(startMillisecond);
+
+  const endDate = new Date(now);
+  endDate.setMilliseconds(endMillisecond);
+
+  const batches = await Batch.find({
+    expiry_date: { $gte: startDate, $lt: endDate },
+  }).populate('medicine_id');
+
+  return batches;
+};
+
+// Lấy batch hết hạn trong khoảng thời gian cụ thể (theo ngày trong tuần)
+const getBatchesExpiringInWeekdayRange = async (startWeekday, endWeekday) => {
+  const now = new Date();
+  const startDate = new Date(now);
+  startDate.setDate(startDate.getDate() - startDate.getDay() + startWeekday);
+
+  const endDate = new Date(now);
+  endDate.setDate(endDate.getDate() - endDate.getDay() + endWeekday);
+
+  const batches = await Batch.find({
+    expiry_date: { $gte: startDate, $lt: endDate },
+  }).populate('medicine_id');
+
+  return batches;
+};
+
+// Lấy batch hết hạn trong khoảng thời gian cụ thể (theo ngày trong tháng)
+const getBatchesExpiringInMonthdayRange = async (startMonthday, endMonthday) => {
+  const now = new Date();
+  const startDate = new Date(now);
+  startDate.setDate(startMonthday);
+
+  const endDate = new Date(now);
+  endDate.setDate(endMonthday);
+
+  const batches = await Batch.find({
+    expiry_date: { $gte: startDate, $lt: endDate },
+  }).populate('medicine_id');
+
+  return batches;
+};
+
+// Lấy batch hết hạn trong khoảng thời gian cụ thể (theo ngày trong năm)
+const getBatchesExpiringInYeardayRange = async (startYearday, endYearday) => {
+  const now = new Date();
+  const startDate = new Date(now);
+  startDate.setDate(startYearday);
+
+  const endDate = new Date(now);
+  endDate.setDate(endYearday);
+
+  const batches = await Batch.find({
+    expiry_date: { $gte: startDate, $lt: endDate },
+  }).populate('medicine_id');
+
+  return batches;
+};
 
 module.exports = {
-  createNotificationForUser,
-  notifyBatches,
   getBatchesExpiredUnder6Months,
   getBatchesExpiringAtIntervals,
-  cron,
+  getBatchesExpiringInRange,
+  getBatchesExpiringInMonth,
+  getBatchesExpiringInQuarter,
+  getBatchesExpiringInYear,
+  getBatchesExpiringInDateRange,
+  getBatchesExpiringInHourRange,
+  getBatchesExpiringInMinuteRange,
+  getBatchesExpiringInSecondRange,
+  getBatchesExpiringInMillisecondRange,
+  getBatchesExpiringInWeekdayRange,
+  getBatchesExpiringInMonthdayRange,
+  getBatchesExpiringInYeardayRange,
 };

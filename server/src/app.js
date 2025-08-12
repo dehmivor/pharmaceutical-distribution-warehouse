@@ -76,7 +76,6 @@ app.use('/api/auth', route.authRoutes);
 app.use('/api/cron', route.cronRoutes);
 app.use('/api/medicine', route.medicineRoutes);
 app.use('/api/import-inspections', route.importInspectionRoutes);
-app.use('/api/notifications', route.notificationRoutes);
 app.use('/api/thingsboard', route.thingsboardRoutes);
 app.use('/api/batch', route.batchRoutes);
 app.use('/api/packages', route.packageRoutes);

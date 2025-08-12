@@ -7,7 +7,7 @@ mongoose
   .connect(config.db.uri, config.db.options)
   .then(() => {
     console.log('✅ MongoDB connected');
-    app.listen(config.port, () => {
+    const server = app.listen(config.port, () => {
       console.log(`🚀 Server running at http://localhost:${config.port}`);
     });
   })
