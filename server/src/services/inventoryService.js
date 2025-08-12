@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const LogLocationChange = require('../models/LogLocationChange');
 const notificationService = require('./notificationService');
 const { io } = require('../server');
+const { INVENTORY_CHECK_INSPECTION_STATUSES } = require('../utils/constants');
 
 const getInspectionsFromCheckOrder = async (checkOrderId, page, limit) => {
   try {
