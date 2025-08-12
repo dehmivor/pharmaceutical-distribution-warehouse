@@ -13,7 +13,6 @@ import {
   TableHead,
   TableRow,
   Skeleton,
-  IconButton,
   Button,
   TablePagination,
   TextField,
@@ -21,12 +20,10 @@ import {
   MenuItem,
   Stack,
   Paper,
-  Tooltip,
   Alert
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DetailsIcon from '@mui/icons-material/Details';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { Search as SearchIcon, ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
@@ -71,7 +68,7 @@ function CheckInspections() {
     };
   };
 
-  // Load current user info from localStorage
+  // Load current user info from localStorage once
   useEffect(() => {
     const userString = localStorage.getItem('user');
     if (userString) {
@@ -85,7 +82,7 @@ function CheckInspections() {
     }
   }, []);
 
-  // Load locations list
+  // Load locations list once
   useEffect(() => {
     axios
       .get(`${backendUrl}/api/locations`, { headers: getAuthHeaders() })
@@ -96,162 +93,7 @@ function CheckInspections() {
       });
   }, []);
 
-  // useEffect đầu tiên - chỉ để hiển thị detail (không có thông báo)
-  useEffect(() => {
-    fetchOrderForDisplay();
-  }, [checkOrderId]);
-
-  // useEffect thứ hai - để update status (có thông báo)
-  useEffect(() => {
-    const createInspectionsAndUpdateStatus = async () => {
-      if (!checkOrderId || !checkBy || !orderData) return;
-      if (orderData.status?.toLowerCase() === 'processing') return;
-
-      setLoading(true);
-      try {
-        const updateRes = await axios.patch(
-          `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
-          { status: 'processing' },
-          { headers: getAuthHeaders() }
-        );
-
-        if (updateRes.data?.success && updateRes.data.updated === true) {
-          enqueueSnackbar(updateRes.data.message || 'Cập nhật trạng thái đơn kiểm kê thành công.', {
-            variant: 'success'
-          });
-
-          const createRes = await axios.post(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {}, { headers: getAuthHeaders() });
-
-          enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
-            variant: createRes.data?.success ? 'success' : 'info'
-          });
-
-          // Refresh data
-          await fetchOrderForDisplay();
-          fetchInspections(0, rowsPerPage);
-        } else if (updateRes.data?.updated === false) {
-          enqueueSnackbar(updateRes.data.message || 'Đang có đợt kiểm kê khác, trạng thái giữ nguyên.', {
-            variant: 'info'
-          });
-        }
-      } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Tạo phiếu hoặc cập nhật trạng thái thất bại.';
-        console.error('Lỗi khi tạo phiếu hoặc cập nhật trạng thái:', error);
-        enqueueSnackbar(errorMsg, { variant: 'error' });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    createInspectionsAndUpdateStatus();
-  }, [checkOrderId, checkBy]);
-
-  const fetchOrderForDisplay = async () => {
-    if (!checkOrderId) return;
-    setLoading(true);
-    try {
-      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
-        headers: getAuthHeaders()
-      });
-      if (res.data?.success && res.data.data) {
-        const order = res.data.data.checkorder;
-        setOrderData(order);
-
-        // Chỉ set inventory items, không có thông báo
-        if (Array.isArray(order.items)) {
-          const items = order.items.map((item) => ({
-            id: item.medicine_id._id,
-            name: item.medicine_id.medicine_name,
-            stock: item.stock
-          }));
-          setInventoryItems(items);
-        }
-        fetchInspections(0, rowsPerPage);
-      } else {
-        enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
-      }
-    } catch (error) {
-      console.error('Failed to load check order:', error);
-      enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-  const fetchOrderAndDecide = async () => {
-    if (!checkOrderId) return;
-    setLoading(true);
-    try {
-      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
-        headers: getAuthHeaders()
-      });
-      if (res.data?.success && res.data.data) {
-        const order = res.data.data.checkorder;
-        setOrderData(order);
-
-        // Chỉ hiển thị thông báo khi status là processing
-        if (order.status?.toLowerCase() === 'processing') {
-          enqueueSnackbar('Toàn kho đang trong trạng thái khóa, không thể tạo phiếu mới', { variant: 'info' });
-        }
-
-        // Luôn set inventory items
-        if (Array.isArray(order.items)) {
-          const items = order.items.map((item) => ({
-            id: item.medicine_id._id,
-            name: item.medicine_id.medicine_name,
-            stock: item.stock
-          }));
-          setInventoryItems(items);
-        }
-        fetchInspections(0, rowsPerPage);
-      } else {
-        enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
-      }
-    } catch (error) {
-      console.error('Failed to load check order:', error);
-      enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle filter change
-  const handleFilterChange = (field, value) => {
-    switch (field) {
-      case 'search':
-        setSearchTerm(value);
-        break;
-      case 'location':
-        setFilterLocation(value);
-        break;
-      case 'date':
-        setFilterDate(value);
-        break;
-      case 'status':
-        setFilterStatus(value);
-        break;
-      default:
-        break;
-    }
-  };
-
-  // Search button clicked
-  const handleSearchClick = () => {
-    setPage(0);
-    fetchInspections(0, rowsPerPage);
-  };
-
-  // Reset filters & sort
-  const handleReset = () => {
-    setSearchTerm('');
-    setFilterLocation('');
-    setFilterDate('');
-    setFilterStatus('');
-    setSortDirection('asc');
-    setPage(0);
-    fetchInspections(0, rowsPerPage);
-  };
-
-  // Fetch inspections data with query params
+  // Fetch inspections list helper
   const fetchInspections = (pageParam = page, rowsPerPageParam = rowsPerPage) => {
     if (!checkOrderId) return;
     setLoading(true);
@@ -336,6 +178,165 @@ function CheckInspections() {
       .finally(() => setLoading(false));
   };
 
+  // Fetch order details (without decision logic)
+  const fetchOrderForDisplay = async () => {
+    if (!checkOrderId) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
+        headers: getAuthHeaders()
+      });
+      if (res.data?.success && res.data.data) {
+        const order = res.data.data.checkorder;
+        setOrderData(order);
+
+        if (Array.isArray(order.items)) {
+          const items = order.items.map((item) => ({
+            id: item.medicine_id._id,
+            name: item.medicine_id.medicine_name,
+            stock: item.stock
+          }));
+          setInventoryItems(items);
+        }
+
+        fetchInspections(0, rowsPerPage);
+      } else {
+        enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
+      }
+    } catch (error) {
+      console.error('Failed to load check order:', error);
+      enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch order + handle decision & show notifications immediately on page load or change
+  const fetchOrderAndDecide = async () => {
+    if (!checkOrderId) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
+        headers: getAuthHeaders()
+      });
+      if (res.data?.success && res.data.data) {
+        const order = res.data.data.checkorder;
+        setOrderData(order);
+
+        if (order.status?.toLowerCase() === 'processing') {
+          enqueueSnackbar('Toàn kho đang trong trạng thái khóa, không thể tạo phiếu mới', { variant: 'info' });
+        }
+
+        if (Array.isArray(order.items)) {
+          const items = order.items.map((item) => ({
+            id: item.medicine_id._id,
+            name: item.medicine_id.medicine_name,
+            stock: item.stock
+          }));
+          setInventoryItems(items);
+        }
+        fetchInspections(0, rowsPerPage);
+      } else {
+        enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
+      }
+    } catch (error) {
+      console.error('Failed to load check order:', error);
+      enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // useEffect chỉ gọi fetchOrderAndDecide khi checkOrderId và checkBy có đủ thông tin
+  useEffect(() => {
+    if (checkOrderId && checkBy) {
+      fetchOrderAndDecide();
+    }
+  }, [checkOrderId, checkBy]);
+
+  // useEffect riêng biệt để tạo phiếu và cập nhật trạng thái, chạy khi orderData thay đổi
+  useEffect(() => {
+    const createInspectionsAndUpdateStatus = async () => {
+      if (!checkOrderId || !checkBy || !orderData) return;
+      if (orderData.status?.toLowerCase() === 'processing') return;
+
+      setLoading(true);
+      try {
+        const updateRes = await axios.patch(
+          `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
+          { status: 'processing' },
+          { headers: getAuthHeaders() }
+        );
+
+        if (updateRes.data?.success && updateRes.data.updated === true) {
+          enqueueSnackbar(updateRes.data.message || 'Cập nhật trạng thái đơn kiểm kê thành công.', {
+            variant: 'success'
+          });
+
+          const createRes = await axios.post(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {}, { headers: getAuthHeaders() });
+
+          enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
+            variant: createRes.data?.success ? 'success' : 'info'
+          });
+
+          // Reload order and inspection data after update
+          await fetchOrderForDisplay();
+          fetchInspections(0, rowsPerPage);
+        } else if (updateRes.data?.updated === false) {
+          enqueueSnackbar(updateRes.data.message || 'Đang có đợt kiểm kê khác, trạng thái giữ nguyên.', {
+            variant: 'info'
+          });
+        }
+      } catch (error) {
+        const errorMsg = error.response?.data?.message || 'Tạo phiếu hoặc cập nhật trạng thái thất bại.';
+        console.error('Lỗi khi tạo phiếu hoặc cập nhật trạng thái:', error);
+        enqueueSnackbar(errorMsg, { variant: 'error' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    createInspectionsAndUpdateStatus();
+  }, [checkOrderId, checkBy, orderData]);
+
+  // Handle filter changes
+  const handleFilterChange = (field, value) => {
+    switch (field) {
+      case 'search':
+        setSearchTerm(value);
+        break;
+      case 'location':
+        setFilterLocation(value);
+        break;
+      case 'date':
+        setFilterDate(value);
+        break;
+      case 'status':
+        setFilterStatus(value);
+        break;
+      default:
+        break;
+    }
+  };
+
+  // Search button clicked
+  const handleSearchClick = () => {
+    setPage(0);
+    fetchInspections(0, rowsPerPage);
+  };
+
+  // Reset filters & sort button clicked
+  const handleReset = () => {
+    setSearchTerm('');
+    setFilterLocation('');
+    setFilterDate('');
+    setFilterStatus('');
+    setSortDirection('asc');
+    setPage(0);
+    fetchInspections(0, rowsPerPage);
+  };
+
+  // Pagination handlers
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
     fetchInspections(newPage, rowsPerPage);
@@ -348,10 +349,12 @@ function CheckInspections() {
     fetchInspections(0, newRpp);
   };
 
+  // Helper counts for inspections
   const countUncheckedInspections = inspections.filter((insp) => insp.check_list.some((item) => item.actual_quantity === 0)).length;
 
   const countCheckedInspections = inspections.filter((insp) => insp.check_list.some((item) => item.actual_quantity > 0)).length;
 
+  // Get location label
   const getLocationLabel = (location) => {
     if (!location) return '';
     const areaName = location.area_id?.name || 'Không xác định';
@@ -407,7 +410,7 @@ function CheckInspections() {
         </Alert>
       )}
 
-      {/* UI filter, search, sort */}
+      {/* Filters, search, sort UI */}
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
@@ -498,7 +501,7 @@ function CheckInspections() {
                 <Typography variant="h6">Mặt hàng chưa kiểm ({countUncheckedInspections} phiếu)</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                {inspections.length === 0 || inspections.check_list?.length === 0 || countUncheckedInspections === 0 ? (
+                {inspections.length === 0 || countUncheckedInspections === 0 ? (
                   <Typography>Không có phiếu kiểm kê chưa kiểm.</Typography>
                 ) : (
                   <Stack spacing={2}>
