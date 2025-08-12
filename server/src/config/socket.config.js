@@ -1,4 +1,3 @@
-// socket.config.js
 const { Server } = require('socket.io');
 
 const setupSocketIO = (server, options = {}) => {
@@ -24,9 +23,19 @@ const setupSocketIO = (server, options = {}) => {
   io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    socket.on('joinRoom', (userId) => {
-      socket.join(userId);
-      console.log(`User ${userId} joined room`);
+    // Xử lý join nhiều room cùng lúc
+    socket.on('joinRooms', (rooms) => {
+      if (!rooms) return;
+
+      if (Array.isArray(rooms)) {
+        rooms.forEach((room) => {
+          socket.join(room);
+          console.log(`User ${socket.id} joined room ${room}`);
+        });
+      } else if (typeof rooms === 'string' && rooms.trim() !== '') {
+        socket.join(rooms);
+        console.log(`User ${socket.id} joined room ${rooms}`);
+      }
     });
 
     socket.on('disconnect', () => {

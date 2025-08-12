@@ -1,8 +1,9 @@
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
+import axios from 'axios';
 
-// @mui imports như cũ
+// @mui imports
 import { keyframes, useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Badge from '@mui/material/Badge';
@@ -25,12 +26,12 @@ import CircularProgress from '@mui/material/CircularProgress';
 // Socket.IO client
 import { io } from 'socket.io-client';
 
-// @project imports như cũ
+// @project imports
 import EmptyNotification from '@/components/header/empty-state/EmptyNotification';
 import MainCard from '@/components/MainCard';
 import NotificationItem from '@/components/NotificationItem';
 
-// @assets imports giữ nguyên
+// @assets imports
 import { IconBell, IconCode, IconChevronDown, IconGitBranch, IconNote, IconGps } from '@tabler/icons-react';
 
 const swing = keyframes`
@@ -111,46 +112,6 @@ const categorizeNotifications = (notifications) => {
   return { recent, older };
 };
 
-// Mock dữ liệu ban đầu bạn có thể dùng hoặc thay thế bằng dữ liệu thật nếu muốn
-const mockNotifications = [
-  {
-    id: '1',
-    title: 'Hệ thống cập nhật',
-    message: 'Phiên bản hệ thống mới đã sẵn sàng cập nhật.',
-    createdAt: new Date(new Date().getTime() - 2 * 60 * 60 * 1000).toISOString(),
-    status: 'unread',
-    type: 'system',
-    priority: 'normal',
-    action_url: 'https://example.com/system-update',
-    avatar_url: '',
-    badge_icon: 'export.png'
-  },
-  {
-    id: '2',
-    title: 'Báo động nhiệt độ',
-    message: 'Nhiệt độ vượt ngưỡng an toàn!',
-    createdAt: new Date(new Date().getTime() - 1 * 60 * 60 * 1000).toISOString(),
-    status: 'unread',
-    type: 'security',
-    priority: 'high',
-    action_url: '',
-    avatar_url: '',
-    badge_icon: 'temperature-alert.png'
-  },
-  {
-    id: '3',
-    title: 'Tài liệu mới',
-    message: 'Bạn có một tài liệu mới được gửi.',
-    createdAt: new Date(new Date().getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    status: 'read',
-    type: 'document',
-    priority: 'normal',
-    action_url: 'https://example.com/document',
-    avatar_url: '',
-    badge_icon: ''
-  }
-];
-
 export default function Notification({ userId }) {
   const theme = useTheme();
   const downSM = useMediaQuery(theme.breakpoints.down('sm'));
@@ -158,7 +119,7 @@ export default function Notification({ userId }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [innerAnchorEl, setInnerAnchorEl] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState('All notification');
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const unreadCount = notifications.filter((n) => n.status === 'unread').length;
@@ -166,24 +127,46 @@ export default function Notification({ userId }) {
   useEffect(() => {
     if (!userId) return;
 
-    // Kết nối Socket.IO
+    const fetchNotifications = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications`, {
+          params: { recipient_id: userId },
+          withCredentials: true
+        });
+        const data = res.data.map((noti) => ({ ...noti, id: noti._id || noti.id }));
+        setNotifications(data);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+
     const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
       withCredentials: true
     });
 
-    socket.emit('joinRoom', userId);
+    socket.emit('joinRooms', [userId, 'system']);
 
     socket.on('newNotification', (notification) => {
+      const newNoti = { ...notification, id: notification._id || notification.id };
+
       setNotifications((prev) => {
-        if (prev.findIndex((n) => n.id === notification.id) !== -1) return prev;
-        return [notification, ...prev];
+        if (prev.findIndex((n) => n.id === newNoti.id) !== -1) return prev;
+        return [newNoti, ...prev];
       });
     });
 
-    // Có thể thêm sự kiện xóa notification realtime nếu backend emit ngoài server
+    socket.on('deletedNotificationId', (id) => {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    });
 
     return () => {
       socket.off('newNotification');
+      socket.off('deletedNotificationId');
       socket.disconnect();
     };
   }, [userId]);

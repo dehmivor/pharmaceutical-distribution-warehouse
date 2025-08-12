@@ -106,7 +106,7 @@ export default function useNotification(userId) {
     });
     setSocket(newSocket);
 
-    newSocket.emit('joinRoom', userId);
+    socket.emit('joinRooms', [userId, 'system']);
 
     // Nhận notification realtime
     newSocket.on('newNotification', (noti) => {

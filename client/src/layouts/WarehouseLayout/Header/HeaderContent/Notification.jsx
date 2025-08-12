@@ -171,7 +171,7 @@ export default function Notification({ userId }) {
       withCredentials: true
     });
 
-    socket.emit('joinRoom', userId);
+    socket.emit('joinRooms', [userId, 'system']);
 
     socket.on('newNotification', (notification) => {
       setNotifications((prev) => {
