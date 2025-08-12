@@ -45,6 +45,7 @@
     "react-device-detect": "^2.2.3",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.51.3",
+    "react-i18next": "^15.6.1",
     "react-redux": "^9.2.0",
     "react-smooth": "^4.0.4",
     "recharts": "^2.15.3",
