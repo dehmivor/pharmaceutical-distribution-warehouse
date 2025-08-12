@@ -7,6 +7,8 @@ const LogLocationChange = require('../models/LogLocationChange');
 const { EXPORT_ORDER_STATUSES, USER_ROLES } = require('../utils/constants');
 const exportOrderService = require('../services/exportOrderService');
 const mongoose = require('mongoose');
+const InventoryCheckInspection = require("../models/InventoryCheckInspection")
+const Location = require("../models/Location")
 
 // Helper function for population to ensure consistent data structure
 const populateOptions = [
@@ -144,107 +146,96 @@ const updatePackingDetails = async (req, res, next) => {
 };
 
 const completeExportOrder = async (req, res) => {
-  const { id } = req.params;
-  const user = req.user; // Giả sử user được gắn vào req bởi middleware xác thực
-
+  const { id } = req.params
+  const user = req.user // Giả sử user được gắn vào req bởi middleware xác thực
   try {
     // Tìm đơn xuất kho
-    const exportOrder = await ExportOrder.findById(id).populate(populateOptions);
+    const exportOrder = await ExportOrder.findById(id).populate(populateOptions)
     if (!exportOrder) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn xuất kho' });
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn xuất kho" })
     }
-
     // Kiểm tra trạng thái đơn
     if (exportOrder.status !== EXPORT_ORDER_STATUSES.APPROVED) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: 'Đơn xuất kho phải ở trạng thái đã phê duyệt để hoàn thành',
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Đơn xuất kho phải ở trạng thái đã phê duyệt để hoàn thành",
+      })
     }
-
     // Kiểm tra quyền người dùng
-    const isInternal = !exportOrder.contract_id;
-    const isSupervisorAllowed = user.role === 'supervisor' && isInternal;
-    const isWarehouseManager = user.role === 'warehouse_manager';
-    if (!isSupervisorAllowed && !isWarehouseManager) {
-      return res
-        .status(403)
-        .json({ success: false, message: 'Bạn không có quyền hoàn thành đơn xuất kho này' });
+    if (user.role !== "warehouse_manager") {
+      return res.status(403).json({ success: false, message: "Chỉ quản lý kho mới có thể hoàn thành đơn xuất kho" })
     }
-
     // Bắt đầu transaction để đảm bảo tính nguyên tử
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
+    const session = await mongoose.startSession()
+    session.startTransaction()
     try {
       // Lặp qua từng chi tiết trong đơn xuất kho
       for (const detail of exportOrder.details) {
         for (const item of detail.actual_item) {
-          const packageId = item.package_id._id;
-          const quantityToRemove = item.quantity;
+          const packageId = item.package_id._id
+          const quantityToRemove = item.quantity
+          const warehouseUserId = item.created_by._id || item.created_by // Lấy từ created_by trong exportInspectionSchema
 
           // Tìm package
-          const pkg = await Package.findById(packageId).session(session);
+          const pkg = await Package.findById(packageId).session(session)
           if (!pkg) {
-            throw new Error(`Không tìm thấy package ${packageId}`);
+            throw new Error(`Không tìm thấy package ${packageId}`)
           }
 
           // Kiểm tra số lượng đủ để giảm
           if (pkg.quantity < quantityToRemove) {
-            throw new Error(
-              `Số lượng trong package ${packageId} không đủ cho thuốc ${detail.medicine_id}`,
-            );
+            throw new Error(`Số lượng trong package ${packageId} không đủ cho thuốc ${detail.medicine_id}`)
           }
 
           // Giảm số lượng trong package
-          pkg.quantity -= quantityToRemove;
-          await pkg.save({ session });
+          pkg.quantity -= quantityToRemove
 
-          // Ghi log thay đổi vị trí
+          // Nếu số lượng về 0, xóa package
+          if (pkg.quantity === 0) {
+            await Package.findByIdAndDelete(packageId).session(session)
+            console.log(`Deleted package ${packageId} - quantity reached 0`)
+          } else {
+            await pkg.save({ session })
+          }
+
+          // Ghi log thay đổi vị trí với ware_house_id từ created_by
           await LogLocationChange.create(
             [
               {
                 location_id: pkg.location_id,
-                type: 'remove',
+                type: "remove",
                 batch_id: pkg.batch_id,
                 quantity: quantityToRemove,
                 export_order_id: exportOrder._id,
-                ware_house_id: user.userId,
+                ware_house_id: warehouseUserId, // Sử dụng created_by từ exportInspectionSchema
               },
             ],
             { session },
-          );
+          )
         }
       }
-
       // Cập nhật trạng thái đơn xuất kho
-      exportOrder.status = EXPORT_ORDER_STATUSES.COMPLETED;
-      await exportOrder.save({ session });
-
+      exportOrder.status = EXPORT_ORDER_STATUSES.COMPLETED
+      await exportOrder.save({ session })
       // Commit transaction
-      await session.commitTransaction();
-      session.endSession();
-
+      await session.commitTransaction()
+      session.endSession()
       return res.json({
         success: true,
-        message: 'Đơn xuất kho đã hoàn thành thành công',
+        message: "Đơn xuất kho đã hoàn thành thành công",
         data: exportOrder,
-      });
+      })
     } catch (error) {
       // Hủy transaction nếu có lỗi
-      await session.abortTransaction();
-      session.endSession();
-      throw error;
+      await session.abortTransaction()
+      session.endSession()
+      throw error
     }
   } catch (error) {
-    console.error('Lỗi khi hoàn thành đơn xuất kho:', error);
-    return res
-      .status(500)
-      .json({ success: false, message: error.message || 'Lỗi server khi hoàn thành đơn xuất kho' });
+    console.error("Lỗi khi hoàn thành đơn xuất kho:", error)
+    return res.status(500).json({ success: false, message: error.message || "Lỗi server khi hoàn thành đơn xuất kho" })
   }
-};
+}
 
 const cancelExportOrder = async (req, res, next) => {
   try {
