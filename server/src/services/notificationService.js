@@ -36,11 +36,28 @@ const deleteNotification = async (notificationId) => {
  * @param {Object} query - query params: recipient_id, status, type, limit, skip etc...
  */
 const getNotifications = async (query = {}) => {
-  const { recipient_id, status, type, limit = 20, skip = 0 } = query;
-  const filter = {};
+  const { recipient_id, status, type, limit = 20, skip = 0, include_system } = query;
+  let filter = {};
 
-  if (recipient_id) filter.recipient_id = recipient_id;
-  if (status) filter.status = status; // ví dụ unread, read
+  // Xử lý logic chính
+  if (include_system === 'true' && recipient_id) {
+    // Trường hợp 1: Lấy cả user + system notifications
+    filter = {
+      $or: [
+        { recipient_id: recipient_id }, // User notifications
+        { recipient_id: null, type: 'system_alert' }, // System notifications
+      ],
+    };
+  } else if (recipient_id) {
+    // Trường hợp 2: Chỉ lấy user notifications
+    filter.recipient_id = recipient_id;
+  } else if (include_system === 'true') {
+    // Trường hợp 3: Chỉ lấy system notifications (khi không có recipient_id)
+    filter = { recipient_id: null, type: 'system_alert' };
+  }
+
+  // Thêm các filter bổ sung
+  if (status) filter.status = status;
   if (type) filter.type = type;
 
   const notifications = await Notification.find(filter)

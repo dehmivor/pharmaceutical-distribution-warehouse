@@ -1,6 +1,8 @@
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
+import { useContext } from 'react';
+import { AuthContext } from '@/contexts/AuthContext';
 import axios from 'axios';
 
 // @mui imports
@@ -33,6 +35,7 @@ import NotificationItem from '@/components/NotificationItem';
 
 // @assets imports
 import { IconBell, IconCode, IconChevronDown, IconGitBranch, IconNote, IconGps } from '@tabler/icons-react';
+import { useRole } from '@/contexts/RoleContext';
 
 const swing = keyframes`
   20% {
@@ -112,9 +115,11 @@ const categorizeNotifications = (notifications) => {
   return { recent, older };
 };
 
-export default function Notification({ userId }) {
+export default function Notification() {
   const theme = useTheme();
   const downSM = useMediaQuery(theme.breakpoints.down('sm'));
+  const { user } = useRole();
+  const userId = user?._id || user?.id;
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [innerAnchorEl, setInnerAnchorEl] = useState(null);
@@ -131,7 +136,7 @@ export default function Notification({ userId }) {
       setLoading(true);
       try {
         const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/notifications`, {
-          params: { recipient_id: userId },
+          params: { recipient_id: userId, include_system: 'true', limit: 100 },
           withCredentials: true
         });
         const data = res.data.map((noti) => ({ ...noti, id: noti._id || noti.id }));
@@ -175,7 +180,17 @@ export default function Notification({ userId }) {
 
   const getFilteredNotifications = () => {
     if (selectedFilter === 'All notification') return notifications;
-    return filterNotifications({ type: selectedFilter.toLowerCase() });
+
+    const typeMapping = {
+      Import: 'import',
+      Export: 'export',
+      Inventory: 'inventory',
+      'Debt Reminder': 'debt_reminder',
+      'System Alert': 'system_alert'
+    };
+
+    const actualType = typeMapping[selectedFilter];
+    return notifications.filter((n) => n.type === actualType);
   };
 
   const { recent: recentNotifications, older: olderNotifications } = categorizeNotifications(getFilteredNotifications());
@@ -294,7 +309,7 @@ export default function Notification({ userId }) {
                               >
                                 <ClickAwayListener onClickAway={() => setInnerAnchorEl(null)}>
                                   <List disablePadding>
-                                    {['All notification', 'Security', 'Document', 'System', 'Location'].map((item) => (
+                                    {['All notification', 'Import', 'Export', 'Inventory', 'Debt Reminder', 'System Alert'].map((item) => (
                                       <ListItemButton
                                         key={item}
                                         sx={{ borderRadius: 2, p: 1 }}
