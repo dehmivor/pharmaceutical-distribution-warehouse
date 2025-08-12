@@ -173,6 +173,7 @@ const updateCheckOrderStatus = async (req, res) => {
   try {
     const checkOrderId = req.params.id;
     const { status } = req.body;
+    const io = req.app.locals.io;
 
     if (!mongoose.Types.ObjectId.isValid(checkOrderId)) {
       return res.status(400).json({
@@ -196,12 +197,14 @@ const updateCheckOrderStatus = async (req, res) => {
 
     let updatedCheckOrder;
     if (status === INVENTORY_CHECK_ORDER_STATUSES.COMPLETED) {
-      // If completing the order, apply inspection results first
+      // Áp dụng kết quả kiểm kê trước khi cập nhật trạng thái nếu hoàn thành
       await inventoryCheckInspectionService.applyInspectionResults(checkOrderId);
-      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
+
+      // Cập nhật trạng thái đơn kiểm kê, có truyền io nếu hàm support
+      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status, io);
     } else {
-      // For other status updates (e.g., cancelled), just update the order status
-      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status);
+      // Cập nhật trạng thái cho các trường hợp khác như cancelled, processing, ...
+      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status, io);
     }
 
     if (!updatedCheckOrder) {

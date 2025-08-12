@@ -13,7 +13,6 @@ import {
   TableHead,
   TableRow,
   Skeleton,
-  IconButton,
   Button,
   TablePagination,
   TextField,
@@ -21,12 +20,10 @@ import {
   MenuItem,
   Stack,
   Paper,
-  Tooltip,
   Alert
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DetailsIcon from '@mui/icons-material/Details';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { Search as SearchIcon, ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
@@ -71,7 +68,7 @@ function CheckInspections() {
     };
   };
 
-  // Load current user info from localStorage
+  // Load current user info from localStorage once
   useEffect(() => {
     const userString = localStorage.getItem('user');
     if (userString) {
@@ -85,7 +82,7 @@ function CheckInspections() {
     }
   }, []);
 
-  // Load locations list
+  // Load locations list once
   useEffect(() => {
     axios
       .get(`${backendUrl}/api/locations`, { headers: getAuthHeaders() })
@@ -96,92 +93,68 @@ function CheckInspections() {
       });
   }, []);
 
-  useEffect(() => {
-    fetchOrderAndDecide();
-  }, [checkOrderId]);
-  // Load check order details and inventory items
+  const groupInspectionsByLocation = (inspections) => {
+    const map = new Map();
 
-  const fetchOrderAndDecide = async () => {
-    if (!checkOrderId) return;
-    setLoading(true);
-    try {
-      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
-        headers: getAuthHeaders()
-      });
-      if (res.data?.success && res.data.data) {
-        const order = res.data.data.checkorder;
-        setOrderData(order);
+    inspections.forEach((insp) => {
+      const loc = insp.location_id;
+      if (!loc) return;
 
-        if (order.status?.toLowerCase() === 'processing') {
-          enqueueSnackbar('Toàn kho đang trong trạng thái khóa, không thể tạo phiếu mới', { variant: 'info' });
-          if (Array.isArray(order.items)) {
-            const items = order.items.map((item) => ({
-              id: item.medicine_id._id,
-              name: item.medicine_id.medicine_name,
-              stock: item.stock
-            }));
-            setInventoryItems(items);
-          }
-          fetchInspections(0, rowsPerPage);
-        } else {
-          if (Array.isArray(order.items)) {
-            const items = order.items.map((item) => ({
-              id: item.medicine_id._id,
-              name: item.medicine_id.medicine_name,
-              stock: item.stock
-            }));
-            setInventoryItems(items);
-          }
-        }
+      // Tạo key định danh duy nhất cho location (dựa theo khu vực, bay, row, column)
+      const key = `${loc.area_id?.name || 'Không xác định'}|${loc.bay}|${loc.row}|${loc.column}`;
+
+      if (!map.has(key)) {
+        map.set(key, {
+          location: loc,
+          status: insp.status,
+          notes: insp.notes,
+          check_list: [...(insp.check_list || [])],
+          _ids: [insp._id] // lưu array id phiếu con
+        });
       } else {
-        enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
+        const existing = map.get(key);
+
+        // Map phụ để lọc thuốc trùng theo package_id._id hoặc _id của check_list item
+        const itemMap = new Map();
+
+        // Thêm các thuốc hiện có
+        existing.check_list.forEach((item) => {
+          const itemKey = item.package_id?._id || item._id;
+          if (itemKey) {
+            itemMap.set(itemKey, item);
+          }
+        });
+
+        // Thêm thuốc mới nếu chưa có
+        (insp.check_list || []).forEach((item) => {
+          const itemKey = item.package_id?._id || item._id;
+          if (itemKey && !itemMap.has(itemKey)) {
+            itemMap.set(itemKey, item);
+          }
+        });
+
+        // Cập nhật check_list là mảng thuốc không trùng
+        existing.check_list = Array.from(itemMap.values());
+
+        // Có thể cập nhật status, notes nếu muốn (ví dụ lấy status cao nhất, notes nối)
+        existing._ids.push(insp._id);
       }
-    } catch (error) {
-      console.error('Failed to load check order:', error);
-      enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
-    } finally {
-      setLoading(false);
-    }
+    });
+
+    return Array.from(map.values());
   };
 
-  // Handle filter change
-  const handleFilterChange = (field, value) => {
-    switch (field) {
-      case 'search':
-        setSearchTerm(value);
-        break;
-      case 'location':
-        setFilterLocation(value);
-        break;
-      case 'date':
-        setFilterDate(value);
-        break;
-      case 'status':
-        setFilterStatus(value);
-        break;
-      default:
-        break;
-    }
-  };
+  const groupedInspections = groupInspectionsByLocation(inspections);
 
-  // Search button clicked
-  const handleSearchClick = () => {
-    setPage(0);
-    fetchInspections(0, rowsPerPage);
-  };
+  const uncheckedInspections = groupedInspections.filter(
+    (insp) => !insp.check_list || insp.check_list.length === 0 || insp.check_list.every((item) => item.actual_quantity === 0)
+  );
 
-  // Reset filters & sort
-  const handleReset = () => {
-    setSearchTerm('');
-    setFilterLocation('');
-    setFilterDate('');
-    setFilterStatus('');
-    setSortDirection('asc');
-    setPage(0);
-    fetchInspections(0, rowsPerPage);
-  };
+  const checkedInspections = groupedInspections.filter(
+    (insp) => insp.check_list && insp.check_list.some((item) => item.actual_quantity > 0)
+  );
 
-  // Fetch inspections data with query params
+  // Các hàm fetch dữ liệu + cập nhật trạng thái
   const fetchInspections = (pageParam = page, rowsPerPageParam = rowsPerPage) => {
     if (!checkOrderId) return;
     setLoading(true);
@@ -266,6 +239,81 @@ function CheckInspections() {
       .finally(() => setLoading(false));
   };
 
+  const fetchOrderForDisplay = async () => {
+    if (!checkOrderId) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
+        headers: getAuthHeaders()
+      });
+      if (res.data?.success && res.data.data) {
+        const order = res.data.data.checkorder;
+        setOrderData(order);
+
+        if (Array.isArray(order.items)) {
+          const items = order.items.map((item) => ({
+            id: item.medicine_id._id,
+            name: item.medicine_id.medicine_name,
+            stock: item.stock
+          }));
+          setInventoryItems(items);
+        }
+
+        fetchInspections(0, rowsPerPage);
+      } else {
+        enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
+      }
+    } catch (error) {
+      console.error('Failed to load check order:', error);
+      enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOrderAndDecide = async () => {
+    if (!checkOrderId) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
+        headers: getAuthHeaders()
+      });
+      if (res.data?.success && res.data.data) {
+        const order = res.data.data.checkorder;
+        setOrderData(order);
+
+        if (order.status?.toLowerCase() === 'processing') {
+          enqueueSnackbar('Toàn kho đang trong trạng thái khóa, không thể tạo phiếu mới', { variant: 'info' });
+        }
+
+        if (Array.isArray(order.items)) {
+          const items = order.items.map((item) => ({
+            id: item.medicine_id._id,
+            name: item.medicine_id.medicine_name,
+            stock: item.stock
+          }));
+          setInventoryItems(items);
+        }
+        fetchInspections(0, rowsPerPage);
+      } else {
+        enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
+      }
+    } catch (error) {
+      console.error('Failed to load check order:', error);
+      enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // useEffect gọi khi có checkOrderId và checkBy
+  useEffect(() => {
+    if (checkOrderId && checkBy) {
+      fetchOrderAndDecide();
+    }
+  }, [checkOrderId, checkBy]);
+
+  // useEffect tạo phiếu và cập nhật trạng thái khi orderData thay đổi
   useEffect(() => {
     const createInspectionsAndUpdateStatus = async () => {
       if (!checkOrderId || !checkBy || !orderData) return;
@@ -279,45 +327,23 @@ function CheckInspections() {
           { headers: getAuthHeaders() }
         );
 
-        if (updateRes.data?.success) {
-          if (updateRes.data.updated === false) {
-            enqueueSnackbar(updateRes.data.message || 'Đang có đợt kiểm kê khác, trạng thái giữ nguyên.', {
-              variant: 'info'
-            });
-          } else if (updateRes.data.updated === true) {
-            enqueueSnackbar(updateRes.data.message || 'Cập nhật trạng thái đơn kiểm kê thành công.', {
-              variant: 'success'
-            });
+        if (updateRes.data?.success && updateRes.data.updated === true) {
+          enqueueSnackbar(updateRes.data.message || 'Cập nhật trạng thái đơn kiểm kê thành công.', {
+            variant: 'success'
+          });
 
-            const createRes = await axios.post(
-              `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
-              {},
-              { headers: getAuthHeaders() }
-            );
+          const createRes = await axios.post(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {}, { headers: getAuthHeaders() });
 
-            enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
-              variant: createRes.data?.success ? 'success' : 'info'
-            });
-            await fetchOrderAndDecide();
-            fetchInspections(0, rowsPerPage);
-          } else {
-            enqueueSnackbar(updateRes.data.message || 'Cập nhật trạng thái đơn kiểm kê thành công.', {
-              variant: 'success'
-            });
+          enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
+            variant: createRes.data?.success ? 'success' : 'info'
+          });
 
-            const createRes = await axios.post(
-              `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
-              {},
-              { headers: getAuthHeaders() }
-            );
-            enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
-              variant: createRes.data?.success ? 'success' : 'info'
-            });
-            fetchInspections(0, rowsPerPage);
-          }
-        } else {
-          enqueueSnackbar(updateRes.data.message || 'Không thể tạo phiếu kiểm kê vì cập nhật trạng thái không thành công.', {
-            variant: 'error'
+          // Load lại dữ liệu sau cập nhật
+          await fetchOrderForDisplay();
+          fetchInspections(0, rowsPerPage);
+        } else if (updateRes.data?.updated === false) {
+          enqueueSnackbar(updateRes.data.message || 'Đang có đợt kiểm kê khác, trạng thái giữ nguyên.', {
+            variant: 'info'
           });
         }
       } catch (error) {
@@ -332,6 +358,41 @@ function CheckInspections() {
     createInspectionsAndUpdateStatus();
   }, [checkOrderId, checkBy, orderData]);
 
+  // UI events:
+  const handleFilterChange = (field, value) => {
+    switch (field) {
+      case 'search':
+        setSearchTerm(value);
+        break;
+      case 'location':
+        setFilterLocation(value);
+        break;
+      case 'date':
+        setFilterDate(value);
+        break;
+      case 'status':
+        setFilterStatus(value);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleSearchClick = () => {
+    setPage(0);
+    fetchInspections(0, rowsPerPage);
+  };
+
+  const handleReset = () => {
+    setSearchTerm('');
+    setFilterLocation('');
+    setFilterDate('');
+    setFilterStatus('');
+    setSortDirection('asc');
+    setPage(0);
+    fetchInspections(0, rowsPerPage);
+  };
+
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
     fetchInspections(newPage, rowsPerPage);
@@ -344,10 +405,7 @@ function CheckInspections() {
     fetchInspections(0, newRpp);
   };
 
-  const countUncheckedInspections = inspections.filter((insp) => insp.check_list.some((item) => item.actual_quantity === 0)).length;
-
-  const countCheckedInspections = inspections.filter((insp) => insp.check_list.some((item) => item.actual_quantity > 0)).length;
-
+  // Hiển thị location label helper
   const getLocationLabel = (location) => {
     if (!location) return '';
     const areaName = location.area_id?.name || 'Không xác định';
@@ -403,9 +461,10 @@ function CheckInspections() {
         </Alert>
       )}
 
-      {/* UI filter, search, sort */}
+      {/* Các bộ lọc và UI search */}
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+          {/* Tìm kiếm */}
           <TextField
             fullWidth
             variant="outlined"
@@ -422,6 +481,8 @@ function CheckInspections() {
               )
             }}
           />
+
+          {/* Lọc vị trí kho */}
           <TextField
             fullWidth
             select
@@ -437,6 +498,8 @@ function CheckInspections() {
               </MenuItem>
             ))}
           </TextField>
+
+          {/* Lọc thời điểm cập nhật */}
           <TextField
             fullWidth
             label="Thời điểm cập nhật"
@@ -446,6 +509,8 @@ function CheckInspections() {
             InputLabelProps={{ shrink: true }}
             size="small"
           />
+
+          {/* Lọc trạng thái */}
           <TextField
             fullWidth
             select
@@ -461,6 +526,8 @@ function CheckInspections() {
               </MenuItem>
             ))}
           </TextField>
+
+          {/* Nút đổi chiều sort */}
           <Button
             fullWidth
             variant="outlined"
@@ -471,16 +538,19 @@ function CheckInspections() {
             {sortDirection === 'asc' ? 'Tăng dần' : 'Giảm dần'}
           </Button>
 
+          {/* Nút tìm kiếm */}
           <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
             Search
           </Button>
+
+          {/* Nút reset bộ lọc */}
           <Button fullWidth size="small" variant="outlined" onClick={handleReset}>
             Refresh
           </Button>
         </Stack>
       </Box>
 
-      {/* Mặt hàng chưa kiểm */}
+      {/* Hiển thị nhóm phiếu "chưa kiểm" */}
       <Box>
         {loading ? (
           <>
@@ -491,31 +561,87 @@ function CheckInspections() {
           <>
             <Accordion defaultExpanded sx={{ mb: 3 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="h6">Mặt hàng chưa kiểm ({countUncheckedInspections} phiếu)</Typography>
+                <Typography variant="h6">Mặt hàng chưa kiểm ({uncheckedInspections.length} phiếu)</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                {inspections.length === 0 || inspections.check_list?.length === 0 || countUncheckedInspections === 0 ? (
+                {uncheckedInspections.length === 0 ? (
                   <Typography>Không có phiếu kiểm kê chưa kiểm.</Typography>
                 ) : (
                   <Stack spacing={2}>
-                    {inspections
-                      .filter((inspection) => inspection.check_list.some((item) => item.actual_quantity === 0))
-                      .map((inspection) => (
+                    {uncheckedInspections.map((inspection) => (
+                      <Paper
+                        key={inspection._ids.join('-') /* nối nhiều id phiếu con trong location */}
+                        variant="outlined"
+                        sx={{ p: 2, bgcolor: 'background.paper', position: 'relative' }}
+                        elevation={0}
+                      >
+                        <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+                          Vị trí: {getLocationLabel(inspection.location)} - Trạng thái:{' '}
+                          {inspection.status === 'draft'
+                            ? 'Chưa kiểm'
+                            : inspection.status === 'checking'
+                              ? 'Đang kiểm'
+                              : inspection.status === 'checked'
+                                ? 'Đã kiểm'
+                                : inspection.status}
+                        </Typography>
+
+                        <Table size="small" aria-label="check-list-items">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>Tên thuốc</TableCell>
+                              <TableCell>License code</TableCell>
+                              <TableCell align="right">Số lượng dự kiến</TableCell>
+                              <TableCell align="right">Số lượng thực tế</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {(inspection.check_list || [])
+                              .filter((item) => item.actual_quantity === 0)
+                              .map((checkItem, idx) => {
+                                const medicine = checkItem.package_id?.batch_id?.medicine_id;
+                                return (
+                                  <TableRow key={idx}>
+                                    <TableCell>{medicine?.medicine_name || 'Không xác định'}</TableCell>
+                                    <TableCell>{medicine?.license_code || '-'}</TableCell>
+                                    <TableCell align="right">{checkItem.expected_quantity}</TableCell>
+                                    <TableCell align="right">{checkItem.actual_quantity}</TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                          </TableBody>
+                        </Table>
+
+                        <Typography variant="body2" sx={{ mt: 1 }}>
+                          Ghi chú: {inspection.notes || '-'}
+                        </Typography>
+                      </Paper>
+                    ))}
+                  </Stack>
+                )}
+              </AccordionDetails>
+            </Accordion>
+
+            {/* Hiển thị nhóm phiếu "đã kiểm" */}
+            <Accordion defaultExpanded>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="h6">Mặt hàng đã kiểm ({checkedInspections.length} phiếu)</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                {checkedInspections.length === 0 ? (
+                  <Typography>Không có phiếu kiểm kê đã kiểm.</Typography>
+                ) : (
+                  <>
+                    <Stack spacing={2}>
+                      {checkedInspections.map((inspection) => (
                         <Paper
-                          key={inspection._id}
+                          key={inspection._ids.join('-')}
                           variant="outlined"
                           sx={{ p: 2, bgcolor: 'background.paper', position: 'relative' }}
                           elevation={0}
                         >
                           <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-                            Vị trí: {getLocationLabel(inspection.location_id)} - Trạng thái:{' '}
-                            {inspection.status === 'draft'
-                              ? 'Chưa kiểm'
-                              : inspection.status === 'checking'
-                                ? 'Đang kiểm'
-                                : inspection.status === 'checked'
-                                  ? 'Đã kiểm'
-                                  : inspection.status}
+                            Vị trí: {getLocationLabel(inspection.location)} - Trạng thái: {inspection.status}
                           </Typography>
 
                           <Table size="small" aria-label="check-list-items">
@@ -528,8 +654,8 @@ function CheckInspections() {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {inspection.check_list
-                                .filter((item) => item.actual_quantity === 0)
+                              {(inspection.check_list || [])
+                                .filter((item) => item.actual_quantity > 0)
                                 .map((checkItem, idx) => {
                                   const medicine = checkItem.package_id?.batch_id?.medicine_id;
                                   return (
@@ -543,70 +669,12 @@ function CheckInspections() {
                                 })}
                             </TableBody>
                           </Table>
+
                           <Typography variant="body2" sx={{ mt: 1 }}>
                             Ghi chú: {inspection.notes || '-'}
                           </Typography>
                         </Paper>
                       ))}
-                  </Stack>
-                )}
-              </AccordionDetails>
-            </Accordion>
-
-            {/* Mặt hàng đã kiểm */}
-            <Accordion defaultExpanded>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="h6">Mặt hàng đã kiểm ({countCheckedInspections} phiếu)</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                {inspections.length === 0 || countCheckedInspections === 0 ? (
-                  <Typography>Không có phiếu kiểm kê đã kiểm.</Typography>
-                ) : (
-                  <>
-                    <Stack spacing={2}>
-                      {inspections
-                        .filter((inspection) => inspection.check_list.some((item) => item.actual_quantity > 0))
-                        .map((inspection) => (
-                          <Paper
-                            key={inspection._id}
-                            variant="outlined"
-                            sx={{ p: 2, bgcolor: 'background.paper', position: 'relative' }}
-                            elevation={0}
-                          >
-                            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-                              Vị trí: {getLocationLabel(inspection.location_id)} - Trạng thái: {inspection.status}
-                            </Typography>
-
-                            <Table size="small" aria-label="check-list-items">
-                              <TableHead>
-                                <TableRow>
-                                  <TableCell>Tên thuốc</TableCell>
-                                  <TableCell>License code</TableCell>
-                                  <TableCell align="right">Số lượng dự kiến</TableCell>
-                                  <TableCell align="right">Số lượng thực tế</TableCell>
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                {inspection.check_list
-                                  .filter((item) => item.actual_quantity > 0)
-                                  .map((checkItem, idx) => {
-                                    const medicine = checkItem.package_id?.batch_id?.medicine_id;
-                                    return (
-                                      <TableRow key={idx}>
-                                        <TableCell>{medicine?.medicine_name || 'Không xác định'}</TableCell>
-                                        <TableCell>{medicine?.license_code || '-'}</TableCell>
-                                        <TableCell align="right">{checkItem.expected_quantity}</TableCell>
-                                        <TableCell align="right">{checkItem.actual_quantity}</TableCell>
-                                      </TableRow>
-                                    );
-                                  })}
-                              </TableBody>
-                            </Table>
-                            <Typography variant="body2" sx={{ mt: 1 }}>
-                              Ghi chú: {inspection.notes || '-'}
-                            </Typography>
-                          </Paper>
-                        ))}
                     </Stack>
 
                     <TablePagination

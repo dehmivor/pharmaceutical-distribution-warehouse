@@ -36,7 +36,7 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 import axios from 'axios';
-import useNotifications from '@/hooks/useNotification';
+
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -104,7 +104,6 @@ export default function ExportOrderSupervisor() {
   const [filterStatus, setFilterStatus] = useState('All Status');
 
   const [actionLoading, setActionLoading] = useState(false);
-  const { createNotification } = useNotifications('685c2c032aaf8fe6edb3a26f');
 
   // Inline status edit
   const [editingStatusOrderId, setEditingStatusOrderId] = useState(null);

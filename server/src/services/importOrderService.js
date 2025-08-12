@@ -1,6 +1,6 @@
 const ImportOrder = require('../models/ImportOrder');
 const { IMPORT_ORDER_STATUSES, USER_ROLES } = require('../utils/constants');
-const { User, Notification, SupplierContract, Supplier } = require('../models');
+const { User, SupplierContract, Supplier } = require('../models');
 const mongoose = require('mongoose');
 
 // Create new import order
@@ -583,22 +583,7 @@ const assignWarehouseManager = async (orderId, warehouseManagerId) => {
   order.warehouse_manager_id = warehouseManagerId;
   await order.save();
 
-  // Gửi notification cho tất cả warehouse
-  /* BROKEN
-  const warehouses = await User.find({ role: USER_ROLES.WAREHOUSE, status: 'active' });
-  const notifications = warehouses.map((wh) => ({
-    recipient_id: wh._id,
-    sender_id: user._id, // warehouse manager vừa được gán
-    title: 'Phiếu nhập đã được giao cho warehouse manager',
-    message: `Phiếu nhập ${order._id} đã được giao cho warehouse manager ${user.email}.`,
-    type: 'system',
-    status: 'unread',
-    createdAt: new Date(),
-  }));
-  if (notifications.length > 0) {
-    await Notification.insertMany(notifications);
-  }
-  */
+
   return await ImportOrder.findById(orderId)
     .populate({
       path: 'contract_id',

@@ -1,30 +1,22 @@
+// routes/notificationRoutes.js
 const express = require('express');
-const notificationController = require('../controllers/notificationController');
 const router = express.Router();
 
-// GET /api/notifications - Lấy tất cả notifications
-router.get('/', notificationController.getAllNotifications);
+const notificationController = require('../controllers/notificationController');
 
-// GET /api/notifications/recipient/:recipientId - Lấy notifications theo recipient
-// Hỗ trợ query params: ?type=code&priority=high&status=unread
-router.get('/recipient/:recipientId', notificationController.getNotificationsByRecipient);
+// Tạo notification mới
+router.post('/', /*authenticate,*/ notificationController.createNotification);
 
-// GET /api/notifications/recipient/:recipientId/unread-count - Đếm số notification chưa đọc
-router.get('/recipient/:recipientId/unread-count', notificationController.getUnreadCount);
+// Xóa notification theo id
+router.delete('/:id', /*authenticate,*/ notificationController.deleteNotification);
 
-// POST /api/notifications - Tạo notification mới
-router.post('/', notificationController.createNotification);
+// Lấy danh sách notification theo query params (vd: ?recipient_id=xxx&status=unread)
+router.get('/', /*authenticate,*/ notificationController.getNotifications);
 
-// PUT /api/notifications/:id/read - Đánh dấu notification đã đọc
-router.put('/:id/read', notificationController.markAsRead);
+// Đánh dấu notification là đã đọc
+router.patch('/:id/read', /*authenticate,*/ notificationController.markAsRead);
 
-// PUT /api/notifications/recipient/:recipientId/mark-all-read - Đánh dấu tất cả đã đọc
-router.put('/recipient/:recipientId/mark-all-read', notificationController.markAllAsRead);
-
-// DELETE /api/notifications/:id - Xóa một notification cụ thể
-router.delete('/:id', notificationController.deleteNotification);
-
-// DELETE /api/notifications/recipient/:recipientId/clear-all - Xóa tất cả notifications
-router.delete('/recipient/:recipientId/clear-all', notificationController.clearAllNotifications);
+// Đánh dấu tất cả notification của user đã đọc
+router.patch('/mark-all-read', /*authenticate,*/ notificationController.markAllAsRead);
 
 module.exports = router;

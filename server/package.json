@@ -22,7 +22,9 @@
     "node-cron": "^4.1.0",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.1",
+    "socket.io": "^4.8.1",
     "stripe": "^18.2.1",
+    "ws": "^8.18.3",
     "xlsx": "^0.18.5"
   },
   "scripts": {
@@ -30,7 +32,8 @@
     "dev": "nodemon src/server.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:server": "jest --coverage"
+    "test:server": "jest --coverage",
+    "test:websocket": "node test-websocket.js"
   },
   "devDependencies": {
     "@babel/core": "^7.27.4",
