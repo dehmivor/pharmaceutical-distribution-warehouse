@@ -18,4 +18,13 @@ router.get(
   logLocationChangeController.getLogLocationChanges,
 );
 
+router.get(
+  '/:license_code/getHistoryLast6Months',
+  authorize([
+    'representative',
+    'representative_manager',
+  ]),
+  logLocationChangeController.getHistoryLast6Months,
+);
+
 module.exports = router;
