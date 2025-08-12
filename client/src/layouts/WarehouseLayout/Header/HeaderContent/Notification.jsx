@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 
 // @mui imports như cũ
 import { keyframes, useTheme } from '@mui/material/styles';
@@ -21,6 +21,9 @@ import Popper from '@mui/material/Popper';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
+
+// Socket.IO client
+import { io } from 'socket.io-client';
 
 // @project imports như cũ
 import EmptyNotification from '@/components/header/empty-state/EmptyNotification';
@@ -48,7 +51,6 @@ const swing = keyframes`
   }
 `;
 
-// Hàm lấy icon giữ nguyên (bạn nhớ import đầy đủ các icon cần thiết, hoặc thay thế bằng icon bạn có)
 const getNotificationIcon = (type, badgeIcon) => {
   if (badgeIcon) {
     switch (badgeIcon) {
@@ -63,14 +65,13 @@ const getNotificationIcon = (type, badgeIcon) => {
         return <IconNote size={14} />;
     }
   }
-
   switch (type) {
     case 'security':
-      return <IconNote size={14} />; // Giả sử bạn không có IconAlertTriangle
+      return <IconNote size={14} />;
     case 'document':
       return <IconCode size={14} />;
     case 'system':
-      return <IconNote size={14} />; // Không có IconSystem
+      return <IconNote size={14} />;
     case 'location':
       return <IconGps size={14} />;
     default:
@@ -78,7 +79,6 @@ const getNotificationIcon = (type, badgeIcon) => {
   }
 };
 
-// Hàm format thời gian giữ nguyên
 const formatDateTime = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -93,11 +93,9 @@ const formatDateTime = (dateString) => {
   return date.toLocaleDateString('vi-VN');
 };
 
-// Phân loại notifications giữ nguyên
 const categorizeNotifications = (notifications) => {
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
   const recent = [];
   const older = [];
 
@@ -113,13 +111,13 @@ const categorizeNotifications = (notifications) => {
   return { recent, older };
 };
 
-// Data giả lập mẫu
+// Mock dữ liệu ban đầu bạn có thể dùng hoặc thay thế bằng dữ liệu thật nếu muốn
 const mockNotifications = [
   {
     id: '1',
     title: 'Hệ thống cập nhật',
     message: 'Phiên bản hệ thống mới đã sẵn sàng cập nhật.',
-    createdAt: new Date(new Date().getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 giờ trước
+    createdAt: new Date(new Date().getTime() - 2 * 60 * 60 * 1000).toISOString(),
     status: 'unread',
     type: 'system',
     priority: 'normal',
@@ -131,7 +129,7 @@ const mockNotifications = [
     id: '2',
     title: 'Báo động nhiệt độ',
     message: 'Nhiệt độ vượt ngưỡng an toàn!',
-    createdAt: new Date(new Date().getTime() - 1 * 60 * 60 * 1000).toISOString(), // 1 giờ trước
+    createdAt: new Date(new Date().getTime() - 1 * 60 * 60 * 1000).toISOString(),
     status: 'unread',
     type: 'security',
     priority: 'high',
@@ -143,7 +141,7 @@ const mockNotifications = [
     id: '3',
     title: 'Tài liệu mới',
     message: 'Bạn có một tài liệu mới được gửi.',
-    createdAt: new Date(new Date().getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 ngày trước
+    createdAt: new Date(new Date().getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(),
     status: 'read',
     type: 'document',
     priority: 'normal',
@@ -153,95 +151,81 @@ const mockNotifications = [
   }
 ];
 
-export default function Notification() {
+export default function Notification({ userId }) {
   const theme = useTheme();
   const downSM = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [innerAnchorEl, setInnerAnchorEl] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState('All notification');
-
-  // Sử dụng state để quản lý notifications mock data
   const [notifications, setNotifications] = useState(mockNotifications);
   const [loading, setLoading] = useState(false);
+
   const unreadCount = notifications.filter((n) => n.status === 'unread').length;
 
-  const open = Boolean(anchorEl);
-  const innerOpen = Boolean(innerAnchorEl);
-  const id = open ? 'notification-action-popper' : undefined;
-  const innerId = innerOpen ? 'notification-inner-popper' : undefined;
-  const buttonStyle = { borderRadius: 2, p: 1 };
+  useEffect(() => {
+    if (!userId) return;
 
-  const listcontent = ['All notification', 'Security', 'Document', 'System', 'Location'];
+    // Kết nối Socket.IO
+    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', {
+      withCredentials: true
+    });
+
+    socket.emit('joinRoom', userId);
+
+    socket.on('newNotification', (notification) => {
+      setNotifications((prev) => {
+        if (prev.findIndex((n) => n.id === notification.id) !== -1) return prev;
+        return [notification, ...prev];
+      });
+    });
+
+    // Có thể thêm sự kiện xóa notification realtime nếu backend emit ngoài server
+
+    return () => {
+      socket.off('newNotification');
+      socket.disconnect();
+    };
+  }, [userId]);
 
   const filterNotifications = ({ type }) => notifications.filter((n) => n.type === type);
 
-  // Lọc notifications dựa trên filter được chọn
   const getFilteredNotifications = () => {
-    if (selectedFilter === 'All notification') {
-      return notifications;
-    }
+    if (selectedFilter === 'All notification') return notifications;
     return filterNotifications({ type: selectedFilter.toLowerCase() });
   };
 
   const { recent: recentNotifications, older: olderNotifications } = categorizeNotifications(getFilteredNotifications());
 
-  const handleActionClick = (event) => {
-    setAnchorEl(anchorEl ? null : event.currentTarget);
-  };
-
-  const handleInnerActionClick = (event) => {
-    setInnerAnchorEl(innerAnchorEl ? null : event.currentTarget);
-  };
-
+  const handleActionClick = (event) => setAnchorEl(anchorEl ? null : event.currentTarget);
+  const handleInnerActionClick = (event) => setInnerAnchorEl(innerAnchorEl ? null : event.currentTarget);
   const handleFilterSelect = (filter) => {
     setSelectedFilter(filter);
     setInnerAnchorEl(null);
   };
 
-  // Đánh dấu một thông báo là đã đọc (cập nhật trạng thái trong state)
   const markAsRead = (notificationId) => {
     setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, status: 'read' } : n)));
   };
 
-  // Đánh dấu tất cả là đã đọc
   const markAllAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, status: 'read' })));
   };
 
-  // Xóa tất cả notifications
   const clearAllNotifications = () => {
     setNotifications([]);
   };
 
-  const handleMarkAsRead = (notificationId) => {
-    markAsRead(notificationId);
-  };
-
-  const handleMarkAllAsRead = () => {
-    markAllAsRead();
-  };
-
-  const handleClearAll = () => {
-    clearAllNotifications();
-  };
-
-  const transformNotificationData = (notification) => {
-    return {
-      avatar: notification.avatar_url
-        ? { alt: notification.title, src: notification.avatar_url }
-        : getNotificationIcon(notification.type, notification.badge_icon),
-      badge: notification.badge_icon ? getNotificationIcon(notification.type, notification.badge_icon) : null,
-      title: notification.title,
-      subTitle: notification.message,
-      dateTime: formatDateTime(notification.createdAt),
-      isSeen: notification.status === 'read',
-      priority: notification.priority,
-      type: notification.type,
-      actionUrl: notification.action_url,
-      notificationId: notification.id
-    };
-  };
+  const transformNotificationData = (notification) => ({
+    avatar: notification.avatar_url
+      ? { alt: notification.title, src: notification.avatar_url }
+      : getNotificationIcon(notification.type, notification.badge_icon),
+    badge: notification.badge_icon ? getNotificationIcon(notification.type, notification.badge_icon) : null,
+    title: notification.title,
+    subTitle: notification.message,
+    dateTime: formatDateTime(notification.createdAt),
+    isSeen: notification.status === 'read'
+  });
 
   return (
     <>
@@ -273,16 +257,14 @@ export default function Notification() {
 
       <Popper
         placement="bottom-end"
-        id={id}
-        open={open}
+        id={anchorEl ? 'notification-action-popper' : undefined}
+        open={Boolean(anchorEl)}
         anchorEl={anchorEl}
-        popperOptions={{
-          modifiers: [{ name: 'offset', options: { offset: [downSM ? 45 : 0, 8] } }]
-        }}
+        popperOptions={{ modifiers: [{ name: 'offset', options: { offset: [downSM ? 45 : 0, 8] } }] }}
         transition
       >
         {({ TransitionProps }) => (
-          <Fade in={open} {...TransitionProps}>
+          <Fade in={Boolean(anchorEl)} {...TransitionProps}>
             <MainCard
               sx={{
                 borderRadius: 2,
@@ -311,16 +293,14 @@ export default function Notification() {
 
                         <Popper
                           placement="bottom-start"
-                          id={innerId}
-                          open={innerOpen}
+                          id={innerAnchorEl ? 'notification-inner-popper' : undefined}
+                          open={Boolean(innerAnchorEl)}
                           anchorEl={innerAnchorEl}
                           transition
-                          popperOptions={{
-                            modifiers: [{ name: 'preventOverflow', options: { boundary: 'clippingParents' } }]
-                          }}
+                          popperOptions={{ modifiers: [{ name: 'preventOverflow', options: { boundary: 'clippingParents' } }] }}
                         >
                           {({ TransitionProps }) => (
-                            <Fade in={innerOpen} {...TransitionProps}>
+                            <Fade in={Boolean(innerAnchorEl)} {...TransitionProps}>
                               <MainCard
                                 sx={{
                                   borderRadius: 2,
@@ -331,10 +311,10 @@ export default function Notification() {
                               >
                                 <ClickAwayListener onClickAway={() => setInnerAnchorEl(null)}>
                                   <List disablePadding>
-                                    {listcontent.map((item, index) => (
+                                    {['All notification', 'Security', 'Document', 'System', 'Location'].map((item) => (
                                       <ListItemButton
-                                        key={index}
-                                        sx={buttonStyle}
+                                        key={item}
+                                        sx={{ borderRadius: 2, p: 1 }}
                                         onClick={() => handleFilterSelect(item)}
                                         selected={selectedFilter === item}
                                       >
@@ -349,7 +329,7 @@ export default function Notification() {
                         </Popper>
 
                         {notifications.length > 0 && (
-                          <Button color="primary" size="small" onClick={handleMarkAllAsRead} disabled={unreadCount === 0 || loading}>
+                          <Button color="primary" size="small" onClick={markAllAsRead} disabled={unreadCount === 0 || loading}>
                             Mark All as Read
                           </Button>
                         )}
@@ -377,14 +357,14 @@ export default function Notification() {
                                   7 ngày gần đây
                                 </ListSubheader>
                                 {recentNotifications.map((notification) => {
-                                  const transformedData = transformNotificationData(notification);
+                                  const n = transformNotificationData(notification);
                                   return (
                                     <ListItemButton
                                       key={notification.id}
-                                      sx={buttonStyle}
+                                      sx={{ borderRadius: 2, p: 1 }}
                                       onClick={() => {
                                         if (notification.status === 'unread') {
-                                          handleMarkAsRead(notification.id);
+                                          markAsRead(notification.id);
                                         }
                                         if (notification.action_url) {
                                           window.open(notification.action_url, '_blank');
@@ -392,12 +372,12 @@ export default function Notification() {
                                       }}
                                     >
                                       <NotificationItem
-                                        avatar={transformedData.avatar}
-                                        {...(transformedData.badge && { badgeAvatar: { children: transformedData.badge } })}
-                                        title={transformedData.title}
-                                        subTitle={transformedData.subTitle}
-                                        dateTime={transformedData.dateTime}
-                                        isSeen={transformedData.isSeen}
+                                        avatar={n.avatar}
+                                        {...(n.badge && { badgeAvatar: { children: n.badge } })}
+                                        title={n.title}
+                                        subTitle={n.subTitle}
+                                        dateTime={n.dateTime}
+                                        isSeen={n.isSeen}
                                       />
                                     </ListItemButton>
                                   );
@@ -421,14 +401,14 @@ export default function Notification() {
                                   Cũ hơn
                                 </ListSubheader>
                                 {olderNotifications.map((notification) => {
-                                  const transformedData = transformNotificationData(notification);
+                                  const n = transformNotificationData(notification);
                                   return (
                                     <ListItemButton
                                       key={notification.id}
-                                      sx={buttonStyle}
+                                      sx={{ borderRadius: 2, p: 1 }}
                                       onClick={() => {
                                         if (notification.status === 'unread') {
-                                          handleMarkAsRead(notification.id);
+                                          markAsRead(notification.id);
                                         }
                                         if (notification.action_url) {
                                           window.open(notification.action_url, '_blank');
@@ -436,12 +416,12 @@ export default function Notification() {
                                       }}
                                     >
                                       <NotificationItem
-                                        avatar={transformedData.avatar}
-                                        {...(transformedData.badge && { badgeAvatar: { children: transformedData.badge } })}
-                                        title={transformedData.title}
-                                        subTitle={transformedData.subTitle}
-                                        dateTime={transformedData.dateTime}
-                                        isSeen={transformedData.isSeen}
+                                        avatar={n.avatar}
+                                        {...(n.badge && { badgeAvatar: { children: n.badge } })}
+                                        title={n.title}
+                                        subTitle={n.subTitle}
+                                        dateTime={n.dateTime}
+                                        isSeen={n.isSeen}
                                       />
                                     </ListItemButton>
                                   );
@@ -453,7 +433,7 @@ export default function Notification() {
                       </CardContent>
 
                       <CardActions sx={{ p: 1 }}>
-                        <Button fullWidth color="error" onClick={handleClearAll} disabled={loading}>
+                        <Button fullWidth color="error" onClick={clearAllNotifications} disabled={loading}>
                           Xóa tất cả
                         </Button>
                       </CardActions>
