@@ -4,7 +4,7 @@ const Package = require("../models/Package") // Import Package model
 const Location = require("../models/Location") // Import Location model
 const LogLocationChange = require("../models/LogLocationChange") // Import LogLocationChange model for logging location changes
 const mongoose = require("mongoose") // Import mongoose for transactions
-const { INVENTORY_CHECK_ORDER_STATUSES } = require("../utils/constants")
+const { INVENTORY_CHECK_ORDER_STATUSES, INVENTORY_CHECK_INSPECTION_STATUSES } = require("../utils/constants")
 const PackageService = require("./packageService") // Declare PackageService variable
 
 const getInspectionsByOrderId = async (orderId) => {
