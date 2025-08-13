@@ -31,7 +31,7 @@ function NewSupplierForm() {
   return (
     <Box sx={{ maxWidth: 1000, bgcolor: 'background.paper', borderRadius: 1, p: 3 }}>
       <Grid container spacing={3}>
-        {/* Dòng 1: 2 trường */}
+        {/* {trans.supplierForm.row1} */}
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
@@ -57,7 +57,7 @@ function NewSupplierForm() {
           />
         </Grid>
 
-        {/* Dòng 2: 3 trường */}
+        {/* {trans.supplierForm.row2} */}
         <Grid item xs={12} sm={4}>
           <FormControl style={{ width: 200 }} size="small">
             <InputLabel>{trans.supplierForm.businessType}</InputLabel>
@@ -95,7 +95,7 @@ function NewSupplierForm() {
           />
         </Grid>
 
-        {/* Dòng 3: 3 trường */}
+        {/* {trans.supplierForm.row3} */}
         <Grid item xs={12} sm={5}>
           <TextField
             fullWidth
@@ -141,7 +141,7 @@ function NewSupplierForm() {
           />
         </Grid>
 
-        {/* Dòng 4: Trường Tax ID */}
+        {/* {trans.supplierForm.row4} */}
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth

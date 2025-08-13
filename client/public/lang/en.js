@@ -622,7 +622,11 @@ export default {
     manufacturer: 'Manufacturer',
     distributor: 'Distributor',
     wholesaler: 'Wholesaler',
-    serviceProvider: 'Service Provider'
+    serviceProvider: 'Service Provider',
+    row1: 'Row 1: 2 fields',
+    row2: 'Row 2: 3 fields',
+    row3: 'Row 3: 3 fields',
+    row4: 'Row 4: Tax ID field'
   },
 
   // Warehouse form
@@ -642,6 +646,9 @@ export default {
     enterPhoneNumber: 'Enter phone number',
     enterAddress: 'Enter address',
     enterCapacity: 'Enter capacity',
+    row1: 'Row 1: 2 fields',
+    row2: 'Row 2: 3 fields',
+    row3: 'Row 3: 3 fields',
     hindi: 'Hindi',
     english: 'English',
     vietnamese: 'Vietnamese'
@@ -786,7 +793,10 @@ export default {
     confirmMessage: 'Are you sure you want to {action} warehouse receipt {id}?',
     commentsLabel: 'Comments:',
     cancel: 'Cancel',
-    confirm: 'Confirm'
+    confirm: 'Confirm',
+    receiptInfo: 'Receipt Information',
+    approvalForm: 'Approval Form',
+    confirmDialog: 'Confirmation Dialog'
   },
 
   // Common form labels and actions

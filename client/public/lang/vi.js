@@ -623,7 +623,11 @@ export default {
     manufacturer: 'Nhà sản xuất',
     distributor: 'Nhà phân phối',
     wholesaler: 'Nhà bán buôn',
-    serviceProvider: 'Nhà cung cấp Dịch vụ'
+    serviceProvider: 'Nhà cung cấp Dịch vụ',
+    row1: 'Dòng 1: 2 trường',
+    row2: 'Dòng 2: 3 trường',
+    row3: 'Dòng 3: 3 trường',
+    row4: 'Dòng 4: Trường Tax ID'
   },
 
   // Warehouse form
@@ -643,6 +647,9 @@ export default {
     enterPhoneNumber: 'Nhập số điện thoại',
     enterAddress: 'Nhập địa chỉ',
     enterCapacity: 'Nhập sức chứa',
+    row1: 'Dòng 1: 2 trường',
+    row2: 'Dòng 2: 3 trường',
+    row3: 'Dòng 3: 3 trường',
     hindi: 'Hindi',
     english: 'Tiếng Anh',
     vietnamese: 'Tiếng Việt'
@@ -787,7 +794,10 @@ export default {
     confirmMessage: 'Bạn có chắc chắn muốn {action} phiếu nhập kho {id}?',
     commentsLabel: 'Nhận xét:',
     cancel: 'Hủy',
-    confirm: 'Xác nhận'
+    confirm: 'Xác nhận',
+    receiptInfo: 'Thông tin phiếu nhập',
+    approvalForm: 'Form duyệt',
+    confirmDialog: 'Dialog xác nhận'
   },
 
   // Common form labels and actions

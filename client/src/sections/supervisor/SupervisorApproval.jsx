@@ -83,7 +83,7 @@ function SupervisorApproval({ receipt, onApprovalSubmit, userRole = 'supervisor'
           {trans.supervisorApproval.title.replace('{id}', receipt.id)}
         </Typography>
 
-        {/* Thông tin phiếu nhập */}
+        {/* {trans.supervisorApproval.receiptInfo} */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6}>
             <Typography variant="body2" color="text.secondary">
@@ -111,7 +111,7 @@ function SupervisorApproval({ receipt, onApprovalSubmit, userRole = 'supervisor'
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Form duyệt */}
+        {/* {trans.supervisorApproval.approvalForm} */}
         {canApprove ? (
           <Box>
             <Typography variant="subtitle1" gutterBottom>
@@ -172,7 +172,7 @@ function SupervisorApproval({ receipt, onApprovalSubmit, userRole = 'supervisor'
           <Alert severity="warning">{trans.supervisorApproval.noPermission}</Alert>
         )}
 
-        {/* Dialog xác nhận */}
+        {/* {trans.supervisorApproval.confirmDialog} */}
         <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
           <DialogTitle>{trans.supervisorApproval.confirmDialogTitle}</DialogTitle>
           <DialogContent>
