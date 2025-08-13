@@ -184,6 +184,24 @@ const handleWebhook = async (req, res) => {
     console.log('Request URL:', req.url);
     console.log('Request body type:', typeof req.body);
     console.log('Request body length:', req.body ? JSON.stringify(req.body).length : 0);
+    console.log('Request headers:', req.headers);
+
+    // Kiểm tra nếu là GET request (có thể là health check hoặc test)
+    if (req.method === 'GET') {
+      console.log('GET request received - this might be a health check or test');
+      return res.status(200).json({
+        message: 'Webhook endpoint is working',
+        timestamp: new Date().toISOString(),
+        method: req.method,
+        url: req.url,
+      });
+    }
+
+    // Kiểm tra nếu là POST request (webhook thực tế)
+    if (req.method !== 'POST') {
+      console.log(`Unsupported method: ${req.method}`);
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
 
     // Log webhook headers for debugging
     console.log('Webhook headers:', {
@@ -194,6 +212,12 @@ const handleWebhook = async (req, res) => {
       origin: req.headers['origin'],
     });
 
+    // Kiểm tra nếu có body
+    if (!req.body || Object.keys(req.body).length === 0) {
+      console.log('No request body found');
+      return res.status(400).json({ error: 'No request body' });
+    }
+
     await stripeService.processWebhookEvent(req, res);
   } catch (error) {
     console.error('Webhook handler failed:', error);
@@ -203,6 +227,7 @@ const handleWebhook = async (req, res) => {
       error: 'Webhook handler failed',
       message: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
     });
   }
 };
