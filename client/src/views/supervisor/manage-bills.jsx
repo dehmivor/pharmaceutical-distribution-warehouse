@@ -265,6 +265,7 @@ function ManageBills() {
       const { data } = await axios.post(
         `${backendUrl}/api/stripe/payments/${bill._id}`,
         {
+          billId: bill._id,
           amount,
           paymentType: bill.type.toLowerCase(),
           successUrl,

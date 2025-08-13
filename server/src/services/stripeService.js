@@ -7,9 +7,17 @@ const frontendUrl = process.env.CLIENT_URL || 'http://localhost:3000';
 
 async function getBillTotalAmount(billId) {
   const bill = await Bill.findById(billId);
-  return bill.details.reduce((sum, d) => sum + d.quantity * d.unit_price, 0);
-}
+  const total = bill.details.reduce((sum, d) => sum + d.quantity * d.unit_price, 0);
 
+  console.log('getBillTotalAmount debug:', {
+    billId,
+    billDetails: bill.details,
+    calculatedTotal: total,
+    unit: 'VND',
+  });
+
+  return total; // Trả về theo VND
+}
 // ==================
 // 1. Thanh toán 1 hóa đơn 1 lần (Checkout Session)
 async function createCheckoutSession({
@@ -146,6 +154,16 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
     metadata: { billId },
     payment_method_types: ['card'],
   });
+  // Thay vì log toàn bộ eventData
+  console.log('Webhook event details:', {
+    eventId: event.id,
+    eventType: event.type,
+    // Chỉ log những trường cần thiết
+    metadata: event.data?.object?.metadata,
+    amount: event.data?.object?.amount,
+    amountReceived: event.data?.object?.amount_received,
+    status: event.data?.object?.status,
+  });
   return paymentIntent.client_secret;
 }
 
@@ -166,6 +184,13 @@ async function handleCheckoutSessionCompleted(session) {
     } else if (session.amount_subtotal) {
       amountPaid = session.amount_subtotal / 100;
     }
+
+    console.log('Amount conversion debug:', {
+      rawAmountTotal: session.amount_total,
+      rawAmountSubtotal: session.amount_subtotal,
+      convertedAmount: amountPaid,
+      unit: 'VND',
+    });
 
     console.log('Webhook metadata:', {
       billIds,
@@ -241,12 +266,22 @@ async function handleSingleBillPayment(billId, amountPaid) {
       return;
     }
 
-    const totalAmount = await getBillTotalAmount(billId);
-    const currentAmountPaid = bill.amountPaid || 0;
-    const newAmountPaid = currentAmountPaid + amountPaid;
+    const totalAmount = await getBillTotalAmount(billId); // VND
+    const currentAmountPaid = bill.amountPaid || 0; // VND
+    const newAmountPaid = currentAmountPaid + amountPaid; // VND
+
+    // So sánh cùng đơn vị VND
     const newStatus =
       newAmountPaid >= totalAmount ? BILL_STATUSES.COMPLETED : BILL_STATUSES.PARTIAL;
 
+    console.log('Status update debug:', {
+      totalAmount, // VND
+      currentAmountPaid, // VND
+      amountPaid, // VND (đã convert từ cents)
+      newAmountPaid, // VND
+      newStatus,
+      comparison: `${newAmountPaid} >= ${totalAmount} = ${newAmountPaid >= totalAmount}`,
+    });
     await Bill.findByIdAndUpdate(billId, {
       amountPaid: newAmountPaid,
       status: newStatus,
@@ -264,9 +299,7 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
 
   try {
     const billId = paymentIntent.metadata?.billId;
-    // Sửa: Convert từ cents sang VND
     const amountPaid = (paymentIntent.amount_received || 0) / 100;
-
     if (!billId) {
       console.error('No billId found in payment intent metadata');
       return;
