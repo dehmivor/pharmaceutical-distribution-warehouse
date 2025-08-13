@@ -512,6 +512,10 @@ export default function ManageExportOrders() {
           setMessageDialog({ open: true, title: 'Thành công', content: 'Đơn hàng đã hoàn thành!' });
           await fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe);
 
+          if (!updatedOrder.data.contract_id) {
+            console.log('Không có contract_id, không tạo bill');
+            return;
+          }
           const billDetails = (updatedOrder.data.details || []).map((item) => ({
             medicine_lisence_code: item.medicine_id && item.medicine_id._id ? item.medicine_id._id.toString() : '', // thay thế cho license code
             quantity: item.expected_quantity || 0,

@@ -687,6 +687,12 @@ function ImportOrderDetail() {
 
         console.log('data trả về lúc completed', response.data.data);
 
+        if (!orderData.contract_id) {
+          console.log('Không có contract_id, không tạo bill');
+          setFinalizeLoading(false);
+          return;
+        }
+
         const billDetails = (orderData.details || []).map((item) => ({
           medicine_lisence_code: item.medicine_id.license_code,
           quantity: item.quantity,
