@@ -18,7 +18,7 @@
     "mailtrap": "^4.1.0",
     "mongoose": "^8.17.1",
     "morgan": "^1.10.0",
-    "multer": "^1.4.5-lts.1",
+    "multer": "^2.0.2",
     "node-cron": "^4.1.0",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.1",
@@ -33,7 +33,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:server": "jest --coverage",
-    "test:websocket": "node test-websocket.js"
+    "test:webhook": "node test-webhook-endpoint.js"
   },
   "devDependencies": {
     "@babel/core": "^7.27.4",

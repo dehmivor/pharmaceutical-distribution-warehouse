@@ -22,7 +22,7 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'https://pharmaceutical-distribution-warehou.vercel.app',
-      ...config.allowedOrigins
+      ...config.allowedOrigins,
     ];
 
     if (allowedOrigins.includes(origin)) {
@@ -55,6 +55,7 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   }),
 );
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }), route.stripeRoutes);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -76,7 +77,7 @@ app.get('/api/test-auth', authenticate, (req, res) => {
     },
   });
 });
-
+app.use('/api/stripe', route.stripeRoutes);
 // Public routes
 app.use('/api/auth', route.authRoutes);
 app.use('/api/notifications', route.notificationRoute);
@@ -89,7 +90,6 @@ app.use('/api/packages', route.packageRoutes);
 app.use('/api/areas', route.areaRoutes);
 app.use('/api/locations', route.locationRoutes);
 app.use('/api/log-location-changes', route.logLocationChangeRoute);
-app.use('/api/export-orders', route.exportOrderRoutes);
 
 // Protected routes với role-based access
 app.use('/api/supervisor', authenticate, authorize('supervisor'), route.supervisorRoutes);
@@ -106,7 +106,7 @@ app.use(
   route.userRoutes,
 );
 
-
+app.use('/api/export-orders', route.exportOrderRoutes);
 
 // Protected routes với role-based access
 app.use(
@@ -118,8 +118,7 @@ app.use(
 
 // Import orders - protected route
 app.use('/api/import-orders', route.importOrderRoutes);
-app.use('/api/stripe', route.stripeRoutes);
-app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+// app.use('/api/export-orders', route.exportOrderRoutes);
 app.use('/api/bills', route.billRoutes);
 app.use('/api/supplier', route.supplierRoutes);
 app.use('/api/retailer', route.retailerRoutes);

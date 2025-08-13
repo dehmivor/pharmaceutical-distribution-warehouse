@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Location = require('../models/Location');
 const Package = require('../models/Package');
 const { INVENTORY_CHECK_ORDER_STATUSES } = require('../utils/constants');
+const { INVENTORY_CHECK_INSPECTION_STATUSES } = require('../utils/constants');
 const getInspectionsFromCheckOrder = async (req, res) => {
   try {
     const checkOrderId = req.params.id;

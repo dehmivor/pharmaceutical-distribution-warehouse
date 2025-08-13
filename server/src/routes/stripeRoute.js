@@ -11,7 +11,5 @@ router.post('/payments/multi', stripeController.createMultiPayment);
 // Thanh toán 1 hóa đơn 1 lần (checkout session) - POST /payments/:paymentId
 router.post('/payments/:paymentId', stripeController.createPaymentSingle);
 
-// Webhook Stripe
-router.post('/webhook', express.raw({ type: 'application/json' }), stripeController.handleWebhook);
-
+router.post('/webhook', stripeController.handleWebhook);
 module.exports = router;
