@@ -14,6 +14,9 @@ router
     exportOrderController.checkStockForExportOrder,
   );
 
+
+router.get('/exportedTotalsLast6MonthsTop5', authorize(['representative', 'representative_manager']), exportOrderController.exportedTotalsLast6MonthsTop5);
+
 // Tạo mới export order - chỉ representative và representative_manager
 router
   .route('/')

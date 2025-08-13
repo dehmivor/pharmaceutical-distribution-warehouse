@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -13,6 +13,12 @@ import {
   Switch,
   FormControlLabel,
   Paper,
+  TableContainer,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
 } from '@mui/material';
 import { Refresh as RefreshIcon } from '@mui/icons-material';
 import axios from 'axios';
@@ -45,6 +51,59 @@ const RepresentativeManagerMedicinePerformance = () => {
   const [error, setError] = useState('');
   const [showUncontracted, setShowUncontracted] = useState(true);
 
+  // top exported medicines
+  const [topExported, setTopExported] = useState([]);
+  const [topLoading, setTopLoading] = useState(false);
+
+
+  // --- Distinct batches (minimal) ---
+  const [batches, setBatches] = useState([]);
+  const [bLoading, setBLoading] = useState(false);
+  const [bError, setBError] = useState('');
+  const [monthsFilter, setMonthsFilter] = useState(''); // empty = no filter
+
+  const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString() : '—');
+  const monthsUntil = (iso) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    const diffMs = d.getTime() - Date.now();
+    // simple month approximation: 30 days/month
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30));
+  };
+
+  const fetchDistinctBatches = useCallback(async () => {
+    setBLoading(true);
+    setBError('');
+    try {
+      const { data } = await axios.get('/api/packages/distinct-batches', { headers: getAuthHeaders() });
+      if (!data?.success) throw new Error('Invalid response');
+      const rows = (data.data || []).map((r) => ({
+        _id: r._id,
+        medicine_name: r.medicine_id?.medicine_name || '—',
+        license_code: r.medicine_id?.license_code || '—',
+        batch_code: r.batch_code || '—',
+        production_date: r.production_date || null,
+        expiry_date: r.expiry_date || null,
+      }));
+      setBatches(rows);
+    } catch (e) {
+      setBError(e?.response?.data?.error || e.message || 'Failed to load batches');
+    } finally {
+      setBLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchDistinctBatches(); }, [fetchDistinctBatches]);
+
+  const filteredBatches = React.useMemo(() => {
+    const m = parseFloat(monthsFilter);
+    if (!Number.isFinite(m) || m < 0) return batches; // no/invalid filter → show all
+    return batches.filter((row) => {
+      const mu = monthsUntil(row.expiry_date);
+      return mu !== null && mu <= m; // "expiring within ≤ N months"
+    });
+  }, [batches, monthsFilter]);
+
   const resetData = () => {
     setMonths([]);
     setImportContracted([]);
@@ -66,6 +125,41 @@ const RepresentativeManagerMedicinePerformance = () => {
     }
     return out;
   };
+
+
+  // fetch top exported on mount so the table shows automatically
+  useEffect(() => {
+    let cancelled = false;
+    const fetchTop = async () => {
+      setTopLoading(true);
+      try {
+        const topExportUrl = `/api/export-orders/exportedTotalsLast6MonthsTop5`;
+        const resp = await axios.get(topExportUrl, { headers: getAuthHeaders() });
+        if (!cancelled) {
+          if (resp?.data?.success) {
+            const items = Array.isArray(resp.data.data) ? resp.data.data : [];
+            setTopExported(items.slice(0, 5));
+          } else {
+            console.warn('Invalid top exported response on mount', resp?.data);
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Failed to fetch top exported on mount', err);
+          // non-fatal; show a small snackbar if desired
+          setError('Failed to load top exported medicines.');
+        }
+      } finally {
+        if (!cancelled) setTopLoading(false);
+      }
+    };
+
+    fetchTop();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
 
   const handleSubmit = useCallback(
     async (e) => {
@@ -132,7 +226,7 @@ const RepresentativeManagerMedicinePerformance = () => {
             setHistoryMonths(hMonths);
             setHistoryQuantity(safeNumericArray(quantities, len));
           }
-          
+
         }
 
         // if both failed, keep error set (already set above)
@@ -164,7 +258,7 @@ const RepresentativeManagerMedicinePerformance = () => {
   };
 
   // Build series for LineChart
-   const buildLineSeries = () => {
+  const buildLineSeries = () => {
     const len = historyMonths.length || 0;
     const qty = Array.isArray(historyQuantity) && historyQuantity.length === len ? historyQuantity : Array(len).fill(0);
     return [{ label: 'Quantity (log history)', data: qty }];
@@ -275,7 +369,7 @@ const RepresentativeManagerMedicinePerformance = () => {
           </Card>
         </Grid>
 
-        <Grid  size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card sx={{ border: '1px solid #e0e0e0' }}>
             <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0', bgcolor: 'grey.50' }}>
               <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
@@ -311,6 +405,136 @@ const RepresentativeManagerMedicinePerformance = () => {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Top exported table (full width below charts) */}
+      <Box sx={{ mt: 2 }}>
+        <Card sx={{ border: '1px solid #e0e0e0' }}>
+          <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0', bgcolor: 'grey.50' }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+              Top exported medicines (last 6 months)
+            </Typography>
+          </Box>
+          <CardContent>
+            {topLoading ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : topExported.length === 0 ? (
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography variant="body2" color="text.secondary">
+                  No exported medicines found in the last 6 months.
+                </Typography>
+              </Paper>
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>#</TableCell>
+                      <TableCell>Medicine name</TableCell>
+                      <TableCell>License code</TableCell>
+                      <TableCell align="right">Total exported</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {topExported.map((row, idx) => (
+                      <TableRow key={String(row.medicine_id || idx)}>
+                        <TableCell>{idx + 1}</TableCell>
+                        <TableCell>{row.medicine_name || '—'}</TableCell>
+                        <TableCell>{row.license_code || '—'}</TableCell>
+                        <TableCell align="right">{Number(row.totalExported).toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Box sx={{ mt: 2 }}>
+          <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
+            <Box sx={{
+              p: 2, borderBottom: '1px solid #e0e0e0', bgcolor: 'grey.50',
+              display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'space-between'
+            }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                Almost expire
+              </Typography>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <TextField
+                  type="number"
+                  size="small"
+                  label="Expiring within (months)"
+                  value={monthsFilter}
+                  onChange={(e) => setMonthsFilter(e.target.value)}
+                  placeholder="e.g. 6"
+                  sx={{ width: 220 }}
+                  inputProps={{ min: 0 }}
+                />
+                <Button
+                  variant="outlined"
+                  startIcon={<RefreshIcon />}
+                  onClick={fetchDistinctBatches}
+                  disabled={bLoading}
+                >
+                  Refresh
+                </Button>
+              </Box>
+            </Box>
+
+            <CardContent sx={{ p: 0 }}>
+              {bLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
+                  <CircularProgress />
+                </Box>
+              ) : bError ? (
+                <Paper sx={{ p: 3, m: 2, textAlign: 'center' }}>
+                  <Typography color="error">{bError}</Typography>
+                </Paper>
+              ) : filteredBatches.length === 0 ? (
+                <Paper sx={{ p: 3, m: 2, textAlign: 'center' }}>
+                  <Typography color="text.secondary">No batches match the filter.</Typography>
+                </Paper>
+              ) : (
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Medicine name</TableCell>
+                        <TableCell>License code</TableCell>
+                        <TableCell>Batch code</TableCell>
+                        <TableCell align="right">Production date</TableCell>
+                        <TableCell align="right">Expiry date</TableCell>
+                        <TableCell align="right">Months to expiry</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredBatches.map((row) => (
+                        <TableRow key={row._id}>
+                          <TableCell>{row.medicine_name}</TableCell>
+                          <TableCell>{row.license_code}</TableCell>
+                          <TableCell>{row.batch_code}</TableCell>
+                          <TableCell align="right">{fmtDate(row.production_date)}</TableCell>
+                          <TableCell align="right">{fmtDate(row.expiry_date)}</TableCell>
+                          <TableCell align="right">
+                            {(() => {
+                              const m = monthsUntil(row.expiry_date);
+                              return Number.isFinite(m) ? m : '—';
+                            })()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </CardContent>
+          </Card>
+        </Box>
+
+      </Box>
 
       <Snackbar open={!!error} onClose={() => setError('')} autoHideDuration={6000} message={error} />
     </Box>
