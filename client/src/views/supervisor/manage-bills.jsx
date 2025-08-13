@@ -30,6 +30,7 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 import { Elements, CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -100,10 +101,10 @@ function StripePartialPayment({ clientSecret, onSuccess, onCancel }) {
         />
         <Stack direction="row" spacing={2} mt={2}>
           <Button variant="outlined" onClick={onCancel} disabled={loading}>
-            Hủy
+            {trans.common.cancel}
           </Button>
           <Button variant="contained" color="primary" type="submit" disabled={!stripe || loading}>
-            {loading ? 'Đang xử lý...' : 'Thanh toán'}
+            {loading ? trans.bills.paymentProcessing : trans.bills.payment}
           </Button>
         </Stack>
       </form>
@@ -112,6 +113,7 @@ function StripePartialPayment({ clientSecret, onSuccess, onCancel }) {
 }
 
 function ManageBills() {
+  const trans = useTrans();
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -145,7 +147,7 @@ function ManageBills() {
       setBills(response.data.data || []);
       setError(null);
     } catch (err) {
-      setError(err.response?.data?.error || 'Lỗi khi tải dữ liệu hóa đơn');
+              setError(err.response?.data?.error || trans.bills.dataLoadError);
     } finally {
       setLoading(false);
     }
@@ -219,7 +221,7 @@ function ManageBills() {
 
   const handlePartialPayment = async (bill) => {
     if (!partialAmount || partialAmount <= 0) {
-      setError('Vui lòng nhập số tiền thanh toán hợp lệ.');
+              setError(trans.bills.invalidAmount);
       return;
     }
     setLoadingPaymentId(bill._id);
@@ -238,10 +240,10 @@ function ManageBills() {
         setClientSecret(data.clientSecret);
         setShowStripePayment(true);
       } else {
-        setError('Không nhận được client secret thanh toán.');
+        setError(trans.bills.noClientSecret);
       }
     } catch (error) {
-      setError('Có lỗi khi tạo PaymentIntent, vui lòng thử lại.');
+              setError(trans.bills.paymentIntentError);
     } finally {
       setLoadingPaymentId(null);
     }
@@ -464,32 +466,32 @@ function ManageBills() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Bills Management
+            {trans.bills.title}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Pay bill and search, sort, filter bill with status, type, date
+            {trans.bills.description}
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<Refresh />} onClick={fetchBills}>
-          Refresh
+          {trans.bills.refresh}
         </Button>
       </Box>
 
       <Box component={Paper} sx={{ p: 2, mb: 2 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2} alignItems="center">
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Loại</InputLabel>
-            <Select label="Loại" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-              <MenuItem value="ALL">Tất cả</MenuItem>
-              <MenuItem value="IMPORT">IMPORT</MenuItem>
-              <MenuItem value="EXPORT">EXPORT</MenuItem>
-            </Select>
-          </FormControl>
+                      <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel>Loại</InputLabel>
+              <Select label="Loại" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                <MenuItem value="ALL">{trans.common.all}</MenuItem>
+                <MenuItem value="IMPORT">IMPORT</MenuItem>
+                <MenuItem value="EXPORT">EXPORT</MenuItem>
+              </Select>
+            </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel>Trạng thái</InputLabel>
-            <Select label="Trạng thái" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-              <MenuItem value="ALL">Tất cả</MenuItem>
+            <Select label={trans.bills.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+              <MenuItem value="ALL">{trans.common.all}</MenuItem>
               <MenuItem value="PENDING">PENDING</MenuItem>
               <MenuItem value="COMPLETED">COMPLETED</MenuItem>
               <MenuItem value="CANCELED">CANCELED</MenuItem>
@@ -522,7 +524,7 @@ function ManageBills() {
             disabled={selectedBills.length === 0 || loadingPaymentId !== null}
             onClick={handleOpenMultiPaymentDialog}
           >
-            {loadingPaymentId === 'multi' ? 'Đang xử lý...' : `Thanh toán (${selectedBills.length}) hóa đơn`}
+            {loadingPaymentId === 'multi' ? trans.common.processing : `${trans.common.payment} (${selectedBills.length}) hóa đơn`}
           </Button>
         </Stack>
       </Box>
@@ -538,23 +540,22 @@ function ManageBills() {
                   onChange={handleSelectAll}
                 />
               </TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Label</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Mã hóa đơn</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Loại</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Ngày tạo</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Chi tiết thuốc (Mã thuốc)</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600 }}>
-                Tổng tiền (VNĐ)
+              <TableCell sx={{ fontWeight: 600 }}>{trans.bills.tableHeaders.billCode}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{trans.bills.tableHeaders.type}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{trans.bills.tableHeaders.status}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{trans.bills.tableHeaders.createdDate}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{trans.bills.tableHeaders.medicineDetails}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }} align="right">
+                {trans.bills.tableHeaders.totalAmount}
               </TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Thao tác</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{trans.bills.tableHeaders.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredBills.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} align="center">
-                  Không có dữ liệu
+                  {trans.bills.noData}
                 </TableCell>
               </TableRow>
             ) : (
@@ -594,7 +595,7 @@ function ManageBills() {
                       onClick={() => handleOpenDetail(bill)}
                       disabled={loadingPaymentId === bill._id}
                     >
-                      Thanh toán (partial)
+                      {trans.bills.partialPayment}
                     </Button>
                     <Button
                       size="small"
@@ -603,7 +604,7 @@ function ManageBills() {
                       onClick={() => handleStripePaymentSingle(bill)}
                       disabled={loadingPaymentId === bill._id}
                     >
-                      Thanh toán 1 lần
+                      {trans.bills.singlePayment}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -692,7 +693,7 @@ function ManageBills() {
                   }}
                   inputProps={{ min: 0, max: calcAmount(detailData.details) }}
                   sx={{ mt: 2 }}
-                  helperText="Bạn có thể thanh toán toàn bộ hoặc một phần hóa đơn này."
+                  helperText={trans.common.paymentDescription}
                 />
               </>
             )
@@ -701,14 +702,14 @@ function ManageBills() {
         {!showStripePayment && (
           <DialogActions>
             <Button onClick={handleCloseDetail} disabled={loadingPaymentId !== null}>
-              Đóng
+              {trans.common.close}
             </Button>
             <Button
               onClick={() => handlePartialPayment(detailData)}
               variant="contained"
               disabled={loadingPaymentId !== null || !partialAmount || partialAmount <= 0}
             >
-              {loadingPaymentId === detailData?._id ? 'Đang xử lý...' : 'Thanh toán'}
+                              {loadingPaymentId === detailData?._id ? trans.common.processing : trans.common.payment}
             </Button>
           </DialogActions>
         )}
@@ -763,10 +764,10 @@ function ManageBills() {
         {!showStripePayment && (
           <DialogActions>
             <Button onClick={handleCloseMultiPaymentDialog} disabled={loadingPaymentId === 'multi'}>
-              Hủy
+              {trans.common.cancel}
             </Button>
             <Button onClick={handleConfirmMultiPayment} variant="contained" disabled={loadingPaymentId === 'multi'}>
-              Xác nhận thanh toán
+              {trans.common.confirmPayment}
             </Button>
           </DialogActions>
         )}

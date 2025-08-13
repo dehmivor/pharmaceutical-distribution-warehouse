@@ -34,6 +34,7 @@ import { IconChevronDown, IconHelp } from '@tabler/icons-react';
 
 // @data
 import countries from '@/data/countries';
+import useTrans from '@/hooks/useTrans';
 
 /***************************  CONTACT  ***************************/
 
@@ -48,6 +49,7 @@ export default function Contact({
   isError = false,
   onCountryChange
 }) {
+  const trans = useTrans();
   const theme = useTheme();
 
   const [anchorEl, setAnchorEl] = useState(null);

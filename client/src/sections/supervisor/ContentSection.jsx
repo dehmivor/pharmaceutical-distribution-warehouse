@@ -20,8 +20,10 @@ import ComponentsWrapper from '@/components/ComponentsWrapper';
 import PresentationCard from '@/components/cards/PresentationCard';
 import UserManagement from './UserManagementTab';
 import PermissionManagement from './PermissionManagementTab';
+import useTrans from '@/hooks/useTrans';
 
 function ContentSection({ activeTab }) {
+  const trans = useTrans();
   // State cho permission management
   const [permissionDialog, setPermissionDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -70,7 +72,7 @@ function ContentSection({ activeTab }) {
         };
       case 1:
         return {
-          title: 'Permission Management',
+          title: trans.userManagement.permissionManagement,
           component: <PermissionManagement onOpenPermissionDialog={handleOpenPermissionDialog} />
         };
       default:
@@ -91,35 +93,35 @@ function ContentSection({ activeTab }) {
       <Dialog open={permissionDialog} onClose={handleClosePermissionDialog} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
           <SecurityIcon sx={{ mr: 1 }} />
-          Update User Permissions
+          {trans.userManagement.updateUserPermissions}
         </DialogTitle>
         <DialogContent>
           {selectedUser && (
             <Box sx={{ pt: 2 }}>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                User: <strong>{selectedUser.email}</strong>
+                {trans.userManagement.user}: <strong>{selectedUser.email}</strong>
               </Typography>
 
               <FormControl fullWidth sx={{ mb: 3 }}>
-                <InputLabel>Role</InputLabel>
-                <Select value={newRole} label="Role" onChange={(e) => setNewRole(e.target.value)}>
-                  <MenuItem value="supervisor">Supervisor</MenuItem>
-                  <MenuItem value="representative">Representative</MenuItem>
-                  <MenuItem value="warehouse">Warehouse</MenuItem>
+                <InputLabel>{trans.userManagement.role}</InputLabel>
+                <Select value={newRole} label={trans.userManagement.role} onChange={(e) => setNewRole(e.target.value)}>
+                  <MenuItem value="supervisor">{trans.userManagement.roles.supervisor}</MenuItem>
+                  <MenuItem value="representative">{trans.userManagement.roles.representative}</MenuItem>
+                  <MenuItem value="warehouse">{trans.userManagement.roles.warehouse}</MenuItem>
                 </Select>
               </FormControl>
 
               <FormControlLabel
                 control={<Switch checked={isManager} onChange={(e) => setIsManager(e.target.checked)} color="primary" />}
-                label="Manager Privileges"
+                label={trans.userManagement.managerPrivileges}
               />
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClosePermissionDialog}>Cancel</Button>
+          <Button onClick={handleClosePermissionDialog}>{trans.userManagement.cancel}</Button>
           <Button onClick={handleUpdatePermission} variant="contained">
-            Update Permissions
+            {trans.userManagement.updatePermissions}
           </Button>
         </DialogActions>
       </Dialog>

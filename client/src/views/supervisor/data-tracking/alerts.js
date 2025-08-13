@@ -17,8 +17,10 @@ import {
   Skeleton,
   TablePagination
 } from '@mui/material';
+import useTrans from '@/hooks/useTrans';
 
 const Alerts = () => {
+  const trans = useTrans();
   const [batches, setBatches] = useState({
     expiredUnder6Months: [],
     sixMonths: [],
@@ -60,8 +62,8 @@ const Alerts = () => {
           if (batch.quantity <= 10) {
             dynamicAlerts.push({
               id: `lowinv-${batch._id}`,
-              type: 'Low Inventory',
-              message: `Thuốc ${batch.medicine_id?.medicine_name || 'Unknown'} chỉ còn lại ${batch.quantity} chai lọ.`,
+              type: trans.alerts.lowInventory,
+              message: trans.alerts.lowInventoryMessage.replace('{name}', batch.medicine_id?.medicine_name || 'Unknown').replace('{quantity}', batch.quantity),
               date: new Date().toISOString(),
               handled: false
             });
@@ -71,14 +73,14 @@ const Alerts = () => {
         const mockAlerts = [
           {
             id: '1',
-            type: 'Low Inventory',
+            type: trans.alerts.lowInventory,
             message: 'Thuốc Paracetamol sắp hết tồn kho',
             date: '2025-07-20T10:00:00Z',
             handled: false
           },
           {
             id: '2',
-            type: 'Expired Batch',
+            type: trans.alerts.expiredBatch,
             message: 'Batch XY123 của thuốc Aspirin hết hạn trong 7 ngày',
             date: '2025-07-22T08:30:00Z',
             handled: false
@@ -87,10 +89,10 @@ const Alerts = () => {
 
         setAlerts([...mockAlerts, ...dynamicAlerts]);
       } else {
-        setError('Không lấy được dữ liệu batch hết hạn');
+        setError(trans.alerts.dataFetchError);
       }
     } catch (err) {
-      setError('Lỗi khi gọi API: ' + err.message);
+      setError(trans.alerts.apiError.replace('{message}', err.message));
     } finally {
       setLoading(false);
     }
@@ -124,7 +126,7 @@ const Alerts = () => {
 
   const handleCreateDestroyTicket = (batch) => {
     console.log('Tạo phiếu hủy cho batch:', batch._id, batch.batch_code);
-    alert(`Tạo phiếu hủy cho batch: ${batch.batch_code}`);
+    alert(trans.alerts.createDestroyTicketMessage.replace('{code}', batch.batch_code));
   };
 
   // Pagination state and handlers for each batch table
@@ -145,7 +147,7 @@ const Alerts = () => {
   const [rowsPerPageEightMonths, setRowsPerPageEightMonths] = useState(5);
 
   const renderBatchTable = (batchList, label, page, setPage, rowsPerPage, setRowsPerPage) => {
-    if (!batchList || batchList.length === 0) return <Typography>Không có batch {label} tháng nào.</Typography>;
+    if (!batchList || batchList.length === 0) return <Typography>{trans.alerts.noBatches.replace('{months}', label)}</Typography>;
 
     const count = batchList.length;
 
@@ -162,20 +164,20 @@ const Alerts = () => {
 
     return (
       <TableContainer component={Paper} sx={{ mb: 3 }}>
-        <Typography variant="h6" sx={{ p: 2 }}>
-          Batch hết hạn {label === '<6' ? 'dưới 6' : `sau khoảng ${label}`} tháng:
+        <Typography variant="h6" sx={{ p:2 }}>
+          Batch hết hạn {label === '<6' ? trans.alerts.expiredUnder6 : trans.alerts.expiredAfter.replace('{months}', label)} {trans.alerts.months}:
         </Typography>
-        <Table size="small" aria-label={`${label} tháng`}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Batch Code</TableCell>
-              <TableCell>Tên thuốc</TableCell>
-              <TableCell>Ngày hết hạn</TableCell>
-              <TableCell>Số lượng còn lại</TableCell>
-              <TableCell>Nhà cung cấp</TableCell>
-              <TableCell align="center">Hành động</TableCell>
-            </TableRow>
-          </TableHead>
+                  <Table size="small" aria-label={`${label} tháng`}>
+            <TableHead>
+              <TableRow>
+                <TableCell>{trans.alerts.batchCode}</TableCell>
+                <TableCell>{trans.alerts.medicineName}</TableCell>
+                <TableCell>{trans.alerts.expiryDate}</TableCell>
+                <TableCell>{trans.alerts.remainingQuantity}</TableCell>
+                <TableCell>{trans.alerts.supplier}</TableCell>
+                <TableCell align="center">{trans.alerts.action}</TableCell>
+              </TableRow>
+            </TableHead>
           <TableBody>
             {displayBatches.map((batch) => (
               <TableRow key={batch._id}>
@@ -186,7 +188,7 @@ const Alerts = () => {
                 <TableCell>{batch.supplier || 'N/A'}</TableCell>
                 <TableCell align="center">
                   <Button variant="contained" color="error" size="small" onClick={() => handleCreateDestroyTicket(batch)}>
-                    Tạo phiếu hủy
+                    {trans.alerts.createDestroyTicket}
                   </Button>
                 </TableCell>
               </TableRow>
@@ -201,8 +203,8 @@ const Alerts = () => {
           rowsPerPage={rowsPerPage}
           onRowsPerPageChange={handleChangeRowsPerPage}
           rowsPerPageOptions={[5, 10, 25, 50]}
-          labelRowsPerPage="Số hàng mỗi trang:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
+          labelRowsPerPage={trans.alerts.rowsPerPage}
+          labelDisplayedRows={({ from, to, count }) => trans.alerts.displayedRows.replace('{from}', from).replace('{to}', to).replace('{count}', count)}
           sx={{ mt: 1 }}
         />
       </TableContainer>
@@ -218,7 +220,7 @@ const Alerts = () => {
         action={
           !isHandled && (
             <Button color="inherit" size="small" onClick={() => handleMarkAsRead(alert.id)}>
-              Đã xử lý
+              {trans.alerts.handled}
             </Button>
           )
         }
@@ -232,10 +234,10 @@ const Alerts = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Alerts Hệ thống Quản lý Kho Thuốc
+        {trans.alerts.systemTitle}
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
-        Hiển thị các batch thuốc hết hạn và cảnh báo liên quan.
+        {trans.alerts.description}
       </Typography>
 
       {loading && (
@@ -285,9 +287,9 @@ const Alerts = () => {
 
           <Box sx={{ mt: 4 }}>
             <Typography variant="h5" sx={{ mb: 2 }}>
-              Các cảnh báo khác
+              {trans.alerts.otherAlerts}
             </Typography>
-            {alerts.length === 0 && <Typography>Không có cảnh báo.</Typography>}
+            {alerts.length === 0 && <Typography>{trans.alerts.noAlerts}</Typography>}
             {alerts.map(renderAlertItem)}
           </Box>
         </>

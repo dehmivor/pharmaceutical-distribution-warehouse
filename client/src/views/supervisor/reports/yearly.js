@@ -1,7 +1,9 @@
 import React from 'react';
+import useTrans from '@/hooks/useTrans';
 
 function yearly() {
-  return <div>yearly</div>;
+  const trans = useTrans();
+  return <div>{trans.placeholders.yearly}</div>;
 }
 
 export default yearly;

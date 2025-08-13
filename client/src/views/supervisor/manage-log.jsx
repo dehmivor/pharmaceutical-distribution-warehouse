@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { Refresh as RefreshIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -20,6 +21,7 @@ const getAuthHeaders = () => {
 };
 
 export default function ManageLog() {
+  const trans = useTrans();
   // logs + paging
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -88,7 +90,7 @@ export default function ManageLog() {
         setOrders(data.data);
         setTotalCount(data.total);
       } else {
-        throw new Error(data.error || 'Failed to load logs');
+        throw new Error(data.error || trans.logs.failedToLoad);
       }
     } catch (err) {
       console.error(err);
@@ -130,7 +132,7 @@ export default function ManageLog() {
       {/* Top Bar */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, alignItems: 'center' }}>
         <Box>
-          <Typography variant="h4">Location Log Management</Typography>
+          <Typography variant="h4">{trans.logs.title}</Typography>
           <Typography variant="body2" color="text.secondary">
             Manage and track location changes
           </Typography>
@@ -140,7 +142,7 @@ export default function ManageLog() {
           startIcon={<RefreshIcon />}
           onClick={handleRefresh}
         >
-          Refresh
+          {trans.logs.refresh}
         </Button>
       </Box>
 
@@ -221,7 +223,7 @@ export default function ManageLog() {
                 setPage(0);
               }}
             >
-              Search
+              {trans.logs.search}
             </Button>
             <Button
               variant="outlined"

@@ -42,6 +42,7 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -59,6 +60,7 @@ const axiosInstance = axios.create({
 });
 
 const SupplierManagement = () => {
+  const trans = useTrans();
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -139,15 +141,15 @@ const SupplierManagement = () => {
     const newErrors = {};
     
     if (!formData.name.trim()) {
-      newErrors.name = 'Tên nhà cung cấp là bắt buộc';
+              newErrors.name = trans.suppliers.nameRequired;
     }
     
     if (!formData.license.trim()) {
-      newErrors.license = 'Số giấy phép là bắt buộc';
+              newErrors.license = trans.suppliers.licenseRequired;
     }
     
     if (formData.phone && !validatePhoneNumber(formData.phone)) {
-      newErrors.phone = 'Số điện thoại phải có định dạng: +84 28 3999 1111';
+              newErrors.phone = trans.suppliers.phoneFormat;
     }
     
     setErrors(newErrors);
@@ -173,7 +175,7 @@ const SupplierManagement = () => {
         setTotalCount(response.data.data.pagination.total);
       }
     } catch (error) {
-      setError('Lỗi khi tải danh sách nhà cung cấp');
+              setError(trans.suppliers.errorLoading);
       console.error('Error fetching suppliers:', error);
     } finally {
       setLoading(false);
@@ -207,7 +209,7 @@ const SupplierManagement = () => {
     const statusLabels = {
       active: 'Hoạt động',
       inactive: 'Không hoạt động',
-      pending: 'Chờ duyệt'
+      pending: trans.common.pending
     };
     return statusLabels[status] || status;
   };
@@ -267,7 +269,7 @@ const SupplierManagement = () => {
           headers: getAuthHeaders()
         });
         if (response.data.success) {
-          setSuccess('Cập nhật nhà cung cấp thành công');
+          setSuccess(trans.common.updateSuccess.replace('{item}', trans.suppliers.title.toLowerCase()));
           handleCloseFormDialog();
           fetchSuppliers();
         }
@@ -276,29 +278,29 @@ const SupplierManagement = () => {
           headers: getAuthHeaders()
         });
         if (response.data.success) {
-          setSuccess('Thêm nhà cung cấp thành công');
+          setSuccess(trans.common.addSuccess.replace('{item}', trans.suppliers.title.toLowerCase()));
           handleCloseFormDialog();
           fetchSuppliers();
         }
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Có lỗi xảy ra');
+              setError(error.response?.data?.message || trans.suppliers.errorOccurred);
       console.error('Error submitting form:', error);
     }
   };
 
   const handleDelete = async (supplier) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa nhà cung cấp này?')) {
+          if (window.confirm(trans.common.confirmDelete.replace('{item}', trans.suppliers.title.toLowerCase()))) {
       try {
         const response = await axiosInstance.delete(`/api/supplier/${supplier._id}`, {
           headers: getAuthHeaders()
         });
         if (response.data.success) {
-          setSuccess('Xóa nhà cung cấp thành công');
+          setSuccess(trans.common.deleteSuccess.replace('{item}', trans.suppliers.title.toLowerCase()));
           fetchSuppliers();
         }
       } catch (error) {
-        setError(error.response?.data?.message || 'Có lỗi xảy ra khi xóa');
+        setError(error.response?.data?.message || trans.suppliers.errorDeleting);
         console.error('Error deleting supplier:', error);
       }
     }
@@ -324,10 +326,10 @@ const SupplierManagement = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Quản lý Nhà cung cấp
+            {trans.suppliers.title}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Thêm, sửa, xóa và quản lý thông tin nhà cung cấp
+            {trans.suppliers.description}
           </Typography>
         </Box>
         <Button 
@@ -335,7 +337,7 @@ const SupplierManagement = () => {
           startIcon={<AddIcon />}
           onClick={handleAddNew}
         >
-          Thêm mới
+          {trans.common.addNew}
         </Button>
       </Box>
 
@@ -358,7 +360,7 @@ const SupplierManagement = () => {
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                label="Tên nhà cung cấp"
+                label={trans.common.supplierName}
                 value={filters.name || ''}
                 onChange={(e) => handleFilterChange('name', e.target.value)}
                 InputProps={{
@@ -372,14 +374,14 @@ const SupplierManagement = () => {
             </Grid>
             <Grid item xs={12} md={4}>
               <FormControl fullWidth>
-                <InputLabel>Trạng thái</InputLabel>
+                <InputLabel>{trans.common.status}</InputLabel>
                 <Select
                   value={filters.status || ''}
-                  label="Trạng thái"
+                  label={trans.common.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                   sx={{ minWidth: '140px' }}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.common.all}</MenuItem>
                   {filterOptions.status?.map((status) => (
                     <MenuItem key={status} value={status}>
                       {getStatusLabel(status)}
@@ -390,7 +392,7 @@ const SupplierManagement = () => {
             </Grid>
             <Grid item xs={12} md={4}>
               <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchSuppliers} disabled={loading} fullWidth>
-                Làm mới
+                {trans.common.refresh}
               </Button>
             </Grid>
           </Grid>
@@ -403,25 +405,25 @@ const SupplierManagement = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold' }}>Tên nhà cung cấp</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Địa chỉ</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Số điện thoại</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Số giấy phép</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Trạng thái</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Thao tác</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{trans.common.supplierName}</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{trans.common.address}</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{trans.common.phone}</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{trans.common.license}</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{trans.common.status}</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{trans.common.operations}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
-                    Đang tải...
+                    {trans.common.loading}
                   </TableCell>
                 </TableRow>
               ) : suppliers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
-                    Không có dữ liệu
+                    {trans.common.noData}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -435,17 +437,17 @@ const SupplierManagement = () => {
                       <Chip label={getStatusLabel(supplier.status)} color={getStatusColor(supplier.status)} size="small" />
                     </TableCell>
                     <TableCell>
-                      <Tooltip title="Xem chi tiết">
+                      <Tooltip title={trans.common.viewDetail}>
                         <IconButton size="small" color="primary" onClick={() => handleViewDetail(supplier)}>
                           <ViewIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Sửa">
+                      <Tooltip title={trans.common.edit}>
                         <IconButton size="small" color="warning" onClick={() => handleEdit(supplier)}>
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Xóa">
+                      <Tooltip title={trans.common.delete}>
                         <IconButton size="small" color="error" onClick={() => handleDelete(supplier)}>
                           <DeleteIcon />
                         </IconButton>
@@ -465,54 +467,54 @@ const SupplierManagement = () => {
           page={page}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
-          labelRowsPerPage="Số hàng mỗi trang:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`}
+          labelRowsPerPage={trans.common.rowsPerPage}
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count !== -1 ? count : `hơn ${to}`}`}
         />
       </Paper>
 
       {/* Detail Dialog */}
       <Dialog open={openDetailDialog} onClose={handleCloseDetailDialog} maxWidth="md" fullWidth>
-        <DialogTitle>Chi tiết nhà cung cấp</DialogTitle>
+        <DialogTitle>{trans.common.details} {trans.suppliers.title.toLowerCase()}</DialogTitle>
         <DialogContent>
           {selectedSupplier && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">Tên nhà cung cấp</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.common.supplierName}</Typography>
                 <Typography variant="body1">{selectedSupplier.name}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">Trạng thái</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.common.status}</Typography>
                 <Chip label={getStatusLabel(selectedSupplier.status)} color={getStatusColor(selectedSupplier.status)} />
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">Địa chỉ</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.common.address}</Typography>
                 <Typography variant="body1">{selectedSupplier.address || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">Số điện thoại</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.common.phone}</Typography>
                 <Typography variant="body1">{selectedSupplier.phone || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary">Số giấy phép</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.common.license}</Typography>
                 <Typography variant="body1">{selectedSupplier.license}</Typography>
               </Grid>
             </Grid>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDetailDialog}>Đóng</Button>
+          <Button onClick={handleCloseDetailDialog}>{trans.common.close}</Button>
         </DialogActions>
       </Dialog>
 
       {/* Form Dialog */}
       <Dialog open={openFormDialog} onClose={handleCloseFormDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{isEditing ? 'Sửa nhà cung cấp' : 'Thêm nhà cung cấp mới'}</DialogTitle>
+        <DialogTitle>{isEditing ? trans.common.update : trans.common.addNew} {trans.suppliers.title.toLowerCase()}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Tên nhà cung cấp"
+                label={trans.common.supplierName}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 error={!!errors.name}
@@ -522,23 +524,23 @@ const SupplierManagement = () => {
             </Grid>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
-                <InputLabel>Trạng thái</InputLabel>
+                <InputLabel>{trans.common.status}</InputLabel>
                 <Select
                   value={formData.status}
-                  label="Trạng thái"
+                  label={trans.common.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   sx={{ minWidth: '140px' }}
                 >
-                  <MenuItem value="active">Hoạt động</MenuItem>
-                  <MenuItem value="inactive">Không hoạt động</MenuItem>
-                  <MenuItem value="pending">Chờ duyệt</MenuItem>
+                  <MenuItem value="active">{trans.common.active}</MenuItem>
+                  <MenuItem value="inactive">{trans.common.inactive}</MenuItem>
+                  <MenuItem value="pending">{trans.common.pending}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Địa chỉ"
+                label={trans.common.address}
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               />
@@ -546,18 +548,18 @@ const SupplierManagement = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Số điện thoại (VD: +84 28 3999 1111)"
+                label={trans.common.phone}
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value) })}
                 error={!!errors.phone}
-                helperText={errors.phone || 'Định dạng: +84 XX XXXX XXXX'}
-                placeholder="+84 28 3999 1111"
+                helperText={errors.phone || trans.suppliers.phoneFormat}
+                placeholder={trans.suppliers.phonePlaceholder}
               />
             </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Số giấy phép"
+                label={trans.common.license}
                 value={formData.license}
                 onChange={(e) => setFormData({ ...formData, license: e.target.value })}
                 error={!!errors.license}
@@ -568,9 +570,9 @@ const SupplierManagement = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseFormDialog}>Hủy</Button>
+                      <Button onClick={handleCloseFormDialog}>{trans.common.cancel}</Button>
           <Button onClick={handleFormSubmit} variant="contained">
-            {isEditing ? 'Cập nhật' : 'Thêm mới'}
+                            {isEditing ? trans.common.update : trans.common.addNew}
           </Button>
         </DialogActions>
       </Dialog>

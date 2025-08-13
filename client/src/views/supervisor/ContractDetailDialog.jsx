@@ -27,8 +27,10 @@ import {
   CalendarToday as CalendarIcon,
   Description as DescriptionIcon
 } from '@mui/icons-material';
+import useTrans from '@/hooks/useTrans';
 
 const ContractDetailDialog = ({ open, onClose, contract }) => {
+  const trans = useTrans();
   if (!contract) return null;
 
   const getStatusColor = (status) => {
@@ -45,28 +47,28 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
 
   const getStatusLabel = (status) => {
     const statusLabels = {
-      'draft': 'Nháp',
-      'pending': 'Chờ duyệt',
-      'active': 'Đang hoạt động',
-      'completed': 'Hoàn thành',
-      'cancelled': 'Đã hủy',
-      'expired': 'Hết hạn'
+      'draft': trans.contracts.draft,
+      'pending': trans.common.pending,
+      'active': trans.contracts.active,
+      'completed': trans.contracts.completed,
+      'cancelled': trans.contracts.cancelled,
+      'expired': trans.contracts.expired
     };
     return statusLabels[status] || status;
   };
 
   const getContractTypeLabel = (type) => {
     const typeLabels = {
-      'economic': 'Kinh tế',
-      'principal': 'Chính'
+      'economic': trans.contracts.economic,
+      'principal': trans.contracts.principal
     };
     return typeLabels[type] || type;
   };
 
   const getPartnerTypeLabel = (type) => {
     const typeLabels = {
-      'Supplier': 'Nhà cung cấp',
-      'Retailer': 'Nhà thuốc'
+      'Supplier': trans.contracts.supplier,
+      'Retailer': trans.contracts.retailer
     };
     return typeLabels[type] || type;
   };
@@ -83,7 +85,7 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <DescriptionIcon />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Chi tiết hợp đồng
+            {trans.contracts.title}
           </Typography>
         </Box>
         <Button onClick={onClose} sx={{ color: 'white', minWidth: 'auto' }}>
@@ -96,19 +98,19 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
         <Paper sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <DescriptionIcon color="primary" />
-            Thông tin cơ bản
+            {trans.contracts.basicInformation}
           </Typography>
           <Divider sx={{ mb: 2 }} />
           
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">Mã hợp đồng:</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.contracts.contractCode}:</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>{contract.contract_code}</Typography>
               </Box>
               
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">Loại hợp đồng:</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.contracts.contractType}:</Typography>
                 <Chip 
                   label={getContractTypeLabel(contract.contract_type)} 
                   size="small" 
@@ -117,7 +119,7 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
               </Box>
               
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">Trạng thái:</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.contracts.status}:</Typography>
                 <Chip 
                   label={getStatusLabel(contract.status)} 
                   size="small" 
@@ -128,19 +130,19 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
             
             <Grid item xs={12} md={6}>
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">Loại đối tác:</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.contracts.partnerType}:</Typography>
                 <Typography variant="body1">{getPartnerTypeLabel(contract.partner_type)}</Typography>
               </Box>
               
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">Tên đối tác:</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.contracts.partnerName}:</Typography>
                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
                   {contract.partner_id?.name || 'N/A'}
                 </Typography>
               </Box>
               
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">Người tạo:</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.contracts.createdBy}:</Typography>
                 <Typography variant="body1">
                   {contract.created_by?.name || contract.created_by?.email || 'N/A'}
                 </Typography>
@@ -153,14 +155,14 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
         <Paper sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CalendarIcon color="primary" />
-            Thời gian hiệu lực
+            {trans.contracts.effectiveTime}
           </Typography>
           <Divider sx={{ mb: 2 }} />
           
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">Ngày bắt đầu:</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.contracts.startDate}:</Typography>
                 <Typography variant="body1">
                   {new Date(contract.start_date).toLocaleDateString('vi-VN')}
                 </Typography>
@@ -169,7 +171,7 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
             
             <Grid item xs={12} md={6}>
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">Ngày kết thúc:</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.contracts.endDate}:</Typography>
                 <Typography variant="body1">
                   {new Date(contract.end_date).toLocaleDateString('vi-VN')}
                 </Typography>
@@ -183,7 +185,7 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <BusinessIcon color="primary" />
-              Danh sách thuốc ({contract.items.length} sản phẩm)
+              {trans.contracts.medicineDetails} ({contract.items.length} {trans.common.products})
             </Typography>
             <Divider sx={{ mb: 2 }} />
             
@@ -191,11 +193,11 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Tên thuốc</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Mã thuốc</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Đơn giá</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Số lượng</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>Thành tiền</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>{trans.contracts.medicineName}</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>{trans.contracts.medicineCode}</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>{trans.contracts.unitPrice}</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>{trans.contracts.quantity}</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>{trans.contracts.amount}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -226,16 +228,16 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
 
         {/* Thông tin bổ sung */}
         <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PersonIcon color="primary" />
-            Thông tin bổ sung
-          </Typography>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <PersonIcon color="primary" />
+              {trans.contracts.additionalInfo}
+            </Typography>
           <Divider sx={{ mb: 2 }} />
           
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">Ngày tạo:</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.contracts.createdDate}:</Typography>
                 <Typography variant="body1">
                   {new Date(contract.createdAt).toLocaleDateString('vi-VN')}
                 </Typography>
@@ -244,7 +246,7 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
             
             <Grid item xs={12} md={6}>
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">Cập nhật lần cuối:</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.contracts.lastUpdated}:</Typography>
                 <Typography variant="body1">
                   {new Date(contract.updatedAt).toLocaleDateString('vi-VN')}
                 </Typography>
@@ -256,7 +258,7 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
 
       <DialogActions sx={{ p: 3 }}>
         <Button onClick={onClose} variant="outlined">
-          Đóng
+          {trans.contracts.close}
         </Button>
       </DialogActions>
     </Dialog>

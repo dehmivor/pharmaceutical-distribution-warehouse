@@ -42,6 +42,7 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -59,6 +60,7 @@ const axiosInstance = axios.create({
 });
 
 const RetailerManagement = () => {
+  const trans = useTrans();
   const [retailers, setRetailers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -123,15 +125,15 @@ const RetailerManagement = () => {
     const newErrors = {};
     
     if (!formData.name.trim()) {
-      newErrors.name = 'Tên nhà bán lẻ là bắt buộc';
+              newErrors.name = trans.retailers.nameRequired;
     }
     
     if (!formData.license.trim()) {
-      newErrors.license = 'Số giấy phép là bắt buộc';
+              newErrors.license = trans.retailers.licenseRequired;
     }
     
     if (formData.phone && !validatePhoneNumber(formData.phone)) {
-      newErrors.phone = 'Số điện thoại phải có định dạng: 028-3831-7890';
+              newErrors.phone = trans.retailers.phoneFormat;
     }
     
     setErrors(newErrors);
@@ -157,7 +159,7 @@ const RetailerManagement = () => {
         setTotalCount(response.data.data.pagination.total);
       }
     } catch (error) {
-      setError('Lỗi khi tải danh sách nhà bán lẻ');
+              setError(trans.retailers.errorLoading);
       console.error('Error fetching retailers:', error);
     } finally {
       setLoading(false);
@@ -191,7 +193,7 @@ const RetailerManagement = () => {
     const statusLabels = {
       active: 'Hoạt động',
       inactive: 'Không hoạt động',
-      pending: 'Chờ duyệt'
+      pending: trans.common.pending
     };
     return statusLabels[status] || status;
   };
@@ -251,7 +253,7 @@ const RetailerManagement = () => {
           headers: getAuthHeaders()
         });
         if (response.data.success) {
-          setSuccess('Cập nhật nhà bán lẻ thành công');
+          setSuccess(trans.common.updateSuccess.replace('{item}', trans.retailers.title.toLowerCase()));
           handleCloseFormDialog();
           fetchRetailers();
         }
@@ -260,29 +262,29 @@ const RetailerManagement = () => {
           headers: getAuthHeaders()
         });
         if (response.data.success) {
-          setSuccess('Thêm nhà bán lẻ thành công');
+          setSuccess(trans.common.addSuccess.replace('{item}', trans.retailers.title.toLowerCase()));
           handleCloseFormDialog();
           fetchRetailers();
         }
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Có lỗi xảy ra');
+              setError(error.response?.data?.message || trans.retailers.errorOccurred);
       console.error('Error submitting form:', error);
     }
   };
 
   const handleDelete = async (retailer) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa nhà bán lẻ này?')) {
+          if (window.confirm(trans.common.confirmDelete.replace('{item}', trans.retailers.title.toLowerCase()))) {
       try {
         const response = await axiosInstance.delete(`/api/retailer/${retailer._id}`, {
           headers: getAuthHeaders()
         });
         if (response.data.success) {
-          setSuccess('Xóa nhà bán lẻ thành công');
+          setSuccess(trans.common.deleteSuccess.replace('{item}', trans.retailers.title.toLowerCase()));
           fetchRetailers();
         }
       } catch (error) {
-        setError(error.response?.data?.message || 'Có lỗi xảy ra khi xóa');
+        setError(error.response?.data?.message || trans.retailers.errorDeleting);
         console.error('Error deleting retailer:', error);
       }
     }
@@ -308,10 +310,10 @@ const RetailerManagement = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Quản lý Nhà bán lẻ
+            {trans.retailers.title}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Thêm, sửa, xóa và quản lý thông tin nhà bán lẻ
+            {trans.retailers.description}
           </Typography>
         </Box>
         <Button 
@@ -319,7 +321,7 @@ const RetailerManagement = () => {
           startIcon={<AddIcon />}
           onClick={handleAddNew}
         >
-          Thêm mới
+          {trans.common.addNew}
         </Button>
       </Box>
 
@@ -339,21 +341,21 @@ const RetailerManagement = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Tên nhà bán lẻ"
-                value={filters.name || ''}
-                onChange={(e) => handleFilterChange('name', e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  )
-                }}
-              />
-            </Grid>
+                    <Grid item xs={12} md={4}>
+          <TextField
+            fullWidth
+            label={trans.common.retailerName}
+            value={filters.name || ''}
+            onChange={(e) => handleFilterChange('name', e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              )
+            }}
+          />
+        </Grid>
             <Grid item xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel>Trạng thái</InputLabel>
@@ -387,25 +389,25 @@ const RetailerManagement = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 'bold' }}>Tên nhà bán lẻ</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Địa chỉ</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Số điện thoại</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Số giấy phép</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Trạng thái</TableCell>
-                <TableCell sx={{ fontWeight: 'bold' }}>Thao tác</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{trans.retailers.name}</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{trans.retailers.address}</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{trans.retailers.phone}</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{trans.retailers.license}</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{trans.retailers.status}</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>{trans.common.actions}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
-                    Đang tải...
+                    {trans.common.loading}
                   </TableCell>
                 </TableRow>
               ) : retailers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
-                    Không có dữ liệu
+                    {trans.common.noData}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -419,17 +421,17 @@ const RetailerManagement = () => {
                       <Chip label={getStatusLabel(retailer.status)} color={getStatusColor(retailer.status)} size="small" />
                     </TableCell>
                     <TableCell>
-                      <Tooltip title="Xem chi tiết">
+                      <Tooltip title={trans.common.viewDetail}>
                         <IconButton size="small" color="primary" onClick={() => handleViewDetail(retailer)}>
                           <ViewIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Sửa">
+                      <Tooltip title={trans.common.edit}>
                         <IconButton size="small" color="warning" onClick={() => handleEdit(retailer)}>
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Xóa">
+                      <Tooltip title={trans.common.delete}>
                         <IconButton size="small" color="error" onClick={() => handleDelete(retailer)}>
                           <DeleteIcon />
                         </IconButton>
@@ -449,60 +451,60 @@ const RetailerManagement = () => {
           page={page}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
-          labelRowsPerPage="Số hàng mỗi trang:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`}
+          labelRowsPerPage={trans.common.rowsPerPage}
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count !== -1 ? count : `hơn ${to}`}`}
         />
       </Paper>
 
       {/* Detail Dialog */}
       <Dialog open={openDetailDialog} onClose={handleCloseDetailDialog} maxWidth="md" fullWidth>
-        <DialogTitle>Chi tiết nhà bán lẻ</DialogTitle>
+        <DialogTitle>{trans.retailers.detailTitle}</DialogTitle>
         <DialogContent>
           {selectedRetailer && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">Tên nhà bán lẻ</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.retailers.name}</Typography>
                 <Typography variant="body1">{selectedRetailer.name}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">Trạng thái</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.retailers.status}</Typography>
                 <Chip label={getStatusLabel(selectedRetailer.status)} color={getStatusColor(selectedRetailer.status)} />
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">Địa chỉ</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.retailers.address}</Typography>
                 <Typography variant="body1">{selectedRetailer.address || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">Số điện thoại</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.retailers.phone}</Typography>
                 <Typography variant="body1">{selectedRetailer.phone || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary">Số giấy phép</Typography>
+                <Typography variant="subtitle2" color="text.secondary">{trans.retailers.license}</Typography>
                 <Typography variant="body1">{selectedRetailer.license}</Typography>
               </Grid>
             </Grid>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDetailDialog}>Đóng</Button>
+          <Button onClick={handleCloseDetailDialog}>{trans.common.close}</Button>
         </DialogActions>
       </Dialog>
 
       {/* Form Dialog */}
       <Dialog open={openFormDialog} onClose={handleCloseFormDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{isEditing ? 'Sửa nhà bán lẻ' : 'Thêm nhà bán lẻ mới'}</DialogTitle>
+        <DialogTitle>{isEditing ? trans.common.update : trans.common.addNew} {trans.retailers.title.toLowerCase()}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Tên nhà bán lẻ"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                error={!!errors.name}
-                helperText={errors.name}
-                required
-              />
+                              <TextField
+                  fullWidth
+                  label={trans.common.retailerName}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  error={!!errors.name}
+                  helperText={errors.name}
+                  required
+                />
             </Grid>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
@@ -513,16 +515,16 @@ const RetailerManagement = () => {
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   sx={{ minWidth: '140px' }}
                 >
-                  <MenuItem value="active">Hoạt động</MenuItem>
-                  <MenuItem value="inactive">Không hoạt động</MenuItem>
-                  <MenuItem value="pending">Chờ duyệt</MenuItem>
+                  <MenuItem value="active">{trans.retailers.active}</MenuItem>
+                  <MenuItem value="inactive">{trans.retailers.inactive}</MenuItem>
+                  <MenuItem value="pending">{trans.common.pending}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Địa chỉ"
+                label={trans.retailers.address}
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               />
@@ -530,18 +532,18 @@ const RetailerManagement = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Số điện thoại (VD: 028-3831-7890)"
+                label={trans.retailers.phone}
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value) })}
                 error={!!errors.phone}
-                helperText={errors.phone || 'Định dạng: XXX-XXXX-XXXX'}
-                placeholder="028-3831-7890"
+                helperText={errors.phone || trans.retailers.phoneFormat}
+                placeholder={trans.retailers.phonePlaceholder}
               />
             </Grid>
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Số giấy phép"
+                label={trans.retailers.license}
                 value={formData.license}
                 onChange={(e) => setFormData({ ...formData, license: e.target.value })}
                 error={!!errors.license}
@@ -552,9 +554,9 @@ const RetailerManagement = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseFormDialog}>Hủy</Button>
+          <Button onClick={handleCloseFormDialog}>{trans.common.cancel}</Button>
           <Button onClick={handleFormSubmit} variant="contained">
-            {isEditing ? 'Cập nhật' : 'Thêm mới'}
+                            {isEditing ? trans.common.update : trans.common.addNew}
           </Button>
         </DialogActions>
       </Dialog>

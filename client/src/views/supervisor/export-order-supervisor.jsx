@@ -36,6 +36,7 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -85,6 +86,7 @@ const EXPORT_ORDER_STATUSES = {
 };
 
 export default function ExportOrderSupervisor() {
+  const trans = useTrans();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -232,7 +234,7 @@ export default function ExportOrderSupervisor() {
         await axiosInstance.put(`/export-orders/${orderId}/cancel`);
       }
       setEditingStatusOrderId(null);
-      setSuccess('Status updated successfully');
+              setSuccess(trans.exportOrders.statusUpdatedSuccess);
       fetchOrders();
     } catch (error) {
       setError(error.response?.data?.error || error.response?.data?.message || error.message);
@@ -269,14 +271,14 @@ export default function ExportOrderSupervisor() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Export Orders Management
+            {trans.exportOrders.title}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Supervisor can view, approve and reject export order
+            {trans.exportOrders.description}
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => fetchOrders()} disabled={loading}>
-          Refresh
+          {trans.exportOrders.refresh}
         </Button>
       </Box>
 
@@ -296,8 +298,8 @@ export default function ExportOrderSupervisor() {
             <MenuItem value="internal">Internal</MenuItem>
             <MenuItem value="regular">Regular</MenuItem>
           </TextField>
-          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
-            <MenuItem value="All Status">All Status</MenuItem>
+          <TextField select label={trans.exportOrders.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+            <MenuItem value="All Status">{trans.exportOrders.allStatus}</MenuItem>
             {Object.values(EXPORT_ORDER_STATUSES).map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
@@ -306,7 +308,7 @@ export default function ExportOrderSupervisor() {
           </TextField>
 
           <Button size="small" variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick}>
-            Search
+            {trans.exportOrders.search}
           </Button>
           <Button size="small" variant="outlined" onClick={handleResetFilters}>
             Reset
@@ -327,16 +329,16 @@ export default function ExportOrderSupervisor() {
               <TableCell align="right" sx={{ minWidth: 120 }}>
                 Total Amount
               </TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>{trans.exportOrders.status}</TableCell>
               <TableCell sx={{ minWidth: 150 }}>Warehouse Manager</TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Actions</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>{trans.exportOrders.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                  <Typography color="text.secondary">No orders found.</Typography>
+                  <Typography color="text.secondary">{trans.exportOrders.noOrdersFound}</Typography>
                 </TableCell>
               </TableRow>
             ) : (
@@ -441,7 +443,7 @@ export default function ExportOrderSupervisor() {
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
         <DialogTitle>
-          {selectedOrder && !selectedOrder.contract_id ? 'Phiếu xuất hủy' : 'Export Order Details'}
+          {selectedOrder && !selectedOrder.contract_id ? trans.common.cancelledExport : trans.common.exportOrderDetails}
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           {selectedOrder && (
@@ -733,9 +735,9 @@ export default function ExportOrderSupervisor() {
 
       {/* Confirm Status Change Dialog */}
       <Dialog open={confirmDialog.open} onClose={handleCancelStatusChange}>
-        <DialogTitle>Xác nhận đổi trạng thái</DialogTitle>
+        <DialogTitle>{trans.common.confirmStatusChange}</DialogTitle>
         <DialogContent>
-          Bạn có chắc chắn muốn đổi trạng thái đơn hàng này? <br />
+                      {trans.common.confirmStatusChangeMessage} <br />
           <b>Hành động này không thể hoàn tác.</b>
         </DialogContent>
         <DialogActions>

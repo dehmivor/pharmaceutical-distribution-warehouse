@@ -27,8 +27,10 @@ import {
   SupervisorAccount as SupervisorIcon,
   Send as SendIcon
 } from '@mui/icons-material';
+import useTrans from '@/hooks/useTrans';
 
 export default function AddUserDialog({ open, onClose, formData, setFormData, formErrors, setFormErrors, submitting, onSubmit }) {
+  const trans = useTrans();
   const handleFormChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setFormErrors((prev) => {
@@ -47,7 +49,7 @@ export default function AddUserDialog({ open, onClose, formData, setFormData, fo
         <Box display="flex" alignItems="center" gap={1}>
           <PersonAddIcon color="primary" />
           <Typography variant="h6" fontWeight={600}>
-            Add New User
+            {trans.userManagement.addNewUser}
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small" sx={{ color: 'text.secondary' }} disabled={submitting}>
@@ -61,7 +63,7 @@ export default function AddUserDialog({ open, onClose, formData, setFormData, fo
             <Grid item xs={12}>
               <TextField
                 autoFocus
-                label="Email Address"
+                label={trans.userManagement.emailAddress}
                 type="email"
                 fullWidth
                 variant="outlined"
@@ -79,30 +81,30 @@ export default function AddUserDialog({ open, onClose, formData, setFormData, fo
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth variant="outlined" error={!!formErrors.role}>
-                <InputLabel>Role</InputLabel>
-                <Select value={formData.role} onChange={(e) => handleFormChange('role', e.target.value)} label="Role" disabled={submitting}>
+                <InputLabel>{trans.userManagement.role}</InputLabel>
+                <Select value={formData.role} onChange={(e) => handleFormChange('role', e.target.value)} label={trans.userManagement.role} disabled={submitting}>
                   <MenuItem value="warehouse">
                     <Box display="flex" alignItems="center" gap={1}>
                       <WarehouseIcon fontSize="small" />
-                      Warehouse
+                      {trans.userManagement.roles.warehouse}
                     </Box>
                   </MenuItem>
                   <MenuItem value="warehouse_manager">
                     <Box display="flex" alignItems="center" gap={1}>
                       <PersonIcon fontSize="small" />
-                      Warehouse Manager
+                      {trans.userManagement.roles.warehouseManager}
                     </Box>
                   </MenuItem>
                   <MenuItem value="representative">
                     <Box display="flex" alignItems="center" gap={1}>
                       <PersonIcon fontSize="small" />
-                      Representative
+                      {trans.userManagement.roles.representative}
                     </Box>
                   </MenuItem>
                   <MenuItem value="representative_manager">
                     <Box display="flex" alignItems="center" gap={1}>
                       <WarehouseIcon fontSize="small" />
-                      Representative Manager
+                      {trans.userManagement.roles.representativeManager}
                     </Box>
                   </MenuItem>
                 </Select>
@@ -116,7 +118,7 @@ export default function AddUserDialog({ open, onClose, formData, setFormData, fo
             {!formData.generatePassword && (
               <Grid item xs={12}>
                 <TextField
-                  label="Custom Password"
+                  label={trans.userManagement.customPassword}
                   type="password"
                   fullWidth
                   variant="outlined"
@@ -126,7 +128,7 @@ export default function AddUserDialog({ open, onClose, formData, setFormData, fo
                     if (e.key === 'Enter') e.preventDefault();
                   }}
                   error={!!formErrors.customPassword}
-                  helperText={formErrors.customPassword || 'Minimum 6 characters required'}
+                  helperText={formErrors.customPassword || trans.userManagement.minimumCharacters}
                   disabled={submitting}
                   required
                 />
@@ -135,13 +137,10 @@ export default function AddUserDialog({ open, onClose, formData, setFormData, fo
             <Grid item xs={12}>
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-                  📧 Account Activation Process:
+                  📧 {trans.userManagement.accountActivationProcess}:
                 </Typography>
                 <Typography variant="body2" component="div">
-                  • User will receive an activation email with login credentials
-                  <br />• Email includes OTP code for account verification
-                  <br />• User must activate account before first login
-                  <br />• Activation link expires in 24 hours
+                  {trans.userManagement.accountActivationDescription}
                 </Typography>
               </Alert>
             </Grid>
@@ -150,7 +149,7 @@ export default function AddUserDialog({ open, onClose, formData, setFormData, fo
         <Divider />
         <DialogActions sx={{ p: 3, gap: 1 }}>
           <Button type="button" onClick={onClose} disabled={submitting} sx={{ minWidth: 100 }}>
-            Cancel
+            {trans.userManagement.cancel}
           </Button>
           <Button
             type="submit"
@@ -159,7 +158,7 @@ export default function AddUserDialog({ open, onClose, formData, setFormData, fo
             startIcon={submitting ? <CircularProgress size={16} /> : <SendIcon />}
             sx={{ minWidth: 120 }}
           >
-            {submitting ? 'Creating...' : 'Create User'}
+            {submitting ? trans.userManagement.creating : trans.userManagement.createUser}
           </Button>
         </DialogActions>
       </form>

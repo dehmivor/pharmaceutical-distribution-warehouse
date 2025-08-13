@@ -3,8 +3,10 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import { Box, FormControl, Grid, InputLabel, MenuItem, Select, TextField } from '@mui/material';
 import { useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 function NewDeliveryForm() {
+  const trans = useTrans();
   const [formData, setFormData] = useState({
     deliveryId: '',
     customerName: '',
@@ -29,41 +31,41 @@ function NewDeliveryForm() {
   return (
     <Box sx={{ maxWidth: 1000, bgcolor: 'background.paper', borderRadius: 1, p: 3 }}>
       <Grid container spacing={3}>
-        {/* Dòng 1: 2 trường */}
+        {/* {trans.deliveryForm.row1} */}
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Delivery ID"
+            label={trans.deliveryForm.deliveryId}
             variant="outlined"
             value={formData.deliveryId}
             onChange={handleChange('deliveryId')}
             size="small"
-            placeholder="Enter delivery ID"
+            placeholder={trans.deliveryForm.enterDeliveryId}
           />
         </Grid>
 
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Customer Name"
+            label={trans.deliveryForm.customerName}
             variant="outlined"
             value={formData.customerName}
             onChange={handleChange('customerName')}
             size="small"
-            placeholder="Enter customer name"
+            placeholder={trans.deliveryForm.enterCustomerName}
           />
         </Grid>
 
-        {/* Dòng 2: 3 trường */}
+        {/* {trans.deliveryForm.row2} */}
         <Grid item xs={12} sm={4}>
           <FormControl style={{ width: 200 }} size="small">
-            <InputLabel>Delivery Status</InputLabel>
-            <Select value={formData.deliveryStatus} label="Delivery Status" onChange={handleChange('deliveryStatus')} displayEmpty>
+            <InputLabel>{trans.deliveryForm.deliveryStatus}</InputLabel>
+            <Select value={formData.deliveryStatus} label={trans.deliveryForm.deliveryStatus} onChange={handleChange('deliveryStatus')} displayEmpty>
               <MenuItem value=""></MenuItem>
-              <MenuItem value="Pending">Pending</MenuItem>
-              <MenuItem value="In Transit">In Transit</MenuItem>
-              <MenuItem value="Delivered">Delivered</MenuItem>
-              <MenuItem value="Cancelled">Cancelled</MenuItem>
+              <MenuItem value="Pending">{trans.deliveryForm.pending}</MenuItem>
+              <MenuItem value="In Transit">{trans.deliveryForm.inTransit}</MenuItem>
+              <MenuItem value="Delivered">{trans.deliveryForm.delivered}</MenuItem>
+              <MenuItem value="Cancelled">{trans.deliveryForm.cancelled}</MenuItem>
             </Select>
           </FormControl>
         </Grid>
@@ -71,44 +73,44 @@ function NewDeliveryForm() {
         <Grid item xs={12} sm={4}>
           <TextField
             fullWidth
-            label="Driver Name"
+            label={trans.deliveryForm.driverName}
             variant="outlined"
             size="small"
             value={formData.driverName}
             onChange={handleChange('driverName')}
-            placeholder="Enter driver name"
+            placeholder={trans.deliveryForm.enterDriverName}
           />
         </Grid>
 
         <Grid item xs={12} sm={4}>
           <TextField
             fullWidth
-            label="Phone Number"
+            label={trans.deliveryForm.phoneNumber}
             variant="outlined"
             size="small"
             value={formData.phoneNumber}
             onChange={handleChange('phoneNumber')}
-            placeholder="Enter phone number"
+            placeholder={trans.deliveryForm.enterPhoneNumber}
           />
         </Grid>
 
-        {/* Dòng 3: 3 trường */}
+        {/* {trans.deliveryForm.row3} */}
         <Grid item xs={12} sm={5}>
           <TextField
             fullWidth
-            label="Delivery Address"
+            label={trans.deliveryForm.deliveryAddress}
             variant="outlined"
             size="small"
             value={formData.deliveryAddress}
             onChange={handleChange('deliveryAddress')}
-            placeholder="Enter delivery address"
+            placeholder={trans.deliveryForm.enterDeliveryAddress}
           />
         </Grid>
 
         <Grid item xs={12} sm={3}>
           <FormControl style={{ width: 200 }} size="small">
-            <InputLabel>Delivery Type</InputLabel>
-            <Select value={formData.deliveryType} label="Delivery Type" onChange={handleChange('deliveryType')} displayEmpty>
+            <InputLabel>{trans.deliveryForm.deliveryType}</InputLabel>
+            <Select value={formData.deliveryType} label={trans.deliveryForm.deliveryType} onChange={handleChange('deliveryType')} displayEmpty>
               <MenuItem value=""></MenuItem>
               <MenuItem value="Standard">Standard</MenuItem>
               <MenuItem value="Express">Express</MenuItem>
@@ -129,15 +131,15 @@ function NewDeliveryForm() {
             control={
               <Switch style={{ borderRadius: 10 }} checked={formData.isUrgent} onChange={handleChange('isUrgent')} name="isUrgent" />
             }
-            label="Urgent Delivery"
+            label={trans.deliveryForm.isUrgent}
           />
         </Grid>
 
-        {/* Dòng 4: Thời gian dự kiến */}
+        {/* {trans.deliveryForm.row4} */}
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Estimated Delivery Time"
+            label={trans.deliveryForm.estimatedTime}
             variant="outlined"
             type="datetime-local"
             size="small"

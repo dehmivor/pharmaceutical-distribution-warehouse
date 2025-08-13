@@ -43,6 +43,7 @@ import axios from 'axios';
 import MedicineDetailDialog from './MedicineDetailDialog'; // Import the detail dialog component
 import MedicineEditDialog from './MedicineEditDialog'; // Import the edit dialog component
 import MedicineAddDialog from './MedicineAddDialog';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => {
@@ -59,6 +60,7 @@ const axiosInstance = axios.create({
 });
 
 const MedicineManagement = () => {
+  const trans = useTrans();
   const [medicines, setMedicines] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -106,7 +108,7 @@ const MedicineManagement = () => {
         setTotalCount(response.data.data.pagination.total);
       }
     } catch (error) {
-      setError('Lỗi khi tải danh sách thuốc');
+      setError(trans.medicine.messages.loadError);
       console.error('Error fetching medicines:', error);
     } finally {
       setLoading(false);
@@ -129,7 +131,7 @@ const MedicineManagement = () => {
 
   const handleUpdateMedicine = async (updatedMedicine) => {
     if (!updatedMedicine || !updatedMedicine._id) {
-      setError('Không tìm thấy ID thuốc để cập nhật');
+      setError(trans.medicine.messages.updateError);
       return;
     }
 
@@ -139,23 +141,23 @@ const MedicineManagement = () => {
       });
 
       if (response.data.success) {
-        setSuccess('Cập nhật thuốc thành công');
+        setSuccess(trans.medicineEdit.messages.updateSuccess);
         setOpenEditDialog(false);
         setSelectedMedicine(null);
         fetchMedicines();
       } else {
-        setError(response.data.message || 'Cập nhật thất bại');
+        setError(response.data.message || trans.medicine.messages.updateError);
       }
     } catch (err) {
       console.error('Update medicine error:', err);
       const serverMessage = err.response?.data?.message;
-      setError(serverMessage || 'Lỗi khi cập nhật thuốc');
+      setError(serverMessage || trans.medicine.messages.updateErrorGeneric);
     }
   };
 
   // Handle add medicine success
   const handleAddMedicineSuccess = () => {
-    setSuccess('Thêm thuốc mới thành công');
+    setSuccess(trans.medicineAdd.messages.addSuccess);
     fetchMedicines(); // Refresh the list
   };
 
@@ -167,13 +169,13 @@ const MedicineManagement = () => {
       });
 
       if (response.data.success) {
-        setSuccess('Xóa thuốc thành công');
+        setSuccess(trans.medicine.messages.deleteSuccess);
         setOpenDeleteDialog(false);
         setSelectedMedicine(null);
         fetchMedicines();
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Lỗi khi xóa thuốc');
+      setError(error.response?.data?.message || trans.medicine.messages.deleteError);
       // Tự động đóng dialog khi có lỗi
       setOpenDeleteDialog(false);
       setSelectedMedicine(null);
@@ -224,10 +226,10 @@ const MedicineManagement = () => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-          Quản Lý Thuốc
+          {trans.medicine.title}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Quản lý danh sách thuốc và thông tin chi tiết
+          {trans.medicine.description}
         </Typography>
       </Box>
 
@@ -249,14 +251,14 @@ const MedicineManagement = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
             <FilterIcon sx={{ color: 'primary.main', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-              Bộ Lọc Tìm Kiếm
+              {trans.medicine.filters.title}
             </Typography>
           </Box>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
-                label="Số đăng ký"
+                label={trans.medicine.filters.licenseCode}
                 value={filters.license_code}
                 onChange={(e) => handleFilterChange('license_code', e.target.value)}
                 variant="outlined"
@@ -272,11 +274,11 @@ const MedicineManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 300 }}>
-                <InputLabel>Danh mục</InputLabel>
+                <InputLabel>{trans.medicine.filters.category}</InputLabel>
                 <Select
                   value={filters.category}
                   onChange={(e) => handleFilterChange('category', e.target.value)}
-                  label="Danh mục"
+                  label={trans.medicine.filters.category}
                   renderValue={(selected) => (
                     <Tooltip title={selected}>
                       <span
@@ -287,7 +289,7 @@ const MedicineManagement = () => {
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {selected || 'Tất cả'}
+                        {selected || trans.medicine.filters.all}
                       </span>
                     </Tooltip>
                   )}
@@ -295,7 +297,7 @@ const MedicineManagement = () => {
                     width: 300
                   }}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.medicine.filters.all}</MenuItem>
                   {filterOptions?.category?.map((cate) => (
                     <MenuItem key={cate} value={cate} title={cate}>
                       {cate}
@@ -306,24 +308,24 @@ const MedicineManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 300 }}>
-                <InputLabel>Trạng thái</InputLabel>
+                <InputLabel>{trans.medicine.filters.status}</InputLabel>
                 <Select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                  label="Trạng thái"
+                  label={trans.medicine.filters.status}
                   renderValue={(selected) => {
-                    if (selected === '') return 'Tất cả';
-                    if (selected === 'active') return 'Hoạt động';
-                    if (selected === 'inactive') return 'Không hoạt động';
+                    if (selected === '') return trans.medicine.filters.all;
+                    if (selected === 'active') return trans.medicine.filters.active;
+                    if (selected === 'inactive') return trans.medicine.filters.inactive;
                     return selected;
                   }}
                   sx={{
                     width: 300
                   }}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
-                  <MenuItem value="active">Hoạt động</MenuItem>
-                  <MenuItem value="inactive">Không hoạt động</MenuItem>
+                  <MenuItem value="">{trans.medicine.filters.all}</MenuItem>
+                  <MenuItem value="active">{trans.medicine.filters.active}</MenuItem>
+                  <MenuItem value="inactive">{trans.medicine.filters.inactive}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -344,7 +346,7 @@ const MedicineManagement = () => {
                   fontWeight: 600
                 }}
               >
-                Thêm thuốc mới
+                {trans.medicine.addNew}
               </Button>
             </Grid>
           </Grid>
@@ -361,10 +363,10 @@ const MedicineManagement = () => {
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-            Danh Sách Thuốc
+            {trans.medicine.table.title}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Tổng cộng {totalCount} thuốc
+            {trans.medicine.table.totalCount.replace('{count}', totalCount)}
           </Typography>
         </Box>
 
@@ -372,13 +374,13 @@ const MedicineManagement = () => {
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600 }}>Tên thuốc</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Số đăng ký</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Danh mục</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Đơn vị đo</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.medicine.table.headers.medicineName}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.medicine.table.headers.licenseCode}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.medicine.table.headers.category}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.medicine.table.headers.unitOfMeasure}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.medicine.table.headers.status}</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>
-                  Hành động
+                  {trans.medicine.table.headers.actions}
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -398,7 +400,7 @@ const MedicineManagement = () => {
                   <TableCell>{medicine.unit_of_measure}</TableCell>
                   <TableCell>
                     <Chip 
-                      label={medicine.status === 'active' ? 'Hoạt động' : 'Không hoạt động'} 
+                      label={medicine.status === 'active' ? trans.medicine.filters.active : trans.medicine.filters.inactive} 
                       size="small" 
                       color={medicine.status === 'active' ? 'success' : 'error'} 
                       variant="outlined" 
@@ -406,7 +408,7 @@ const MedicineManagement = () => {
                   </TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                      <Tooltip title="Xem chi tiết">
+                      <Tooltip title={trans.medicine.actions.view}>
                         <IconButton
                           color="primary"
                           size="small"
@@ -423,7 +425,7 @@ const MedicineManagement = () => {
                         </IconButton>
                       </Tooltip>
 
-                      <Tooltip title="Chỉnh sửa">
+                      <Tooltip title={trans.medicine.actions.edit}>
                         <IconButton
                           color="secondary"
                           size="small"
@@ -440,7 +442,7 @@ const MedicineManagement = () => {
                         </IconButton>
                       </Tooltip>
 
-                      <Tooltip title="Xóa">
+                      <Tooltip title={trans.medicine.actions.delete}>
                         <IconButton
                           color="error"
                           size="small"
@@ -472,8 +474,8 @@ const MedicineManagement = () => {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Số hàng mỗi trang:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
+          labelRowsPerPage={trans.common.pagination.rowsPerPage}
+          labelDisplayedRows={({ from, to, count }) => trans.common.pagination.displayedRows.replace('{from}', from).replace('{to}', to).replace('{count}', count)}
           sx={{
             borderTop: '1px solid #e0e0e0',
             bgcolor: 'grey.50'
@@ -520,12 +522,12 @@ const MedicineManagement = () => {
         >
           <DeleteIcon sx={{ fontSize: 24 }} />
           <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-            Xác Nhận Xóa
+            {trans.medicine.deleteDialog.title}
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Bạn có chắc chắn muốn xóa thuốc này không?
+            {trans.medicine.deleteDialog.message}
           </Typography>
           <Box
             sx={{
@@ -540,7 +542,7 @@ const MedicineManagement = () => {
               {selectedMedicine?.medicine_name}
             </Typography>
             <Typography variant="caption" color="error.main">
-              Hành động này không thể hoàn tác!
+              {trans.medicine.deleteDialog.warning}
             </Typography>
           </Box>
           
@@ -556,13 +558,13 @@ const MedicineManagement = () => {
             }}
           >
             <Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.main', mb: 1 }}>
-              ⚠️ Điều kiện xóa:
+              {trans.medicine.deleteDialog.conditions.title}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-              • Số lượng trong kho phải bằng 0
+              {trans.medicine.deleteDialog.conditions.stockZero}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              • Trạng thái phải là "Không hoạt động"
+              {trans.medicine.deleteDialog.conditions.statusInactive}
             </Typography>
           </Box>
         </DialogContent>
@@ -585,7 +587,7 @@ const MedicineManagement = () => {
               fontWeight: 600
             }}
           >
-            Hủy
+            {trans.medicine.deleteDialog.cancel}
           </Button>
           <Button
             onClick={handleDeleteMedicine}
@@ -604,7 +606,7 @@ const MedicineManagement = () => {
               }
             }}
           >
-            Xóa
+            {trans.medicine.deleteDialog.delete}
           </Button>
         </DialogActions>
       </Dialog>

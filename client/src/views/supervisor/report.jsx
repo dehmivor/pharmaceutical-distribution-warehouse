@@ -49,6 +49,7 @@ import {
   Search
 } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -72,6 +73,7 @@ const formatDate = (date) => {
 };
 
 export default function Report() {
+  const trans = useTrans();
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -138,11 +140,11 @@ export default function Report() {
         console.log('Bills count:', response.data.data.bills?.length || 0);
         console.log('Pagination info:', response.data.data.pagination);
       } else {
-        setError('Failed to load report data');
+        setError(trans.reports.failedToLoad);
       }
     } catch (error) {
       console.error('Error fetching report data:', error);
-      setError(error.response?.data?.error || 'Failed to load report data');
+              setError(error.response?.data?.error || trans.reports.failedToLoad);
     } finally {
       setLoading(false);
     }
@@ -187,7 +189,7 @@ export default function Report() {
       link.remove();
     } catch (error) {
       console.error('Error exporting to Excel:', error);
-      setError('Failed to export report');
+              setError(trans.reports.failedToExport);
     } finally {
       setLoading(false);
     }
@@ -210,7 +212,7 @@ export default function Report() {
       });
 
       if (response.data.success) {
-        alert('File uploaded successfully!');
+        alert(trans.reports.fileUploadedSuccess);
         setUploadDialog(false);
         setUploadFile(null);
         fetchReportData(); // refresh data after upload
@@ -379,8 +381,8 @@ export default function Report() {
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                   label="Trạng thái"
                 >
-                  <MenuItem value="all">Tất cả trạng thái</MenuItem>
-                  <MenuItem value="pending">Chờ xử lý</MenuItem>
+                                  <MenuItem value="all">{trans.common.allStatuses}</MenuItem>
+                <MenuItem value="pending">{trans.common.pendingProcessing}</MenuItem>
                   <MenuItem value="partial">Thanh toán một phần</MenuItem>
                   <MenuItem value="completed">Hoàn thành</MenuItem>
                   <MenuItem value="overdue">Quá hạn</MenuItem>
@@ -396,7 +398,7 @@ export default function Report() {
                   onChange={(e) => handleFilterChange('type', e.target.value)}
                   label="Loại"
                 >
-                  <MenuItem value="all">Tất cả loại</MenuItem>
+                  <MenuItem value="all">{trans.common.allTypes}</MenuItem>
                   <MenuItem value="IMPORT">Nhập hàng</MenuItem>
                   <MenuItem value="EXPORT">Xuất hàng</MenuItem>
                   <MenuItem value="PAYMENT_VOUCHER">Phiếu chi</MenuItem>
@@ -439,22 +441,22 @@ export default function Report() {
                 <Table stickyHeader>
                   <TableHead sx={{ bgcolor: 'grey.50' }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Mã Bill</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Mã Hợp đồng</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Loại đối tác</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Mã đơn hàng</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Loại đơn</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Trạng thái</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.billCode}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.contractCode}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.partnerType}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderCode}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderType}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.status}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                        Tổng giá trị
+                        {trans.reports.totalValue}
                       </TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                        Đã thanh toán
+                        {trans.reports.amountPaid}
                       </TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                        Còn lại
+                        {trans.reports.remainingAmount}
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Ngày tạo</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.createdAt}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -491,17 +493,17 @@ export default function Report() {
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
                 rowsPerPageOptions={[5, 10, 25, 50]}
-                labelRowsPerPage="Số hàng mỗi trang:"
-                labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`}
+                labelRowsPerPage={trans.reports.rowsPerPage}
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.reports.of} ${count !== -1 ? count : trans.reports.moreThanTo}`}
               />
             </>
           ) : (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Typography variant="h6" color="text.secondary" gutterBottom>
-                Không có dữ liệu để hiển thị
+                {trans.reports.noDataToDisplay}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Hãy thử thay đổi bộ lọc hoặc kiểm tra lại dữ liệu
+                {trans.reports.tryChangingFiltersOrCheckingData}
               </Typography>
             </Box>
           )}
@@ -510,7 +512,7 @@ export default function Report() {
 
       {/* Upload Dialog */}
       <Dialog open={uploadDialog} onClose={() => setUploadDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Upload File Excel</DialogTitle>
+        <DialogTitle>{trans.reports.uploadExcelFile}</DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
             <input
@@ -522,20 +524,20 @@ export default function Report() {
             />
             <label htmlFor="file-upload">
               <Button variant="outlined" component="span" startIcon={<FileUploadIcon />} fullWidth>
-                Chọn file Excel
+                {trans.reports.selectExcelFile}
               </Button>
             </label>
             {uploadFile && (
               <Typography variant="body2" sx={{ mt: 1 }}>
-                File đã chọn: {uploadFile.name}
+                {trans.reports.selectedFile}: {uploadFile.name}
               </Typography>
             )}
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setUploadDialog(false)}>Hủy</Button>
+                      <Button onClick={() => setUploadDialog(false)}>{trans.common.cancel}</Button>
           <Button onClick={handleFileUpload} variant="contained" disabled={!uploadFile || uploading}>
-            {uploading ? 'Đang upload...' : 'Upload'}
+                          {uploading ? trans.common.uploading : trans.common.upload}
           </Button>
         </DialogActions>
       </Dialog>

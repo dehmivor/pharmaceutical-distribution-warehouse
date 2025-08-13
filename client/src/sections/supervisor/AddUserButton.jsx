@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import useTrans from '@/hooks/useTrans';
 import {
   Add as AddIcon,
   Warehouse as WarehouseIcon,
@@ -10,6 +11,7 @@ import {
 } from '@mui/icons-material';
 
 function AddUserButton({ onCreateUser }) {
+  const trans = useTrans();
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
@@ -30,22 +32,22 @@ function AddUserButton({ onCreateUser }) {
   const userTypes = [
     {
       type: 'warehouse',
-      label: 'Warehouse',
+      label: trans.roles.warehouse,
       icon: <WarehouseIcon fontSize="small" />
     },
     {
       type: 'representative',
-      label: 'Representative',
+      label: trans.roles.representative,
       icon: <RepresentativeIcon fontSize="small" />
     },
     {
       type: 'delivery',
-      label: 'Delivery Unit',
+      label: trans.roles.warehouse,
       icon: <DeliveryIcon fontSize="small" />
     },
     {
       type: 'supplier',
-      label: 'Supplier',
+      label: trans.roles.warehouse,
       icon: <SupplierIcon fontSize="small" />
     }
   ];
@@ -70,7 +72,7 @@ function AddUserButton({ onCreateUser }) {
           transition: 'all 0.2s ease-in-out'
         }}
       >
-        Add User
+        {trans.actions.add} {trans.tabs.users}
       </Button>
 
       <Menu

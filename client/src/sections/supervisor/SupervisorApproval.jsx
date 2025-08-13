@@ -22,8 +22,10 @@ import {
   Divider
 } from '@mui/material';
 import { CheckCircle as ApproveIcon, Cancel as RejectIcon, Send as SendIcon } from '@mui/icons-material';
+import useTrans from '@/hooks/useTrans';
 
 function SupervisorApproval({ receipt, onApprovalSubmit, userRole = 'supervisor' }) {
+  const trans = useTrans();
   const [approvalData, setApprovalData] = useState({
     decision: '',
     comments: '',
@@ -50,35 +52,59 @@ function SupervisorApproval({ receipt, onApprovalSubmit, userRole = 'supervisor'
 
   const canApprove = userRole === 'supervisor' || userRole === 'manager';
 
+  const getDecisionText = (decision) => {
+    switch (decision) {
+      case 'approved':
+        return trans.supervisorApproval.approved;
+      case 'rejected':
+        return trans.supervisorApproval.rejected;
+      case 'request_changes':
+        return trans.supervisorApproval.requestChanges;
+      default:
+        return '';
+    }
+  };
+
+  const getActionText = (decision) => {
+    switch (decision) {
+      case 'approved':
+        return trans.supervisorApproval.approved.toUpperCase();
+      case 'rejected':
+        return trans.supervisorApproval.rejected.toUpperCase();
+      default:
+        return '';
+    }
+  };
+
   return (
     <Card variant="outlined" sx={{ mb: 3 }}>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          Duyệt Phiếu Nhập Kho - {receipt.id}
+          {trans.supervisorApproval.title.replace('{id}', receipt.id)}
         </Typography>
 
         {/* Thông tin phiếu nhập */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6}>
             <Typography variant="body2" color="text.secondary">
-              Ngày tạo: {receipt.date}
+              {trans.supervisorApproval.createdDate}: {receipt.date}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Người tạo: {receipt.createdBy}
+              {trans.supervisorApproval.createdBy}: {receipt.createdBy}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Nhà cung cấp: {receipt.supplier}
+              {trans.supervisorApproval.supplier}: {receipt.supplier}
             </Typography>
           </Grid>
           <Grid item xs={12} sm={6}>
             <Typography variant="body2" color="text.secondary">
-              Tổng giá trị: {receipt.totalValue?.toLocaleString()} VNĐ
+              {trans.supervisorApproval.totalValue}: {receipt.totalValue?.toLocaleString()} VNĐ
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Tỷ lệ nhận: {receipt.receivedPercentage}%
+              {trans.supervisorApproval.receivedPercentage}: {receipt.receivedPercentage}%
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Trạng thái: <Chip label="Chờ duyệt" color="warning" size="small" />
+              {trans.supervisorApproval.status}: <Chip label={trans.supervisorApproval.pendingApproval} color="warning" size="small" />
             </Typography>
           </Grid>
         </Grid>
@@ -89,17 +115,17 @@ function SupervisorApproval({ receipt, onApprovalSubmit, userRole = 'supervisor'
         {canApprove ? (
           <Box>
             <Typography variant="subtitle1" gutterBottom>
-              Quyết định duyệt
+              {trans.supervisorApproval.approvalDecision}
             </Typography>
 
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Quyết định</InputLabel>
-                  <Select value={approvalData.decision} onChange={(e) => handleDecisionChange(e.target.value)} label="Quyết định">
-                    <MenuItem value="approved">Duyệt</MenuItem>
-                    <MenuItem value="rejected">Từ chối</MenuItem>
-                    <MenuItem value="request_changes">Yêu cầu chỉnh sửa</MenuItem>
+                  <InputLabel>{trans.supervisorApproval.decision}</InputLabel>
+                  <Select value={approvalData.decision} onChange={(e) => handleDecisionChange(e.target.value)} label={trans.supervisorApproval.decision}>
+                    <MenuItem value="approved">{trans.supervisorApproval.approved}</MenuItem>
+                    <MenuItem value="rejected">{trans.supervisorApproval.rejected}</MenuItem>
+                    <MenuItem value="request_changes">{trans.supervisorApproval.requestChanges}</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -107,7 +133,7 @@ function SupervisorApproval({ receipt, onApprovalSubmit, userRole = 'supervisor'
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Người duyệt"
+                  label={trans.supervisorApproval.reviewer}
                   value={approvalData.reviewedBy}
                   onChange={(e) => setApprovalData((prev) => ({ ...prev, reviewedBy: e.target.value }))}
                 />
@@ -116,12 +142,12 @@ function SupervisorApproval({ receipt, onApprovalSubmit, userRole = 'supervisor'
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Nhận xét"
+                  label={trans.supervisorApproval.comments}
                   multiline
                   rows={3}
                   value={approvalData.comments}
                   onChange={(e) => setApprovalData((prev) => ({ ...prev, comments: e.target.value }))}
-                  placeholder="Nhập nhận xét về phiếu nhập kho..."
+                  placeholder={trans.supervisorApproval.commentsPlaceholder}
                 />
               </Grid>
             </Grid>
@@ -134,29 +160,30 @@ function SupervisorApproval({ receipt, onApprovalSubmit, userRole = 'supervisor'
                 onClick={() => setConfirmDialogOpen(true)}
                 disabled={!approvalData.decision}
               >
-                Xác nhận quyết định
+                {trans.supervisorApproval.confirmDecision}
               </Button>
 
               <Button variant="outlined" onClick={() => setApprovalData({ ...approvalData, decision: '', comments: '' })}>
-                Đặt lại
+                {trans.supervisorApproval.reset}
               </Button>
             </Box>
           </Box>
         ) : (
-          <Alert severity="warning">Bạn không có quyền duyệt phiếu nhập kho này.</Alert>
+          <Alert severity="warning">{trans.supervisorApproval.noPermission}</Alert>
         )}
 
         {/* Dialog xác nhận */}
         <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
-          <DialogTitle>Xác Nhận Quyết Định Duyệt</DialogTitle>
+          <DialogTitle>{trans.supervisorApproval.confirmDialogTitle}</DialogTitle>
           <DialogContent>
             <Typography>
-              Bạn có chắc chắn muốn <strong>{approvalData.decision === 'approved' ? 'DUYỆT' : 'TỪ CHỐI'}</strong> phiếu nhập kho{' '}
-              {receipt.id}?
+              {trans.supervisorApproval.confirmMessage
+                .replace('{action}', getActionText(approvalData.decision))
+                .replace('{id}', receipt.id)}
             </Typography>
             {approvalData.comments && (
               <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2">Nhận xét:</Typography>
+                <Typography variant="subtitle2">{trans.supervisorApproval.commentsLabel}</Typography>
                 <Typography variant="body2" color="text.secondary">
                   {approvalData.comments}
                 </Typography>
@@ -164,9 +191,9 @@ function SupervisorApproval({ receipt, onApprovalSubmit, userRole = 'supervisor'
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setConfirmDialogOpen(false)}>Hủy</Button>
+            <Button onClick={() => setConfirmDialogOpen(false)}>{trans.supervisorApproval.cancel}</Button>
             <Button onClick={handleSubmitApproval} variant="contained" color={approvalData.decision === 'approved' ? 'success' : 'error'}>
-              Xác nhận
+              {trans.supervisorApproval.confirm}
             </Button>
           </DialogActions>
         </Dialog>

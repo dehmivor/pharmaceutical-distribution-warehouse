@@ -3,13 +3,17 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 
 // @project
-import menuItems from '@/menu';
+import useMenu from '@/hooks/useMenu';
 import NavGroup from './NavGroup';
 
 /***************************  DRAWER CONTENT - RESPONSIVE DRAWER  ***************************/
 
 export default function ResponsiveDrawer() {
-  const navGroups = menuItems.supervisor.map((item, index) => {
+  const { supervisor, dataReports, other } = useMenu();
+  
+  const allMenuItems = [...supervisor, ...dataReports, ...other];
+  
+  const navGroups = allMenuItems.map((item, index) => {
     switch (item.type) {
       case 'group':
         return <NavGroup key={index} item={item} />;

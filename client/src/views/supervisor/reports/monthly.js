@@ -1,7 +1,9 @@
 import React from 'react';
+import useTrans from '@/hooks/useTrans';
 
 function monthly() {
-  return <div>monthly</div>;
+  const trans = useTrans();
+  return <div>{trans.placeholders.monthly}</div>;
 }
 
 export default monthly;

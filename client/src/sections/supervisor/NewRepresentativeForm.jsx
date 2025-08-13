@@ -23,8 +23,10 @@ import {
   Stack
 } from '@mui/material';
 import { useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 function NewRepresentativeForm({ onClose }) {
+  const trans = useTrans();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -101,19 +103,19 @@ function NewRepresentativeForm({ onClose }) {
         {/* Personal Information Section */}
         <Grid item xs={12}>
           <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', mb: 2 }}>
-            📋 Personal Information
+            📋 {trans.representativeForm.personalInformation}
           </Typography>
 
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="First Name"
+                label={trans.representativeForm.firstName}
                 variant="outlined"
                 value={formData.firstName}
                 onChange={handleChange('firstName')}
                 size="small"
-                placeholder="Enter first name"
+                placeholder={trans.representativeForm.enterFirstName}
                 required
               />
             </Grid>
@@ -121,12 +123,12 @@ function NewRepresentativeForm({ onClose }) {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Last Name"
+                label={trans.representativeForm.lastName}
                 variant="outlined"
                 value={formData.lastName}
                 onChange={handleChange('lastName')}
                 size="small"
-                placeholder="Enter last name"
+                placeholder={trans.representativeForm.enterLastName}
                 required
               />
             </Grid>
@@ -134,13 +136,13 @@ function NewRepresentativeForm({ onClose }) {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Email Address"
+                label={trans.representativeForm.email}
                 variant="outlined"
                 type="email"
                 value={formData.email}
                 onChange={handleChange('email')}
                 size="small"
-                placeholder="Enter email address"
+                placeholder={trans.representativeForm.enterEmail}
                 required
               />
             </Grid>
@@ -148,19 +150,19 @@ function NewRepresentativeForm({ onClose }) {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Phone Number"
+                label={trans.representativeForm.phoneNumber}
                 variant="outlined"
                 value={formData.phoneNumber}
                 onChange={handleChange('phoneNumber')}
                 size="small"
-                placeholder="+84 xxx xxx xxx"
+                placeholder={trans.representativeForm.enterPhoneNumber}
               />
             </Grid>
 
             <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
-                label="Birth Date"
+                label={trans.representativeForm.birthDate}
                 variant="outlined"
                 type="date"
                 value={formData.birthDate}
@@ -173,11 +175,11 @@ function NewRepresentativeForm({ onClose }) {
             <Grid item xs={12} sm={4}>
               <FormControl component="fieldset">
                 <FormLabel component="legend" sx={{ fontSize: '0.875rem', mb: 1 }}>
-                  Gender
+                  {trans.representativeForm.gender}
                 </FormLabel>
                 <RadioGroup row value={formData.gender} onChange={handleChange('gender')}>
-                  <FormControlLabel value="male" control={<Radio size="small" />} label="Male" />
-                  <FormControlLabel value="female" control={<Radio size="small" />} label="Female" />
+                  <FormControlLabel value="male" control={<Radio size="small" />} label={trans.representativeForm.male} />
+                  <FormControlLabel value="female" control={<Radio size="small" />} label={trans.representativeForm.female} />
                 </RadioGroup>
               </FormControl>
             </Grid>
@@ -191,14 +193,14 @@ function NewRepresentativeForm({ onClose }) {
         {/* Work Information Section */}
         <Grid item xs={12}>
           <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', mb: 2 }}>
-            💼 Work Information
+            💼 {trans.representativeForm.workInformation}
           </Typography>
 
           <Grid container spacing={2}>
             <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
-                label="Employee ID"
+                label={trans.representativeForm.employeeId}
                 variant="outlined"
                 value={formData.employeeId}
                 onChange={handleChange('employeeId')}
@@ -209,14 +211,14 @@ function NewRepresentativeForm({ onClose }) {
 
             <Grid item xs={12} sm={4}>
               <FormControl fullWidth size="small">
-                <InputLabel>Department</InputLabel>
-                <Select value={formData.department} label="Department" onChange={handleChange('department')}>
-                  <MenuItem value="Sales">Sales</MenuItem>
-                  <MenuItem value="Marketing">Marketing</MenuItem>
-                  <MenuItem value="HR">Human Resources</MenuItem>
-                  <MenuItem value="IT">Information Technology</MenuItem>
-                  <MenuItem value="Finance">Finance</MenuItem>
-                  <MenuItem value="Operations">Operations</MenuItem>
+                <InputLabel>{trans.representativeForm.department}</InputLabel>
+                <Select value={formData.department} label={trans.representativeForm.department} onChange={handleChange('department')}>
+                  <MenuItem value="Sales">{trans.representativeForm.sales}</MenuItem>
+                  <MenuItem value="Marketing">{trans.representativeForm.marketing}</MenuItem>
+                  <MenuItem value="HR">{trans.representativeForm.hr}</MenuItem>
+                  <MenuItem value="IT">{trans.representativeForm.it}</MenuItem>
+                  <MenuItem value="Finance">{trans.representativeForm.finance}</MenuItem>
+                  <MenuItem value="Operations">{trans.representativeForm.operations}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -224,19 +226,19 @@ function NewRepresentativeForm({ onClose }) {
             <Grid item xs={12} sm={4}>
               <TextField
                 fullWidth
-                label="Position"
+                label={trans.representativeForm.position}
                 variant="outlined"
                 value={formData.position}
                 onChange={handleChange('position')}
                 size="small"
-                placeholder="Enter position"
+                placeholder={trans.representativeForm.enterPosition}
               />
             </Grid>
 
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Hire Date"
+                label={trans.representativeForm.hireDate}
                 variant="outlined"
                 type="date"
                 value={formData.hireDate}
@@ -248,19 +250,19 @@ function NewRepresentativeForm({ onClose }) {
 
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth size="small">
-                <InputLabel>Working Hours</InputLabel>
-                <Select value={formData.workingHours} label="Working Hours" onChange={handleChange('workingHours')}>
-                  <MenuItem value="full-time">Full-time</MenuItem>
-                  <MenuItem value="part-time">Part-time</MenuItem>
-                  <MenuItem value="contract">Contract</MenuItem>
-                  <MenuItem value="internship">Internship</MenuItem>
+                <InputLabel>{trans.representativeForm.workingHours}</InputLabel>
+                <Select value={formData.workingHours} label={trans.representativeForm.workingHours} onChange={handleChange('workingHours')}>
+                  <MenuItem value="full-time">{trans.representativeForm.fullTime}</MenuItem>
+                  <MenuItem value="part-time">{trans.representativeForm.partTime}</MenuItem>
+                  <MenuItem value="contract">{trans.representativeForm.contract}</MenuItem>
+                  <MenuItem value="internship">{trans.representativeForm.internship}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
 
             <Grid item xs={12} sm={6}>
               <Typography gutterBottom variant="body2">
-                Annual Salary: ${formData.salary.toLocaleString()}
+                {trans.representativeForm.annualSalary}: ${formData.salary.toLocaleString()}
               </Typography>
               <Slider
                 value={formData.salary}
@@ -276,7 +278,7 @@ function NewRepresentativeForm({ onClose }) {
 
             <Grid item xs={12} sm={6}>
               <Typography gutterBottom variant="body2">
-                Experience: {formData.experienceLevel} years
+                {trans.representativeForm.experience}: {formData.experienceLevel} years
               </Typography>
               <Slider
                 value={formData.experienceLevel}
@@ -292,7 +294,7 @@ function NewRepresentativeForm({ onClose }) {
 
             <Grid item xs={12} sm={6}>
               <Typography gutterBottom variant="body2">
-                Performance Rating
+                {trans.representativeForm.performanceRating}
               </Typography>
               <Rating
                 value={formData.performanceRating}

@@ -34,6 +34,7 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -83,6 +84,7 @@ const IMPORT_ORDER_STATUSES = {
 };
 
 export default function ImportOrderSupervisor() {
+  const trans = useTrans();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -198,14 +200,14 @@ export default function ImportOrderSupervisor() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Import Orders Management
+            {trans.importOrders.title}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Supervisor can view import orders
+            {trans.importOrders.description}
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => fetchOrders()} disabled={loading}>
-          Refresh
+          {trans.importOrders.refresh}
         </Button>
       </Box>
 
@@ -221,8 +223,8 @@ export default function ImportOrderSupervisor() {
             size="small"
           />
 
-          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
-            <MenuItem value="All Status">All Status</MenuItem>
+          <TextField select label={trans.importOrders.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+            <MenuItem value="All Status">{trans.importOrders.allStatus}</MenuItem>
             {Object.values(IMPORT_ORDER_STATUSES).map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
@@ -231,7 +233,7 @@ export default function ImportOrderSupervisor() {
           </TextField>
 
           <Button size="small" variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick}>
-            Search
+            {trans.importOrders.search}
           </Button>
           <Button size="small" variant="outlined" onClick={handleResetFilters}>
             Reset
@@ -251,16 +253,16 @@ export default function ImportOrderSupervisor() {
               <TableCell align="right" sx={{ minWidth: 120 }}>
                 Total Amount
               </TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>{trans.importOrders.status}</TableCell>
               <TableCell sx={{ minWidth: 150 }}>Warehouse Manager</TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Actions</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>{trans.importOrders.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                  <Typography color="text.secondary">No orders found.</Typography>
+                  <Typography color="text.secondary">{trans.importOrders.noOrdersFound}</Typography>
                 </TableCell>
               </TableRow>
             ) : (
@@ -316,7 +318,7 @@ export default function ImportOrderSupervisor() {
 
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
-        <DialogTitle>Import Order Details</DialogTitle>
+        <DialogTitle>{trans.importOrders.orderDetails}</DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           {selectedOrder && (
             <Box sx={{ mt: 2 }}>
@@ -336,7 +338,7 @@ export default function ImportOrderSupervisor() {
                       {/* Order Code is hidden for all orders */}
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
-                          Status
+                          {trans.importOrders.status}
                         </Typography>
                         <Chip label={selectedOrder.status} color={getStatusColor(selectedOrder.status)} size="small" />
                       </Grid>
@@ -364,9 +366,9 @@ export default function ImportOrderSupervisor() {
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
-                          Contract Status
+                          {trans.importOrders.contractStatus}
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.contract_id?.status || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.contract_id?.status || trans.importOrders.na}</Typography>
                       </Grid>
                     </Grid>
                   </Paper>
