@@ -533,11 +533,11 @@ function ManageBills() {
             <InputLabel>Trạng thái</InputLabel>
             <Select label="Trạng thái" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
               <MenuItem value="ALL">Tất cả</MenuItem>
-              <MenuItem value="PENDING">PENDING</MenuItem>
-              <MenuItem value="COMPLETED">COMPLETED</MenuItem>
-              <MenuItem value="CANCELED">CANCELED</MenuItem>
-              <MenuItem value="PAID">PAID</MenuItem>
-              <MenuItem value="OVERDUE">OVERDUE</MenuItem>
+              <MenuItem value="pending">PENDING</MenuItem>
+              <MenuItem value="completed">COMPLETED</MenuItem>
+              <MenuItem value="cancelled">CANCELLED</MenuItem>
+              <MenuItem value="partial">PAID</MenuItem>
+              <MenuItem value="overdue">OVERDUE</MenuItem>
             </Select>
           </FormControl>
 
