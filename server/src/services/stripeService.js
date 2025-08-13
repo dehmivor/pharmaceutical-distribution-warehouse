@@ -489,9 +489,46 @@ const processWebhookEvent = async (req, res) => {
   let event;
 
   try {
+    // Kiểm tra webhook secret
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('STRIPE_WEBHOOK_SECRET is not configured');
+      return res.status(500).json({ error: 'Webhook secret not configured' });
+    }
+
     // Verify webhook signature
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-    console.log(`Received webhook event: ${event.type}`);
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+      console.log(`Received webhook event: ${event.type}`);
+    } catch (signatureErr) {
+      console.error('Webhook signature verification failed:', signatureErr.message);
+
+      // Trong development, có thể bypass signature verification để test
+      if (process.env.NODE_ENV === 'development' && !sig) {
+        console.log('Development mode: Bypassing signature verification for testing');
+        try {
+          // Parse JSON body manually
+          const body = req.body;
+          if (typeof body === 'string') {
+            event = JSON.parse(body);
+          } else {
+            event = body;
+          }
+          console.log('Development mode: Parsed webhook event manually');
+        } catch (parseErr) {
+          console.error('Failed to parse webhook body:', parseErr);
+          return res.status(400).json({
+            error: 'Webhook signature verification failed',
+            details: signatureErr.message,
+            parseError: parseErr.message,
+          });
+        }
+      } else {
+        return res.status(400).json({
+          error: 'Webhook signature verification failed',
+          details: signatureErr.message,
+        });
+      }
+    }
 
     // Thêm logging chi tiết
     console.log('Webhook event details:', {
@@ -504,32 +541,21 @@ const processWebhookEvent = async (req, res) => {
       amountReceived: event.data?.object?.amount_received,
     });
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-
-    // Trong development, có thể bypass signature verification để test
-    if (process.env.NODE_ENV === 'development' && !sig) {
-      console.log('Development mode: Bypassing signature verification for testing');
-      try {
-        // Parse JSON body manually
-        const body = req.body;
-        if (typeof body === 'string') {
-          event = JSON.parse(body);
-        } else {
-          event = body;
-        }
-        console.log('Development mode: Parsed webhook event manually');
-      } catch (parseErr) {
-        console.error('Failed to parse webhook body:', parseErr);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-      }
-    } else {
-      return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
+    console.error('Error in webhook processing setup:', err);
+    return res.status(500).json({
+      error: 'Webhook processing setup failed',
+      details: err.message,
+    });
   }
 
   try {
     const eventType = event.type;
     const eventData = event.data?.object;
+
+    if (!eventType || !eventData) {
+      console.error('Invalid webhook event structure:', { eventType, eventData });
+      return res.status(400).json({ error: 'Invalid webhook event structure' });
+    }
 
     console.log(`Processing webhook event: ${eventType}`, {
       eventId: event.id,
@@ -557,13 +583,20 @@ const processWebhookEvent = async (req, res) => {
     }
 
     console.log(`Webhook event ${eventType} processed successfully`);
-    res.json({ received: true, eventType });
+    res.json({
+      received: true,
+      eventType,
+      eventId: event.id,
+      timestamp: new Date().toISOString(),
+    });
   } catch (error) {
     console.error('Error processing webhook event:', error);
     res.status(500).json({
       error: 'Webhook processing failed',
       message: error.message,
       eventType: event?.type,
+      eventId: event?.id,
+      timestamp: new Date().toISOString(),
     });
   }
 };
