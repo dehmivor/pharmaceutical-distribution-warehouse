@@ -247,7 +247,7 @@ const applyInspectionResults = async (checkOrderId) => {
         await Package.findByIdAndDelete(packageIdString, { session })
         console.log(`Package ${packageIdString} deleted due to zero quantity`)
 
-        if (pkg.batch_id && currentPackageLocationId) {
+        if (pkg.batch_id && currentPackageLocationId && originalQuantity > 0) {
           await LogLocationChange.create(
             [
               {
@@ -289,35 +289,37 @@ const applyInspectionResults = async (checkOrderId) => {
           updateData.location_id = inspectionLocationId
 
           if (pkg.batch_id && currentPackageLocationId && !currentPackageLocationId.equals(inspectionLocationId)) {
-            // Log removal from old location
-            await LogLocationChange.create(
-              [
-                {
-                  location_id: currentPackageLocationId,
-                  type: "remove",
-                  batch_id: pkg.batch_id._id,
-                  quantity: originalQuantity,
-                  inventory_check_order_id: checkOrderId,
-                  ware_house_id: checkOrder.warehouse_manager_id,
-                },
-              ],
-              { session },
-            )
+            if (originalQuantity > 0) {
+              await LogLocationChange.create(
+                [
+                  {
+                    location_id: currentPackageLocationId,
+                    type: "remove",
+                    batch_id: pkg.batch_id._id,
+                    quantity: originalQuantity,
+                    inventory_check_order_id: checkOrderId,
+                    ware_house_id: checkOrder.warehouse_manager_id,
+                  },
+                ],
+                { session },
+              )
+            }
 
-            // Log addition to new location
-            await LogLocationChange.create(
-              [
-                {
-                  location_id: inspectionLocationId,
-                  type: "add",
-                  batch_id: pkg.batch_id._id,
-                  quantity: item.actual_quantity,
-                  inventory_check_order_id: checkOrderId,
-                  ware_house_id: checkOrder.warehouse_manager_id,
-                },
-              ],
-              { session },
-            )
+            if (item.actual_quantity > 0) {
+              await LogLocationChange.create(
+                [
+                  {
+                    location_id: inspectionLocationId,
+                    type: "add",
+                    batch_id: pkg.batch_id._id,
+                    quantity: item.actual_quantity,
+                    inventory_check_order_id: checkOrderId,
+                    ware_house_id: checkOrder.warehouse_manager_id,
+                  },
+                ],
+                { session },
+              )
+            }
             console.log(`Created location change logs for package ${packageIdString}`)
           }
 
@@ -351,7 +353,7 @@ const applyInspectionResults = async (checkOrderId) => {
               ],
               { session },
             )
-          } else {
+          } else if (quantityDifference < 0) {
             // Quantity decreased - log as removal
             await LogLocationChange.create(
               [
@@ -367,7 +369,9 @@ const applyInspectionResults = async (checkOrderId) => {
               { session },
             )
           }
-          console.log(`Created quantity change log for package ${packageIdString}`)
+          if (quantityDifference !== 0) {
+            console.log(`Created quantity change log for package ${packageIdString}`)
+          }
         }
 
         const updatedPackage = await Package.findByIdAndUpdate(pkg._id, updateData, { new: true, session })
