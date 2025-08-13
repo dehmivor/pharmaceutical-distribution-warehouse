@@ -181,18 +181,18 @@ function ManageBills() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'PENDING':
+      case 'pending':
         return 'warning';
-      case 'PAID':
+      case 'partial':
         return 'success';
-      case 'OVERDUE':
+      case 'overdue':
         return 'error';
-      case 'COMPLETED':
+      case 'completed':
         return 'success';
-      case 'CANCELED':
+      case 'cancelled':
         return 'default';
       default:
-        return 'default';
+        return 'draft';
     }
   };
 
