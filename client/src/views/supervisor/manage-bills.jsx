@@ -198,20 +198,42 @@ function ManageBills() {
       return;
     }
 
+    // Kiểm tra loại hóa đơn
+    if (bill.type === 'EXPORT') {
+      enqueueSnackbar('Đơn xuất không thể thanh toán, chỉ có thể xem trạng thái thanh toán của khách hàng.', { variant: 'info' });
+      return;
+    }
+
     setSelectedBills((prev) => (prev.includes(billId) ? prev.filter((id) => id !== billId) : [...prev, billId]));
   };
 
   const handleSelectAll = (event) => {
     if (event.target.checked) {
-      // Chỉ chọn hóa đơn có thể thanh toán (không phải completed hoặc cancelled)
-      const payableBills = filteredBills.filter((bill) => bill.status !== 'completed' && bill.status !== 'cancelled');
+      // Chỉ chọn hóa đơn có thể thanh toán (không phải completed, cancelled, hoặc EXPORT)
+      const payableBills = filteredBills.filter(
+        (bill) => bill.status !== 'completed' && bill.status !== 'cancelled' && bill.type !== 'EXPORT'
+      );
       const allIds = payableBills.map((bill) => bill._id);
       setSelectedBills(allIds);
 
       // Hiển thị thông báo nếu có hóa đơn không thể thanh toán
-      const nonPayableBills = filteredBills.filter((bill) => bill.status === 'completed' || bill.status === 'cancelled');
+      const nonPayableBills = filteredBills.filter(
+        (bill) => bill.status === 'completed' || bill.status === 'cancelled' || bill.type === 'EXPORT'
+      );
       if (nonPayableBills.length > 0) {
-        enqueueSnackbar(`${nonPayableBills.length} hóa đơn không thể thanh toán (đã hoàn tất hoặc bị hủy)`, { variant: 'info' });
+        const exportCount = nonPayableBills.filter((b) => b.type === 'EXPORT').length;
+        const statusCount = nonPayableBills.filter((b) => b.type !== 'EXPORT').length;
+
+        let message = '';
+        if (exportCount > 0 && statusCount > 0) {
+          message = `${exportCount} đơn xuất không thể thanh toán, ${statusCount} hóa đơn không thể thanh toán (đã hoàn tất hoặc bị hủy)`;
+        } else if (exportCount > 0) {
+          message = `${exportCount} đơn xuất không thể thanh toán, chỉ có thể xem trạng thái thanh toán của khách hàng`;
+        } else {
+          message = `${statusCount} hóa đơn không thể thanh toán (đã hoàn tất hoặc bị hủy)`;
+        }
+
+        enqueueSnackbar(message, { variant: 'info' });
       }
     } else {
       setSelectedBills([]);
@@ -275,6 +297,12 @@ function ManageBills() {
       return;
     }
 
+    // Kiểm tra loại hóa đơn
+    if (bill.type === 'EXPORT') {
+      enqueueSnackbar('Đơn xuất không thể thanh toán, chỉ có thể xem trạng thái thanh toán của khách hàng.', { variant: 'info' });
+      return;
+    }
+
     // Kiểm tra trạng thái hóa đơn
     if (bill.status === 'completed') {
       enqueueSnackbar('Hóa đơn này đã được thanh toán hoàn tất, không thể thanh toán thêm.', { variant: 'warning' });
@@ -333,6 +361,12 @@ function ManageBills() {
   };
 
   const handleStripePaymentSingle = async (bill) => {
+    // Kiểm tra loại hóa đơn
+    if (bill.type === 'EXPORT') {
+      enqueueSnackbar('Đơn xuất không thể thanh toán, chỉ có thể xem trạng thái thanh toán của khách hàng.', { variant: 'info' });
+      return;
+    }
+
     // Kiểm tra trạng thái hóa đơn
     if (bill.status === 'completed') {
       enqueueSnackbar('Hóa đơn này đã được thanh toán hoàn tất, không thể thanh toán thêm.', { variant: 'warning' });
@@ -380,7 +414,9 @@ function ManageBills() {
     const invalidBills = [];
     selectedBills.forEach((id) => {
       const bill = bills.find((b) => b._id === id);
-      if (bill.status === 'completed') {
+      if (bill.type === 'EXPORT') {
+        invalidBills.push({ id, type: 'EXPORT', message: 'đơn xuất không thể thanh toán' });
+      } else if (bill.status === 'completed') {
         invalidBills.push({ id, status: 'completed', message: 'đã được thanh toán hoàn tất' });
       } else if (bill.status === 'cancelled') {
         invalidBills.push({ id, status: 'cancelled', message: 'đã bị hủy' });
@@ -435,11 +471,12 @@ function ManageBills() {
       const cancelUrl = window.location.origin + '/not-found';
       const billIds = selectedBills;
 
-      // Kiểm tra trạng thái của tất cả hóa đơn được chọn
       const invalidBills = [];
       billIds.forEach((id) => {
         const bill = bills.find((b) => b._id === id);
-        if (bill.status === 'completed') {
+        if (bill.type === 'EXPORT') {
+          invalidBills.push({ id, type: 'EXPORT', message: 'đơn xuất không thể thanh toán' });
+        } else if (bill.status === 'completed') {
           invalidBills.push({ id, status: 'completed', message: 'đã được thanh toán hoàn tất' });
         } else if (bill.status === 'cancelled') {
           invalidBills.push({ id, status: 'cancelled', message: 'đã bị hủy' });
@@ -692,16 +729,16 @@ function ManageBills() {
               loadingPaymentId !== null ||
               selectedBills.some((id) => {
                 const bill = bills.find((b) => b._id === id);
-                return bill.status === 'completed' || bill.status === 'cancelled';
+                return bill.status === 'completed' || bill.status === 'cancelled' || bill.type === 'EXPORT';
               })
             }
             onClick={handleOpenMultiPaymentDialog}
             title={
               selectedBills.some((id) => {
                 const bill = bills.find((b) => b._id === id);
-                return bill.status === 'completed' || bill.status === 'cancelled';
+                return bill.status === 'completed' || bill.status === 'cancelled' || bill.type === 'EXPORT';
               })
-                ? 'Một số hóa đơn đã được thanh toán hoàn tất hoặc bị hủy'
+                ? 'Một số hóa đơn không thể thanh toán (đã hoàn tất, bị hủy hoặc là đơn xuất)'
                 : ''
             }
           >
@@ -747,13 +784,15 @@ function ManageBills() {
                     <Checkbox
                       checked={selectedBills.includes(bill._id)}
                       onChange={() => handleSelectBill(bill._id)}
-                      disabled={bill.status === 'completed' || bill.status === 'cancelled'}
+                      disabled={bill.status === 'completed' || bill.status === 'cancelled' || bill.type === 'EXPORT'}
                       title={
-                        bill.status === 'completed'
-                          ? 'Hóa đơn đã được thanh toán hoàn tất'
-                          : bill.status === 'cancelled'
-                            ? 'Hóa đơn đã bị hủy'
-                            : ''
+                        bill.type === 'EXPORT'
+                          ? 'Đơn xuất không thể thanh toán, chỉ có thể xem trạng thái thanh toán của khách hàng'
+                          : bill.status === 'completed'
+                            ? 'Hóa đơn đã được thanh toán hoàn tất'
+                            : bill.status === 'cancelled'
+                              ? 'Hóa đơn đã bị hủy'
+                              : ''
                       }
                     />
                   </TableCell>
@@ -792,39 +831,55 @@ function ManageBills() {
                   </TableCell>
                   <TableCell align="right">{calcAmount(bill.details).toLocaleString()}</TableCell>
                   <TableCell>
-                    <Button
-                      size="small"
-                      variant="contained"
-                      color="primary"
-                      sx={{ mr: 1 }}
-                      onClick={() => handleOpenDetail(bill)}
-                      disabled={loadingPaymentId === bill._id || bill.status === 'completed' || bill.status === 'cancelled'}
-                      title={
-                        bill.status === 'completed'
-                          ? 'Hóa đơn đã được thanh toán hoàn tất'
-                          : bill.status === 'cancelled'
-                            ? 'Hóa đơn đã bị hủy'
-                            : ''
-                      }
-                    >
-                      Thanh toán 1 phần
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="secondary"
-                      onClick={() => handleStripePaymentSingle(bill)}
-                      disabled={loadingPaymentId === bill._id || bill.status === 'completed' || bill.status === 'cancelled'}
-                      title={
-                        bill.status === 'completed'
-                          ? 'Hóa đơn đã được thanh toán hoàn tất'
-                          : bill.status === 'cancelled'
-                            ? 'Hóa đơn đã bị hủy'
-                            : ''
-                      }
-                    >
-                      Thanh toán toàn bộ
-                    </Button>
+                    {bill.type === 'EXPORT' ? (
+                      // Đối với đơn xuất, chỉ hiển thị button Detail để xem trạng thái thanh toán
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="info"
+                        onClick={() => handleOpenDetail(bill)}
+                        title="Xem trạng thái thanh toán của khách hàng"
+                      >
+                        Detail
+                      </Button>
+                    ) : (
+                      // Đối với đơn nhập, hiển thị các button thanh toán
+                      <>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          sx={{ mr: 1 }}
+                          onClick={() => handleOpenDetail(bill)}
+                          disabled={loadingPaymentId === bill._id || bill.status === 'completed' || bill.status === 'cancelled'}
+                          title={
+                            bill.status === 'completed'
+                              ? 'Hóa đơn đã được thanh toán hoàn tất'
+                              : bill.status === 'cancelled'
+                                ? 'Hóa đơn đã bị hủy'
+                                : ''
+                          }
+                        >
+                          Thanh toán 1 phần
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="secondary"
+                          onClick={() => handleStripePaymentSingle(bill)}
+                          disabled={loadingPaymentId === bill._id || bill.status === 'completed' || bill.status === 'cancelled'}
+                          title={
+                            bill.status === 'completed'
+                              ? 'Hóa đơn đã được thanh toán hoàn tất'
+                              : bill.status === 'cancelled'
+                                ? 'Hóa đơn đã bị hủy'
+                                : ''
+                          }
+                        >
+                          Thanh toán toàn bộ
+                        </Button>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -864,7 +919,7 @@ function ManageBills() {
       </Snackbar>
 
       <Dialog open={openDetail} onClose={handleCloseDetail} maxWidth="md" fullWidth>
-        <DialogTitle>Chi tiết hóa đơn</DialogTitle>
+        <DialogTitle>{detailData?.type === 'EXPORT' ? 'Chi tiết đơn xuất - Trạng thái thanh toán' : 'Chi tiết hóa đơn'}</DialogTitle>
         <DialogContent dividers>
           {showStripePayment && clientSecret ? (
             <Elements stripe={stripePromise}>
@@ -893,46 +948,67 @@ function ManageBills() {
                   <strong>Trạng thái:</strong> {detailData.status}
                 </Typography>
 
-                <Typography sx={{ mt: 2 }}>
-                  <strong>Chi tiết thuốc trong phiếu:</strong>
-                </Typography>
-                <Table size="small" sx={{ mb: 2 }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Tên thuốc</TableCell>
-                      <TableCell>Mã thuốc</TableCell>
-                      <TableCell>Số lượng</TableCell>
-                      <TableCell>Đơn giá (VNĐ)</TableCell>
-                      <TableCell>Thành tiền (VNĐ)</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>{renderDetailMedicines(detailData)}</TableBody>
-                </Table>
+                {detailData.type === 'EXPORT' ? (
+                  // Đối với đơn xuất, hiển thị thông tin trạng thái thanh toán của khách hàng
+                  <Box sx={{ mt: 2, p: 2, backgroundColor: 'info.50', borderRadius: 1 }}>
+                    <Typography variant="h6" color="info.main" gutterBottom>
+                      Trạng thái thanh toán của khách hàng
+                    </Typography>
+                    <Typography>Đây là đơn xuất, bạn chỉ có thể xem trạng thái thanh toán của khách hàng.</Typography>
+                    <Typography sx={{ mt: 1 }}>
+                      <strong>Trạng thái hiện tại:</strong>{' '}
+                      {detailData.status === 'cancelled'
+                        ? 'Thanh toán thất bại'
+                        : detailData.status === 'completed'
+                          ? 'Đã thanh toán'
+                          : detailData.status}
+                    </Typography>
+                  </Box>
+                ) : (
+                  // Đối với đơn nhập, hiển thị chi tiết thuốc và form thanh toán
+                  <>
+                    <Typography sx={{ mt: 2 }}>
+                      <strong>Chi tiết thuốc trong phiếu:</strong>
+                    </Typography>
+                    <Table size="small" sx={{ mb: 2 }}>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Tên thuốc</TableCell>
+                          <TableCell>Mã thuốc</TableCell>
+                          <TableCell>Số lượng</TableCell>
+                          <TableCell>Đơn giá (VNĐ)</TableCell>
+                          <TableCell>Thành tiền (VNĐ)</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>{renderDetailMedicines(detailData)}</TableBody>
+                    </Table>
 
-                <Typography>
-                  <strong>Tổng tiền:</strong> {calcAmount(detailData.details).toLocaleString()} VNĐ
-                </Typography>
+                    <Typography>
+                      <strong>Tổng tiền:</strong> {calcAmount(detailData.details).toLocaleString()} VNĐ
+                    </Typography>
 
-                <TextField
-                  label="Số tiền thanh toán (VNĐ)"
-                  fullWidth
-                  value={partialAmount}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/[^0-9,]/g, '');
-                    const numericValue = parseFormattedNumber(value);
-                    const maxAmount = calcAmount(detailData.details);
-                    if (numericValue <= maxAmount) {
-                      setPartialAmount(formatNumber(numericValue));
-                    }
-                  }}
-                  sx={{ mt: 2 }}
-                  helperText={`Số tiền: ${parseFormattedNumber(partialAmount).toLocaleString()} VNĐ - Bạn có thể thanh toán toàn bộ hoặc một phần hóa đơn này.`}
-                />
+                    <TextField
+                      label="Số tiền thanh toán (VNĐ)"
+                      fullWidth
+                      value={partialAmount}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9,]/g, '');
+                        const numericValue = parseFormattedNumber(value);
+                        const maxAmount = calcAmount(detailData.details);
+                        if (numericValue <= maxAmount) {
+                          setPartialAmount(formatNumber(numericValue));
+                        }
+                      }}
+                      sx={{ mt: 2 }}
+                      helperText={`Số tiền: ${parseFormattedNumber(partialAmount).toLocaleString()} VNĐ - Bạn có thể thanh toán toàn bộ hoặc một phần hóa đơn này.`}
+                    />
+                  </>
+                )}
               </>
             )
           )}
         </DialogContent>
-        {!showStripePayment && (
+        {!showStripePayment && detailData?.type !== 'EXPORT' && (
           <DialogActions>
             <Button onClick={handleCloseDetail} disabled={loadingPaymentId !== null}>
               Đóng
@@ -944,6 +1020,11 @@ function ManageBills() {
             >
               {loadingPaymentId === detailData?._id ? 'Đang xử lý...' : 'Thanh toán'}
             </Button>
+          </DialogActions>
+        )}
+        {!showStripePayment && detailData?.type === 'EXPORT' && (
+          <DialogActions>
+            <Button onClick={handleCloseDetail}>Đóng</Button>
           </DialogActions>
         )}
       </Dialog>
