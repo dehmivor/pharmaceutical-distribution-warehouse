@@ -332,7 +332,7 @@ function ManageBills() {
         {
           billIds,
           amount, // No *100 for VND
-          paymentType,
+          paymentType: 'import', // ← PHẢI CÓ
           successUrl,
           cancelUrl
         },

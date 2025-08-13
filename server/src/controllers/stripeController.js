@@ -2,16 +2,37 @@ const { Bill } = require('../models');
 const stripeService = require('../services/stripeService');
 
 async function getBillsTotalAmount(billIds) {
-  const bills = await Bill.find({ _id: { $in: billIds } });
-  let sumAll = 0;
-  bills.forEach((bill) => {
-    let totalBill = 0;
-    if (bill.details && bill.details.length) {
-      totalBill = bill.details.reduce((total, item) => total + item.quantity * item.unit_price, 0);
-    }
-    sumAll += totalBill;
-  });
-  return sumAll;
+  try {
+    console.log('getBillsTotalAmount debug:', { billIds });
+
+    const bills = await Bill.find({ _id: { $in: billIds } });
+    console.log('Bills found:', bills.length);
+
+    let sumAll = 0;
+    bills.forEach((bill, index) => {
+      let totalBill = 0;
+      if (bill.details && bill.details.length) {
+        totalBill = bill.details.reduce(
+          (total, item) => total + item.quantity * item.unit_price,
+          0,
+        );
+      }
+      sumAll += totalBill;
+
+      console.log(`Bill ${index + 1}:`, {
+        billId: bill._id,
+        detailsCount: bill.details?.length || 0,
+        totalBill,
+        sumAll,
+      });
+    });
+
+    console.log('Total amount calculated:', sumAll);
+    return sumAll;
+  } catch (error) {
+    console.error('Error in getBillsTotalAmount:', error);
+    throw new Error(`Failed to calculate total amount: ${error.message}`);
+  }
 }
 
 const createPaymentIntentController = async (req, res) => {
@@ -39,29 +60,57 @@ const createPaymentIntentController = async (req, res) => {
 };
 
 const createMultiPayment = async (req, res) => {
-  const { billIds, successUrl, cancelUrl, paymentType } = req.body;
-
-  if (!billIds || !Array.isArray(billIds) || billIds.length === 0) {
-    return res.status(400).json({ error: 'Missing or invalid billIds' });
-  }
-
   try {
+    const { billIds, successUrl, cancelUrl, paymentType } = req.body;
+
+    console.log('createMultiPayment request:', {
+      billIds,
+      successUrl,
+      cancelUrl,
+      paymentType,
+      bodyKeys: Object.keys(req.body),
+    });
+
+    if (!billIds || !Array.isArray(billIds) || billIds.length === 0) {
+      console.error('Invalid billIds:', billIds);
+      return res.status(400).json({ error: 'Missing or invalid billIds' });
+    }
+
+    if (!paymentType || (paymentType !== 'import' && paymentType !== 'export')) {
+      console.error('Invalid paymentType:', paymentType);
+      return res.status(400).json({ error: 'Invalid paymentType' });
+    }
+
     console.log(`Creating multi-payment for ${billIds.length} bills, type: ${paymentType}`);
 
-    // Validate bills
     const bills = await Bill.find({
       _id: { $in: billIds },
-      status: { $in: ['PENDING', 'PARTIAL'] },
+      status: { $in: ['pending', 'partial'] },
+    });
+
+    console.log('Bills validation:', {
+      requested: billIds.length,
+      found: bills.length,
+      billIds: billIds,
+      foundBills: bills.map((b) => ({ id: b._id, status: b.status })),
     });
 
     if (bills.length !== billIds.length) {
-      return res.status(400).json({ error: 'Some bills are invalid or not payable' });
+      const foundIds = bills.map((b) => b._id.toString());
+      const missingIds = billIds.filter((id) => !foundIds.includes(id));
+      console.error('Some bills not found or not payable:', { missingIds, foundIds });
+      return res.status(400).json({
+        error: 'Some bills are invalid or not payable',
+        missingIds,
+        foundIds,
+      });
     }
 
     const amount = await getBillsTotalAmount(billIds);
     console.log(`Total amount for multi-payment: ${amount}`);
 
     if (amount <= 0) {
+      console.error('Total amount is zero or negative:', amount);
       return res.status(400).json({ error: 'Total amount must be greater than zero' });
     }
 
@@ -70,15 +119,18 @@ const createMultiPayment = async (req, res) => {
       url = await stripeService.createPaymentImportMulti(billIds, amount, successUrl, cancelUrl);
     } else if (paymentType === 'export') {
       url = await stripeService.createPaymentExportMulti(billIds, amount, successUrl, cancelUrl);
-    } else {
-      return res.status(400).json({ error: 'Invalid paymentType' });
     }
 
     console.log(`Multi-payment created successfully, redirecting to: ${url}`);
     res.json({ url });
   } catch (err) {
     console.error('Error creating multi-payment:', err);
-    res.status(500).json({ error: err.message });
+    console.error('Error stack:', err.stack);
+    res.status(500).json({
+      error: 'Có lỗi khi kết nối thanh toán nhiều hóa đơn. Vui lòng thử lại sau.',
+      details: err.message,
+      timestamp: new Date().toISOString(),
+    });
   }
 };
 
