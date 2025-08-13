@@ -45,6 +45,14 @@ const createPaymentIntentController = async (req, res) => {
   try {
     console.log(`Creating payment intent for bill ${billId}, amount: ${amount}`);
 
+    // FIX: Kiểm tra và sửa data sai trước khi tạo PaymentIntent
+    const stripeService = require('../services/stripeService');
+    const wasFixed = await stripeService.fixBillAmountPaid(billId);
+
+    if (wasFixed) {
+      console.log(`Bill ${billId} data was fixed, proceeding with PaymentIntent creation`);
+    }
+
     const clientSecret = await stripeService.createOrUpdatePaymentIntentForBill({
       billId,
       amount,

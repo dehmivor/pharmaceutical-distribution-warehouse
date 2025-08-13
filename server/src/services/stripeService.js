@@ -177,6 +177,14 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
 
     const totalAmount = await getBillTotalAmount(billId);
     const currentAmountPaid = bill.amountPaid || 0;
+
+    // FIX: Kiểm tra nếu bill đã được thanh toán đủ
+    if (currentAmountPaid >= totalAmount) {
+      throw new Error(
+        `Bill ${billId} is already fully paid. Total: ${totalAmount}, Paid: ${currentAmountPaid}`,
+      );
+    }
+
     const remainingAmount = totalAmount - currentAmountPaid;
 
     console.log('createOrUpdatePaymentIntentForBill debug:', {
@@ -186,9 +194,11 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
       currentAmountPaid,
       remainingAmount,
       currency,
+      isFullyPaid: currentAmountPaid >= totalAmount,
     });
 
-    if (amount > remainingAmount) {
+    // FIX: Chỉ validate nếu remainingAmount > 0
+    if (remainingAmount > 0 && amount > remainingAmount) {
       throw new Error(`Amount ${amount} exceeds remaining balance ${remainingAmount}`);
     }
 
@@ -211,6 +221,49 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
     throw error;
   }
 }
+
+// Function để sửa data sai trong database
+async function fixBillAmountPaid(billId) {
+  try {
+    const bill = await Bill.findById(billId);
+    if (!bill) {
+      console.error(`Bill ${billId} not found`);
+      return;
+    }
+
+    const totalAmount = await getBillTotalAmount(billId);
+    const currentAmountPaid = bill.amountPaid || 0;
+
+    console.log(`Fixing bill ${billId}:`, {
+      currentAmountPaid,
+      totalAmount,
+      difference: currentAmountPaid - totalAmount,
+      isAbnormal: currentAmountPaid > totalAmount * 10,
+    });
+
+    // Nếu amountPaid quá lớn (bất thường), reset về 0
+    if (currentAmountPaid > totalAmount * 10) {
+      console.log(`Resetting amountPaid from ${currentAmountPaid} to 0`);
+      await Bill.findByIdAndUpdate(billId, {
+        amountPaid: 0,
+        status: BILL_STATUSES.PENDING,
+      });
+      console.log(`Bill ${billId} amountPaid reset to 0`);
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error(`Error fixing bill ${billId}:`, error);
+    return false;
+  }
+}
+
+// Export function này để có thể gọi từ bên ngoài
+module.exports = {
+  // ... existing exports
+  fixBillAmountPaid,
+};
 
 // ==================
 // WEBHOOK HANDLERS - Tách riêng từng function
@@ -531,4 +584,5 @@ module.exports = {
 
   // Webhook xử lý
   processWebhookEvent,
+  fixBillAmountPaid,
 };
