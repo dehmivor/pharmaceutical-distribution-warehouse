@@ -1,7 +1,6 @@
 'use client';
-import { Refresh } from '@mui/icons-material';
+import { Refresh, Search } from '@mui/icons-material';
 import {
-  Alert,
   Box,
   Button,
   Checkbox,
@@ -32,6 +31,7 @@ import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { Elements, CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import { enqueueSnackbar } from 'notistack';
 
 // Initialize Stripe with your publishable key
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
@@ -44,15 +44,25 @@ const getAuthHeaders = () => {
   };
 };
 
+// Format number with thousands separator
+const formatNumber = (num) => {
+  if (!num) return '0';
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
+// Parse formatted number back to number
+const parseFormattedNumber = (str) => {
+  if (!str) return 0;
+  return parseFloat(str.toString().replace(/,/g, ''));
+};
+
 function StripePartialPayment({ clientSecret, onSuccess, onCancel }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(null);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setErrorMessage(null);
 
     if (!stripe || !elements) return;
 
@@ -68,7 +78,7 @@ function StripePartialPayment({ clientSecret, onSuccess, onCancel }) {
     setLoading(false);
 
     if (error) {
-      setErrorMessage(error.message);
+      enqueueSnackbar(error.message, { variant: 'error' });
     } else if (paymentIntent.status === 'succeeded') {
       onSuccess();
     }
@@ -76,11 +86,6 @@ function StripePartialPayment({ clientSecret, onSuccess, onCancel }) {
 
   return (
     <Box>
-      {errorMessage && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {errorMessage}
-        </Alert>
-      )}
       <form onSubmit={handleSubmit}>
         <CardElement
           options={{
@@ -114,26 +119,44 @@ function StripePartialPayment({ clientSecret, onSuccess, onCancel }) {
 function ManageBills() {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedBills, setSelectedBills] = useState([]);
   const [openDetail, setOpenDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
-  const [partialAmount, setPartialAmount] = useState(null);
+  const [partialAmount, setPartialAmount] = useState('');
   const [loadingPaymentId, setLoadingPaymentId] = useState(null);
   const [openMultiPaymentDialog, setOpenMultiPaymentDialog] = useState(false);
   const [multiPaymentAmounts, setMultiPaymentAmounts] = useState({});
   const [clientSecret, setClientSecret] = useState(null);
   const [showStripePayment, setShowStripePayment] = useState(false);
+
+  // Filter states
   const [filterType, setFilterType] = useState('ALL');
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [searchText, setSearchText] = useState('');
   const [sortOrder, setSortOrder] = useState('desc');
 
+  // Applied filter states (for search functionality)
+  const [appliedFilterType, setAppliedFilterType] = useState('ALL');
+  const [appliedFilterStatus, setAppliedFilterStatus] = useState('ALL');
+  const [appliedSearchText, setAppliedSearchText] = useState('');
+  const [appliedSortOrder, setAppliedSortOrder] = useState('desc');
+
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+
+  const showSnackbar = (message, severity = 'info') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const hideSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
   useEffect(() => {
     setPage(0);
-  }, [filterType, filterStatus, searchText, sortOrder]);
+  }, [appliedFilterType, appliedFilterStatus, appliedSearchText, appliedSortOrder]);
 
   const fetchBills = async () => {
     setLoading(true);
@@ -143,9 +166,8 @@ function ManageBills() {
         headers: getAuthHeaders()
       });
       setBills(response.data.data || []);
-      setError(null);
     } catch (err) {
-      setError(err.response?.data?.error || 'Lỗi khi tải dữ liệu hóa đơn');
+      showSnackbar(err.response?.data?.error || 'Lỗi khi tải dữ liệu hóa đơn', 'error');
     } finally {
       setLoading(false);
     }
@@ -154,6 +176,13 @@ function ManageBills() {
   useEffect(() => {
     fetchBills();
   }, []);
+
+  const handleSearch = () => {
+    setAppliedFilterType(filterType);
+    setAppliedFilterStatus(filterStatus);
+    setAppliedSearchText(searchText);
+    setAppliedSortOrder(sortOrder);
+  };
 
   const handleSelectBill = (billId) => {
     setSelectedBills((prev) => (prev.includes(billId) ? prev.filter((id) => id !== billId) : [...prev, billId]));
@@ -181,18 +210,18 @@ function ManageBills() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'PENDING':
+      case 'pending':
         return 'warning';
-      case 'PAID':
+      case 'partial':
         return 'success';
-      case 'OVERDUE':
+      case 'overdue':
         return 'error';
-      case 'COMPLETED':
+      case 'completed':
         return 'success';
-      case 'CANCELED':
+      case 'cancelled':
         return 'default';
       default:
-        return 'default';
+        return 'draft';
     }
   };
 
@@ -205,51 +234,57 @@ function ManageBills() {
 
   const handleOpenDetail = (data) => {
     setDetailData(data);
-    setPartialAmount(calcAmount(data.details));
+    const totalAmount = calcAmount(data.details);
+    setPartialAmount(formatNumber(totalAmount));
     setOpenDetail(true);
   };
 
   const handleCloseDetail = () => {
     setOpenDetail(false);
     setDetailData(null);
-    setPartialAmount(null);
+    setPartialAmount('');
     setClientSecret(null);
     setShowStripePayment(false);
   };
 
   const handlePartialPayment = async (bill) => {
-    if (!partialAmount || partialAmount <= 0) {
-      setError('Vui lòng nhập số tiền thanh toán hợp lệ.');
+    const amount = parseFormattedNumber(partialAmount);
+    if (!amount || amount <= 0) {
+      showSnackbar('Vui lòng nhập số tiền thanh toán hợp lệ.', 'error');
       return;
     }
     setLoadingPaymentId(bill._id);
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const successUrl = window.location.origin + '/success';
+      const cancelUrl = window.location.origin + '/not-found';
+
       const { data } = await axios.post(
-        `${backendUrl}/api/stripe/payment-intent`,
+        `${backendUrl}/api/stripe/payments/${bill._id}`,
         {
           billId: bill._id,
-          amount: Math.round(partialAmount)
+          amount: Math.round(amount),
+          paymentType: bill.type.toLowerCase(),
+          successUrl,
+          cancelUrl
         },
         { headers: getAuthHeaders() }
       );
 
-      if (data.clientSecret) {
-        setClientSecret(data.clientSecret);
-        setShowStripePayment(true);
+      if (data.url) {
+        window.location.href = data.url;
       } else {
-        setError('Không nhận được client secret thanh toán.');
+        showSnackbar('Không thể tạo phiên thanh toán Stripe.', 'error');
       }
     } catch (error) {
-      setError('Có lỗi khi tạo PaymentIntent, vui lòng thử lại.');
+      showSnackbar('Có lỗi khi tạo PaymentIntent, vui lòng thử lại.', 'error');
     } finally {
       setLoadingPaymentId(null);
     }
   };
 
   const onPartialPaymentSuccess = () => {
-    setError(null);
-    alert('Thanh toán thành công!');
+    showSnackbar('Thanh toán thành công!', 'success');
     handleCloseDetail();
     fetchBills();
   };
@@ -258,13 +293,14 @@ function ManageBills() {
     setLoadingPaymentId(bill._id);
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const amount = Math.round(calcAmount(bill.details)); // Convert to cents
+      const amount = Math.round(calcAmount(bill.details));
       const successUrl = window.location.origin + '/success';
       const cancelUrl = window.location.origin + '/not-found';
 
       const { data } = await axios.post(
         `${backendUrl}/api/stripe/payments/${bill._id}`,
         {
+          billId: bill._id,
           amount,
           paymentType: bill.type.toLowerCase(),
           successUrl,
@@ -276,10 +312,10 @@ function ManageBills() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setError('Không thể tạo phiên thanh toán Stripe.');
+        showSnackbar('Không thể tạo phiên thanh toán Stripe.', 'error');
       }
     } catch (error) {
-      setError('Có lỗi khi kết nối thanh toán. Vui lòng thử lại sau.');
+      showSnackbar('Có lỗi khi kết nối thanh toán. Vui lòng thử lại sau.', 'error');
     } finally {
       setLoadingPaymentId(null);
     }
@@ -289,7 +325,7 @@ function ManageBills() {
     const amounts = {};
     selectedBills.forEach((id) => {
       const bill = bills.find((b) => b._id === id);
-      amounts[id] = calcAmount(bill.details);
+      amounts[id] = formatNumber(calcAmount(bill.details));
     });
     setMultiPaymentAmounts(amounts);
     setOpenMultiPaymentDialog(true);
@@ -317,10 +353,10 @@ function ManageBills() {
       const billIds = selectedBills;
       let amount = 0;
       billIds.forEach((id) => {
-        amount += Number(multiPaymentAmounts[id]) || 0;
+        amount += parseFormattedNumber(multiPaymentAmounts[id]) || 0;
       });
       if (amount <= 0) {
-        setError('Tổng số tiền thanh toán không hợp lệ.');
+        showSnackbar('Tổng số tiền thanh toán không hợp lệ.', 'error');
         setLoadingPaymentId(null);
         return;
       }
@@ -330,8 +366,8 @@ function ManageBills() {
         `${backendUrl}/api/stripe/payments/multi`,
         {
           billIds,
-          amount, // No *100 for VND
-          paymentType,
+          amount,
+          paymentType: 'import',
           successUrl,
           cancelUrl
         },
@@ -340,10 +376,10 @@ function ManageBills() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setError('Không thể tạo phiên thanh toán cho nhiều hóa đơn.');
+        showSnackbar('Không thể tạo phiên thanh toán cho nhiều hóa đơn.', 'error');
       }
     } catch (error) {
-      setError('Có lỗi khi kết nối thanh toán nhiều hóa đơn. Vui lòng thử lại sau.');
+      showSnackbar('Có lỗi khi kết nối thanh toán nhiều hóa đơn. Vui lòng thử lại sau.', 'error');
     } finally {
       setLoadingPaymentId(null);
     }
@@ -429,11 +465,11 @@ function ManageBills() {
 
   const filteredBills = bills
     .filter((bill) => {
-      if (filterType !== 'ALL' && bill.type !== filterType) return false;
-      if (filterStatus !== 'ALL' && bill.status !== filterStatus) return false;
+      if (appliedFilterType !== 'ALL' && bill.type !== appliedFilterType) return false;
+      if (appliedFilterStatus !== 'ALL' && bill.status !== appliedFilterStatus) return false;
 
-      if (searchText.trim() !== '') {
-        const lowerSearch = searchText.toLowerCase();
+      if (appliedSearchText.trim() !== '') {
+        const lowerSearch = appliedSearchText.toLowerCase();
         const voucherMatch = bill.voucher_code?.toLowerCase().includes(lowerSearch);
         const medicineMatchImport =
           bill.import_order_id?.details?.some((d) => d.medicine_id?.license_code?.toLowerCase().includes(lowerSearch)) ?? false;
@@ -448,8 +484,15 @@ function ManageBills() {
     .sort((a, b) => {
       const dateA = new Date(a.createdAt || a.payment_date);
       const dateB = new Date(b.createdAt || b.payment_date);
-      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+      return appliedSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
+
+  // Calculate total amount for multi-payment
+  const calculateMultiPaymentTotal = () => {
+    return Object.values(multiPaymentAmounts).reduce((total, amount) => {
+      return total + parseFormattedNumber(amount);
+    }, 0);
+  };
 
   if (loading) {
     return (
@@ -490,11 +533,11 @@ function ManageBills() {
             <InputLabel>Trạng thái</InputLabel>
             <Select label="Trạng thái" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
               <MenuItem value="ALL">Tất cả</MenuItem>
-              <MenuItem value="PENDING">PENDING</MenuItem>
-              <MenuItem value="COMPLETED">COMPLETED</MenuItem>
-              <MenuItem value="CANCELED">CANCELED</MenuItem>
-              <MenuItem value="PAID">PAID</MenuItem>
-              <MenuItem value="OVERDUE">OVERDUE</MenuItem>
+              <MenuItem value="pending">PENDING</MenuItem>
+              <MenuItem value="completed">COMPLETED</MenuItem>
+              <MenuItem value="cancelled">CANCELLED</MenuItem>
+              <MenuItem value="partial">PAID</MenuItem>
+              <MenuItem value="overdue">OVERDUE</MenuItem>
             </Select>
           </FormControl>
 
@@ -514,6 +557,10 @@ function ManageBills() {
               <MenuItem value="asc">Cũ nhất trước</MenuItem>
             </Select>
           </FormControl>
+
+          <Button size="small" variant="contained" color="primary" startIcon={<Search />} onClick={handleSearch}>
+            Tìm kiếm
+          </Button>
 
           <Button
             size="small"
@@ -594,7 +641,7 @@ function ManageBills() {
                       onClick={() => handleOpenDetail(bill)}
                       disabled={loadingPaymentId === bill._id}
                     >
-                      Thanh toán (partial)
+                      Thanh toán 1 phần
                     </Button>
                     <Button
                       size="small"
@@ -603,7 +650,7 @@ function ManageBills() {
                       onClick={() => handleStripePaymentSingle(bill)}
                       disabled={loadingPaymentId === bill._id}
                     >
-                      Thanh toán 1 lần
+                      Thanh toán toàn bộ
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -622,11 +669,26 @@ function ManageBills() {
         />
       </TableContainer>
 
-      {error && (
-        <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-          <Alert severity="error">{error}</Alert>
-        </Snackbar>
-      )}
+      <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={hideSnackbar}>
+        <Box
+          sx={{
+            backgroundColor:
+              snackbar.severity === 'error'
+                ? '#f44336'
+                : snackbar.severity === 'success'
+                  ? '#4caf50'
+                  : snackbar.severity === 'warning'
+                    ? '#ff9800'
+                    : '#2196f3',
+            color: 'white',
+            padding: '12px 16px',
+            borderRadius: '4px',
+            fontSize: '14px'
+          }}
+        >
+          {snackbar.message}
+        </Box>
+      </Snackbar>
 
       <Dialog open={openDetail} onClose={handleCloseDetail} maxWidth="md" fullWidth>
         <DialogTitle>Chi tiết hóa đơn</DialogTitle>
@@ -680,19 +742,18 @@ function ManageBills() {
 
                 <TextField
                   label="Số tiền thanh toán (VNĐ)"
-                  type="number"
                   fullWidth
-                  value={partialAmount || ''}
+                  value={partialAmount}
                   onChange={(e) => {
-                    let val = parseFloat(e.target.value || 0);
-                    if (val < 0) val = 0;
+                    const value = e.target.value.replace(/[^0-9,]/g, '');
+                    const numericValue = parseFormattedNumber(value);
                     const maxAmount = calcAmount(detailData.details);
-                    if (val > maxAmount) val = maxAmount;
-                    setPartialAmount(val);
+                    if (numericValue <= maxAmount) {
+                      setPartialAmount(formatNumber(numericValue));
+                    }
                   }}
-                  inputProps={{ min: 0, max: calcAmount(detailData.details) }}
                   sx={{ mt: 2 }}
-                  helperText="Bạn có thể thanh toán toàn bộ hoặc một phần hóa đơn này."
+                  helperText={`Số tiền: ${parseFormattedNumber(partialAmount).toLocaleString()} VNĐ - Bạn có thể thanh toán toàn bộ hoặc một phần hóa đơn này.`}
                 />
               </>
             )
@@ -706,7 +767,7 @@ function ManageBills() {
             <Button
               onClick={() => handlePartialPayment(detailData)}
               variant="contained"
-              disabled={loadingPaymentId !== null || !partialAmount || partialAmount <= 0}
+              disabled={loadingPaymentId !== null || !partialAmount || parseFormattedNumber(partialAmount) <= 0}
             >
               {loadingPaymentId === detailData?._id ? 'Đang xử lý...' : 'Thanh toán'}
             </Button>
@@ -722,7 +783,7 @@ function ManageBills() {
               <StripePartialPayment
                 clientSecret={clientSecret}
                 onSuccess={() => {
-                  alert('Thanh toán nhiều hóa đơn thành công!');
+                  showSnackbar('Thanh toán nhiều hóa đơn thành công!', 'success');
                   setOpenMultiPaymentDialog(false);
                   fetchBills();
                 }}
@@ -733,31 +794,35 @@ function ManageBills() {
               />
             </Elements>
           ) : (
-            selectedBills.map((billId) => {
-              const bill = bills.find((b) => b._id === billId);
-              const maxAmount = calcAmount(bill.details);
-              return (
-                <Box key={billId} sx={{ mb: 2 }}>
-                  <Typography mb={3} variant="subtitle1">{`Mã hóa đơn: ${bill.voucher_code || bill._id}`}</Typography>
-                  <TextField
-                    type="number"
-                    label="Số tiền thanh toán (VNĐ)"
-                    value={multiPaymentAmounts[billId] || ''}
-                    onChange={(e) => {
-                      let val = parseFloat(e.target.value || 0);
-                      if (val < 0) val = 0;
-                      if (val > maxAmount) val = maxAmount;
-                      handleMultiPaymentAmountChange(billId, val);
-                    }}
-                    inputProps={{ min: 0, max: maxAmount }}
-                    fullWidth
-                  />
-                  <Typography variant="caption" color="text.secondary">
-                    Tổng tiền: {maxAmount.toLocaleString()} VNĐ
-                  </Typography>
-                </Box>
-              );
-            })
+            <>
+              {selectedBills.map((billId) => {
+                const bill = bills.find((b) => b._id === billId);
+                const maxAmount = calcAmount(bill.details);
+                return (
+                  <Box key={billId} sx={{ mb: 2 }}>
+                    <Typography mb={1} variant="subtitle1">{`Mã hóa đơn: ${bill.voucher_code || bill._id}`}</Typography>
+                    <TextField
+                      label="Số tiền thanh toán (VNĐ)"
+                      value={multiPaymentAmounts[billId] || ''}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9,]/g, '');
+                        const numericValue = parseFormattedNumber(value);
+                        if (numericValue <= maxAmount) {
+                          handleMultiPaymentAmountChange(billId, formatNumber(numericValue));
+                        }
+                      }}
+                      fullWidth
+                      helperText={`Số tiền: ${parseFormattedNumber(multiPaymentAmounts[billId] || '0').toLocaleString()} VNĐ / Tổng tiền: ${maxAmount.toLocaleString()} VNĐ`}
+                    />
+                  </Box>
+                );
+              })}
+              <Box sx={{ mt: 2, p: 2, backgroundColor: 'grey.100', borderRadius: 1 }}>
+                <Typography variant="h6" align="center">
+                  <strong>Tổng cộng thanh toán: {calculateMultiPaymentTotal().toLocaleString()} VNĐ</strong>
+                </Typography>
+              </Box>
+            </>
           )}
         </DialogContent>
         {!showStripePayment && (
@@ -765,8 +830,12 @@ function ManageBills() {
             <Button onClick={handleCloseMultiPaymentDialog} disabled={loadingPaymentId === 'multi'}>
               Hủy
             </Button>
-            <Button onClick={handleConfirmMultiPayment} variant="contained" disabled={loadingPaymentId === 'multi'}>
-              Xác nhận thanh toán
+            <Button
+              onClick={handleConfirmMultiPayment}
+              variant="contained"
+              disabled={loadingPaymentId === 'multi' || calculateMultiPaymentTotal() <= 0}
+            >
+              {loadingPaymentId === 'multi' ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
             </Button>
           </DialogActions>
         )}
