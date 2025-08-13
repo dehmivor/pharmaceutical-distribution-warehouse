@@ -185,13 +185,34 @@ function ManageBills() {
   };
 
   const handleSelectBill = (billId) => {
+    const bill = bills.find((b) => b._id === billId);
+
+    // Kiểm tra trạng thái hóa đơn trước khi cho phép chọn
+    if (bill.status === 'completed') {
+      enqueueSnackbar('Hóa đơn này đã được thanh toán hoàn tất, không thể chọn để thanh toán.', { variant: 'warning' });
+      return;
+    }
+
+    if (bill.status === 'cancelled') {
+      enqueueSnackbar('Hóa đơn này đã bị hủy, không thể chọn để thanh toán.', { variant: 'error' });
+      return;
+    }
+
     setSelectedBills((prev) => (prev.includes(billId) ? prev.filter((id) => id !== billId) : [...prev, billId]));
   };
 
   const handleSelectAll = (event) => {
     if (event.target.checked) {
-      const allIds = filteredBills.map((bill) => bill._id);
+      // Chỉ chọn hóa đơn có thể thanh toán (không phải completed hoặc cancelled)
+      const payableBills = filteredBills.filter((bill) => bill.status !== 'completed' && bill.status !== 'cancelled');
+      const allIds = payableBills.map((bill) => bill._id);
       setSelectedBills(allIds);
+
+      // Hiển thị thông báo nếu có hóa đơn không thể thanh toán
+      const nonPayableBills = filteredBills.filter((bill) => bill.status === 'completed' || bill.status === 'cancelled');
+      if (nonPayableBills.length > 0) {
+        enqueueSnackbar(`${nonPayableBills.length} hóa đơn không thể thanh toán (đã hoàn tất hoặc bị hủy)`, { variant: 'info' });
+      }
     } else {
       setSelectedBills([]);
     }
@@ -219,7 +240,7 @@ function ManageBills() {
       case 'completed':
         return 'success';
       case 'cancelled':
-        return 'default';
+        return 'error'; // Thay đổi từ 'default' thành 'error' để hiển thị rõ ràng hơn
       default:
         return 'draft';
     }
@@ -250,9 +271,31 @@ function ManageBills() {
   const handlePartialPayment = async (bill) => {
     const amount = parseFormattedNumber(partialAmount);
     if (!amount || amount <= 0) {
-      showSnackbar('Vui lòng nhập số tiền thanh toán hợp lệ.', 'error');
+      enqueueSnackbar('Vui lòng nhập số tiền thanh toán hợp lệ.', { variant: 'error' });
       return;
     }
+
+    // Kiểm tra trạng thái hóa đơn
+    if (bill.status === 'completed') {
+      enqueueSnackbar('Hóa đơn này đã được thanh toán hoàn tất, không thể thanh toán thêm.', { variant: 'warning' });
+      return;
+    }
+
+    if (bill.status === 'cancelled') {
+      enqueueSnackbar('Hóa đơn này đã bị hủy, không thể thanh toán.', { variant: 'error' });
+      return;
+    }
+
+    // Kiểm tra số tiền thanh toán không vượt quá số tiền cần trả
+    const totalAmount = calcAmount(bill.details);
+    if (amount > totalAmount) {
+      enqueueSnackbar(
+        `Số tiền thanh toán (${amount.toLocaleString()} VNĐ) không được vượt quá tổng tiền hóa đơn (${totalAmount.toLocaleString()} VNĐ).`,
+        { variant: 'error' }
+      );
+      return;
+    }
+
     setLoadingPaymentId(bill._id);
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -274,22 +317,33 @@ function ManageBills() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        showSnackbar('Không thể tạo phiên thanh toán Stripe.', 'error');
+        enqueueSnackbar('Không thể tạo phiên thanh toán Stripe.', { variant: 'error' });
       }
     } catch (error) {
-      showSnackbar('Có lỗi khi tạo PaymentIntent, vui lòng thử lại.', 'error');
+      enqueueSnackbar('Có lỗi khi tạo PaymentIntent, vui lòng thử lại.', { variant: 'error' });
     } finally {
       setLoadingPaymentId(null);
     }
   };
 
   const onPartialPaymentSuccess = () => {
-    showSnackbar('Thanh toán thành công!', 'success');
+    enqueueSnackbar('Thanh toán thành công!', { variant: 'success' });
     handleCloseDetail();
     fetchBills();
   };
 
   const handleStripePaymentSingle = async (bill) => {
+    // Kiểm tra trạng thái hóa đơn
+    if (bill.status === 'completed') {
+      enqueueSnackbar('Hóa đơn này đã được thanh toán hoàn tất, không thể thanh toán thêm.', { variant: 'warning' });
+      return;
+    }
+
+    if (bill.status === 'cancelled') {
+      enqueueSnackbar('Hóa đơn này đã bị hủy, không thể thanh toán.', { variant: 'error' });
+      return;
+    }
+
     setLoadingPaymentId(bill._id);
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -312,16 +366,33 @@ function ManageBills() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        showSnackbar('Không thể tạo phiên thanh toán Stripe.', 'error');
+        enqueueSnackbar('Không thể tạo phiên thanh toán Stripe.', { variant: 'error' });
       }
     } catch (error) {
-      showSnackbar('Có lỗi khi kết nối thanh toán. Vui lòng thử lại sau.', 'error');
+      enqueueSnackbar('Có lỗi khi kết nối thanh toán. Vui lòng thử lại sau.', { variant: 'error' });
     } finally {
       setLoadingPaymentId(null);
     }
   };
 
   const handleOpenMultiPaymentDialog = () => {
+    // Kiểm tra trạng thái của tất cả hóa đơn được chọn
+    const invalidBills = [];
+    selectedBills.forEach((id) => {
+      const bill = bills.find((b) => b._id === id);
+      if (bill.status === 'completed') {
+        invalidBills.push({ id, status: 'completed', message: 'đã được thanh toán hoàn tất' });
+      } else if (bill.status === 'cancelled') {
+        invalidBills.push({ id, status: 'cancelled', message: 'đã bị hủy' });
+      }
+    });
+
+    if (invalidBills.length > 0) {
+      const billMessages = invalidBills.map((b) => `${b.message}`).join(', ');
+      enqueueSnackbar(`Không thể thanh toán: ${billMessages}.`, { variant: 'error' });
+      return;
+    }
+
     const amounts = {};
     selectedBills.forEach((id) => {
       const bill = bills.find((b) => b._id === id);
@@ -338,6 +409,18 @@ function ManageBills() {
   };
 
   const handleMultiPaymentAmountChange = (billId, value) => {
+    const bill = bills.find((b) => b._id === billId);
+    const maxAmount = calcAmount(bill.details);
+    const numericValue = parseFormattedNumber(value);
+
+    if (numericValue > maxAmount) {
+      enqueueSnackbar(
+        `Số tiền thanh toán (${numericValue.toLocaleString()} VNĐ) không được vượt quá tổng tiền hóa đơn (${maxAmount.toLocaleString()} VNĐ).`,
+        { variant: 'error' }
+      );
+      return;
+    }
+
     setMultiPaymentAmounts((prev) => ({
       ...prev,
       [billId]: value
@@ -351,15 +434,53 @@ function ManageBills() {
       const successUrl = window.location.origin + '/success';
       const cancelUrl = window.location.origin + '/not-found';
       const billIds = selectedBills;
-      let amount = 0;
+
+      // Kiểm tra trạng thái của tất cả hóa đơn được chọn
+      const invalidBills = [];
       billIds.forEach((id) => {
-        amount += parseFormattedNumber(multiPaymentAmounts[id]) || 0;
+        const bill = bills.find((b) => b._id === id);
+        if (bill.status === 'completed') {
+          invalidBills.push({ id, status: 'completed', message: 'đã được thanh toán hoàn tất' });
+        } else if (bill.status === 'cancelled') {
+          invalidBills.push({ id, status: 'cancelled', message: 'đã bị hủy' });
+        }
       });
-      if (amount <= 0) {
-        showSnackbar('Tổng số tiền thanh toán không hợp lệ.', 'error');
+
+      if (invalidBills.length > 0) {
+        const billMessages = invalidBills.map((b) => `${b.message}`).join(', ');
+        enqueueSnackbar(`Không thể thanh toán: ${billMessages}.`, { variant: 'error' });
         setLoadingPaymentId(null);
         return;
       }
+
+      let amount = 0;
+      let totalAmount = 0;
+
+      // Kiểm tra số tiền thanh toán của từng hóa đơn
+      for (const id of billIds) {
+        const bill = bills.find((b) => b._id === id);
+        const billAmount = parseFormattedNumber(multiPaymentAmounts[id]) || 0;
+        const billTotal = calcAmount(bill.details);
+
+        if (billAmount > billTotal) {
+          enqueueSnackbar(
+            `Số tiền thanh toán cho hóa đơn ${bill.voucher_code || bill._id.slice(0, 6)} (${billAmount.toLocaleString()} VNĐ) vượt quá tổng tiền hóa đơn (${billTotal.toLocaleString()} VNĐ).`,
+            { variant: 'error' }
+          );
+          setLoadingPaymentId(null);
+          return;
+        }
+
+        amount += billAmount;
+        totalAmount += billTotal;
+      }
+
+      if (amount <= 0) {
+        enqueueSnackbar('Tổng số tiền thanh toán không hợp lệ.', { variant: 'error' });
+        setLoadingPaymentId(null);
+        return;
+      }
+
       const firstBill = bills.find((b) => b._id === billIds[0]);
       const paymentType = firstBill?.type?.toLowerCase() || 'import';
       const { data } = await axios.post(
@@ -376,10 +497,10 @@ function ManageBills() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        showSnackbar('Không thể tạo phiên thanh toán cho nhiều hóa đơn.', 'error');
+        enqueueSnackbar('Không thể tạo phiên thanh toán cho nhiều hóa đơn.', { variant: 'error' });
       }
     } catch (error) {
-      showSnackbar('Có lỗi khi kết nối thanh toán nhiều hóa đơn. Vui lòng thử lại sau.', 'error');
+      enqueueSnackbar('Có lỗi khi kết nối thanh toán nhiều hóa đơn. Vui lòng thử lại sau.', { variant: 'error' });
     } finally {
       setLoadingPaymentId(null);
     }
@@ -566,8 +687,23 @@ function ManageBills() {
             size="small"
             variant="contained"
             color="secondary"
-            disabled={selectedBills.length === 0 || loadingPaymentId !== null}
+            disabled={
+              selectedBills.length === 0 ||
+              loadingPaymentId !== null ||
+              selectedBills.some((id) => {
+                const bill = bills.find((b) => b._id === id);
+                return bill.status === 'completed' || bill.status === 'cancelled';
+              })
+            }
             onClick={handleOpenMultiPaymentDialog}
+            title={
+              selectedBills.some((id) => {
+                const bill = bills.find((b) => b._id === id);
+                return bill.status === 'completed' || bill.status === 'cancelled';
+              })
+                ? 'Một số hóa đơn đã được thanh toán hoàn tất hoặc bị hủy'
+                : ''
+            }
           >
             {loadingPaymentId === 'multi' ? 'Đang xử lý...' : `Thanh toán (${selectedBills.length}) hóa đơn`}
           </Button>
@@ -608,13 +744,36 @@ function ManageBills() {
               filteredBills.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((bill) => (
                 <TableRow key={bill._id}>
                   <TableCell padding="checkbox">
-                    <Checkbox checked={selectedBills.includes(bill._id)} onChange={() => handleSelectBill(bill._id)} />
+                    <Checkbox
+                      checked={selectedBills.includes(bill._id)}
+                      onChange={() => handleSelectBill(bill._id)}
+                      disabled={bill.status === 'completed' || bill.status === 'cancelled'}
+                      title={
+                        bill.status === 'completed'
+                          ? 'Hóa đơn đã được thanh toán hoàn tất'
+                          : bill.status === 'cancelled'
+                            ? 'Hóa đơn đã bị hủy'
+                            : ''
+                      }
+                    />
                   </TableCell>
                   <TableCell>{bill.type.slice(0, 3) || 'N/A'}</TableCell>
                   <TableCell>{bill.voucher_code ? bill.voucher_code.slice(0, 6) : bill._id.slice(0, 6)}</TableCell>
                   <TableCell>{bill.type || 'N/A'}</TableCell>
                   <TableCell>
-                    <Chip label={bill.status} color={getStatusColor(bill.status)} />
+                    <Chip
+                      label={
+                        bill.status === 'cancelled' ? 'Thanh toán thất bại' : bill.status === 'completed' ? 'Đã thanh toán' : bill.status
+                      }
+                      color={getStatusColor(bill.status)}
+                      title={
+                        bill.status === 'cancelled'
+                          ? 'Hóa đơn này đã bị hủy do thanh toán thất bại'
+                          : bill.status === 'completed'
+                            ? 'Hóa đơn này đã được thanh toán hoàn tất'
+                            : ''
+                      }
+                    />
                   </TableCell>
                   <TableCell>{getDisplayDate(bill)}</TableCell>
                   <TableCell
@@ -639,7 +798,14 @@ function ManageBills() {
                       color="primary"
                       sx={{ mr: 1 }}
                       onClick={() => handleOpenDetail(bill)}
-                      disabled={loadingPaymentId === bill._id}
+                      disabled={loadingPaymentId === bill._id || bill.status === 'completed' || bill.status === 'cancelled'}
+                      title={
+                        bill.status === 'completed'
+                          ? 'Hóa đơn đã được thanh toán hoàn tất'
+                          : bill.status === 'cancelled'
+                            ? 'Hóa đơn đã bị hủy'
+                            : ''
+                      }
                     >
                       Thanh toán 1 phần
                     </Button>
@@ -648,7 +814,14 @@ function ManageBills() {
                       variant="outlined"
                       color="secondary"
                       onClick={() => handleStripePaymentSingle(bill)}
-                      disabled={loadingPaymentId === bill._id}
+                      disabled={loadingPaymentId === bill._id || bill.status === 'completed' || bill.status === 'cancelled'}
+                      title={
+                        bill.status === 'completed'
+                          ? 'Hóa đơn đã được thanh toán hoàn tất'
+                          : bill.status === 'cancelled'
+                            ? 'Hóa đơn đã bị hủy'
+                            : ''
+                      }
                     >
                       Thanh toán toàn bộ
                     </Button>
