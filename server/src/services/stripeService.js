@@ -9,6 +9,7 @@ async function getBillTotalAmount(billId) {
   const bill = await Bill.findById(billId);
   return bill.details.reduce((sum, d) => sum + d.quantity * d.unit_price, 0);
 }
+
 // ==================
 // 1. Thanh toán 1 hóa đơn 1 lần (Checkout Session)
 async function createCheckoutSession({
@@ -53,7 +54,6 @@ async function createPaymentImport(billId, amount, successUrl, cancelUrl) {
   return createCheckoutSession({
     billId,
     amount,
-    currency: 'vnd',
     successUrl,
     cancelUrl,
     paymentType: 'import',
@@ -64,7 +64,6 @@ async function createPaymentExport(billId, amount, successUrl, cancelUrl) {
   return createCheckoutSession({
     billId,
     amount,
-    currency: 'vnd',
     successUrl,
     cancelUrl,
     paymentType: 'export',
@@ -117,7 +116,6 @@ async function createPaymentImportMulti(billIds, amount, successUrl, cancelUrl) 
   return createCheckoutSessionMulti({
     billIds,
     amount,
-    currency: 'vnd',
     successUrl,
     cancelUrl,
     paymentType: 'import',
@@ -128,7 +126,6 @@ async function createPaymentExportMulti(billIds, amount, successUrl, cancelUrl) 
   return createCheckoutSessionMulti({
     billIds,
     amount,
-    currency: 'vnd',
     successUrl,
     cancelUrl,
     paymentType: 'export',
@@ -151,127 +148,272 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
   });
   return paymentIntent.client_secret;
 }
+
+// ==================
+// WEBHOOK HANDLERS - Tách riêng từng function
+async function handleCheckoutSessionCompleted(session) {
+  console.log('Processing checkout.session.completed event');
+
+  try {
+    const billIdsStr = session?.metadata?.billIds || '';
+    const billIds = billIdsStr ? billIdsStr.split(',') : [];
+    const singleBillId = session?.metadata?.billId;
+
+    // Sửa: Xử lý amount đúng cách
+    let amountPaid = 0;
+    if (session.amount_total) {
+      amountPaid = session.amount_total / 100; // Convert từ cents sang VND
+    } else if (session.amount_subtotal) {
+      amountPaid = session.amount_subtotal / 100;
+    }
+
+    console.log('Webhook metadata:', {
+      billIds,
+      singleBillId,
+      amountPaid,
+      rawAmountTotal: session.amount_total,
+      rawAmountSubtotal: session.amount_subtotal,
+    });
+
+    if (billIds.length > 0) {
+      await handleMultiBillPayment(billIds, amountPaid);
+    } else if (singleBillId) {
+      await handleSingleBillPayment(singleBillId, amountPaid);
+    } else {
+      console.error('No bill IDs found in webhook metadata');
+    }
+  } catch (error) {
+    console.error('Error handling checkout.session.completed:', error);
+    throw error;
+  }
+}
+
+async function handleMultiBillPayment(billIds, totalAmountPaid) {
+  console.log(
+    `Processing multi-bill payment for ${billIds.length} bills, total: ${totalAmountPaid}`,
+  );
+
+  let remainingAmount = totalAmountPaid;
+
+  for (const billId of billIds) {
+    try {
+      const bill = await Bill.findById(billId);
+      if (!bill) {
+        console.error(`Bill ${billId} not found`);
+        continue;
+      }
+
+      const totalAmount = await getBillTotalAmount(billId);
+      const currentAmountPaid = bill.amountPaid || 0;
+      const amountToApply = Math.min(remainingAmount, totalAmount - currentAmountPaid);
+
+      if (amountToApply <= 0) {
+        console.log(`Bill ${billId} already fully paid or no remaining amount`);
+        continue;
+      }
+
+      const newAmountPaid = currentAmountPaid + amountToApply;
+      const newStatus =
+        newAmountPaid >= totalAmount ? BILL_STATUSES.COMPLETED : BILL_STATUSES.PARTIAL;
+
+      await Bill.findByIdAndUpdate(billId, {
+        amountPaid: newAmountPaid,
+        status: newStatus,
+      });
+
+      console.log(`Bill ${billId} updated: amountPaid=${newAmountPaid}, status=${newStatus}`);
+      remainingAmount -= amountToApply;
+
+      if (remainingAmount <= 0) break;
+    } catch (error) {
+      console.error(`Error processing bill ${billId}:`, error);
+    }
+  }
+}
+
+async function handleSingleBillPayment(billId, amountPaid) {
+  console.log(`Processing single bill payment for ${billId}, amount: ${amountPaid}`);
+
+  try {
+    const bill = await Bill.findById(billId);
+    if (!bill) {
+      console.error(`Bill ${billId} not found`);
+      return;
+    }
+
+    const totalAmount = await getBillTotalAmount(billId);
+    const currentAmountPaid = bill.amountPaid || 0;
+    const newAmountPaid = currentAmountPaid + amountPaid;
+    const newStatus =
+      newAmountPaid >= totalAmount ? BILL_STATUSES.COMPLETED : BILL_STATUSES.PARTIAL;
+
+    await Bill.findByIdAndUpdate(billId, {
+      amountPaid: newAmountPaid,
+      status: newStatus,
+    });
+
+    console.log(`Bill ${billId} updated: amountPaid=${newAmountPaid}, status=${newStatus}`);
+  } catch (error) {
+    console.error(`Error processing single bill ${billId}:`, error);
+    throw error;
+  }
+}
+
+async function handlePaymentIntentSucceeded(paymentIntent) {
+  console.log('Processing payment_intent.succeeded event');
+
+  try {
+    const billId = paymentIntent.metadata?.billId;
+    // Sửa: Convert từ cents sang VND
+    const amountPaid = (paymentIntent.amount_received || 0) / 100;
+
+    if (!billId) {
+      console.error('No billId found in payment intent metadata');
+      return;
+    }
+
+    console.log(`Processing payment intent for bill ${billId}, amount: ${amountPaid}`);
+
+    const bill = await Bill.findById(billId);
+    if (!bill) {
+      console.error(`Bill ${billId} not found`);
+      return;
+    }
+
+    const totalAmount = await getBillTotalAmount(billId);
+    const currentAmountPaid = bill.amountPaid || 0;
+    const newAmountPaid = currentAmountPaid + amountPaid;
+
+    let newStatus = BILL_STATUSES.PENDING;
+    if (newAmountPaid >= totalAmount) {
+      newStatus = BILL_STATUSES.COMPLETED;
+    } else if (newAmountPaid > 0) {
+      newStatus = BILL_STATUSES.PARTIAL;
+    }
+
+    await Bill.findByIdAndUpdate(billId, {
+      amountPaid: newAmountPaid,
+      status: newStatus,
+    });
+
+    console.log(
+      `Bill ${billId} updated via payment_intent.succeeded: amountPaid=${newAmountPaid}, status=${newStatus}`,
+    );
+  } catch (error) {
+    console.error('Error handling payment_intent.succeeded:', error);
+    throw error;
+  }
+}
+
+async function handlePaymentFailure(session, eventType) {
+  console.log(`Processing payment failure event: ${eventType}`);
+
+  try {
+    const billIdsStr = session?.metadata?.billIds || '';
+    const billIds = billIdsStr ? billIdsStr.split(',') : [];
+    const singleBillId = session?.metadata?.billId;
+
+    if (billIds.length > 0) {
+      // Xử lý nhiều hóa đơn
+      for (const billId of billIds) {
+        await updateBillStatus(billId, BILL_STATUSES.CANCELED);
+        console.log(`Bill ${billId} CANCELED due to payment failure (multi)`);
+      }
+    } else if (singleBillId) {
+      // Xử lý một hóa đơn
+      await updateBillStatus(singleBillId, BILL_STATUSES.CANCELED);
+      console.log(`Bill ${singleBillId} CANCELED due to payment failure (single)`);
+    }
+  } catch (error) {
+    console.error('Error handling payment failure:', error);
+    throw error;
+  }
+}
+
+// ==================
+// MAIN WEBHOOK PROCESSOR
 const processWebhookEvent = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      req.body, // raw body
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET,
-    );
+    // Verify webhook signature
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    console.log(`Received webhook event: ${event.type}`);
+
+    // Thêm logging chi tiết
+    console.log('Webhook event details:', {
+      eventId: event.id,
+      eventType: event.type,
+      eventData: event.data?.object,
+      metadata: event.data?.object?.metadata,
+      amountTotal: event.data?.object?.amount_total,
+      amountSubtotal: event.data?.object?.amount_subtotal,
+      amountReceived: event.data?.object?.amount_received,
+    });
   } catch (err) {
-    console.error('Webhook signature verification failed.', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
+    console.error('Webhook signature verification failed:', err.message);
 
-  const session = event.data?.object;
-  const eventType = event.type;
-
-  try {
-    if (eventType === 'checkout.session.completed') {
-      const billIdsStr = session?.metadata?.billIds || '';
-      const billIds = billIdsStr ? billIdsStr.split(',') : [];
-      const singleBillId = session?.metadata?.billId;
-
-      const amountPaid = session.amount_total || session.amount_subtotal || 0;
-
-      if (billIds.length > 0) {
-        // Nhiều hóa đơn
-        for (const billId of billIds) {
-          const totalAmount = await getBillTotalAmount(billId);
-          if (eventType === 'checkout.session.completed' && billIds.length > 0) {
-            const amountPaidTotal = session.amount_total;
-            let remainingAmount = amountPaidTotal;
-
-            for (const billId of billIds) {
-              const bill = await Bill.findById(billId);
-              const totalAmount = await getBillTotalAmount(billId);
-              const amountToApply = Math.min(remainingAmount, totalAmount - bill.amountPaid);
-
-              const newAmountPaid = bill.amountPaid + amountToApply;
-              const newStatus =
-                newAmountPaid >= totalAmount ? BILL_STATUSES.COMPLETED : BILL_STATUSES.PARTIAL;
-
-              await Bill.findByIdAndUpdate(billId, {
-                amountPaid: newAmountPaid,
-                status: newStatus,
-              });
-              remainingAmount -= amountToApply;
-
-              if (remainingAmount <= 0) break;
-            }
-          }
-          console.log(`Bill ${billId} updated via checkout.session.completed multi`);
-        }
-      } else if (singleBillId) {
-        // Một hóa đơn
-        const totalAmount = await getBillTotalAmount(singleBillId);
-        if (eventType === 'payment_intent.succeeded') {
-          const paymentIntent = event.data.object;
-          const billId = paymentIntent.metadata.billId;
-          const amountPaidThisTime = paymentIntent.amount_received;
-
-          const bill = await Bill.findById(billId);
-          const newAmountPaid = bill.amountPaid + amountPaidThisTime;
-          const totalAmount = await getBillTotalAmount(billId);
-
-          let newStatus = bill.status;
-          if (newAmountPaid >= totalAmount) {
-            newStatus = BILL_STATUSES.COMPLETED;
-          } else if (newAmountPaid > 0) {
-            newStatus = BILL_STATUSES.PARTIAL;
-          }
-
-          await Bill.findByIdAndUpdate(billId, { amountPaid: newAmountPaid, status: newStatus });
-        }
-        console.log(`Bill ${singleBillId} updated via checkout.session.completed single`);
-      }
-    } else if (eventType === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object;
-      const billId = paymentIntent.metadata.billId;
-      const amountPaid = paymentIntent.amount_received || 0;
-
-      if (billId) {
-        const totalAmount = await getBillTotalAmount(billId);
-        if (amountPaid >= totalAmount) {
-          await updateBillStatus(billId, BILL_STATUSES.COMPLETED);
-          console.log(`Bill ${billId} updated COMPLETED via payment_intent.succeeded`);
-        } else if (amountPaid > 0) {
-          await updateBillStatus(billId, BILL_STATUSES.PARTIAL);
-          console.log(`Bill ${billId} updated PARTIAL via payment_intent.succeeded`);
+    // Trong development, có thể bypass signature verification để test
+    if (process.env.NODE_ENV === 'development' && !sig) {
+      console.log('Development mode: Bypassing signature verification for testing');
+      try {
+        // Parse JSON body manually
+        const body = req.body;
+        if (typeof body === 'string') {
+          event = JSON.parse(body);
         } else {
-          await updateBillStatus(billId, BILL_STATUSES.PENDING);
-          console.log(`Bill ${billId} remains PENDING via payment_intent.succeeded`);
+          event = body;
         }
-      }
-    } else if (
-      eventType === 'checkout.session.expired' ||
-      eventType === 'checkout.session.async_payment_failed' ||
-      eventType === 'payment_intent.payment_failed'
-    ) {
-      const billIdsStr = session?.metadata?.billIds || '';
-      const billIds = billIdsStr ? billIdsStr.split(',') : [];
-      const singleBillId = session?.metadata?.billId;
-
-      if (billIds.length > 0) {
-        for (const billId of billIds) {
-          await updateBillStatus(billId, BILL_STATUSES.CANCELED);
-          console.log(`Bill ${billId} CANCELED due to payment failure (multi)`);
-        }
-      } else if (singleBillId) {
-        await updateBillStatus(singleBillId, BILL_STATUSES.CANCELED);
-        console.log(`Bill ${singleBillId} CANCELED due to payment failure (single)`);
+        console.log('Development mode: Parsed webhook event manually');
+      } catch (parseErr) {
+        console.error('Failed to parse webhook body:', parseErr);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
       }
     } else {
-      console.log(`Unhandled event type ${eventType}`);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
     }
-  } catch (error) {
-    console.error('Error updating bill status:', error);
   }
 
-  res.json({ received: true });
+  try {
+    const eventType = event.type;
+    const eventData = event.data?.object;
+
+    console.log(`Processing webhook event: ${eventType}`, {
+      eventId: event.id,
+      eventType,
+      metadata: eventData?.metadata,
+    });
+
+    switch (eventType) {
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(eventData);
+        break;
+
+      case 'payment_intent.succeeded':
+        await handlePaymentIntentSucceeded(eventData);
+        break;
+
+      case 'checkout.session.expired':
+      case 'checkout.session.async_payment_failed':
+      case 'payment_intent.payment_failed':
+        await handlePaymentFailure(eventData, eventType);
+        break;
+
+      default:
+        console.log(`Unhandled event type: ${eventType}`);
+    }
+
+    console.log(`Webhook event ${eventType} processed successfully`);
+    res.json({ received: true, eventType });
+  } catch (error) {
+    console.error('Error processing webhook event:', error);
+    res.status(500).json({
+      error: 'Webhook processing failed',
+      message: error.message,
+      eventType: event?.type,
+    });
+  }
 };
 
 module.exports = {
