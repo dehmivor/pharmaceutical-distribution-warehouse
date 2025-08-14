@@ -1761,7 +1761,128 @@ export default {
   // Common
   common: {
     na: 'N/A',
-    currency: 'VND'
+    currency: 'VND',
+    // Contract Management
+    contractManagement: 'Quản Lý Hợp Đồng',
+    manageContractList: 'Quản lý danh sách hợp đồng và trạng thái',
+    addContract: 'Thêm Hợp Đồng',
+    addContractSuccess: 'Thêm hợp đồng thành công!',
+    updateContractSuccess: 'Cập nhật hợp đồng thành công!',
+    deleteContractSuccess: 'Xóa hợp đồng thành công!',
+    deleteContract: 'Xóa Hợp Đồng',
+    confirmAction: 'Đã xác nhận',
+    cancel: 'Hủy',
+    cancelContract: 'Hủy Hợp Đồng',
+    errorOccurred: 'Đã xảy ra lỗi',
+    annex: 'Phụ lục',
+    annexActionSuccess: 'Thao tác phụ lục hoàn tất thành công!',
+    // Contract Types
+    economicContract: 'Kinh tế',
+    principalContract: 'Nguyên tắc',
+    // Partner Types
+    partnerType: 'Loại đối tác',
+    supplierLabel: 'Nhà cung cấp',
+    retailerLabel: 'Nhà bán lẻ',
+    partner: 'Đối tác',
+    // Status
+    status: 'Trạng thái',
+    // Actions
+    actions: 'Thao tác',
+    viewDetails: 'Xem chi tiết',
+    edit: 'Chỉnh sửa',
+    draftAction: 'Chuyển về nháp',
+    reject: 'Từ chối',
+    approveAnnex: 'Duyệt phụ lục',
+    // Table Headers
+    contractCode: 'Mã hợp đồng',
+    contractType: 'Loại hợp đồng',
+    createdBy: 'Người tạo',
+    partner: 'Đối tác',
+    // Pagination
+    all: 'Tất cả',
+    // Loading
+    loading: 'Đang tải...',
+    // Medicine
+    medicine: 'Thuốc',
+    selectMedicine: 'Chọn thuốc',
+    quantity: 'Số lượng',
+    orderQuantity: 'Số lượng đặt',
+    medicineLabel: 'Thuốc',
+    selectMedicinePlaceholder: 'Chọn thuốc',
+    // Actions
+    select: 'Chọn',
+    selectPartnerType: 'Chọn loại đối tác'
+  },
+
+  // Representative Manager Export Orders Approval
+  representativeManagerExportOrdersApproval: {
+    title: 'Phê Duyệt Đơn Hàng Xuất',
+    filters: {
+      title: 'Bộ Lọc Tìm Kiếm',
+      search: 'Tìm kiếm',
+      searchPlaceholder: 'Order ID, Mã hợp đồng...',
+      status: 'Trạng thái',
+      allStatus: 'Tất cả',
+      contractType: 'Loại hợp đồng',
+      allContractTypes: 'Tất cả',
+      economic: 'Kinh tế',
+      principal: 'Nguyên tắc',
+      createdBy: 'Người tạo',
+      allUsers: 'Tất cả',
+      refresh: 'Làm mới',
+      clearFilters: 'Xóa bộ lọc'
+    },
+    table: {
+      title: 'Danh Sách Export Orders',
+      totalOrders: 'Tổng cộng orders',
+      contract: 'Hợp đồng',
+      createdBy: 'Người tạo',
+      status: 'Trạng thái',
+      actions: 'Thao tác',
+      noOrders: 'Không có đơn hàng xuất để xử lý.',
+      loadingOrders: 'Đang tải đơn hàng...'
+    },
+    actions: {
+      approve: 'Phê duyệt',
+      reject: 'Từ chối',
+      viewDetails: 'Xem chi tiết',
+      approving: 'Đang phê duyệt...',
+      rejecting: 'Đang từ chối...'
+    },
+    dialogs: {
+      approve: {
+        title: 'Phê Duyệt Đơn Hàng Xuất',
+        message: 'Bạn có chắc chắn muốn phê duyệt đơn hàng xuất này?',
+        cancel: 'Hủy'
+      },
+      reject: {
+        title: 'Từ Chối Đơn Hàng Xuất',
+        message: 'Bạn có chắc chắn muốn từ chối đơn hàng xuất này?',
+        cancel: 'Hủy'
+      },
+      details: {
+        title: 'Chi Tiết Export Order',
+        basicInfo: 'Thông tin cơ bản',
+        contract: 'Hợp đồng',
+        createdBy: 'Người tạo',
+        status: 'Trạng thái',
+        warehouseManager: 'Quản lý kho',
+        orderOverview: 'Tổng quan đơn hàng',
+        medicineTypes: 'Số lượng loại thuốc',
+        totalAmount: 'Tổng tiền',
+        medicineList: 'Danh sách thuốc',
+        medicine: 'Thuốc',
+        quantity: 'Số lượng',
+        unitPrice: 'Đơn giá',
+        total: 'Thành tiền',
+        grandTotal: 'Tổng cộng',
+        close: 'Đóng'
+      }
+    },
+    messages: {
+      orderApproved: 'Đơn hàng đã được phê duyệt!',
+      orderRejected: 'Đơn hàng đã bị từ chối!'
+    }
   },
 
   // Status Change Dialog

@@ -613,17 +613,17 @@ const EconomicContractEditDialog = ({
                   >
                     <Autocomplete
                       options={[
-                        { value: "Supplier", label: "Nhà cung cấp" },
-                        { value: "Retailer", label: "Nhà bán lẻ" },
+                        { value: "Supplier", label: trans.common.supplierLabel },
+                        { value: "Retailer", label: trans.common.retailerLabel },
                       ]}
                       getOptionLabel={(option) => option.label || ""}
                       value={
                         formData.partner_type
                           ? [
-                              { value: "Supplier", label: "Nhà cung cấp" },
-                              { value: "Retailer", label: "Nhà bán lẻ" },
-                            ].find((opt) => opt.value === formData.partner_type)
-                          : { value: "Supplier", label: "Nhà cung cấp" }
+                                                          { value: "Supplier", label: trans.common.supplierLabel },
+                            { value: "Retailer", label: trans.common.retailerLabel },
+                          ].find((opt) => opt.value === formData.partner_type)
+                        : { value: "Supplier", label: trans.common.supplierLabel }
                       }
                       onChange={(event, newValue) => {
                         if (!isViewMode) {
@@ -639,7 +639,7 @@ const EconomicContractEditDialog = ({
                         <TextField
                           {...params}
                           variant="standard"
-                          placeholder="Chọn loại đối tác"
+                          placeholder={trans.common.selectPartnerType}
                           InputProps={{
                             ...params.InputProps,
                             disableUnderline: true,
@@ -662,7 +662,7 @@ const EconomicContractEditDialog = ({
                       <RetailerIcon sx={{ fontSize: 20, color: "text.secondary" }} />
                     )}
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                      Đối tác
+                      {trans.common.partner}
                     </Typography>
                   </Box>
                   <Box
@@ -800,7 +800,7 @@ const EconomicContractEditDialog = ({
                       <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
                         <InventoryIcon sx={{ fontSize: 20, color: "text.secondary" }} />
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                          Thuốc
+                          {trans.common.medicineLabel}
                         </Typography>
                       </Box>
                       <Box
@@ -836,7 +836,7 @@ const EconomicContractEditDialog = ({
                             <TextField
                               {...params}
                               variant="standard"
-                              placeholder="Chọn thuốc"
+                              placeholder={trans.common.selectMedicinePlaceholder}
                               error={
                                 !isViewMode &&
                                 !!(
@@ -875,7 +875,7 @@ const EconomicContractEditDialog = ({
                   {isEconomic && (
                     <Grid item xs={12} sm={6} md={3}>
                       <InfoField
-                        label="Số lượng đặt"
+                        label={trans.common.orderQuantity}
                         value={item.quantity}
                         onChange={(e) => !isViewMode && handleItemChange(index, "quantity", e.target.value)}
                         disabled={isViewMode}
@@ -1098,7 +1098,7 @@ const EconomicContractEditDialog = ({
                                       <TextField
                                         {...params}
                                         variant="standard"
-                                        placeholder="Chọn thuốc"
+                                        placeholder={trans.common.selectMedicinePlaceholder}
                                         InputProps={{
                                           ...params.InputProps,
                                           disableUnderline: true,

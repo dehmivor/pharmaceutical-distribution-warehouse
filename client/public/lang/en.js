@@ -1446,6 +1446,16 @@ export default {
     description: 'Description',
     note: 'Note',
     additionalInfo: 'Additional Information',
+    // Medicine
+    medicine: 'Medicine',
+    selectMedicine: 'Select Medicine',
+    quantity: 'Quantity',
+    orderQuantity: 'Order Quantity',
+    medicineLabel: 'Medicine',
+    selectMedicinePlaceholder: 'Select Medicine',
+    // Actions
+    select: 'Select',
+    selectPartnerType: 'Select Partner Type',
     form: {
       notSelected: 'Not selected',
       requiredFieldsNote: 'Note: Fields marked with * are required.',
@@ -1763,7 +1773,128 @@ export default {
   // Common
   common: {
     na: 'N/A',
-    currency: 'VND'
+    currency: 'VND',
+    // Contract Management
+    contractManagement: 'Contract Management',
+    manageContractList: 'Manage contract list and status',
+    addContract: 'Add Contract',
+    addContractSuccess: 'Contract added successfully!',
+    updateContractSuccess: 'Contract updated successfully!',
+    deleteContractSuccess: 'Contract deleted successfully!',
+    deleteContract: 'Delete Contract',
+    confirmAction: 'Confirmed',
+    cancel: 'Cancel',
+    cancelContract: 'Cancel Contract',
+    errorOccurred: 'An error occurred',
+    annex: 'Annex',
+    annexActionSuccess: 'Annex action completed successfully!',
+    // Contract Types
+    economicContract: 'Economic',
+    principalContract: 'Principal',
+    // Partner Types
+    partnerType: 'Partner Type',
+    supplierLabel: 'Supplier',
+    retailerLabel: 'Retailer',
+    partner: 'Partner',
+    // Status
+    status: 'Status',
+    // Actions
+    actions: 'Actions',
+    viewDetails: 'View Details',
+    edit: 'Edit',
+    draftAction: 'Move to Draft',
+    reject: 'Reject',
+    approveAnnex: 'Approve Annex',
+    // Table Headers
+    contractCode: 'Contract Code',
+    contractType: 'Contract Type',
+    createdBy: 'Created By',
+    partner: 'Partner',
+    // Pagination
+    all: 'All',
+    // Loading
+    loading: 'Loading...',
+    // Medicine
+    medicine: 'Medicine',
+    selectMedicine: 'Select Medicine',
+    quantity: 'Quantity',
+    orderQuantity: 'Order Quantity',
+    medicineLabel: 'Medicine',
+    selectMedicinePlaceholder: 'Select Medicine',
+    // Actions
+    select: 'Select',
+    selectPartnerType: 'Select Partner Type'
+  },
+
+  // Representative Manager Export Orders Approval
+  representativeManagerExportOrdersApproval: {
+    title: 'Approve Export Orders',
+    filters: {
+      title: 'Search Filters',
+      search: 'Search',
+      searchPlaceholder: 'Order ID, Contract code...',
+      status: 'Status',
+      allStatus: 'All',
+      contractType: 'Contract Type',
+      allContractTypes: 'All',
+      economic: 'Economic',
+      principal: 'Principal',
+      createdBy: 'Created By',
+      allUsers: 'All',
+      refresh: 'Refresh',
+      clearFilters: 'Clear Filters'
+    },
+    table: {
+      title: 'Export Orders List',
+      totalOrders: 'Total orders',
+      contract: 'Contract',
+      createdBy: 'Created By',
+      status: 'Status',
+      actions: 'Actions',
+      noOrders: 'No export orders to process.',
+      loadingOrders: 'Loading orders...'
+    },
+    actions: {
+      approve: 'Approve',
+      reject: 'Reject',
+      viewDetails: 'View Details',
+      approving: 'Approving...',
+      rejecting: 'Rejecting...'
+    },
+    dialogs: {
+      approve: {
+        title: 'Approve Export Order',
+        message: 'Are you sure you want to approve this export order?',
+        cancel: 'Cancel'
+      },
+      reject: {
+        title: 'Reject Export Order',
+        message: 'Are you sure you want to reject this export order?',
+        cancel: 'Cancel'
+      },
+      details: {
+        title: 'Export Order Details',
+        basicInfo: 'Basic Information',
+        contract: 'Contract',
+        createdBy: 'Created By',
+        status: 'Status',
+        warehouseManager: 'Warehouse Manager',
+        orderOverview: 'Order Overview',
+        medicineTypes: 'Medicine Types',
+        totalAmount: 'Total Amount',
+        medicineList: 'Medicine List',
+        medicine: 'Medicine',
+        quantity: 'Quantity',
+        unitPrice: 'Unit Price',
+        total: 'Total',
+        grandTotal: 'Grand Total',
+        close: 'Close'
+      }
+    },
+    messages: {
+      orderApproved: 'Order approved!',
+      orderRejected: 'Order rejected!'
+    }
   },
 
   // Status Change Dialog
