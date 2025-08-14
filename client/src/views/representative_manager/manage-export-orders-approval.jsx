@@ -30,13 +30,14 @@ import {
   TablePagination
 } from '@mui/material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 import {
   Search as SearchIcon,
   FilterList as FilterIcon
 } from '@mui/icons-material';
 
-// Đảm bảo API_BASE_URL không lặp /api, và mọi endpoint đều có /api/export-orders
+// Ensure API_BASE_URL doesn't duplicate /api, and all endpoints have /api/export-orders
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -51,6 +52,7 @@ const axiosInstance = axios.create({
 });
 
 function ManageExportOrdersApproval() {
+  const trans = useTrans();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -190,10 +192,10 @@ function ManageExportOrdersApproval() {
     try {
       await axios.put(
         `${API_BASE_URL}/api/export-orders/${orderToApprove._id}/approve`,
-        {}, // Không gửi status nữa, chỉ gửi body rỗng
+        {}, // No longer sending status, only sending empty body
         { headers: getAuthHeaders() }
       );
-      setSuccess('Order approved!');
+              setSuccess(trans.representativeManagerExportOrdersApproval.messages.orderApproved);
       fetchOrders();
       handleCloseApproveDialog();
 
@@ -222,7 +224,7 @@ function ManageExportOrdersApproval() {
         { reason: '' }, // Always send an empty reason for rejection
         { headers: getAuthHeaders() }
       );
-      setSuccess('Order rejected!');
+              setSuccess(trans.representativeManagerExportOrdersApproval.messages.orderRejected);
       fetchOrders();
       handleCloseRejectDialog();
 
@@ -246,7 +248,7 @@ function ManageExportOrdersApproval() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" sx={{ mb: 3 }}>
-        Approve Export Orders
+        {trans.representativeManagerExportOrdersApproval.title}
       </Typography>
       
       {/* Filters */}
@@ -255,19 +257,19 @@ function ManageExportOrdersApproval() {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
             <FilterIcon sx={{ color: 'primary.main', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-              Bộ Lọc Tìm Kiếm
+              {trans.representativeManagerExportOrdersApproval.filters.title}
             </Typography>
           </Box>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={6} md={3}>
               <TextField
                 fullWidth
-                label="Tìm kiếm"
+                label={trans.representativeManagerExportOrdersApproval.filters.search}
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 variant="outlined"
                 size="medium"
-                placeholder="Order ID, Contract code..."
+                placeholder={trans.representativeManagerExportOrdersApproval.filters.searchPlaceholder}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -279,13 +281,13 @@ function ManageExportOrdersApproval() {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium">
-                <InputLabel>Trạng thái</InputLabel>
+                <InputLabel>{trans.representativeManagerExportOrdersApproval.filters.status}</InputLabel>
                 <Select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                  label="Trạng thái"
+                  label={trans.representativeManagerExportOrdersApproval.filters.status}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.representativeManagerExportOrdersApproval.filters.allStatus}</MenuItem>
                   {filterOptions?.status?.map((status) => (
                     <MenuItem key={status} value={status}>
                       {status}
@@ -296,16 +298,16 @@ function ManageExportOrdersApproval() {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium">
-                <InputLabel>Loại hợp đồng</InputLabel>
+                <InputLabel>{trans.representativeManagerExportOrdersApproval.filters.contractType}</InputLabel>
                 <Select
                   value={filters.contract_type}
                   onChange={(e) => handleFilterChange('contract_type', e.target.value)}
-                  label="Loại hợp đồng"
+                  label={trans.representativeManagerExportOrdersApproval.filters.contractType}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.representativeManagerExportOrdersApproval.filters.allContractTypes}</MenuItem>
                   {filterOptions?.contract_type?.map((type) => (
                     <MenuItem key={type} value={type}>
-                      {type === 'economic' ? 'Kinh tế' : type === 'principal' ? 'Nguyên tắc' : type}
+                      {type === 'economic' ? trans.representativeManagerExportOrdersApproval.filters.economic : type === 'principal' ? trans.representativeManagerExportOrdersApproval.filters.principal : type}
                     </MenuItem>
                   ))}
                 </Select>
@@ -313,13 +315,13 @@ function ManageExportOrdersApproval() {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium">
-                <InputLabel>Người tạo</InputLabel>
+                <InputLabel>{trans.representativeManagerExportOrdersApproval.filters.createdBy}</InputLabel>
                 <Select
                   value={filters.created_by}
                   onChange={(e) => handleFilterChange('created_by', e.target.value)}
-                  label="Người tạo"
+                  label={trans.representativeManagerExportOrdersApproval.filters.createdBy}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.representativeManagerExportOrdersApproval.filters.allUsers}</MenuItem>
                   {filterOptions?.created_by?.map((user) => (
                     <MenuItem key={user.email} value={user.email}>
                       {user.email}
@@ -335,14 +337,14 @@ function ManageExportOrdersApproval() {
                 disabled={loading}
                 sx={{ px: 3, py: 1.2, borderRadius: 2 }}
               >
-                Làm mới
+                {trans.representativeManagerExportOrdersApproval.filters.refresh}
               </Button>
               <Button
                 variant="outlined"
                 onClick={clearFilters}
                 sx={{ px: 3, py: 1.2, borderRadius: 2 }}
               >
-                Xóa bộ lọc
+                {trans.representativeManagerExportOrdersApproval.filters.clearFilters}
               </Button>
             </Grid>
           </Grid>
@@ -359,20 +361,20 @@ function ManageExportOrdersApproval() {
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-            Danh Sách Export Orders
+            {trans.representativeManagerExportOrdersApproval.table.title}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Tổng cộng {totalCount} orders
+            {trans.representativeManagerExportOrdersApproval.table.totalOrders} {totalCount}
           </Typography>
         </Box>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600 }}>Contract</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Created By</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerExportOrdersApproval.table.contract}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerExportOrdersApproval.table.createdBy}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerExportOrdersApproval.table.status}</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>{trans.representativeManagerExportOrdersApproval.table.actions}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -392,15 +394,15 @@ function ManageExportOrdersApproval() {
                       {order.status === 'draft' && (
                         <>
                           <Button variant="contained" color="success" onClick={() => handleOpenApproveDialog(order)}>
-                            Approve
+                            {trans.representativeManagerExportOrdersApproval.actions.approve}
                           </Button>
                           <Button variant="contained" color="error" onClick={() => handleOpenRejectDialog(order)}>
-                            Reject
+                            {trans.representativeManagerExportOrdersApproval.actions.reject}
                           </Button>
                         </>
                       )}
                       <Button variant="outlined" color="info" onClick={() => handleOpenDetailsDialog(order)}>
-                        Xem chi tiết
+                        {trans.representativeManagerExportOrdersApproval.actions.viewDetails}
                       </Button>
                     </Box>
                   </TableCell>
@@ -409,7 +411,7 @@ function ManageExportOrdersApproval() {
               {orders.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} align="center">
-                    <Typography color="text.secondary">{loading ? 'Loading orders...' : 'No export orders to process.'}</Typography>
+                    <Typography color="text.secondary">{loading ? trans.representativeManagerExportOrdersApproval.table.loadingOrders : trans.representativeManagerExportOrdersApproval.table.noOrders}</Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -424,41 +426,40 @@ function ManageExportOrdersApproval() {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Số hàng mỗi trang:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
+
           sx={{
             borderTop: '1px solid #e0e0e0',
             bgcolor: 'grey.50'
           }}
         />
       </Card>
-      {/* Dialog chi tiết order */}
+      {/* Order Details Dialog */}
       <Dialog open={approveDialogOpen} onClose={handleCloseApproveDialog}>
-        <DialogTitle>Approve Export Order</DialogTitle>
+        <DialogTitle>{trans.representativeManagerExportOrdersApproval.dialogs.approve.title}</DialogTitle>
         <DialogContent>
-          <Typography>Bạn có chắc chắn muốn duyệt đơn xuất này?</Typography>
+          <Typography>{trans.representativeManagerExportOrdersApproval.dialogs.approve.message}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseApproveDialog}>Cancel</Button>
+          <Button onClick={handleCloseApproveDialog}>{trans.representativeManagerExportOrdersApproval.dialogs.approve.cancel}</Button>
           <Button onClick={handleApprove} color="success" variant="contained" disabled={approveLoading}>
-            {approveLoading ? 'Approving...' : 'Approve'}
+            {approveLoading ? trans.representativeManagerExportOrdersApproval.actions.approving : trans.representativeManagerExportOrdersApproval.actions.approve}
           </Button>
         </DialogActions>
       </Dialog>
       <Dialog open={rejectDialogOpen} onClose={handleCloseRejectDialog}>
-        <DialogTitle>Reject Export Order</DialogTitle>
+        <DialogTitle>{trans.representativeManagerExportOrdersApproval.dialogs.reject.title}</DialogTitle>
         <DialogContent>
-          <Typography>Bạn có chắc chắn muốn từ chối đơn xuất này?</Typography>
+          <Typography>{trans.representativeManagerExportOrdersApproval.dialogs.reject.message}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseRejectDialog}>Cancel</Button>
+          <Button onClick={handleCloseRejectDialog}>{trans.representativeManagerExportOrdersApproval.dialogs.reject.cancel}</Button>
           <Button onClick={handleReject} color="error" variant="contained" disabled={rejectLoading}>
-            {rejectLoading ? 'Rejecting...' : 'Reject'}
+            {rejectLoading ? trans.representativeManagerExportOrdersApproval.actions.rejecting : trans.representativeManagerExportOrdersApproval.actions.reject}
           </Button>
         </DialogActions>
       </Dialog>
       <Dialog open={detailsDialogOpen} onClose={handleCloseDetailsDialog} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600, fontSize: 22, pb: 1 }}>Chi tiết Export Order</DialogTitle>
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600, fontSize: 22, pb: 1 }}>{trans.representativeManagerExportOrdersApproval.dialogs.details.title}</DialogTitle>
         <DialogContent>
           {orderToView && (
             <Box sx={{ mt: 1 }}>
@@ -466,60 +467,60 @@ function ManageExportOrdersApproval() {
                 <Grid item xs={12} md={6}>
                   <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
                     <Typography variant="subtitle1" fontWeight={600}>
-                      Thông tin cơ bản
+                      {trans.representativeManagerExportOrdersApproval.dialogs.details.basicInfo}
                     </Typography>
                     <Typography variant="body2">
-                      <b>Contract:</b> {orderToView.contract_id?.contract_code || 'N/A'}
+                      <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.contract}:</b> {orderToView.contract_id?.contract_code || trans.common.na}
                     </Typography>
                     <Typography variant="body2">
-                      <b>Created By:</b> {orderToView.created_by?.email || 'N/A'}
+                      <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.createdBy}:</b> {orderToView.created_by?.email || trans.common.na}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                       <Typography variant="body2" component="span">
-                        <b>Status:</b>
+                        <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.status}:</b>
                       </Typography>
                       <Chip label={orderToView.status} color="info" size="small" sx={{ ml: 1 }} />
                     </Box>
                     <Typography variant="body2">
-                      <strong>Warehouse Manager:</strong> {orderToView.warehouse_manager_id?.email || '-'}
+                      <strong>{trans.representativeManagerExportOrdersApproval.dialogs.details.warehouseManager}:</strong> {orderToView.warehouse_manager_id?.email || '-'}
                     </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
                     <Typography variant="subtitle1" fontWeight={600}>
-                      Tổng quan đơn hàng
+                      {trans.representativeManagerExportOrdersApproval.dialogs.details.orderOverview}
                     </Typography>
                     <Typography variant="body2">
-                      <b>Số lượng loại thuốc:</b> {orderToView.details?.length || 0}
+                      <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.medicineTypes}:</b> {orderToView.details?.length || 0}
                     </Typography>
                     <Typography variant="body2">
-                      <b>Tổng tiền:</b>{' '}
+                      <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.totalAmount}:</b>{' '}
                       {orderToView.details
-                        ? orderToView.details.reduce((sum, d) => sum + d.expected_quantity * d.unit_price, 0).toLocaleString() + ' VND'
-                        : '0 VND'}
+                        ? orderToView.details.reduce((sum, d) => sum + d.expected_quantity * d.unit_price, 0).toLocaleString() + ' ' + trans.common.currency
+                        : '0 ' + trans.common.currency}
                     </Typography>
                   </Paper>
                 </Grid>
               </Grid>
               <Typography variant="h6" sx={{ mt: 2, mb: 1, fontWeight: 600 }}>
-                Danh sách thuốc
+                {trans.representativeManagerExportOrdersApproval.dialogs.details.medicineList}
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                       <TableCell>
-                        <b>Medicine</b>
+                        <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.medicine}</b>
                       </TableCell>
                       <TableCell align="right">
-                        <b>Quantity</b>
+                        <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.quantity}</b>
                       </TableCell>
                       <TableCell align="right">
-                        <b>Unit Price</b>
+                        <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.unitPrice}</b>
                       </TableCell>
                       <TableCell align="right">
-                        <b>Total</b>
+                        <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.total}</b>
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -532,15 +533,15 @@ function ManageExportOrdersApproval() {
                         <TableCell align="right">{(d.expected_quantity * d.unit_price).toLocaleString()}</TableCell>
                       </TableRow>
                     ))}
-                    {/* Tổng tiền cuối bảng */}
+                    {/* Grand Total Row */}
                     <TableRow>
                       <TableCell colSpan={3} align="right">
-                        <b>Tổng cộng</b>
+                        <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.grandTotal}</b>
                       </TableCell>
                       <TableCell align="right">
                         {orderToView.details
-                          ? orderToView.details.reduce((sum, d) => sum + d.expected_quantity * d.unit_price, 0).toLocaleString() + ' VND'
-                          : '0 VND'}
+                          ? orderToView.details.reduce((sum, d) => sum + d.expected_quantity * d.unit_price, 0).toLocaleString() + ' ' + trans.common.currency
+                          : '0 ' + trans.common.currency}
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -551,7 +552,7 @@ function ManageExportOrdersApproval() {
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'flex-end', pr: 3, pb: 2 }}>
           <Button onClick={handleCloseDetailsDialog} variant="contained" color="primary" sx={{ minWidth: 120 }}>
-            Đóng
+            {trans.representativeManagerExportOrdersApproval.dialogs.details.close}
           </Button>
         </DialogActions>
       </Dialog>

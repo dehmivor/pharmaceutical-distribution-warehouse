@@ -1220,6 +1220,115 @@ export default {
     downloadExcel: 'Download Excel',
     uploadFile: 'Upload File',
     reset: 'Reset',
+    // Export/Import Order Management
+    exportOrders: 'Export Orders',
+    importOrders: 'Import Orders',
+    createExportOrder: 'Create Export Order',
+    createImportOrder: 'Create Import Order',
+    editExportOrder: 'Edit Export Order',
+    editImportOrder: 'Edit Import Order',
+    createNewOrder: 'Create New Order',
+    manageImportOrders: 'Manage Import Orders',
+    refresh: 'Refresh',
+    contract: 'Contract',
+    contractType: 'Contract Type',
+    status: 'Status',
+    createdBy: 'Created By',
+    warehouseManager: 'Warehouse Manager',
+    actions: 'Actions',
+    loading: 'Loading...',
+    noExportOrdersFound: 'No export orders found',
+    noImportOrdersFound: 'No import orders found',
+    selectContractType: 'Select Contract Type',
+    selectContract: 'Select Contract',
+    economicContract: 'Economic Contract',
+    principalContract: 'Principal Contract',
+    orderDetails: 'Order Details',
+    addMedicine: 'Add Medicine',
+    addMedicineQuantityOnly: 'Add Medicine (Quantity Only)',
+    medicine: 'Medicine',
+    quantity: 'Quantity',
+    unitPrice: 'Unit Price',
+    total: 'Total',
+    cancel: 'Cancel',
+    create: 'Create',
+    createOrder: 'Create Order',
+    creating: 'Creating...',
+    saving: 'Saving...',
+    update: 'Update',
+    edit: 'Edit',
+    delete: 'Delete',
+    viewDetails: 'View Details',
+    close: 'Close',
+    // Filter labels
+    searchFilter: 'Search and Filter',
+    contractCode: 'Contract Code',
+    contractCodePlaceholder: 'Search by contract code...',
+    allContractTypes: 'All contract types',
+    allStatuses: 'All statuses',
+    allSuppliers: 'All suppliers',
+    allUsers: 'All users',
+    supplier: 'Supplier',
+    clearFilters: 'Clear Filters',
+    // Status labels
+    draft: 'Draft',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    delivered: 'Delivered',
+    checked: 'Checked',
+    arranged: 'Arranged',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+    returned: 'Returned',
+    // Form messages
+    pleaseSelectContractType: 'Please select a Contract Type first',
+    pleaseSelectContract: 'Please select a Contract to load available medicines',
+    pleaseAddMedicines: 'Please add medicines to your order',
+    principalContractQuantityEditable: 'Principal contract allows quantity editing',
+    economicContractAutoFilled: 'Economic contract: All medicines will be auto-filled from contract',
+    editMedicinesOnly: 'You can only edit medicines in this order',
+    economicContractWarning: '⚠️ Economic Contract - Only allows 1 order/contract (except when old order is cancelled)',
+    principalContractQuantityEditableNote: 'Principal Contract - Quantity can be edited',
+    editMedicinesOnlyNote: 'Edit medicines only',
+    quantityEditableNote: 'Editable quantities',
+    // Validation messages
+    pleaseSelectContractTypeAndContract: 'Please select contract type and specific contract!',
+    duplicateMedicineError: 'Cannot select duplicate medicines in the same order!',
+    pleaseFillAllFields: 'Please fill all fields, quantity and unit price must be greater than 0!',
+    quantityMinError: 'Quantity must be at least {min}',
+    quantityMaxError: 'Quantity cannot exceed {max}',
+    // Stock information
+    stockInformation: '📊 Stock Information',
+    checkingStock: 'Checking stock...',
+    stockCheckError: 'Stock check error: {error}',
+    sufficientStock: 'Sufficient stock - Can create export order',
+    insufficientStock: 'Insufficient stock - Cannot create export order',
+    stockSummary: 'Stock Summary:',
+    totalMedicines: 'Total: {count} medicines',
+    sufficientMedicines: 'Sufficient: {count} medicines',
+    insufficientMedicines: 'Insufficient: {count} medicines',
+    required: 'Required: {count}',
+    available: 'Available: {count}',
+    missing: 'Missing: {count}',
+    insufficientStockButton: '❌ Insufficient Stock',
+    checkingStockButton: 'Checking Stock...',
+    // Order details
+    basicInformation: 'Basic Information',
+    orderDetailsTitle: 'Order Details',
+    totalAmount: 'Total Amount: {amount} VND',
+    recheckStock: 'Recheck',
+    editingRejectedExportOrder: 'Editing rejected export order. It will be reverted to draft after saving.',
+    existingExportOrderError: 'An export order already exists for this contract with status "{status}". Only create a new one when the old order is "cancelled".',
+    quantityMinForMedicine: 'Export quantity for "{medicine}" must be at least {min}',
+    quantityMaxForMedicine: 'Export quantity for "{medicine}" cannot exceed {max}',
+    fromContractEconomicCannotEdit: '(From contract - Economic - Cannot edit)',
+    fromContractCannotEdit: '(From contract - Cannot edit)',
+    sufficient: 'Sufficient',
+    insufficient: 'Insufficient',
+    confirmDeleteOrder: 'Are you sure you want to delete this order?',
+    orderDeletedSuccess: 'Order deleted successfully',
+    failedToDeleteOrder: 'Failed to delete order: {error}',
+    fromContract: '(From contract)',
     // Light Options
     lightNone: 'None',
     lightLow: 'Low',
@@ -1337,6 +1446,16 @@ export default {
     description: 'Description',
     note: 'Note',
     additionalInfo: 'Additional Information',
+    // Medicine
+    medicine: 'Medicine',
+    selectMedicine: 'Select Medicine',
+    quantity: 'Quantity',
+    orderQuantity: 'Order Quantity',
+    medicineLabel: 'Medicine',
+    selectMedicinePlaceholder: 'Select Medicine',
+    // Actions
+    select: 'Select',
+    selectPartnerType: 'Select Partner Type',
     form: {
       notSelected: 'Not selected',
       requiredFieldsNote: 'Note: Fields marked with * are required.',
@@ -1579,5 +1698,363 @@ export default {
     emailRequired: 'Email is required',
     emailAddress: 'Email Address',
     emailOTPNote: 'Email includes OTP code for account verification',
+  },
+
+  // Debt Management
+  debt: {
+    title: 'Debt Management',
+    description: 'Manage bills created from export orders',
+    importBills: 'Import Bills',
+    exportBills: 'Export Bills',
+    filters: {
+      quarter: 'Quarter',
+      allQuarters: 'All Quarters',
+      medicineCode: 'Medicine Code',
+      allMedicineCodes: 'All Medicine Codes',
+      voucherCode: 'Voucher Code',
+      status: 'Status',
+      allStatuses: 'All Statuses'
+    },
+    quarters: {
+      quarter1: 'Q1',
+      quarter2: 'Q2', 
+      quarter3: 'Q3',
+      quarter4: 'Q4'
+    },
+    table: {
+      supplier: 'Supplier',
+      customer: 'Customer',
+      voucherCode: 'Voucher Code',
+      medicineCode: 'Medicine Code',
+      totalAmount: 'Total Amount (VND)',
+      paymentDate: 'Payment Date',
+      status: 'Status',
+      actions: 'Actions'
+    },
+    actions: {
+      delete: 'Delete',
+      viewDetails: 'View Details',
+      close: 'Close'
+    },
+    details: {
+      title: 'Debt Details',
+      voucherCode: 'Voucher Code:',
+      orderType: 'Order Type:',
+      paymentDate: 'Payment Date:',
+      status: 'Status:',
+      supplierInfo: 'Supplier Information:',
+      customerInfo: 'Customer Information:',
+      importOrderDetails: 'Medicine details in import order:',
+      exportOrderDetails: 'Medicine details in export order:',
+      debtDetails: 'Medicine details in debt voucher:',
+      totalAmount: 'Total Amount:'
+    },
+    tableHeaders: {
+      medicineCode: 'Medicine Code',
+      medicineName: 'Medicine Name',
+      quantity: 'Quantity',
+      unitPrice: 'Unit Price (VND)',
+      totalPrice: 'Total Price (VND)'
+    },
+    messages: {
+      loading: 'Loading data...',
+      noData: 'No matching data',
+      deleteSuccess: 'Bill deleted successfully!',
+      deleteError: 'Failed to delete bill!',
+      deleteErrorWithDetails: 'Error deleting bill: ',
+      noMedicineDetails: 'No medicine details available'
+    },
+    confirmDelete: {
+      title: 'Confirm Delete Bill',
+      content: 'Are you sure you want to delete this bill?'
+    }
+  },
+
+  // Common
+  common: {
+    na: 'N/A',
+    currency: 'VND',
+    // Contract Management
+    contractManagement: 'Contract Management',
+    manageContractList: 'Manage contract list and status',
+    addContract: 'Add Contract',
+    addContractSuccess: 'Contract added successfully!',
+    updateContractSuccess: 'Contract updated successfully!',
+    deleteContractSuccess: 'Contract deleted successfully!',
+    deleteContract: 'Delete Contract',
+    confirmAction: 'Confirmed',
+    cancel: 'Cancel',
+    cancelContract: 'Cancel Contract',
+    errorOccurred: 'An error occurred',
+    annex: 'Annex',
+    annexActionSuccess: 'Annex action completed successfully!',
+    // Contract Types
+    economicContract: 'Economic',
+    principalContract: 'Principal',
+    // Partner Types
+    partnerType: 'Partner Type',
+    supplierLabel: 'Supplier',
+    retailerLabel: 'Retailer',
+    partner: 'Partner',
+    // Status
+    status: 'Status',
+    // Actions
+    actions: 'Actions',
+    viewDetails: 'View Details',
+    edit: 'Edit',
+    draftAction: 'Move to Draft',
+    reject: 'Reject',
+    approveAnnex: 'Approve Annex',
+    // Table Headers
+    contractCode: 'Contract Code',
+    contractType: 'Contract Type',
+    createdBy: 'Created By',
+    partner: 'Partner',
+    // Pagination
+    all: 'All',
+    // Loading
+    loading: 'Loading...',
+    // Medicine
+    medicine: 'Medicine',
+    selectMedicine: 'Select Medicine',
+    quantity: 'Quantity',
+    orderQuantity: 'Order Quantity',
+    medicineLabel: 'Medicine',
+    selectMedicinePlaceholder: 'Select Medicine',
+    // Actions
+    select: 'Select',
+    selectPartnerType: 'Select Partner Type'
+  },
+
+  // Representative Manager Export Orders Approval
+  representativeManagerExportOrdersApproval: {
+    title: 'Approve Export Orders',
+    filters: {
+      title: 'Search Filters',
+      search: 'Search',
+      searchPlaceholder: 'Order ID, Contract code...',
+      status: 'Status',
+      allStatus: 'All',
+      contractType: 'Contract Type',
+      allContractTypes: 'All',
+      economic: 'Economic',
+      principal: 'Principal',
+      createdBy: 'Created By',
+      allUsers: 'All',
+      refresh: 'Refresh',
+      clearFilters: 'Clear Filters'
+    },
+    table: {
+      title: 'Export Orders List',
+      totalOrders: 'Total orders',
+      contract: 'Contract',
+      createdBy: 'Created By',
+      status: 'Status',
+      actions: 'Actions',
+      noOrders: 'No export orders to process.',
+      loadingOrders: 'Loading orders...'
+    },
+    actions: {
+      approve: 'Approve',
+      reject: 'Reject',
+      viewDetails: 'View Details',
+      approving: 'Approving...',
+      rejecting: 'Rejecting...'
+    },
+    dialogs: {
+      approve: {
+        title: 'Approve Export Order',
+        message: 'Are you sure you want to approve this export order?',
+        cancel: 'Cancel'
+      },
+      reject: {
+        title: 'Reject Export Order',
+        message: 'Are you sure you want to reject this export order?',
+        cancel: 'Cancel'
+      },
+      details: {
+        title: 'Export Order Details',
+        basicInfo: 'Basic Information',
+        contract: 'Contract',
+        createdBy: 'Created By',
+        status: 'Status',
+        warehouseManager: 'Warehouse Manager',
+        orderOverview: 'Order Overview',
+        medicineTypes: 'Medicine Types',
+        totalAmount: 'Total Amount',
+        medicineList: 'Medicine List',
+        medicine: 'Medicine',
+        quantity: 'Quantity',
+        unitPrice: 'Unit Price',
+        total: 'Total',
+        grandTotal: 'Grand Total',
+        close: 'Close'
+      }
+    },
+    messages: {
+      orderApproved: 'Order approved!',
+      orderRejected: 'Order rejected!'
+    }
+  },
+
+  // Status Change Dialog
+  statusChangeDialog: {
+    approve: {
+      title: 'Approve Order',
+      message: 'Are you sure you want to approve this import order?',
+      confirmText: 'Approve'
+    },
+    reject: {
+      title: 'Reject Order',
+      message: 'Are you sure you want to reject this import order?',
+      confirmText: 'Reject'
+    },
+    cancel: 'Cancel',
+    loading: 'Processing...',
+    orderInfo: 'Order Information',
+    orderId: 'Order ID',
+    currentStatus: 'Current Status',
+    newStatus: 'New Status',
+    userRole: 'User Role'
+  },
+
+  // Representative Manager Import Orders
+  representativeManagerImportOrders: {
+    title: 'Import Orders Management',
+    description: 'Approve or reject draft import orders',
+    filters: {
+      title: 'Search Filters',
+      search: 'Search',
+      searchPlaceholder: 'Order ID, Supplier name...',
+      status: 'Status',
+      allStatus: 'All',
+      contractType: 'Contract Type',
+      allContractTypes: 'All',
+      economic: 'Economic',
+      principal: 'Principal',
+      createdBy: 'Created By',
+      allUsers: 'All',
+      refresh: 'Refresh',
+      clearFilters: 'Clear Filters'
+    },
+    table: {
+      title: 'Import Orders List',
+      totalOrders: 'Total orders',
+      orderId: 'Order ID',
+      supplier: 'Supplier',
+      status: 'Status',
+      createdBy: 'Created By',
+      createdDate: 'Created Date',
+      totalAmount: 'Total Amount',
+      actions: 'Actions',
+      noOrders: 'No orders found',
+      loadingOrders: 'Loading orders...',
+      locked: 'LOCKED'
+    },
+    actions: {
+      approve: 'Approve',
+      reject: 'Reject',
+      viewDetails: 'View Details'
+    },
+    details: {
+      title: 'Import Order Details',
+      basicInfo: 'Basic Information',
+      orderId: 'Order ID',
+      contract: 'Contract',
+      contractType: 'Contract Type',
+      status: 'Status',
+      totalAmount: 'Total Amount',
+      activeAnnexes: 'Active Annexes',
+      importOrderItems: 'Import Order Items',
+      activeContractItems: 'Active Contract Items (Including Annexes)',
+      medicine: 'Medicine',
+      quantity: 'Quantity',
+      unitPrice: 'Unit Price',
+      total: 'Total',
+      source: 'Source',
+      contractSource: 'CONTRACT',
+      annexSource: 'ANNEX',
+      noContractMedicines: 'No active contract medicines found',
+      loadingContractMedicines: 'Loading contract medicines...',
+      activeAnnexesInfo: 'Active Annexes Information',
+      annex: 'Annex',
+      signed: 'Signed',
+      added: 'Added',
+      removed: 'Removed',
+      updated: 'Updated',
+      medicines: 'medicines',
+      prices: 'prices',
+      close: 'Close'
+    },
+    messages: {
+      statusUpdateSuccess: 'Order status updated to',
+      failedToFetch: 'Failed to fetch orders',
+      requestTimeout: 'Request timeout. Please try again.',
+      networkError: 'Network error. Please check your connection.',
+      failedToUpdateStatus: 'Failed to update status'
+    }
+  },
+
+  // Contract Add Dialog
+  contractAdd: {
+    title: 'Create New Contract',
+    subtitle: 'Create new contract with partner',
+    generalInfo: 'General Information',
+    contractCode: 'Contract Code',
+    contractType: 'Contract Type',
+    partnerType: 'Partner Type',
+    partner: 'Partner',
+    validityPeriod: 'Validity Period',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    medicineList: 'Medicine List',
+    addMedicine: 'Add Medicine',
+    medicine: 'Medicine',
+    quantity: 'Quantity',
+    unitPrice: 'Unit Price (VND)',
+    annexes: 'Annexes (Optional)',
+    addAnnex: 'Add Annex',
+    annexCode: 'Annex Code',
+    description: 'Description',
+    signedDate: 'Signed Date',
+    updateEndDate: 'Update End Date',
+    addNewMedicine: 'Add New Medicine',
+    removeMedicine: 'Remove Medicine',
+    updateMedicinePrice: 'Update Medicine Price',
+    updateContractEndDate: 'Update Contract End Date',
+    annexDescription: 'Annexes allow you to add/remove medicines, update prices or contract terms after the contract is activated.',
+    selectPartner: 'Select Partner',
+    supplier: 'Supplier',
+    retailer: 'Retailer',
+    selectSupplier: 'Select Supplier',
+    selectRetailer: 'Select Retailer',
+    selectMedicine: 'Select Medicine',
+    enterQuantity: 'Enter quantity',
+    enterUnitPrice: 'Enter unit price',
+    enterAnnexCode: 'e.g., PL001',
+    enterDescription: 'Detailed description of this annex...',
+    selectSignedDate: 'Select signed date',
+    selectNewEndDate: 'Select new end date',
+    addMedicineToAnnex: 'Add Medicine',
+    removeMedicineFromAnnex: 'Add medicine to remove',
+    updateMedicinePriceInAnnex: 'Add medicine to update price',
+    newPrice: 'New Price',
+    cancel: 'Cancel',
+    createContract: 'Create Contract',
+    creating: 'Creating...',
+    validation: {
+      partnerRequired: 'Please select a partner',
+      medicineRequired: 'Please select a medicine',
+      quantityRequiredEconomic: 'Quantity is required for economic contracts',
+      quantityInteger: 'Quantity must be a positive integer',
+      quantityNotAllowedPrincipal: 'Quantity is not allowed for principal contracts',
+      unitPriceRequired: 'Unit price is required',
+      unitPriceNonNegative: 'Unit price must be a non-negative number',
+      annexCodeRequired: 'Annex code is required',
+      signedDateRequired: 'Signed date is required'
+    },
+    actions: {
+      delete: 'Delete'
+    }
   }
 };

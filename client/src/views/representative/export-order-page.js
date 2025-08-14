@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, MoreVert as MoreVertIcon, Edit as EditIcon, Delete as DeleteIcon, Visibility as VisibilityIcon, Refresh as RefreshIcon, FilterList as FilterListIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => {
@@ -16,6 +17,7 @@ const getAuthHeaders = () => {
 };
 
 function ExportOrderPage() {
+  const trans = useTrans();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -342,7 +344,7 @@ function ExportOrderPage() {
     
     // Thông báo nếu đang sửa rejected order
     if (order.status === 'rejected') {
-      setSuccess('Đang sửa export order bị từ chối. Order sẽ tự động chuyển về trạng thái draft sau khi lưu.');
+      setSuccess(trans.common.editingRejectedExportOrder);
     }
     
     // Auto-check stock khi mở edit form
@@ -480,7 +482,7 @@ function ExportOrderPage() {
     
     // Validate: phải chọn contract_type và contract_id
     if (!formData.contract_type || !formData.contract_id) {
-      setError('Vui lòng chọn loại hợp đồng và hợp đồng cụ thể!');
+      setError(trans.common.pleaseSelectContractTypeAndContract);
       setFormLoading(false);
       return;
     }
@@ -504,7 +506,7 @@ function ExportOrderPage() {
     const medicineIds = formData.details.map((d) => d.medicine_id);
     const hasDuplicate = new Set(medicineIds).size !== medicineIds.length;
     if (hasDuplicate) {
-      setError('Không được chọn trùng thuốc trong cùng một phiếu xuất!');
+      setError(trans.common.duplicateMedicineError);
       setFormLoading(false);
       return;
     }
@@ -513,7 +515,7 @@ function ExportOrderPage() {
     for (const detail of formData.details) {
       
       if (!detail.medicine_id || detail.expected_quantity <= 0 || detail.unit_price <= 0) {
-        setError('Vui lòng nhập đầy đủ, số lượng và đơn giá phải lớn hơn 0!');
+        setError(trans.common.pleaseFillAllFields);
         setFormLoading(false);
         return;
       }
@@ -533,7 +535,11 @@ function ExportOrderPage() {
         // Validate: số lượng nhập không vượt quá max_quantity hoặc 1000
         const maxQ = contractItem?.max_quantity || 1000;
         if (detail.expected_quantity > maxQ) {
-          setError(`Số lượng xuất cho thuốc "${contractItem?.medicine_id?.medicine_name || ''}" không được vượt quá ${maxQ}`);
+          setError(
+            trans.common.quantityMaxForMedicine
+              .replace('{medicine}', contractItem?.medicine_id?.medicine_name || '')
+              .replace('{max}', maxQ)
+          );
           setFormLoading(false);
           return;
         }
@@ -558,8 +564,8 @@ function ExportOrderPage() {
     const stockCheck = await checkStockAvailability(formData.details);
     
     if (!stockCheck.success) {
-      const errorMsg = stockCheck.error || stockValidationError || 'Lỗi kiểm tra tồn kho';
-      setError(`Lỗi kiểm tra tồn kho: ${errorMsg}`);
+      const errorMsg = stockCheck.error || stockValidationError || '';
+      setError(trans.common.stockCheckError.replace('{error}', errorMsg));
       setFormLoading(false);
       return;
     }
@@ -573,7 +579,7 @@ function ExportOrderPage() {
         
         setError(`Không đủ tồn kho cho các thuốc sau:\n${errorMessage}`);
       } else {
-        setError('Không đủ tồn kho cho một số thuốc trong đơn hàng');
+        setError(trans.common.insufficientStock);
       }
       setFormLoading(false);
       return;
@@ -609,7 +615,7 @@ function ExportOrderPage() {
       let successMessage = '';
       if (selectedOrder) {
         if (selectedOrder.status === 'rejected') {
-          successMessage = 'Export order đã được sửa và chuyển về trạng thái draft thành công!';
+          successMessage = trans.common.editingRejectedExportOrder;
         } else {
           successMessage = 'Export order updated successfully';
         }
@@ -652,7 +658,7 @@ function ExportOrderPage() {
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Export Orders</Typography>
+        <Typography variant="h4">{trans.common.exportOrders}</Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant="outlined"
@@ -660,10 +666,10 @@ function ExportOrderPage() {
             onClick={handleRefresh}
             disabled={loading}
           >
-            Refresh
+            {trans.common.refresh}
           </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenForm(true)}>
-            Create Export Order
+            {trans.common.createExportOrder}
           </Button>
         </Box>
       </Box>
@@ -673,14 +679,14 @@ function ExportOrderPage() {
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <FilterListIcon sx={{ color: 'primary.main', mr: 1 }} />
-            <Typography variant="h6" sx={{ color: 'primary.main' }}>Bộ Lọc Tìm Kiếm</Typography>
+            <Typography variant="h6" sx={{ color: 'primary.main' }}>{trans.common.searchFilter}</Typography>
           </Box>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6} md={2}>
                 <TextField
                   fullWidth
-                  label="Mã hợp đồng"
-                  placeholder="Tìm kiếm theo mã hợp đồng..."
+                  label={trans.common.contractCode}
+                  placeholder={trans.common.contractCodePlaceholder}
                   value={filters.contract_code || ''}
                   onChange={(e) => handleFilterChange('contract_code', e.target.value)}
                   InputProps={{
@@ -694,45 +700,45 @@ function ExportOrderPage() {
               </Grid>
               <Grid item xs={12} sm={6} md={2}>
                 <FormControl fullWidth>
-                  <InputLabel>Loại hợp đồng</InputLabel>
+                  <InputLabel>{trans.common.contractType}</InputLabel>
                   <Select
                     value={filters.contract_type}
                     onChange={(e) => handleFilterChange('contract_type', e.target.value)}
-                    label="Loại hợp đồng"
+                    label={trans.common.contractType}
                   >
-                    <MenuItem value="">Tất cả loại hợp đồng</MenuItem>
-                    <MenuItem value="economic">Economic Contract</MenuItem>
-                    <MenuItem value="principal">Principal Contract</MenuItem>
+                    <MenuItem value="">{trans.common.allContractTypes}</MenuItem>
+                    <MenuItem value="economic">{trans.common.economicContract}</MenuItem>
+                    <MenuItem value="principal">{trans.common.principalContract}</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6} md={2}>
                 <FormControl fullWidth>
-                  <InputLabel>Trạng thái</InputLabel>
+                  <InputLabel>{trans.common.status}</InputLabel>
                   <Select
                     value={filters.status}
                     onChange={(e) => handleFilterChange('status', e.target.value)}
-                    label="Trạng thái"
+                    label={trans.common.status}
                   >
-                    <MenuItem value="">Tất cả trạng thái</MenuItem>
-                    <MenuItem value="draft">Draft</MenuItem>
-                    <MenuItem value="approved">Approved</MenuItem>
-                    <MenuItem value="rejected">Rejected</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                    <MenuItem value="returned">Returned</MenuItem>
-                    <MenuItem value="cancelled">Cancelled</MenuItem>
+                    <MenuItem value="">{trans.common.allStatuses}</MenuItem>
+                    <MenuItem value="draft">{trans.common.draft}</MenuItem>
+                    <MenuItem value="approved">{trans.common.approved}</MenuItem>
+                    <MenuItem value="rejected">{trans.common.rejected}</MenuItem>
+                    <MenuItem value="completed">{trans.common.completed}</MenuItem>
+                    <MenuItem value="returned">{trans.common.returned}</MenuItem>
+                    <MenuItem value="cancelled">{trans.common.cancelled}</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
               <Grid item xs={12} sm={6} md={3}>
                 <FormControl fullWidth>
-                  <InputLabel>Người tạo</InputLabel>
+                  <InputLabel>{trans.common.createdBy}</InputLabel>
                   <Select
                     value={filters.created_by}
                     onChange={(e) => handleFilterChange('created_by', e.target.value)}
-                    label="Người tạo"
+                    label={trans.common.createdBy}
                   >
-                    <MenuItem value="">Tất cả</MenuItem>
+                    <MenuItem value="">{trans.common.allUsers}</MenuItem>
                     {userEmails.length > 0 && (
                       <MenuItem disabled>
                         <Typography variant="caption" color="text.secondary">
@@ -755,7 +761,7 @@ function ExportOrderPage() {
                     onClick={clearFilters}
                     fullWidth
                   >
-                    Xóa bộ lọc
+                    {trans.common.clearFilters}
                   </Button>
                 </Box>
               </Grid>
@@ -766,25 +772,25 @@ function ExportOrderPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Contract</TableCell>
-              <TableCell>Contract Type</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Created By</TableCell>
-              <TableCell>Warehouse Manager</TableCell>
-              <TableCell align="center">Actions</TableCell>
+              <TableCell>{trans.common.contract}</TableCell>
+              <TableCell>{trans.common.contractType}</TableCell>
+              <TableCell>{trans.common.status}</TableCell>
+              <TableCell>{trans.common.createdBy}</TableCell>
+              <TableCell>{trans.common.warehouseManager}</TableCell>
+              <TableCell align="center">{trans.common.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                  <Typography>Loading...</Typography>
+                  <Typography>{trans.common.loading}</Typography>
                 </TableCell>
               </TableRow>
             ) : paginatedOrders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
-                  <Typography color="text.secondary">No export orders found</Typography>
+                  <Typography color="text.secondary">{trans.common.noExportOrdersFound}</Typography>
                 </TableCell>
               </TableRow>
             ) : (
@@ -793,7 +799,7 @@ function ExportOrderPage() {
                   <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
                   <TableCell>
                     <Chip 
-                      label={order.contract_id?.contract_type === 'principal' ? 'Principal' : 'Economic'} 
+                      label={order.contract_id?.contract_type === 'principal' ? trans.common.principalContract : trans.common.economicContract} 
                       color={order.contract_id?.contract_type === 'principal' ? 'primary' : 'secondary'} 
                       size="small" 
                       variant="outlined"
@@ -828,18 +834,18 @@ function ExportOrderPage() {
       </TableContainer>
             <Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
         <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>
-          {selectedOrder ? 'Edit Export Order' : 'Create Export Order'}
+          {selectedOrder ? trans.common.editExportOrder : trans.common.createExportOrder}
           {selectedOrder ? (
             <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontWeight: 400 }}>
-              You can only edit medicines in this order
+              {trans.common.editMedicinesOnly}
             </Typography>
           ) : formData.contract_type === 'principal' ? (
             <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontWeight: 400 }}>
-              Principal Contract - Quantity can be edited
+              {trans.common.principalContractQuantityEditableNote}
             </Typography>
           ) : formData.contract_type === 'economic' && (
             <Typography variant="body2" sx={{ mt: 1, color: 'warning.main', fontWeight: 400 }}>
-              ⚠️ Economic Contract - Chỉ cho phép 1 order/contract (trừ khi order cũ bị cancelled)
+              {trans.common.economicContractWarning}
             </Typography>
           )}
         </DialogTitle>
@@ -849,33 +855,33 @@ function ExportOrderPage() {
             <Grid container alignItems="center" spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth>
-                  <InputLabel>Contract Type</InputLabel>
+                  <InputLabel>{trans.common.contractType}</InputLabel>
                   <Select
                     name="contract_type"
                     value={formData.contract_type}
                     onChange={handleFormChange}
-                    label="Contract Type"
+                    label={trans.common.contractType}
                     required
                     disabled={!!selectedOrder}
                   >
-                    <MenuItem value="">Select Contract Type</MenuItem>
-                    <MenuItem value="economic">Economic Contract</MenuItem>
-                    <MenuItem value="principal">Principal Contract</MenuItem>
+                    <MenuItem value="">{trans.common.selectContractType}</MenuItem>
+                    <MenuItem value="economic">{trans.common.economicContract}</MenuItem>
+                    <MenuItem value="principal">{trans.common.principalContract}</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth>
-                  <InputLabel>Contract</InputLabel>
+                  <InputLabel>{trans.common.contract}</InputLabel>
                   <Select
                     name="contract_id"
                     value={formData.contract_id}
                     onChange={handleFormChange}
-                    label="Contract"
+                    label={trans.common.contract}
                     required
                     disabled={!formData.contract_type || !!selectedOrder}
                   >
-                    <MenuItem value="">Select Contract</MenuItem>
+                    <MenuItem value="">{trans.common.selectContract}</MenuItem>
                     {contracts.filter(contract => {
                       if (!formData.contract_type) return true;
                       return contract.contract_type === formData.contract_type;
@@ -889,14 +895,14 @@ function ExportOrderPage() {
               </Grid>
               <Grid item xs={12} md={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-start', md: 'center' } }}>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Order Details
+                  {trans.common.orderDetails}
                   {selectedOrder ? (
                     <Typography variant="caption" sx={{ display: 'block', color: 'warning.main', fontWeight: 400 }}>
-                      (Edit medicines only)
+                      ({trans.common.editMedicinesOnlyNote})
                     </Typography>
                   ) : formData.contract_type === 'principal' && (
                     <Typography variant="caption" sx={{ display: 'block', color: 'primary.main', fontWeight: 400 }}>
-                      (Editable quantities)
+                      ({trans.common.quantityEditableNote})
                     </Typography>
                   )}
                 </Typography>
@@ -908,16 +914,16 @@ function ExportOrderPage() {
                 <Grid item xs={12}>
                   <Alert severity="info" sx={{ mb: 2 }}>
                     {selectedOrder 
-                      ? "You can only edit medicines in this order"
+                      ? trans.common.editMedicinesOnly
                       : !formData.contract_type 
-                        ? "Please select a Contract Type first" 
+                        ? trans.common.pleaseSelectContractType
                         : !formData.contract_id 
-                          ? "Please select a Contract to load available medicines"
+                          ? trans.common.pleaseSelectContract
                           : formData.contract_type === 'principal'
-                            ? "Please add medicines to your order (Principal contract allows quantity editing)"
+                            ? trans.common.principalContractQuantityEditable
                             : formData.contract_type === 'economic'
-                              ? "Economic contract: All medicines will be auto-filled from contract"
-                              : "Please add medicines to your order"
+                              ? trans.common.economicContractAutoFilled
+                              : trans.common.pleaseAddMedicines
                     }
                   </Alert>
                 </Grid>
@@ -928,11 +934,11 @@ function ExportOrderPage() {
                     <Grid container spacing={2} alignItems="center" justifyContent="center" wrap="nowrap">
                       <Grid item sx={{ flex: '1 1 0', minWidth: 220, maxWidth: 260 }}>
                         <FormControl fullWidth>
-                          <InputLabel>Medicine</InputLabel>
+                          <InputLabel>{trans.common.medicine}</InputLabel>
                           <Select
                             value={detail.medicine_id}
                             onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
-                            label="Medicine"
+                            label={trans.common.medicine}
                             required
                             disabled={formData.contract_type === 'economic'}
                             sx={{ minWidth: 200, maxWidth: 240 }}
@@ -950,7 +956,7 @@ function ExportOrderPage() {
                       <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
                         <TextField
                           fullWidth
-                          label="Quantity"
+                          label={trans.common.quantity}
                           type="number"
                           value={detail.expected_quantity}
                           onChange={(e) => {
@@ -979,7 +985,7 @@ function ExportOrderPage() {
                       <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
                         <TextField
                           fullWidth
-                          label="Unit Price"
+                          label={trans.common.unitPrice}
                           type="text"
                           value={detail.unit_price}
                           onChange={(e) => {
@@ -994,9 +1000,9 @@ function ExportOrderPage() {
                           disabled={!detail.medicine_id || formData.contract_type === 'economic'}
                           helperText={(() => {
                             if (formData.contract_type === 'economic') {
-                              return '(Từ hợp đồng - Economic - Không thể sửa)';
+                              return trans.common.fromContractEconomicCannotEdit;
                             } else {
-                              return '(Từ hợp đồng - Không thể sửa)';
+                              return trans.common.fromContractCannotEdit;
                             }
                           })()}
                           sx={{ minWidth: 120, maxWidth: 140 }}
@@ -1005,7 +1011,7 @@ function ExportOrderPage() {
                       <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
                         <TextField
                           fullWidth
-                          label="Total"
+                          label={trans.common.total}
                           value={(detail.expected_quantity * detail.unit_price).toLocaleString()}
                           InputProps={{ readOnly: true }}
                           sx={{ minWidth: 120, maxWidth: 140 }}
@@ -1048,14 +1054,14 @@ function ExportOrderPage() {
             {formData.details.length > 0 && (
               <Box sx={{ mt: 3 }}>
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
-                  📊 Thông Tin Tồn Kho
+                  {trans.common.stockInformation}
                 </Typography>
                 
                 {isCheckingStock && (
                   <Alert severity="info" sx={{ mb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Box sx={{ mr: 1 }}>⏳</Box>
-                      Đang kiểm tra tồn kho...
+                                          <Box sx={{ mr: 1 }}>⏳</Box>
+                    {trans.common.checkingStock}
                     </Box>
                   </Alert>
                 )}
@@ -1064,7 +1070,7 @@ function ExportOrderPage() {
                   <Alert severity="error" sx={{ mb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       <Box sx={{ mr: 1 }}>⚠️</Box>
-                      Lỗi kiểm tra tồn kho: {stockValidationError}
+                      {trans.common.stockCheckError.replace('{error}', stockValidationError)}
                     </Box>
                   </Alert>
                 )}
@@ -1081,8 +1087,8 @@ function ExportOrderPage() {
                       </Box>
                       <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                         {stockCheckResults.every(r => r.is_available) 
-                          ? 'Đủ tồn kho - Có thể tạo export order' 
-                          : 'Thiếu tồn kho - Không thể tạo export order'
+                          ? trans.common.sufficientStock
+                          : trans.common.insufficientStock
                         }
                       </Typography>
                     </Box>
@@ -1149,21 +1155,21 @@ function ExportOrderPage() {
                 {stockCheckResults.length > 0 && (
                   <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                      Tóm Tắt Tồn Kho:
+                      {trans.common.stockSummary}
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                       <Chip 
-                        label={`Tổng: ${stockCheckResults.length} thuốc`} 
+                        label={trans.common.totalMedicines.replace('{count}', stockCheckResults.length)} 
                         color="primary" 
                         variant="outlined" 
                       />
                       <Chip 
-                        label={`Đủ: ${stockCheckResults.filter(r => r.is_available).length} thuốc`} 
+                        label={trans.common.sufficientMedicines.replace('{count}', stockCheckResults.filter(r => r.is_available).length)} 
                         color="success" 
                         variant="outlined" 
                       />
                       <Chip 
-                        label={`Thiếu: ${stockCheckResults.filter(r => !r.is_available).length} thuốc`} 
+                        label={trans.common.insufficientMedicines.replace('{count}', stockCheckResults.filter(r => !r.is_available).length)} 
                         color="error" 
                         variant="outlined" 
                       />
@@ -1176,16 +1182,16 @@ function ExportOrderPage() {
             {/* Total Amount bottom right */}
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 4, mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Total Amount: {formData.details.reduce((total, detail) => 
+                {trans.common.totalAmount.replace('{amount}', formData.details.reduce((total, detail) => 
                   total + (detail.expected_quantity * detail.unit_price), 0
-                ).toLocaleString()} VND
+                ).toLocaleString())}
               </Typography>
             </Box>
           </Box>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
           <Button onClick={handleCloseForm} disabled={formLoading || isCheckingStock} variant="outlined" sx={{ minWidth: 120 }}>
-            Cancel
+            {trans.common.cancel}
           </Button>
           <Button 
             onClick={(e) => {
@@ -1201,10 +1207,10 @@ function ExportOrderPage() {
               }
             }}
           >
-            {formLoading ? 'Creating...' : 
-             isCheckingStock ? 'Checking Stock...' : 
-             stockCheckResults.length > 0 && !stockCheckResults.every(r => r.is_available) ? '❌ Insufficient Stock' :
-             'Create Order'}
+            {formLoading ? trans.common.creating : 
+             isCheckingStock ? trans.common.checkingStockButton : 
+             stockCheckResults.length > 0 && !stockCheckResults.every(r => r.is_available) ? trans.common.insufficientStockButton :
+             trans.common.createOrder}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1223,33 +1229,33 @@ function ExportOrderPage() {
       >
         <MenuItem onClick={() => handleViewDetails(selectedOrderForAction)}>
           <VisibilityIcon sx={{ mr: 1 }} />
-          View Details
+          {trans.common.viewDetails}
         </MenuItem>
         {/* Chỉ hiển thị nút edit cho draft và rejected orders */}
         {selectedOrderForAction && (selectedOrderForAction.status === 'draft' || selectedOrderForAction.status === 'rejected') && (
           <MenuItem onClick={() => handleEditOrder(selectedOrderForAction)}>
             <EditIcon sx={{ mr: 1 }} />
-            Edit
+            {trans.common.edit}
           </MenuItem>
         )}
         {/* Chỉ hiển thị nút delete cho draft và cancelled orders */}
         {selectedOrderForAction && (selectedOrderForAction.status === 'draft' || selectedOrderForAction.status === 'cancelled') && (
           <MenuItem onClick={() => handleDeleteOrder(selectedOrderForAction)}>
             <DeleteIcon sx={{ mr: 1 }} />
-            Delete
+            {trans.common.delete}
           </MenuItem>
         )}
       </Menu>
 
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>Export Order Details</DialogTitle>
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>{trans.common.orderDetailsTitle}</DialogTitle>
         <DialogContent>
           {selectedOrder && (
             <Box sx={{ mt: 2 }}>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
-                  <Typography variant="h6">Basic Information</Typography>
+                  <Typography variant="h6">{trans.common.basicInformation}</Typography>
                   <Paper sx={{ p: 2 }}>
                     <Typography>
                       <strong>Contract:</strong> {selectedOrder.contract_id?.contract_code}
@@ -1281,15 +1287,15 @@ function ExportOrderPage() {
                   </Paper>
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <Typography variant="h6">Order Details</Typography>
+                  <Typography variant="h6">{trans.common.orderDetailsTitle}</Typography>
                   <TableContainer component={Paper}>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell>Medicine</TableCell>
-                          <TableCell align="right">Expected Quantity</TableCell>
-                          <TableCell align="right">Unit Price</TableCell>
-                          <TableCell align="right">Total</TableCell>
+                          <TableCell>{trans.common.medicine}</TableCell>
+                          <TableCell align="right">{trans.common.quantity}</TableCell>
+                          <TableCell align="right">{trans.common.unitPrice}</TableCell>
+                          <TableCell align="right">{trans.common.total}</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -1311,26 +1317,26 @@ function ExportOrderPage() {
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
           <Button onClick={handleCloseDetails} variant="outlined" sx={{ minWidth: 120 }}>
-            Close
+            {trans.common.close}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={openEditForm} onClose={handleCloseEditForm} maxWidth="md" fullWidth>
-        <DialogTitle>Edit Export Order</DialogTitle>
+        <DialogTitle>{trans.common.editExportOrder}</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
             <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Contract</InputLabel>
-              <Select
-                name="contract_id"
-                value={formData.contract_id}
-                onChange={handleFormChange}
-                label="Contract"
-                required
-                disabled
-              >
+                                <InputLabel>{trans.common.contract}</InputLabel>
+                  <Select
+                    name="contract_id"
+                    value={formData.contract_id}
+                    onChange={handleFormChange}
+                    label={trans.common.contract}
+                    required
+                    disabled
+                  >
                 {contracts.map((contract) => (
                   <MenuItem key={contract._id} value={contract._id}>
                     {contract.contract_code}
@@ -1338,22 +1344,22 @@ function ExportOrderPage() {
                 ))}
               </Select>
             </FormControl>
-            <Typography variant="subtitle1" sx={{ mb: 1 }}>Order Details</Typography>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>{trans.common.orderDetailsTitle}</Typography>
             <Alert severity="info" sx={{ mb: 2 }}>
-              <Typography variant="body2">
-                Số lượng và đơn giá sẽ được tự động điền từ hợp đồng và không thể chỉnh sửa.
-              </Typography>
+                              <Typography variant="body2">
+                  {trans.common.pleaseFillAllFields}
+                </Typography>
             </Alert>
             {formData.details.map((detail, index) => (
               <Box key={index} sx={{ mb: 2 }}>
                 <Grid container spacing={2} alignItems="flex-start">
                   <Grid item xs={12} sm={4}>
                     <FormControl fullWidth>
-                      <InputLabel>Medicine</InputLabel>
+                      <InputLabel>{trans.common.medicine}</InputLabel>
                       <Select
                         value={detail.medicine_id}
                         onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
-                        label="Medicine"
+                        label={trans.common.medicine}
                         required
                       >
                         {contractMedicines.map((med) => (
@@ -1366,7 +1372,7 @@ function ExportOrderPage() {
                   </Grid>
                   <Grid item xs={12} sm={3}>
                     <TextField
-                      label="Quantity"
+                      label={trans.common.quantity}
                       type="number"
                       value={detail.expected_quantity}
                       onChange={(e) => handleDetailChange(index, 'expected_quantity', e.target.value)}
@@ -1375,8 +1381,8 @@ function ExportOrderPage() {
                       disabled={formData.contract_type === 'economic'}
                       helperText={
                         formData.contract_type === 'economic' 
-                          ? "Tự động từ hợp đồng (Economic)" 
-                          : "Có thể chỉnh sửa (Principal)"
+                          ? trans.common.economicContractAutoFilled
+                          : trans.common.principalContractQuantityEditable
                       }
                       sx={{
                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
@@ -1389,7 +1395,7 @@ function ExportOrderPage() {
                   </Grid>
                   <Grid item xs={12} sm={3}>
                     <TextField
-                      label="Unit Price"
+                      label={trans.common.unitPrice}
                       type="number"
                       value={detail.unit_price}
                       onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
@@ -1397,9 +1403,9 @@ function ExportOrderPage() {
                       required
                       disabled={formData.contract_type === 'economic'}
                       helperText={
-                        formData.contract_type === 'economic' 
-                          ? "Tự động từ hợp đồng (Economic)" 
-                          : "Có thể chỉnh sửa (Principal)"
+                        formData.contract_type === 'error' 
+                          ? trans.common.economicContractAutoFilled
+                          : trans.common.principalContractQuantityEditable
                       }
                       sx={{
                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
@@ -1423,7 +1429,7 @@ function ExportOrderPage() {
                 </Grid>
               </Box>
             ))}
-            <Button onClick={addDetail} sx={{ mt: 2 }}>Add Medicine</Button>
+            <Button onClick={addDetail} sx={{ mt: 2 }}>{trans.common.addMedicine}</Button>
             
             {/* Stock Availability Information */}
             {stockCheckResults.length > 0 && (
@@ -1464,7 +1470,7 @@ function ExportOrderPage() {
                           <TableCell align="right">{result.available_quantity}</TableCell>
                           <TableCell align="center">
                             <Chip
-                              label={result.is_available ? '✅ Đủ' : '❌ Thiếu'}
+                              label={result.is_available ? `✅ ${trans.common.sufficient}` : `❌ ${trans.common.insufficient}`}
                               color={result.is_available ? 'success' : 'error'}
                               size="small"
                             />

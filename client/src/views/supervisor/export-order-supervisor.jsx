@@ -741,7 +741,7 @@ export default function ExportOrderSupervisor() {
           <b>{trans.common.irreversibleAction}</b>
         </DialogContent>
         <DialogActions>
-                                    <Button onClick={handleCancelStatusChange} color="secondary">
+          <Button onClick={handleCancelStatusChange} color="secondary">
             {trans.common.no}
           </Button>
           <Button onClick={handleConfirmStatusChange} color="primary" autoFocus disabled={actionLoading}>
