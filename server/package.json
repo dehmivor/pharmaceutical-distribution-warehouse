@@ -33,7 +33,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:server": "jest --coverage",
-    "test:websocket": "node test-websocket.js"
+    "test:webhook": "node test-webhook-endpoint.js"
   },
   "devDependencies": {
     "@babel/core": "^7.27.4",

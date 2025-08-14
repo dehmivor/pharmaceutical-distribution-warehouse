@@ -2,8 +2,17 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/api/stripe/webhook",
+      "destination": "https://anyf.onrender.com/api/stripe/webhook"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://anyf.onrender.com/api/:path*"
     }
-  ]
+  ],
+  "functions": {
+    "api/stripe/webhook.js": {
+      "maxDuration": 30
+    }
+  }
 }

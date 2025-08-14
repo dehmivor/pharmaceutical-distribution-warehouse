@@ -274,7 +274,7 @@ export default function ManageExportOrders() {
         }
       };
       fetchPackages();
-      }
+    }
   }, [selectedOrder, packingDialogOpen]);
 
   const handleChangePage = useCallback((_, newPage) => {
@@ -348,7 +348,7 @@ export default function ManageExportOrders() {
               selected_packages: detail.selected_packages.map((sp) => (sp.package_id === packageId ? { ...sp, quantity } : sp))
             }
           : detail
-    )
+      )
     );
   };
 
@@ -361,7 +361,7 @@ export default function ManageExportOrders() {
               selected_packages: [...detail.selected_packages, { package_id: packageId, quantity: 0, created_by: currentUserId }]
             }
           : detail
-    )
+      )
     );
     setShowingPackageListFor(null);
   };
@@ -375,7 +375,7 @@ export default function ManageExportOrders() {
               selected_packages: detail.selected_packages.filter((sp) => sp.package_id !== packageId)
             }
           : detail
-    )
+      )
     );
   };
 
@@ -447,7 +447,7 @@ export default function ManageExportOrders() {
           package_id: sp.package_id,
           quantity: sp.quantity,
           created_by: sp.created_by
-      }))
+        }))
       }));
       const res = await fetch(`${backendUrl}/api/export-orders/${selectedOrder._id}/update-packing`, {
         method: 'PUT',
@@ -512,6 +512,10 @@ export default function ManageExportOrders() {
           setMessageDialog({ open: true, title: 'Thành công', content: 'Đơn hàng đã hoàn thành!' });
           await fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe);
 
+          if (!updatedOrder.data.contract_id) {
+            console.log('Không có contract_id, không tạo bill');
+            return;
+          }
           const billDetails = (updatedOrder.data.details || []).map((item) => ({
             medicine_lisence_code: item.medicine_id && item.medicine_id._id ? item.medicine_id._id.toString() : '', // thay thế cho license code
             quantity: item.expected_quantity || 0,
@@ -527,7 +531,7 @@ export default function ManageExportOrders() {
           const billPayload = {
             export_order_id: updatedOrder.data._id,
             type: 'EXPORT',
-            status: 'PENDING',
+            status: 'pending',
             details: billDetails
           };
 
@@ -717,21 +721,21 @@ export default function ManageExportOrders() {
     // TODO: Implement barcode/QR scanner functionality
     // For now, just add the package to the picked list
     addPickPackage(lineIndex, packageId);
-    
+
     // Show message about scan functionality
-    setMessageDialog({ 
-      open: true, 
-      title: 'Tính năng Scan Package', 
-      content: 'Tính năng quét barcode/QR code sẽ được implement trong phiên bản tiếp theo. Hiện tại đã tự động chọn package này.' 
+    setMessageDialog({
+      open: true,
+      title: 'Tính năng Scan Package',
+      content: 'Tính năng quét barcode/QR code sẽ được implement trong phiên bản tiếp theo. Hiện tại đã tự động chọn package này.'
     });
   };
 
   const handleScanPackageForLine = (lineIndex) => {
     // TODO: Implement barcode/QR scanner functionality
     // For now, show a dialog to select package manually
-    setMessageDialog({ 
-      open: true, 
-      title: 'Quét Package', 
+    setMessageDialog({
+      open: true,
+      title: 'Quét Package',
       content: `Tính năng quét barcode/QR code sẽ được implement trong phiên bản tiếp theo. 
       
       Khi scan, hệ thống sẽ tự động:
@@ -739,7 +743,7 @@ export default function ManageExportOrders() {
       2. Nhảy xuống và highlight package đó
       3. Tự động chọn package và mở input nhập số lượng hủy
       
-      Hiện tại bạn có thể chọn package thủ công bằng nút "Chọn".` 
+      Hiện tại bạn có thể chọn package thủ công bằng nút "Chọn".`
     });
   };
 
@@ -1037,14 +1041,14 @@ export default function ManageExportOrders() {
                 )}
                 {/* Only show Total Value for regular orders, not for internal destruction orders */}
                 {selectedOrder.contract_id && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Tổng giá trị:
-                  </Typography>
-                  <Typography variant="body1" fontWeight="medium" color="primary.main">
-                    {formatCurrency(calculateTotalValue(selectedOrder))}
-                  </Typography>
-                </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Tổng giá trị:
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium" color="primary.main">
+                      {formatCurrency(calculateTotalValue(selectedOrder))}
+                    </Typography>
+                  </Grid>
                 )}
                 {selectedOrder.note && (
                   <Grid item xs={12}>
@@ -1205,10 +1209,10 @@ export default function ManageExportOrders() {
                   <Typography variant="body2" sx={{ mt: 2, fontWeight: 'medium' }}>
                     Tổng chọn: {totalActualQuantity} / {detail.expected_quantity} {unitOfMeasure}
                     {currentUserRole === USER_ROLES.WAREHOUSE && isQuantityDeficient && selectedOrder?.status !== 'completed' && (
-                        <Typography component="span" color="error" sx={{ ml: 1 }}>
-                          (Thiếu {detail.expected_quantity - totalActualQuantity})
-                        </Typography>
-                      )}
+                      <Typography component="span" color="error" sx={{ ml: 1 }}>
+                        (Thiếu {detail.expected_quantity - totalActualQuantity})
+                      </Typography>
+                    )}
                   </Typography>
                 </Card>
               );
@@ -1276,21 +1280,13 @@ export default function ManageExportOrders() {
                         inputProps={{ min: 0 }}
                       />
                     </Grid>
-
                   </Grid>
 
                   <Divider sx={{ my: 2 }} />
 
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                    <Typography variant="subtitle2">
-                      Chọn thùng hàng (SL tồn, nhập SL hủy → hệ thống tính SL còn lại)
-                    </Typography>
-                    <Button
-                      variant="outlined"
-                      startIcon={<QrCodeScanner />}
-                      onClick={() => handleScanPackageForLine(idx)}
-                      size="small"
-                    >
+                    <Typography variant="subtitle2">Chọn thùng hàng (SL tồn, nhập SL hủy → hệ thống tính SL còn lại)</Typography>
+                    <Button variant="outlined" startIcon={<QrCodeScanner />} onClick={() => handleScanPackageForLine(idx)} size="small">
                       Quét Package
                     </Button>
                   </Box>
@@ -1313,7 +1309,9 @@ export default function ManageExportOrders() {
                           >
                             <Box flex={1}>
                               <Typography variant="body2" gutterBottom>
-                                <strong>Batch:</strong> {pkg.batch.batch_code} | <strong>Tồn:</strong> {pkg.quantity} | <strong>Vị trí:</strong> {pkg.location.area_name || ''}-{pkg.location.bay || ''}-{pkg.location.row || ''}-{pkg.location.column || ''}
+                                <strong>Batch:</strong> {pkg.batch.batch_code} | <strong>Tồn:</strong> {pkg.quantity} |{' '}
+                                <strong>Vị trí:</strong> {pkg.location.area_name || ''}-{pkg.location.bay || ''}-{pkg.location.row || ''}-
+                                {pkg.location.column || ''}
                               </Typography>
                               <Tooltip title={`Full Package ID: ${pkg._id}`} arrow>
                                 <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'medium', cursor: 'help' }}>

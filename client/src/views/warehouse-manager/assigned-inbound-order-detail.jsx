@@ -91,7 +91,6 @@ function ImportOrderDetail() {
 
   const today = new Date().toISOString().split('T')[0];
 
-
   const [assignLoading, setAssignLoading] = useState(false);
   const [inspectionLoading, setInspectionLoading] = useState(false);
   const [packageLoading, setPackageLoading] = useState(false);
@@ -265,8 +264,6 @@ function ImportOrderDetail() {
     }
   };
 
-
-
   useEffect(() => {
     const opts = inspections
       // only keep inspections with a real batch_id
@@ -344,8 +341,6 @@ function ImportOrderDetail() {
     return acc;
   }, []);
 
-
-
   function getLicenseCodeById(id, array) {
     const item = array.find((el) => el.id === id);
     if (!item) return null;
@@ -395,15 +390,17 @@ function ImportOrderDetail() {
     }
 
     // 5) detailed diff: find over/under per medicine
-    const diffs = Object.entries(netByMedicine).map(([medId, netQty]) => {
-      const packedQty = packedByMedicine[medId] || 0;
-      const diff = packedQty - netQty; // positive => over, negative => under
-      return { medId, netQty, packedQty, diff };
-    }).filter(d => d.diff !== 0);
+    const diffs = Object.entries(netByMedicine)
+      .map(([medId, netQty]) => {
+        const packedQty = packedByMedicine[medId] || 0;
+        const diff = packedQty - netQty; // positive => over, negative => under
+        return { medId, netQty, packedQty, diff };
+      })
+      .filter((d) => d.diff !== 0);
 
     if (diffs.length > 0) {
       // Build a concise message; use uniqueInspections to map license -> human name when possible
-      const messages = diffs.map(d => {
+      const messages = diffs.map((d) => {
         const med = uniqueInspections.find((i) => i.medicine_id.license_code === d.medId)?.medicine_id;
         const name = med?.medicine_name || d.medId;
         const verb = d.diff > 0 ? 'over' : 'under';
@@ -444,7 +441,7 @@ function ImportOrderDetail() {
       // Remove it directly from the inspections array
       setInspections((prev) => prev.filter((insp) => insp._id !== inspectionId));
       fetchInspection();
-    } catch (error) { }
+    } catch (error) {}
   };
 
   const onFinishClickInspection = async () => {
@@ -551,7 +548,7 @@ function ImportOrderDetail() {
 
   const handleArrival = async () => {
     try {
-      setAssignLoading(true)
+      setAssignLoading(true);
       await handleSelfAssign();
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
@@ -562,7 +559,7 @@ function ImportOrderDetail() {
       );
       setOrder((prev) => ({ ...prev, status: 'delivered' }));
       enableAccordion('delivered');
-      setAssignLoading(false)
+      setAssignLoading(false);
     } catch (err) {
       console.error('Error updating status:', err);
       setError('Lỗi khi cập nhật trạng thái đơn');
@@ -571,7 +568,7 @@ function ImportOrderDetail() {
 
   const handleFinishInspection = async () => {
     try {
-      setInspectionLoading(true)
+      setInspectionLoading(true);
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
         { status: 'checked' },
@@ -581,7 +578,7 @@ function ImportOrderDetail() {
       );
       setOrder((prev) => ({ ...prev, status: 'checked' }));
       enableAccordion('checked');
-      setInspectionLoading(false)
+      setInspectionLoading(false);
     } catch (err) {
       console.error('Error updating status:', err);
       setError('Lỗi khi cập nhật trạng thái đơn');
@@ -593,7 +590,7 @@ function ImportOrderDetail() {
     setSaving(true);
 
     try {
-      setPackageLoading(true)
+      setPackageLoading(true);
       // 1) Create any new batches
       const createdMap = {};
       for (let spec of newBatches) {
@@ -662,7 +659,7 @@ function ImportOrderDetail() {
 
       // 6) Refresh the list
       await fetchPutAway();
-      setPackageLoading(false)
+      setPackageLoading(false);
     } catch (err) {
       console.error(err);
       setError('Error creating batches/packages');
@@ -673,7 +670,7 @@ function ImportOrderDetail() {
 
   const handleFinalize = async () => {
     try {
-      setFinalizeLoading(true)
+      setFinalizeLoading(true);
       const response = await axios.patch(
         `/api/import-orders/${orderId}/status`,
         { status: 'completed' },
@@ -690,6 +687,12 @@ function ImportOrderDetail() {
 
         console.log('data trả về lúc completed', response.data.data);
 
+        if (!orderData.contract_id) {
+          console.log('Không có contract_id, không tạo bill');
+          setFinalizeLoading(false);
+          return;
+        }
+
         const billDetails = (orderData.details || []).map((item) => ({
           medicine_lisence_code: item.medicine_id.license_code,
           quantity: item.quantity,
@@ -704,7 +707,7 @@ function ImportOrderDetail() {
         const billPayload = {
           import_order_id: orderData._id,
           type: 'IMPORT',
-          status: 'PENDING',
+          status: 'pending',
           details: billDetails
         };
 
@@ -724,7 +727,7 @@ function ImportOrderDetail() {
           setError('Lỗi khi tạo bill mới');
         }
       }
-      setFinalizeLoading(false)
+      setFinalizeLoading(false);
     } catch (err) {
       console.error('Lỗi khi cập nhật trạng thái đơn:', err);
       setError('Lỗi khi cập nhật trạng thái đơn');
@@ -794,7 +797,13 @@ function ImportOrderDetail() {
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={3} display="flex" justifyContent="flex-end" alignItems="center">
-                <Button variant="contained" disabled={order.status !== 'approved'} onClick={handleArrival} size="large" loading={assignLoading}>
+                <Button
+                  variant="contained"
+                  disabled={order.status !== 'approved'}
+                  onClick={handleArrival}
+                  size="large"
+                  loading={assignLoading}
+                >
                   Arrived
                 </Button>
               </Grid>
@@ -888,9 +897,16 @@ function ImportOrderDetail() {
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={2}>
-              <Button size="small" color="primary" onClick={openBatchDialog} disabled={packagesDone} sx={{ ml: 2 }} startIcon={<AddCircleIcon />}>
+              <Button
+                size="small"
+                color="primary"
+                onClick={openBatchDialog}
+                disabled={packagesDone}
+                sx={{ ml: 2 }}
+                startIcon={<AddCircleIcon />}
+              >
                 New batch
-              </Button >
+              </Button>
               {packages.map((p, idx) => {
                 const opt = batchOptions.find((o) => o.id === p.batch_id) || {};
                 return (
@@ -1037,7 +1053,7 @@ function ImportOrderDetail() {
                   }
                 }}
                 slotProps={{
-                  input: { max: today, },
+                  input: { max: today },
                   inputLabel: { shrink: true }
                 }}
               />
