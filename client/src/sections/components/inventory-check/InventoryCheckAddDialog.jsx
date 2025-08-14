@@ -32,6 +32,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { vi } from 'date-fns/locale';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -54,6 +55,7 @@ const InventoryCheckAddDialog = ({
   onSuccess,
   warehouseManagers = []
 }) => {
+  const trans = useTrans();
   const [formData, setFormData] = useState({
     warehouse_manager_id: '',
     inventory_check_date: null,
@@ -102,7 +104,7 @@ const InventoryCheckAddDialog = ({
 
     // Validate inventory_check_date
     if (!formData.inventory_check_date) {
-      newErrors.inventory_check_date = 'Ngày kiểm kê là bắt buộc';
+      newErrors.inventory_check_date = trans.common.inventoryCheckDateRequired;
     } else {
       // Check if date is after today
       const today = new Date();
@@ -111,7 +113,7 @@ const InventoryCheckAddDialog = ({
       checkDate.setHours(0, 0, 0, 0);
       
       if (checkDate <= today) {
-        newErrors.inventory_check_date = 'Ngày kiểm kê phải sau ngày hôm nay';
+        newErrors.inventory_check_date = trans.common.inventoryCheckDateMustBeAfterToday;
       }
     }
 
@@ -182,7 +184,7 @@ const InventoryCheckAddDialog = ({
               Tạo Phiếu Kiểm Kê Mới
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              Thêm phiếu kiểm kê kho mới
+              {trans.common.addNewInventoryCheck}
             </Typography>
           </Box>
         </Box>
@@ -242,7 +244,7 @@ const InventoryCheckAddDialog = ({
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
                     <EventIcon sx={{ fontSize: 20, color: "text.secondary" }} />
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                      Ngày Kiểm Kê *
+                      {trans.common.inventoryCheckDate} *
                     </Typography>
                   </Box>
                   <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
@@ -308,7 +310,7 @@ const InventoryCheckAddDialog = ({
             fontWeight: 600
           }}
         >
-          Hủy
+          {trans.common.cancel}
         </Button>
         <Button
           onClick={handleSubmit}

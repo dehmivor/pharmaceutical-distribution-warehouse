@@ -41,6 +41,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { vi } from 'date-fns/locale';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 import useSWRMutation from 'swr/mutation';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -125,6 +126,7 @@ const PrincipalContractEditDialog = ({
   retailers = [], 
   isViewMode = false
   }) => {
+    const trans = useTrans();
     const [formData, setFormData] = useState({
     contract_code: '',
     contract_type: 'principal',
@@ -396,7 +398,7 @@ const PrincipalContractEditDialog = ({
 
     // Validate contract_code
     if (!formData.contract_code.trim()) {
-      errors.contract_code = 'Mã hợp đồng không được để trống';
+      errors.contract_code = trans.common.contractCodeRequired;
     }
 
     // Validate partner_id
@@ -406,15 +408,15 @@ const PrincipalContractEditDialog = ({
 
     // Validate dates
     if (!formData.start_date) {
-      errors.start_date = 'Ngày bắt đầu không được để trống';
+      errors.start_date = trans.common.startDateRequired;
     }
 
     if (!formData.end_date) {
-      errors.end_date = 'Ngày kết thúc không được để trống';
+      errors.end_date = trans.common.endDateRequired;
     }
 
     if (formData.start_date && formData.end_date && formData.start_date >= formData.end_date) {
-      errors.end_date = 'Ngày kết thúc phải sau ngày bắt đầu';
+      errors.end_date = trans.common.endDateMustBeAfterStart;
     }
 
     // Validate items
@@ -447,11 +449,11 @@ const PrincipalContractEditDialog = ({
       const annexError = {};
       
       if (!annex.annex_code) {
-        annexError.annex_code = 'Mã phụ lục không được để trống';
+        annexError.annex_code = trans.common.annexCodeRequired;
       }
       
       if (!annex.signed_date) {
-        annexError.signed_date = 'Ngày ký không được để trống';
+        annexError.signed_date = trans.common.signedDateRequired;
       }
 
       // Validate add_items
@@ -580,7 +582,7 @@ const PrincipalContractEditDialog = ({
       onClose();
     } catch (error) {
       console.error('Error updating contract:', error);
-      setErrorApi(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật hợp đồng');
+      setErrorApi(error.response?.data?.message || trans.common.errorUpdatingContract);
     }
   };
 
@@ -589,7 +591,7 @@ const PrincipalContractEditDialog = ({
   };
 
   const getContractTypeLabel = (type) => {
-    return type === 'economic' ? 'Hợp đồng kinh tế' : 'Hợp đồng nguyên tắc';
+    return type === 'economic' ? trans.common.economicContractFull : trans.common.principalContractFull;
   };
 
   const getPartnerTypeLabel = (type) => {
@@ -631,7 +633,7 @@ const PrincipalContractEditDialog = ({
             </Typography>
           </Box>
         </Box>
-        <Tooltip title="Đóng">
+        <Tooltip title={trans.common.close}>
           <IconButton onClick={onClose} sx={{ color: 'white' }}>
             <CloseIcon />
           </IconButton>
@@ -645,7 +647,7 @@ const PrincipalContractEditDialog = ({
           </Alert>
         )}
 
-        {/* Card 1: Thông tin cơ bản */}
+        {/* Card 1: {trans.common.basicInfo} */}
         <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
           <CardContent>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -654,7 +656,7 @@ const PrincipalContractEditDialog = ({
             <Grid container spacing={3}>
               <Grid item xs={12} md={3}>
                 <InfoField
-                  label="Mã hợp đồng"
+                  label={trans.common.contractCode}
                   value={formData.contract_code}
                   onChange={(e) => handleChange({ target: { name: 'contract_code', value: e.target.value } })}
                   icon={ContractIcon}

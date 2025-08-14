@@ -251,7 +251,7 @@ function ManageBills() {
 
   const onPartialPaymentSuccess = () => {
     setError(null);
-    alert('Thanh toán thành công!');
+    alert(trans.common.paymentSuccessful);
     handleCloseDetail();
     fetchBills();
   };
@@ -278,10 +278,10 @@ function ManageBills() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setError('Không thể tạo phiên thanh toán Stripe.');
+        setError(trans.common.stripeSessionError);
       }
     } catch (error) {
-      setError('Có lỗi khi kết nối thanh toán. Vui lòng thử lại sau.');
+      setError(trans.common.paymentConnectionError);
     } finally {
       setLoadingPaymentId(null);
     }
@@ -322,7 +322,7 @@ function ManageBills() {
         amount += Number(multiPaymentAmounts[id]) || 0;
       });
       if (amount <= 0) {
-        setError('Tổng số tiền thanh toán không hợp lệ.');
+        setError(trans.common.invalidTotalAmount);
         setLoadingPaymentId(null);
         return;
       }
@@ -342,10 +342,10 @@ function ManageBills() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setError('Không thể tạo phiên thanh toán cho nhiều hóa đơn.');
+        setError(trans.common.multiPaymentSessionError);
       }
     } catch (error) {
-      setError('Có lỗi khi kết nối thanh toán nhiều hóa đơn. Vui lòng thử lại sau.');
+      setError(trans.common.multiPaymentConnectionError);
     } finally {
       setLoadingPaymentId(null);
     }
@@ -423,7 +423,7 @@ function ManageBills() {
     return (
       <TableRow>
         <TableCell colSpan={5} align="center">
-          Không có chi tiết thuốc
+          {trans.common.noMedicineDetails}
         </TableCell>
       </TableRow>
     );
@@ -480,8 +480,8 @@ function ManageBills() {
       <Box component={Paper} sx={{ p: 2, mb: 2 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2} alignItems="center">
                       <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Loại</InputLabel>
-              <Select label="Loại" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+              <InputLabel>{trans.common.type}</InputLabel>
+              <Select label={trans.common.type} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                 <MenuItem value="ALL">{trans.common.all}</MenuItem>
                 <MenuItem value="IMPORT">IMPORT</MenuItem>
                 <MenuItem value="EXPORT">EXPORT</MenuItem>
@@ -489,8 +489,8 @@ function ManageBills() {
             </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel>Trạng thái</InputLabel>
-            <Select label={trans.bills.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+            <InputLabel>{trans.common.status}</InputLabel>
+            <Select label={trans.common.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
               <MenuItem value="ALL">{trans.common.all}</MenuItem>
               <MenuItem value="PENDING">PENDING</MenuItem>
               <MenuItem value="COMPLETED">COMPLETED</MenuItem>
@@ -502,18 +502,18 @@ function ManageBills() {
 
           <TextField
             size="small"
-            label="Tìm kiếm"
-            placeholder="Mã hóa đơn, Mã thuốc"
+            label={trans.common.search}
+            placeholder={`${trans.common.billCode}, ${trans.common.medicineCode}`}
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             sx={{ minWidth: 200 }}
           />
 
           <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel>Sắp xếp ngày tạo</InputLabel>
-            <Select label="Sắp xếp ngày tạo" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
-              <MenuItem value="desc">Mới nhất trước</MenuItem>
-              <MenuItem value="asc">Cũ nhất trước</MenuItem>
+            <InputLabel>{trans.common.sortByDate}</InputLabel>
+            <Select label={trans.common.sortByDate} value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+              <MenuItem value="desc">{trans.common.newestFirst}</MenuItem>
+              <MenuItem value="asc">{trans.common.oldestFirst}</MenuItem>
             </Select>
           </FormControl>
 
@@ -524,7 +524,7 @@ function ManageBills() {
             disabled={selectedBills.length === 0 || loadingPaymentId !== null}
             onClick={handleOpenMultiPaymentDialog}
           >
-            {loadingPaymentId === 'multi' ? trans.common.processing : `${trans.common.payment} (${selectedBills.length}) hóa đơn`}
+            {loadingPaymentId === 'multi' ? trans.common.processing : `${trans.common.payment} (${selectedBills.length}) ${trans.common.multiPaymentBills}`}
           </Button>
         </Stack>
       </Box>
@@ -630,7 +630,7 @@ function ManageBills() {
       )}
 
       <Dialog open={openDetail} onClose={handleCloseDetail} maxWidth="md" fullWidth>
-        <DialogTitle>Chi tiết hóa đơn</DialogTitle>
+        <DialogTitle>{trans.common.billDetail}</DialogTitle>
         <DialogContent dividers>
           {showStripePayment && clientSecret ? (
             <Elements stripe={stripePromise}>
@@ -647,40 +647,40 @@ function ManageBills() {
             detailData && (
               <>
                 <Typography>
-                  <strong>Mã hóa đơn:</strong> {detailData.voucher_code || detailData._id}
+                  <strong>{trans.common.billCodeLabel}:</strong> {detailData.voucher_code || detailData._id}
                 </Typography>
                 <Typography>
-                  <strong>Loại:</strong> {detailData.type}
+                  <strong>{trans.common.type}:</strong> {detailData.type}
                 </Typography>
                 <Typography>
-                  <strong>Ngày tạo:</strong> {getDisplayDate(detailData)}
+                  <strong>{trans.common.createdDate}:</strong> {getDisplayDate(detailData)}
                 </Typography>
                 <Typography>
-                  <strong>Trạng thái:</strong> {detailData.status}
+                  <strong>{trans.common.status}:</strong> {detailData.status}
                 </Typography>
 
                 <Typography sx={{ mt: 2 }}>
-                  <strong>Chi tiết thuốc trong phiếu:</strong>
+                  <strong>{trans.common.medicineDetailsInBill}:</strong>
                 </Typography>
                 <Table size="small" sx={{ mb: 2 }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Tên thuốc</TableCell>
-                      <TableCell>Mã thuốc</TableCell>
-                      <TableCell>Số lượng</TableCell>
-                      <TableCell>Đơn giá (VNĐ)</TableCell>
-                      <TableCell>Thành tiền (VNĐ)</TableCell>
+                      <TableCell>{trans.common.medicineName}</TableCell>
+                      <TableCell>{trans.common.medicineCode}</TableCell>
+                      <TableCell>{trans.common.quantity}</TableCell>
+                      <TableCell>{trans.common.unitPrice} ({trans.common.vnd})</TableCell>
+                      <TableCell>{trans.common.subtotal} ({trans.common.vnd})</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>{renderDetailMedicines(detailData)}</TableBody>
                 </Table>
 
                 <Typography>
-                  <strong>Tổng tiền:</strong> {calcAmount(detailData.details).toLocaleString()} VNĐ
+                  <strong>{trans.common.totalAmount}:</strong> {calcAmount(detailData.details).toLocaleString()} {trans.common.vnd}
                 </Typography>
 
                 <TextField
-                  label="Số tiền thanh toán (VNĐ)"
+                  label={`${trans.common.paymentAmount} (${trans.common.vnd})`}
                   type="number"
                   fullWidth
                   value={partialAmount || ''}
@@ -716,14 +716,14 @@ function ManageBills() {
       </Dialog>
 
       <Dialog open={openMultiPaymentDialog} onClose={handleCloseMultiPaymentDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Thanh toán nhiều hóa đơn (gom tổng)</DialogTitle>
+        <DialogTitle>{trans.common.multiPaymentTitle}</DialogTitle>
         <DialogContent dividers>
           {showStripePayment && clientSecret ? (
             <Elements stripe={stripePromise}>
               <StripePartialPayment
                 clientSecret={clientSecret}
                 onSuccess={() => {
-                  alert('Thanh toán nhiều hóa đơn thành công!');
+                  alert(trans.common.multiPaymentSuccessful);
                   setOpenMultiPaymentDialog(false);
                   fetchBills();
                 }}
@@ -739,10 +739,10 @@ function ManageBills() {
               const maxAmount = calcAmount(bill.details);
               return (
                 <Box key={billId} sx={{ mb: 2 }}>
-                  <Typography mb={3} variant="subtitle1">{`Mã hóa đơn: ${bill.voucher_code || bill._id}`}</Typography>
+                  <Typography mb={3} variant="subtitle1">{`${trans.common.billCodeLabel}: ${bill.voucher_code || bill._id}`}</Typography>
                   <TextField
                     type="number"
-                    label="Số tiền thanh toán (VNĐ)"
+                    label={`${trans.common.paymentAmount} (${trans.common.vnd})`}
                     value={multiPaymentAmounts[billId] || ''}
                     onChange={(e) => {
                       let val = parseFloat(e.target.value || 0);
@@ -754,7 +754,7 @@ function ManageBills() {
                     fullWidth
                   />
                   <Typography variant="caption" color="text.secondary">
-                    Tổng tiền: {maxAmount.toLocaleString()} VNĐ
+                    {trans.common.totalAmount}: {maxAmount.toLocaleString()} {trans.common.vnd}
                   </Typography>
                 </Box>
               );

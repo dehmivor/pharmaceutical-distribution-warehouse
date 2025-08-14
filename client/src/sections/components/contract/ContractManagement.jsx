@@ -40,6 +40,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useRole } from '@/contexts/RoleContext';
+import useTrans from '@/hooks/useTrans';
 import EconomicContractEditDialog from './EconomicContractEditDialog'; // Import the edit dialog component
 import ContractAddDialog from './ContractAddDialog'; // Import the new unified add dialog component
 import StatusActionDialog from './StatusActionDialog';
@@ -61,6 +62,7 @@ const axiosInstance = axios.create({
 });
 
 const ContractManagement = () => {
+  const trans = useTrans();
   const { userRole, user, isLoading } = useRole();
   const [contracts, setContracts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -179,13 +181,13 @@ const ContractManagement = () => {
 
   // Handle add contract success
   const handleAddContractSuccess = () => {
-    setSuccess('Thêm hợp đồng mới thành công');
+    setSuccess(trans.common.addContractSuccess);
     fetchContracts(); // Refresh the list
   };
 
   // Handle update contract success
   const handleUpdateContractSuccess = () => {
-    setSuccess('Cập nhật hợp đồng thành công');
+    setSuccess(trans.common.updateContractSuccess);
     fetchContracts(); // Refresh the list
   };
 
@@ -200,7 +202,7 @@ const ContractManagement = () => {
       });
 
       if (response.data.success) {
-        setSuccess('Xóa hợp đồng thành công');
+        setSuccess(trans.common.deleteContractSuccess);
         fetchContracts();
       }
     } catch (error) {
@@ -292,16 +294,16 @@ const ContractManagement = () => {
       );
       if (response.data.success) {
         const actionMessages = {
-          confirm: 'Xác nhận',
+          confirm: trans.common.confirmAction,
           reject: 'Từ chối',
-          cancel: 'Hủy',
+          cancel: trans.common.cancel,
           draft: 'Chuyển về nháp'
         };
 
-        setSuccess(`${actionMessages[actionType]} hợp đồng thành công`);
+        setSuccess(`${actionMessages[actionType]} ${trans.common.updateContractSuccess}`);
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Có lỗi xảy ra');
+      setError(error.response?.data?.message || trans.common.errorOccurred);
     } finally {
       setActionLoading(false);
       setOpenActionDialog(false);
@@ -319,7 +321,7 @@ const ContractManagement = () => {
   const handleAnnexSuccess = () => {
     setOpenAnnexDialog(false);
     setSelectedContract(null);
-    setSuccess('Thao tác phụ lục thành công');
+    setSuccess(trans.common.annexActionSuccess);
     fetchContracts();
   };
 
@@ -356,10 +358,10 @@ const ContractManagement = () => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-          Quản Lý Hợp đồng
+          {trans.common.contractManagement}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Quản lý danh sách hợp đồng và thông tin chi tiết
+          {trans.common.manageContractList}
         </Typography>
       </Box>
 
@@ -419,7 +421,7 @@ const ContractManagement = () => {
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {selected === 'economic' ? 'Kinh tế' : selected === 'principal' ? 'Nguyên tắc' : selected || 'Tất cả'}
+                        {selected === 'economic' ? trans.common.economicContract : selected === 'principal' ? trans.common.principalContract : selected || trans.common.all}
                       </span>
                     </Tooltip>
                   )}
@@ -427,10 +429,10 @@ const ContractManagement = () => {
                     width: 150
                   }}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.common.all}</MenuItem>
                   {filterOptions?.contract_type?.map((type) => (
                     <MenuItem key={type} value={type} title={type}>
-                      {type === 'economic' ? 'Kinh tế' : type === 'principal' ? 'Nguyên tắc' : type}
+                      {type === 'economic' ? trans.common.economicContract : type === 'principal' ? trans.common.principalContract : type}
                     </MenuItem>
                   ))}
                 </Select>
@@ -438,11 +440,11 @@ const ContractManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 150 }}>
-                <InputLabel>Loại đối tác</InputLabel>
+                <InputLabel>{trans.common.partnerType}</InputLabel>
                 <Select
                   value={filters.partner_type}
                   onChange={(e) => handleFilterChange('partner_type', e.target.value)}
-                  label="Loại đối tác"
+                  label={trans.common.partnerType}
                   renderValue={(selected) => (
                     <Tooltip title={selected}>
                       <span
@@ -453,7 +455,7 @@ const ContractManagement = () => {
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {selected || 'Tất cả'}
+                        {selected || trans.common.all}
                       </span>
                     </Tooltip>
                   )}
@@ -472,11 +474,11 @@ const ContractManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 150 }}>
-                <InputLabel>Trạng thái</InputLabel>
+                <InputLabel>{trans.common.status}</InputLabel>
                 <Select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                  label="Trạng thái"
+                  label={trans.common.status}
                   renderValue={(selected) => (
                     <Tooltip title={selected}>
                       <span
@@ -487,7 +489,7 @@ const ContractManagement = () => {
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {selected || 'Tất cả'}
+                        {selected || trans.common.all}
                       </span>
                     </Tooltip>
                   )}
@@ -522,7 +524,7 @@ const ContractManagement = () => {
                     fontWeight: 600
                   }}
                 >
-                  Thêm hợp đồng
+                  {trans.common.addContract}
                 </Button>
               </Grid>
             )}
@@ -551,13 +553,13 @@ const ContractManagement = () => {
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600 }}>Mã hợp đồng</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Loại hợp đồng</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.common.contractCode}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.common.contractType}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Người tạo</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Đối tác</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.common.status}</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>
-                  Hành động
+                  {trans.common.actions}
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -567,7 +569,7 @@ const ContractManagement = () => {
                   <TableCell sx={{ fontWeight: 500 }}>{contract.contract_code}</TableCell>
                   <TableCell>
                     <Chip 
-                      label={contract.contract_type === 'economic' ? 'Kinh tế' : 'Nguyên tắc'} 
+                      label={contract.contract_type === 'economic' ? trans.common.economicContract : trans.common.principalContract} 
                       size="small" 
                       variant="outlined" 
                       color={contract.contract_type === 'economic' ? 'primary' : 'secondary'}
@@ -591,7 +593,7 @@ const ContractManagement = () => {
                   <TableCell align="left">
                     {userRole === 'representative' && (
                       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-start' }}>
-                        <Tooltip title="Xem chi tiết">
+                        <Tooltip title={trans.common.viewDetails}>
                           <IconButton
                             color="primary"
                             size="small"
@@ -625,7 +627,7 @@ const ContractManagement = () => {
                         
                         {/* Annex action for principal contracts with active status */}
                         {contract.contract_type === 'principal' && contract.status === 'active' && (
-                          <Tooltip title="Phụ lục">
+                          <Tooltip title={trans.common.annex}>
                             <IconButton
                               color="info"
                               size="small"
@@ -669,7 +671,7 @@ const ContractManagement = () => {
                               </IconButton>
                             </Tooltip>
 
-                            <Tooltip title="Xóa">
+                            <Tooltip title={trans.common.deleteContract}>
                               <IconButton
                                 color="error"
                                 size="small"
@@ -691,7 +693,7 @@ const ContractManagement = () => {
                     )}
                     {userRole === 'representative_manager' && (
                       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-start' }}>
-                        <Tooltip title="Xem chi tiết">
+                        <Tooltip title={trans.common.viewDetails}>
                           <IconButton
                             color="primary"
                             size="small"
@@ -709,7 +711,7 @@ const ContractManagement = () => {
                         </Tooltip>
                         {contract.status === 'draft' && (
                           <>
-                            <Tooltip title="Xác nhận">
+                            <Tooltip title={trans.common.confirmAction}>
                               <IconButton color="success" size="small" onClick={() => openConfirmDialog(contract)}>
                                 <CheckCircleIcon fontSize="small" />
                               </IconButton>
@@ -723,7 +725,7 @@ const ContractManagement = () => {
                           </>
                         )}
                         {contract.status === 'active' && (
-                          <Tooltip title="Hủy hợp đồng">
+                          <Tooltip title={trans.common.cancelContract}>
                             <IconButton color="secondary" size="small" onClick={() => openCancelDialog(contract)}>
                               <BlockIcon fontSize="small" />
                             </IconButton>

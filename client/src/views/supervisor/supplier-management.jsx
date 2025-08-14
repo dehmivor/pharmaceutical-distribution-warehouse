@@ -207,8 +207,8 @@ const SupplierManagement = () => {
 
   const getStatusLabel = (status) => {
     const statusLabels = {
-      active: 'Hoạt động',
-      inactive: 'Không hoạt động',
+      active: trans.common.active,
+      inactive: trans.common.inactive,
       pending: trans.common.pending
     };
     return statusLabels[status] || status;
@@ -468,7 +468,7 @@ const SupplierManagement = () => {
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           labelRowsPerPage={trans.common.rowsPerPage}
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count !== -1 ? count : `hơn ${to}`}`}
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count !== -1 ? count : `${trans.common.moreThanTo} ${to}`}`}
         />
       </Paper>
 

@@ -363,67 +363,67 @@ export default function Report() {
                   onChange={(e) => handleFilterChange('period', e.target.value)}
                   label="Chu kỳ"
                 >
-                  <MenuItem value="weekly">Tuần</MenuItem>
-                  <MenuItem value="monthly">Tháng</MenuItem>
-                  <MenuItem value="quarterly">Quý</MenuItem>
+                  <MenuItem value="weekly">{trans.common.weekly}</MenuItem>
+                  <MenuItem value="monthly">{trans.common.monthly}</MenuItem>
+                  <MenuItem value="quarterly">{trans.common.quarterly}</MenuItem>
                   {/* Nếu cần thêm 'yearly' có thể thêm ở đây */}
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={2}>
               <FormControl fullWidth>
-                <InputLabel label="Trạng thái" id="status-label">
-                  Trạng thái
+                <InputLabel label={trans.common.status} id="status-label">
+                  {trans.common.status}
                 </InputLabel>
                 <Select
                   labelId="status-label"
                   value={filters.status || 'all'}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                  label="Trạng thái"
+                  label={trans.common.status}
                 >
                                   <MenuItem value="all">{trans.common.allStatuses}</MenuItem>
                 <MenuItem value="pending">{trans.common.pendingProcessing}</MenuItem>
-                  <MenuItem value="partial">Thanh toán một phần</MenuItem>
-                  <MenuItem value="completed">Hoàn thành</MenuItem>
-                  <MenuItem value="overdue">Quá hạn</MenuItem>
+                  <MenuItem value="partial">{trans.common.partialPayment}</MenuItem>
+                  <MenuItem value="completed">{trans.common.completed}</MenuItem>
+                  <MenuItem value="overdue">{trans.common.overdue}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={2}>
               <FormControl fullWidth>
-                <InputLabel id="type-label">Loại</InputLabel>
+                <InputLabel id="type-label">{trans.common.type}</InputLabel>
                 <Select
                   labelId="type-label"
                   value={filters.type || 'all'}
                   onChange={(e) => handleFilterChange('type', e.target.value)}
-                  label="Loại"
+                  label={trans.common.type}
                 >
                   <MenuItem value="all">{trans.common.allTypes}</MenuItem>
-                  <MenuItem value="IMPORT">Nhập hàng</MenuItem>
-                  <MenuItem value="EXPORT">Xuất hàng</MenuItem>
-                  <MenuItem value="PAYMENT_VOUCHER">Phiếu chi</MenuItem>
+                  <MenuItem value="IMPORT">{trans.common.import}</MenuItem>
+                  <MenuItem value="EXPORT">{trans.common.export}</MenuItem>
+                  <MenuItem value="PAYMENT_VOUCHER">{trans.common.paymentVoucher}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
 
             <Grid item xs={12} md={2}>
               <Button size="small" variant="contained" startIcon={<DownloadIcon />} onClick={exportToExcel} disabled={loading} fullWidth>
-                Tải về Excel
+                {trans.common.downloadExcel}
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
               <Button size="small" variant="outlined" startIcon={<UploadIcon />} onClick={() => setUploadDialog(true)} fullWidth>
-                Upload File
+                {trans.common.uploadFile}
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
               <Button size="small" variant="outlined" startIcon={<RefreshIcon />} onClick={handleReset} disabled={loading} fullWidth>
-                Reset
+                {trans.common.reset}
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
               <Button size="small" variant="contained" startIcon={<Search />} onClick={handleSearch} disabled={loading} fullWidth>
-                Search
+                {trans.common.search}
               </Button>
             </Grid>
           </Grid>

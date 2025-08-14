@@ -41,6 +41,7 @@ import {
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
 import bwipjs from 'bwip-js/browser';
+import useTrans from '@/hooks/useTrans';
 import LocationDetailDialog from './LocationDetailDialog';
 import LocationAddDialog from './LocationAddDialog';
 import LocationBulkAddDialog from './LocationBulkAddDialog';
@@ -56,6 +57,7 @@ const axiosInstance = axios.create({
 });
 
 const LocationManagement = () => {
+  const trans = useTrans();
   const { enqueueSnackbar } = useSnackbar();
   const [locations, setLocations] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -115,7 +117,7 @@ const LocationManagement = () => {
       }
     } catch (error) {
       console.error('Error fetching locations:', error);
-      enqueueSnackbar(error.response?.data?.message || 'Không thể tải danh sách vị trí', { variant: 'error' });
+      enqueueSnackbar(error.response?.data?.message || trans.common.cannotLoadLocationList, { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -138,7 +140,7 @@ const LocationManagement = () => {
         fetchLocations();
       }
     } catch (error) {
-      enqueueSnackbar(error.response?.data?.message || 'Không thể xóa vị trí', { variant: 'error' });
+      enqueueSnackbar(error.response?.data?.message || trans.common.cannotDeleteLocation, { variant: 'error' });
     } finally {
       setOpenDeleteDialog(false);
       setLocationToDelete(null);
@@ -159,7 +161,7 @@ const LocationManagement = () => {
         fetchLocations();
       }
     } catch (error) {
-      enqueueSnackbar(error.response?.data?.message || 'Không thể cập nhật trạng thái vị trí', { variant: 'error' });
+      enqueueSnackbar(error.response?.data?.message || trans.common.cannotUpdateLocationStatus, { variant: 'error' });
     }
   };
 
@@ -260,7 +262,7 @@ const LocationManagement = () => {
       };
     } catch (err) {
       console.error('Error printing QR code:', err);
-      enqueueSnackbar('Không thể tạo QR code.', { variant: 'error' });
+      enqueueSnackbar(trans.common.cannotCreateQRCode, { variant: 'error' });
     }
   };
 
@@ -292,14 +294,14 @@ const LocationManagement = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Location Management
+            {trans.common.locationManagement}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Update, add and remove location of warehouse
+            {trans.common.updateAddRemoveLocation}
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<Refresh />}>
-          Refresh
+          {trans.common.refresh}
         </Button>
       </Box>
       {/* Filter Section */}
@@ -308,25 +310,25 @@ const LocationManagement = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
             <FilterIcon sx={{ color: 'primary.main', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-              Bộ Lọc Tìm Kiếm
+              {trans.common.searchFilterLocation}
             </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <FormControl sx={{ minWidth: 100 }}>
-              <InputLabel>Khu vực</InputLabel>
+              <InputLabel>{trans.common.area}</InputLabel>
               <Select
                 value={filterAreaId}
                 onChange={(e) => setFilterAreaId(e.target.value)}
-                label="Khu vực"
+                label={trans.common.area}
                 size="small"
                 renderValue={(value) => {
-                  if (!value) return 'Tất cả';
+                  if (!value) return trans.common.all;
                   const area = areas.find((a) => a._id === value);
                   return area ? area.name : value;
                 }}
               >
-                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value="">{trans.common.all}</MenuItem>
                 {areas.map((area) => (
                   <MenuItem key={area._id} value={area._id}>
                     {area.name}
@@ -336,22 +338,22 @@ const LocationManagement = () => {
             </FormControl>
 
             <FormControl sx={{ minWidth: 100 }}>
-              <InputLabel>Trạng thái</InputLabel>
+              <InputLabel>{trans.common.status}</InputLabel>
               <Select
                 value={filterAvailable}
                 onChange={(e) => setFilterAvailable(e.target.value)}
-                label="Trạng thái"
+                label={trans.common.status}
                 size="small"
                 renderValue={(value) => {
-                  if (value === '') return 'Tất cả';
-                  if (value === 'true') return 'Có sẵn';
-                  if (value === 'false') return 'Không có sẵn';
+                  if (value === '') return trans.common.all;
+                  if (value === 'true') return trans.common.available;
+                  if (value === 'false') return trans.common.notAvailable;
                   return value;
                 }}
               >
-                <MenuItem value="">Tất cả</MenuItem>
-                <MenuItem value="true">Có sẵn</MenuItem>
-                <MenuItem value="false">Không có sẵn</MenuItem>
+                <MenuItem value="">{trans.common.all}</MenuItem>
+                <MenuItem value="true">{trans.common.available}</MenuItem>
+                <MenuItem value="false">{trans.common.notAvailable}</MenuItem>
               </Select>
             </FormControl>
 
@@ -362,10 +364,10 @@ const LocationManagement = () => {
               startIcon={<AddIcon />}
               sx={{ ml: 'auto' }}
             >
-              Thêm Nhiều Vị Trí
+              {trans.common.addMultipleLocations}
             </Button>
             <Button variant="contained" color="primary" onClick={() => setOpenAddDialog(true)} startIcon={<AddIcon />}>
-              Thêm Vị Trí
+              {trans.common.addLocation}
             </Button>
           </Box>
         </CardContent>
@@ -375,19 +377,19 @@ const LocationManagement = () => {
       <Card>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            Danh Sách Vị Trí
+            {trans.common.locationList}
           </Typography>
 
           <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Khu vực</TableCell>
-                  <TableCell>Bay</TableCell>
-                  <TableCell>Row</TableCell>
-                  <TableCell>Column</TableCell>
-                  <TableCell>Trạng thái</TableCell>
-                  <TableCell align="center">Hành động</TableCell>
+                  <TableCell>{trans.common.area}</TableCell>
+                  <TableCell>{trans.common.bay}</TableCell>
+                  <TableCell>{trans.common.row}</TableCell>
+                  <TableCell>{trans.common.column}</TableCell>
+                  <TableCell>{trans.common.status}</TableCell>
+                  <TableCell align="center">{trans.common.actions}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -399,19 +401,19 @@ const LocationManagement = () => {
                     <TableCell>{location.column}</TableCell>
                     <TableCell>
                       <Chip
-                        label={location.available ? 'Có sẵn' : 'Không có sẵn'}
+                        label={location.available ? trans.common.available : trans.common.notAvailable}
                         color={location.available ? 'success' : 'error'}
                         size="small"
                       />
                     </TableCell>
                     <TableCell align="center">
-                      <Tooltip title="Xem chi tiết">
+                      <Tooltip title={trans.common.viewDetails}>
                         <IconButton color="primary" size="small" onClick={() => handleViewDetail(location)} sx={{ mr: 1 }}>
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
 
-                      <Tooltip title="In QR Code">
+                      <Tooltip title={trans.common.printQRCode}>
                         <IconButton
                           color="info"
                           size="small"
@@ -422,7 +424,7 @@ const LocationManagement = () => {
                         </IconButton>
                       </Tooltip>
 
-                      <Tooltip title={location.available ? 'Đánh dấu không có sẵn' : 'Đánh dấu có sẵn'}>
+                      <Tooltip title={location.available ? trans.common.markAsUnavailable : trans.common.markAsAvailable}>
                         <IconButton
                           color={location.available ? 'warning' : 'success'}
                           size="small"
@@ -433,7 +435,7 @@ const LocationManagement = () => {
                         </IconButton>
                       </Tooltip>
 
-                      <Tooltip title="Xóa vị trí">
+                      <Tooltip title={trans.common.deleteLocation}>
                         <IconButton
                           color="error"
                           size="small"
@@ -458,22 +460,22 @@ const LocationManagement = () => {
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[5, 10, 25, 50]}
-            labelRowsPerPage="Số hàng mỗi trang:"
-            labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
+            labelRowsPerPage={trans.common.rowsPerPage}
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count}`}
           />
         </CardContent>
       </Card>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle>Xác nhận xóa</DialogTitle>
+        <DialogTitle>{trans.common.confirmDelete}</DialogTitle>
         <DialogContent>
-          <DialogContentText>Bạn có chắc chắn muốn xóa vị trí này không? Hành động này không thể hoàn tác.</DialogContentText>
+          <DialogContentText>{trans.common.deleteConfirmMessage}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>Hủy</Button>
+          <Button onClick={() => setOpenDeleteDialog(false)}>{trans.common.cancel}</Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-            Xóa
+            {trans.common.delete}
           </Button>
         </DialogActions>
       </Dialog>

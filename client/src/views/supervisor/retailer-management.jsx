@@ -191,8 +191,8 @@ const RetailerManagement = () => {
 
   const getStatusLabel = (status) => {
     const statusLabels = {
-      active: 'Hoạt động',
-      inactive: 'Không hoạt động',
+      active: trans.common.active,
+      inactive: trans.common.inactive,
       pending: trans.common.pending
     };
     return statusLabels[status] || status;
@@ -358,14 +358,14 @@ const RetailerManagement = () => {
         </Grid>
             <Grid item xs={12} md={4}>
               <FormControl fullWidth>
-                <InputLabel>Trạng thái</InputLabel>
+                <InputLabel>{trans.common.status}</InputLabel>
                 <Select
                   value={filters.status || ''}
-                  label="Trạng thái"
+                  label={trans.common.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                   sx={{ minWidth: '140px' }}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.common.all}</MenuItem>
                   {filterOptions.status?.map((status) => (
                     <MenuItem key={status} value={status}>
                       {getStatusLabel(status)}
@@ -508,10 +508,10 @@ const RetailerManagement = () => {
             </Grid>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
-                <InputLabel>Trạng thái</InputLabel>
+                <InputLabel>{trans.common.status}</InputLabel>
                 <Select
                   value={formData.status}
-                  label="Trạng thái"
+                  label={trans.common.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   sx={{ minWidth: '140px' }}
                 >

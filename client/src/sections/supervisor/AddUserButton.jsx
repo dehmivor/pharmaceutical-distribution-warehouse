@@ -6,7 +6,6 @@ import {
   Add as AddIcon,
   Warehouse as WarehouseIcon,
   Person as RepresentativeIcon,
-  LocalShipping as DeliveryIcon,
   Business as SupplierIcon
 } from '@mui/icons-material';
 
@@ -41,13 +40,8 @@ function AddUserButton({ onCreateUser }) {
       icon: <RepresentativeIcon fontSize="small" />
     },
     {
-      type: 'delivery',
-      label: trans.roles.warehouse,
-      icon: <DeliveryIcon fontSize="small" />
-    },
-    {
       type: 'supplier',
-      label: trans.roles.warehouse,
+      label: trans.roles.supplier,
       icon: <SupplierIcon fontSize="small" />
     }
   ];

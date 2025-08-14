@@ -103,7 +103,7 @@ function UserManagement({ onOpenPermissionDialog }) {
     const errors = {};
 
     if (!formData.email.trim()) {
-      errors.email = 'Email is required';
+      errors.email = trans.userForm.emailRequired;
     } else if (!validateEmail(formData.email)) {
       errors.email = 'Invalid email format';
     }
@@ -422,7 +422,7 @@ function UserManagement({ onOpenPermissionDialog }) {
             <Grid item xs={12}>
               <TextField
                 autoFocus
-                label="Email Address"
+                label={trans.userForm.emailAddress}
                 type="email"
                 fullWidth
                 variant="outlined"
@@ -541,7 +541,7 @@ function UserManagement({ onOpenPermissionDialog }) {
                 <Typography variant="body2" component="div">
                   • User will receive an activation email with login credentials
                   <br />
-                  • Email includes OTP code for account verification
+                  • {trans.userForm.emailOTPNote}
                   <br />
                   • User must activate account before first login
                   <br />• Activation link expires in 24 hours

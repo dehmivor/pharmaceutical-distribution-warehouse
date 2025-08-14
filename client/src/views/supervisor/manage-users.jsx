@@ -29,7 +29,7 @@ function ManageUsers() {
     setActiveTab(newValue);
   };
 
-  // Hàm mở dialog
+  // Functions to open/close dialog
   const handleOpenAddUser = () => setOpenAddUserDialog(true);
   const handleCloseAddUser = () => {
     setOpenAddUserDialog(false);
@@ -45,7 +45,7 @@ function ManageUsers() {
     setSubmitting(false);
   };
 
-  // Hàm validate và submit (bạn có thể copy logic validate từ UserManagementTab cũ sang đây)
+  // Validation and submit functions
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -95,11 +95,11 @@ function ManageUsers() {
         }
       );
       if (response.status === 201) {
-        // Hiển thị thông báo thành công nếu muốn
+        // Show success message if needed
         handleCloseAddUser();
-        // Có thể gọi refetch user list ở đây nếu cần
+        // Can call refetch user list here if needed
       } else {
-        // Hiển thị thông báo lỗi nếu muốn
+        // Show error message if needed
         alert(response.data.message || trans.messages.failedCreateUser);
       }
     } catch (error) {

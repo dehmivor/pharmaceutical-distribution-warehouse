@@ -599,7 +599,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
             }}
           >
             <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
-              <strong>Lưu ý:</strong> {trans.common.form.requiredFieldsNote}
+              <strong>{trans.common.note}:</strong> {trans.common.form.requiredFieldsNote}
             </Typography>
           </Box>
         </Box>

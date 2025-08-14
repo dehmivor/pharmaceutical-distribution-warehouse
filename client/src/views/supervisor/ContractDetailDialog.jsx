@@ -94,7 +94,7 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
       </DialogTitle>
 
       <DialogContent sx={{ p: 3 }}>
-        {/* Thông tin cơ bản */}
+        {/* {trans.common.basicInfo} */}
         <Paper sx={{ p: 3, mb: 3 }}>
           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <DescriptionIcon color="primary" />
@@ -226,7 +226,7 @@ const ContractDetailDialog = ({ open, onClose, contract }) => {
           </Paper>
         )}
 
-        {/* Thông tin bổ sung */}
+        {/* {trans.common.additionalInfo} */}
         <Paper sx={{ p: 3 }}>
                       <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <PersonIcon color="primary" />

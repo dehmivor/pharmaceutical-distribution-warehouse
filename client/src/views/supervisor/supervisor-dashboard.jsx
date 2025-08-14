@@ -217,7 +217,7 @@ function SupervisorDashboard() {
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data');
+      setError(trans.common.failedToLoadDashboard);
     } finally {
       setLoading(false);
     }
@@ -449,7 +449,7 @@ function SupervisorDashboard() {
                   {dashboardData.overview.lowStockItems} {trans.dashboard.lowStockItems.toLowerCase()}
                 </Typography>
                 <Typography variant="body2">
-                  {trans.messages.needCheckLowStock || 'Need to check and replenish low stock medicines'}
+                  {trans.messages.needCheckLowStock || trans.alerts.needCheckLowStock}
                 </Typography>
               </Alert>
             </Grid>
@@ -509,7 +509,7 @@ function SupervisorDashboard() {
                       .map((order) => (
                         <Box key={order._id} sx={{ display: 'flex', justifyContent: 'space-between', p: 1, borderBottom: '1px solid #eee' }}>
                           <Typography variant="body2">
-                            {order.contract_id?.partner_type === 'Supplier' ? 'Import' : 'Export'} - {order._id.slice(-8)}
+                            {order.contract_id?.partner_type === 'Supplier' ? trans.common.import : trans.common.export} - {order._id.slice(-8)}
                           </Typography>
                           <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
                         </Box>
@@ -762,9 +762,9 @@ function SupervisorDashboard() {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Recent Orders
+                  {trans.common.recentOrders}
                 </Typography>
-                <Tooltip title="Refresh">
+                <Tooltip title={trans.common.refreshTooltip}>
                   <IconButton size="small" onClick={fetchDashboardData}>
                     <RefreshIcon />
                   </IconButton>
@@ -792,7 +792,7 @@ function SupervisorDashboard() {
                           </TableCell>
                           <TableCell>
                             <Chip 
-                              label={order.contract_id?.partner_type === 'Supplier' ? 'Import' : 'Export'} 
+                              label={order.contract_id?.partner_type === 'Supplier' ? trans.common.import : trans.common.export} 
                               color={order.contract_id?.partner_type === 'Supplier' ? 'primary' : 'secondary'} 
                               size="small" 
                               variant="outlined"

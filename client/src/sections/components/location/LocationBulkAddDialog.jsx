@@ -29,6 +29,7 @@ import {
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -41,6 +42,7 @@ const axiosInstance = axios.create({
 });
 
 const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
+  const trans = useTrans();
   const { enqueueSnackbar } = useSnackbar();
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -72,7 +74,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
       setAreas(response.data.data.areas || []);
     } catch (error) {
       console.error('Error fetching areas:', error);
-      enqueueSnackbar('Không thể tải danh sách khu vực', { variant: 'error' });
+      enqueueSnackbar(trans.common.cannotLoadAreaList, { variant: 'error' });
     }
   };
 
@@ -159,11 +161,11 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
 
   const validateForm = () => {
     if (!formData.area_id) {
-      enqueueSnackbar('Vui lòng chọn khu vực', { variant: 'error' });
+      enqueueSnackbar(trans.common.areaRequired, { variant: 'error' });
       return false;
     }
     if (!formData.bay.trim()) {
-      enqueueSnackbar('Vui lòng nhập tên bay', { variant: 'error' });
+      enqueueSnackbar(trans.common.bayNameRequired, { variant: 'error' });
       return false;
     }
 
@@ -172,13 +174,13 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
     for (let i = 0; i < formData.rows.length; i++) {
       const row = formData.rows[i];
       if (!row.name.trim()) {
-        enqueueSnackbar(`Vui lòng nhập tên hàng ${i + 1}`, { variant: 'error' });
+        enqueueSnackbar(trans.common.rowNameRequired, { variant: 'error' });
         return false;
       }
       
       const rowName = row.name.trim();
       if (rowNames.includes(rowName)) {
-        enqueueSnackbar(`Tên hàng "${rowName}" bị trùng lặp. Vui lòng sử dụng tên khác`, { variant: 'error' });
+        enqueueSnackbar(trans.common.rowNameDuplicate.replace('{name}', rowName), { variant: 'error' });
         return false;
       }
       rowNames.push(rowName);
@@ -191,13 +193,13 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
       
       for (let j = 0; j < row.columns.length; j++) {
         if (!row.columns[j].trim()) {
-          enqueueSnackbar(`Vui lòng nhập tên cột ${j + 1} của hàng ${i + 1}`, { variant: 'error' });
+          enqueueSnackbar(trans.common.columnNameRequired, { variant: 'error' });
           return false;
         }
         
         const columnName = row.columns[j].trim();
         if (columnNames.includes(columnName)) {
-          enqueueSnackbar(`Tên cột "${columnName}" trong hàng "${row.name.trim()}" bị trùng lặp. Vui lòng sử dụng tên khác`, { variant: 'error' });
+          enqueueSnackbar(trans.common.columnNameDuplicate.replace('{name}', columnName).replace('{rowName}', row.name.trim()), { variant: 'error' });
           return false;
         }
         columnNames.push(columnName);
@@ -238,12 +240,12 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
 
       await Promise.all(promises);
       
-      enqueueSnackbar(`Tạo thành công ${locations.length} vị trí`, { variant: 'success' });
+      enqueueSnackbar(trans.common.successfullyCreatedLocations.replace('{count}', locations.length), { variant: 'success' });
       onSuccess();
       handleClose();
     } catch (error) {
       console.error('Error creating locations:', error);
-      enqueueSnackbar('Có lỗi xảy ra khi tạo vị trí', { variant: 'error' });
+      enqueueSnackbar(trans.common.errorCreatingLocations, { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -273,7 +275,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">Tạo Nhiều Vị Trí Cùng Lúc</Typography>
+          <Typography variant="h6">{trans.common.createMultipleLocations}</Typography>
           <IconButton onClick={handleClose} size="small">
             <CloseIcon />
           </IconButton>
@@ -283,18 +285,18 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
       <DialogContent>
         <Box sx={{ mb: 3 }}>
           <Alert severity="info" sx={{ mb: 2 }}>
-            Tạo nhiều vị trí cho cùng một bay. Tổng số vị trí sẽ được tạo: <strong>{totalLocations}</strong>
+            {trans.common.createMultipleLocationsInfo} <strong>{totalLocations}</strong>
           </Alert>
 
           {/* Area and Bay Selection */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth sx={{ minWidth: 100 }}>
-                <InputLabel>Khu vực *</InputLabel>
+                <InputLabel>{trans.common.areaRequired}</InputLabel>
                 <Select
                   value={formData.area_id}
                   onChange={(e) => handleInputChange('area_id', e.target.value)}
-                  label="Khu vực *"
+                  label={trans.common.areaRequired}
                 >
                   {areas.map((area) => (
                     <MenuItem key={area._id} value={area._id}>
@@ -307,10 +309,10 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Tên bay *"
+                label={trans.common.bayNameRequired}
                 value={formData.bay}
                 onChange={(e) => handleInputChange('bay', e.target.value)}
-                placeholder="VD: Kệ A, ..."
+                placeholder={trans.common.bayNamePlaceholder}
               />
             </Grid>
           </Grid>
@@ -319,7 +321,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
 
           {/* Rows and Columns Configuration */}
           <Typography variant="h6" sx={{ mb: 2 }}>
-            Cấu hình hàng và cột
+            {trans.common.rowColumnConfig}
           </Typography>
 
           {formData.rows.map((row, rowIndex) => (
@@ -327,7 +329,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    Hàng {rowIndex + 1}
+                    {trans.common.row} {rowIndex + 1}
                   </Typography>
                   {formData.rows.length > 1 && (
                     <IconButton
@@ -344,7 +346,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
                   {/* Hàng 1: Tên hàng */}
                   <TextField
                     fullWidth
-                    label="Tên hàng *"
+                    label={trans.common.rowName}
                     value={row.name}
                     onChange={(e) => updateRowName(rowIndex, e.target.value)}
                     placeholder="VD: A, B, C, 1, 2, 3..."
@@ -352,7 +354,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
                   
                   {/* Hàng 2: Label "Các cột" */}
                   <Typography variant="body2" color="text.secondary">
-                    Các cột:
+                    {trans.common.columns}
                   </Typography>
                   
                   {/* Hàng 3: Button "Thêm cột" */}
@@ -363,7 +365,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
                     variant="outlined"
                     sx={{ alignSelf: 'flex-start' }}
                   >
-                    Thêm cột
+                    {trans.common.addColumn}
                   </Button>
                   
                   {/* Hàng 4: Các input cột */}
@@ -396,7 +398,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
                             size="small"
                             value={column}
                             onChange={(e) => updateColumn(rowIndex, columnIndex, e.target.value)}
-                            placeholder="Tên cột"
+                            placeholder={trans.common.columnName}
                             sx={{ 
                               minWidth: 80,
                               maxWidth: 100,
@@ -433,21 +435,21 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
             variant="outlined"
             sx={{ mt: 1 }}
           >
-            Thêm hàng
+            {trans.common.addRow}
           </Button>
         </Box>
       </DialogContent>
 
       <DialogActions>
         <Button onClick={handleClose} disabled={loading}>
-          Hủy
+          {trans.common.cancel}
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
           disabled={loading || totalLocations === 0}
         >
-          {loading ? 'Đang tạo...' : `Tạo ${totalLocations} vị trí`}
+          {loading ? trans.common.creatingMultipleLocations : trans.common.createMultipleLocationsButton.replace('{count}', totalLocations)}
         </Button>
       </DialogActions>
     </Dialog>

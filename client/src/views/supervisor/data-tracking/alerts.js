@@ -40,11 +40,11 @@ const Alerts = () => {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
   const severityMap = {
-    'Low Inventory': 'warning',
-    'Expired Batch': 'error',
-    Recall: 'error',
-    'New Entry': 'info',
-    Info: 'info'
+    [trans.common.lowInventory]: 'warning',
+    [trans.common.expiredBatch]: 'error',
+    [trans.common.recall]: 'error',
+    [trans.common.newEntry]: 'info',
+    [trans.common.info]: 'info'
   };
 
   const fetchData = async () => {
@@ -182,7 +182,7 @@ const Alerts = () => {
             {displayBatches.map((batch) => (
               <TableRow key={batch._id}>
                 <TableCell>{batch.batch_code}</TableCell>
-                <TableCell>{batch.medicine_id?.medicine_name || 'Unknown'}</TableCell>
+                <TableCell>{batch.medicine_id?.medicine_name || trans.common.unknown}</TableCell>
                 <TableCell>{new Date(batch.expiry_date).toLocaleDateString()}</TableCell>
                 <TableCell>{batch.quantity ?? 'N/A'}</TableCell>
                 <TableCell>{batch.supplier || 'N/A'}</TableCell>
