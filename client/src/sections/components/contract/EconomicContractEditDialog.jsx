@@ -357,7 +357,7 @@ const EconomicContractEditDialog = ({
 
     // Validate partner_id
     if (!formData.partner_id) {
-      newErrors.partner_id = "Đối tác là bắt buộc"
+      newErrors.partner_id = trans.contractAdd.validation.partnerRequired
     }
 
     // Validate start_date
@@ -374,7 +374,7 @@ const EconomicContractEditDialog = ({
 
     // Validate items
     if (formData.items.length === 0) {
-      newErrors.items = "Phải có ít nhất 1 thuốc"
+      newErrors.items = trans.contractAdd.validation.medicineRequired
     } else {
       const itemErrors = []
       formData.items.forEach((item, index) => {
@@ -382,23 +382,23 @@ const EconomicContractEditDialog = ({
 
         // Validate medicine_id
         if (!item.medicine_id) {
-          itemError.medicine_id = "Thuốc là bắt buộc"
+          itemError.medicine_id = trans.contractAdd.validation.medicineRequired
         }
 
         // Validate quantity for economic contracts
         if (isEconomic) {
           if (!item.quantity && item.quantity !== "0") {
-            itemError.quantity = "Số lượng là bắt buộc"
+            itemError.quantity = trans.contractAdd.validation.quantityRequiredEconomic
           } else if (!isValidInteger(item.quantity)) {
-            itemError.quantity = "Số lượng phải là số nguyên dương (chỉ chứa chữ số)"
+            itemError.quantity = trans.contractAdd.validation.quantityInteger
           }
         }
 
         // Validate unit_price
         if (!item.unit_price && item.unit_price !== "0") {
-          itemError.unit_price = "Đơn giá là bắt buộc"
+          itemError.unit_price = trans.contractAdd.validation.unitPriceRequired
         } else if (!isValidFloat(item.unit_price)) {
-          itemError.unit_price = "Đơn giá phải là số không âm (chỉ chứa chữ số và dấu chấm)"
+          itemError.unit_price = trans.contractAdd.validation.unitPriceNonNegative
         }
 
         itemErrors[index] = Object.keys(itemError).length > 0 ? itemError : null
@@ -418,35 +418,68 @@ const EconomicContractEditDialog = ({
       return
     }
 
+    if (!contract?._id) {
+      setErrorApi("Contract ID is missing")
+      return
+    }
+
     setErrorApi("")
     try {
       const isEconomic = formData.contract_type === "economic"
 
+      // Clean and validate the payload data
       const payload = {
-        ...formData,
-        items: formData.items.map((item) => ({
-          medicine_id: item.medicine_id,
-          ...(isEconomic && {
-            quantity: Number.parseInt(item.quantity, 10),
-          }),
-          unit_price: Number.parseFloat(item.unit_price),
-        })),
-        ...(formData.contract_type === "principal" && {
-          annexes: formData.annexes.map((annex) => ({
-            ...annex,
-            items:
-              annex.action === ANNEX_ACTIONS.UPDATE_END_DATE
-                ? []
-                : annex.items.map((item) => ({
-                    medicine_id: item.medicine_id,
-                    unit_price: Number.parseFloat(item.unit_price),
-                  })),
+        contract_code: formData.contract_code?.trim(),
+        contract_type: formData.contract_type,
+        partner_type: formData.partner_type,
+        partner_id: formData.partner_id,
+        start_date: formData.start_date ? formData.start_date.toISOString() : null,
+        end_date: formData.end_date ? formData.end_date.toISOString() : null,
+        items: formData.items
+          .filter(item => item.medicine_id && item.medicine_id.trim()) // Only include items with medicine_id
+          .map((item) => ({
+            medicine_id: item.medicine_id,
+            ...(isEconomic && {
+              quantity: item.quantity ? Number.parseInt(item.quantity, 10) : 0,
+            }),
+            unit_price: item.unit_price ? Number.parseFloat(item.unit_price) : 0,
           })),
+        ...(formData.contract_type === "principal" && {
+          annexes: formData.annexes
+            .filter(annex => annex.annex_code?.trim()) // Only include annexes with annex_code
+            .map((annex) => ({
+              annex_code: annex.annex_code?.trim(),
+              description: annex.description?.trim() || '',
+              signed_date: annex.signed_date ? annex.signed_date.toISOString() : null,
+              action: annex.action,
+              items: annex.items
+                ?.filter(item => item.medicine_id && item.medicine_id.trim())
+                .map((item) => ({
+                  medicine_id: item.medicine_id,
+                  unit_price: item.unit_price ? Number.parseFloat(item.unit_price) : 0,
+                })) || [],
+            })),
         }),
       }
 
+      // Final validation before sending
+      if (!payload.contract_code || !payload.partner_id || !payload.start_date || !payload.end_date) {
+        setErrorApi("Missing required fields")
+        return
+      }
+
+      if (payload.items.length === 0) {
+        setErrorApi("At least one medicine item is required")
+        return
+      }
+
+      console.log('Sending payload:', payload)
+      console.log('Contract ID:', contract?._id)
+      console.log('Contract type:', formData.contract_type)
+      
       const response = await trigger(payload, {
         onSuccess: (data) => {
+          console.log('Success response:', data)
           if (data.success) {
             onSuccess(data.data)
             onClose()
@@ -455,14 +488,16 @@ const EconomicContractEditDialog = ({
           }
         },
         onError: (err) => {
+          console.error('Error response:', err)
+          console.error('Error details:', err.response?.data)
           const serverMessage = err.response?.data?.message || err.message
-          setErrorApi(serverMessage || "Lỗi khi cập nhật hợp đồng")
+          setErrorApi(serverMessage || trans.common.contractUpdateFailed)
         },
       })
     } catch (err) {
       console.error("Update contract error:", err)
       const serverMessage = err.response?.data?.message
-      setErrorApi(serverMessage || "Lỗi khi cập nhật hợp đồng")
+      setErrorApi(serverMessage || trans.common.contractUpdateFailed)
     }
   }
 
@@ -511,11 +546,11 @@ const EconomicContractEditDialog = ({
           </Alert>
         )}
 
-        {/* Card 1: {trans.common.mainInfo} */}
+        {/* Card 1: General Information */}
         <Card sx={{ mb: 3, border: "1px solid #e0e0e0" }}>
           <CardContent>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
-              <ContractIcon color="primary" /> Thông Tin Chung
+              <ContractIcon color="primary" /> {trans.contractAdd.generalInfo}
             </Typography>
             <Grid container spacing={3}>
               <Grid item xs={12} md={4}>

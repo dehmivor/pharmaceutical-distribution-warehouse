@@ -1758,5 +1758,68 @@ export default {
       title: 'Confirm Delete Bill',
       content: 'Are you sure you want to delete this bill?'
     }
+  },
+
+  // Contract Add Dialog
+  contractAdd: {
+    title: 'Create New Contract',
+    subtitle: 'Create new contract with partner',
+    generalInfo: 'General Information',
+    contractCode: 'Contract Code',
+    contractType: 'Contract Type',
+    partnerType: 'Partner Type',
+    partner: 'Partner',
+    validityPeriod: 'Validity Period',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    medicineList: 'Medicine List',
+    addMedicine: 'Add Medicine',
+    medicine: 'Medicine',
+    quantity: 'Quantity',
+    unitPrice: 'Unit Price (VND)',
+    annexes: 'Annexes (Optional)',
+    addAnnex: 'Add Annex',
+    annexCode: 'Annex Code',
+    description: 'Description',
+    signedDate: 'Signed Date',
+    updateEndDate: 'Update End Date',
+    addNewMedicine: 'Add New Medicine',
+    removeMedicine: 'Remove Medicine',
+    updateMedicinePrice: 'Update Medicine Price',
+    updateContractEndDate: 'Update Contract End Date',
+    annexDescription: 'Annexes allow you to add/remove medicines, update prices or contract terms after the contract is activated.',
+    selectPartner: 'Select Partner',
+    supplier: 'Supplier',
+    retailer: 'Retailer',
+    selectSupplier: 'Select Supplier',
+    selectRetailer: 'Select Retailer',
+    selectMedicine: 'Select Medicine',
+    enterQuantity: 'Enter quantity',
+    enterUnitPrice: 'Enter unit price',
+    enterAnnexCode: 'e.g., PL001',
+    enterDescription: 'Detailed description of this annex...',
+    selectSignedDate: 'Select signed date',
+    selectNewEndDate: 'Select new end date',
+    addMedicineToAnnex: 'Add Medicine',
+    removeMedicineFromAnnex: 'Add medicine to remove',
+    updateMedicinePriceInAnnex: 'Add medicine to update price',
+    newPrice: 'New Price',
+    cancel: 'Cancel',
+    createContract: 'Create Contract',
+    creating: 'Creating...',
+    validation: {
+      partnerRequired: 'Please select a partner',
+      medicineRequired: 'Please select a medicine',
+      quantityRequiredEconomic: 'Quantity is required for economic contracts',
+      quantityInteger: 'Quantity must be a positive integer',
+      quantityNotAllowedPrincipal: 'Quantity is not allowed for principal contracts',
+      unitPriceRequired: 'Unit price is required',
+      unitPriceNonNegative: 'Unit price must be a non-negative number',
+      annexCodeRequired: 'Annex code is required',
+      signedDateRequired: 'Signed date is required'
+    },
+    actions: {
+      delete: 'Delete'
+    }
   }
 };

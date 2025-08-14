@@ -1756,5 +1756,67 @@ export default {
       title: 'Xác nhận xóa hóa đơn',
       content: 'Bạn có chắc chắn muốn xóa hóa đơn này?'
     }
+  },
+
+  // Contract Add Dialog
+  contractAdd: {
+    title: 'Tạo Hợp Đồng Mới',
+    subtitle: 'Tạo hợp đồng mới với đối tác',
+    generalInfo: 'Thông Tin Chung',
+    contractCode: 'Mã hợp đồng',
+    contractType: 'Loại hợp đồng',
+    partnerType: 'Loại đối tác',
+    partner: 'Đối tác',
+    validityPeriod: 'Thời Gian Hiệu Lực',
+    startDate: 'Ngày bắt đầu',
+    endDate: 'Ngày kết thúc',
+    medicineList: 'Danh Sách Thuốc',
+    addMedicine: 'Thêm thuốc',
+    medicine: 'Thuốc',
+    quantity: 'Số lượng',
+    unitPrice: 'Đơn giá (VNĐ)',
+    annexes: 'Phụ Lục (Tùy chọn)',
+    addAnnex: 'Thêm phụ lục',
+    annexCode: 'Mã phụ lục',
+    description: 'Mô tả',
+    signedDate: 'Ngày ký',
+    updateEndDate: 'Cập nhật ngày kết thúc',
+    addNewMedicine: 'Thêm Thuốc Mới',
+    removeMedicine: 'Xóa Thuốc',
+    updateMedicinePrice: 'Cập Nhật Giá Thuốc',
+    updateContractEndDate: 'Cập Nhật Ngày Kết Thúc Hợp Đồng',
+    annexDescription: 'Phụ lục cho phép bạn thêm/bớt thuốc, cập nhật giá hoặc thời hạn hợp đồng sau khi hợp đồng được kích hoạt.',
+    selectPartner: 'Chọn đối tác',
+    supplier: 'Nhà cung cấp',
+    retailer: 'Nhà bán lẻ',
+    selectSupplier: 'Chọn nhà cung cấp',
+    selectRetailer: 'Chọn nhà bán lẻ',
+    enterQuantity: 'Nhập số lượng',
+    enterUnitPrice: 'Nhập đơn giá',
+    enterAnnexCode: 'VD: PL001',
+    enterDescription: 'Mô tả chi tiết về phụ lục này...',
+    selectSignedDate: 'Chọn ngày ký',
+    selectNewEndDate: 'Chọn ngày kết thúc mới',
+    addMedicineToAnnex: 'Thêm thuốc',
+    removeMedicineFromAnnex: 'Thêm thuốc cần xóa',
+    updateMedicinePriceInAnnex: 'Thêm thuốc cần cập nhật giá',
+    newPrice: 'Giá mới',
+    cancel: 'Hủy',
+    createContract: 'Tạo hợp đồng',
+    creating: 'Đang tạo...',
+    validation: {
+      partnerRequired: 'Vui lòng chọn đối tác',
+      medicineRequired: 'Vui lòng chọn thuốc',
+      quantityRequiredEconomic: 'Số lượng là bắt buộc cho hợp đồng kinh tế',
+      quantityInteger: 'Số lượng phải là số nguyên dương',
+      quantityNotAllowedPrincipal: 'Số lượng không được phép cho hợp đồng nguyên tắc',
+      unitPriceRequired: 'Đơn giá là bắt buộc',
+      unitPriceNonNegative: 'Đơn giá phải là số không âm',
+      annexCodeRequired: 'Mã phụ lục là bắt buộc',
+      signedDateRequired: 'Ngày ký là bắt buộc'
+    },
+    actions: {
+      delete: 'Xóa'
+    }
   }
 };
