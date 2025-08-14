@@ -1686,5 +1686,75 @@ export default {
     emailRequired: 'Email là bắt buộc',
     emailAddress: 'Địa chỉ Email',
     emailOTPNote: 'Email bao gồm mã OTP để xác minh tài khoản',
+  },
+
+  // Debt Management
+  debt: {
+    title: 'Quản lý hóa đơn tạo từ phiếu xuất',
+    description: 'Quản lý hóa đơn tạo từ phiếu xuất',
+    importBills: 'Hóa đơn nhập',
+    exportBills: 'Hóa đơn xuất',
+    filters: {
+      quarter: 'Quý',
+      allQuarters: 'Tất cả',
+      medicineCode: 'Mã thuốc',
+      allMedicineCodes: 'Tất cả',
+      voucherCode: 'Mã phiếu',
+      status: 'Trạng thái',
+      allStatuses: 'Tất cả'
+    },
+    quarters: {
+      quarter1: 'Quý 1',
+      quarter2: 'Quý 2', 
+      quarter3: 'Quý 3',
+      quarter4: 'Quý 4'
+    },
+    table: {
+      supplier: 'Nhà cung cấp',
+      customer: 'Khách hàng',
+      voucherCode: 'Mã phiếu',
+      medicineCode: 'Mã thuốc',
+      totalAmount: 'Tổng tiền (VNĐ)',
+      paymentDate: 'Ngày thanh toán',
+      status: 'Trạng thái',
+      actions: 'Thao tác'
+    },
+    actions: {
+      delete: 'Xóa',
+      viewDetails: 'Xem chi tiết',
+      close: 'Đóng'
+    },
+    details: {
+      title: 'Chi tiết công nợ',
+      voucherCode: 'Mã phiếu:',
+      orderType: 'Loại phiếu:',
+      paymentDate: 'Ngày thanh toán:',
+      status: 'Trạng thái:',
+      supplierInfo: 'Thông tin nhà cung cấp:',
+      customerInfo: 'Thông tin khách hàng:',
+      importOrderDetails: 'Chi tiết thuốc trong đơn nhập:',
+      exportOrderDetails: 'Chi tiết thuốc trong đơn xuất:',
+      debtDetails: 'Chi tiết thuốc trong phiếu công nợ:',
+      totalAmount: 'Tổng tiền:'
+    },
+    tableHeaders: {
+      medicineCode: 'Mã thuốc',
+      medicineName: 'Tên thuốc',
+      quantity: 'Số lượng',
+      unitPrice: 'Đơn giá (VNĐ)',
+      totalPrice: 'Thành tiền (VNĐ)'
+    },
+    messages: {
+      loading: 'Đang tải dữ liệu...',
+      noData: 'Không có dữ liệu phù hợp',
+      deleteSuccess: 'Xóa hóa đơn thành công!',
+      deleteError: 'Xóa hóa đơn thất bại!',
+      deleteErrorWithDetails: 'Lỗi khi xóa hóa đơn: ',
+      noMedicineDetails: 'Không có chi tiết thuốc'
+    },
+    confirmDelete: {
+      title: 'Xác nhận xóa hóa đơn',
+      content: 'Bạn có chắc chắn muốn xóa hóa đơn này?'
+    }
   }
 };

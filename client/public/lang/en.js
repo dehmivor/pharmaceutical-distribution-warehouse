@@ -1688,5 +1688,75 @@ export default {
     emailRequired: 'Email is required',
     emailAddress: 'Email Address',
     emailOTPNote: 'Email includes OTP code for account verification',
+  },
+
+  // Debt Management
+  debt: {
+    title: 'Debt Management',
+    description: 'Manage bills created from export orders',
+    importBills: 'Import Bills',
+    exportBills: 'Export Bills',
+    filters: {
+      quarter: 'Quarter',
+      allQuarters: 'All Quarters',
+      medicineCode: 'Medicine Code',
+      allMedicineCodes: 'All Medicine Codes',
+      voucherCode: 'Voucher Code',
+      status: 'Status',
+      allStatuses: 'All Statuses'
+    },
+    quarters: {
+      quarter1: 'Q1',
+      quarter2: 'Q2', 
+      quarter3: 'Q3',
+      quarter4: 'Q4'
+    },
+    table: {
+      supplier: 'Supplier',
+      customer: 'Customer',
+      voucherCode: 'Voucher Code',
+      medicineCode: 'Medicine Code',
+      totalAmount: 'Total Amount (VND)',
+      paymentDate: 'Payment Date',
+      status: 'Status',
+      actions: 'Actions'
+    },
+    actions: {
+      delete: 'Delete',
+      viewDetails: 'View Details',
+      close: 'Close'
+    },
+    details: {
+      title: 'Debt Details',
+      voucherCode: 'Voucher Code:',
+      orderType: 'Order Type:',
+      paymentDate: 'Payment Date:',
+      status: 'Status:',
+      supplierInfo: 'Supplier Information:',
+      customerInfo: 'Customer Information:',
+      importOrderDetails: 'Medicine details in import order:',
+      exportOrderDetails: 'Medicine details in export order:',
+      debtDetails: 'Medicine details in debt voucher:',
+      totalAmount: 'Total Amount:'
+    },
+    tableHeaders: {
+      medicineCode: 'Medicine Code',
+      medicineName: 'Medicine Name',
+      quantity: 'Quantity',
+      unitPrice: 'Unit Price (VND)',
+      totalPrice: 'Total Price (VND)'
+    },
+    messages: {
+      loading: 'Loading data...',
+      noData: 'No matching data',
+      deleteSuccess: 'Bill deleted successfully!',
+      deleteError: 'Failed to delete bill!',
+      deleteErrorWithDetails: 'Error deleting bill: ',
+      noMedicineDetails: 'No medicine details available'
+    },
+    confirmDelete: {
+      title: 'Confirm Delete Bill',
+      content: 'Are you sure you want to delete this bill?'
+    }
   }
 };
