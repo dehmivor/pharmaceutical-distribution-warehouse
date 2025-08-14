@@ -39,7 +39,8 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
 import { DatePicker } from "@mui/x-date-pickers/DatePicker"
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"
 import { vi } from "date-fns/locale"
-import axios from "axios"
+import axios from "axios";
+import useTrans from '@/hooks/useTrans';
 import useSWRMutation from "swr/mutation"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
@@ -64,12 +65,12 @@ const ANNEX_ACTIONS = {
   UPDATE_END_DATE: "update_end_date",
 }
 
-const ANNEX_ACTION_LABELS = {
-  [ANNEX_ACTIONS.ADD]: "Thêm thuốc mới",
-  [ANNEX_ACTIONS.REMOVE]: "Loại bỏ thuốc",
-  [ANNEX_ACTIONS.UPDATE_PRICE]: "Cập nhật giá thuốc",
-  [ANNEX_ACTIONS.UPDATE_END_DATE]: "Cập nhật ngày kết thúc hợp đồng",
-}
+const getAnnexActionLabels = (trans) => ({
+  [ANNEX_ACTIONS.ADD]: trans.common.addNewMedicine,
+  [ANNEX_ACTIONS.REMOVE]: trans.common.removeMedicine,
+  [ANNEX_ACTIONS.UPDATE_PRICE]: trans.common.updateMedicinePrice,
+  [ANNEX_ACTIONS.UPDATE_END_DATE]: trans.common.updateContractEndDate,
+})
 
 const InfoField = ({ label, value, icon: Icon, onChange, disabled = false, error = false, helperText = "" }) => (
   <Box>
@@ -146,6 +147,8 @@ const EconomicContractEditDialog = ({
   retailers = [],
   isViewMode = false,
 }) => {
+  const trans = useTrans();
+  const ANNEX_ACTION_LABELS = getAnnexActionLabels(trans);
   const [formData, setFormData] = useState({
     contract_code: "",
     contract_type: "economic",
@@ -349,7 +352,7 @@ const EconomicContractEditDialog = ({
 
     // Validate contract_code
     if (!formData.contract_code.trim()) {
-      newErrors.contract_code = "Mã hợp đồng là bắt buộc"
+      newErrors.contract_code = trans.common.contractCodeRequired
     }
 
     // Validate partner_id
@@ -359,14 +362,14 @@ const EconomicContractEditDialog = ({
 
     // Validate start_date
     if (!formData.start_date) {
-      newErrors.start_date = "Ngày bắt đầu là bắt buộc"
+      newErrors.start_date = trans.common.startDateRequired
     }
 
     // Validate end_date
     if (!formData.end_date) {
-      newErrors.end_date = "Ngày kết thúc là bắt buộc"
+      newErrors.end_date = trans.common.endDateRequired
     } else if (formData.start_date && formData.end_date <= formData.start_date) {
-      newErrors.end_date = "Ngày kết thúc phải sau ngày bắt đầu"
+      newErrors.end_date = trans.common.endDateMustBeAfterStart
     }
 
     // Validate items
@@ -448,7 +451,7 @@ const EconomicContractEditDialog = ({
             onSuccess(data.data)
             onClose()
           } else {
-            setErrorApi(data.message || "Cập nhật hợp đồng thất bại")
+            setErrorApi(data.message || trans.common.contractUpdateFailed)
           }
         },
         onError: (err) => {
@@ -485,16 +488,16 @@ const EconomicContractEditDialog = ({
           {isViewMode ? <ViewIcon /> : <EditIcon />}
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {isViewMode ? "Chi Tiết Hợp Đồng" : "Chỉnh Sửa Hợp Đồng"}
-              {isEconomic ? " Kinh tế" : " Nguyên tắc"}
+              {isViewMode ? trans.common.contractDetails : trans.common.editContract}
+              {isEconomic ? ` ${trans.common.economicContract}` : ` ${trans.common.principalContract}`}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              {isViewMode ? "Xem thông tin hợp đồng: " : "Cập nhật thông tin hợp đồng: "}
+              {isViewMode ? `${trans.common.viewContractInfo}: ` : `${trans.common.updateContractInfo}: `}
               {contract.contract_code}
             </Typography>
           </Box>
         </Box>
-        <Tooltip title="Đóng">
+        <Tooltip title={trans.common.close}>
           <IconButton onClick={onClose} sx={{ color: "white" }}>
             <CloseIcon />
           </IconButton>
@@ -508,7 +511,7 @@ const EconomicContractEditDialog = ({
           </Alert>
         )}
 
-        {/* Card 1: Thông tin chính */}
+        {/* Card 1: {trans.common.mainInfo} */}
         <Card sx={{ mb: 3, border: "1px solid #e0e0e0" }}>
           <CardContent>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
@@ -517,7 +520,7 @@ const EconomicContractEditDialog = ({
             <Grid container spacing={3}>
               <Grid item xs={12} md={4}>
                 <InfoField
-                  label="Mã hợp đồng"
+                  label={trans.common.contractCode}
                   value={formData.contract_code}
                   onChange={(e) => handleChange({ target: { name: "contract_code", value: e.target.value } })}
                   error={!!errorValidate.contract_code}
@@ -530,7 +533,7 @@ const EconomicContractEditDialog = ({
                 <Box>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                      Loại hợp đồng
+                      {trans.common.contractType}
                     </Typography>
                   </Box>
                   <Box
@@ -545,7 +548,7 @@ const EconomicContractEditDialog = ({
                     }}
                   >
                     <Chip
-                      label={isEconomic ? "Hợp đồng Kinh tế" : "Hợp đồng Nguyên tắc"}
+                      label={isEconomic ? trans.common.economicContractFull : trans.common.principalContractFull}
                       color={isEconomic ? "primary" : "secondary"}
                       variant="outlined"
                     />
@@ -557,7 +560,7 @@ const EconomicContractEditDialog = ({
                 <Box>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                      Loại đối tác
+                      {trans.common.partnerType}
                     </Typography>
                   </Box>
                   <Box
@@ -696,7 +699,7 @@ const EconomicContractEditDialog = ({
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth error={!!errorValidate.start_date}>
                     <DatePicker
-                      label="Ngày bắt đầu"
+                      label={trans.common.startDate}
                       value={formData.start_date}
                       onChange={isViewMode ? () => {} : handleDateChange("start_date")}
                       format="dd/MM/yyyy"

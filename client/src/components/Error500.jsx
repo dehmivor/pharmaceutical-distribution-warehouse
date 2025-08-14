@@ -14,10 +14,12 @@ import Box from '@mui/material/Box';
 // @assets
 import Error500 from '@/images/maintenance/Error500';
 import Error500Server from '@/images/maintenance/Error500Server';
+import useTrans from '@/hooks/useTrans';
 
 /***************************  ERROR 500 - PAGES  ***************************/
 
 export default function Error500Page({ primaryBtn, heading }) {
+  const trans = useTrans();
   const theme = useTheme();
   const upMD = useMediaQuery(theme.breakpoints.up('md'));
   const upXL = useMediaQuery(theme.breakpoints.up('xl'));

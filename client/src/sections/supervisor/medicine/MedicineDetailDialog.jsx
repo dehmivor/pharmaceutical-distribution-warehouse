@@ -26,6 +26,7 @@ import {
   Settings as SettingsIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
@@ -41,18 +42,7 @@ const axiosInstance = axios.create({
   withCredentials: true
 });
 
-const STORAGE_LABELS = {
-  temperature: 'Nhiệt độ',
-  humidity: 'Độ ẩm',
-  light: 'Ánh sáng'
-};
 
-const LIGHT_LABELS = {
-  none: 'Không ánh sáng',
-  low: 'Ánh sáng yếu',
-  medium: 'Ánh sáng trung bình',
-  high: 'Ánh sáng mạnh'
-};
 
 const InfoField = ({ label, value, icon: Icon }) => (
   <Box>
@@ -81,6 +71,7 @@ const InfoField = ({ label, value, icon: Icon }) => (
 );
 
 const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
+  const trans = useTrans();
   const [medicine, setMedicine] = useState(null);
   const [amountInfo, setAmountInfo] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -109,7 +100,7 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
       }
     } catch (error) {
       console.error('Error fetching medicine data:', error);
-      setError('Lỗi khi tải thông tin thuốc');
+      setError(trans.medicine.messages.loadDetailError);
     } finally {
       setLoading(false);
     }
@@ -155,14 +146,14 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
           </Box>
           <Box>
             <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-              Chi Tiết Thuốc
+              {trans.medicineDetail.title}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-              Thông tin chi tiết về thuốc
+              {trans.medicineDetail.subtitle}
             </Typography>
           </Box>
         </Box>
-        <Tooltip title="Đóng">
+        <Tooltip title={trans.medicineDetail.close}>
           <IconButton
             onClick={onClose}
             sx={{
@@ -180,7 +171,7 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
           {/* Loading and Error States */}
           {loading && (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <Typography>Đang tải thông tin thuốc...</Typography>
+              <Typography>{trans.medicineDetail.loading}</Typography>
             </Box>
           )}
           
@@ -198,33 +189,33 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
                     <MedicationIcon sx={{ color: 'primary.main', fontSize: 24 }} />
                     <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                      Thông Tin Cơ Bản
+                      {trans.medicineDetail.basicInfo.title}
                     </Typography>
                   </Box>
 
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={6}>
-                      <InfoField label="Tên thuốc" value={medicine.medicine_name} icon={MedicationIcon} />
+                      <InfoField label={trans.medicineDetail.basicInfo.medicineName} value={medicine.medicine_name} icon={MedicationIcon} />
                     </Grid>
                     <Grid item xs={12} md={6}>
-                      <InfoField label="Số đăng ký" value={medicine.license_code} icon={CategoryIcon} />
+                      <InfoField label={trans.medicineDetail.basicInfo.licenseCode} value={medicine.license_code} icon={CategoryIcon} />
                     </Grid>
                     <Grid item xs={12} md={6}>
-                      <InfoField label="Danh mục" value={medicine.category} icon={CategoryIcon} />
+                      <InfoField label={trans.medicineDetail.basicInfo.category} value={medicine.category} icon={CategoryIcon} />
                     </Grid>
                     <Grid item xs={12} md={6}>
-                      <InfoField label="Đơn vị đo" value={medicine.unit_of_measure} icon={InventoryIcon} />
+                      <InfoField label={trans.medicineDetail.basicInfo.unitOfMeasure} value={medicine.unit_of_measure} icon={InventoryIcon} />
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <InfoField 
-                        label="Trạng thái" 
-                        value={medicine.status === 'active' ? 'Hoạt động' : 'Không hoạt động'} 
+                        label={trans.medicineDetail.basicInfo.status} 
+                        value={medicine.status === 'active' ? trans.medicine.filters.active : trans.medicine.filters.inactive} 
                         icon={SettingsIcon} 
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <InfoField 
-                        label="Số lượng trong kho" 
+                        label={trans.medicineDetail.basicInfo.stockQuantity} 
                         value={amountInfo ? `${amountInfo.total_amount} ${medicine.unit_of_measure}` : '—'} 
                         icon={InventoryIcon} 
                       />
@@ -239,7 +230,7 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
                     <StorageIcon sx={{ color: 'info.main', fontSize: 24 }} />
                     <Typography variant="h6" sx={{ fontWeight: 600, color: 'info.main' }}>
-                      Điều Kiện Bảo Quản
+                      {trans.medicineDetail.storageConditions.title}
                     </Typography>
                   </Box>
 
@@ -250,8 +241,8 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
                         .map(([key, value]) => (
                           <Grid item xs={12} md={4} key={key}>
                             <InfoField
-                              label={STORAGE_LABELS[key]}
-                              value={key === 'light' ? LIGHT_LABELS[value] || value : value}
+                              label={trans.medicineDetail.storageConditions[key]}
+                              value={key === 'light' ? trans.medicineDetail.storageConditions.lightOptions[value] || value : value}
                               icon={StorageIcon}
                             />
                           </Grid>
@@ -268,7 +259,7 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
                       }}
                     >
                       <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>
-                        Không có thông tin điều kiện bảo quản
+                        {trans.medicineDetail.storageConditions.noInfo}
                       </Typography>
                     </Box>
                   )}
@@ -281,21 +272,21 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
                     <SettingsIcon sx={{ color: 'secondary.main', fontSize: 24 }} />
                     <Typography variant="h6" sx={{ fontWeight: 600, color: 'secondary.main' }}>
-                      Quản Lý Tồn Kho
+                      {trans.medicineDetail.stockManagement.title}
                     </Typography>
                   </Box>
 
                   <Grid container spacing={3}>
                     <Grid item xs={12} md={6}>
                       <InfoField
-                        label="Ngưỡng tồn kho tối thiểu"
+                        label={trans.medicineDetail.stockManagement.minThreshold}
                         value={medicine.min_stock_threshold !== undefined ? medicine.min_stock_threshold : '—'}
                         icon={InventoryIcon}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <InfoField
-                        label="Ngưỡng tồn kho tối đa"
+                        label={trans.medicineDetail.stockManagement.maxThreshold}
                         value={medicine.max_stock_threshold !== undefined ? medicine.max_stock_threshold : '—'}
                         icon={InventoryIcon}
                       />
@@ -333,7 +324,7 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
             }
           }}
         >
-          Đóng
+                     {trans.medicineDetail.close}
         </Button>
       </DialogActions>
     </Dialog>

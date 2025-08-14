@@ -8,60 +8,62 @@ import {
   Block as CancelIcon,
   Restore as RestoreIcon
 } from '@mui/icons-material';
+import useTrans from '@/hooks/useTrans';
 
 const StatusActionDialog = ({ open, onClose, onConfirm, contract, actionType, loading = false }) => {
+  const trans = useTrans();
   // Configuration cho từng loại action
   const actionConfig = {
     delete: {
-      title: 'Xác Nhận Xóa',
-      message: 'Bạn có chắc chắn muốn xóa hợp đồng này không?',
-      warningText: 'Hành động này không thể hoàn tác!',
-      confirmText: 'Xóa',
-      loadingText: 'Đang xóa...',
+      title: trans.common.confirmDelete,
+      message: trans.common.confirmDeleteContract,
+      warningText: trans.common.actionCannotBeUndone,
+      confirmText: trans.common.delete,
+      loadingText: trans.common.deleting,
       icon: DeleteIcon,
       color: '#d32f2f',
       gradient: 'linear-gradient(135deg, #d32f2f 0%, #f44336 100%)',
       hoverGradient: 'linear-gradient(135deg, #c62828 0%, #d32f2f 100%)'
     },
     confirm: {
-      title: 'Xác Nhận Hợp Đồng',
-      message: 'Bạn có chắc chắn muốn xác nhận hợp đồng này không?',
-      warningText: 'Hợp đồng sẽ chuyển sang trạng thái hoạt động!',
-      confirmText: 'Xác nhận',
-      loadingText: 'Đang xác nhận...',
+      title: trans.common.confirmContract,
+      message: trans.common.confirmContractMessage,
+      warningText: trans.common.contractWillBeActive,
+      confirmText: trans.common.confirmAction,
+      loadingText: trans.common.confirming,
       icon: ConfirmIcon,
       color: '#2e7d32',
       gradient: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
       hoverGradient: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)'
     },
     reject: {
-      title: 'Từ Chối Hợp Đồng',
-      message: 'Bạn có chắc chắn muốn từ chối hợp đồng này không?',
-      warningText: 'Hợp đồng sẽ chuyển sang trạng thái bị từ chối!',
-      confirmText: 'Từ chối',
-      loadingText: 'Đang từ chối...',
+      title: trans.common.rejectContract,
+      message: trans.common.rejectContractMessage,
+      warningText: trans.common.contractWillBeRejected,
+      confirmText: trans.common.rejectContract,
+      loadingText: trans.common.rejecting,
       icon: RejectIcon,
       color: '#ed6c02',
       gradient: 'linear-gradient(135deg, #ed6c02 0%, #ff9800 100%)',
       hoverGradient: 'linear-gradient(135deg, #e65100 0%, #ed6c02 100%)'
     },
     cancel: {
-      title: 'Hủy Hợp Đồng',
-      message: 'Bạn có chắc chắn muốn hủy hợp đồng này không?',
-      warningText: 'Hợp đồng sẽ chuyển sang trạng thái đã hủy!',
-      confirmText: 'Hủy hợp đồng',
-      loadingText: 'Đang hủy...',
+      title: trans.common.cancelContractDialog,
+      message: trans.common.cancelContractMessage,
+      warningText: trans.common.contractWillBeCancelled,
+      confirmText: trans.common.cancelContract,
+      loadingText: trans.common.cancelling,
       icon: CancelIcon,
       color: '#9c27b0',
       gradient: 'linear-gradient(135deg, #9c27b0 0%, #e91e63 100%)',
       hoverGradient: 'linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%)'
     },
     draft: {
-      title: 'Khôi Phục Về Nháp',
-      message: 'Bạn có chắc chắn muốn khôi phục hợp đồng này về trạng thái nháp không?',
-      warningText: 'Hợp đồng sẽ được xem xét lại từ đầu!',
-      confirmText: 'Khôi phục về nháp',
-      loadingText: 'Đang khôi phục...',
+      title: trans.common.restoreToDraft,
+      message: trans.common.restoreToDraftMessage,
+      warningText: trans.common.contractWillBeReviewed,
+      confirmText: trans.common.restoreToDraft,
+      loadingText: trans.common.restoring,
       icon: RestoreIcon,
       color: '#1976d2',
       gradient: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
@@ -162,7 +164,7 @@ const StatusActionDialog = ({ open, onClose, onConfirm, contract, actionType, lo
           }}
           disabled={loading}
         >
-          Hủy
+          {trans.common.cancel}
         </Button>
         <Button
           onClick={onConfirm}

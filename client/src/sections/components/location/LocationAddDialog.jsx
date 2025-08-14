@@ -21,6 +21,7 @@ import {
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -33,6 +34,7 @@ const axiosInstance = axios.create({
 });
 
 const LocationAddDialog = ({ open, onClose, onSuccess }) => {
+  const trans = useTrans();
   const { enqueueSnackbar } = useSnackbar();
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -80,25 +82,25 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
     const newErrors = {};
 
     if (!formData.area_id) {
-      newErrors.area_id = 'Khu vực là bắt buộc';
+      newErrors.area_id = trans.common.areaRequired;
     }
 
     if (!formData.bay) {
-      newErrors.bay = 'Bay là bắt buộc';
+      newErrors.bay = trans.common.bayRequired;
     } else if (formData.bay.length > 50) {
-      newErrors.bay = 'Bay không được quá 50 ký tự';
+      newErrors.bay = trans.common.bayTooLong;
     }
 
     if (!formData.row) {
-      newErrors.row = 'Rơ là bắt buộc';
+      newErrors.row = trans.common.rowRequired;
     } else if (formData.row.length > 50) {
-      newErrors.row = 'Rơ không được quá 50 ký tự';
+      newErrors.row = trans.common.rowTooLong;
     }
 
     if (!formData.column) {
-      newErrors.column = 'Column là bắt buộc';
+      newErrors.column = trans.common.columnRequired;
     } else if (formData.column.length > 50) {
-      newErrors.column = 'Column không được quá 50 ký tự';
+      newErrors.column = trans.common.columnTooLong;
     }
 
     setErrors(newErrors);
@@ -125,7 +127,7 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
         }
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Không thể tạo vị trí';
+      const errorMessage = error.response?.data?.message || trans.common.cannotCreateLocation;
       enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setLoading(false);
@@ -156,7 +158,7 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <AddIcon sx={{ color: 'primary.main' }} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Thêm Vị Trí Mới
+            {trans.common.addNewLocation}
           </Typography>
         </Box>
       </DialogTitle>
@@ -165,11 +167,11 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12}>
             <FormControl fullWidth error={!!errors.area_id} sx={{ minWidth: 100 }}>
-              <InputLabel>Khu vực *</InputLabel>
+              <InputLabel>{trans.common.areaRequired}</InputLabel>
               <Select
                 value={formData.area_id}
                 onChange={(e) => handleInputChange('area_id', e.target.value)}
-                label="Khu vực *"
+                label={trans.common.areaRequired}
               >
                 {areas.map((area) => (
                   <MenuItem key={area._id} value={area._id}>
@@ -188,7 +190,7 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
           <Grid item xs={12} sm={4}>
             <TextField
               fullWidth
-              label="Bay *"
+              label={trans.common.bayRequired}
               value={formData.bay}
               onChange={(e) => handleInputChange('bay', e.target.value)}
               error={!!errors.bay}
@@ -200,7 +202,7 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
           <Grid item xs={12} sm={4}>
             <TextField
               fullWidth
-              label="Row *"
+              label={trans.common.rowRequired}
               value={formData.row}
               onChange={(e) => handleInputChange('row', e.target.value)}
               error={!!errors.row}
@@ -212,7 +214,7 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
           <Grid item xs={12} sm={4}>
             <TextField
               fullWidth
-              label="Column *"
+              label={trans.common.columnRequired}
               value={formData.column}
               onChange={(e) => handleInputChange('column', e.target.value)}
               error={!!errors.column}
@@ -225,7 +227,7 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
       
       <DialogActions>
         <Button onClick={handleClose} disabled={loading}>
-          Hủy
+          {trans.common.cancel}
         </Button>
         <Button 
           onClick={handleSubmit} 
@@ -233,7 +235,7 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
           disabled={loading}
           startIcon={<AddIcon />}
         >
-          {loading ? 'Đang tạo...' : 'Tạo vị trí'}
+          {loading ? trans.common.creating : trans.common.createLocation}
         </Button>
       </DialogActions>
     </Dialog>

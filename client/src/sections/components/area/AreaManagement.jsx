@@ -37,6 +37,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useSnackbar } from 'notistack';
+import useTrans from '@/hooks/useTrans';
 import AreaAddDialog from './AreaAddDialog';
 import AreaDetailDialog from './AreaDetailDialog';
 
@@ -55,6 +56,7 @@ const axiosInstance = axios.create({
 });
 
 const AreaManagement = () => {
+  const trans = useTrans();
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,7 +91,7 @@ const AreaManagement = () => {
       }
     } catch (error) {
       console.error('Error fetching areas:', error);
-      enqueueSnackbar('Không thể tải danh sách khu vực', { variant: 'error' });
+      enqueueSnackbar(trans.common.cannotLoadAreaList, { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -116,7 +118,7 @@ const AreaManagement = () => {
   const handleAddSuccess = () => {
     setOpenAddDialog(false);
     fetchAreas();
-    enqueueSnackbar('Tạo khu vực thành công', { variant: 'success' });
+    enqueueSnackbar(trans.common.createAreaSuccess, { variant: 'success' });
   };
 
   const handleViewClick = (area) => {
@@ -127,7 +129,7 @@ const AreaManagement = () => {
   const handleEditSuccess = () => {
     setOpenViewDialog(false);
     fetchAreas();
-    enqueueSnackbar('Cập nhật khu vực thành công', { variant: 'success' });
+    enqueueSnackbar(trans.common.updateAreaSuccess, { variant: 'success' });
   };
 
   const handleDeleteClick = (area) => {
@@ -143,14 +145,14 @@ const AreaManagement = () => {
       });
 
       if (response.data.success) {
-        enqueueSnackbar('Xóa khu vực thành công', { variant: 'success' });
+        enqueueSnackbar(trans.common.deleteAreaSuccess, { variant: 'success' });
         setOpenDeleteDialog(false);
         setAreaToDelete(null);
         fetchAreas();
       }
     } catch (error) {
       console.error('Error deleting area:', error);
-      enqueueSnackbar(error.response?.data?.message || 'Không thể xóa khu vực', { variant: 'error' });
+      enqueueSnackbar(error.response?.data?.message || trans.common.cannotDeleteArea, { variant: 'error' });
     } finally {
       setDeleteLoading(false);
     }
@@ -174,15 +176,15 @@ const AreaManagement = () => {
   const getLightLabel = (light) => {
     switch (light) {
       case 'none':
-        return 'none';
+        return trans.common.lightNone;
       case 'low':
-        return 'low';
+        return trans.common.lightLow;
       case 'medium':
-        return 'medium';
+        return trans.common.lightMedium;
       case 'high':
-        return 'high';
+        return trans.common.lightHigh;
       default:
-        return 'Không xác định';
+        return trans.common.unknown;
     }
   };
 
@@ -192,14 +194,14 @@ const AreaManagement = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Area Management
+            {trans.common.areaManagement}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Search, sort, filter area
+            {trans.common.searchSortFilterArea}
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<Refresh />}>
-          Refresh
+          {trans.common.refresh}
         </Button>
       </Box>
 
@@ -209,13 +211,13 @@ const AreaManagement = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
             <SearchIcon sx={{ color: 'primary.main', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-              Tìm Kiếm
+              {trans.common.search}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
-            <TextField placeholder="Tìm kiếm theo tên khu vực..." value={searchTerm} onChange={handleSearch} sx={{ minWidth: 200 }} />
+            <TextField placeholder={trans.common.searchByAreaName} value={searchTerm} onChange={handleSearch} sx={{ minWidth: 200 }} />
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenAddDialog(true)} sx={{ borderRadius: 2 }}>
-              Thêm Khu Vực
+              {trans.common.addArea}
             </Button>
           </Box>
         </CardContent>
@@ -234,12 +236,12 @@ const AreaManagement = () => {
                 <Table>
                   <TableHead>
                     <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                      <TableCell sx={{ fontWeight: 600 }}>Tên Khu Vực</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Nhiệt Độ</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Độ Ẩm</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Ánh Sáng</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{trans.common.areaName}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{trans.common.temperature}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{trans.common.humidity}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{trans.common.light}</TableCell>
                       <TableCell sx={{ fontWeight: 600 }} align="center">
-                        Hành Động
+                        {trans.common.actions}
                       </TableCell>
                     </TableRow>
                   </TableHead>
@@ -248,7 +250,7 @@ const AreaManagement = () => {
                       <TableRow>
                         <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                           <Typography variant="body1" color="text.secondary">
-                            Không có dữ liệu khu vực
+                            {trans.common.noAreaData}
                           </Typography>
                         </TableCell>
                       </TableRow>
@@ -261,10 +263,10 @@ const AreaManagement = () => {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            {area.storage_conditions?.temperature ? `${area.storage_conditions.temperature}°C` : 'Không xác định'}
+                            {area.storage_conditions?.temperature ? `${area.storage_conditions.temperature}°C` : trans.common.unknown}
                           </TableCell>
                           <TableCell>
-                            {area.storage_conditions?.humidity ? `${area.storage_conditions.humidity}%` : 'Không xác định'}
+                            {area.storage_conditions?.humidity ? `${area.storage_conditions.humidity}%` : trans.common.unknown}
                           </TableCell>
                           <TableCell>
                             {area.storage_conditions?.light ? (
@@ -274,12 +276,12 @@ const AreaManagement = () => {
                                 size="small"
                               />
                             ) : (
-                              'Không xác định'
+                              trans.common.unknown
                             )}
                           </TableCell>
                           <TableCell align="center">
                             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                              <Tooltip title="Xem chi tiết">
+                              <Tooltip title={trans.common.viewDetails}>
                                 <IconButton
                                   color="primary"
                                   size="small"
@@ -289,7 +291,7 @@ const AreaManagement = () => {
                                   <ViewIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
-                              <Tooltip title="Xóa">
+                              <Tooltip title={trans.common.delete}>
                                 <IconButton
                                   color="error"
                                   size="small"
@@ -317,8 +319,8 @@ const AreaManagement = () => {
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
                 rowsPerPageOptions={[5, 10, 25, 50]}
-                labelRowsPerPage="Số hàng mỗi trang:"
-                labelDisplayedRows={({ from, to, count }) => `${from}-${to} trong ${count !== -1 ? count : `hơn ${to}`}`}
+                labelRowsPerPage={trans.common.rowsPerPage}
+                labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count !== -1 ? count : trans.common.moreThan} ${to}`}
               />
             </>
           )}
@@ -333,18 +335,18 @@ const AreaManagement = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle>Xác nhận xóa</DialogTitle>
+        <DialogTitle>{trans.common.confirmDelete}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Bạn có chắc chắn muốn xóa khu vực "{areaToDelete?.name}" không? Hành động này không thể hoàn tác.
+            {trans.common.confirmDeleteArea?.replace('{name}', areaToDelete?.name || '')}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleteLoading}>
-            Hủy
+            {trans.common.cancel}
           </Button>
           <Button onClick={handleDeleteConfirm} color="error" variant="contained" disabled={deleteLoading}>
-            {deleteLoading ? <CircularProgress size={20} /> : 'Xóa'}
+            {deleteLoading ? <CircularProgress size={20} /> : trans.common.delete}
           </Button>
         </DialogActions>
       </Dialog>

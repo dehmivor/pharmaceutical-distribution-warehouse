@@ -35,9 +35,11 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { useMemo } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 function PermissionManagement({ onOpenPermissionDialog }) {
   const theme = useTheme();
+  const trans = useTrans();
   const { users, loading, error, refetch } = useUsers();
 
   // Filter users theo role
@@ -76,13 +78,13 @@ function PermissionManagement({ onOpenPermissionDialog }) {
   const getRoleDisplayName = (role) => {
     switch (role) {
       case 'supervisor':
-        return 'Supervisor';
+        return trans.userManagement.roles.supervisor;
       case 'representative':
-        return 'Representative';
+        return trans.userManagement.roles.representative;
       case 'warehouse':
-        return 'Warehouse';
+        return trans.userManagement.roles.warehouse;
       default:
-        return role || 'Unknown';
+        return role || trans.common.unknown;
     }
   };
 
@@ -104,7 +106,7 @@ function PermissionManagement({ onOpenPermissionDialog }) {
       return (
         <Box display="flex" justifyContent="center" p={4}>
           <CircularProgress />
-          <Typography sx={{ ml: 2 }}>Đang tải dữ liệu...</Typography>
+          <Typography sx={{ ml: 2 }}>{trans.common.loading}</Typography>
         </Box>
       );
     }
@@ -112,9 +114,9 @@ function PermissionManagement({ onOpenPermissionDialog }) {
     if (error) {
       return (
         <Alert severity="error" sx={{ m: 2 }}>
-          Lỗi: {error}
+          {trans.common.error}: {error}
           <Button onClick={refetch} sx={{ ml: 2 }} variant="outlined" size="small">
-            Thử lại
+            {trans.common.retry}
           </Button>
         </Alert>
       );
@@ -123,7 +125,7 @@ function PermissionManagement({ onOpenPermissionDialog }) {
     if (!Array.isArray(users) || users.length === 0) {
       return (
         <Box display="flex" justifyContent="center" p={4}>
-          <Typography color="text.secondary">Không có người dùng nào trong {sectionName}</Typography>
+          <Typography color="text.secondary">{trans.common.noDataInSection(sectionName)}</Typography>
         </Box>
       );
     }

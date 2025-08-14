@@ -3,8 +3,10 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Switch from '@mui/material/Switch';
 import { Box, FormControl, Grid, InputLabel, MenuItem, Select, TextField } from '@mui/material';
 import { useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 function NewSupplierForm() {
+  const trans = useTrans();
   const [formData, setFormData] = useState({
     supplierName: '',
     contactEmail: '',
@@ -29,42 +31,42 @@ function NewSupplierForm() {
   return (
     <Box sx={{ maxWidth: 1000, bgcolor: 'background.paper', borderRadius: 1, p: 3 }}>
       <Grid container spacing={3}>
-        {/* Dòng 1: 2 trường */}
+        {/* {trans.supplierForm.row1} */}
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Supplier Name"
+            label={trans.supplierForm.supplierName}
             variant="outlined"
             value={formData.supplierName}
             onChange={handleChange('supplierName')}
             size="small"
-            placeholder="Enter supplier name"
+            placeholder={trans.supplierForm.enterSupplierName}
           />
         </Grid>
 
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Contact Email"
+            label={trans.supplierForm.contactEmail}
             variant="outlined"
             type="email"
             value={formData.contactEmail}
             onChange={handleChange('contactEmail')}
             size="small"
-            placeholder="Enter contact email"
+            placeholder={trans.supplierForm.enterContactEmail}
           />
         </Grid>
 
-        {/* Dòng 2: 3 trường */}
+        {/* {trans.supplierForm.row2} */}
         <Grid item xs={12} sm={4}>
           <FormControl style={{ width: 200 }} size="small">
-            <InputLabel>Business Type</InputLabel>
-            <Select value={formData.businessType} label="Business Type" onChange={handleChange('businessType')} displayEmpty>
+            <InputLabel>{trans.supplierForm.businessType}</InputLabel>
+            <Select value={formData.businessType} label={trans.supplierForm.businessType} onChange={handleChange('businessType')} displayEmpty>
               <MenuItem value=""></MenuItem>
-              <MenuItem value="Manufacturer">Manufacturer</MenuItem>
-              <MenuItem value="Distributor">Distributor</MenuItem>
-              <MenuItem value="Wholesaler">Wholesaler</MenuItem>
-              <MenuItem value="Service Provider">Service Provider</MenuItem>
+              <MenuItem value="Manufacturer">{trans.supplierForm.manufacturer}</MenuItem>
+              <MenuItem value="Distributor">{trans.supplierForm.distributor}</MenuItem>
+              <MenuItem value="Wholesaler">{trans.supplierForm.wholesaler}</MenuItem>
+              <MenuItem value="Service Provider">{trans.supplierForm.serviceProvider}</MenuItem>
             </Select>
           </FormControl>
         </Grid>
@@ -72,44 +74,44 @@ function NewSupplierForm() {
         <Grid item xs={12} sm={4}>
           <TextField
             fullWidth
-            label="Contact Person"
+            label={trans.supplierForm.contactPerson}
             variant="outlined"
             size="small"
             value={formData.contactPerson}
             onChange={handleChange('contactPerson')}
-            placeholder="Enter contact person name"
+            placeholder={trans.supplierForm.enterContactPerson}
           />
         </Grid>
 
         <Grid item xs={12} sm={4}>
           <TextField
             fullWidth
-            label="Phone Number"
+            label={trans.supplierForm.phoneNumber}
             variant="outlined"
             size="small"
             value={formData.phoneNumber}
             onChange={handleChange('phoneNumber')}
-            placeholder="Enter phone number"
+            placeholder={trans.supplierForm.enterPhoneNumber}
           />
         </Grid>
 
-        {/* Dòng 3: 3 trường */}
+        {/* {trans.supplierForm.row3} */}
         <Grid item xs={12} sm={5}>
           <TextField
             fullWidth
-            label="Address"
+            label={trans.supplierForm.address}
             variant="outlined"
             size="small"
             value={formData.address}
             onChange={handleChange('address')}
-            placeholder="Enter supplier address"
+            placeholder={trans.supplierForm.enterAddress}
           />
         </Grid>
 
         <Grid item xs={12} sm={3}>
           <FormControl style={{ width: 200 }} size="small">
-            <InputLabel>Supplier Category</InputLabel>
-            <Select value={formData.supplierCategory} label="Supplier Category" onChange={handleChange('supplierCategory')} displayEmpty>
+            <InputLabel>{trans.supplierForm.supplierCategory}</InputLabel>
+            <Select value={formData.supplierCategory} label={trans.supplierForm.supplierCategory} onChange={handleChange('supplierCategory')} displayEmpty>
               <MenuItem value=""></MenuItem>
               <MenuItem value="Raw Materials">Raw Materials</MenuItem>
               <MenuItem value="Finished Goods">Finished Goods</MenuItem>
@@ -135,20 +137,20 @@ function NewSupplierForm() {
                 name="isPreferred"
               />
             }
-            label="Preferred Supplier"
+            label={trans.supplierForm.isPreferred}
           />
         </Grid>
 
-        {/* Dòng 4: Trường Tax ID */}
+        {/* {trans.supplierForm.row4} */}
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Tax ID / Business Registration"
+            label={trans.supplierForm.taxId}
             variant="outlined"
             size="small"
             value={formData.taxId}
             onChange={handleChange('taxId')}
-            placeholder="Enter tax ID or business registration number"
+            placeholder={trans.supplierForm.enterTaxId}
           />
         </Grid>
       </Grid>

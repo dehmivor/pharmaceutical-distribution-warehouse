@@ -34,6 +34,7 @@ import {
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -46,6 +47,7 @@ const axiosInstance = axios.create({
 });
 
 const LocationDetailDialog = ({ open, onClose, location }) => {
+  const trans = useTrans();
   const { enqueueSnackbar } = useSnackbar();
   const [locationInfo, setLocationInfo] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -65,7 +67,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
       }
     } catch (error) {
       console.error('Error fetching location info:', error);
-      enqueueSnackbar(error.response?.data?.message || 'Không thể tải thông tin vị trí', { variant: 'error' });
+      enqueueSnackbar(error.response?.data?.message || trans.common.cannotLoadLocationInfo, { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -90,7 +92,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <LocationIcon sx={{ color: 'primary.main' }} />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Chi Tiết Vị Trí
+            {trans.common.locationDetails}
           </Typography>
         </Box>
       </DialogTitle>
@@ -105,15 +107,15 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
             {/* Location Information */}
             <Card sx={{ mb: 3 }}>
               <CardContent>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
-                  Thông Tin Vị Trí
-                </Typography>
+                                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
+                    {trans.common.locationInfo}
+                  </Typography>
                 
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Khu vực
-                    </Typography>
+                                          <Typography variant="body2" color="text.secondary">
+                        {trans.common.area}
+                      </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {location.area_id?.name || 'N/A'}
                     </Typography>
@@ -121,10 +123,10 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                   
                   <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">
-                      Trạng thái
+                      {trans.common.status}
                     </Typography>
                     <Chip
-                      label={location.available ? 'Có sẵn' : 'Không có sẵn'}
+                      label={location.available ? trans.common.available : trans.common.notAvailable}
                       color={location.available ? 'success' : 'error'}
                       size="small"
                     />
@@ -132,7 +134,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                   
                   <Grid item xs={12} sm={4}>
                     <Typography variant="body2" color="text.secondary">
-                      Bay
+                      {trans.common.bay}
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {location.bay}
@@ -141,7 +143,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                   
                   <Grid item xs={12} sm={4}>
                     <Typography variant="body2" color="text.secondary">
-                      Row
+                      {trans.common.row}
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {location.row}
@@ -150,7 +152,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                   
                   <Grid item xs={12} sm={4}>
                     <Typography variant="body2" color="text.secondary">
-                      Column
+                      {trans.common.column}
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {location.column}
@@ -166,7 +168,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                   <InventoryIcon sx={{ color: 'primary.main' }} />
                   <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                    Thuốc Được Lưu Trữ
+                    {trans.common.medicineStored}
                   </Typography>
                 </Box>
 
@@ -177,8 +179,8 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                          <PackageIcon fontSize="small" />
                          <Typography variant="body2" color="text.secondary">
                            {viewMode === 'package' 
-                             ? `Tổng số các thùng: ${locationInfo.total_packages}`
-                             : `Tổng số loại thuốc: ${locationInfo.medicine_summary.length}`
+                             ? trans.common.totalPackages.replace('{count}', locationInfo.total_packages)
+                             : trans.common.totalMedicineTypes.replace('{count}', locationInfo.medicine_summary.length)
                            }
                          </Typography>
                        </Box>
@@ -195,11 +197,11 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                        >
                          <ToggleButton value="package" aria-label="view by package">
                            <ViewListIcon sx={{ mr: 1 }} />
-                           View by Package
+                           {trans.common.viewByPackage}
                          </ToggleButton>
                          <ToggleButton value="medicine" aria-label="view by medicine">
                            <CategoryIcon sx={{ mr: 1 }} />
-                           View by Medicine
+                           {trans.common.viewByMedicine}
                          </ToggleButton>
                        </ToggleButtonGroup>
                      </Box>
@@ -211,15 +213,15 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                              <TableRow>
                                {viewMode === 'package' ? (
                                  <>
-                                   <TableCell>Mã thùng</TableCell>
-                                   <TableCell>Mã lô</TableCell>
-                                   <TableCell>Mã thuốc</TableCell>
-                                   <TableCell align="right">Số lượng</TableCell>
+                                   <TableCell>{trans.common.packageCode}</TableCell>
+                                   <TableCell>{trans.common.batchCode}</TableCell>
+                                   <TableCell>{trans.common.medicineCode}</TableCell>
+                                   <TableCell align="right">{trans.common.quantity}</TableCell>
                                  </>
                                ) : (
                                  <>
-                                   <TableCell>Mã thuốc</TableCell>
-                                   <TableCell align="right">Số lượng</TableCell>
+                                   <TableCell>{trans.common.medicineCode}</TableCell>
+                                   <TableCell align="right">{trans.common.quantity}</TableCell>
                                  </>
                                )}
                              </TableRow>
@@ -274,7 +276,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                      ) : (
                        <Box sx={{ textAlign: 'center', py: 4 }}>
                          <Typography variant="body1" color="text.secondary">
-                           Không có thuốc nào được lưu trữ tại vị trí này
+                           {trans.common.noMedicineData}
                          </Typography>
                        </Box>
                      )}
@@ -283,7 +285,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                   <Box sx={{ textAlign: 'center', py: 4 }}>
                     <CircularProgress size={24} />
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      Đang tải thông tin...
+                      {trans.common.loadingInfo}
                     </Typography>
                   </Box>
                 )}
@@ -294,7 +296,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
       </DialogContent>
       
       <DialogActions>
-        <Button onClick={handleClose}>Đóng</Button>
+        <Button onClick={handleClose}>{trans.common.close}</Button>
       </DialogActions>
     </Dialog>
   );

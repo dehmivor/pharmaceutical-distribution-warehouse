@@ -34,6 +34,7 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -83,6 +84,7 @@ const IMPORT_ORDER_STATUSES = {
 };
 
 export default function ImportOrderSupervisor() {
+  const trans = useTrans();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -120,7 +122,7 @@ export default function ImportOrderSupervisor() {
         setOrders(response.data.data || []);
         setTotalCount(response.data.pagination?.total || response.data.data?.length || 0);
       } else {
-        throw new Error(response.data.error || 'Failed to fetch orders');
+        throw new Error(response.data.error || trans.common.failedToFetchOrders);
       }
     } catch (error) {
       setError(error.response?.data?.error || error.message);
@@ -198,14 +200,14 @@ export default function ImportOrderSupervisor() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Import Orders Management
+            {trans.importOrders.title}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Supervisor can view import orders
+            {trans.importOrders.description}
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => fetchOrders()} disabled={loading}>
-          Refresh
+          {trans.importOrders.refresh}
         </Button>
       </Box>
 
@@ -213,7 +215,7 @@ export default function ImportOrderSupervisor() {
       <Box component={Paper} sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
-            label="Created Date"
+            label={trans.common.createdDate}
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
@@ -221,8 +223,8 @@ export default function ImportOrderSupervisor() {
             size="small"
           />
 
-          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
-            <MenuItem value="All Status">All Status</MenuItem>
+          <TextField select label={trans.importOrders.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+            <MenuItem value="All Status">{trans.importOrders.allStatus}</MenuItem>
             {Object.values(IMPORT_ORDER_STATUSES).map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
@@ -231,10 +233,10 @@ export default function ImportOrderSupervisor() {
           </TextField>
 
           <Button size="small" variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick}>
-            Search
+            {trans.importOrders.search}
           </Button>
           <Button size="small" variant="outlined" onClick={handleResetFilters}>
-            Reset
+            {trans.common.reset}
           </Button>
         </Stack>
       </Box>
@@ -244,23 +246,23 @@ export default function ImportOrderSupervisor() {
         <Table stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ minWidth: 120 }}>Order Code</TableCell>
-              <TableCell sx={{ minWidth: 120 }}>Contract Code</TableCell>
-              <TableCell sx={{ minWidth: 150 }}>Supplier</TableCell>
-              <TableCell sx={{ minWidth: 150 }}>Created By</TableCell>
+              <TableCell sx={{ minWidth: 120 }}>{trans.common.orderCode}</TableCell>
+              <TableCell sx={{ minWidth: 120 }}>{trans.common.contractCode}</TableCell>
+              <TableCell sx={{ minWidth: 150 }}>{trans.common.supplier}</TableCell>
+              <TableCell sx={{ minWidth: 150 }}>{trans.common.createdBy}</TableCell>
               <TableCell align="right" sx={{ minWidth: 120 }}>
-                Total Amount
+                {trans.common.totalAmount}
               </TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
-              <TableCell sx={{ minWidth: 150 }}>Warehouse Manager</TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Actions</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>{trans.importOrders.status}</TableCell>
+              <TableCell sx={{ minWidth: 150 }}>{trans.common.warehouseManager}</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>{trans.importOrders.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
-                  <Typography color="text.secondary">No orders found.</Typography>
+                  <Typography color="text.secondary">{trans.importOrders.noOrdersFound}</Typography>
                 </TableCell>
               </TableRow>
             ) : (
@@ -268,10 +270,10 @@ export default function ImportOrderSupervisor() {
                 const totalAmount = order.details?.reduce((acc, d) => acc + (d.quantity || 0) * (d.unit_price || 0), 0) || 0;
                 return (
                   <TableRow hover key={order._id}>
-                    <TableCell title={order._id}>{order._id ? `${order._id.slice(0, 6)}...${order._id.slice(-4)}` : 'N/A'}</TableCell>
-                    <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
-                    <TableCell>{order.contract_id?.partner_id?.name || 'N/A'}</TableCell>
-                    <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
+                    <TableCell title={order._id}>{order._id ? `${order._id.slice(0, 6)}...${order._id.slice(-4)}` : trans.common.na}</TableCell>
+                    <TableCell>{order.contract_id?.contract_code || trans.common.na}</TableCell>
+                    <TableCell>{order.contract_id?.partner_id?.name || trans.common.na}</TableCell>
+                    <TableCell>{order.created_by?.email || trans.common.na}</TableCell>
                     <TableCell align="right">{formatCurrency(totalAmount)}</TableCell>
                     <TableCell>
                       <Chip
@@ -280,7 +282,7 @@ export default function ImportOrderSupervisor() {
                         size="small"
                       />
                     </TableCell>
-                    <TableCell>{order.warehouse_manager_id?.email || 'Not Assigned'}</TableCell>
+                    <TableCell>{order.warehouse_manager_id?.email || trans.common.notAssigned}</TableCell>
                     <TableCell>
                       <Box display="flex" gap={1}>
                         <IconButton color="info" onClick={() => handleOpenDetails(order)}>
@@ -289,7 +291,7 @@ export default function ImportOrderSupervisor() {
                         <IconButton
                           color="secondary"
                           onClick={() => (window.location.href = 'https://localhost:3000/manage-bills')}
-                          title="Tạo công nợ"
+                          title={trans.common.createDebt}
                         >
                           <ForwardIcon />
                         </IconButton>
@@ -316,27 +318,27 @@ export default function ImportOrderSupervisor() {
 
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
-        <DialogTitle>Import Order Details</DialogTitle>
+        <DialogTitle>{trans.importOrders.orderDetails}</DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           {selectedOrder && (
             <Box sx={{ mt: 2 }}>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={4}>
                   <Typography variant="h6" gutterBottom>
-                    Basic Information
+                    {trans.common.basicInformation}
                   </Typography>
                   <Paper sx={{ p: 2, mb: 2 }}>
                     <Grid container spacing={2}>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
-                          Order ID
+                          {trans.common.orderId}
                         </Typography>
                         <Typography variant="body1">{selectedOrder._id}</Typography>
                       </Grid>
                       {/* Order Code is hidden for all orders */}
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
-                          Status
+                          {trans.importOrders.status}
                         </Typography>
                         <Chip label={selectedOrder.status} color={getStatusColor(selectedOrder.status)} size="small" />
                       </Grid>
@@ -346,27 +348,27 @@ export default function ImportOrderSupervisor() {
 
                 <Grid item xs={12} md={4}>
                   <Typography variant="h6" gutterBottom>
-                    Contract Information
+                    {trans.common.contractInformation}
                   </Typography>
                   <Paper sx={{ p: 2, mb: 2 }}>
                     <Grid container spacing={2}>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
-                          Contract Code
+                          {trans.common.contractCode}
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.contract_id?.contract_code || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.contract_id?.contract_code || trans.common.na}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
-                          Supplier
+                          {trans.common.supplier}
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.contract_id?.partner_id?.name || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.contract_id?.partner_id?.name || trans.common.na}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
-                          Contract Status
+                          {trans.importOrders.contractStatus}
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.contract_id?.status || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.contract_id?.status || trans.importOrders.na}</Typography>
                       </Grid>
                     </Grid>
                   </Paper>
@@ -374,24 +376,24 @@ export default function ImportOrderSupervisor() {
 
                 <Grid item xs={12} md={4}>
                   <Typography variant="h6" gutterBottom>
-                    Warehouse Information
+                    {trans.common.warehouseInformation}
                   </Typography>
                   <Paper sx={{ p: 2, mb: 2 }}>
                     <Grid container spacing={2}>
                       {/* Warehouse is hidden for all orders */}
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
-                          Warehouse Manager
+                          {trans.common.warehouseManager}
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || 'Not Assigned'}</Typography>
+                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || trans.common.notAssigned}</Typography>
                       </Grid>
                       {/* Only show Manager Email for regular orders, not for internal orders */}
                       {selectedOrder.contract_id && (
                         <Grid item xs={6} md={12}>
                           <Typography variant="subtitle2" color="textSecondary">
-                            Manager Email
+                            {trans.common.managerEmail}
                           </Typography>
-                          <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || 'N/A'}</Typography>
+                          <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || trans.common.na}</Typography>
                         </Grid>
                       )}
                     </Grid>
@@ -401,29 +403,29 @@ export default function ImportOrderSupervisor() {
                 {/* User Info & Order Details */}
                 <Grid item xs={12} md={6}>
                   <Typography variant="h6" gutterBottom>
-                    User Information
+                    {trans.common.userInformation}
                   </Typography>
                   <Paper sx={{ p: 2, mb: 2 }}>
                     <Grid container spacing={2}>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
-                          Created By
+                          {trans.common.createdBy}
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.created_by?.email || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.created_by?.email || trans.common.na}</Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
-                          Creator Email
+                          {trans.common.creatorEmail}
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.created_by?.email || 'N/A'}</Typography>
+                        <Typography variant="body1">{selectedOrder.created_by?.email || trans.common.na}</Typography>
                       </Grid>
                       {/* Only show Approved By for regular orders, not for internal orders */}
                       {selectedOrder.contract_id && (
                         <Grid item xs={6} md={12}>
                           <Typography variant="subtitle2" color="textSecondary">
-                            Approved By
+                            {trans.common.approvedBy}
                           </Typography>
-                          <Typography variant="body1">{selectedOrder.approved_by?.name || selectedOrder.approval_by?.name || 'N/A'}</Typography>
+                          <Typography variant="body1">{selectedOrder.approved_by?.name || selectedOrder.approval_by?.name || trans.common.na}</Typography>
                         </Grid>
                       )}
                     </Grid>
@@ -431,21 +433,21 @@ export default function ImportOrderSupervisor() {
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Typography variant="h6" gutterBottom>
-                    Order Details
+                    {trans.common.orderDetails}
                   </Typography>
                   <Paper sx={{ p: 2, mb: 2 }}>
                     <TableContainer sx={{ overflowX: 'auto' }}>
                       <Table size="small">
                         <TableHead>
                           <TableRow>
-                            <TableCell>Medicine Name</TableCell>
-                            <TableCell>License Code</TableCell>
-                            <TableCell align="right">Quantity</TableCell>
+                            <TableCell>{trans.common.medicineName}</TableCell>
+                            <TableCell>{trans.common.licenseCode}</TableCell>
+                            <TableCell align="right">{trans.common.quantity}</TableCell>
                             {/* Only show pricing columns for regular orders */}
                             {selectedOrder.contract_id && (
                               <>
-                                <TableCell align="right">Unit Price</TableCell>
-                                <TableCell align="right">Total</TableCell>
+                                <TableCell align="right">{trans.common.unitPrice}</TableCell>
+                                <TableCell align="right">{trans.common.total}</TableCell>
                               </>
                             )}
                           </TableRow>
@@ -453,8 +455,8 @@ export default function ImportOrderSupervisor() {
                         <TableBody>
                           {selectedOrder.details?.map((detail, idx) => (
                             <TableRow key={idx}>
-                              <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
-                              <TableCell>{detail.medicine_id?.license_code || 'N/A'}</TableCell>
+                              <TableCell>{detail.medicine_id?.medicine_name || trans.common.na}</TableCell>
+                              <TableCell>{detail.medicine_id?.license_code || trans.common.na}</TableCell>
                               <TableCell align="right">{detail.quantity || 0}</TableCell>
                               {/* Only show pricing values for regular orders */}
                               {selectedOrder.contract_id && (
@@ -470,7 +472,7 @@ export default function ImportOrderSupervisor() {
                             <TableRow>
                               <TableCell colSpan={5}>
                                 <Typography variant="subtitle1" fontWeight="bold">
-                                  Total Amount
+                                  {trans.common.totalAmount}
                                 </Typography>
                               </TableCell>
                               <TableCell align="right">
@@ -492,7 +494,7 @@ export default function ImportOrderSupervisor() {
                 {selectedOrder.notes && (
                   <Grid item xs={12}>
                     <Typography variant="h6" gutterBottom>
-                      Notes
+                      {trans.common.notes}
                     </Typography>
                     <Paper sx={{ p: 2, mb: 2 }}>
                       <Typography variant="body1">{selectedOrder.notes}</Typography>
@@ -504,7 +506,7 @@ export default function ImportOrderSupervisor() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDetails}>Close</Button>
+          <Button onClick={handleCloseDetails}>{trans.common.close}</Button>
         </DialogActions>
       </Dialog>
 

@@ -13,10 +13,12 @@ import Box from '@mui/material/Box';
 
 // @project
 import { AvatarSize } from '@/enum';
+import useTrans from '@/hooks/useTrans';
 
 /***************************  NOTIFICATION - LIST  ***************************/
 
 export default function NotificationItem({ avatar, badgeAvatar, title, subTitle, dateTime, isSeen = false }) {
+  const trans = useTrans();
   const theme = useTheme();
   const ellipsis = { textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' };
 

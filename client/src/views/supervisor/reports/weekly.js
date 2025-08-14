@@ -1,7 +1,9 @@
 import React from 'react';
+import useTrans from '@/hooks/useTrans';
 
 function weekly() {
-  return <div>weekly</div>;
+  const trans = useTrans();
+  return <div>{trans.placeholders.weekly}</div>;
 }
 
 export default weekly;

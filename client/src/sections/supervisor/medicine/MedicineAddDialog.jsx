@@ -33,6 +33,7 @@ import {
   Settings as SettingsIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
@@ -49,6 +50,7 @@ const axiosInstance = axios.create({
 });
 
 const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
+  const trans = useTrans();
   const [formData, setFormData] = useState({
     medicine_name: '',
     license_code: '',
@@ -119,19 +121,19 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
 
     // Required fields
     if (!formData.medicine_name.trim()) {
-      newErrors.medicine_name = 'Tên thuốc là bắt buộc';
+      newErrors.medicine_name = trans.medicineAdd.validation.medicineNameRequired;
     }
 
     if (!formData.license_code.trim()) {
-      newErrors.license_code = 'Mã thuốc là bắt buộc';
+      newErrors.license_code = trans.medicineAdd.validation.licenseCodeRequired;
     }
 
     if (!formData.category) {
-      newErrors.category = 'Danh mục là bắt buộc';
+      newErrors.category = trans.medicineAdd.validation.categoryRequired;
     }
 
     if (!formData.unit_of_measure) {
-      newErrors.unit_of_measure = 'Đơn vị đo là bắt buộc';
+      newErrors.unit_of_measure = trans.medicineAdd.validation.unitOfMeasureRequired;
     }
 
 
@@ -142,17 +144,17 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
       if (!/^\d+-\d+$|^-\d+$|^\d+$/.test(tempValue)) {
         newErrors.storage_conditions = {
           ...newErrors.storage_conditions,
-          temperature: 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X"'
+          temperature: trans.medicineAdd.validation.temperatureFormat
         };
       } else {
         // Validate temperature range logic
         if (tempValue.includes('-')) {
           const [min, max] = tempValue.split('-').map(Number);
           if (min > max) {
-            newErrors.storage_conditions = {
-              ...newErrors.storage_conditions,
-              temperature: 'Nhiệt độ tối thiểu phải nhỏ hơn hoặc bằng nhiệt độ tối đa'
-            };
+                      newErrors.storage_conditions = {
+            ...newErrors.storage_conditions,
+            temperature: trans.medicineAdd.validation.temperatureRange
+          };
           }
         }
       }
@@ -163,7 +165,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
       if (!/^\d+$|^\d+-\d+$/.test(humidityValue)) {
         newErrors.storage_conditions = { 
           ...newErrors.storage_conditions, 
-          humidity: 'Độ ẩm phải có định dạng "X" hoặc "X-Y"' 
+          humidity: trans.medicineAdd.validation.humidityFormat
         };
       } else {
         // Validate humidity range logic
@@ -172,22 +174,22 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
           if (min > max) {
             newErrors.storage_conditions = {
               ...newErrors.storage_conditions,
-              humidity: 'Độ ẩm tối thiểu phải nhỏ hơn hoặc bằng độ ẩm tối đa'
+              humidity: trans.medicineAdd.validation.humidityRange
             };
           }
           if (max > 100) {
             newErrors.storage_conditions = {
               ...newErrors.storage_conditions,
-              humidity: 'Độ ẩm tối đa không được vượt quá 100%'
+              humidity: trans.medicineAdd.validation.humidityMax
             };
           }
         } else {
           const humidity = Number(humidityValue);
           if (humidity > 100) {
-            newErrors.storage_conditions = {
-              ...newErrors.storage_conditions,
-              humidity: 'Độ ẩm không được vượt quá 100%'
-            };
+                      newErrors.storage_conditions = {
+            ...newErrors.storage_conditions,
+            humidity: trans.medicineAdd.validation.humidityValue
+          };
           }
         }
       }
@@ -195,11 +197,11 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
 
     // Numeric validation
     if (formData.min_stock_threshold !== '' && isNaN(formData.min_stock_threshold)) {
-      newErrors.min_stock_threshold = 'Ngưỡng tối thiểu phải là số';
+      newErrors.min_stock_threshold = trans.medicineAdd.validation.minThresholdNumber;
     }
 
     if (formData.max_stock_threshold !== '' && isNaN(formData.max_stock_threshold)) {
-      newErrors.max_stock_threshold = 'Ngưỡng tối đa phải là số';
+      newErrors.max_stock_threshold = trans.medicineAdd.validation.maxThresholdNumber;
     }
 
     // Threshold validation
@@ -270,12 +272,12 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
         onSuccess(response.data.data);
         onClose();
       } else {
-        setError(response.data.message || 'Tạo thuốc thất bại');
+        setError(response.data.message || trans.medicineAdd.messages.addError);
       }
     } catch (err) {
       console.error('Create medicine error:', err);
       const serverMessage = err.response?.data?.message;
-      setError(serverMessage || 'Lỗi khi tạo thuốc mới');
+      setError(serverMessage || trans.medicineAdd.messages.addError);
     } finally {
       setLoading(false);
     }
@@ -350,14 +352,14 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
           </Box>
           <Box>
             <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-              Thêm Thuốc Mới
+              {trans.medicineAdd.title}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-              Nhập thông tin chi tiết về thuốc mới
+              {trans.medicineAdd.subtitle}
             </Typography>
           </Box>
         </Box>
-        <Tooltip title="Đóng">
+        <Tooltip title={trans.medicineAdd.close}>
           <IconButton
             onClick={onClose}
             sx={{
@@ -384,7 +386,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
                 <MedicationIcon sx={{ color: 'primary.main', fontSize: 24 }} />
                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                  Thông Tin Cơ Bản
+                  {trans.medicineAdd.basicInfo.title}
                 </Typography>
               </Box>
 
@@ -393,7 +395,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                 <Grid item sx={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Tên thuốc *"
+                    label={trans.medicineAdd.basicInfo.medicineName + ' *'}
                     value={formData.medicine_name}
                     onChange={(e) => handleInputChange('medicine_name', e.target.value)}
                     error={!!errors.medicine_name}
@@ -410,7 +412,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                 <Grid item sx={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Đơn vị đo *"
+                    label={trans.medicineAdd.basicInfo.unitOfMeasure + ' *'}
                     value={formData.unit_of_measure}
                     onChange={(e) => handleInputChange('unit_of_measure', e.target.value)}
                     error={!!errors.unit_of_measure}
@@ -426,11 +428,11 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                 {/* Category */}
                 <Grid item sx={12} md={6}>
                   <FormControl fullWidth error={!!errors.category} size="medium" sx={{ maxWidth: 220 }}>
-                    <InputLabel>Danh mục *</InputLabel>
+                    <InputLabel>{trans.medicineAdd.basicInfo.category + ' *'}</InputLabel>
                     <Select
                       value={formData.category}
                       onChange={(e) => handleInputChange('category', e.target.value)}
-                      label="Danh mục *"
+                      label={trans.medicineAdd.basicInfo.category + ' *'}
                       startAdornment={<CategoryIcon sx={{ mr: 1, color: 'text.secondary' }} />}
                       MenuProps={{ variant: 'menu' }}
                       sx={{
@@ -451,7 +453,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                 <Grid item sx={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Mã thuốc *"
+                    label={trans.medicineAdd.basicInfo.licenseCode + ' *'}
                     value={formData.license_code}
                     onChange={(e) => handleInputChange('license_code', e.target.value)}
                     error={!!errors.license_code}
@@ -473,7 +475,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
                 <StorageIcon sx={{ color: 'info.main', fontSize: 24 }} />
                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'info.main' }}>
-                  Điều Kiện Bảo Quản (Tùy chọn)
+                  {trans.medicineAdd.storageConditions.title} (Tùy chọn)
                 </Typography>
               </Box>
 
@@ -481,12 +483,12 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                 <Grid item xs={12} md={4}>
                   <TextField
                     fullWidth
-                    label="Nhiệt độ"
-                    placeholder="VD: 2-8 hoặc -20"
+                    label={trans.medicineAdd.storageConditions.temperature}
+                    placeholder={trans.medicineAdd.storageConditions.temperaturePlaceholder}
                     value={formData.storage_conditions.temperature}
                     onChange={(e) => handleInputChange('storage_conditions.temperature', e.target.value)}
                     error={!!errors.storage_conditions?.temperature}
-                    helperText={errors.storage_conditions?.temperature || 'Định dạng: X-Y, -X hoặc X (°C)'}
+                    helperText={errors.storage_conditions?.temperature || trans.common.form.formatExamples.temperature}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -497,12 +499,12 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                 <Grid item xs={12} md={4}>
                   <TextField
                     fullWidth
-                    label="Độ ẩm"
-                    placeholder="VD: 60% hoặc 50-70%"
+                    label={trans.medicineAdd.storageConditions.humidity}
+                    placeholder={trans.medicineAdd.storageConditions.humidityPlaceholder}
                     value={formData.storage_conditions.humidity}
                     onChange={(e) => handleInputChange('storage_conditions.humidity', e.target.value)}
                     error={!!errors.storage_conditions?.humidity}
-                    helperText={errors.storage_conditions?.humidity || 'Định dạng: X hoặc X-Y (%)'}
+                    helperText={errors.storage_conditions?.humidity || trans.common.form.formatExamples.humidity}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -512,18 +514,18 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <FormControl fullWidth error={!!errors.storage_conditions?.light} size="medium" sx={{ minWidth: '210px' }}>
-                    <InputLabel>Điều kiện ánh sáng</InputLabel>
+                    <InputLabel>{trans.medicineAdd.storageConditions.light}</InputLabel>
                     <Select
                       value={formData.storage_conditions.light}
                       onChange={(e) => handleInputChange('storage_conditions.light', e.target.value)}
-                      label="Điều kiện ánh sáng"
+                      label={trans.medicineAdd.storageConditions.light}
                       startAdornment={<StorageIcon sx={{ mr: 1, color: 'text.secondary' }} />}
                     >
-                      <MenuItem value="">Không chọn</MenuItem>
-                      <MenuItem value="none">Không ánh sáng</MenuItem>
-                      <MenuItem value="low">Ánh sáng yếu</MenuItem>
-                      <MenuItem value="medium">Ánh sáng trung bình</MenuItem>
-                      <MenuItem value="high">Ánh sáng mạnh</MenuItem>
+                      <MenuItem value="">{trans.common.form.notSelected}</MenuItem>
+                      <MenuItem value="none">{trans.medicineAdd.storageConditions.lightOptions.none}</MenuItem>
+                      <MenuItem value="low">{trans.medicineAdd.storageConditions.lightOptions.low}</MenuItem>
+                      <MenuItem value="medium">{trans.medicineAdd.storageConditions.lightOptions.medium}</MenuItem>
+                      <MenuItem value="high">{trans.medicineAdd.storageConditions.lightOptions.high}</MenuItem>
                     </Select>
                     {errors.storage_conditions?.light && <FormHelperText>{errors.storage_conditions.light}</FormHelperText>}
                   </FormControl>
@@ -538,7 +540,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
                 <SettingsIcon sx={{ color: 'secondary.main', fontSize: 24 }} />
                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'secondary.main' }}>
-                  Quản Lý Tồn Kho
+                  {trans.medicineAdd.stockManagement.title}
                 </Typography>
               </Box>
 
@@ -547,7 +549,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Ngưỡng tồn kho tối thiểu"
+                    label={trans.medicineAdd.stockManagement.minThreshold}
                     type="number"
                     value={formData.min_stock_threshold}
                     onChange={(e) => handleInputChange('min_stock_threshold', e.target.value)}
@@ -566,7 +568,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Ngưỡng tồn kho tối đa"
+                    label={trans.medicineAdd.stockManagement.maxThreshold}
                     type="number"
                     value={formData.max_stock_threshold}
                     onChange={(e) => handleInputChange('max_stock_threshold', e.target.value)}
@@ -597,7 +599,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
             }}
           >
             <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
-              <strong>Lưu ý:</strong> Các trường có dấu * là bắt buộc phải nhập.
+              <strong>{trans.common.note}:</strong> {trans.common.form.requiredFieldsNote}
             </Typography>
           </Box>
         </Box>
@@ -623,7 +625,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
             fontWeight: 600
           }}
         >
-          Hủy
+          {trans.medicineAdd.actions.cancel}
         </Button>
         <Button
           onClick={handleSubmit}
@@ -642,7 +644,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
             }
           }}
         >
-          {loading ? 'Đang tạo...' : 'Tạo thuốc'}
+          {loading ? trans.medicineAdd.actions.adding : trans.medicineAdd.actions.add}
         </Button>
       </DialogActions>
     </Dialog>

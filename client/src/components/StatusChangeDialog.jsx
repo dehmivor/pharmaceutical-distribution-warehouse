@@ -3,32 +3,35 @@
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Alert, CircularProgress } from '@mui/material';
 import { CheckCircle as ApproveIcon, Cancel as RejectIcon, Warning as WarningIcon } from '@mui/icons-material';
+import useTrans from '@/hooks/useTrans';
 
 const StatusChangeDialog = ({ open, onClose, onConfirm, currentStatus, orderId, userRole, loading, nextStatus }) => {
+  const trans = useTrans();
+  
   const getStatusInfo = () => {
     switch (nextStatus) {
       case 'approved':
         return {
-          title: 'Approve Import Order',
-          message: 'Are you sure you want to approve this import order? This will allow the order to proceed to the warehouse.',
+          title: trans.actions.confirm,
+          message: trans.messages.confirmDelete,
           icon: <ApproveIcon color="success" />,
-          confirmText: 'Approve',
+          confirmText: trans.actions.confirm,
           confirmColor: 'success'
         };
       case 'cancelled':
         return {
-          title: 'Cancel Import Order',
-          message: 'Are you sure you want to cancel this import order? This action cannot be undone.',
+          title: trans.actions.cancel,
+          message: trans.messages.confirmDelete,
           icon: <RejectIcon color="error" />,
-          confirmText: 'Cancel Order',
+          confirmText: trans.actions.cancel,
           confirmColor: 'error'
         };
       default:
         return {
-          title: 'Change Order Status',
-          message: `Are you sure you want to change the status from "${currentStatus}" to "${nextStatus}"?`,
+          title: trans.actions.edit,
+          message: trans.messages.confirmDelete,
           icon: <WarningIcon color="warning" />,
-          confirmText: 'Confirm',
+          confirmText: trans.actions.confirm,
           confirmColor: 'primary'
         };
     }
@@ -53,16 +56,16 @@ const StatusChangeDialog = ({ open, onClose, onConfirm, currentStatus, orderId, 
 
           <Alert severity="info" sx={{ mt: 2 }}>
             <Typography variant="body2">
-              <strong>Order ID:</strong> {orderId?.slice(-8)}
+              <strong>{trans.form.name}:</strong> {orderId?.slice(-8)}
             </Typography>
             <Typography variant="body2">
-              <strong>Current Status:</strong> {currentStatus?.toUpperCase()}
+              <strong>{trans.status.active}:</strong> {currentStatus?.toUpperCase()}
             </Typography>
             <Typography variant="body2">
-              <strong>New Status:</strong> {nextStatus?.toUpperCase()}
+              <strong>{trans.status.pending}:</strong> {nextStatus?.toUpperCase()}
             </Typography>
             <Typography variant="body2">
-              <strong>User Role:</strong> {userRole?.replace('_', ' ').toUpperCase()}
+              <strong>{trans.form.role}:</strong> {userRole?.replace('_', ' ').toUpperCase()}
             </Typography>
           </Alert>
         </Box>
@@ -70,7 +73,7 @@ const StatusChangeDialog = ({ open, onClose, onConfirm, currentStatus, orderId, 
 
       <DialogActions>
         <Button onClick={onClose} disabled={loading}>
-          Cancel
+          {trans.actions.cancel}
         </Button>
         <Button
           onClick={onConfirm}
@@ -79,7 +82,7 @@ const StatusChangeDialog = ({ open, onClose, onConfirm, currentStatus, orderId, 
           disabled={loading}
           startIcon={loading ? <CircularProgress size={16} /> : null}
         >
-          {loading ? 'Processing...' : statusInfo.confirmText}
+          {loading ? trans.messages.loading : statusInfo.confirmText}
         </Button>
       </DialogActions>
     </Dialog>

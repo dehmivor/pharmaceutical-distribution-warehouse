@@ -31,6 +31,7 @@ import {
   ToggleOn as ToggleOnIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
@@ -47,6 +48,7 @@ const axiosInstance = axios.create({
 });
 
 const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptions }) => {
+  const trans = useTrans();
   const [formValues, setFormValues] = useState({
     medicine_name: '',
     license_code: '',
@@ -100,7 +102,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
       }
     } catch (error) {
       console.error('Error fetching medicine data:', error);
-      setErrors({ general: 'Lỗi khi tải thông tin thuốc' });
+      setErrors({ general: trans.medicineEdit.messages.loadError });
     } finally {
       setLoading(false);
     }
@@ -147,23 +149,23 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
 
     // Required fields
     if (!formValues.medicine_name.trim()) {
-      newErrors.medicine_name = 'Tên thuốc là bắt buộc';
+      newErrors.medicine_name = trans.medicineEdit.validation.medicineNameRequired;
     }
 
     if (!formValues.license_code.trim()) {
-      newErrors.license_code = 'Mã thuốc là bắt buộc';
+      newErrors.license_code = trans.medicineEdit.validation.licenseCodeRequired;
     }
 
     if (!formValues.category) {
-      newErrors.category = 'Danh mục là bắt buộc';
+      newErrors.category = trans.medicineEdit.validation.categoryRequired;
     }
 
     if (!formValues.unit_of_measure) {
-      newErrors.unit_of_measure = 'Đơn vị đo là bắt buộc';
+      newErrors.unit_of_measure = trans.medicineEdit.validation.unitOfMeasureRequired;
     }
 
     if (!formValues.status) {
-      newErrors.status = 'Trạng thái là bắt buộc';
+      newErrors.status = trans.medicineEdit.validation.statusRequired;
     }
 
     // Storage conditions validation (optional)
@@ -172,7 +174,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
       if (!/^\d+-\d+$|^-\d+$|^\d+$/.test(tempValue)) {
         newErrors.storage_conditions = {
           ...newErrors.storage_conditions,
-          temperature: 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X" (°C)'
+          temperature: trans.medicineEdit.validation.temperatureFormatError
         };
       } else {
         // Validate temperature range logic
@@ -181,7 +183,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
           if (min > max) {
             newErrors.storage_conditions = {
               ...newErrors.storage_conditions,
-              temperature: 'Nhiệt độ tối thiểu phải nhỏ hơn hoặc bằng nhiệt độ tối đa'
+              temperature: trans.medicineEdit.validation.temperatureRangeError
             };
           }
         }
@@ -193,7 +195,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
       if (!/^\d+$|^\d+-\d+$/.test(humidityValue)) {
         newErrors.storage_conditions = { 
           ...newErrors.storage_conditions, 
-          humidity: 'Độ ẩm phải có định dạng "X" hoặc "X-Y"' 
+          humidity: trans.medicineEdit.validation.humidityFormatError
         };
       } else {
         // Validate humidity range logic
@@ -202,13 +204,13 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
           if (min > max) {
             newErrors.storage_conditions = {
               ...newErrors.storage_conditions,
-              humidity: 'Độ ẩm tối thiểu phải nhỏ hơn hoặc bằng độ ẩm tối đa'
+              humidity: trans.medicineEdit.validation.humidityRangeError
             };
           }
           if (max > 100) {
             newErrors.storage_conditions = {
               ...newErrors.storage_conditions,
-              humidity: 'Độ ẩm tối đa không được vượt quá 100%'
+              humidity: trans.medicineEdit.validation.humidityMaxError
             };
           }
         } else {
@@ -216,7 +218,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
           if (humidity > 100) {
             newErrors.storage_conditions = {
               ...newErrors.storage_conditions,
-              humidity: 'Độ ẩm không được vượt quá 100%'
+              humidity: trans.medicineEdit.validation.humidityMaxError
             };
           }
         }
@@ -225,20 +227,20 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
 
     // Numeric validation
     if (formValues.min_stock_threshold !== '' && isNaN(formValues.min_stock_threshold)) {
-      newErrors.min_stock_threshold = 'Ngưỡng tối thiểu phải là số';
+      newErrors.min_stock_threshold = trans.medicineEdit.validation.minStockThresholdNumeric;
     }
 
     if (formValues.max_stock_threshold !== '' && isNaN(formValues.max_stock_threshold)) {
-      newErrors.max_stock_threshold = 'Ngưỡng tối đa phải là số';
+      newErrors.max_stock_threshold = trans.medicineEdit.validation.maxStockThresholdNumeric;
     }
 
     // Threshold validation
     if (formValues.min_stock_threshold !== '' && parseFloat(formValues.min_stock_threshold) < 0) {
-      newErrors.min_stock_threshold = 'Ngưỡng tối thiểu không được âm';
+      newErrors.min_stock_threshold = trans.medicineEdit.validation.minStockThresholdNegative;
     }
 
     if (formValues.max_stock_threshold !== '' && parseFloat(formValues.max_stock_threshold) < 0) {
-      newErrors.max_stock_threshold = 'Ngưỡng tối đa không được âm';
+      newErrors.max_stock_threshold = trans.medicineEdit.validation.maxStockThresholdNegative;
     }
 
     if (
@@ -246,7 +248,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
       formValues.max_stock_threshold !== '' &&
       parseFloat(formValues.max_stock_threshold) < parseFloat(formValues.min_stock_threshold)
     ) {
-      newErrors.max_stock_threshold = 'Ngưỡng tối đa phải lớn hơn hoặc bằng ngưỡng tối thiểu';
+      newErrors.max_stock_threshold = trans.medicineEdit.validation.maxStockThresholdGreaterThanMin;
     }
 
     setErrors(newErrors);
@@ -335,14 +337,14 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
           </Box>
           <Box>
             <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-              Cập Nhật Thuốc
+              {trans.medicineEdit.title}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-              Chỉnh sửa thông tin thuốc
+              {trans.medicineEdit.subtitle}
             </Typography>
           </Box>
         </Box>
-        <Tooltip title="Đóng">
+        <Tooltip title={trans.medicineEdit.close}>
           <IconButton
             onClick={onClose}
             sx={{
@@ -360,7 +362,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
           {/* Loading and Error States */}
           {loading && (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <Typography>Đang tải thông tin thuốc...</Typography>
+              <Typography>{trans.medicineEdit.messages.loadError}</Typography>
             </Box>
           )}
           
@@ -376,7 +378,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
                 <MedicationIcon sx={{ color: 'primary.main', fontSize: 24 }} />
                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                  Thông Tin Cơ Bản
+                  {trans.medicineEdit.basicInfo.title}
                 </Typography>
               </Box>
 
@@ -384,7 +386,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Tên thuốc *"
+                    label={trans.medicineEdit.basicInfo.medicineName + ' *'}
                     value={formValues.medicine_name}
                     onChange={(e) => handleChange('medicine_name', e.target.value)}
                     error={!!errors.medicine_name}
@@ -399,7 +401,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Số đăng ký *"
+                    label={trans.medicineEdit.basicInfo.licenseCode + ' *'}
                     value={formValues.license_code}
                     onChange={(e) => handleChange('license_code', e.target.value)}
                     error={!!errors.license_code}
@@ -413,10 +415,10 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth error={!!errors.category} size="medium">
-                    <InputLabel>Danh mục *</InputLabel>
+                    <InputLabel>{trans.medicineEdit.basicInfo.category + ' *'}</InputLabel>
                     <Select
                       value={formValues.category}
-                      label="Danh mục *"
+                      label={trans.medicineEdit.basicInfo.category + ' *'}
                       onChange={(e) => handleChange('category', e.target.value)}
                       startAdornment={<CategoryIcon sx={{ mr: 1, color: 'text.secondary' }} />}
                       MenuProps={{ variant: 'menu' }}
@@ -440,7 +442,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Đơn vị đo *"
+                    label={trans.medicineEdit.basicInfo.unitOfMeasure + ' *'}
                     value={formValues.unit_of_measure}
                     onChange={(e) => handleChange('unit_of_measure', e.target.value)}
                     error={!!errors.unit_of_measure}
@@ -462,7 +464,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
                 <StorageIcon sx={{ color: 'info.main', fontSize: 24 }} />
                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'info.main' }}>
-                  Điều Kiện Bảo Quản (Tùy chọn)
+                  {trans.medicineEdit.storageConditions.title} (Tùy chọn)
                 </Typography>
               </Box>
 
@@ -470,12 +472,12 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                 <Grid item xs={12} md={4}>
                   <TextField
                     fullWidth
-                    label="Nhiệt độ"
-                    placeholder="VD: 2-8 hoặc -20"
+                    label={trans.medicineEdit.storageConditions.temperature}
+                    placeholder={trans.medicineEdit.storageConditions.temperaturePlaceholder}
                     value={formValues.storage_conditions.temperature}
                     onChange={(e) => handleStorageChange('temperature', e.target.value)}
                     error={!!errors.storage_conditions?.temperature}
-                    helperText={errors.storage_conditions?.temperature || 'Định dạng: X-Y, -X hoặc X'}
+                    helperText={errors.storage_conditions?.temperature || trans.common.form.formatExamples.temperature}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -486,12 +488,12 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                 <Grid item xs={12} md={4}>
                   <TextField
                     fullWidth
-                    label="Độ ẩm"
-                    placeholder="VD: 60 hoặc 50-70"
+                    label={trans.medicineEdit.storageConditions.humidity}
+                    placeholder={trans.medicineEdit.storageConditions.humidityPlaceholder}
                     value={formValues.storage_conditions.humidity}
                     onChange={(e) => handleStorageChange('humidity', e.target.value)}
                     error={!!errors.storage_conditions?.humidity}
-                    helperText={errors.storage_conditions?.humidity || 'Định dạng: X hoặc X-Y'}
+                    helperText={errors.storage_conditions?.humidity || trans.common.form.formatExamples.humidity}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -501,18 +503,18 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                 </Grid>
                 <Grid item xs={12} md={4}>
                   <FormControl fullWidth error={!!errors.storage_conditions?.light} size="medium" sx={{ width: 200 }}>
-                    <InputLabel>Điều kiện ánh sáng</InputLabel>
+                    <InputLabel>{trans.medicineEdit.storageConditions.light}</InputLabel>
                     <Select
                       value={formValues.storage_conditions.light}
-                      label="Điều kiện ánh sáng"
+                      label={trans.medicineEdit.storageConditions.light}
                       onChange={(e) => handleStorageChange('light', e.target.value)}
                       startAdornment={<StorageIcon sx={{ mr: 1, color: 'text.secondary' }} />}
                     >
-                      <MenuItem value="">Không chọn</MenuItem>
-                      <MenuItem value="none">Không ánh sáng</MenuItem>
-                      <MenuItem value="low">Ánh sáng yếu</MenuItem>
-                      <MenuItem value="medium">Ánh sáng trung bình</MenuItem>
-                      <MenuItem value="high">Ánh sáng mạnh</MenuItem>
+                      <MenuItem value="">{trans.common.form.notSelected}</MenuItem>
+                      <MenuItem value="none">{trans.medicineEdit.storageConditions.lightOptions.none}</MenuItem>
+                      <MenuItem value="low">{trans.medicineEdit.storageConditions.lightOptions.low}</MenuItem>
+                      <MenuItem value="medium">{trans.medicineEdit.storageConditions.lightOptions.medium}</MenuItem>
+                      <MenuItem value="high">{trans.medicineEdit.storageConditions.lightOptions.high}</MenuItem>
                     </Select>
                     {errors.storage_conditions?.light && (
                       <Typography variant="caption" color="error">
@@ -531,7 +533,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
                 <SettingsIcon sx={{ color: 'secondary.main', fontSize: 24 }} />
                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'secondary.main' }}>
-                  Quản Lý Tồn Kho
+                  {trans.medicineEdit.stockManagement.title}
                 </Typography>
               </Box>
 
@@ -539,7 +541,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Ngưỡng tồn kho tối thiểu"
+                    label={trans.medicineEdit.stockManagement.minThreshold}
                     type="number"
                     value={formValues.min_stock_threshold}
                     onChange={(e) => handleChange('min_stock_threshold', e.target.value)}
@@ -556,7 +558,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Ngưỡng tồn kho tối đa"
+                    label={trans.medicineEdit.stockManagement.maxThreshold}
                     type="number"
                     value={formValues.max_stock_threshold}
                     onChange={(e) => handleChange('max_stock_threshold', e.target.value)}
@@ -572,15 +574,15 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth error={!!errors.status} size="medium">
-                    <InputLabel>Trạng thái *</InputLabel>
+                    <InputLabel>{trans.medicineEdit.basicInfo.status + ' *'}</InputLabel>
                     <Select
                       value={formValues.status}
-                      label="Trạng thái *"
+                      label={trans.medicineEdit.basicInfo.status + ' *'}
                       onChange={(e) => handleChange('status', e.target.value)}
                       startAdornment={<ToggleOnIcon sx={{ mr: 1, color: 'text.secondary' }} />}
                     >
-                      <MenuItem value="active">Hoạt động</MenuItem>
-                      <MenuItem value="inactive">Không hoạt động</MenuItem>
+                      <MenuItem value="active">{trans.medicineEdit.basicInfo.active}</MenuItem>
+                      <MenuItem value="inactive">{trans.medicineEdit.basicInfo.inactive}</MenuItem>
                     </Select>
                     {errors.status && (
                       <Typography variant="caption" color="error">
@@ -605,7 +607,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
             }}
           >
             <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
-              <strong>Lưu ý:</strong> Các trường có dấu * là bắt buộc phải nhập.
+              <strong>{trans.common.form.requiredFieldsNote}</strong>
             </Typography>
           </Box>
         </Box>
@@ -631,7 +633,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
             fontWeight: 600
           }}
         >
-          Hủy
+          {trans.medicineEdit.actions.cancel}
         </Button>
         <Button
           onClick={handleSubmit}
@@ -650,7 +652,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
             }
           }}
         >
-          {loading ? 'Đang cập nhật...' : 'Cập nhật'}
+          {loading ? trans.medicineEdit.actions.updating : trans.medicineEdit.actions.update}
         </Button>
       </DialogActions>
     </Dialog>

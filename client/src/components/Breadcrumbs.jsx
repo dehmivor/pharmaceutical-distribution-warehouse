@@ -16,6 +16,7 @@ import Typography from '@mui/material/Typography';
 import { APP_DEFAULT_PATH } from '@/config';
 import menuItems from '@/menu';
 import { generateFocusStyle } from '@/utils/generateFocusStyle';
+import useTrans from '@/hooks/useTrans';
 
 // @assets
 import { IconChevronRight } from '@tabler/icons-react';
@@ -25,6 +26,7 @@ import { IconChevronRight } from '@tabler/icons-react';
 export default function Breadcrumbs({ data }) {
   const theme = useTheme();
   const location = usePathname();
+  const trans = useTrans();
 
   const [breadcrumbItems, setBreadcrumbItems] = useState([]);
   const [activeItem, setActiveItem] = useState();
@@ -48,7 +50,7 @@ export default function Breadcrumbs({ data }) {
           };
 
           const homeUrl = roleHomeMap[role] || '/';
-          return { title: 'Home', url: homeUrl };
+          return { title: trans.breadcrumbs.home, url: homeUrl };
         } catch (error) {
           console.error('Error parsing user from localStorage:', error);
         }
@@ -68,7 +70,7 @@ export default function Breadcrumbs({ data }) {
       if (isHomePage) {
         // Show only "Home" for home pages
         setBreadcrumbItems([]);
-        setActiveItem({ title: 'Home', url: location });
+        setActiveItem({ title: trans.breadcrumbs.home, url: location });
         return;
       }
 

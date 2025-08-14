@@ -8,6 +8,7 @@ import {
   Chip,
   Divider
 } from '@mui/material';
+import useTrans from '@/hooks/useTrans';
 import {
   TrendingUp as TrendingUpIcon,
   LocalShipping as ShippingIcon,
@@ -17,6 +18,8 @@ import {
 } from '@mui/icons-material';
 
 const DashboardStats = ({ detailedStats }) => {
+  const trans = useTrans();
+  
   if (!detailedStats || Object.keys(detailedStats).length === 0) {
     return null;
   }
@@ -27,7 +30,7 @@ const DashboardStats = ({ detailedStats }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <TrendingUpIcon color="primary" />
           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-            Detailed Statistics
+            {trans.header.description}
           </Typography>
         </Box>
         

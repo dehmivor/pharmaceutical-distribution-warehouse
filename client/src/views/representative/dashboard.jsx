@@ -9,6 +9,7 @@ import RepresentativeOverviewChart from '@/sections/dashboard/RepresentativeOver
 import RepresentativeTopRef from '@/sections/dashboard/RepresentativeTopRef';
 import RepresentativeMonthlyChart from '@/sections/dashboard/RepresentativeMonthlyChart';
 import RepresentativeRecentActivity from '@/sections/dashboard/RepresentativeRecentActivity';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => {
@@ -20,6 +21,7 @@ const getAuthHeaders = () => {
 };
 
 export default function RepresentativeDashboard() {
+  const trans = useTrans();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

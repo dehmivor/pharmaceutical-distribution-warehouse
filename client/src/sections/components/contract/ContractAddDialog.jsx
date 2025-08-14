@@ -43,6 +43,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { vi } from 'date-fns/locale';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 import useSWRMutation from 'swr/mutation';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -67,12 +68,12 @@ const ANNEX_ACTIONS = {
   UPDATE_END_DATE: 'update_end_date',
 };
 
-const ANNEX_ACTION_LABELS = {
-  [ANNEX_ACTIONS.ADD]: 'Thêm thuốc mới',
-  [ANNEX_ACTIONS.REMOVE]: 'Loại bỏ thuốc',
-  [ANNEX_ACTIONS.UPDATE_PRICE]: 'Cập nhật giá thuốc',
-  [ANNEX_ACTIONS.UPDATE_END_DATE]: 'Cập nhật ngày kết thúc hợp đồng',
-};
+const getAnnexActionLabels = (trans) => ({
+  [ANNEX_ACTIONS.ADD]: trans.common.addNewMedicine,
+  [ANNEX_ACTIONS.REMOVE]: trans.common.removeMedicine,
+  [ANNEX_ACTIONS.UPDATE_PRICE]: trans.common.updateMedicinePrice,
+  [ANNEX_ACTIONS.UPDATE_END_DATE]: trans.common.updateContractEndDate,
+});
 
 const InfoField = ({ label, value, icon: Icon, onChange, disabled = false, error = false, helperText = '' }) => (
   <Box>
@@ -140,6 +141,8 @@ const isValidFloat = (value) => {
 };
 
 const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers = [] }) => {
+  const trans = useTrans();
+  const ANNEX_ACTION_LABELS = getAnnexActionLabels(trans);
   const [formData, setFormData] = useState({
     contract_code: '',
     contract_type: 'economic',
@@ -391,7 +394,7 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
     const errors = {};
 
     if (!formData.contract_code.trim()) {
-      errors.contract_code = 'Mã hợp đồng là bắt buộc';
+      errors.contract_code = trans.common.contractCodeRequired;
     }
 
     if (!formData.partner_id) {
@@ -399,12 +402,12 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
     }
 
     if (!formData.start_date) {
-      errors.start_date = 'Ngày bắt đầu là bắt buộc';
+      errors.start_date = trans.common.startDateRequired;
     }
     if (!formData.end_date) {
-      errors.end_date = 'Ngày kết thúc là bắt buộc';
+      errors.end_date = trans.common.endDateRequired;
     } else if (formData.start_date && formData.end_date && formData.end_date <= formData.start_date) {
-      errors.end_date = 'Ngày kết thúc phải sau ngày bắt đầu';
+      errors.end_date = trans.common.endDateMustBeAfterStart;
     }
 
     const itemErrors = [];
@@ -449,11 +452,11 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
         const annexError = {};
 
         if (!annex.annex_code?.trim()) {
-          annexError.annex_code = 'Mã phụ lục là bắt buộc';
+          annexError.annex_code = trans.common.annexCodeRequired;
         }
 
         if (!annex.signed_date) {
-          annexError.signed_date = 'Ngày ký là bắt buộc';
+          annexError.signed_date = trans.common.signedDateRequired;
         }
 
         // Validate add_items
@@ -579,7 +582,7 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
         onClose();
       }
     } catch (error) {
-      setErrorApi(error.response?.data?.message || 'Có lỗi xảy ra khi tạo hợp đồng');
+      setErrorApi(error.response?.data?.message || trans.common.errorCreatingContract);
     }
   };
 
@@ -588,7 +591,7 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
   };
 
   const getContractTypeLabel = (type) => {
-    return type === 'economic' ? 'Kinh tế' : 'Nguyên tắc';
+    return type === 'economic' ? trans.common.economicContract : trans.common.principalContract;
   };
 
   const isEconomic = formData.contract_type === 'economic';
@@ -618,14 +621,14 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
           <ContractIcon />
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Thêm Hợp Đồng Mới
+              {trans.common.addNewContract}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.8 }}>
               Tạo hợp đồng mới với đối tác
             </Typography>
           </Box>
         </Box>
-        <Tooltip title="Đóng">
+        <Tooltip title={trans.common.close}>
           <IconButton onClick={onClose} sx={{ color: 'white' }}>
             <CloseIcon />
           </IconButton>

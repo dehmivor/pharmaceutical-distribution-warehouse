@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { Refresh as RefreshIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -20,6 +21,7 @@ const getAuthHeaders = () => {
 };
 
 export default function ManageLog() {
+  const trans = useTrans();
   // logs + paging
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -88,7 +90,7 @@ export default function ManageLog() {
         setOrders(data.data);
         setTotalCount(data.total);
       } else {
-        throw new Error(data.error || 'Failed to load logs');
+        throw new Error(data.error || trans.logs.failedToLoad);
       }
     } catch (err) {
       console.error(err);
@@ -130,9 +132,9 @@ export default function ManageLog() {
       {/* Top Bar */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, alignItems: 'center' }}>
         <Box>
-          <Typography variant="h4">Location Log Management</Typography>
+          <Typography variant="h4">{trans.logs.title}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Manage and track location changes
+            {trans.common.manageLocationChanges}
           </Typography>
         </Box>
         <Button
@@ -140,7 +142,7 @@ export default function ManageLog() {
           startIcon={<RefreshIcon />}
           onClick={handleRefresh}
         >
-          Refresh
+          {trans.logs.refresh}
         </Button>
       </Box>
 
@@ -149,14 +151,14 @@ export default function ManageLog() {
         <Stack spacing={2}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
-              label="Start Date"
+              label={trans.common.startDate}
               type="date"
               value={startDate}
               onChange={e => setStartDate(e.target.value)}
               InputLabelProps={{ shrink: true }}
             />
             <TextField
-              label="End Date"
+              label={trans.common.endDate}
               type="date"
               value={endDate}
               onChange={e => setEndDate(e.target.value)}
@@ -164,12 +166,12 @@ export default function ManageLog() {
               inputProps={{ min: startDate || undefined }}
             />
             <TextField
-              label="Worker"
+              label={trans.common.worker}
               value={worker}
               onChange={e => setWorker(e.target.value)}
             />
             <TextField
-              label="Order"
+              label={trans.common.order}
               value={order}
               onChange={e => setOrder(e.target.value)}
             />
@@ -178,28 +180,28 @@ export default function ManageLog() {
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
             <TextField
               select
-              label="Area"
+              label={trans.common.area}
               value={area}
               onChange={e => setArea(e.target.value)}
             >
-              <MenuItem value="">All Areas</MenuItem>
+              <MenuItem value="">{trans.common.allAreas}</MenuItem>
               {areas.map(a => (
                 <MenuItem key={a._id} value={a._id}>{a.name}</MenuItem>
               ))}
             </TextField>
 
             <TextField
-              label="Bay"
+              label={trans.common.bay}
               value={bay}
               onChange={e => setBay(e.target.value)}
             />
             <TextField
-              label="Row"
+              label={trans.common.row}
               value={row}
               onChange={e => setRow(e.target.value)}
             />
             <TextField
-              label="Column"
+              label={trans.common.column}
               value={column}
               onChange={e => setColumn(e.target.value)}
             />
@@ -221,7 +223,7 @@ export default function ManageLog() {
                 setPage(0);
               }}
             >
-              Search
+              {trans.logs.search}
             </Button>
             <Button
               variant="outlined"
@@ -236,7 +238,7 @@ export default function ManageLog() {
                 setPage(0);
               }}
             >
-              Reset
+              {trans.common.reset}
             </Button>
           </Stack>
         </Stack>
@@ -262,20 +264,20 @@ export default function ManageLog() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Location</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Quantity</TableCell>
-              <TableCell>Batch</TableCell>
-              <TableCell>Order ID</TableCell>
-              <TableCell>User</TableCell>
-              <TableCell>At</TableCell>
+              <TableCell>{trans.common.location}</TableCell>
+              <TableCell>{trans.common.type}</TableCell>
+              <TableCell>{trans.common.quantity}</TableCell>
+              <TableCell>{trans.common.batch}</TableCell>
+              <TableCell>{trans.common.orderId}</TableCell>
+              <TableCell>{trans.common.user}</TableCell>
+              <TableCell>{trans.common.at}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                  No log entries available.
+                  {trans.common.noLogEntries}
                 </TableCell>
               </TableRow>
             ) : (

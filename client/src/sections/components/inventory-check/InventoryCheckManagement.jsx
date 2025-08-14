@@ -40,6 +40,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { vi } from 'date-fns/locale';
 import axios from 'axios';
 import { useRole } from '@/contexts/RoleContext';
+import useTrans from '@/hooks/useTrans';
 import InventoryCheckAddDialog from './InventoryCheckAddDialog';
 import InventoryCheckDetailDialog from './InventoryCheckDetailDialog';
 
@@ -58,6 +59,7 @@ const axiosInstance = axios.create({
 });
 
 const InventoryCheckManagement = () => {
+  const trans = useTrans();
   const { userRole, isLoading } = useRole();
   const [inventoryCheckOrders, setInventoryCheckOrders] = useState([]);
   const [warehouseManagers, setWarehouseManagers] = useState([]);
@@ -147,13 +149,13 @@ const InventoryCheckManagement = () => {
 
   const handleAddInventoryCheckOrderSuccess = () => {
     setOpenAddDialog(false);
-    setSuccess('Tạo phiếu kiểm kê thành công');
+    setSuccess(trans.common.createInventoryCheckSuccess);
     fetchInventoryCheckOrders();
   };
 
   const handleUpdateInventoryCheckOrderSuccess = () => {
     setOpenViewDialog(false);
-    setSuccess('Cập nhật phiếu kiểm kê thành công');
+    setSuccess(trans.common.updateInventoryCheckSuccess);
     fetchInventoryCheckOrders();
   };
 
@@ -175,11 +177,11 @@ const InventoryCheckManagement = () => {
       );
 
       if (response.data.success) {
-        setSuccess('Hủy phiếu kiểm kê thành công!');
+        setSuccess(trans.common.cancelInventoryCheckSuccess);
         setTimeout(() => setSuccess(''), 3000);
         fetchInventoryCheckOrders(); // Refresh the list
       } else {
-        setError(response.data.message || 'Hủy phiếu kiểm kê thất bại');
+        setError(response.data.message || trans.common.cancelInventoryCheckFailed);
         setTimeout(() => setError(''), 5000);
       }
     } catch (error) {
@@ -272,7 +274,7 @@ const InventoryCheckManagement = () => {
           Quản Lý Phiếu Kiểm Kê
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Quản lý danh sách phiếu kiểm kê kho và thông tin chi tiết
+          {trans.common.inventoryCheckList}
         </Typography>
       </Box>
 
@@ -300,19 +302,19 @@ const InventoryCheckManagement = () => {
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 200 }}>
-                <InputLabel>Trạng thái</InputLabel>
+                <InputLabel>{trans.common.status}</InputLabel>
                 <Select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                  label="Trạng thái"
+                  label={trans.common.status}
                   renderValue={(selected) => (
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {selected || 'Tất cả'}
+                      {selected || trans.common.all}
                     </span>
                   )}
                   sx={{ width: 200 }}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.common.all}</MenuItem>
                   {filterOptions?.status?.map((status) => (
                     <MenuItem key={status} value={status}>
                       {status}
@@ -332,13 +334,13 @@ const InventoryCheckManagement = () => {
                     const manager = warehouseManagers.find(m => m._id === selected);
                     return (
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {manager ? manager.email : 'Tất cả'}
+                        {manager ? manager.email : trans.common.all}
                       </span>
                     );
                   }}
                   sx={{ width: 200 }}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.common.all}</MenuItem>
                   {warehouseManagers.map((manager) => (
                     <MenuItem key={manager._id} value={manager._id}>
                       {manager.email}
@@ -436,12 +438,12 @@ const InventoryCheckManagement = () => {
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600 }}>Ngày kiểm kê</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.common.inventoryCheckDate}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Warehouse Manager</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Người tạo</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.common.status}</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>
-                  Hành động
+                  {trans.common.actions}
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -477,7 +479,7 @@ const InventoryCheckManagement = () => {
                   </TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                      <Tooltip title="Xem chi tiết">
+                      <Tooltip title={trans.common.viewDetails}>
                         <IconButton
                           color="primary"
                           size="small"
@@ -496,7 +498,7 @@ const InventoryCheckManagement = () => {
                       
                       {/* Cancel button - only show for pending or processing status */}
                       {(order.status === 'pending' || order.status === 'processing') && (
-                        <Tooltip title="Hủy phiếu">
+                        <Tooltip title={trans.common.cancelTicket}>
                           <IconButton
                             color="error"
                             size="small"
@@ -571,7 +573,7 @@ const InventoryCheckManagement = () => {
           gap: 1
         }}>
           <CancelIcon />
-          Xác nhận hủy phiếu
+          {trans.common.confirmCancelOrder}
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
           <DialogContentText>
@@ -583,13 +585,13 @@ const InventoryCheckManagement = () => {
                 Thông tin phiếu kiểm kê:
               </Typography>
               <Typography variant="body2">
-                • Ngày kiểm kê: {formatDate(orderToCancel.inventory_check_date)}
+                {trans.common.cancelOrderDetails.replace('{date}', formatDate(orderToCancel.inventory_check_date)).replace('{manager}', orderToCancel.warehouse_manager?.email || 'N/A').replace('{status}', getStatusLabel(orderToCancel.status))}
               </Typography>
               <Typography variant="body2">
                 • Warehouse Manager: {orderToCancel.warehouse_manager_id?.email}
               </Typography>
               <Typography variant="body2">
-                • Trạng thái hiện tại: {getStatusLabel(orderToCancel.status)}
+
               </Typography>
             </Box>
           )}
@@ -600,7 +602,7 @@ const InventoryCheckManagement = () => {
             disabled={cancelling}
             sx={{ textTransform: 'none' }}
           >
-            Hủy
+            {trans.common.cancel}
           </Button>
           <Button
             onClick={handleCancelConfirm}
@@ -609,7 +611,7 @@ const InventoryCheckManagement = () => {
             color="error"
             sx={{ textTransform: 'none' }}
           >
-            {cancelling ? 'Đang hủy...' : 'Xác nhận hủy'}
+            {cancelling ? trans.common.cancelling : trans.common.confirmCancel}
           </Button>
         </DialogActions>
       </Dialog>
