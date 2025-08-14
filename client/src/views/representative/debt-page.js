@@ -29,6 +29,7 @@ import {
 import axios from 'axios';
 import ModalConfirm from '../general/ModalConfirm';
 import { enqueueSnackbar } from 'notistack';
+import { useTrans } from '@/hooks/useTrans';
 
 const getStatusColor = (status) => {
   switch (status) {
@@ -130,6 +131,7 @@ const renderDetailMedicines = (detailData) => {
 };
 
 const DebtPage = () => {
+  const { trans } = useTrans();
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -165,7 +167,7 @@ const DebtPage = () => {
         setBills(res.data.data || []);
         setError(null);
       } catch (err) {
-        setError(err.response?.data?.error || err.message || 'Lỗi khi tải dữ liệu hóa đơn');
+        setError(err.response?.data?.error || err.message || trans.debt.errorLoadingData);
       } finally {
         setLoading(false);
       }
@@ -179,10 +181,10 @@ const DebtPage = () => {
     const date = new Date(dateStr);
     if (isNaN(date)) return '';
     const month = date.getMonth() + 1;
-    if (month >= 1 && month <= 3) return 'Quý 1';
-    if (month >= 4 && month <= 6) return 'Quý 2';
-    if (month >= 7 && month <= 9) return 'Quý 3';
-    return 'Quý 4';
+    if (month >= 1 && month <= 3) return trans.debt.quarter1;
+    if (month >= 4 && month <= 6) return trans.debt.quarter2;
+    if (month >= 7 && month <= 9) return trans.debt.quarter3;
+    return trans.debt.quarter4;
   };
 
   // Filters applied on bills with memoization
