@@ -44,6 +44,7 @@ import { useAuth } from '@/hooks/useAuth';
 import axios from 'axios';
 import StatusChangeDialog from '@/components/StatusChangeDialog';
 import { useRole } from '@/contexts/RoleContext';
+import useTrans from '@/hooks/useTrans';
 
 import { sendError } from 'next/dist/server/api-utils';
 
@@ -59,6 +60,7 @@ const getAuthHeaders = () => {
 
 const RepresentativeManagerImportOrders = () => {
   const { user, userRole, isLoading } = useRole();
+  const trans = useTrans();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -150,12 +152,12 @@ const RepresentativeManagerImportOrders = () => {
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
-      let errorMsg = 'Failed to fetch orders';
+      let errorMsg = trans.representativeManagerImportOrders.messages.failedToFetch;
 
       if (error.code === 'ECONNABORTED') {
-        errorMsg = 'Request timeout. Please try again.';
+        errorMsg = trans.representativeManagerImportOrders.messages.requestTimeout;
       } else if (error.code === 'ERR_NETWORK') {
-        errorMsg = 'Network error. Please check your connection.';
+        errorMsg = trans.representativeManagerImportOrders.messages.networkError;
       } else if (error.response) {
         errorMsg = error.response.data?.error || error.response.statusText;
       } else if (error.message) {
@@ -236,7 +238,7 @@ const RepresentativeManagerImportOrders = () => {
       );
 
       if (response.data.success) {
-        setSuccess(`Order status updated to ${newStatus}`);
+        setSuccess(`${trans.representativeManagerImportOrders.messages.statusUpdateSuccess} ${newStatus}`);
         setStatusDialog(false);
         setSelectedOrder(null);
         fetchOrders(); // Refresh the list
@@ -247,12 +249,12 @@ const RepresentativeManagerImportOrders = () => {
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      let errorMsg = 'Failed to update status';
+      let errorMsg = trans.representativeManagerImportOrders.messages.failedToUpdateStatus;
 
       if (error.code === 'ECONNABORTED') {
-        errorMsg = 'Request timeout. Please try again.';
+        errorMsg = trans.representativeManagerImportOrders.messages.requestTimeout;
       } else if (error.code === 'ERR_NETWORK') {
-        errorMsg = 'Network error. Please check your connection.';
+        errorMsg = trans.representativeManagerImportOrders.messages.networkError;
       } else if (error.response) {
         errorMsg = error.response.data?.error || error.response.statusText;
       } else if (error.message) {
@@ -292,13 +294,13 @@ const RepresentativeManagerImportOrders = () => {
 
   // Check if order can be edited by representative manager
   const canEditOrder = (order) => {
-    // Representative Manager chỉ có thể edit draft orders
+    // Representative Manager can only edit draft orders
     return order.status === 'draft';
   };
 
   // Check if order is locked (cannot be edited)
   const isOrderLocked = (order) => {
-    // Orders bị khóa sau khi chuyển thành delivered hoặc các status sau đó
+    // Orders are locked after becoming delivered or subsequent statuses
     const lockedStatuses = ['delivered', 'checked', 'arranged', 'completed'];
     return lockedStatuses.includes(order.status);
   };
@@ -398,10 +400,10 @@ const RepresentativeManagerImportOrders = () => {
   return (
     <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
       <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', fontWeight: 600 }}>
-        Import Orders Management
+        {trans.representativeManagerImportOrders.title}
       </Typography>
       <Typography variant="body1" color="text.secondary" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
-        Approve or reject draft import orders
+        {trans.representativeManagerImportOrders.description}
       </Typography>
       
       {/* Filters */}
@@ -410,19 +412,19 @@ const RepresentativeManagerImportOrders = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
             <FilterIcon sx={{ color: 'primary.main', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-              Bộ Lọc Tìm Kiếm
+              {trans.representativeManagerImportOrders.filters.title}
             </Typography>
           </Box>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={6} md={3}>
               <TextField
                 fullWidth
-                label="Tìm kiếm"
+                label={trans.representativeManagerImportOrders.filters.search}
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 variant="outlined"
                 size="medium"
-                placeholder="Order ID, Supplier name..."
+                placeholder={trans.representativeManagerImportOrders.filters.searchPlaceholder}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -434,13 +436,13 @@ const RepresentativeManagerImportOrders = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium">
-                <InputLabel>Trạng thái</InputLabel>
+                <InputLabel>{trans.representativeManagerImportOrders.filters.status}</InputLabel>
                 <Select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                  label="Trạng thái"
+                  label={trans.representativeManagerImportOrders.filters.status}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.representativeManagerImportOrders.filters.allStatus}</MenuItem>
                   {filterOptions?.status?.map((status) => (
                     <MenuItem key={status} value={status}>
                       {status}
@@ -451,16 +453,16 @@ const RepresentativeManagerImportOrders = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium">
-                <InputLabel>Loại hợp đồng</InputLabel>
+                <InputLabel>{trans.representativeManagerImportOrders.filters.contractType}</InputLabel>
                 <Select
                   value={filters.contract_type}
                   onChange={(e) => handleFilterChange('contract_type', e.target.value)}
-                  label="Loại hợp đồng"
+                  label={trans.representativeManagerImportOrders.filters.contractType}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.representativeManagerImportOrders.filters.allContractTypes}</MenuItem>
                   {filterOptions?.contract_type?.map((type) => (
                     <MenuItem key={type} value={type}>
-                      {type === 'economic' ? 'Kinh tế' : type === 'principal' ? 'Nguyên tắc' : type}
+                      {type === 'economic' ? trans.representativeManagerImportOrders.filters.economic : type === 'principal' ? trans.representativeManagerImportOrders.filters.principal : type}
                     </MenuItem>
                   ))}
                 </Select>
@@ -468,13 +470,13 @@ const RepresentativeManagerImportOrders = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium">
-                <InputLabel>Người tạo</InputLabel>
+                <InputLabel>{trans.representativeManagerImportOrders.filters.createdBy}</InputLabel>
                 <Select
                   value={filters.created_by}
                   onChange={(e) => handleFilterChange('created_by', e.target.value)}
-                  label="Người tạo"
+                  label={trans.representativeManagerImportOrders.filters.createdBy}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.representativeManagerImportOrders.filters.allUsers}</MenuItem>
                   {filterOptions?.created_by?.map((user) => (
                     <MenuItem key={user.email} value={user.email}>
                       {user.email}
@@ -491,14 +493,14 @@ const RepresentativeManagerImportOrders = () => {
                 disabled={loading}
                 sx={{ px: 3, py: 1.2, borderRadius: 2 }}
               >
-                Làm mới
+                {trans.representativeManagerImportOrders.filters.refresh}
               </Button>
               <Button
                 variant="outlined"
                 onClick={clearFilters}
                 sx={{ px: 3, py: 1.2, borderRadius: 2 }}
               >
-                Xóa bộ lọc
+                {trans.representativeManagerImportOrders.filters.clearFilters}
               </Button>
             </Grid>
           </Grid>
@@ -526,30 +528,30 @@ const RepresentativeManagerImportOrders = () => {
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-            Danh Sách Import Orders
+            {trans.representativeManagerImportOrders.table.title}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Tổng cộng {totalCount} orders
+            {trans.representativeManagerImportOrders.table.totalOrders} {totalCount}
           </Typography>
         </Box>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600 }}>Order ID</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Supplier</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Created By</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Created Date</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Total Amount</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerImportOrders.table.orderId}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerImportOrders.table.supplier}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerImportOrders.table.status}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerImportOrders.table.createdBy}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerImportOrders.table.createdDate}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerImportOrders.table.totalAmount}</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>{trans.representativeManagerImportOrders.table.actions}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {orders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
-                    <Typography color="text.secondary">{loading ? 'Loading orders...' : 'No orders found'}</Typography>
+                    <Typography color="text.secondary">{loading ? trans.representativeManagerImportOrders.table.loadingOrders : trans.representativeManagerImportOrders.table.noOrders}</Typography>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -558,16 +560,16 @@ const RepresentativeManagerImportOrders = () => {
                   return (
                     <TableRow key={order._id} hover>
                       <TableCell>{order._id}</TableCell>
-                      <TableCell>{order.contract_id?.partner_id?.name || 'N/A'}</TableCell>
+                                             <TableCell>{order.contract_id?.partner_id?.name || trans.common.na}</TableCell>
                       <TableCell>
                         <Chip label={order.status?.toUpperCase()} color={getStatusColor(order.status)} size="small" />
                       </TableCell>
-                      <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
+                                             <TableCell>{order.created_by?.email || trans.common.na}</TableCell>
                       <TableCell>{formatDate(order.createdAt)}</TableCell>
                       <TableCell>{formatCurrency(order.total_amount)}</TableCell>
                       <TableCell>
                         <Box display="flex" gap={1} justifyContent="center">
-                          {/* Chỉ representative_manager mới thấy nút Approve/Cancel khi order là draft */}
+                          {/* Only representative_manager can see Approve/Cancel buttons when order is draft */}
                           {userRole === 'representative_manager' && canEditOrder(order) && (
                             <>
                               <Button
@@ -582,7 +584,7 @@ const RepresentativeManagerImportOrders = () => {
                                   })
                                 }
                               >
-                                Approve
+                                {trans.representativeManagerImportOrders.actions.approve}
                               </Button>
                               <Button
                                 size="small"
@@ -592,16 +594,16 @@ const RepresentativeManagerImportOrders = () => {
                                   handleOpenStatusDialog({
                                     _id: order._id,
                                     status: order.status,
-                                    nextStatus: 'rejected' // Đảm bảo luôn là 'rejected'
+                                    nextStatus: 'rejected' // Ensure it's always 'rejected'
                                   })
                                 }
                               >
-                                Reject
+                                {trans.representativeManagerImportOrders.actions.reject}
                               </Button>
                             </>
                           )}
-                          {isOrderLocked(order) && <Chip label="LOCKED" color="error" size="small" variant="outlined" />}
-                          <IconButton size="small" color="info" title="View Details" onClick={() => handleViewDetails(order)}>
+                          {isOrderLocked(order) && <Chip label={trans.representativeManagerImportOrders.table.locked} color="error" size="small" variant="outlined" />}
+                          <IconButton size="small" color="info" title={trans.representativeManagerImportOrders.actions.viewDetails} onClick={() => handleViewDetails(order)}>
                             <ViewIcon />
                           </IconButton>
                         </Box>
@@ -621,8 +623,6 @@ const RepresentativeManagerImportOrders = () => {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Số hàng mỗi trang:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
           sx={{
             borderTop: '1px solid #e0e0e0',
             bgcolor: 'grey.50'
@@ -643,7 +643,7 @@ const RepresentativeManagerImportOrders = () => {
 
       {/* Details Dialog */}
       <Dialog open={detailsDialog} onClose={handleCloseDetailsDialog} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>Import Order Details</DialogTitle>
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>{trans.representativeManagerImportOrders.details.title}</DialogTitle>
         <DialogContent>
           {selectedOrderForDetails && (
             <Box sx={{ mt: 2 }}>
@@ -652,22 +652,22 @@ const RepresentativeManagerImportOrders = () => {
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Order ID
+                      {trans.representativeManagerImportOrders.details.orderId}
                     </Typography>
                     <Typography variant="body2">{selectedOrderForDetails._id}</Typography>
                   </Grid>
                   <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Contract
+                      {trans.representativeManagerImportOrders.details.contract}
                     </Typography>
                     <Typography variant="body2">{selectedOrderForDetails.contract_id?.contract_code}</Typography>
                   </Grid>
                   <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Contract Type
+                      {trans.representativeManagerImportOrders.details.contractType}
                     </Typography>
                     <Chip
-                      label={selectedOrderForDetails.contract_id?.contract_type === 'principal' ? 'Principal' : 'Economic'}
+                      label={selectedOrderForDetails.contract_id?.contract_type === 'principal' ? trans.representativeManagerImportOrders.filters.principal : trans.representativeManagerImportOrders.filters.economic}
                       color={selectedOrderForDetails.contract_id?.contract_type === 'principal' ? 'primary' : 'secondary'}
                       size="small"
                       variant="outlined"
@@ -675,7 +675,7 @@ const RepresentativeManagerImportOrders = () => {
                   </Grid>
                   <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Status
+                      {trans.representativeManagerImportOrders.details.status}
                     </Typography>
                     <Chip
                       label={selectedOrderForDetails.status?.toUpperCase()}
@@ -685,13 +685,13 @@ const RepresentativeManagerImportOrders = () => {
                   </Grid>
                   <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Total Amount
+                      {trans.representativeManagerImportOrders.details.totalAmount}
                     </Typography>
                     <Typography variant="body2">{formatCurrency(selectedOrderForDetails.total_amount)}</Typography>
                   </Grid>
                   <Grid item xs={12} sm={6} md={2}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Active Annexes
+                      {trans.representativeManagerImportOrders.details.activeAnnexes}
                     </Typography>
                     <Typography variant="body2">
                       {selectedOrderForDetails.contract_id?.annexes?.filter(a => a.status === 'active').length || 0}
@@ -705,27 +705,27 @@ const RepresentativeManagerImportOrders = () => {
                 {/* Import Order Table */}
                 <Grid item xs={12} md={6}>
                   <Typography variant="h6" gutterBottom>
-                    Import Order Items
+                    {trans.representativeManagerImportOrders.details.importOrderItems}
                   </Typography>
                   <TableContainer component={Paper}>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell>Medicine</TableCell>
-                          <TableCell align="right">Quantity</TableCell>
-                          <TableCell align="right">Unit Price</TableCell>
-                          <TableCell align="right">Total</TableCell>
+                          <TableCell>{trans.representativeManagerImportOrders.details.medicine}</TableCell>
+                          <TableCell align="right">{trans.representativeManagerImportOrders.details.quantity}</TableCell>
+                          <TableCell align="right">{trans.representativeManagerImportOrders.details.unitPrice}</TableCell>
+                          <TableCell align="right">{trans.representativeManagerImportOrders.details.total}</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {selectedOrderForDetails.details?.map((detail, index) => (
                           <TableRow key={index}>
                             <TableCell>
-                              {detail.medicine_id?.medicine_name || 'N/A'}
-                              <br />
-                              <Typography variant="caption" color="text.secondary">
-                                {detail.medicine_id?.license_code || 'N/A'}
-                              </Typography>
+                                                             {detail.medicine_id?.medicine_name || trans.common.na}
+                               <br />
+                               <Typography variant="caption" color="text.secondary">
+                                 {detail.medicine_id?.license_code || trans.common.na}
+                               </Typography>
                             </TableCell>
                             <TableCell align="right">{detail.quantity}</TableCell>
                             <TableCell align="right">{formatCurrency(detail.unit_price)}</TableCell>
@@ -735,7 +735,7 @@ const RepresentativeManagerImportOrders = () => {
                         <TableRow sx={{ backgroundColor: 'grey.100' }}>
                           <TableCell colSpan={3}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                              Total
+                              {trans.representativeManagerImportOrders.details.total}
                             </Typography>
                           </TableCell>
                           <TableCell align="right">
@@ -757,40 +757,40 @@ const RepresentativeManagerImportOrders = () => {
                 {/* Contract Table */}
                 <Grid item xs={12} md={6}>
                   <Typography variant="h6" gutterBottom>
-                    Active Contract Items (Including Annexes)
+                    {trans.representativeManagerImportOrders.details.activeContractItems}
                   </Typography>
                   <TableContainer component={Paper}>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell>Medicine</TableCell>
-                          <TableCell align="right">Quantity</TableCell>
-                          <TableCell align="right">Unit Price</TableCell>
-                          <TableCell align="right">Source</TableCell>
+                          <TableCell>{trans.representativeManagerImportOrders.details.medicine}</TableCell>
+                          <TableCell align="right">{trans.representativeManagerImportOrders.details.quantity}</TableCell>
+                          <TableCell align="right">{trans.representativeManagerImportOrders.details.unitPrice}</TableCell>
+                          <TableCell align="right">{trans.representativeManagerImportOrders.details.source}</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {loadingMedicines ? (
                           <TableRow>
                             <TableCell colSpan={4} align="center">
-                              <Typography color="text.secondary">Loading contract medicines...</Typography>
+                              <Typography color="text.secondary">{trans.representativeManagerImportOrders.details.loadingContractMedicines}</Typography>
                             </TableCell>
                           </TableRow>
                         ) : contractMedicines.length > 0 ? (
                           contractMedicines.map((item, index) => (
                             <TableRow key={index}>
                               <TableCell>
-                                {item.medicine_id?.medicine_name || 'N/A'}
-                                <br />
-                                <Typography variant="caption" color="text.secondary">
-                                  {item.medicine_id?.license_code || 'N/A'}
-                                </Typography>
+                                                               {item.medicine_id?.medicine_name || trans.common.na}
+                               <br />
+                               <Typography variant="caption" color="text.secondary">
+                                 {item.medicine_id?.license_code || trans.common.na}
+                               </Typography>
                               </TableCell>
-                              <TableCell align="right">{item.quantity || item.min_order_quantity || 'N/A'}</TableCell>
+                              <TableCell align="right">{item.quantity || item.min_order_quantity || trans.common.na}</TableCell>
                               <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
                               <TableCell align="center">
                                 <Chip 
-                                  label={item.source || 'CONTRACT'} 
+                                  label={item.source || trans.representativeManagerImportOrders.details.contractSource} 
                                   color={item.source === 'ANNEX' ? 'warning' : 'success'} 
                                   size="small" 
                                   variant="outlined" 
@@ -801,7 +801,7 @@ const RepresentativeManagerImportOrders = () => {
                         ) : (
                           <TableRow>
                             <TableCell colSpan={4} align="center">
-                              <Typography color="text.secondary">No active contract medicines found</Typography>
+                              <Typography color="text.secondary">{trans.representativeManagerImportOrders.details.noContractMedicines}</Typography>
                             </TableCell>
                           </TableRow>
                         )}
@@ -815,7 +815,7 @@ const RepresentativeManagerImportOrders = () => {
               {selectedOrderForDetails.contract_id?.annexes?.filter(a => a.status === 'active').length > 0 && (
                 <Paper sx={{ p: 2, mt: 3 }}>
                   <Typography variant="h6" gutterBottom>
-                    Active Annexes Information
+                    {trans.representativeManagerImportOrders.details.activeAnnexesInfo}
                   </Typography>
                   <Grid container spacing={2}>
                     {selectedOrderForDetails.contract_id.annexes
@@ -824,26 +824,26 @@ const RepresentativeManagerImportOrders = () => {
                         <Grid item xs={12} sm={6} md={4} key={index}>
                           <Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#f8f9fa' }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                              Annex: {annex.annex_code}
+                              {trans.representativeManagerImportOrders.details.annex}: {annex.annex_code}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              Signed: {formatDate(annex.signed_date)}
+                              {trans.representativeManagerImportOrders.details.signed}: {formatDate(annex.signed_date)}
                             </Typography>
                             {annex.medicine_changes && (
                               <Box sx={{ mt: 1 }}>
                                 {annex.medicine_changes.add_items?.length > 0 && (
                                   <Typography variant="body2" color="success.main">
-                                    + Added: {annex.medicine_changes.add_items.length} medicines
+                                    + {trans.representativeManagerImportOrders.details.added}: {annex.medicine_changes.add_items.length} {trans.representativeManagerImportOrders.details.medicines}
                                   </Typography>
                                 )}
                                 {annex.medicine_changes.remove_items?.length > 0 && (
                                   <Typography variant="body2" color="error.main">
-                                    - Removed: {annex.medicine_changes.remove_items.length} medicines
+                                    - {trans.representativeManagerImportOrders.details.removed}: {annex.medicine_changes.remove_items.length} {trans.representativeManagerImportOrders.details.medicines}
                                   </Typography>
                                 )}
                                 {annex.medicine_changes.update_prices?.length > 0 && (
                                   <Typography variant="body2" color="warning.main">
-                                    ~ Updated: {annex.medicine_changes.update_prices.length} prices
+                                    ~ {trans.representativeManagerImportOrders.details.updated}: {annex.medicine_changes.update_prices.length} {trans.representativeManagerImportOrders.details.prices}
                                   </Typography>
                                 )}
                               </Box>
@@ -861,7 +861,7 @@ const RepresentativeManagerImportOrders = () => {
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
           <Button onClick={handleCloseDetailsDialog} variant="outlined" sx={{ minWidth: 120 }}>
-            Close
+            {trans.representativeManagerImportOrders.details.close}
           </Button>
         </DialogActions>
       </Dialog>

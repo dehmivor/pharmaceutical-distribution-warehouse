@@ -1758,6 +1758,110 @@ export default {
     }
   },
 
+  // Common
+  common: {
+    na: 'N/A',
+    currency: 'VND'
+  },
+
+  // Status Change Dialog
+  statusChangeDialog: {
+    approve: {
+      title: 'Phê Duyệt Đơn Hàng',
+      message: 'Bạn có chắc chắn muốn phê duyệt đơn hàng nhập này?',
+      confirmText: 'Phê duyệt'
+    },
+    reject: {
+      title: 'Từ Chối Đơn Hàng',
+      message: 'Bạn có chắc chắn muốn từ chối đơn hàng nhập này?',
+      confirmText: 'Từ chối'
+    },
+    cancel: 'Hủy',
+    loading: 'Đang xử lý...',
+    orderInfo: 'Thông Tin Đơn Hàng',
+    orderId: 'Mã Đơn Hàng',
+    currentStatus: 'Trạng Thái Hiện Tại',
+    newStatus: 'Trạng Thái Mới',
+    userRole: 'Vai Trò Người Dùng'
+  },
+
+  // Representative Manager Import Orders
+  representativeManagerImportOrders: {
+    title: 'Quản Lý Đơn Hàng Nhập',
+    description: 'Phê duyệt hoặc từ chối đơn hàng nhập bản nháp',
+    filters: {
+      title: 'Bộ Lọc Tìm Kiếm',
+      search: 'Tìm kiếm',
+      searchPlaceholder: 'Order ID, Tên nhà cung cấp...',
+      status: 'Trạng thái',
+      allStatus: 'Tất cả',
+      contractType: 'Loại hợp đồng',
+      allContractTypes: 'Tất cả',
+      economic: 'Kinh tế',
+      principal: 'Nguyên tắc',
+      createdBy: 'Người tạo',
+      allUsers: 'Tất cả',
+      refresh: 'Làm mới',
+      clearFilters: 'Xóa bộ lọc'
+    },
+    table: {
+      title: 'Danh Sách Import Orders',
+      totalOrders: 'Tổng cộng orders',
+      orderId: 'Order ID',
+      supplier: 'Nhà cung cấp',
+      status: 'Trạng thái',
+      createdBy: 'Người tạo',
+      createdDate: 'Ngày tạo',
+      totalAmount: 'Tổng tiền',
+      actions: 'Thao tác',
+      noOrders: 'Không tìm thấy đơn hàng',
+      loadingOrders: 'Đang tải đơn hàng...',
+      locked: 'KHÓA'
+    },
+    actions: {
+      approve: 'Phê duyệt',
+      reject: 'Từ chối',
+      viewDetails: 'Xem chi tiết'
+    },
+    details: {
+      title: 'Chi Tiết Đơn Hàng Nhập',
+      basicInfo: 'Thông Tin Cơ Bản',
+      orderId: 'Order ID',
+      contract: 'Hợp đồng',
+      contractType: 'Loại hợp đồng',
+      status: 'Trạng thái',
+      totalAmount: 'Tổng tiền',
+      activeAnnexes: 'Phụ lục hoạt động',
+      importOrderItems: 'Mục Đơn Hàng Nhập',
+      activeContractItems: 'Mục Hợp Đồng Hoạt Động (Bao Gồm Phụ Lục)',
+      medicine: 'Thuốc',
+      quantity: 'Số lượng',
+      unitPrice: 'Đơn giá',
+      total: 'Tổng',
+      source: 'Nguồn',
+      contractSource: 'HỢP ĐỒNG',
+      annexSource: 'PHỤ LỤC',
+      noContractMedicines: 'Không tìm thấy thuốc hợp đồng hoạt động',
+      loadingContractMedicines: 'Đang tải thuốc hợp đồng...',
+      activeAnnexesInfo: 'Thông Tin Phụ Lục Hoạt Động',
+      annex: 'Phụ lục',
+      signed: 'Đã ký',
+      added: 'Đã thêm',
+      removed: 'Đã xóa',
+      updated: 'Đã cập nhật',
+      medicines: 'thuốc',
+      prices: 'giá',
+      close: 'Đóng'
+    },
+    messages: {
+      statusUpdateSuccess: 'Cập nhật trạng thái đơn hàng thành',
+      failedToFetch: 'Không thể tải đơn hàng',
+      requestTimeout: 'Hết thời gian yêu cầu. Vui lòng thử lại.',
+      networkError: 'Lỗi mạng. Vui lòng kiểm tra kết nối.',
+      failedToUpdateStatus: 'Không thể cập nhật trạng thái'
+    }
+  },
+
   // Contract Add Dialog
   contractAdd: {
     title: 'Tạo Hợp Đồng Mới',

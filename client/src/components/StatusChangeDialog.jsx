@@ -12,26 +12,26 @@ const StatusChangeDialog = ({ open, onClose, onConfirm, currentStatus, orderId, 
     switch (nextStatus) {
       case 'approved':
         return {
-          title: trans.actions.confirm,
-          message: trans.messages.confirmDelete,
+          title: trans.statusChangeDialog.approve.title,
+          message: trans.statusChangeDialog.approve.message,
           icon: <ApproveIcon color="success" />,
-          confirmText: trans.actions.confirm,
+          confirmText: trans.statusChangeDialog.approve.confirmText,
           confirmColor: 'success'
         };
-      case 'cancelled':
+      case 'rejected':
         return {
-          title: trans.actions.cancel,
-          message: trans.messages.confirmDelete,
+          title: trans.statusChangeDialog.reject.title,
+          message: trans.statusChangeDialog.reject.message,
           icon: <RejectIcon color="error" />,
-          confirmText: trans.actions.cancel,
+          confirmText: trans.statusChangeDialog.reject.confirmText,
           confirmColor: 'error'
         };
       default:
         return {
-          title: trans.actions.edit,
-          message: trans.messages.confirmDelete,
+          title: trans.statusChangeDialog.approve.title,
+          message: trans.statusChangeDialog.approve.message,
           icon: <WarningIcon color="warning" />,
-          confirmText: trans.actions.confirm,
+          confirmText: trans.statusChangeDialog.approve.confirmText,
           confirmColor: 'primary'
         };
     }
@@ -56,16 +56,19 @@ const StatusChangeDialog = ({ open, onClose, onConfirm, currentStatus, orderId, 
 
           <Alert severity="info" sx={{ mt: 2 }}>
             <Typography variant="body2">
-              <strong>{trans.form.name}:</strong> {orderId?.slice(-8)}
+              <strong>{trans.statusChangeDialog.orderInfo}:</strong>
             </Typography>
             <Typography variant="body2">
-              <strong>{trans.status.active}:</strong> {currentStatus?.toUpperCase()}
+              <strong>{trans.statusChangeDialog.orderId}:</strong> {orderId?.slice(-8)}
             </Typography>
             <Typography variant="body2">
-              <strong>{trans.status.pending}:</strong> {nextStatus?.toUpperCase()}
+              <strong>{trans.statusChangeDialog.currentStatus}:</strong> {currentStatus?.toUpperCase()}
             </Typography>
             <Typography variant="body2">
-              <strong>{trans.form.role}:</strong> {userRole?.replace('_', ' ').toUpperCase()}
+              <strong>{trans.statusChangeDialog.newStatus}:</strong> {nextStatus?.toUpperCase()}
+            </Typography>
+            <Typography variant="body2">
+              <strong>{trans.statusChangeDialog.userRole}:</strong> {userRole?.replace('_', ' ').toUpperCase()}
             </Typography>
           </Alert>
         </Box>
@@ -73,7 +76,7 @@ const StatusChangeDialog = ({ open, onClose, onConfirm, currentStatus, orderId, 
 
       <DialogActions>
         <Button onClick={onClose} disabled={loading}>
-          {trans.actions.cancel}
+          {trans.statusChangeDialog.cancel}
         </Button>
         <Button
           onClick={onConfirm}
@@ -82,7 +85,7 @@ const StatusChangeDialog = ({ open, onClose, onConfirm, currentStatus, orderId, 
           disabled={loading}
           startIcon={loading ? <CircularProgress size={16} /> : null}
         >
-          {loading ? trans.messages.loading : statusInfo.confirmText}
+          {loading ? trans.statusChangeDialog.loading : statusInfo.confirmText}
         </Button>
       </DialogActions>
     </Dialog>

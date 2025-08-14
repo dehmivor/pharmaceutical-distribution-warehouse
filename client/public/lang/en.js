@@ -1760,6 +1760,110 @@ export default {
     }
   },
 
+  // Common
+  common: {
+    na: 'N/A',
+    currency: 'VND'
+  },
+
+  // Status Change Dialog
+  statusChangeDialog: {
+    approve: {
+      title: 'Approve Order',
+      message: 'Are you sure you want to approve this import order?',
+      confirmText: 'Approve'
+    },
+    reject: {
+      title: 'Reject Order',
+      message: 'Are you sure you want to reject this import order?',
+      confirmText: 'Reject'
+    },
+    cancel: 'Cancel',
+    loading: 'Processing...',
+    orderInfo: 'Order Information',
+    orderId: 'Order ID',
+    currentStatus: 'Current Status',
+    newStatus: 'New Status',
+    userRole: 'User Role'
+  },
+
+  // Representative Manager Import Orders
+  representativeManagerImportOrders: {
+    title: 'Import Orders Management',
+    description: 'Approve or reject draft import orders',
+    filters: {
+      title: 'Search Filters',
+      search: 'Search',
+      searchPlaceholder: 'Order ID, Supplier name...',
+      status: 'Status',
+      allStatus: 'All',
+      contractType: 'Contract Type',
+      allContractTypes: 'All',
+      economic: 'Economic',
+      principal: 'Principal',
+      createdBy: 'Created By',
+      allUsers: 'All',
+      refresh: 'Refresh',
+      clearFilters: 'Clear Filters'
+    },
+    table: {
+      title: 'Import Orders List',
+      totalOrders: 'Total orders',
+      orderId: 'Order ID',
+      supplier: 'Supplier',
+      status: 'Status',
+      createdBy: 'Created By',
+      createdDate: 'Created Date',
+      totalAmount: 'Total Amount',
+      actions: 'Actions',
+      noOrders: 'No orders found',
+      loadingOrders: 'Loading orders...',
+      locked: 'LOCKED'
+    },
+    actions: {
+      approve: 'Approve',
+      reject: 'Reject',
+      viewDetails: 'View Details'
+    },
+    details: {
+      title: 'Import Order Details',
+      basicInfo: 'Basic Information',
+      orderId: 'Order ID',
+      contract: 'Contract',
+      contractType: 'Contract Type',
+      status: 'Status',
+      totalAmount: 'Total Amount',
+      activeAnnexes: 'Active Annexes',
+      importOrderItems: 'Import Order Items',
+      activeContractItems: 'Active Contract Items (Including Annexes)',
+      medicine: 'Medicine',
+      quantity: 'Quantity',
+      unitPrice: 'Unit Price',
+      total: 'Total',
+      source: 'Source',
+      contractSource: 'CONTRACT',
+      annexSource: 'ANNEX',
+      noContractMedicines: 'No active contract medicines found',
+      loadingContractMedicines: 'Loading contract medicines...',
+      activeAnnexesInfo: 'Active Annexes Information',
+      annex: 'Annex',
+      signed: 'Signed',
+      added: 'Added',
+      removed: 'Removed',
+      updated: 'Updated',
+      medicines: 'medicines',
+      prices: 'prices',
+      close: 'Close'
+    },
+    messages: {
+      statusUpdateSuccess: 'Order status updated to',
+      failedToFetch: 'Failed to fetch orders',
+      requestTimeout: 'Request timeout. Please try again.',
+      networkError: 'Network error. Please check your connection.',
+      failedToUpdateStatus: 'Failed to update status'
+    }
+  },
+
   // Contract Add Dialog
   contractAdd: {
     title: 'Create New Contract',
