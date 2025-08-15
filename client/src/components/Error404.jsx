@@ -12,10 +12,12 @@ import Typography from '@mui/material/Typography';
 
 // @assets
 import Error404 from '@/images/maintenance/Error404';
+import useTrans from '@/hooks/useTrans';
 
 /***************************  ERROR 404 - PAGES  ***************************/
 
 export default function Error404Page({ primaryBtn, heading }) {
+  const trans = useTrans();
   const theme = useTheme();
   const upMD = useMediaQuery(theme.breakpoints.up('md'));
   const upXL = useMediaQuery(theme.breakpoints.up('xl'));

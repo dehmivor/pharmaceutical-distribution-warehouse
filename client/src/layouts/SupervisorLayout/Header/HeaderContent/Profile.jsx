@@ -29,6 +29,7 @@ import MainCard from '@/components/MainCard';
 import Profile from '@/components/Profile';
 import { AvatarSize, ChipIconPosition } from '@/enum';
 import useConfig from '@/hooks/useConfig';
+import useTrans from '@/hooks/useTrans';
 
 // @assets
 import { IconChevronRight, IconLanguage, IconLogout, IconSettings, IconSunMoon, IconTextDirectionLtr } from '@tabler/icons-react';
@@ -45,6 +46,7 @@ export default function ProfileSection() {
   const theme = useTheme();
   const { i18n, setI18n } = useConfig();
   const { user, userRole, isLoading, updateUserRole } = useRole();
+  const trans = useTrans();
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [innerAnchorEl, setInnerAnchorEl] = useState(null);
@@ -137,7 +139,7 @@ export default function ProfileSection() {
                       <ListItemIcon>
                         <IconSunMoon size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Chế độ quét" />
+                      <ListItemText primary={trans.header.darkMode || 'Dark Mode'} />
                     </ListItem>
                     <ListItem
                       secondaryAction={<Switch size="small" checked={false} onChange={() => enqueueSnackbar('Upgrade to pro for RTL')} />}
@@ -146,13 +148,13 @@ export default function ProfileSection() {
                       <ListItemIcon>
                         <IconTextDirectionLtr size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Đơn vị tính" />
+                      <ListItemText primary={trans.header.rtlMode || 'RTL Mode'} />
                     </ListItem>
                     <ListItemButton sx={buttonStyle} onClick={handleInnerActionClick}>
                       <ListItemIcon>
                         <IconLanguage size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Language" />
+                      <ListItemText primary={trans.header.language || 'Language'} />
                       <Chip
                         label={languageList.find((item) => item.key === i18n)?.value.slice(0, 3)}
                         variant="text"
@@ -206,7 +208,7 @@ export default function ProfileSection() {
                       <ListItemIcon>
                         <IconSettings size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Settings" />
+                      <ListItemText primary={trans.header.settings || 'Settings'} />
                     </ListItemButton>
                     <ListItem disablePadding>
                       <Button
@@ -217,7 +219,7 @@ export default function ProfileSection() {
                         endIcon={<IconLogout size={16} />}
                         onClick={logoutAccount}
                       >
-                        Logout
+                        {trans.header.logout || 'Logout'}
                       </Button>
                     </ListItem>
                   </List>

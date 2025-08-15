@@ -36,6 +36,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { vi } from 'date-fns/locale';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -60,6 +61,7 @@ const InventoryCheckDetailDialog = ({
   warehouseManagers = [],
   isViewMode = false
 }) => {
+  const trans = useTrans();
   const [formData, setFormData] = useState({
     warehouse_manager_id: '',
     inventory_check_date: null,
@@ -119,7 +121,7 @@ const InventoryCheckDetailDialog = ({
       checkDate.setHours(0, 0, 0, 0);
       
       if (checkDate <= today) {
-        newErrors.inventory_check_date = 'Ngày kiểm kê phải sau ngày hôm nay';
+        newErrors.inventory_check_date = trans.common.inventoryCheckDateMustBeAfterToday;
       }
     }
 
@@ -157,7 +159,7 @@ const InventoryCheckDetailDialog = ({
         onSuccess();
         setIsEditing(false);
       } else {
-        setSubmitError(response.data.message || 'Có lỗi xảy ra khi cập nhật phiếu kiểm kê');
+        setSubmitError(response.data.message || trans.common.errorUpdatingInventoryCheck);
       }
     } catch (error) {
       console.error('Error updating inventory check order:', error);
@@ -170,7 +172,7 @@ const InventoryCheckDetailDialog = ({
         });
         setErrors(serverErrors);
       } else {
-        setSubmitError(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật phiếu kiểm kê');
+        setSubmitError(error.response?.data?.message || trans.common.errorUpdatingInventoryCheck);
       }
     } finally {
       setLoading(false);
@@ -219,10 +221,10 @@ const InventoryCheckDetailDialog = ({
           {isViewMode ? <ViewIcon /> : <EditIcon />}
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {isViewMode ? "Chi Tiết Phiếu Kiểm Kê" : "Chỉnh Sửa Phiếu Kiểm Kê"}
+              {isViewMode ? trans.common.inventoryCheckDetails : trans.common.editInventoryCheck}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              {isViewMode ? "Xem thông tin phiếu kiểm kê" : "Cập nhật thông tin phiếu kiểm kê"}
+              {isViewMode ? trans.common.viewInventoryCheckInfo : trans.common.updateInventoryCheckInfo}
             </Typography>
           </Box>
         </Box>
@@ -322,7 +324,7 @@ const InventoryCheckDetailDialog = ({
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
                     <EventIcon sx={{ fontSize: 20, color: "text.secondary" }} />
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                      Ngày Kiểm Kê
+                      {trans.common.inventoryCheckDate}
                     </Typography>
                   </Box>
                   {isViewMode && !isEditing ? (
@@ -489,7 +491,7 @@ const InventoryCheckDetailDialog = ({
             fontWeight: 600
           }}
         >
-          Đóng
+          {trans.common.close}
         </Button>
         {isEditing && (
           <>
@@ -504,7 +506,7 @@ const InventoryCheckDetailDialog = ({
                 fontWeight: 600
               }}
             >
-              Hủy
+              {trans.common.cancel}
             </Button>
             <Button
               onClick={handleSubmit}

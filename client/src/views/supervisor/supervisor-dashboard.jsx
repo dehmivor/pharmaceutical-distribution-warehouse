@@ -41,6 +41,7 @@ import {
   AttachMoney as MoneyIcon
 } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => {
@@ -52,6 +53,7 @@ const getAuthHeaders = () => {
 };
 
 function SupervisorDashboard() {
+  const trans = useTrans();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dashboardData, setDashboardData] = useState({
@@ -215,7 +217,7 @@ function SupervisorDashboard() {
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data');
+      setError(trans.common.failedToLoadDashboard);
     } finally {
       setLoading(false);
     }
@@ -330,10 +332,10 @@ function SupervisorDashboard() {
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h3" sx={{ fontWeight: 700, mb: 1 }}>
-          Supervisor Dashboard
+          {trans.dashboard.title}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Tổng quan hệ thống quản lý kho dược phẩm - Quản lý tất cả các role
+          {trans.dashboard.description}
         </Typography>
       </Box>
 
@@ -341,7 +343,7 @@ function SupervisorDashboard() {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Import Orders"
+            title={trans.dashboard.importOrders}
             value={dashboardData.overview.totalImportOrders}
             icon={<ShoppingCartIcon />}
             color="primary"
@@ -349,7 +351,7 @@ function SupervisorDashboard() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Export Orders"
+            title={trans.dashboard.exportOrders}
             value={dashboardData.overview.totalExportOrders}
             icon={<LocalShippingIcon />}
             color="secondary"
@@ -357,7 +359,7 @@ function SupervisorDashboard() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Active Contracts"
+            title={trans.dashboard.activeContracts}
             value={dashboardData.overview.totalContracts}
             icon={<AssessmentIcon />}
             color="info"
@@ -365,7 +367,7 @@ function SupervisorDashboard() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Medicines"
+            title={trans.dashboard.totalMedicines}
             value={dashboardData.overview.totalMedicines}
             icon={<InventoryIcon />}
             color="success"
@@ -377,7 +379,7 @@ function SupervisorDashboard() {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Suppliers"
+            title={trans.dashboard.totalSuppliers}
             value={dashboardData.overview.totalSuppliers}
             icon={<BusinessIcon />}
             color="warning"
@@ -385,7 +387,7 @@ function SupervisorDashboard() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Retailers"
+            title={trans.dashboard.totalRetailers}
             value={dashboardData.overview.totalRetailers}
             icon={<StoreIcon />}
             color="info"
@@ -393,7 +395,7 @@ function SupervisorDashboard() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Revenue"
+            title={trans.dashboard.totalRevenue}
             value={`${dashboardData.overview.totalRevenue.toLocaleString()} VND`}
             icon={<MoneyIcon />}
             color="success"
@@ -401,7 +403,7 @@ function SupervisorDashboard() {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Expenses"
+            title={trans.dashboard.totalExpenses}
             value={`${dashboardData.overview.totalExpenses.toLocaleString()} VND`}
             icon={<MoneyIcon />}
             color="error"
@@ -424,10 +426,10 @@ function SupervisorDashboard() {
                 }
               >
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  {dashboardData.overview.pendingApprovals} orders pending approval
+                  {dashboardData.overview.pendingApprovals} {trans.dashboard.pendingApprovals.toLowerCase()}
                 </Typography>
                 <Typography variant="body2">
-                  Cần duyệt các đơn hàng import/export đang chờ xử lý
+                  {trans.messages.needApproval || 'Need to approve pending import/export orders'}
                 </Typography>
               </Alert>
             </Grid>
@@ -444,10 +446,10 @@ function SupervisorDashboard() {
                 }
               >
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                  {dashboardData.overview.lowStockItems} medicines low in stock
+                  {dashboardData.overview.lowStockItems} {trans.dashboard.lowStockItems.toLowerCase()}
                 </Typography>
                 <Typography variant="body2">
-                  Cần kiểm tra và bổ sung thuốc có tồn kho thấp
+                  {trans.messages.needCheckLowStock || trans.alerts.needCheckLowStock}
                 </Typography>
               </Alert>
             </Grid>
@@ -459,7 +461,7 @@ function SupervisorDashboard() {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
           <Typography variant="h5" sx={{ fontWeight: 600, mb: 3 }}>
-            Role Activity & Performance Data
+            {trans.dashboard.roleActivity} & Performance Data
           </Typography>
         </Grid>
         
@@ -472,7 +474,7 @@ function SupervisorDashboard() {
                   <PeopleIcon />
                 </Avatar>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Representative Activity
+                  {trans.dashboard.representatives} Activity
                 </Typography>
               </Box>
               <Grid container spacing={2}>
@@ -482,7 +484,7 @@ function SupervisorDashboard() {
                       {dashboardData.roleActivity.representatives.totalOrders}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Total Orders Created
+                      {trans.dashboard.totalOrders} Created
                     </Typography>
                   </Box>
                 </Grid>
@@ -492,13 +494,13 @@ function SupervisorDashboard() {
                       {dashboardData.users.representatives.length}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Active Representatives
+                      Active {trans.dashboard.representatives}
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                    Recent Orders by Representatives:
+                    {trans.dashboard.recentOrders} by {trans.dashboard.representatives}:
                   </Typography>
                   <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
                     {dashboardData.recentOrders
@@ -507,7 +509,7 @@ function SupervisorDashboard() {
                       .map((order) => (
                         <Box key={order._id} sx={{ display: 'flex', justifyContent: 'space-between', p: 1, borderBottom: '1px solid #eee' }}>
                           <Typography variant="body2">
-                            {order.contract_id?.partner_type === 'Supplier' ? 'Import' : 'Export'} - {order._id.slice(-8)}
+                            {order.contract_id?.partner_type === 'Supplier' ? trans.common.import : trans.common.export} - {order._id.slice(-8)}
                           </Typography>
                           <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
                         </Box>
@@ -528,7 +530,7 @@ function SupervisorDashboard() {
                   <AssessmentIcon />
                 </Avatar>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Representative Manager Activity
+                  {trans.dashboard.representativeManagers} Activity
                 </Typography>
               </Box>
               <Grid container spacing={2}>
@@ -538,7 +540,7 @@ function SupervisorDashboard() {
                       {dashboardData.roleActivity.representativeManagers.totalApprovals}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Orders Approved
+                      {trans.dashboard.totalOrders} Approved
                     </Typography>
                   </Box>
                 </Grid>
@@ -548,7 +550,7 @@ function SupervisorDashboard() {
                       {dashboardData.users.representativeManagers.length}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Active Managers
+                      Active {trans.dashboard.representativeManagers}
                     </Typography>
                   </Box>
                 </Grid>
@@ -557,13 +559,13 @@ function SupervisorDashboard() {
                     Approval Rate Analysis:
                   </Typography>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1 }}>
-                    <Typography variant="body2">Draft Orders:</Typography>
+                    <Typography variant="body2">Draft {trans.dashboard.totalOrders}:</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {dashboardData.systemStatus.importOrders.draft + dashboardData.systemStatus.exportOrders.draft}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1 }}>
-                    <Typography variant="body2">Approved Orders:</Typography>
+                    <Typography variant="body2">Approved {trans.dashboard.totalOrders}:</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {dashboardData.systemStatus.importOrders.approved + dashboardData.systemStatus.exportOrders.approved}
                     </Typography>
@@ -583,7 +585,7 @@ function SupervisorDashboard() {
                   <InventoryIcon />
                 </Avatar>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Warehouse Staff Activity
+                  {trans.dashboard.warehouseStaff} Activity
                 </Typography>
               </Box>
               <Grid container spacing={2}>
@@ -593,7 +595,7 @@ function SupervisorDashboard() {
                       {dashboardData.roleActivity.warehouseStaff.totalOperations}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Import Operations
+                      Import {trans.dashboard.totalOperations}
                     </Typography>
                   </Box>
                 </Grid>
@@ -760,9 +762,9 @@ function SupervisorDashboard() {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Recent Orders
+                  {trans.common.recentOrders}
                 </Typography>
-                <Tooltip title="Refresh">
+                <Tooltip title={trans.common.refreshTooltip}>
                   <IconButton size="small" onClick={fetchDashboardData}>
                     <RefreshIcon />
                   </IconButton>
@@ -790,7 +792,7 @@ function SupervisorDashboard() {
                           </TableCell>
                           <TableCell>
                             <Chip 
-                              label={order.contract_id?.partner_type === 'Supplier' ? 'Import' : 'Export'} 
+                              label={order.contract_id?.partner_type === 'Supplier' ? trans.common.import : trans.common.export} 
                               color={order.contract_id?.partner_type === 'Supplier' ? 'primary' : 'secondary'} 
                               size="small" 
                               variant="outlined"
@@ -828,7 +830,7 @@ function SupervisorDashboard() {
             <Card>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                  Top Medicines by Stock
+                  {trans.tabs.inventory} {trans.header.dashboard}
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   {dashboardData.topMedicines.map((medicine, index) => (
@@ -846,7 +848,7 @@ function SupervisorDashboard() {
                           {medicine.current_stock || 0}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          in stock
+                          {trans.status.active}
                         </Typography>
                       </Box>
                     </Box>
@@ -860,35 +862,36 @@ function SupervisorDashboard() {
               <Card>
                 <CardContent>
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'error.main' }}>
-                    Low Stock Medicines
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {dashboardData.lowStockMedicines.map((medicine) => (
-                      <Box key={medicine._id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {medicine.medicine_name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {medicine.license_code}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ textAlign: 'right' }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>
-                            {medicine.current_stock || 0}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            / {medicine.min_stock_threshold || 10}
-                          </Typography>
-                        </Box>
+                                      {trans.messages.warning} {trans.tabs.inventory}
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {dashboardData.lowStockMedicines.map((medicine) => (
+                    <Box key={medicine._id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          {medicine.medicine_name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {medicine.license_code}
+                        </Typography>
                       </Box>
-                    ))}
-                  </Box>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>
+                          {medicine.current_stock || 0}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          / {medicine.min_stock_threshold || 10}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
                 </CardContent>
               </Card>
             )}
           </Stack>
         </Grid>
+        
       </Grid>
     </Box>
   );

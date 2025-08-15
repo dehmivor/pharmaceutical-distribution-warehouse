@@ -39,7 +39,8 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider"
 import { DatePicker } from "@mui/x-date-pickers/DatePicker"
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"
 import { vi } from "date-fns/locale"
-import axios from "axios"
+import axios from "axios";
+import useTrans from '@/hooks/useTrans';
 import useSWRMutation from "swr/mutation"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
@@ -64,12 +65,12 @@ const ANNEX_ACTIONS = {
   UPDATE_END_DATE: "update_end_date",
 }
 
-const ANNEX_ACTION_LABELS = {
-  [ANNEX_ACTIONS.ADD]: "Thêm thuốc mới",
-  [ANNEX_ACTIONS.REMOVE]: "Loại bỏ thuốc",
-  [ANNEX_ACTIONS.UPDATE_PRICE]: "Cập nhật giá thuốc",
-  [ANNEX_ACTIONS.UPDATE_END_DATE]: "Cập nhật ngày kết thúc hợp đồng",
-}
+const getAnnexActionLabels = (trans) => ({
+  [ANNEX_ACTIONS.ADD]: trans.common.addNewMedicine,
+  [ANNEX_ACTIONS.REMOVE]: trans.common.removeMedicine,
+  [ANNEX_ACTIONS.UPDATE_PRICE]: trans.common.updateMedicinePrice,
+  [ANNEX_ACTIONS.UPDATE_END_DATE]: trans.common.updateContractEndDate,
+})
 
 const InfoField = ({ label, value, icon: Icon, onChange, disabled = false, error = false, helperText = "" }) => (
   <Box>
@@ -146,6 +147,8 @@ const EconomicContractEditDialog = ({
   retailers = [],
   isViewMode = false,
 }) => {
+  const trans = useTrans();
+  const ANNEX_ACTION_LABELS = getAnnexActionLabels(trans);
   const [formData, setFormData] = useState({
     contract_code: "",
     contract_type: "economic",
@@ -349,29 +352,29 @@ const EconomicContractEditDialog = ({
 
     // Validate contract_code
     if (!formData.contract_code.trim()) {
-      newErrors.contract_code = "Mã hợp đồng là bắt buộc"
+      newErrors.contract_code = trans.common.contractCodeRequired
     }
 
     // Validate partner_id
     if (!formData.partner_id) {
-      newErrors.partner_id = "Đối tác là bắt buộc"
+      newErrors.partner_id = trans.contractAdd.validation.partnerRequired
     }
 
     // Validate start_date
     if (!formData.start_date) {
-      newErrors.start_date = "Ngày bắt đầu là bắt buộc"
+      newErrors.start_date = trans.common.startDateRequired
     }
 
     // Validate end_date
     if (!formData.end_date) {
-      newErrors.end_date = "Ngày kết thúc là bắt buộc"
+      newErrors.end_date = trans.common.endDateRequired
     } else if (formData.start_date && formData.end_date <= formData.start_date) {
-      newErrors.end_date = "Ngày kết thúc phải sau ngày bắt đầu"
+      newErrors.end_date = trans.common.endDateMustBeAfterStart
     }
 
     // Validate items
     if (formData.items.length === 0) {
-      newErrors.items = "Phải có ít nhất 1 thuốc"
+      newErrors.items = trans.contractAdd.validation.medicineRequired
     } else {
       const itemErrors = []
       formData.items.forEach((item, index) => {
@@ -379,23 +382,23 @@ const EconomicContractEditDialog = ({
 
         // Validate medicine_id
         if (!item.medicine_id) {
-          itemError.medicine_id = "Thuốc là bắt buộc"
+          itemError.medicine_id = trans.contractAdd.validation.medicineRequired
         }
 
         // Validate quantity for economic contracts
         if (isEconomic) {
           if (!item.quantity && item.quantity !== "0") {
-            itemError.quantity = "Số lượng là bắt buộc"
+            itemError.quantity = trans.contractAdd.validation.quantityRequiredEconomic
           } else if (!isValidInteger(item.quantity)) {
-            itemError.quantity = "Số lượng phải là số nguyên dương (chỉ chứa chữ số)"
+            itemError.quantity = trans.contractAdd.validation.quantityInteger
           }
         }
 
         // Validate unit_price
         if (!item.unit_price && item.unit_price !== "0") {
-          itemError.unit_price = "Đơn giá là bắt buộc"
+          itemError.unit_price = trans.contractAdd.validation.unitPriceRequired
         } else if (!isValidFloat(item.unit_price)) {
-          itemError.unit_price = "Đơn giá phải là số không âm (chỉ chứa chữ số và dấu chấm)"
+          itemError.unit_price = trans.contractAdd.validation.unitPriceNonNegative
         }
 
         itemErrors[index] = Object.keys(itemError).length > 0 ? itemError : null
@@ -415,51 +418,86 @@ const EconomicContractEditDialog = ({
       return
     }
 
+    if (!contract?._id) {
+      setErrorApi("Contract ID is missing")
+      return
+    }
+
     setErrorApi("")
     try {
       const isEconomic = formData.contract_type === "economic"
 
+      // Clean and validate the payload data
       const payload = {
-        ...formData,
-        items: formData.items.map((item) => ({
-          medicine_id: item.medicine_id,
-          ...(isEconomic && {
-            quantity: Number.parseInt(item.quantity, 10),
-          }),
-          unit_price: Number.parseFloat(item.unit_price),
-        })),
-        ...(formData.contract_type === "principal" && {
-          annexes: formData.annexes.map((annex) => ({
-            ...annex,
-            items:
-              annex.action === ANNEX_ACTIONS.UPDATE_END_DATE
-                ? []
-                : annex.items.map((item) => ({
-                    medicine_id: item.medicine_id,
-                    unit_price: Number.parseFloat(item.unit_price),
-                  })),
+        contract_code: formData.contract_code?.trim(),
+        contract_type: formData.contract_type,
+        partner_type: formData.partner_type,
+        partner_id: formData.partner_id,
+        start_date: formData.start_date ? formData.start_date.toISOString() : null,
+        end_date: formData.end_date ? formData.end_date.toISOString() : null,
+        items: formData.items
+          .filter(item => item.medicine_id && item.medicine_id.trim()) // Only include items with medicine_id
+          .map((item) => ({
+            medicine_id: item.medicine_id,
+            ...(isEconomic && {
+              quantity: item.quantity ? Number.parseInt(item.quantity, 10) : 0,
+            }),
+            unit_price: item.unit_price ? Number.parseFloat(item.unit_price) : 0,
           })),
+        ...(formData.contract_type === "principal" && {
+          annexes: formData.annexes
+            .filter(annex => annex.annex_code?.trim()) // Only include annexes with annex_code
+            .map((annex) => ({
+              annex_code: annex.annex_code?.trim(),
+              description: annex.description?.trim() || '',
+              signed_date: annex.signed_date ? annex.signed_date.toISOString() : null,
+              action: annex.action,
+              items: annex.items
+                ?.filter(item => item.medicine_id && item.medicine_id.trim())
+                .map((item) => ({
+                  medicine_id: item.medicine_id,
+                  unit_price: item.unit_price ? Number.parseFloat(item.unit_price) : 0,
+                })) || [],
+            })),
         }),
       }
 
+      // Final validation before sending
+      if (!payload.contract_code || !payload.partner_id || !payload.start_date || !payload.end_date) {
+        setErrorApi("Missing required fields")
+        return
+      }
+
+      if (payload.items.length === 0) {
+        setErrorApi("At least one medicine item is required")
+        return
+      }
+
+      console.log('Sending payload:', payload)
+      console.log('Contract ID:', contract?._id)
+      console.log('Contract type:', formData.contract_type)
+      
       const response = await trigger(payload, {
         onSuccess: (data) => {
+          console.log('Success response:', data)
           if (data.success) {
             onSuccess(data.data)
             onClose()
           } else {
-            setErrorApi(data.message || "Cập nhật hợp đồng thất bại")
+            setErrorApi(data.message || trans.common.contractUpdateFailed)
           }
         },
         onError: (err) => {
+          console.error('Error response:', err)
+          console.error('Error details:', err.response?.data)
           const serverMessage = err.response?.data?.message || err.message
-          setErrorApi(serverMessage || "Lỗi khi cập nhật hợp đồng")
+          setErrorApi(serverMessage || trans.common.contractUpdateFailed)
         },
       })
     } catch (err) {
       console.error("Update contract error:", err)
       const serverMessage = err.response?.data?.message
-      setErrorApi(serverMessage || "Lỗi khi cập nhật hợp đồng")
+      setErrorApi(serverMessage || trans.common.contractUpdateFailed)
     }
   }
 
@@ -485,16 +523,16 @@ const EconomicContractEditDialog = ({
           {isViewMode ? <ViewIcon /> : <EditIcon />}
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              {isViewMode ? "Chi Tiết Hợp Đồng" : "Chỉnh Sửa Hợp Đồng"}
-              {isEconomic ? " Kinh tế" : " Nguyên tắc"}
+              {isViewMode ? trans.common.contractDetails : trans.common.editContract}
+              {isEconomic ? ` ${trans.common.economicContract}` : ` ${trans.common.principalContract}`}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.8 }}>
-              {isViewMode ? "Xem thông tin hợp đồng: " : "Cập nhật thông tin hợp đồng: "}
+              {isViewMode ? `${trans.common.viewContractInfo}: ` : `${trans.common.updateContractInfo}: `}
               {contract.contract_code}
             </Typography>
           </Box>
         </Box>
-        <Tooltip title="Đóng">
+        <Tooltip title={trans.common.close}>
           <IconButton onClick={onClose} sx={{ color: "white" }}>
             <CloseIcon />
           </IconButton>
@@ -508,16 +546,16 @@ const EconomicContractEditDialog = ({
           </Alert>
         )}
 
-        {/* Card 1: Thông tin chính */}
+        {/* Card 1: General Information */}
         <Card sx={{ mb: 3, border: "1px solid #e0e0e0" }}>
           <CardContent>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
-              <ContractIcon color="primary" /> Thông Tin Chung
+              <ContractIcon color="primary" /> {trans.contractAdd.generalInfo}
             </Typography>
             <Grid container spacing={3}>
               <Grid item xs={12} md={4}>
                 <InfoField
-                  label="Mã hợp đồng"
+                  label={trans.common.contractCode}
                   value={formData.contract_code}
                   onChange={(e) => handleChange({ target: { name: "contract_code", value: e.target.value } })}
                   error={!!errorValidate.contract_code}
@@ -530,7 +568,7 @@ const EconomicContractEditDialog = ({
                 <Box>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                      Loại hợp đồng
+                      {trans.common.contractType}
                     </Typography>
                   </Box>
                   <Box
@@ -545,7 +583,7 @@ const EconomicContractEditDialog = ({
                     }}
                   >
                     <Chip
-                      label={isEconomic ? "Hợp đồng Kinh tế" : "Hợp đồng Nguyên tắc"}
+                      label={isEconomic ? trans.common.economicContractFull : trans.common.principalContractFull}
                       color={isEconomic ? "primary" : "secondary"}
                       variant="outlined"
                     />
@@ -557,7 +595,7 @@ const EconomicContractEditDialog = ({
                 <Box>
                   <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                      Loại đối tác
+                      {trans.common.partnerType}
                     </Typography>
                   </Box>
                   <Box
@@ -575,17 +613,17 @@ const EconomicContractEditDialog = ({
                   >
                     <Autocomplete
                       options={[
-                        { value: "Supplier", label: "Nhà cung cấp" },
-                        { value: "Retailer", label: "Nhà bán lẻ" },
+                        { value: "Supplier", label: trans.common.supplierLabel },
+                        { value: "Retailer", label: trans.common.retailerLabel },
                       ]}
                       getOptionLabel={(option) => option.label || ""}
                       value={
                         formData.partner_type
                           ? [
-                              { value: "Supplier", label: "Nhà cung cấp" },
-                              { value: "Retailer", label: "Nhà bán lẻ" },
-                            ].find((opt) => opt.value === formData.partner_type)
-                          : { value: "Supplier", label: "Nhà cung cấp" }
+                                                          { value: "Supplier", label: trans.common.supplierLabel },
+                            { value: "Retailer", label: trans.common.retailerLabel },
+                          ].find((opt) => opt.value === formData.partner_type)
+                        : { value: "Supplier", label: trans.common.supplierLabel }
                       }
                       onChange={(event, newValue) => {
                         if (!isViewMode) {
@@ -601,7 +639,7 @@ const EconomicContractEditDialog = ({
                         <TextField
                           {...params}
                           variant="standard"
-                          placeholder="Chọn loại đối tác"
+                          placeholder={trans.common.selectPartnerType}
                           InputProps={{
                             ...params.InputProps,
                             disableUnderline: true,
@@ -624,7 +662,7 @@ const EconomicContractEditDialog = ({
                       <RetailerIcon sx={{ fontSize: 20, color: "text.secondary" }} />
                     )}
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                      Đối tác
+                      {trans.common.partner}
                     </Typography>
                   </Box>
                   <Box
@@ -696,7 +734,7 @@ const EconomicContractEditDialog = ({
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth error={!!errorValidate.start_date}>
                     <DatePicker
-                      label="Ngày bắt đầu"
+                      label={trans.common.startDate}
                       value={formData.start_date}
                       onChange={isViewMode ? () => {} : handleDateChange("start_date")}
                       format="dd/MM/yyyy"
@@ -762,7 +800,7 @@ const EconomicContractEditDialog = ({
                       <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
                         <InventoryIcon sx={{ fontSize: 20, color: "text.secondary" }} />
                         <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                          Thuốc
+                          {trans.common.medicineLabel}
                         </Typography>
                       </Box>
                       <Box
@@ -798,7 +836,7 @@ const EconomicContractEditDialog = ({
                             <TextField
                               {...params}
                               variant="standard"
-                              placeholder="Chọn thuốc"
+                              placeholder={trans.common.selectMedicinePlaceholder}
                               error={
                                 !isViewMode &&
                                 !!(
@@ -837,7 +875,7 @@ const EconomicContractEditDialog = ({
                   {isEconomic && (
                     <Grid item xs={12} sm={6} md={3}>
                       <InfoField
-                        label="Số lượng đặt"
+                        label={trans.common.orderQuantity}
                         value={item.quantity}
                         onChange={(e) => !isViewMode && handleItemChange(index, "quantity", e.target.value)}
                         disabled={isViewMode}
@@ -1060,7 +1098,7 @@ const EconomicContractEditDialog = ({
                                       <TextField
                                         {...params}
                                         variant="standard"
-                                        placeholder="Chọn thuốc"
+                                        placeholder={trans.common.selectMedicinePlaceholder}
                                         InputProps={{
                                           ...params.InputProps,
                                           disableUnderline: true,

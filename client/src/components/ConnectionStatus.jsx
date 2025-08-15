@@ -3,8 +3,10 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { Wifi as WifiIcon, WifiOff as WifiOffIcon } from '@mui/icons-material';
+import useTrans from '@/hooks/useTrans';
 
 const ConnectionStatus = () => {
+  const trans = useTrans();
   // Mock connection status for UI demonstration
   const isConnected = true;
 
@@ -26,7 +28,7 @@ const ConnectionStatus = () => {
       {isConnected ? <WifiIcon sx={{ fontSize: 16 }} /> : <WifiOffIcon sx={{ fontSize: 16 }} />}
 
       <Typography variant="caption" sx={{ fontWeight: 500 }}>
-        {isConnected ? 'Live' : 'Offline'}
+        {isConnected ? trans.status.active : trans.status.inactive}
       </Typography>
     </Box>
   );

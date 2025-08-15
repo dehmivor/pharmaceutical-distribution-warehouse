@@ -40,6 +40,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useRole } from '@/contexts/RoleContext';
+import useTrans from '@/hooks/useTrans';
 import EconomicContractEditDialog from './EconomicContractEditDialog'; // Import the edit dialog component
 import ContractAddDialog from './ContractAddDialog'; // Import the new unified add dialog component
 import StatusActionDialog from './StatusActionDialog';
@@ -61,6 +62,7 @@ const axiosInstance = axios.create({
 });
 
 const ContractManagement = () => {
+  const trans = useTrans();
   const { userRole, user, isLoading } = useRole();
   const [contracts, setContracts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -134,7 +136,7 @@ const ContractManagement = () => {
         setTotalCount(response.data.data.pagination.total);
       }
     } catch (error) {
-      setError('Lỗi khi tải danh sách thuốc');
+      setError(trans.common.errorOccurred);
       console.error('Error fetching medicines:', error);
     } finally {
       setLoading(false);
@@ -149,7 +151,7 @@ const ContractManagement = () => {
         headers: getAuthHeaders()
       });
       if (response.data.success) {
-        setSuppliers(response.data.data); // Dữ liệu từ API, chỉ chứa _id và name
+        setSuppliers(response.data.data); // Data from API, only contains _id and name
       }
     } catch (error) {
       console.error('Error fetching suppliers:', error);
@@ -166,7 +168,7 @@ const ContractManagement = () => {
         headers: getAuthHeaders()
       });
       if (response.data.success) {
-        setRetailers(response.data.data); // Dữ liệu từ API, chỉ chứa _id và name
+        setRetailers(response.data.data); // Data from API, only contains _id and name
       }
     } catch (error) {
       console.error('Error fetching retailers:', error);
@@ -179,13 +181,13 @@ const ContractManagement = () => {
 
   // Handle add contract success
   const handleAddContractSuccess = () => {
-    setSuccess('Thêm hợp đồng mới thành công');
+    setSuccess(trans.common.addContractSuccess);
     fetchContracts(); // Refresh the list
   };
 
   // Handle update contract success
   const handleUpdateContractSuccess = () => {
-    setSuccess('Cập nhật hợp đồng thành công');
+    setSuccess(trans.common.updateContractSuccess);
     fetchContracts(); // Refresh the list
   };
 
@@ -200,11 +202,11 @@ const ContractManagement = () => {
       });
 
       if (response.data.success) {
-        setSuccess('Xóa hợp đồng thành công');
+        setSuccess(trans.common.deleteContractSuccess);
         fetchContracts();
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Lỗi khi xóa hợp đồng');
+              setError(error.response?.data?.message || trans.common.errorOccurred);
     }
   };
 
@@ -228,7 +230,7 @@ const ContractManagement = () => {
     setPage(0);
   };
 
-  // Mở dialog cho từng action
+  // Open dialog for each action
   const openConfirmDialog = (contract) => {
     setSelectedContract(contract);
     setActionType('confirm');
@@ -259,7 +261,7 @@ const ContractManagement = () => {
     setOpenActionDialog(true);
   };
 
-  // Handler chung cho tất cả actions
+  // Common handler for all actions
   const handleStatusAction = async () => {
     if (!selectedContract || !actionType) return;
 
@@ -292,16 +294,16 @@ const ContractManagement = () => {
       );
       if (response.data.success) {
         const actionMessages = {
-          confirm: 'Xác nhận',
-          reject: 'Từ chối',
-          cancel: 'Hủy',
-          draft: 'Chuyển về nháp'
+          confirm: trans.common.confirmAction,
+                  reject: trans.common.cancel,
+        cancel: trans.common.cancel,
+        draft: trans.common.cancel
         };
 
-        setSuccess(`${actionMessages[actionType]} hợp đồng thành công`);
+        setSuccess(`${actionMessages[actionType]} ${trans.common.updateContractSuccess}`);
       }
     } catch (error) {
-      setError(error.response?.data?.message || 'Có lỗi xảy ra');
+      setError(error.response?.data?.message || trans.common.errorOccurred);
     } finally {
       setActionLoading(false);
       setOpenActionDialog(false);
@@ -319,7 +321,7 @@ const ContractManagement = () => {
   const handleAnnexSuccess = () => {
     setOpenAnnexDialog(false);
     setSelectedContract(null);
-    setSuccess('Thao tác phụ lục thành công');
+    setSuccess(trans.common.annexActionSuccess);
     fetchContracts();
   };
 
@@ -349,17 +351,17 @@ const ContractManagement = () => {
     }
   }, [error, success]);
 
-  if (isLoading) return <div>Loading...</div>; // hoặc spinner
+          if (isLoading) return <div>{trans.common.loading || 'Loading...'}</div>; // or spinner
 
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-          Quản Lý Hợp đồng
+          {trans.common.contractManagement}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Quản lý danh sách hợp đồng và thông tin chi tiết
+          {trans.common.manageContractList}
         </Typography>
       </Box>
 
@@ -381,14 +383,14 @@ const ContractManagement = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
             <FilterIcon sx={{ color: 'primary.main', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-              Bộ Lọc Tìm Kiếm
+              {trans.representativeManagerImportOrders.filters.title}
             </Typography>
           </Box>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
-                label="Mã hợp đồng"
+                label={trans.common.contractCode}
                 value={filters.contract_code}
                 onChange={(e) => handleFilterChange('contract_code', e.target.value)}
                 variant="outlined"
@@ -404,11 +406,11 @@ const ContractManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 150 }}>
-                <InputLabel>Loại hợp đồng</InputLabel>
+                <InputLabel>{trans.common.contractType}</InputLabel>
                 <Select
                   value={filters.contract_type}
                   onChange={(e) => handleFilterChange('contract_type', e.target.value)}
-                  label="Loại hợp đồng"
+                  label={trans.common.contractType}
                   renderValue={(selected) => (
                     <Tooltip title={selected}>
                       <span
@@ -419,7 +421,7 @@ const ContractManagement = () => {
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {selected === 'economic' ? 'Kinh tế' : selected === 'principal' ? 'Nguyên tắc' : selected || 'Tất cả'}
+                        {selected === 'economic' ? trans.common.economicContract : selected === 'principal' ? trans.common.principalContract : selected || trans.common.all}
                       </span>
                     </Tooltip>
                   )}
@@ -427,10 +429,10 @@ const ContractManagement = () => {
                     width: 150
                   }}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.common.all}</MenuItem>
                   {filterOptions?.contract_type?.map((type) => (
                     <MenuItem key={type} value={type} title={type}>
-                      {type === 'economic' ? 'Kinh tế' : type === 'principal' ? 'Nguyên tắc' : type}
+                      {type === 'economic' ? trans.common.economicContract : type === 'principal' ? trans.common.principalContract : type}
                     </MenuItem>
                   ))}
                 </Select>
@@ -438,11 +440,11 @@ const ContractManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 150 }}>
-                <InputLabel>Loại đối tác</InputLabel>
+                <InputLabel>{trans.common.partnerType}</InputLabel>
                 <Select
                   value={filters.partner_type}
                   onChange={(e) => handleFilterChange('partner_type', e.target.value)}
-                  label="Loại đối tác"
+                  label={trans.common.partnerType}
                   renderValue={(selected) => (
                     <Tooltip title={selected}>
                       <span
@@ -453,7 +455,7 @@ const ContractManagement = () => {
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {selected || 'Tất cả'}
+                        {selected || trans.common.all}
                       </span>
                     </Tooltip>
                   )}
@@ -461,7 +463,7 @@ const ContractManagement = () => {
                     width: 150
                   }}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.common.all}</MenuItem>
                   {filterOptions?.partner_type?.map((type) => (
                     <MenuItem key={type} value={type} title={type}>
                       {type}
@@ -472,11 +474,11 @@ const ContractManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 150 }}>
-                <InputLabel>Trạng thái</InputLabel>
+                <InputLabel>{trans.common.status}</InputLabel>
                 <Select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                  label="Trạng thái"
+                  label={trans.common.status}
                   renderValue={(selected) => (
                     <Tooltip title={selected}>
                       <span
@@ -487,7 +489,7 @@ const ContractManagement = () => {
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {selected || 'Tất cả'}
+                        {selected || trans.common.all}
                       </span>
                     </Tooltip>
                   )}
@@ -495,7 +497,7 @@ const ContractManagement = () => {
                     width: 150
                   }}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.common.all}</MenuItem>
                   {filterOptions?.status?.map((sta) => (
                     <MenuItem key={sta} value={sta} title={sta}>
                       {sta}
@@ -522,7 +524,7 @@ const ContractManagement = () => {
                     fontWeight: 600
                   }}
                 >
-                  Thêm hợp đồng
+                  {trans.common.addContract}
                 </Button>
               </Grid>
             )}
@@ -540,10 +542,10 @@ const ContractManagement = () => {
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-            Danh Sách Hợp Đồng
+            {trans.common.contractManagement}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Tổng cộng {totalCount} hợp đồng
+            {trans.common.manageContractList} {totalCount}
           </Typography>
         </Box>
 
@@ -551,13 +553,13 @@ const ContractManagement = () => {
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600 }}>Mã hợp đồng</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Loại hợp đồng</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Người tạo</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Đối tác</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Trạng thái</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.common.contractCode}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.common.contractType}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.common.createdBy}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.common.partner}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.common.status}</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>
-                  Hành động
+                  {trans.common.actions}
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -567,7 +569,7 @@ const ContractManagement = () => {
                   <TableCell sx={{ fontWeight: 500 }}>{contract.contract_code}</TableCell>
                   <TableCell>
                     <Chip 
-                      label={contract.contract_type === 'economic' ? 'Kinh tế' : 'Nguyên tắc'} 
+                      label={contract.contract_type === 'economic' ? trans.common.economicContract : trans.common.principalContract} 
                       size="small" 
                       variant="outlined" 
                       color={contract.contract_type === 'economic' ? 'primary' : 'secondary'}
@@ -578,10 +580,10 @@ const ContractManagement = () => {
                   </TableCell>
                   <TableCell
                     sx={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                    title={contract.partner_type + ' - ' + contract.partner_id.name}
+                    title={contract.partner_type + ' - ' + (contract.partner_id?.name || trans.common.na)}
                   >
                     <Chip
-                      label={contract.partner_type + ' - ' + contract.partner_id.name}
+                      label={contract.partner_type + ' - ' + (contract.partner_id?.name || trans.common.na)}
                       size="small"
                       color="secondary"
                       variant="outlined"
@@ -591,7 +593,7 @@ const ContractManagement = () => {
                   <TableCell align="left">
                     {userRole === 'representative' && (
                       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-start' }}>
-                        <Tooltip title="Xem chi tiết">
+                        <Tooltip title={trans.common.viewDetails}>
                           <IconButton
                             color="primary"
                             size="small"
@@ -608,7 +610,7 @@ const ContractManagement = () => {
                           </IconButton>
                         </Tooltip>
                         {contract.status === 'rejected' && (
-                          <Tooltip title="Chuyển về nháp">
+                          <Tooltip title={trans.common.draftAction}>
                             <IconButton
                               color="primary"
                               size="small"
@@ -625,7 +627,7 @@ const ContractManagement = () => {
                         
                         {/* Annex action for principal contracts with active status */}
                         {contract.contract_type === 'principal' && contract.status === 'active' && (
-                          <Tooltip title="Phụ lục">
+                          <Tooltip title={trans.common.annex}>
                             <IconButton
                               color="info"
                               size="small"
@@ -652,7 +654,7 @@ const ContractManagement = () => {
                         )}
                         {(contract.status === 'draft' || contract.status === 'rejected') && (
                           <>
-                            <Tooltip title="Chỉnh sửa">
+                            <Tooltip title={trans.common.edit}>
                               <IconButton
                                 color="secondary"
                                 size="small"
@@ -669,7 +671,7 @@ const ContractManagement = () => {
                               </IconButton>
                             </Tooltip>
 
-                            <Tooltip title="Xóa">
+                            <Tooltip title={trans.common.deleteContract}>
                               <IconButton
                                 color="error"
                                 size="small"
@@ -691,7 +693,7 @@ const ContractManagement = () => {
                     )}
                     {userRole === 'representative_manager' && (
                       <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-start' }}>
-                        <Tooltip title="Xem chi tiết">
+                        <Tooltip title={trans.common.viewDetails}>
                           <IconButton
                             color="primary"
                             size="small"
@@ -709,13 +711,13 @@ const ContractManagement = () => {
                         </Tooltip>
                         {contract.status === 'draft' && (
                           <>
-                            <Tooltip title="Xác nhận">
+                            <Tooltip title={trans.common.confirmAction}>
                               <IconButton color="success" size="small" onClick={() => openConfirmDialog(contract)}>
                                 <CheckCircleIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
 
-                            <Tooltip title="Từ chối">
+                            <Tooltip title={trans.common.reject}>
                               <IconButton color="warning" size="small" onClick={() => openRejectDialog(contract)}>
                                 <CancelIcon fontSize="small" />
                               </IconButton>
@@ -723,7 +725,7 @@ const ContractManagement = () => {
                           </>
                         )}
                         {contract.status === 'active' && (
-                          <Tooltip title="Hủy hợp đồng">
+                          <Tooltip title={trans.common.cancelContract}>
                             <IconButton color="secondary" size="small" onClick={() => openCancelDialog(contract)}>
                               <BlockIcon fontSize="small" />
                             </IconButton>
@@ -733,7 +735,7 @@ const ContractManagement = () => {
                         {/* Annex action for representative_manager - only show if there's a draft annex */}
                         {contract.contract_type === 'principal' && contract.status === 'active' && 
                          contract.annexes?.some(annex => annex.status === 'draft') && (
-                          <Tooltip title="Duyệt phụ lục">
+                          <Tooltip title={trans.common.approveAnnex}>
                             <IconButton
                               color="info"
                               size="small"
@@ -766,8 +768,7 @@ const ContractManagement = () => {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage="Số hàng mỗi trang:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
+
           sx={{
             borderTop: '1px solid #e0e0e0',
             bgcolor: 'grey.50'

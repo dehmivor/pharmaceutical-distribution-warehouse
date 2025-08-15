@@ -29,6 +29,7 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import { useRole } from '@/contexts/RoleContext';
 
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -82,7 +83,7 @@ const AnnexDialog = ({
   contractId, 
   onSuccess
 }) => {
-
+  const trans = useTrans();
   const { userRole, user } = useRole();
   const { enqueueSnackbar } = useSnackbar();
   const [contract, setContract] = useState(null);
@@ -136,7 +137,7 @@ const AnnexDialog = ({
       }
     } catch (error) {
       console.error('Error fetching contract detail:', error);
-      enqueueSnackbar('Không thể tải thông tin hợp đồng', { variant: 'error' });
+      enqueueSnackbar(trans.common.cannotLoadContractInfo, { variant: 'error' });
     }
   };
 
@@ -153,7 +154,7 @@ const AnnexDialog = ({
       }
     } catch (error) {
       console.error('Error fetching medicines:', error);
-      enqueueSnackbar('Không thể tải danh sách thuốc', { variant: 'error' });
+      enqueueSnackbar(trans.common.cannotLoadMedicineList, { variant: 'error' });
     }
   };
 
@@ -398,17 +399,17 @@ const AnnexDialog = ({
 
     // Validate basic fields
     if (!formData.annex_code.trim()) {
-      errors.annex_code = 'Mã phụ lục là bắt buộc';
+      errors.annex_code = trans.common.annexCodeRequired;
     }
 
     if (!formData.signed_date) {
-      errors.signed_date = 'Ngày ký là bắt buộc';
+      errors.signed_date = trans.common.signedDateRequired;
     }
 
     // Validate end date if provided
     if (formData.end_date_change.new_end_date) {
       if (formData.end_date_change.new_end_date <= new Date()) {
-        errors.end_date = 'Ngày kết thúc phải sau ngày hiện tại';
+        errors.end_date = trans.common.endDateMustBeAfterToday;
       }
     }
 
@@ -419,7 +420,7 @@ const AnnexDialog = ({
     const hasEndDateChange = formData.end_date_change.new_end_date;
 
     if (!hasAddItems && !hasRemoveItems && !hasUpdatePrices && !hasEndDateChange) {
-      errors.general = 'Phụ lục phải có ít nhất một thay đổi (thêm thuốc, loại bỏ thuốc, cập nhật giá hoặc thay đổi ngày kết thúc)';
+      errors.general = trans.common.annexMustHaveChanges;
     }
 
     // Validate medicine items
@@ -520,7 +521,7 @@ const AnnexDialog = ({
       }
 
       if (result) {
-        enqueueSnackbar('Thao tác phụ lục thành công', { variant: 'success' });
+        enqueueSnackbar(trans.common.annexActionSuccess, { variant: 'success' });
         onSuccess(result);
         onClose();
       }
@@ -534,7 +535,7 @@ const AnnexDialog = ({
         errorMessage = error.message;
       } else {
         // Generic error
-        errorMessage = 'Có lỗi xảy ra khi thao tác phụ lục';
+        errorMessage = trans.common.errorInAnnexAction;
       }
       enqueueSnackbar(errorMessage, { variant: 'error' });
     }
@@ -544,7 +545,7 @@ const AnnexDialog = ({
     try {
       const result = await updateStatusTrigger({ status: 'rejected' });
       if (result) {
-        enqueueSnackbar('Từ chối phụ lục thành công', { variant: 'success' });
+        enqueueSnackbar(trans.common.rejectAnnexSuccess, { variant: 'success' });
         onSuccess(result);
         onClose();
       }
@@ -558,7 +559,7 @@ const AnnexDialog = ({
         errorMessage = error.message;
       } else {
         // Generic error
-        errorMessage = 'Có lỗi xảy ra khi từ chối phụ lục';
+        errorMessage = trans.common.errorRejectingAnnex;
       }
       enqueueSnackbar(errorMessage, { variant: 'error' });
     }
@@ -572,7 +573,7 @@ const AnnexDialog = ({
     try {
       const result = await deleteAnnexTrigger();
       if (result) {
-        enqueueSnackbar('Xóa phụ lục thành công', { variant: 'success' });
+        enqueueSnackbar(trans.common.deleteAnnexSuccess, { variant: 'success' });
         onSuccess(result);
         onClose();
       }
@@ -586,7 +587,7 @@ const AnnexDialog = ({
         errorMessage = error.message;
       } else {
         // Generic error
-        errorMessage = 'Có lỗi xảy ra khi xóa phụ lục';
+        errorMessage = trans.common.errorDeletingAnnex;
       }
       enqueueSnackbar(errorMessage, { variant: 'error' });
     }
@@ -595,7 +596,7 @@ const AnnexDialog = ({
   const getDialogTitle = () => {
     switch (currentMode) {
       case 'create': return 'Tạo Phụ Lục Mới';
-      case 'edit': return 'Chỉnh Sửa Phụ Lục';
+      case 'edit': return trans.common.editAnnex;
       case 'resubmit': return 'Gửi Lại Phụ Lục';
       case 'approve': return 'Duyệt Phụ Lục';
       case 'view': return 'Xem Phụ Lục';

@@ -24,6 +24,7 @@ import {
 import { Close as CloseIcon, Add as AddIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useSnackbar } from 'notistack';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => {
@@ -40,6 +41,7 @@ const axiosInstance = axios.create({
 });
 
 const AreaAddDialog = ({ open, onClose, onSuccess }) => {
+  const trans = useTrans();
   const [formData, setFormData] = useState({
     name: '',
     storage_conditions: {
@@ -59,22 +61,22 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
 
     // Validate name
     if (!formData.name.trim()) {
-      newErrors.name = 'Tên khu vực là bắt buộc';
+      newErrors.name = trans.common.areaNameRequired;
     } else if (formData.name.trim().length > 100) {
-      newErrors.name = 'Tên khu vực không được quá 100 ký tự';
+      newErrors.name = trans.common.areaNameTooLong;
     }
 
     // Validate temperature format and logic
     if (formData.storage_conditions.temperature) {
       const tempValue = formData.storage_conditions.temperature.trim();
       if (!/^\d+-\d+$|^-\d+$|^\d+$/.test(tempValue)) {
-        newErrors.temperature = 'Nhiệt độ phải có định dạng "X-Y", "-X", hoặc "X" (°C)';
+        newErrors.temperature = trans.common.temperatureFormatError;
       } else {
         // Validate temperature range logic
         if (tempValue.includes('-')) {
           const [min, max] = tempValue.split('-').map(Number);
           if (min > max) {
-            newErrors.temperature = 'Nhiệt độ tối thiểu phải nhỏ hơn hoặc bằng nhiệt độ tối đa';
+            newErrors.temperature = trans.common.temperatureRangeError;
           }
         }
       }
@@ -84,21 +86,21 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
     if (formData.storage_conditions.humidity) {
       const humidityValue = formData.storage_conditions.humidity.trim();
       if (!/^\d+$|^\d+-\d+$/.test(humidityValue)) {
-        newErrors.humidity = 'Độ ẩm phải có định dạng "X" hoặc "X-Y" (%)';
+        newErrors.humidity = trans.common.humidityFormatError;
       } else {
         // Validate humidity range logic
         if (humidityValue.includes('-')) {
           const [min, max] = humidityValue.split('-').map(Number);
           if (min > max) {
-            newErrors.humidity = 'Độ ẩm tối thiểu phải nhỏ hơn hoặc bằng độ ẩm tối đa';
+            newErrors.humidity = trans.common.humidityRangeError;
           }
           if (max > 100) {
-            newErrors.humidity = 'Độ ẩm tối đa không được vượt quá 100%';
+            newErrors.humidity = trans.common.humidityMaxError;
           }
         } else {
           const humidity = Number(humidityValue);
           if (humidity > 100) {
-            newErrors.humidity = 'Độ ẩm không được vượt quá 100%';
+            newErrors.humidity = trans.common.humidityMaxError;
           }
         }
       }
@@ -106,7 +108,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
 
     // Validate description length
     if (formData.description && formData.description.length > 1000) {
-      newErrors.description = 'Mô tả không được quá 1000 ký tự';
+      newErrors.description = trans.common.descriptionTooLong;
     }
 
     setErrors(newErrors);
@@ -153,7 +155,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
       }
     } catch (error) {
       console.error('Error creating area:', error);
-      const errorMessage = error.response?.data?.message || 'Không thể tạo khu vực';
+      const errorMessage = error.response?.data?.message || trans.common.cannotCreateArea;
       enqueueSnackbar(errorMessage, { variant: 'error' });
     } finally {
       setLoading(false);
@@ -201,7 +203,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <AddIcon />
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Thêm Khu Vực Mới
+            {trans.common.addNewArea}
           </Typography>
         </Box>
         <IconButton onClick={handleClose} sx={{ color: 'white' }}>
@@ -215,12 +217,12 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
           <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
-                Thông Tin Cơ Bản
+                {trans.common.basicInfo}
               </Typography>
               
               <TextField
                 fullWidth
-                label="Tên Khu Vực *"
+                label={trans.common.areaNameRequired}
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 error={!!errors.name}
@@ -234,13 +236,13 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
           <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
-                Điều Kiện Bảo Quản
+                {trans.common.storageConditions}
               </Typography>
               
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
                 <TextField
-                  label="Nhiệt Độ"
-                  placeholder="VD: 2-8, -20, 25"
+                  label={trans.common.temperature}
+                  placeholder={trans.common.temperaturePlaceholder}
                   value={formData.storage_conditions.temperature}
                   onChange={(e) => handleInputChange('storage_conditions.temperature', e.target.value)}
                   error={!!errors.temperature}
@@ -248,8 +250,8 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
                 />
                 
                 <TextField
-                  label="Độ Ẩm"
-                  placeholder="VD: 60, 40-70"
+                  label={trans.common.humidity}
+                  placeholder={trans.common.humidityPlaceholder}
                   value={formData.storage_conditions.humidity}
                   onChange={(e) => handleInputChange('storage_conditions.humidity', e.target.value)}
                   error={!!errors.humidity}
@@ -258,17 +260,17 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
               </Box>
 
               <FormControl fullWidth>
-                <InputLabel>Ánh Sáng</InputLabel>
+                <InputLabel>{trans.common.light}</InputLabel>
                 <Select
                   value={formData.storage_conditions.light}
                   onChange={(e) => handleInputChange('storage_conditions.light', e.target.value)}
-                  label="Ánh Sáng"
+                  label={trans.common.light}
                 >
-                  <MenuItem value="">Không xác định</MenuItem>
-                  <MenuItem value="none">none</MenuItem>
-                  <MenuItem value="low">low</MenuItem>
-                  <MenuItem value="medium">medium</MenuItem>
-                  <MenuItem value="high">high</MenuItem>
+                  <MenuItem value="">{trans.common.unknown}</MenuItem>
+                  <MenuItem value="none">{trans.common.lightNone}</MenuItem>
+                  <MenuItem value="low">{trans.common.lightLow}</MenuItem>
+                  <MenuItem value="medium">{trans.common.lightMedium}</MenuItem>
+                  <MenuItem value="high">{trans.common.lightHigh}</MenuItem>
                 </Select>
               </FormControl>
             </CardContent>
@@ -278,15 +280,15 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
           <Card sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
-                Mô Tả
+                {trans.common.description}
               </Typography>
               
               <TextField
                 fullWidth
-                label="Mô Tả"
+                label={trans.common.description}
                 multiline
                 rows={4}
-                placeholder="Nhập mô tả chi tiết về khu vực..."
+                placeholder={trans.common.descriptionPlaceholder}
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 error={!!errors.description}
@@ -300,7 +302,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
 
       <DialogActions sx={{ p: 3, pt: 0 }}>
         <Button onClick={handleClose} disabled={loading}>
-          Hủy
+          {trans.common.cancel}
         </Button>
         <Button
           onClick={handleSubmit}
@@ -308,7 +310,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
           disabled={loading}
           sx={{ borderRadius: 2 }}
         >
-          {loading ? <CircularProgress size={20} /> : 'Tạo Khu Vực'}
+          {loading ? <CircularProgress size={20} /> : trans.common.createArea}
         </Button>
       </DialogActions>
     </Dialog>

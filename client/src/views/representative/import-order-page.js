@@ -32,6 +32,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Info as InfoIcon, Refresh as RefreshIcon, FilterList as FilterListIcon } from '@mui/icons-material';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
@@ -48,6 +49,7 @@ const axiosInstance = axios.create({
 });
 
 function ImportOrderPage() {
+  const trans = useTrans();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -339,7 +341,7 @@ function ImportOrderPage() {
 
     // Validate: phải chọn contract_type và contract_id
     if (!formData.contract_type || !formData.contract_id) {
-      setError('Vui lòng chọn loại hợp đồng và hợp đồng cụ thể!');
+      setError(trans.common.pleaseSelectContractTypeAndContract);
       setFormLoading(false);
       return;
     }
@@ -363,14 +365,14 @@ function ImportOrderPage() {
     const medicineIds = formData.details.map((d) => d.medicine_id);
     const hasDuplicate = new Set(medicineIds).size !== medicineIds.length;
     if (hasDuplicate) {
-      setError('Không được chọn trùng thuốc trong cùng một phiếu nhập!');
+      setError(trans.common.duplicateMedicineError);
       setFormLoading(false);
       return;
     }
     // Validate: số lượng và đơn giá > 0
     for (const detail of formData.details) {
       if (!detail.medicine_id || detail.quantity <= 0 || detail.unit_price <= 0) {
-        setError('Vui lòng nhập đầy đủ, số lượng và đơn giá phải lớn hơn 0!');
+        setError(trans.common.pleaseFillAllFields);
         setFormLoading(false);
         return;
       }
@@ -390,7 +392,11 @@ function ImportOrderPage() {
         // Validate: số lượng nhập không vượt quá max_quantity hoặc 1000
         const maxQ = contractItem?.max_quantity || 1000;
         if (detail.quantity > maxQ) {
-          setError(`Số lượng nhập cho thuốc "${contractItem?.medicine_id?.medicine_name || ''}" không được vượt quá ${maxQ}`);
+          setError(
+            trans.common.quantityMaxForMedicine
+              .replace('{medicine}', contractItem?.medicine_id?.medicine_name || '')
+              .replace('{max}', maxQ)
+          );
           setFormLoading(false);
           return;
         }
@@ -561,7 +567,7 @@ function ImportOrderPage() {
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Manage Import Orders</Typography>
+        <Typography variant="h4">{trans.common.manageImportOrders}</Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant="outlined"
@@ -569,10 +575,10 @@ function ImportOrderPage() {
             onClick={fetchOrders}
             disabled={loading}
           >
-            Refresh
+            {trans.common.refresh}
           </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenForm()} sx={{ minWidth: 180, height: 48 }}>
-            Create New Order
+            {trans.common.createNewOrder}
           </Button>
         </Box>
       </Box>
@@ -582,14 +588,14 @@ function ImportOrderPage() {
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
             <FilterListIcon sx={{ color: 'primary.main', mr: 1 }} />
-            <Typography variant="h6" sx={{ color: 'primary.main' }}>Bộ Lọc Tìm Kiếm</Typography>
+            <Typography variant="h6" sx={{ color: 'primary.main' }}>{trans.common.searchFilter}</Typography>
           </Box>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
-                label="Mã hợp đồng"
-                placeholder="Tìm kiếm theo mã hợp đồng..."
+                label={trans.common.contractCode}
+                placeholder={trans.common.contractCodePlaceholder}
                 value={filters.contract_code || ''}
                 onChange={(e) => handleFilterChange('contract_code', e.target.value)}
                 InputProps={{
@@ -603,27 +609,27 @@ function ImportOrderPage() {
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
               <FormControl fullWidth>
-                <InputLabel>Loại hợp đồng</InputLabel>
+                <InputLabel>{trans.common.contractType}</InputLabel>
                 <Select
                   value={filters.contract_type}
                   onChange={(e) => handleFilterChange('contract_type', e.target.value)}
-                  label="Loại hợp đồng"
+                  label={trans.common.contractType}
                 >
-                  <MenuItem value="">Tất cả loại hợp đồng</MenuItem>
-                  <MenuItem value="economic">Economic Contract</MenuItem>
-                  <MenuItem value="principal">Principal Contract</MenuItem>
+                  <MenuItem value="">{trans.common.allContractTypes}</MenuItem>
+                  <MenuItem value="economic">{trans.common.economicContract}</MenuItem>
+                  <MenuItem value="principal">{trans.common.principalContract}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
               <FormControl fullWidth>
-                <InputLabel>Nhà cung cấp</InputLabel>
+                <InputLabel>{trans.common.supplier}</InputLabel>
                 <Select
                   value={filters.supplier}
                   onChange={(e) => handleFilterChange('supplier', e.target.value)}
-                  label="Nhà cung cấp"
+                  label={trans.common.supplier}
                 >
-                  <MenuItem value="">Tất cả nhà cung cấp</MenuItem>
+                  <MenuItem value="">{trans.common.allSuppliers}</MenuItem>
                   {suppliers.map((supplier) => (
                     <MenuItem key={supplier} value={supplier}>
                       {supplier}
@@ -634,13 +640,13 @@ function ImportOrderPage() {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth>
-                <InputLabel>Người tạo</InputLabel>
+                <InputLabel>{trans.common.createdBy}</InputLabel>
                 <Select
                   value={filters.created_by}
                   onChange={(e) => handleFilterChange('created_by', e.target.value)}
-                  label="Người tạo"
+                  label={trans.common.createdBy}
                 >
-                  <MenuItem value="">Tất cả</MenuItem>
+                  <MenuItem value="">{trans.common.allUsers}</MenuItem>
                   {userEmails.length > 0 && (
                     <MenuItem disabled>
                       <Typography variant="caption" color="text.secondary">
@@ -663,7 +669,7 @@ function ImportOrderPage() {
                   onClick={clearFilters}
                   fullWidth
                 >
-                  Xóa bộ lọc
+                  {trans.common.clearFilters}
                 </Button>
               </Box>
             </Grid>
@@ -675,16 +681,16 @@ function ImportOrderPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ minWidth: 120 }}>Contract Code</TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Contract Type</TableCell>
-              <TableCell sx={{ minWidth: 150 }}>Supplier</TableCell>
-              <TableCell sx={{ minWidth: 150 }}>Warehouse Manager</TableCell>
-              <TableCell sx={{ minWidth: 120 }}>Created By</TableCell>
+              <TableCell sx={{ minWidth: 120 }}>{trans.common.contractCode}</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>{trans.common.contractType}</TableCell>
+              <TableCell sx={{ minWidth: 150 }}>{trans.common.supplier}</TableCell>
+              <TableCell sx={{ minWidth: 150 }}>{trans.common.warehouseManager}</TableCell>
+              <TableCell sx={{ minWidth: 120 }}>{trans.common.createdBy}</TableCell>
               <TableCell align="right" sx={{ minWidth: 120 }}>
-                Total Amount
+                {trans.common.totalAmount.replace('{amount}', '')}
               </TableCell>
-              <TableCell sx={{ minWidth: 100 }}>Status</TableCell>
-              <TableCell sx={{ minWidth: 120 }}>Actions</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>{trans.common.status}</TableCell>
+              <TableCell sx={{ minWidth: 120 }}>{trans.common.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -693,7 +699,7 @@ function ImportOrderPage() {
                 <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
                 <TableCell>
                   <Chip 
-                    label={order.contract_id?.contract_type === 'principal' ? 'Principal' : 'Economic'} 
+                    label={order.contract_id?.contract_type === 'principal' ? trans.common.principalContract : trans.common.economicContract} 
                     color={order.contract_id?.contract_type === 'principal' ? 'primary' : 'secondary'} 
                     size="small" 
                     variant="outlined"
@@ -746,18 +752,18 @@ function ImportOrderPage() {
       {/* Form Dialog */}
       <Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
         <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>
-          {selectedOrder ? 'Edit Import Order' : 'Create New Import Order'}
+          {selectedOrder ? trans.common.editImportOrder : trans.common.createImportOrder}
           {selectedOrder ? (
             <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontWeight: 400 }}>
               You can only edit medicines in this order
             </Typography>
           ) : formData.contract_type === 'principal' ? (
             <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontWeight: 400 }}>
-              Principal Contract - Quantity can be edited
+              {trans.common.principalContractQuantityEditableNote}
             </Typography>
           ) : formData.contract_type === 'economic' && (
             <Typography variant="body2" sx={{ mt: 1, color: 'warning.main', fontWeight: 400 }}>
-              ⚠️ Economic Contract - Chỉ cho phép 1 order/contract (trừ khi order cũ bị cancelled)
+              {trans.common.economicContractWarning}
             </Typography>
           )}
         </DialogTitle>
@@ -767,33 +773,33 @@ function ImportOrderPage() {
             <Grid container alignItems="center" spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth>
-                  <InputLabel>Contract Type</InputLabel>
+                <InputLabel>{trans.common.contractType}</InputLabel>
                   <Select
                     name="contract_type"
                     value={formData.contract_type}
                     onChange={handleFormChange}
-                    label="Contract Type"
+                    label={trans.common.contractType}
                     required
                     disabled={!!selectedOrder}
                   >
-                    <MenuItem value="">Select Contract Type</MenuItem>
-                    <MenuItem value="economic">Economic Contract</MenuItem>
-                    <MenuItem value="principal">Principal Contract</MenuItem>
+                    <MenuItem value="">{trans.common.selectContractType}</MenuItem>
+                    <MenuItem value="economic">{trans.common.economicContract}</MenuItem>
+                    <MenuItem value="principal">{trans.common.principalContract}</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth>
-                  <InputLabel>Contract</InputLabel>
+                <InputLabel>{trans.common.contract}</InputLabel>
                   <Select
                     name="contract_id"
                     value={formData.contract_id}
                     onChange={handleFormChange}
-                    label="Contract"
+                    label={trans.common.contract}
                     required
                     disabled={!formData.contract_type || !!selectedOrder}
                   >
-                    <MenuItem value="">Select Contract</MenuItem>
+                    <MenuItem value="">{trans.common.selectContract}</MenuItem>
                     {filteredContracts.map((contract) => (
                       <MenuItem key={contract._id} value={contract._id}>
                         {contract.contract_code} - {contract.partner_id?.name}
@@ -804,14 +810,14 @@ function ImportOrderPage() {
               </Grid>
               <Grid item xs={12} md={4} sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-start', md: 'center' } }}>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Order Details
+                  {trans.common.orderDetails}
                   {selectedOrder ? (
                     <Typography variant="caption" sx={{ display: 'block', color: 'warning.main', fontWeight: 400 }}>
-                      (Edit medicines only)
+                      ({trans.common.editMedicinesOnlyNote})
                     </Typography>
                   ) : formData.contract_type === 'principal' && (
                     <Typography variant="caption" sx={{ display: 'block', color: 'primary.main', fontWeight: 400 }}>
-                      (Editable quantities)
+                      ({trans.common.quantityEditableNote})
                     </Typography>
                   )}
                 </Typography>
@@ -832,7 +838,7 @@ function ImportOrderPage() {
                     } 
                     sx={{ minWidth: 140, fontWeight: 600 }}
                   >
-                    {selectedOrder ? 'Add Medicine' : 'Add Medicine (Quantity Editable)'}
+                     {selectedOrder ? trans.common.addMedicine : trans.common.addMedicineQuantityOnly}
                   </Button>
                 )}
               </Grid>
@@ -843,16 +849,16 @@ function ImportOrderPage() {
                 <Grid item xs={12}>
                   <Alert severity="info" sx={{ mb: 2 }}>
                     {selectedOrder 
-                      ? "You can only edit medicines in this order"
+                      ? trans.common.editMedicinesOnly
                       : !formData.contract_type 
-                        ? "Please select a Contract Type first" 
+                        ? trans.common.pleaseSelectContractType
                         : !formData.contract_id 
-                          ? "Please select a Contract to load available medicines"
+                          ? trans.common.pleaseSelectContract
                           : formData.contract_type === 'principal'
-                            ? "Please add medicines to your order (Principal contract allows quantity editing)"
+                            ? trans.common.principalContractQuantityEditable
                             : formData.contract_type === 'economic'
-                              ? "Economic contract: All medicines will be auto-filled from contract"
-                              : "Please add medicines to your order"
+                              ? trans.common.economicContractAutoFilled
+                              : trans.common.pleaseAddMedicines
                     }
                   </Alert>
                 </Grid>
@@ -863,18 +869,18 @@ function ImportOrderPage() {
                     <Grid container spacing={2} alignItems="center" justifyContent="center" wrap="nowrap">
                       <Grid item sx={{ flex: '1 1 0', minWidth: 220, maxWidth: 260 }}>
                         <FormControl fullWidth>
-                          <InputLabel>Medicine</InputLabel>
+                          <InputLabel>{trans.common.medicine}</InputLabel>
                           <Select
                             value={detail.medicine_id}
                             onChange={(e) => handleDetailChange(index, 'medicine_id', e.target.value)}
-                            label="Medicine"
+                            label={trans.common.medicine}
                             required
                             disabled={!formData.contract_id || medicinesLoading || formData.contract_type === 'economic'}
                             sx={{ minWidth: 200, maxWidth: 240 }}
                           >
-                            <MenuItem value="">Select Medicine</MenuItem>
-                            {medicinesLoading ? (
-                              <MenuItem disabled>Loading medicines...</MenuItem>
+                             <MenuItem value="">{trans.common.selectMedicine || 'Select Medicine'}</MenuItem>
+                             {medicinesLoading ? (
+                               <MenuItem disabled>{trans.common.loading || 'Loading...'}</MenuItem>
                             ) : (
                               contractMedicines
                                 .filter((med) => {
@@ -899,7 +905,7 @@ function ImportOrderPage() {
                       <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
                         <TextField
                           fullWidth
-                          label="Quantity"
+                          label={trans.common.quantity}
                           type="number"
                           value={detail.quantity}
                           onChange={(e) => {
@@ -931,20 +937,20 @@ function ImportOrderPage() {
                       <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
                         <TextField
                           fullWidth
-                          label="Unit Price"
+                          label={trans.common.unitPrice}
                           type="number"
                           value={detail.unit_price}
                           InputProps={{ readOnly: true }}
                           required
                           disabled={!detail.medicine_id || medicinesLoading}
-                          helperText="(Từ hợp đồng)"
+                          helperText={trans.common.fromContract}
                           sx={{ minWidth: 120, maxWidth: 140 }}
                         />
                       </Grid>
                       <Grid item sx={{ flex: '1 0 0', minWidth: 120, maxWidth: 160 }}>
                         <TextField
                           fullWidth
-                          label="Total"
+                          label={trans.common.total}
                           value={(detail.quantity * detail.unit_price).toLocaleString()}
                           InputProps={{ readOnly: true }}
                           disabled={!detail.medicine_id || medicinesLoading}
@@ -990,13 +996,13 @@ function ImportOrderPage() {
 
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>Import Order Details</DialogTitle>
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600 }}>{trans.common.orderDetailsTitle}</DialogTitle>
         <DialogContent>
           {selectedOrder && (
             <Box sx={{ mt: 2 }}>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
-                  <Typography variant="h6">Basic Information</Typography>
+                  <Typography variant="h6">{trans.common.basicInformation}</Typography>
                   <Paper sx={{ p: 2 }}>
                     <Typography>
                       <strong>Contract:</strong> {selectedOrder.contract_id?.contract_code}
@@ -1025,15 +1031,15 @@ function ImportOrderPage() {
                   </Paper>
                 </Grid>
                                       <Grid item xs={12} md={6}>
-                        <Typography variant="h6">Order Details</Typography>
+                         <Typography variant="h6">{trans.common.orderDetailsTitle}</Typography>
                         <TableContainer component={Paper}>
                           <Table size="small">
                             <TableHead>
                               <TableRow>
-                                <TableCell>Medicine</TableCell>
-                                <TableCell align="right">Quantity</TableCell>
-                                <TableCell align="right">Unit Price</TableCell>
-                                <TableCell align="right">Total</TableCell>
+                                <TableCell>{trans.common.medicine}</TableCell>
+                                <TableCell align="right">{trans.common.quantity}</TableCell>
+                                <TableCell align="right">{trans.common.unitPrice}</TableCell>
+                                <TableCell align="right">{trans.common.total}</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
@@ -1054,8 +1060,8 @@ function ImportOrderPage() {
           )}
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
-          <Button onClick={handleCloseDetails} variant="outlined" sx={{ minWidth: 120 }}>
-            Close
+           <Button onClick={handleCloseDetails} variant="outlined" sx={{ minWidth: 120 }}>
+            {trans.common.close}
           </Button>
         </DialogActions>
       </Dialog>

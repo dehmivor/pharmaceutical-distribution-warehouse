@@ -6,8 +6,10 @@ import TableSection from '@/sections/supervisor/activate-account/TableSection';
 import { Box, Container } from '@mui/material';
 import axios from 'axios';
 import { useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 function ManageUsers() {
+  const trans = useTrans();
   const [activeTab, setActiveTab] = useState(0);
 
   // State cho dialog và form
@@ -27,7 +29,7 @@ function ManageUsers() {
     setActiveTab(newValue);
   };
 
-  // Hàm mở dialog
+  // Functions to open/close dialog
   const handleOpenAddUser = () => setOpenAddUserDialog(true);
   const handleCloseAddUser = () => {
     setOpenAddUserDialog(false);
@@ -43,7 +45,7 @@ function ManageUsers() {
     setSubmitting(false);
   };
 
-  // Hàm validate và submit (bạn có thể copy logic validate từ UserManagementTab cũ sang đây)
+  // Validation and submit functions
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -51,17 +53,17 @@ function ManageUsers() {
   const validateForm = () => {
     const errors = {};
     if (!formData.email.trim()) {
-      errors.email = 'Email is required';
+      errors.email = trans.messages.emailRequired;
     } else if (!validateEmail(formData.email)) {
-      errors.email = 'Invalid email format';
+      errors.email = trans.messages.invalidEmailFormat;
     }
     if (!formData.role) {
-      errors.role = 'Role is required';
+      errors.role = trans.messages.roleRequired;
     }
     if (!formData.generatePassword && !formData.customPassword.trim()) {
-      errors.customPassword = 'Password is required when not auto-generating';
+      errors.customPassword = trans.messages.passwordRequired;
     } else if (!formData.generatePassword && formData.customPassword.length < 6) {
-      errors.customPassword = 'Password must be at least 6 characters';
+      errors.customPassword = trans.messages.passwordMinLength;
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -93,15 +95,15 @@ function ManageUsers() {
         }
       );
       if (response.status === 201) {
-        // Hiển thị thông báo thành công nếu muốn
+        // Show success message if needed
         handleCloseAddUser();
-        // Có thể gọi refetch user list ở đây nếu cần
+        // Can call refetch user list here if needed
       } else {
-        // Hiển thị thông báo lỗi nếu muốn
-        alert(response.data.message || 'Failed to create user');
+        // Show error message if needed
+        alert(response.data.message || trans.messages.failedCreateUser);
       }
     } catch (error) {
-      alert(error.response?.data?.message || error.message || 'Failed to create user. Please try again.');
+      alert(error.response?.data?.message || error.message || trans.messages.failedCreateUserRetry);
     } finally {
       setSubmitting(false);
     }

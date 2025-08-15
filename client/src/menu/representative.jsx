@@ -18,13 +18,7 @@ const representative = {
       url: '/rp-manage-contracts',
       icon: 'IconFileInvoice'
     },
-    {
-      id: 'rp-manage-debt',
-      title: 'Manage Debt',
-      type: 'item',
-      url: '/rp-manage-debt',
-      icon: 'IconCreditCard'
-    },
+    
     {
       id: 'rp-import-orders',
       title: 'Manage Import Orders',
@@ -53,6 +47,7 @@ const representative = {
       url: '/rp-medicine-performance',
       icon: 'IconChartHistogram'
     }
+   
   ]
 };
 

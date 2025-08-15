@@ -50,6 +50,7 @@ import {
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { useMemo, useState, useCallback } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 // @project
 import ComponentsWrapper from '@/components/ComponentsWrapper';
@@ -57,6 +58,7 @@ import PresentationCard from '@/components/cards/PresentationCard';
 
 function UserManagement({ onOpenPermissionDialog }) {
   const theme = useTheme();
+  const trans = useTrans();
   const { users, loading, error, refetch } = useUsers();
 
   // State cho Add User Dialog
@@ -101,7 +103,7 @@ function UserManagement({ onOpenPermissionDialog }) {
     const errors = {};
 
     if (!formData.email.trim()) {
-      errors.email = 'Email is required';
+      errors.email = trans.userForm.emailRequired;
     } else if (!validateEmail(formData.email)) {
       errors.email = 'Invalid email format';
     }
@@ -279,7 +281,7 @@ function UserManagement({ onOpenPermissionDialog }) {
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
             <CircularProgress size={40} />
             <Typography sx={{ ml: 2 }} variant="body2" color="text.secondary">
-              Đang tải dữ liệu người dùng...
+              {trans.common.table.loading}
             </Typography>
           </Box>
         </PresentationCard>
@@ -292,10 +294,10 @@ function UserManagement({ onOpenPermissionDialog }) {
       <ComponentsWrapper title="Error">
         <PresentationCard title="Error Loading Users">
           <Alert severity="error" sx={{ mb: 2 }}>
-            Lỗi: {error}
+            {trans.common.table.error}: {error}
           </Alert>
           <Button onClick={refetch} variant="outlined" startIcon={<RefreshIcon />}>
-            Thử lại
+            {trans.common.table.retry}
           </Button>
         </PresentationCard>
       </ComponentsWrapper>
@@ -306,7 +308,7 @@ function UserManagement({ onOpenPermissionDialog }) {
     if (!Array.isArray(users) || users.length === 0) {
       return (
         <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
-          Không có người dùng nào trong {sectionName}
+          {trans.common.table.noData}: {sectionName}
         </Typography>
       );
     }
@@ -420,7 +422,7 @@ function UserManagement({ onOpenPermissionDialog }) {
             <Grid item xs={12}>
               <TextField
                 autoFocus
-                label="Email Address"
+                label={trans.userForm.emailAddress}
                 type="email"
                 fullWidth
                 variant="outlined"
@@ -539,7 +541,7 @@ function UserManagement({ onOpenPermissionDialog }) {
                 <Typography variant="body2" component="div">
                   • User will receive an activation email with login credentials
                   <br />
-                  • Email includes OTP code for account verification
+                  • {trans.userForm.emailOTPNote}
                   <br />
                   • User must activate account before first login
                   <br />• Activation link expires in 24 hours

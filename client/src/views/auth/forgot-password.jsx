@@ -17,8 +17,10 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { useForm } from 'react-hook-form';
 import Copyright from '@/sections/auth/Copyright';
+import useTrans from '@/hooks/useTrans';
 
 export default function ForgotPassword() {
+  const trans = useTrans();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -67,9 +69,9 @@ export default function ForgotPassword() {
     <Stack sx={{ height: 1, alignItems: 'center', justifyContent: 'space-between', gap: 3 }}>
       <Box sx={{ width: 1, maxWidth: 458 }}>
         <Stack sx={{ gap: { xs: 1, sm: 1.5 }, textAlign: 'center', mb: { xs: 3, sm: 8 } }}>
-          <Typography variant="h1">Forgot Password</Typography>
+          <Typography variant="h1">{trans.actions.forgotPassword}</Typography>
           <Typography variant="body1" color="text.secondary">
-            Enter your email address and we'll send you a link to reset your password.
+            {trans.messages.forgotPasswordDescription}
           </Typography>
         </Stack>
 

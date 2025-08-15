@@ -3,10 +3,13 @@ import PropTypes from 'prop-types';
 import Avatar from '@mui/material/Avatar';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import useTrans from '@/hooks/useTrans';
 
 /***************************  PROFILE  ***************************/
 
 export default function Profile({ avatar, title, caption, label, sx, titleProps, captionProps }) {
+  const trans = useTrans();
+  
   return (
     <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 0.75, width: 'fit-content', ...sx }}>
       {avatar && <Avatar {...avatar} alt="profile" />}

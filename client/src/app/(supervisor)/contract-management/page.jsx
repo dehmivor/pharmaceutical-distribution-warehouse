@@ -2,23 +2,25 @@
 
 import { Box, Typography, Grid, Card, CardContent, CardActionArea } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import useTrans from '@/hooks/useTrans';
 
 // @assets
 import { IconBuildingStore, IconTruck } from '@tabler/icons-react';
 
 export default function ContractManagementPage() {
   const router = useRouter();
+  const trans = useTrans();
 
   const contractSections = [
     {
-      title: 'Quản lý Nhà bán lẻ',
-      description: 'Thêm, sửa, xóa và quản lý thông tin nhà bán lẻ',
+      title: trans.contractManagement.retailerManagement.title,
+      description: trans.contractManagement.retailerManagement.description,
       icon: IconBuildingStore,
       url: '/sp-retailer-contracts'
     },
     {
-      title: 'Quản lý Nhà cung cấp',
-      description: 'Thêm, sửa, xóa và quản lý thông tin nhà cung cấp',
+      title: trans.contractManagement.supplierManagement.title,
+      description: trans.contractManagement.supplierManagement.description,
       icon: IconTruck,
       url: '/sp-supplier-contracts'
     }
@@ -27,10 +29,10 @@ export default function ContractManagementPage() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Contract Management
+        {trans.contractManagement.title}
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Select a contract type to manage.
+        {trans.contractManagement.description}
       </Typography>
 
       <Grid container spacing={3}>

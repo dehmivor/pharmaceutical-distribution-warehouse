@@ -12,10 +12,12 @@ import Typography from '@mui/material/Typography';
 
 // @assets
 import Success200 from '@/images/maintenance/Success200';
+import useTrans from '@/hooks/useTrans';
 
 /***************************  Success 200 - PAGES  ***************************/
 
 export default function SuccessPage({ primaryBtn, heading }) {
+  const trans = useTrans();
   const theme = useTheme();
   const upMD = useMediaQuery(theme.breakpoints.up('md'));
   const upXL = useMediaQuery(theme.breakpoints.up('xl'));
