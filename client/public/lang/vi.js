@@ -592,7 +592,7 @@ export default {
     loading: 'Đang tải dữ liệu người dùng...',
     error: 'Lỗi',
     retry: 'Thử lại',
-    noUsersInSection: 'Không có người dùng nào trong {sectionName}',
+    noUsersInSection: 'Không có người dùng nào trong sectionName',
     roles: {
       warehouse: 'Kho hàng',
       warehouseManager: 'Quản lý Kho hàng',

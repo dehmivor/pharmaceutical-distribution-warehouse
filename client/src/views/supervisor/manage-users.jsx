@@ -1,18 +1,15 @@
 'use client';
+import { useState, useCallback } from 'react'; // thêm useCallback
 import AddUserDialog from '@/sections/supervisor/activate-account/AddUserDialog';
-import ContentSection from '@/sections/supervisor/activate-account/ContentSection';
 import HeaderSection from '@/sections/supervisor/activate-account/HeaderSection';
-import TableSection from '@/sections/supervisor/activate-account/TableSection';
-import { Box, Container } from '@mui/material';
+import { Box } from '@mui/material';
 import axios from 'axios';
-import { useState } from 'react';
 import useTrans from '@/hooks/useTrans';
+import UserManagement from '@/sections/supervisor/activate-account/UserManagementTab';
 
 function ManageUsers() {
   const trans = useTrans();
-  const [activeTab, setActiveTab] = useState(0);
 
-  // State cho dialog và form
   const [openAddUserDialog, setOpenAddUserDialog] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -25,11 +22,13 @@ function ManageUsers() {
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
-  };
+  const handleOpenPermissionDialog = useCallback((user) => {
+    setSelectedUser(user);
+    setNewRole(user.role);
+    setIsManager(user.is_manager);
+    setPermissionDialog(true);
+  }, []);
 
-  // Functions to open/close dialog
   const handleOpenAddUser = () => setOpenAddUserDialog(true);
   const handleCloseAddUser = () => {
     setOpenAddUserDialog(false);
@@ -45,7 +44,6 @@ function ManageUsers() {
     setSubmitting(false);
   };
 
-  // Validation and submit functions
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
@@ -95,11 +93,9 @@ function ManageUsers() {
         }
       );
       if (response.status === 201) {
-        // Show success message if needed
         handleCloseAddUser();
-        // Can call refetch user list here if needed
+        // TODO: refetch user list here
       } else {
-        // Show error message if needed
         alert(response.data.message || trans.messages.failedCreateUser);
       }
     } catch (error) {
@@ -112,10 +108,7 @@ function ManageUsers() {
   return (
     <Box>
       <HeaderSection />
-      <Container maxWidth={true} sx={{ py: { xs: 2 } }}>
-        <TableSection activeTab={activeTab} handleTabChange={handleTabChange} />
-        <ContentSection activeTab={activeTab} onOpenAddUser={handleOpenAddUser} />
-      </Container>
+      <UserManagement onOpenPermissionDialog={handleOpenPermissionDialog} onOpenAddUser={handleOpenAddUser} />
       <AddUserDialog
         open={openAddUserDialog}
         onClose={handleCloseAddUser}

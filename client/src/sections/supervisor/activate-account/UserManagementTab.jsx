@@ -44,11 +44,12 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
   const trans = useTrans();
   const { users, loading, error, refetch } = useUsers();
 
-  const { supervisorUsers, representativeUsers, warehouseUsers, warehouseManagersUsers } = useMemo(() => {
+  const { supervisorUsers, representativeUsers, representativeManagersUsers, warehouseUsers, warehouseManagersUsers } = useMemo(() => {
     const safeUsers = Array.isArray(users) ? users : [];
     return {
       supervisorUsers: safeUsers.filter((user) => user?.role === 'supervisor'),
       representativeUsers: safeUsers.filter((user) => user?.role === 'representative'),
+      representativeManagersUsers: safeUsers.filter((user) => user?.role === 'representative_manager'),
       warehouseUsers: safeUsers.filter((user) => user?.role === 'warehouse'),
       warehouseManagersUsers: safeUsers.filter((user) => user?.role === 'warehouse_manager')
     };
@@ -60,6 +61,8 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
         return 'error';
       case 'representative':
         return 'warning';
+      case 'representative_manager':
+        return 'primary';
       case 'warehouse':
         return 'info';
       case 'warehouse_manager':
@@ -75,6 +78,8 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
         return trans.userManagement.roles.supervisor;
       case 'representative':
         return trans.userManagement.roles.representative;
+      case 'representative_manager':
+        return trans.userManagement.roles.representative_manager;
       case 'warehouse':
         return trans.userManagement.roles.warehouse;
       case 'warehouse_manager':
@@ -89,6 +94,8 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
       case 'supervisor':
         return <SupervisorIcon fontSize="small" />;
       case 'representative':
+        return <PersonAddIcon fontSize="small" />;
+      case 'representative_manager':
         return <PersonAddIcon fontSize="small" />;
       case 'warehouse':
         return <WarehouseIcon fontSize="small" />;
@@ -133,7 +140,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
     if (!Array.isArray(users) || users.length === 0) {
       return (
         <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
-          {trans.userManagement.noUsersInSection(sectionName)}
+          {trans.userManagement.noUsersInSection.replace(`sectionName`, sectionName)}
         </Typography>
       );
     }
@@ -208,12 +215,12 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
   };
 
   return (
-    <>
+    <Stack spacing={3}>
       <PresentationCard title="User Statistics">
         <Typography variant="body2" color="text.secondary">
           Summary of user account with role authorization
         </Typography>
-        <Divider sx={{ mb: 2 }} />
+        <Divider />
         <Grid container spacing={3}>
           <Grid item xs={12} sm={6} md={3}>
             <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.dark', color: 'white' }}>
@@ -258,12 +265,11 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
         </Grid>
       </PresentationCard>
 
-      {/* Quick Actions */}
       <PresentationCard title="Quick Actions">
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        <Typography variant="body2" color="text.secondary">
           Perform common user management tasks quickly and efficiently.
         </Typography>
-        <Divider sx={{ mb: 2 }} />
+        <Divider />
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           <Button
             variant="contained"
@@ -288,42 +294,47 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
         </Stack>
       </PresentationCard>
 
-      {/* Supervisors Section */}
       <PresentationCard title="Supervisors">
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary">
           Manage supervisor accounts and their permissions. Supervisors have elevated access to oversee operations and manage team members.
         </Typography>
-        <Divider sx={{ mb: 2 }} />
+        <Divider />
         <UserTable users={supervisorUsers} sectionName="Supervisors" />
       </PresentationCard>
 
-      {/* Representatives Section */}
-      <PresentationCard title="Representatives">
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <PresentationCard title="Representatives Managers">
+        <Typography variant="body2" color="text.secondary">
           Customer service representatives handle client interactions and support requests. They serve as the primary point of contact for
           customers.
         </Typography>
-        <Divider sx={{ mb: 2 }} />
+        <Divider />
+        <UserTable users={representativeManagersUsers} sectionName="Representatives Managers" />
+      </PresentationCard>
+
+      <PresentationCard title="Representatives Managers">
+        <Typography variant="body2" color="text.secondary">
+          Customer service representatives managers handle client interactions and support requests. They serve as the primary point of
+          contact for customers.
+        </Typography>
+        <Divider />
         <UserTable users={representativeUsers} sectionName="Representatives" />
       </PresentationCard>
 
-      {/* Warehouse Section */}
       <PresentationCard title="Warehouse Staff">
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        <Typography variant="body2" color="text.secondary">
           Warehouse staff manage inventory, fulfillment, and logistics operations. They ensure accurate order processing and inventory
           management.
         </Typography>
-        <Divider sx={{ mb: 2 }} />
+        <Divider />
         <UserTable users={warehouseUsers} sectionName="Warehouse" />
       </PresentationCard>
 
-      {/* Warehouse Section */}
       <PresentationCard title="Warehouse Managers">
         <Typography variant="body2">Warehouse managers oversee warehouse operations and ensure efficient inventory management.</Typography>
-        <Divider sx={{ mb: 2 }} />
+        <Divider />
         <UserTable users={warehouseManagersUsers} sectionName="Warehouse Managers" />
       </PresentationCard>
-    </>
+    </Stack>
   );
 }
 

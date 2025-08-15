@@ -591,7 +591,7 @@ export default {
     loading: 'Loading user data...',
     error: 'Error',
     retry: 'Retry',
-    noUsersInSection: 'No users in {sectionName}',
+    noUsersInSection: 'No users in sectionName',
     roles: {
       warehouse: 'Warehouse',
       warehouseManager: 'Warehouse Manager',
