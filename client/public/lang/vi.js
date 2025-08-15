@@ -455,7 +455,7 @@ export default {
     worker: 'Công nhân',
     order: 'Đơn hàng',
     area: 'Khu vực',
-    bay: 'Bay',
+    bay: 'Kệ',
     row: 'Hàng',
     column: 'Cột',
     add: 'Thêm',
@@ -811,57 +811,7 @@ export default {
     failedCreateUserRetry: 'Tạo người dùng thất bại. Vui lòng thử lại.'
   },
 
-  // Header section
-  header: {
-    title: 'Quản lý Tài khoản Người dùng',
-    description: 'Quản lý tài khoản người dùng, vai trò và quyền hạn trong hệ thống'
-  },
 
-  // Tabs
-  tabs: {
-    users: 'Người dùng',
-    permissions: 'Quyền hạn'
-  },
-
-  // Actions
-  actions: {
-    add: 'Thêm'
-  },
-
-  // Roles
-  roles: {
-    warehouse: 'Kho hàng',
-    representative: 'Đại diện',
-    supplier: 'Nhà cung cấp'
-  },
-
-  // Import Orders
-  importOrders: {
-    title: 'Quản lý Đơn hàng Nhập',
-    description: 'Quản lý và theo dõi đơn hàng nhập từ nhà cung cấp',
-    refresh: 'Làm mới',
-    status: 'Trạng thái',
-    allStatus: 'Tất cả trạng thái',
-    search: 'Tìm kiếm',
-    actions: 'Thao tác',
-    noOrdersFound: 'Không tìm thấy đơn hàng',
-    orderDetails: 'Chi tiết Đơn hàng',
-    contractStatus: 'Trạng thái Hợp đồng',
-    na: 'Không có'
-  },
-
-  // Export Orders
-  exportOrders: {
-    title: 'Quản lý Đơn hàng Xuất',
-    description: 'Quản lý và theo dõi đơn hàng xuất cho nhà bán lẻ',
-    refresh: 'Làm mới',
-    status: 'Trạng thái',
-    allStatus: 'Tất cả trạng thái',
-    search: 'Tìm kiếm',
-    actions: 'Thao tác',
-    noOrdersFound: 'Không tìm thấy đơn hàng',
-    statusUpdatedSuccess: 'Cập nhật trạng thái thành công'
-  },
 
   // Common form labels and actions
   common: {
@@ -940,8 +890,6 @@ export default {
     confirmStatusChangeMessage: 'Bạn có chắc chắn muốn đổi trạng thái đơn hàng này?',
     products: 'sản phẩm',
     unknown: 'Không xác định',
-    rowsPerPage: 'Số hàng mỗi trang:',
-    displayedRows: '{from}-{to} của {count}',
     notSelected: 'Không chọn',
     of: 'của',
     requiredFieldsNote: 'Lưu ý: Các trường có dấu * là bắt buộc phải nhập.',
@@ -1019,7 +967,7 @@ export default {
     worker: 'Công nhân',
     order: 'Đơn hàng',
     area: 'Khu vực',
-    bay: 'Vịnh',
+    bay: 'Kệ',
     row: 'Hàng',
     column: 'Cột',
     recentOrders: 'Đơn hàng gần đây',
@@ -1131,9 +1079,9 @@ export default {
     addMultipleLocations: 'Thêm Nhiều Vị Trí',
     addLocation: 'Thêm Vị Trí',
     locationList: 'Danh Sách Vị Trí',
-    bay: 'Bay',
-    row: 'Row',
-    column: 'Column',
+    bay: 'Kệ',
+    row: 'Hàng',
+    column: 'Cột',
     markAsUnavailable: 'Đánh dấu không có sẵn',
     markAsAvailable: 'Đánh dấu có sẵn',
     areaRequired: 'Khu vực là bắt buộc',
@@ -1758,189 +1706,7 @@ export default {
     }
   },
 
-  // Common
-  common: {
-    // Basic UI elements
-    na: 'N/A',
-    currency: 'VND',
-    loading: 'Đang tải...',
-    close: 'Đóng',
-    cancel: 'Hủy',
-    refresh: 'Làm mới',
-    clearFilters: 'Xóa bộ lọc',
-    
-    // Menu translations
-    representative: 'Đại diện',
-    dashboard: 'Bảng điều khiển',
-    representativeManager: 'Quản lý đại diện',
-    representativeManagerDashboard: 'Bảng điều khiển quản lý đại diện',
-    warehouse: 'Kho',
-    warehouseManager: 'Quản lý kho',
-    supervisor: 'Giám sát viên',
-    
-    // Contract Management
-    contractManagement: 'Quản Lý Hợp Đồng',
-    manageContractList: 'Quản lý danh sách hợp đồng và trạng thái',
-    addContract: 'Thêm Hợp Đồng',
-    addContractSuccess: 'Thêm hợp đồng thành công!',
-    updateContractSuccess: 'Cập nhật hợp đồng thành công!',
-    deleteContractSuccess: 'Xóa hợp đồng thành công!',
-    deleteContract: 'Xóa Hợp Đồng',
-    confirmAction: 'Đã xác nhận',
-    cancelContract: 'Hủy Hợp Đồng',
-    errorOccurred: 'Đã xảy ra lỗi',
-    annex: 'Phụ lục',
-    annexActionSuccess: 'Thao tác phụ lục hoàn tất thành công!',
-    
-    // Contract Types
-    economicContract: 'Kinh tế',
-    principalContract: 'Nguyên tắc',
-    
-    // Partner Types
-    partnerType: 'Loại đối tác',
-    supplierLabel: 'Nhà cung cấp',
-    retailerLabel: 'Nhà bán lẻ',
-    partner: 'Đối tác',
-    
-    // Status
-    status: 'Trạng thái',
-    allStatuses: 'Tất cả trạng thái',
-    draft: 'Nháp',
-    approved: 'Đã phê duyệt',
-    rejected: 'Bị từ chối',
-    completed: 'Hoàn thành',
-    returned: 'Đã trả lại',
-    cancelled: 'Đã hủy',
-    
-    // Actions
-    actions: 'Thao tác',
-    viewDetails: 'Xem chi tiết',
-    edit: 'Chỉnh sửa',
-    delete: 'Xóa',
-    draftAction: 'Chuyển về nháp',
-    reject: 'Từ chối',
-    approveAnnex: 'Duyệt phụ lục',
-    
-    // Table Headers
-    contractCode: 'Mã hợp đồng',
-    contractType: 'Loại hợp đồng',
-    createdBy: 'Người tạo',
-    warehouseManager: 'Quản lý kho',
-    
-    // Pagination
-    all: 'Tất cả',
-    
-    // Medicine
-    medicine: 'Thuốc',
-    selectMedicine: 'Chọn thuốc',
-    quantity: 'Số lượng',
-    orderQuantity: 'Số lượng đặt',
-    medicineLabel: 'Thuốc',
-    selectMedicinePlaceholder: 'Chọn thuốc',
-    
-    // Selection
-    select: 'Chọn',
-    selectPartnerType: 'Chọn loại đối tác',
-    
-    // Amount and Pricing
-    totalAmount: 'Tổng tiền',
-    totalAmountLabel: 'Tổng tiền',
-    unitPrice: 'Đơn giá',
-    total: 'Tổng cộng',
-    
-    // Information
-    basicInformation: 'Thông tin cơ bản',
-    orderDetailsTitle: 'Chi tiết đơn hàng',
-    
-    // Contract
-    contract: 'Hợp đồng',
-    supplier: 'Nhà cung cấp',
-    
-    // Import/Export Orders
-    manageImportOrders: 'Quản lý đơn hàng nhập',
-    createImportOrder: 'Tạo đơn hàng nhập',
-    editImportOrder: 'Chỉnh sửa đơn hàng nhập',
-    exportOrders: 'Đơn hàng xuất',
-    createExportOrder: 'Tạo đơn hàng xuất',
-    editExportOrder: 'Chỉnh sửa đơn hàng xuất',
-    createNewOrder: 'Tạo đơn hàng mới',
-    
-    // Search and Filter
-    searchFilter: 'Tìm kiếm & Lọc',
-    contractCodePlaceholder: 'Nhập mã hợp đồng...',
-    allContractTypes: 'Tất cả loại hợp đồng',
-    allSuppliers: 'Tất cả nhà cung cấp',
-    allUsers: 'Tất cả người dùng',
-    
-    // Selection Messages
-    selectContractType: 'Chọn loại hợp đồng',
-    selectContract: 'Chọn hợp đồng',
-    pleaseSelectContractTypeAndContract: 'Vui lòng chọn loại hợp đồng và hợp đồng',
-    pleaseSelectContractType: 'Vui lòng chọn loại hợp đồng trước',
-    pleaseSelectContract: 'Vui lòng chọn hợp đồng trước',
-    
-    // Order Details
-    orderDetails: 'Chi tiết đơn hàng',
-    editMedicinesOnlyNote: 'Chỉnh sửa thuốc',
-    quantityEditableNote: 'Số lượng có thể chỉnh sửa',
-    editMedicinesOnly: 'Bạn chỉ có thể chỉnh sửa thuốc trong đơn hàng này',
-    editOrderNote: 'Bạn chỉ có thể chỉnh sửa thuốc trong đơn hàng này',
-    
-    // Contract Type Notes
-    principalContractQuantityEditable: 'Hợp đồng chính: Số lượng có thể chỉnh sửa',
-    principalContractQuantityEditableNote: 'Hợp đồng chính: Số lượng có thể chỉnh sửa',
-    economicContractAutoFilled: 'Hợp đồng kinh tế: Tự động điền từ hợp đồng',
-    economicContractWarning: 'Hợp đồng kinh tế: Số lượng không thể chỉnh sửa',
-    
-    // Medicine Management
-    pleaseAddMedicines: 'Vui lòng thêm thuốc vào đơn hàng',
-    addMedicine: 'Thêm thuốc',
-    addMedicineQuantityOnly: 'Thêm thuốc (Chỉ số lượng)',
-    fromContract: 'Từ hợp đồng (chỉ đọc)',
-    fromContractEconomicCannotEdit: 'Từ hợp đồng (Kinh tế - không thể chỉnh sửa)',
-    fromContractCannotEdit: 'Từ hợp đồng (không thể chỉnh sửa)',
-    
-    // Validation Messages
-    duplicateMedicineError: 'Thuốc bị trùng lặp',
-    pleaseFillAllFields: 'Vui lòng điền đầy đủ thông tin',
-    quantityMaxForMedicine: 'Số lượng cho thuốc {medicine} không được vượt quá {max}',
-    
-    // Stock Management
-    stockInformation: 'Thông tin tồn kho',
-    checkingStock: 'Đang kiểm tra tồn kho...',
-    stockCheckError: 'Lỗi kiểm tra tồn kho: {error}',
-    sufficientStock: 'Đủ tồn kho',
-    insufficientStock: 'Không đủ tồn kho',
-    stockSummary: 'Tóm tắt tồn kho',
-    totalMedicines: 'Tổng: {count} loại thuốc',
-    sufficientMedicines: 'Đủ: {count}',
-    insufficientMedicines: 'Thiếu: {count}',
-    insufficientStockButton: 'Không đủ tồn kho',
-    
-    // Order Creation
-    creating: 'Đang tạo...',
-    checkingStockButton: 'Đang kiểm tra...',
-    createOrder: 'Tạo đơn hàng',
-    
-    // Order Status Messages
-    noExportOrdersFound: 'Không tìm thấy đơn hàng xuất',
-    editingRejectedExportOrder: 'Đang chỉnh sửa đơn hàng xuất bị từ chối',
-    
-    // Stock Status
-    sufficient: 'Đủ',
-    insufficient: 'Thiếu',
-    
-    // Representative Manager Menu
-    importOrdersApproval: 'Phê duyệt đơn hàng nhập',
-    exportOrdersApproval: 'Phê duyệt đơn hàng xuất',
-    manageContracts: 'Quản lý hợp đồng',
-    medicinePerformance: 'Hiệu suất thuốc',
-    
-    // Breadcrumbs
-    breadcrumbs: {
-      home: 'Trang chủ'
-    }
-  },
+
 
   // Representative Manager Export Orders Approval
   representativeManagerExportOrdersApproval: {

@@ -488,7 +488,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     value={formData.storage_conditions.temperature}
                     onChange={(e) => handleInputChange('storage_conditions.temperature', e.target.value)}
                     error={!!errors.storage_conditions?.temperature}
-                    helperText={errors.storage_conditions?.temperature || trans.common.form.formatExamples.temperature}
+                    helperText={errors.storage_conditions?.temperature || 'Format: X-Y, -X or X'}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -504,7 +504,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     value={formData.storage_conditions.humidity}
                     onChange={(e) => handleInputChange('storage_conditions.humidity', e.target.value)}
                     error={!!errors.storage_conditions?.humidity}
-                    helperText={errors.storage_conditions?.humidity || trans.common.form.formatExamples.humidity}
+                    helperText={errors.storage_conditions?.humidity || 'Format: X or X-Y'}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -521,7 +521,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                       label={trans.medicineAdd.storageConditions.light}
                       startAdornment={<StorageIcon sx={{ mr: 1, color: 'text.secondary' }} />}
                     >
-                      <MenuItem value="">{trans.common.form.notSelected}</MenuItem>
+                      <MenuItem value="">Not selected</MenuItem>
                       <MenuItem value="none">{trans.medicineAdd.storageConditions.lightOptions.none}</MenuItem>
                       <MenuItem value="low">{trans.medicineAdd.storageConditions.lightOptions.low}</MenuItem>
                       <MenuItem value="medium">{trans.medicineAdd.storageConditions.lightOptions.medium}</MenuItem>
@@ -599,7 +599,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
             }}
           >
             <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
-              <strong>{trans.common.note}:</strong> {trans.common.form.requiredFieldsNote}
+              <strong>Note:</strong> Fields marked with * are required.
             </Typography>
           </Box>
         </Box>
