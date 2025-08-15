@@ -348,7 +348,7 @@ const RepresentativeManagerMedicinePerformance = () => {
               ) : months.length === 0 ? (
                 <Paper sx={{ p: 4, textAlign: 'center' }}>
                   <Typography variant="body1" color="text.secondary">
-                    Enter a medicine license code and submit to see statistics.
+                    Enter a medicine license code.
                   </Typography>
                 </Paper>
               ) : !canRenderBar() ? (
@@ -383,13 +383,13 @@ const RepresentativeManagerMedicinePerformance = () => {
                 </Box>
               ) : historyMonths.length === 0 ? (
                 <Paper sx={{ p: 4, textAlign: 'center' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No log history available.
+                  <Typography variant="body1" color="text.secondary">
+                    Enter a medicine license code.
                   </Typography>
                 </Paper>
               ) : !canRenderLine() ? (
                 <Paper sx={{ p: 4, textAlign: 'center' }}>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body1" color="text.secondary">
                     Data shape is invalid for line chart.
                   </Typography>
                 </Paper>
