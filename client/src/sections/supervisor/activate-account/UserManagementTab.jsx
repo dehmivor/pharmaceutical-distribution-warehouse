@@ -1,5 +1,9 @@
 'use client';
+
+import React, { useState, useMemo, useEffect } from 'react';
 import useUsers from '@/hooks/useUser';
+import useTrans from '@/hooks/useTrans';
+
 import {
   Alert,
   Avatar,
@@ -11,6 +15,9 @@ import {
   Divider,
   Grid,
   IconButton,
+  InputAdornment,
+  MenuItem,
+  Select,
   Stack,
   Table,
   TableBody,
@@ -18,6 +25,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
+  TextField,
   Typography
 } from '@mui/material';
 
@@ -30,11 +39,11 @@ import {
   Refresh as RefreshIcon,
   Security as SecurityIcon,
   SupervisorAccount as SupervisorIcon,
-  Warehouse as WarehouseIcon
+  Warehouse as WarehouseIcon,
+  Search as SearchIcon
 } from '@mui/icons-material';
+
 import { useTheme } from '@mui/material/styles';
-import { useMemo } from 'react';
-import useTrans from '@/hooks/useTrans';
 
 import ComponentsWrapper from '@/components/ComponentsWrapper';
 import PresentationCard from '@/components/cards/PresentationCard';
@@ -44,16 +53,81 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
   const trans = useTrans();
   const { users, loading, error, refetch } = useUsers();
 
-  const { supervisorUsers, representativeUsers, representativeManagersUsers, warehouseUsers, warehouseManagersUsers } = useMemo(() => {
-    const safeUsers = Array.isArray(users) ? users : [];
-    return {
-      supervisorUsers: safeUsers.filter((user) => user?.role === 'supervisor'),
-      representativeUsers: safeUsers.filter((user) => user?.role === 'representative'),
-      representativeManagersUsers: safeUsers.filter((user) => user?.role === 'representative_manager'),
-      warehouseUsers: safeUsers.filter((user) => user?.role === 'warehouse'),
-      warehouseManagersUsers: safeUsers.filter((user) => user?.role === 'warehouse_manager')
-    };
+  // Filter states
+  const [searchText, setSearchText] = useState('');
+  const [filterRole, setFilterRole] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+
+  // Filtered users state (after applying filter on search)
+  const [filteredUsers, setFilteredUsers] = useState([]);
+
+  // Pagination states for Status filtered list
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Initialize filteredUsers when users data is loaded or updated
+  useEffect(() => {
+    if (users) {
+      setFilteredUsers(users);
+      setPage(0);
+    }
   }, [users]);
+
+  // Handle Search button clicked - apply filters
+  const handleSearch = () => {
+    let filtered = users || [];
+
+    if (searchText.trim() !== '') {
+      const searchLower = searchText.toLowerCase();
+      filtered = filtered.filter(
+        (user) => user.email?.toLowerCase().includes(searchLower) || (user.name?.toLowerCase().includes(searchLower) ?? false)
+      );
+    }
+
+    if (filterRole) {
+      filtered = filtered.filter((user) => user.role === filterRole);
+    }
+
+    if (filterStatus) {
+      filtered = filtered.filter((user) => user.status === filterStatus);
+    }
+
+    setFilteredUsers(filtered);
+    setPage(0);
+  };
+
+  // Pagination handlers
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Get users for current page (only when filtering by status show pagination)
+  const pagedUsers = filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  // Group filtered users by role only if not filtering by status or role
+  const groupedUsers = useMemo(() => {
+    if (filterRole) {
+      return { [filterRole]: filteredUsers };
+    }
+
+    if (filterStatus) {
+      // If filtering by status, we just show the filtered list, no grouping
+      return null;
+    }
+
+    return {
+      supervisor: filteredUsers.filter((u) => u.role === 'supervisor'),
+      representative: filteredUsers.filter((u) => u.role === 'representative'),
+      representative_manager: filteredUsers.filter((u) => u.role === 'representative_manager'),
+      warehouse: filteredUsers.filter((u) => u.role === 'warehouse'),
+      warehouse_manager: filteredUsers.filter((u) => u.role === 'warehouse_manager')
+    };
+  }, [filteredUsers, filterRole, filterStatus]);
 
   const getLevelColor = (role) => {
     switch (role) {
@@ -109,8 +183,8 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
   if (loading) {
     return (
       <ComponentsWrapper>
-        <PresentationCard title="Loading Users">
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <PresentationCard title={trans.userManagement.loading || 'Loading Users'}>
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
             <CircularProgress size={40} />
             <Typography sx={{ ml: 2 }} variant="body2" color="text.secondary">
               {trans.userManagement.loading}
@@ -124,7 +198,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
   if (error) {
     return (
       <ComponentsWrapper title="Error">
-        <PresentationCard title="Error Loading Users">
+        <PresentationCard title={trans.userManagement.error || 'Error Loading Users'}>
           <Alert severity="error" sx={{ mb: 2 }}>
             {trans.userManagement.error}: {error}
           </Alert>
@@ -140,7 +214,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
     if (!Array.isArray(users) || users.length === 0) {
       return (
         <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
-          {trans.userManagement.noUsersInSection.replace(`sectionName`, sectionName)}
+          {trans.userManagement.noUsersInSection.replace('sectionName', sectionName)}
         </Typography>
       );
     }
@@ -215,125 +289,256 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
   };
 
   return (
-    <Stack spacing={3}>
+    <Stack pl={3} pr={3} spacing={3}>
       <PresentationCard title="User Statistics">
         <Typography variant="body2" color="text.secondary">
           Summary of user account with role authorization
         </Typography>
-        <Divider />
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.dark', color: 'white' }}>
-              <Typography variant="h4" fontWeight={700}>
-                {supervisorUsers.length + representativeUsers.length + warehouseUsers.length}
-              </Typography>
-              <Typography variant="body2">Total Users</Typography>
-            </Card>
+        <Box>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={4} md={4}>
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="Search by email or name"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </Grid>
+            <Grid item xs={6} sm={3} md={3}>
+              <Select
+                size="small"
+                fullWidth
+                displayEmpty
+                value={filterRole}
+                placeholder="Filter by Role"
+                onChange={(e) => setFilterRole(e.target.value)}
+                renderValue={(selected) => selected || 'Filter by Role'}
+              >
+                <MenuItem value="">All Roles</MenuItem>
+                <MenuItem value="supervisor">Supervisor</MenuItem>
+                <MenuItem value="representative">Representative</MenuItem>
+                <MenuItem value="representative_manager">Representative Manager</MenuItem>
+                <MenuItem value="warehouse">Warehouse Staff</MenuItem>
+                <MenuItem value="warehouse_manager">Warehouse Manager</MenuItem>
+              </Select>
+            </Grid>
+            <Grid item xs={6} sm={3} md={3}>
+              <Select
+                size="small"
+                fullWidth
+                displayEmpty
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                renderValue={(selected) => selected || 'Filter by Status'}
+              >
+                <MenuItem value="">All Statuses</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </Select>
+            </Grid>
+
+            {/* Search Button */}
+            <Grid item xs={6} sm={1} md={1}>
+              <Button
+                size="small"
+                fullWidth
+                variant="contained"
+                startIcon={<SearchIcon />}
+                onClick={handleSearch}
+                sx={{
+                  background: 'linear-gradient(45deg, #59GBD3 30%, #83PA3 90%)',
+                  boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)'
+                }}
+              >
+                Search
+              </Button>
+            </Grid>
+
+            {/* Refresh Button */}
+            <Grid item xs={6} sm={2} md={2}>
+              <Button
+                size="small"
+                fullWidth
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={() => {
+                  refetch();
+                  setSearchText('');
+                  setFilterRole('');
+                  setFilterStatus('');
+                  setFilteredUsers(users || []);
+                  setPage(0);
+                  setRowsPerPage(10);
+                }}
+                sx={{
+                  background: 'linear-gradient(45deg, #f0f0f0 30%, #e0e0e0 90%)',
+                  boxShadow: '0 3px 5px 2px rgba(224, 224, 224, .3)'
+                }}
+              >
+                Refresh
+              </Button>
+            </Grid>
+
+            {/* Create New User Button */}
+            <Grid item xs={12} sm={2} md={2}>
+              <Button
+                size="small"
+                fullWidth
+                variant="contained"
+                startIcon={<PersonAddIcon />}
+                onClick={onOpenAddUser}
+                sx={{
+                  background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                  boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)'
+                }}
+              >
+                Create New User
+              </Button>
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'error.dark', color: 'error.contrastText' }}>
-              <Typography variant="h4" fontWeight={700}>
-                {supervisorUsers.length}
-              </Typography>
-              <Typography variant="body2">Supervisors</Typography>
-            </Card>
+        </Box>
+        <Divider sx={{ mb: 2 }} />
+
+        {/* Show cards with stats */}
+        {!filterRole && !filterStatus && (
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.dark', color: 'white' }}>
+                <Typography variant="h4" fontWeight={700}>
+                  {filteredUsers.length}
+                </Typography>
+                <Typography variant="body2">Total Users</Typography>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'error.dark', color: 'error.contrastText' }}>
+                <Typography variant="h4" fontWeight={700}>
+                  {groupedUsers?.supervisor?.length || 0}
+                </Typography>
+                <Typography variant="body2">Supervisors</Typography>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.dark', color: 'warning.contrastText' }}>
+                <Typography variant="h4" fontWeight={700}>
+                  {groupedUsers?.representative?.length || 0}
+                </Typography>
+                <Typography variant="body2">Representatives</Typography>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'secondary.dark', color: 'secondary.contrastText' }}>
+                <Typography variant="h4" fontWeight={700}>
+                  {groupedUsers?.representative_manager?.length || 0}
+                </Typography>
+                <Typography variant="body2">Representative Managers</Typography>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'info.dark', color: 'info.contrastText' }}>
+                <Typography variant="h4" fontWeight={700}>
+                  {groupedUsers?.warehouse?.length || 0}
+                </Typography>
+                <Typography variant="body2">Warehouse Staff</Typography>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'success.dark', color: 'success.contrastText' }}>
+                <Typography variant="h4" fontWeight={700}>
+                  {groupedUsers?.warehouse_manager?.length || 0}
+                </Typography>
+                <Typography variant="body2">Warehouse Managers</Typography>
+              </Card>
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.dark', color: 'warning.contrastText' }}>
-              <Typography variant="h4" fontWeight={700}>
-                {representativeUsers.length}
-              </Typography>
-              <Typography variant="body2">Representatives</Typography>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'info.dark', color: 'info.contrastText' }}>
-              <Typography variant="h4" fontWeight={700}>
-                {warehouseUsers.length}
-              </Typography>
-              <Typography variant="body2">Warehouse</Typography>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'info.dark', color: 'info.contrastText' }}>
-              <Typography variant="h4" fontWeight={700}>
-                {warehouseManagersUsers.length}
-              </Typography>
-              <Typography variant="body2">Warehouse Managers</Typography>
-            </Card>
-          </Grid>
-        </Grid>
+        )}
       </PresentationCard>
 
-      <PresentationCard title="Quick Actions">
-        <Typography variant="body2" color="text.secondary">
-          Perform common user management tasks quickly and efficiently.
-        </Typography>
-        <Divider />
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <Button
-            variant="contained"
-            startIcon={<PersonAddIcon />}
-            onClick={onOpenAddUser}
-            sx={{
-              background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-              boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)'
-            }}
-          >
-            Add New User
-          </Button>
-          <Button variant="outlined" startIcon={<SecurityIcon />}>
-            Manage Permissions
-          </Button>
-          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={refetch}>
-            Refresh Data
-          </Button>
-          <Button variant="outlined" startIcon={<BarChartIcon />}>
-            View Reports
-          </Button>
-        </Stack>
-      </PresentationCard>
+      {/* Display user tables conditionally */}
 
-      <PresentationCard title="Supervisors">
-        <Typography variant="body2" color="text.secondary">
-          Manage supervisor accounts and their permissions. Supervisors have elevated access to oversee operations and manage team members.
-        </Typography>
-        <Divider />
-        <UserTable users={supervisorUsers} sectionName="Supervisors" />
-      </PresentationCard>
+      {/* If filtering by status - show one paginated table */}
+      {filterStatus ? (
+        <PresentationCard title={`Users with status "${filterStatus}"`}>
+          <UserTable users={pagedUsers} />
+          <TablePagination
+            component="div"
+            count={filteredUsers.length}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            labelRowsPerPage={trans.common.rowsPerPage}
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count}`}
+          />
+        </PresentationCard>
+      ) : filterRole ? (
+        // If filtering by role - show only that role card
+        <PresentationCard title={getRoleDisplayName(filterRole)}>
+          <UserTable users={groupedUsers[filterRole]} sectionName={getRoleDisplayName(filterRole)} />
+        </PresentationCard>
+      ) : (
+        // No filters: show all roles cards
+        <>
+          <PresentationCard title="Supervisors">
+            <Typography variant="body2" color="text.secondary" mb={1}>
+              Manage supervisor accounts and their permissions. Supervisors have elevated access to oversee operations and manage team
+              members.
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <UserTable users={groupedUsers?.supervisor} sectionName="Supervisors" />
+          </PresentationCard>
 
-      <PresentationCard title="Representatives Managers">
-        <Typography variant="body2" color="text.secondary">
-          Customer service representatives handle client interactions and support requests. They serve as the primary point of contact for
-          customers.
-        </Typography>
-        <Divider />
-        <UserTable users={representativeManagersUsers} sectionName="Representatives Managers" />
-      </PresentationCard>
+          <PresentationCard title="Representative Managers">
+            <Typography variant="body2" color="text.secondary" mb={1}>
+              Customer service representatives managers handle client interactions and support requests. They serve as the primary point of
+              contact for customers.
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <UserTable users={groupedUsers?.representative_manager} sectionName="Representative Managers" />
+          </PresentationCard>
 
-      <PresentationCard title="Representatives Managers">
-        <Typography variant="body2" color="text.secondary">
-          Customer service representatives managers handle client interactions and support requests. They serve as the primary point of
-          contact for customers.
-        </Typography>
-        <Divider />
-        <UserTable users={representativeUsers} sectionName="Representatives" />
-      </PresentationCard>
+          <PresentationCard title="Representatives">
+            <Typography variant="body2" color="text.secondary" mb={1}>
+              Customer service representatives handle client interactions and support requests. They serve as the primary point of contact
+              for customers.
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <UserTable users={groupedUsers?.representative} sectionName="Representatives" />
+          </PresentationCard>
 
-      <PresentationCard title="Warehouse Staff">
-        <Typography variant="body2" color="text.secondary">
-          Warehouse staff manage inventory, fulfillment, and logistics operations. They ensure accurate order processing and inventory
-          management.
-        </Typography>
-        <Divider />
-        <UserTable users={warehouseUsers} sectionName="Warehouse" />
-      </PresentationCard>
+          <PresentationCard title="Warehouse Staff">
+            <Typography variant="body2" color="text.secondary" mb={1}>
+              Warehouse staff manage inventory, fulfillment, and logistics operations. They ensure accurate order processing and inventory
+              management.
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <UserTable users={groupedUsers?.warehouse} sectionName="Warehouse Staff" />
+          </PresentationCard>
 
-      <PresentationCard title="Warehouse Managers">
-        <Typography variant="body2">Warehouse managers oversee warehouse operations and ensure efficient inventory management.</Typography>
-        <Divider />
-        <UserTable users={warehouseManagersUsers} sectionName="Warehouse Managers" />
-      </PresentationCard>
+          <PresentationCard title="Warehouse Managers">
+            <Typography variant="body2" color="text.secondary" mb={1}>
+              Warehouse managers oversee warehouse operations and ensure efficient inventory management.
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <UserTable users={groupedUsers?.warehouse_manager} sectionName="Warehouse Managers" />
+          </PresentationCard>
+        </>
+      )}
     </Stack>
   );
 }
