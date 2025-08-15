@@ -48,5 +48,5 @@ const getBatchById = async (batchId) => {
 
 module.exports = {
   getValidBatches,
-  getBatchById
+  getBatchById,
 };
