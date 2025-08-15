@@ -34,7 +34,7 @@ const representativeManager = {
     },
     {
       id: 'rm-medicine-performance',
-      title: 'Medicine performance',
+      title: 'Medicine Performance',
       type: 'item',
       url: '/rm-medicine-performance',
       icon: 'IconChartHistogram'
