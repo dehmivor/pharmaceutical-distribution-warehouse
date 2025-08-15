@@ -635,6 +635,16 @@ const assignWarehouseManager = async (req, res, next) => {
   }
 };
 
+const exportedTotalsLast6MonthsTop5= async(req, res) => {
+  try {
+    const result = await exportOrderService.getExportedTotalsLast6Months();
+    return res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('exportedTotalsLast6Months error', err);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
 
 module.exports = {
   getAllExportOrders,
@@ -651,7 +661,8 @@ module.exports = {
   addExportInspection,
   approveExportOrder,
   rejectExportOrder, // Thêm function mới
-  checkStockForExportOrder // Thêm function mới
-  , assignWarehouseManager, // Thêm function mới
+  checkStockForExportOrder, 
+  assignWarehouseManager, 
   createInternalExportOrder,
+  exportedTotalsLast6MonthsTop5
 }
