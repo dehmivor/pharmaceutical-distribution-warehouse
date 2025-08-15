@@ -455,7 +455,7 @@ export default {
     worker: 'Công nhân',
     order: 'Đơn hàng',
     area: 'Khu vực',
-    bay: 'Bay',
+    bay: 'Kệ',
     row: 'Hàng',
     column: 'Cột',
     add: 'Thêm',
@@ -811,57 +811,7 @@ export default {
     failedCreateUserRetry: 'Tạo người dùng thất bại. Vui lòng thử lại.'
   },
 
-  // Header section
-  header: {
-    title: 'Quản lý Tài khoản Người dùng',
-    description: 'Quản lý tài khoản người dùng, vai trò và quyền hạn trong hệ thống'
-  },
 
-  // Tabs
-  tabs: {
-    users: 'Người dùng',
-    permissions: 'Quyền hạn'
-  },
-
-  // Actions
-  actions: {
-    add: 'Thêm'
-  },
-
-  // Roles
-  roles: {
-    warehouse: 'Kho hàng',
-    representative: 'Đại diện',
-    supplier: 'Nhà cung cấp'
-  },
-
-  // Import Orders
-  importOrders: {
-    title: 'Quản lý Đơn hàng Nhập',
-    description: 'Quản lý và theo dõi đơn hàng nhập từ nhà cung cấp',
-    refresh: 'Làm mới',
-    status: 'Trạng thái',
-    allStatus: 'Tất cả trạng thái',
-    search: 'Tìm kiếm',
-    actions: 'Thao tác',
-    noOrdersFound: 'Không tìm thấy đơn hàng',
-    orderDetails: 'Chi tiết Đơn hàng',
-    contractStatus: 'Trạng thái Hợp đồng',
-    na: 'Không có'
-  },
-
-  // Export Orders
-  exportOrders: {
-    title: 'Quản lý Đơn hàng Xuất',
-    description: 'Quản lý và theo dõi đơn hàng xuất cho nhà bán lẻ',
-    refresh: 'Làm mới',
-    status: 'Trạng thái',
-    allStatus: 'Tất cả trạng thái',
-    search: 'Tìm kiếm',
-    actions: 'Thao tác',
-    noOrdersFound: 'Không tìm thấy đơn hàng',
-    statusUpdatedSuccess: 'Cập nhật trạng thái thành công'
-  },
 
   // Common form labels and actions
   common: {
@@ -870,6 +820,7 @@ export default {
     refresh: 'Làm mới',
     loading: 'Đang tải...',
     all: 'Tất cả',
+    currency: 'VND',
     actions: 'Thao tác',
     supplierName: 'Tên nhà cung cấp',
     address: 'Địa chỉ',
@@ -940,8 +891,6 @@ export default {
     confirmStatusChangeMessage: 'Bạn có chắc chắn muốn đổi trạng thái đơn hàng này?',
     products: 'sản phẩm',
     unknown: 'Không xác định',
-    rowsPerPage: 'Số hàng mỗi trang:',
-    displayedRows: '{from}-{to} của {count}',
     notSelected: 'Không chọn',
     of: 'của',
     requiredFieldsNote: 'Lưu ý: Các trường có dấu * là bắt buộc phải nhập.',
@@ -1019,7 +968,7 @@ export default {
     worker: 'Công nhân',
     order: 'Đơn hàng',
     area: 'Khu vực',
-    bay: 'Vịnh',
+    bay: 'Kệ',
     row: 'Hàng',
     column: 'Cột',
     recentOrders: 'Đơn hàng gần đây',
@@ -1131,9 +1080,9 @@ export default {
     addMultipleLocations: 'Thêm Nhiều Vị Trí',
     addLocation: 'Thêm Vị Trí',
     locationList: 'Danh Sách Vị Trí',
-    bay: 'Bay',
-    row: 'Row',
-    column: 'Column',
+    bay: 'Kệ',
+    row: 'Hàng',
+    column: 'Cột',
     markAsUnavailable: 'Đánh dấu không có sẵn',
     markAsAvailable: 'Đánh dấu có sẵn',
     areaRequired: 'Khu vực là bắt buộc',
@@ -1230,6 +1179,34 @@ export default {
     editImportOrder: 'Sửa Đơn Nhập Hàng',
     createNewOrder: 'Tạo Đơn Hàng Mới',
     manageImportOrders: 'Quản Lý Đơn Nhập Hàng',
+    manageExportOrders: 'Quản Lý Đơn Xuất Hàng',
+    // Representative Manager Menu
+    representativeManagerDashboard: 'Bảng điều khiển',
+    importOrdersApproval: 'Phê duyệt đơn hàng nhập',
+    exportOrdersApproval: 'Phê duyệt đơn hàng xuất',
+    manageContracts: 'Quản lý hợp đồng',
+    medicinePerformance: 'Hiệu suất thuốc',
+    // Warehouse Manager Menu
+    orderManagement: 'Quản lý đơn hàng',
+    importOrdersManagement: 'Quản lý đơn hàng nhập',
+    exportOrdersManagement: 'Quản lý đơn hàng xuất',
+    inventoryManagement: 'Quản lý kho hàng',
+    checkOrdersManagement: 'Quản lý đơn kiểm kho',
+    inventoryDashboard: 'Bảng điều khiển kho hàng',
+    // Warehouse Menu
+    warehouseManagement: 'Quản lý kho hàng',
+    warehouseDashboard: 'Bảng điều khiển kho hàng',
+    import: 'Nhập hàng',
+    importOrdersList: 'Danh sách đơn hàng nhập',
+    inspectionUnknownOrders: 'Kiểm tra đơn hàng không xác định',
+    inventory: 'Kho hàng',
+    viewInventoryCheckOrders: 'Xem đơn kiểm kho',
+    export: 'Xuất hàng',
+    exportOrdersList: 'Danh sách đơn hàng xuất',
+    management: 'Quản lý',
+    locationManagement: 'Quản lý vị trí',
+    packageManagement: 'Quản lý gói hàng',
+    selectSpecificEmail: 'Chọn email cụ thể',
     refresh: 'Làm Mới',
     contract: 'Hợp Đồng',
     contractType: 'Loại Hợp Đồng',
@@ -1758,61 +1735,7 @@ export default {
     }
   },
 
-  // Common
-  common: {
-    na: 'N/A',
-    currency: 'VND',
-    // Contract Management
-    contractManagement: 'Quản Lý Hợp Đồng',
-    manageContractList: 'Quản lý danh sách hợp đồng và trạng thái',
-    addContract: 'Thêm Hợp Đồng',
-    addContractSuccess: 'Thêm hợp đồng thành công!',
-    updateContractSuccess: 'Cập nhật hợp đồng thành công!',
-    deleteContractSuccess: 'Xóa hợp đồng thành công!',
-    deleteContract: 'Xóa Hợp Đồng',
-    confirmAction: 'Đã xác nhận',
-    cancel: 'Hủy',
-    cancelContract: 'Hủy Hợp Đồng',
-    errorOccurred: 'Đã xảy ra lỗi',
-    annex: 'Phụ lục',
-    annexActionSuccess: 'Thao tác phụ lục hoàn tất thành công!',
-    // Contract Types
-    economicContract: 'Kinh tế',
-    principalContract: 'Nguyên tắc',
-    // Partner Types
-    partnerType: 'Loại đối tác',
-    supplierLabel: 'Nhà cung cấp',
-    retailerLabel: 'Nhà bán lẻ',
-    partner: 'Đối tác',
-    // Status
-    status: 'Trạng thái',
-    // Actions
-    actions: 'Thao tác',
-    viewDetails: 'Xem chi tiết',
-    edit: 'Chỉnh sửa',
-    draftAction: 'Chuyển về nháp',
-    reject: 'Từ chối',
-    approveAnnex: 'Duyệt phụ lục',
-    // Table Headers
-    contractCode: 'Mã hợp đồng',
-    contractType: 'Loại hợp đồng',
-    createdBy: 'Người tạo',
-    partner: 'Đối tác',
-    // Pagination
-    all: 'Tất cả',
-    // Loading
-    loading: 'Đang tải...',
-    // Medicine
-    medicine: 'Thuốc',
-    selectMedicine: 'Chọn thuốc',
-    quantity: 'Số lượng',
-    orderQuantity: 'Số lượng đặt',
-    medicineLabel: 'Thuốc',
-    selectMedicinePlaceholder: 'Chọn thuốc',
-    // Actions
-    select: 'Chọn',
-    selectPartnerType: 'Chọn loại đối tác'
-  },
+
 
   // Representative Manager Export Orders Approval
   representativeManagerExportOrdersApproval: {

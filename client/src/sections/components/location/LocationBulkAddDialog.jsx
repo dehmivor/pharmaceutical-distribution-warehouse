@@ -343,21 +343,21 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
                 </Box>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {/* Hàng 1: Tên hàng */}
+                  {/* Row 1: Row Name */}
                   <TextField
                     fullWidth
                     label={trans.common.rowName}
                     value={row.name}
                     onChange={(e) => updateRowName(rowIndex, e.target.value)}
-                    placeholder="VD: A, B, C, 1, 2, 3..."
+                    placeholder={trans.common.rowNamePlaceholder}
                   />
                   
-                  {/* Hàng 2: Label "Các cột" */}
+                  {/* Row 2: Columns Label */}
                   <Typography variant="body2" color="text.secondary">
                     {trans.common.columns}
                   </Typography>
                   
-                  {/* Hàng 3: Button "Thêm cột" */}
+                  {/* Row 3: Add Column Button */}
                   <Button
                     size="small"
                     startIcon={<AddIcon />}
@@ -368,7 +368,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
                     {trans.common.addColumn}
                   </Button>
                   
-                  {/* Hàng 4: Các input cột */}
+                  {/* Row 4: Column Inputs */}
                   {row.columns.length > 0 && (
                     <Box 
                       sx={{ 

@@ -650,7 +650,7 @@ function ImportOrderPage() {
                   {userEmails.length > 0 && (
                     <MenuItem disabled>
                       <Typography variant="caption" color="text.secondary">
-                        ─── Chọn email cụ thể ───
+                        ─── {trans.common.selectSpecificEmail} ───
                       </Typography>
                     </MenuItem>
                   )}
@@ -687,7 +687,7 @@ function ImportOrderPage() {
               <TableCell sx={{ minWidth: 150 }}>{trans.common.warehouseManager}</TableCell>
               <TableCell sx={{ minWidth: 120 }}>{trans.common.createdBy}</TableCell>
               <TableCell align="right" sx={{ minWidth: 120 }}>
-                {trans.common.totalAmount.replace('{amount}', '')}
+                {trans.common.totalAmount}
               </TableCell>
               <TableCell sx={{ minWidth: 100 }}>{trans.common.status}</TableCell>
               <TableCell sx={{ minWidth: 120 }}>{trans.common.actions}</TableCell>
@@ -696,7 +696,7 @@ function ImportOrderPage() {
           <TableBody>
             {paginatedOrders.map((order) => (
               <TableRow key={order._id} hover>
-                <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
+                <TableCell>{order.contract_id?.contract_code || trans.common.na}</TableCell>
                 <TableCell>
                   <Chip 
                     label={order.contract_id?.contract_type === 'principal' ? trans.common.principalContract : trans.common.economicContract} 
@@ -705,11 +705,11 @@ function ImportOrderPage() {
                     variant="outlined"
                   />
                 </TableCell>
-                <TableCell>{order.contract_id?.partner_id?.name || 'N/A'}</TableCell>
-                <TableCell>{order.warehouse_manager_id?.email || 'N/A'}</TableCell>
-                <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
+                <TableCell>{order.contract_id?.partner_id?.name || trans.common.na}</TableCell>
+                <TableCell>{order.warehouse_manager_id?.email || trans.common.na}</TableCell>
+                <TableCell>{order.created_by?.email || trans.common.na}</TableCell>
                 <TableCell align="right">
-                  {order.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0).toLocaleString() || 0} VND
+                  {order.details?.reduce((total, detail) => total + detail.quantity * detail.unit_price, 0).toLocaleString() || 0} {trans.common.currency}
                 </TableCell>
                 <TableCell>
                   <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
@@ -755,7 +755,7 @@ function ImportOrderPage() {
           {selectedOrder ? trans.common.editImportOrder : trans.common.createImportOrder}
           {selectedOrder ? (
             <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontWeight: 400 }}>
-              You can only edit medicines in this order
+              {trans.common.editOrderNote}
             </Typography>
           ) : formData.contract_type === 'principal' ? (
             <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', fontWeight: 400 }}>
@@ -924,9 +924,9 @@ function ImportOrderPage() {
                             const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
                             if (contractItem) {
                               if (formData.contract_type === 'principal') {
-                                return `Min: ${contractItem.min_order_quantity || 1} (Có thể chỉnh sửa)`;
+                                return `Min: ${contractItem.min_order_quantity || 1} (${trans.common.quantityEditableNote})`;
                               } else {
-                                return `Từ hợp đồng: ${contractItem.quantity || contractItem.min_order_quantity || 1}`;
+                                return `${trans.common.fromContractEconomicCannotEdit}`;
                               }
                             }
                             return '';
@@ -973,7 +973,7 @@ function ImportOrderPage() {
             {formData.details.some(detail => detail.medicine_id) && !medicinesLoading && (
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 4, mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Total Amount: {calculateTotal().toLocaleString()} VND
+                  {trans.common.totalAmount}: {calculateTotal().toLocaleString()} {trans.common.currency}
                 </Typography>
               </Box>
             )}
@@ -1005,11 +1005,11 @@ function ImportOrderPage() {
                   <Typography variant="h6">{trans.common.basicInformation}</Typography>
                   <Paper sx={{ p: 2 }}>
                     <Typography>
-                      <strong>Contract:</strong> {selectedOrder.contract_id?.contract_code}
+                      <strong>{trans.common.contract}:</strong> {selectedOrder.contract_id?.contract_code}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <Typography component="span">
-                        <strong>Contract Type:</strong>
+                        <strong>{trans.common.contractType}:</strong>
                       </Typography>
                       <Chip 
                         label={selectedOrder.contract_id?.contract_type === 'principal' ? 'Principal' : 'Economic'} 
@@ -1020,11 +1020,11 @@ function ImportOrderPage() {
                       />
                     </Box>
                     <Typography>
-                      <strong>Supplier:</strong> {selectedOrder.contract_id?.partner_id?.name}
+                      <strong>{trans.common.supplier}:</strong> {selectedOrder.contract_id?.partner_id?.name}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <Typography component="span">
-                        <strong>Status:</strong>
+                        <strong>{trans.common.status}:</strong>
                       </Typography>
                       <Chip label={selectedOrder.status} color={getStatusColor(selectedOrder.status)} size="small" sx={{ ml: 1 }} />
                     </Box>
@@ -1045,10 +1045,10 @@ function ImportOrderPage() {
                             <TableBody>
                               {selectedOrder.details?.map((detail, index) => (
                                 <TableRow key={index}>
-                                  <TableCell>{detail.medicine_id?.medicine_name || 'N/A'}</TableCell>
+                                  <TableCell>{detail.medicine_id?.medicine_name || trans.common.na}</TableCell>
                                   <TableCell align="right">{detail.quantity}</TableCell>
-                                  <TableCell align="right">{detail.unit_price?.toLocaleString()} VND</TableCell>
-                                  <TableCell align="right">{((detail.quantity || 0) * (detail.unit_price || 0)).toLocaleString()} VND</TableCell>
+                                  <TableCell align="right">{detail.unit_price?.toLocaleString()} {trans.common.currency}</TableCell>
+                                  <TableCell align="right">{((detail.quantity || 0) * (detail.unit_price || 0)).toLocaleString()} {trans.common.currency}</TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
