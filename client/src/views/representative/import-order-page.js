@@ -650,7 +650,7 @@ function ImportOrderPage() {
                   {userEmails.length > 0 && (
                     <MenuItem disabled>
                       <Typography variant="caption" color="text.secondary">
-                        ─── Chọn email cụ thể ───
+                        ─── {trans.common.selectSpecificEmail} ───
                       </Typography>
                     </MenuItem>
                   )}
@@ -687,7 +687,7 @@ function ImportOrderPage() {
               <TableCell sx={{ minWidth: 150 }}>{trans.common.warehouseManager}</TableCell>
               <TableCell sx={{ minWidth: 120 }}>{trans.common.createdBy}</TableCell>
               <TableCell align="right" sx={{ minWidth: 120 }}>
-                {trans.common.totalAmount.replace('{amount}', '')}
+                {trans.common.totalAmount}
               </TableCell>
               <TableCell sx={{ minWidth: 100 }}>{trans.common.status}</TableCell>
               <TableCell sx={{ minWidth: 120 }}>{trans.common.actions}</TableCell>
@@ -924,9 +924,9 @@ function ImportOrderPage() {
                             const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
                             if (contractItem) {
                               if (formData.contract_type === 'principal') {
-                                return `Min: ${contractItem.min_order_quantity || 1} (Có thể chỉnh sửa)`;
+                                return `Min: ${contractItem.min_order_quantity || 1} (${trans.common.quantityEditableNote})`;
                               } else {
-                                return `Từ hợp đồng: ${contractItem.quantity || contractItem.min_order_quantity || 1}`;
+                                return `${trans.common.fromContractEconomicCannotEdit}`;
                               }
                             }
                             return '';
@@ -973,7 +973,7 @@ function ImportOrderPage() {
             {formData.details.some(detail => detail.medicine_id) && !medicinesLoading && (
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mt: 4, mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  {trans.common.totalAmountLabel}: {calculateTotal().toLocaleString()} {trans.common.currency}
+                  {trans.common.totalAmount}: {calculateTotal().toLocaleString()} {trans.common.currency}
                 </Typography>
               </Box>
             )}

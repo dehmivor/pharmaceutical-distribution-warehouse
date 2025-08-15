@@ -54,7 +54,7 @@ export const getRepresentativeMenu = (trans) => ({
     },
     {
       id: 'rp-manage-contracts',
-      title: trans?.common?.manageContracts || 'Manage Contracts',
+      title: trans?.common?.contractManagement || 'Manage Contracts',
       type: 'item',
       url: '/rp-manage-contracts',
       icon: 'IconFileInvoice'

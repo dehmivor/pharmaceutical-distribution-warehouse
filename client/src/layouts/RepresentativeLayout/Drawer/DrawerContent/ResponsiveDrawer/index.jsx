@@ -47,7 +47,7 @@ export default function ResponsiveDrawer() {
 function getTranslationKey(menuId) {
   const translationMap = {
     'rp-dashboard': 'dashboard',
-    'rp-manage-contracts': 'manageContracts',
+    'rp-manage-contracts': 'contractManagement',
     'rp-import-orders': 'manageImportOrders',
     'rp-export-orders': 'manageExportOrders'
   };
