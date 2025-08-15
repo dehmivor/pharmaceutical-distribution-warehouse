@@ -12,7 +12,7 @@ export default {
     darkMode: 'Chế độ quét',
     rtlMode: 'Đơn vị tính'
   },
-  
+
   // Tabs
   tabs: {
     users: 'Người dùng',
@@ -26,7 +26,7 @@ export default {
     contracts: 'Hợp đồng',
     logs: 'Nhật ký'
   },
-  
+
   // Common actions
   actions: {
     add: 'Thêm',
@@ -44,7 +44,7 @@ export default {
     forgotPassword: 'Quên mật khẩu',
     contactSupport: 'Liên hệ hỗ trợ'
   },
-  
+
   // Status
   status: {
     active: 'Hoạt động',
@@ -54,8 +54,7 @@ export default {
     cancelled: 'Đã hủy',
     processing: 'Đang xử lý'
   },
-  
-  // Messages
+
   messages: {
     success: 'Thành công',
     error: 'Lỗi',
@@ -73,6 +72,7 @@ export default {
     forgotPasswordDescription: 'Nhập địa chỉ email và chúng tôi sẽ gửi liên kết để đặt lại mật khẩu.',
     needApproval: 'Cần duyệt các đơn hàng import/export đang chờ xử lý',
     needCheckLowStock: 'Cần kiểm tra và bổ sung thuốc có tồn kho thấp',
+
     emailRequired: 'Email là bắt buộc',
     invalidEmailFormat: 'Định dạng email không hợp lệ',
     roleRequired: 'Vai trò là bắt buộc',
@@ -81,7 +81,7 @@ export default {
     failedCreateUser: 'Không thể tạo người dùng',
     failedCreateUserRetry: 'Không thể tạo người dùng. Vui lòng thử lại.'
   },
-  
+
   // Form labels
   form: {
     name: 'Tên',
@@ -96,7 +96,7 @@ export default {
     price: 'Giá',
     date: 'Ngày'
   },
-  
+
   // Roles
   roles: {
     supervisor: 'Giám sát',
@@ -108,7 +108,7 @@ export default {
     delivery: 'Đơn vị giao hàng',
     supplier: 'Nhà cung cấp'
   },
-  
+
   // Breadcrumbs
   breadcrumbs: {
     home: 'Trang chủ',
@@ -117,7 +117,7 @@ export default {
     inventory: 'Kho hàng',
     orders: 'Đơn hàng'
   },
-  
+
   // Data tracking and alerts
   dataTracking: {
     title: 'Theo dõi dữ liệu',
@@ -153,7 +153,7 @@ export default {
     dataFetchError: 'Không lấy được dữ liệu batch hết hạn',
     apiError: 'Lỗi khi gọi API: {message}'
   },
-  
+
   // Menu items
   menu: {
     manage: 'Quản lý',
@@ -193,7 +193,7 @@ export default {
     updates: 'Cập nhật',
     changelog: 'Nhật ký thay đổi'
   },
-  
+
   // Dashboard
   dashboard: {
     title: 'Bảng điều khiển Giám sát',
@@ -227,7 +227,7 @@ export default {
     items: 'mục',
     noData: 'Không có dữ liệu'
   },
-  
+
   // Import Orders
   importOrders: {
     title: 'Quản lý Đơn hàng Nhập',
@@ -243,7 +243,7 @@ export default {
     orderDetailsSection: 'Chi tiết Đơn hàng',
     na: 'N/A'
   },
-  
+
   // Export Orders
   exportOrders: {
     title: 'Quản lý Đơn hàng Xuất',
@@ -262,7 +262,7 @@ export default {
     cancelled: 'Đã hủy',
     statusUpdatedSuccess: 'Cập nhật trạng thái thành công'
   },
-  
+
   // Bill Management
   bills: {
     title: 'Quản lý Hóa đơn',
@@ -316,7 +316,7 @@ export default {
     partialPayment: 'Thanh toán (partial)',
     singlePayment: 'Thanh toán 1 lần'
   },
-  
+
   // Reports
   reports: {
     title: 'Báo cáo',
@@ -365,7 +365,7 @@ export default {
     selectExcelFile: 'Chọn file Excel',
     selectedFile: 'File đã chọn'
   },
-  
+
   // Supplier Management
   suppliers: {
     title: 'Quản lý Nhà cung cấp',
@@ -400,7 +400,7 @@ export default {
     deleteSuccess: 'Xóa nhà cung cấp thành công',
     saveSuccess: 'Lưu nhà cung cấp thành công'
   },
-  
+
   // Retailer Management
   retailers: {
     title: 'Quản lý Nhà bán lẻ',
@@ -437,7 +437,7 @@ export default {
     phoneFormat: 'Định dạng: XXX-XXXX-XXXX',
     phonePlaceholder: '028-3831-7890'
   },
-  
+
   // Log Management
   logs: {
     title: 'Quản lý Nhật ký Vị trí',
@@ -461,7 +461,7 @@ export default {
     add: 'Thêm',
     remove: 'Xóa'
   },
-  
+
   // Contract Details
   contracts: {
     title: 'Chi tiết Hợp đồng',
@@ -587,11 +587,12 @@ export default {
     customPassword: 'Mật khẩu Tùy chỉnh',
     minimumCharacters: 'Tối thiểu 6 ký tự',
     accountActivationProcess: 'Quy trình Kích hoạt Tài khoản',
-    accountActivationDescription: 'Email sẽ được gửi đến người dùng với hướng dẫn kích hoạt. Người dùng phải hoàn thành quy trình kích hoạt để truy cập tài khoản.',
+    accountActivationDescription:
+      'Email sẽ được gửi đến người dùng với hướng dẫn kích hoạt. Người dùng phải hoàn thành quy trình kích hoạt để truy cập tài khoản.',
     loading: 'Đang tải dữ liệu người dùng...',
     error: 'Lỗi',
     retry: 'Thử lại',
-    noUsersInSection: 'Không có người dùng nào trong {sectionName}',
+    noUsersInSection: 'Không có người dùng nào trong sectionName',
     roles: {
       warehouse: 'Kho hàng',
       warehouseManager: 'Quản lý Kho hàng',
@@ -799,19 +800,6 @@ export default {
     approvalForm: 'Form duyệt',
     confirmDialog: 'Dialog xác nhận'
   },
-
-  // User management messages
-  messages: {
-    emailRequired: 'Email là bắt buộc',
-    invalidEmailFormat: 'Định dạng email không hợp lệ',
-    roleRequired: 'Vai trò là bắt buộc',
-    passwordRequired: 'Mật khẩu là bắt buộc',
-    passwordMinLength: 'Mật khẩu phải có ít nhất 6 ký tự',
-    failedCreateUser: 'Tạo người dùng thất bại',
-    failedCreateUserRetry: 'Tạo người dùng thất bại. Vui lòng thử lại.'
-  },
-
-
 
   // Common form labels and actions
   common: {
@@ -1296,7 +1284,8 @@ export default {
     totalAmount: 'Tổng Tiền: {amount} VND',
     recheckStock: 'Kiểm tra lại',
     editingRejectedExportOrder: 'Đang sửa export order bị từ chối. Order sẽ tự động chuyển về trạng thái draft sau khi lưu.',
-    existingExportOrderError: 'Đã tồn tại export order với hợp đồng này ở trạng thái "{status}". Chỉ có thể tạo mới khi order cũ có trạng thái "cancelled".',
+    existingExportOrderError:
+      'Đã tồn tại export order với hợp đồng này ở trạng thái "{status}". Chỉ có thể tạo mới khi order cũ có trạng thái "cancelled".',
     quantityMinForMedicine: 'Số lượng xuất cho thuốc "{medicine}" phải tối thiểu là {min}',
     quantityMaxForMedicine: 'Số lượng xuất cho thuốc "{medicine}" không được vượt quá {max}',
     fromContractEconomicCannotEdit: '(Từ hợp đồng - Economic - Không thể sửa)',
@@ -1662,7 +1651,7 @@ export default {
   userForm: {
     emailRequired: 'Email là bắt buộc',
     emailAddress: 'Địa chỉ Email',
-    emailOTPNote: 'Email bao gồm mã OTP để xác minh tài khoản',
+    emailOTPNote: 'Email bao gồm mã OTP để xác minh tài khoản'
   },
 
   // Debt Management
@@ -1682,7 +1671,7 @@ export default {
     },
     quarters: {
       quarter1: 'Quý 1',
-      quarter2: 'Quý 2', 
+      quarter2: 'Quý 2',
       quarter3: 'Quý 3',
       quarter4: 'Quý 4'
     },
@@ -1734,8 +1723,6 @@ export default {
       content: 'Bạn có chắc chắn muốn xóa hóa đơn này?'
     }
   },
-
-
 
   // Representative Manager Export Orders Approval
   representativeManagerExportOrdersApproval: {
