@@ -474,8 +474,8 @@ const MedicineManagement = () => {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage={trans.common.pagination.rowsPerPage}
-          labelDisplayedRows={({ from, to, count }) => trans.common.pagination.displayedRows.replace('{from}', from).replace('{to}', to).replace('{count}', count)}
+          labelRowsPerPage="Rows per page:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count}`}
           sx={{
             borderTop: '1px solid #e0e0e0',
             bgcolor: 'grey.50'

@@ -88,4 +88,95 @@ const warehouse = {
   ]
 };
 
+// Function for internationalization (optional use)
+export const getWarehouseMenu = (trans) => ({
+  id: 'group-manage',
+  title: trans?.common?.warehouseManagement || 'Warehouse Management',
+  icon: 'IconBrandAsana',
+  type: 'group',
+  children: [
+    {
+      id: 'warehouse-dashboard',
+      title: trans?.common?.warehouseDashboard || 'Warehouse Dashboard',
+      type: 'item',
+      url: '/wh-dashboard-import',
+      icon: 'IconDashboard'
+    },
+    {
+      id: 'import-orders',
+      title: trans?.common?.import || 'Import',
+      type: 'collapse',
+      icon: 'IconFileImport',
+      children: [
+        {
+          id: 'view-import-orders',
+          title: trans?.common?.importOrdersList || 'Import Orders List',
+          type: 'item',
+          url: '/wh-import-orders',
+          icon: 'IconList'
+        },
+        {
+          id: 'create-inspections-without-ord',
+          title: trans?.common?.inspectionUnknownOrders || 'Inspection Unknown Orders',
+          type: 'item',
+          url: '/wh-create-inspections/without-import-ord',
+          icon: 'IconPlus'
+        }
+      ]
+    },
+    {
+      id: 'inventory',
+      title: trans?.common?.inventory || 'Inventory',
+      type: 'collapse',
+      icon: 'IconBrandMinecraft',
+      children: [
+        {
+          id: 'view-inventory-check-orders',
+          title: trans?.common?.viewInventoryCheckOrders || 'View Inventory Check Orders',
+          type: 'item',
+          url: '/wh-inventory/check-orders',
+          icon: 'IconList'
+        }
+      ]
+    },
+    {
+      id: 'export-orders',
+      title: trans?.common?.export || 'Export',
+      type: 'collapse',
+      icon: 'IconFileExport',
+      children: [
+        {
+          id: 'view-export-orders',
+          title: trans?.common?.exportOrdersList || 'Export Orders List',
+          type: 'item',
+          url: '/wh-export-orders',
+          icon: 'IconList'
+        }
+      ]
+    },
+    {
+      id: 'management',
+      title: trans?.common?.management || 'Management',
+      type: 'collapse',
+      icon: 'IconBriefcase',
+      children: [
+        {
+          id: 'manage-locations',
+          title: trans?.common?.locationManagement || 'Location Management',
+          type: 'item',
+          url: '/wh-manage-location',
+          icon: 'IconMapPin'
+        },
+        {
+          id: 'view-packages',
+          title: trans?.common?.packageManagement || 'Package Management',
+          type: 'item',
+          url: '/wh-view-packages',
+          icon: 'IconPackage'
+        }
+      ]
+    }
+  ]
+});
+
 export default warehouse;

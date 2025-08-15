@@ -477,7 +477,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                     value={formValues.storage_conditions.temperature}
                     onChange={(e) => handleStorageChange('temperature', e.target.value)}
                     error={!!errors.storage_conditions?.temperature}
-                    helperText={errors.storage_conditions?.temperature || trans.common.form.formatExamples.temperature}
+                    helperText={errors.storage_conditions?.temperature || 'Format: X-Y, -X or X'}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -493,7 +493,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                     value={formValues.storage_conditions.humidity}
                     onChange={(e) => handleStorageChange('humidity', e.target.value)}
                     error={!!errors.storage_conditions?.humidity}
-                    helperText={errors.storage_conditions?.humidity || trans.common.form.formatExamples.humidity}
+                    helperText={errors.storage_conditions?.humidity || 'Format: X or X-Y'}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -510,7 +510,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
                       onChange={(e) => handleStorageChange('light', e.target.value)}
                       startAdornment={<StorageIcon sx={{ mr: 1, color: 'text.secondary' }} />}
                     >
-                      <MenuItem value="">{trans.common.form.notSelected}</MenuItem>
+                      <MenuItem value="">Not selected</MenuItem>
                       <MenuItem value="none">{trans.medicineEdit.storageConditions.lightOptions.none}</MenuItem>
                       <MenuItem value="low">{trans.medicineEdit.storageConditions.lightOptions.low}</MenuItem>
                       <MenuItem value="medium">{trans.medicineEdit.storageConditions.lightOptions.medium}</MenuItem>
@@ -607,7 +607,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
             }}
           >
             <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
-              <strong>{trans.common.form.requiredFieldsNote}</strong>
+              <strong>Note: Fields marked with * are required.</strong>
             </Typography>
           </Box>
         </Box>

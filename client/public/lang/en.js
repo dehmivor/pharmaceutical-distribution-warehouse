@@ -810,57 +810,9 @@ export default {
     failedCreateUserRetry: 'Failed to create user. Please try again.'
   },
 
-  // Header section
-  header: {
-    title: 'User Account Management',
-    description: 'Manage user accounts, roles, and permissions in the system'
-  },
 
-  // Tabs
-  tabs: {
-    users: 'Users',
-    permissions: 'Permissions'
-  },
 
-  // Actions
-  actions: {
-    add: 'Add'
-  },
 
-  // Roles
-  roles: {
-    warehouse: 'Warehouse',
-    representative: 'Representative',
-    supplier: 'Supplier'
-  },
-
-  // Import Orders
-  importOrders: {
-    title: 'Import Orders Management',
-    description: 'Manage and monitor import orders from suppliers',
-    refresh: 'Refresh',
-    status: 'Status',
-    allStatus: 'All Status',
-    search: 'Search',
-    actions: 'Actions',
-    noOrdersFound: 'No orders found',
-    orderDetails: 'Order Details',
-    contractStatus: 'Contract Status',
-    na: 'N/A'
-  },
-
-  // Export Orders
-  exportOrders: {
-    title: 'Export Orders Management',
-    description: 'Manage and monitor export orders to retailers',
-    refresh: 'Refresh',
-    status: 'Status',
-    allStatus: 'All Status',
-    search: 'Search',
-    actions: 'Actions',
-    noOrdersFound: 'No orders found',
-    statusUpdatedSuccess: 'Status updated successfully'
-  },
 
   // Common form labels and actions
   common: {
@@ -939,8 +891,6 @@ export default {
     confirmStatusChangeMessage: 'Are you sure you want to change the status of this order?',
     products: 'products',
     unknown: 'Unknown',
-    rowsPerPage: 'Rows per page:',
-    displayedRows: '{from}-{to} of {count}',
     notSelected: 'Not selected',
     of: 'of',
     requiredFieldsNote: 'Note: Fields marked with * are required.',
@@ -1229,6 +1179,34 @@ export default {
     editImportOrder: 'Edit Import Order',
     createNewOrder: 'Create New Order',
     manageImportOrders: 'Manage Import Orders',
+    manageExportOrders: 'Manage Export Orders',
+    // Representative Manager Menu
+    representativeManagerDashboard: 'Dashboard',
+    importOrdersApproval: 'Import Orders Approval',
+    exportOrdersApproval: 'Export Orders Approval',
+    manageContracts: 'Manage Contracts',
+    medicinePerformance: 'Medicine Performance',
+    // Warehouse Manager Menu
+    orderManagement: 'Order Management',
+    importOrdersManagement: 'Import Orders Management',
+    exportOrdersManagement: 'Export Orders Management',
+    inventoryManagement: 'Inventory Management',
+    checkOrdersManagement: 'Check Orders Management',
+    inventoryDashboard: 'Inventory Dashboard',
+    // Warehouse Menu
+    warehouseManagement: 'Warehouse Management',
+    warehouseDashboard: 'Warehouse Dashboard',
+    import: 'Import',
+    importOrdersList: 'Import Orders List',
+    inspectionUnknownOrders: 'Inspection Unknown Orders',
+    inventory: 'Inventory',
+    viewInventoryCheckOrders: 'View Inventory Check Orders',
+    export: 'Export',
+    exportOrdersList: 'Export Orders List',
+    management: 'Management',
+    locationManagement: 'Location Management',
+    packageManagement: 'Package Management',
+    selectSpecificEmail: 'Select specific email',
     refresh: 'Refresh',
     contract: 'Contract',
     contractType: 'Contract Type',
@@ -1250,6 +1228,7 @@ export default {
     quantity: 'Quantity',
     unitPrice: 'Unit Price',
     total: 'Total',
+    currency: 'VND',
     cancel: 'Cancel',
     create: 'Create',
     createOrder: 'Create Order',
@@ -1770,61 +1749,7 @@ export default {
     }
   },
 
-  // Common
-  common: {
-    na: 'N/A',
-    currency: 'VND',
-    // Contract Management
-    contractManagement: 'Contract Management',
-    manageContractList: 'Manage contract list and status',
-    addContract: 'Add Contract',
-    addContractSuccess: 'Contract added successfully!',
-    updateContractSuccess: 'Contract updated successfully!',
-    deleteContractSuccess: 'Contract deleted successfully!',
-    deleteContract: 'Delete Contract',
-    confirmAction: 'Confirmed',
-    cancel: 'Cancel',
-    cancelContract: 'Cancel Contract',
-    errorOccurred: 'An error occurred',
-    annex: 'Annex',
-    annexActionSuccess: 'Annex action completed successfully!',
-    // Contract Types
-    economicContract: 'Economic',
-    principalContract: 'Principal',
-    // Partner Types
-    partnerType: 'Partner Type',
-    supplierLabel: 'Supplier',
-    retailerLabel: 'Retailer',
-    partner: 'Partner',
-    // Status
-    status: 'Status',
-    // Actions
-    actions: 'Actions',
-    viewDetails: 'View Details',
-    edit: 'Edit',
-    draftAction: 'Move to Draft',
-    reject: 'Reject',
-    approveAnnex: 'Approve Annex',
-    // Table Headers
-    contractCode: 'Contract Code',
-    contractType: 'Contract Type',
-    createdBy: 'Created By',
-    partner: 'Partner',
-    // Pagination
-    all: 'All',
-    // Loading
-    loading: 'Loading...',
-    // Medicine
-    medicine: 'Medicine',
-    selectMedicine: 'Select Medicine',
-    quantity: 'Quantity',
-    orderQuantity: 'Order Quantity',
-    medicineLabel: 'Medicine',
-    selectMedicinePlaceholder: 'Select Medicine',
-    // Actions
-    select: 'Select',
-    selectPartnerType: 'Select Partner Type'
-  },
+
 
   // Representative Manager Export Orders Approval
   representativeManagerExportOrdersApproval: {
