@@ -12,7 +12,7 @@ export default {
     darkMode: 'Dark Mode',
     rtlMode: 'RTL Mode'
   },
-  
+
   // Tabs
   tabs: {
     users: 'Users',
@@ -26,7 +26,7 @@ export default {
     contracts: 'Contracts',
     logs: 'Logs'
   },
-  
+
   // Common actions
   actions: {
     add: 'Add',
@@ -44,7 +44,7 @@ export default {
     forgotPassword: 'Forgot Password',
     contactSupport: 'Contact support'
   },
-  
+
   // Status
   status: {
     active: 'Active',
@@ -54,8 +54,7 @@ export default {
     cancelled: 'Cancelled',
     processing: 'Processing'
   },
-  
-  // Messages
+
   messages: {
     success: 'Success',
     error: 'Error',
@@ -70,18 +69,19 @@ export default {
     signUpFree: 'Sign Up for free. No credit card required.',
     alreadyHaveAccount: 'Already have an account?',
     needHelp: 'Need help?',
-    forgotPasswordDescription: 'Enter your email address and we\'ll send you a link to reset your password.',
+    forgotPasswordDescription: "Enter your email address and we'll send you a link to reset your password.",
     needApproval: 'Need to approve pending import/export orders',
     needCheckLowStock: 'Need to check and replenish low stock medicines',
+
     emailRequired: 'Email is required',
     invalidEmailFormat: 'Invalid email format',
     roleRequired: 'Role is required',
-    passwordRequired: 'Password is required when not auto-generating',
+    passwordRequired: 'Password is required when not auto-generating', // giữ giá trị cũ có đoạn "when not auto-generating"
     passwordMinLength: 'Password must be at least 6 characters',
     failedCreateUser: 'Failed to create user',
     failedCreateUserRetry: 'Failed to create user. Please try again.'
   },
-  
+
   // Form labels
   form: {
     name: 'Name',
@@ -96,7 +96,7 @@ export default {
     price: 'Price',
     date: 'Date'
   },
-  
+
   // Roles
   roles: {
     supervisor: 'Supervisor',
@@ -108,7 +108,7 @@ export default {
     delivery: 'Delivery Unit',
     supplier: 'Supplier'
   },
-  
+
   // Breadcrumbs
   breadcrumbs: {
     home: 'Home',
@@ -117,7 +117,7 @@ export default {
     inventory: 'Inventory',
     orders: 'Orders'
   },
-  
+
   // Data tracking and alerts
   dataTracking: {
     title: 'Data Tracking',
@@ -153,7 +153,7 @@ export default {
     dataFetchError: 'Could not fetch expired batch data',
     apiError: 'API call error: {message}'
   },
-  
+
   // Menu items
   menu: {
     manage: 'Manage',
@@ -193,7 +193,7 @@ export default {
     updates: 'Updates',
     changelog: 'Changelog'
   },
-  
+
   // Dashboard
   dashboard: {
     title: 'Supervisor Dashboard',
@@ -227,7 +227,7 @@ export default {
     items: 'items',
     noData: 'No data available'
   },
-  
+
   // Import Orders
   importOrders: {
     title: 'Import Orders Management',
@@ -243,7 +243,7 @@ export default {
     orderDetailsSection: 'Order Details',
     na: 'N/A'
   },
-  
+
   // Export Orders
   exportOrders: {
     title: 'Export Orders Management',
@@ -262,7 +262,7 @@ export default {
     cancelled: 'Cancelled',
     statusUpdatedSuccess: 'Status updated successfully'
   },
-  
+
   // Bill Management
   bills: {
     title: 'Bills Management',
@@ -316,7 +316,7 @@ export default {
     partialPayment: 'Partial Payment',
     singlePayment: 'Single Payment'
   },
-  
+
   // Reports
   reports: {
     title: 'Reports',
@@ -365,7 +365,7 @@ export default {
     selectExcelFile: 'Select Excel File',
     selectedFile: 'Selected file'
   },
-  
+
   // Supplier Management
   suppliers: {
     title: 'Supplier Management',
@@ -400,7 +400,7 @@ export default {
     deleteSuccess: 'Supplier deleted successfully',
     saveSuccess: 'Supplier saved successfully'
   },
-  
+
   // Retailer Management
   retailers: {
     title: 'Retailer Management',
@@ -436,7 +436,7 @@ export default {
     saveSuccess: 'Retailer saved successfully',
     detailTitle: 'Retailer Details'
   },
-  
+
   // Log Management
   logs: {
     title: 'Location Log Management',
@@ -460,7 +460,7 @@ export default {
     add: 'Add',
     remove: 'Remove'
   },
-  
+
   // Contract Details
   contracts: {
     title: 'Contract Details',
@@ -586,7 +586,8 @@ export default {
     customPassword: 'Custom Password',
     minimumCharacters: 'Minimum 6 characters required',
     accountActivationProcess: 'Account Activation Process',
-    accountActivationDescription: 'An email will be sent to the user with activation instructions. The user must complete the activation process to access their account.',
+    accountActivationDescription:
+      'An email will be sent to the user with activation instructions. The user must complete the activation process to access their account.',
     loading: 'Loading user data...',
     error: 'Error',
     retry: 'Retry',
@@ -798,21 +799,6 @@ export default {
     approvalForm: 'Approval Form',
     confirmDialog: 'Confirmation Dialog'
   },
-
-  // User management messages
-  messages: {
-    emailRequired: 'Email is required',
-    invalidEmailFormat: 'Invalid email format',
-    roleRequired: 'Role is required',
-    passwordRequired: 'Password is required',
-    passwordMinLength: 'Password must be at least 6 characters',
-    failedCreateUser: 'Failed to create user',
-    failedCreateUserRetry: 'Failed to create user. Please try again.'
-  },
-
-
-
-
 
   // Common form labels and actions
   common: {
@@ -1297,7 +1283,8 @@ export default {
     totalAmount: 'Total Amount: {amount} VND',
     recheckStock: 'Recheck',
     editingRejectedExportOrder: 'Editing rejected export order. It will be reverted to draft after saving.',
-    existingExportOrderError: 'An export order already exists for this contract with status "{status}". Only create a new one when the old order is "cancelled".',
+    existingExportOrderError:
+      'An export order already exists for this contract with status "{status}". Only create a new one when the old order is "cancelled".',
     quantityMinForMedicine: 'Export quantity for "{medicine}" must be at least {min}',
     quantityMaxForMedicine: 'Export quantity for "{medicine}" cannot exceed {max}',
     fromContractEconomicCannotEdit: '(From contract - Economic - Cannot edit)',
@@ -1676,7 +1663,7 @@ export default {
   userForm: {
     emailRequired: 'Email is required',
     emailAddress: 'Email Address',
-    emailOTPNote: 'Email includes OTP code for account verification',
+    emailOTPNote: 'Email includes OTP code for account verification'
   },
 
   // Debt Management
@@ -1696,7 +1683,7 @@ export default {
     },
     quarters: {
       quarter1: 'Q1',
-      quarter2: 'Q2', 
+      quarter2: 'Q2',
       quarter3: 'Q3',
       quarter4: 'Q4'
     },
@@ -1748,8 +1735,6 @@ export default {
       content: 'Are you sure you want to delete this bill?'
     }
   },
-
-
 
   // Representative Manager Export Orders Approval
   representativeManagerExportOrdersApproval: {
