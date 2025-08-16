@@ -288,6 +288,7 @@ const useUsers = () => {
           dataLength: Array.isArray(data) ? data.length : 'not array',
           key
         });
+        // Only reset retry count if it was greater than 0 to prevent unnecessary state updates
         if (retryCount > 0) {
           setRetryCount(0);
         }

@@ -1,17 +1,19 @@
 'use client';
-import { useState, useCallback } from 'react';
-import AddUserDialog from '@/sections/supervisor/activate-account/AddUserDialog';
-import PermissionDialog from '@/sections/supervisor/activate-account/PermissionDialog';
-import EditUserDialog from '@/sections/supervisor/activate-account/EditUserDialog';
-import DeactivateUserDialog from '@/sections/supervisor/activate-account/DeactivateUserDialog';
-import HeaderSection from '@/sections/supervisor/activate-account/HeaderSection';
-import { Box, Snackbar, Alert } from '@mui/material';
-import axios from 'axios';
 import useTrans from '@/hooks/useTrans';
+import AddUserDialog from '@/sections/supervisor/activate-account/AddUserDialog';
+import DeactivateUserDialog from '@/sections/supervisor/activate-account/DeactivateUserDialog';
+import EditUserDialog from '@/sections/supervisor/activate-account/EditUserDialog';
+import HeaderSection from '@/sections/supervisor/activate-account/HeaderSection';
+import PermissionDialog from '@/sections/supervisor/activate-account/PermissionDialog';
 import UserManagement from '@/sections/supervisor/activate-account/UserManagementTab';
+import { Alert, Box, Snackbar, useTheme } from '@mui/material';
+import axios from 'axios';
+import { enqueueSnackbar } from 'notistack';
+import { useCallback, useState } from 'react';
 
 function ManageUsers() {
   const trans = useTrans();
+  const theme = useTheme();
 
   // Add User Dialog states
   const [openAddUserDialog, setOpenAddUserDialog] = useState(false);
@@ -34,16 +36,9 @@ function ManageUsers() {
   const [openEditUserDialog, setOpenEditUserDialog] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
-  // Deactivate User Dialog states
-  const [openDeactivateUserDialog, setOpenDeactivateUserDialog] = useState(false);
-  const [deactivatingUser, setDeactivatingUser] = useState(null);
-
-  // Snackbar states
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success'
-  });
+  // Status Change Dialog states
+  const [openStatusChangeDialog, setOpenStatusChangeDialog] = useState(false);
+  const [statusChangingUser, setStatusChangingUser] = useState(null);
 
   // API base URL
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -60,10 +55,10 @@ function ManageUsers() {
     setOpenEditUserDialog(true);
   }, []);
 
-  // Handle open deactivate user dialog
-  const handleOpenDeactivateUserDialog = useCallback((user) => {
-    setDeactivatingUser(user);
-    setOpenDeactivateUserDialog(true);
+  // Handle open status change dialog
+  const handleOpenStatusChangeDialog = useCallback((user) => {
+    setStatusChangingUser(user);
+    setOpenStatusChangeDialog(true);
   }, []);
 
   // Handle open add user dialog
@@ -82,20 +77,6 @@ function ManageUsers() {
     });
     setFormErrors({});
     setSubmitting(false);
-  };
-
-  // Show snackbar message
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({
-      open: true,
-      message,
-      severity
-    });
-  };
-
-  // Close snackbar
-  const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
   // Validation functions
@@ -136,7 +117,6 @@ function ManageUsers() {
         {
           email: formData.email.toLowerCase().trim(),
           role: formData.role,
-          is_manager: formData.is_manager,
           generatePassword: formData.generatePassword,
           customPassword: formData.generatePassword ? null : formData.customPassword,
           permissions: formData.permissions,
@@ -151,20 +131,19 @@ function ManageUsers() {
       );
 
       if (response.status === 201) {
-        showSnackbar('User created successfully! Activation email sent to user.', 'success');
+        enqueueSnackbar('User created successfully! Activation email sent to user.', { variant: 'success' });
         handleCloseAddUser();
-        // TODO: refetch user list here
       } else {
-        showSnackbar(response.data.message || trans.messages.failedCreateUser, 'error');
+        enqueueSnackbar(response.data.message || trans.messages.failedCreateUser, { variant: 'error' });
       }
     } catch (error) {
-      showSnackbar(error.response?.data?.message || error.message || trans.messages.failedCreateUserRetry, 'error');
+      enqueueSnackbar(error.response?.data?.message || error.message || trans.messages.failedCreateUserRetry, { variant: 'error' });
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Handle update user permissions
+  // Handle update permissions
   const handleUpdatePermissions = async (userId, updateData) => {
     try {
       const response = await axios.put(`${backendUrl}/api/accounts/${userId}`, updateData, {
@@ -175,14 +154,17 @@ function ManageUsers() {
       });
 
       if (response.status === 200) {
-        showSnackbar('User permissions updated successfully!', 'success');
-        // TODO: refetch user list here
+        enqueueSnackbar('User role updated successfully!', { variant: 'success' });
+        // Refetch user list to update UI
+        if (window.refetchUsers) {
+          window.refetchUsers();
+        }
         return response.data;
       } else {
-        throw new Error(response.data.message || 'Failed to update permissions');
+        throw new Error(response.data.message || 'Failed to update user role');
       }
     } catch (error) {
-      showSnackbar(error.response?.data?.message || error.message || 'Failed to update permissions', 'error');
+      enqueueSnackbar(error.response?.data?.message || error.message || 'Failed to update user role', { variant: 'error' });
       throw error;
     }
   };
@@ -198,27 +180,28 @@ function ManageUsers() {
       });
 
       if (response.status === 200) {
-        showSnackbar('User information updated successfully!', 'success');
-        // TODO: refetch user list here
+        enqueueSnackbar('User email updated successfully!', { variant: 'success' });
+        // Refetch user list to update UI
+        if (window.refetchUsers) {
+          window.refetchUsers();
+        }
         return response.data;
       } else {
-        throw new Error(response.data.message || 'Failed to update user');
+        throw new Error(response.data.message || 'Failed to update user email');
       }
     } catch (error) {
-      showSnackbar(error.response?.data?.message || error.message || 'Failed to update user', 'error');
+      enqueueSnackbar(error.response?.data?.message || error.message || 'Failed to update user email', { variant: 'error' });
       throw error;
     }
   };
 
-  // Handle deactivate user
-  const handleDeactivateUser = async (userId, deactivationData) => {
+  // Handle status change
+  const handleStatusChange = async (userId, statusData) => {
     try {
       const response = await axios.put(
         `${backendUrl}/api/accounts/${userId}`,
         {
-          status: deactivationData.status,
-          deactivation_reason: deactivationData.reason,
-          deactivation_type: deactivationData.deactivationType
+          status: statusData.status
         },
         {
           headers: {
@@ -229,14 +212,17 @@ function ManageUsers() {
       );
 
       if (response.status === 200) {
-        showSnackbar('User account deactivated successfully!', 'success');
-        // TODO: refetch user list here
+        enqueueSnackbar('User status updated successfully!', { variant: 'success' });
+        // Refetch user list to update UI
+        if (window.refetchUsers) {
+          window.refetchUsers();
+        }
         return response.data;
       } else {
-        throw new Error(response.data.message || 'Failed to deactivate user');
+        throw new Error(response.data.message || 'Failed to update user status');
       }
     } catch (error) {
-      showSnackbar(error.response?.data?.message || error.message || 'Failed to deactivate user', 'error');
+      enqueueSnackbar(error.response?.data?.message || error.message || 'Failed to update user status', { variant: 'error' });
       throw error;
     }
   };
@@ -248,7 +234,7 @@ function ManageUsers() {
       <UserManagement
         onOpenPermissionDialog={handleOpenPermissionDialog}
         onOpenEditUserDialog={handleOpenEditUserDialog}
-        onOpenDeactivateUserDialog={handleOpenDeactivateUserDialog}
+        onOpenDeactivateUserDialog={handleOpenStatusChangeDialog}
         onOpenAddUser={handleOpenAddUser}
       />
 
@@ -280,25 +266,13 @@ function ManageUsers() {
         onUpdate={handleUpdateUser}
       />
 
-      {/* Deactivate User Dialog */}
+      {/* Status Change Dialog */}
       <DeactivateUserDialog
-        open={openDeactivateUserDialog}
-        onClose={() => setOpenDeactivateUserDialog(false)}
-        user={deactivatingUser}
-        onDeactivate={handleDeactivateUser}
+        open={openStatusChangeDialog}
+        onClose={() => setOpenStatusChangeDialog(false)}
+        user={statusChangingUser}
+        onDeactivate={handleStatusChange}
       />
-
-      {/* Snackbar for notifications */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

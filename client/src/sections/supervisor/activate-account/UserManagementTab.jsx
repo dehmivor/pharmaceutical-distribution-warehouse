@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import useUsers from '@/hooks/useUser';
 import useTrans from '@/hooks/useTrans';
 
@@ -40,13 +40,134 @@ import {
   Security as SecurityIcon,
   SupervisorAccount as SupervisorIcon,
   Warehouse as WarehouseIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Settings
 } from '@mui/icons-material';
 
 import { useTheme } from '@mui/material/styles';
 
 import ComponentsWrapper from '@/components/ComponentsWrapper';
 import PresentationCard from '@/components/cards/PresentationCard';
+
+// Move UserTable component outside to prevent hooks error
+const UserTable = ({
+  users,
+  sectionName,
+  showPagination = false,
+  page = 0,
+  rowsPerPage = 10,
+  onPageChange,
+  onRowsPerPageChange,
+  totalCount,
+  onOpenPermissionDialog,
+  onOpenEditUserDialog,
+  onOpenDeactivateUserDialog,
+  getLevelColor,
+  getRoleDisplayName
+}) => {
+  if (!Array.isArray(users) || users.length === 0) {
+    return (
+      <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
+        {sectionName ? `No users found in ${sectionName}` : 'No users found'}
+      </Typography>
+    );
+  }
+
+  return (
+    <>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Updated</TableCell>
+              <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {users.map((user) => (
+              <TableRow key={user._id || user.id} hover>
+                <TableCell>
+                  <Stack direction="row" alignItems="center" spacing={1}>
+                    <Avatar
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        bgcolor: user.avatar || user.profileImage || user.image ? 'transparent' : getLevelColor(user.role) + '.main'
+                      }}
+                      src={user.avatar || user.profileImage || user.image}
+                      alt={user.name || user.email}
+                    >
+                      {!user.avatar && !user.profileImage && !user.image ? (
+                        <Typography variant="caption" sx={{ color: 'white', fontWeight: 'bold' }}>
+                          {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                        </Typography>
+                      ) : null}
+                    </Avatar>
+                    <Typography variant="body2" fontWeight={500}>
+                      {user.email || 'N/A'}
+                    </Typography>
+                  </Stack>
+                </TableCell>
+                <TableCell>
+                  <Chip label={getRoleDisplayName(user.role)} color={getLevelColor(user.role)} size="small" variant="outlined" />
+                </TableCell>
+                <TableCell>
+                  <Chip
+                    label={user.status === 'active' ? 'Active' : user.status === 'pending' ? 'Pending' : 'Inactive'}
+                    color={user.status === 'active' ? 'success' : user.status === 'pending' ? 'warning' : 'default'}
+                    size="small"
+                    variant="filled"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" color="text.secondary">
+                    {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('vi-VN') : 'N/A'}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={0.5} justifyContent="center">
+                    <IconButton size="small" color="primary" onClick={() => onOpenPermissionDialog(user)}>
+                      <SecurityIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" color="secondary" onClick={() => onOpenEditUserDialog(user)}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" color="error" onClick={() => onOpenDeactivateUserDialog(user)}>
+                      <Settings fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {showPagination && (
+        <TablePagination
+          component="div"
+          count={totalCount}
+          page={page}
+          onPageChange={onPageChange}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={onRowsPerPageChange}
+          rowsPerPageOptions={[7]}
+          labelRowsPerPage="Rows per page:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count}`}
+        />
+      )}
+    </>
+  );
+};
 
 function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDeactivateUserDialog, onOpenAddUser }) {
   const theme = useTheme();
@@ -77,8 +198,17 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
 
   // Initialize filteredUsers when users data is loaded or updated
   useEffect(() => {
-    if (users) {
-      setFilteredUsers(users);
+    if (users && Array.isArray(users)) {
+      // Only update if the users array has actually changed
+      setFilteredUsers((prev) => {
+        if (
+          prev.length !== users.length ||
+          JSON.stringify(prev.map((u) => u._id || u.id).sort()) !== JSON.stringify(users.map((u) => u._id || u.id).sort())
+        ) {
+          return users;
+        }
+        return prev;
+      });
       setPage(0);
     }
   }, [users]);
@@ -167,17 +297,17 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
   const getRoleDisplayName = (role) => {
     switch (role) {
       case 'supervisor':
-        return trans.userManagement.roles.supervisor;
+        return trans.userManagement?.roles?.supervisor || 'Supervisor';
       case 'representative':
-        return trans.userManagement.roles.representative;
+        return trans.userManagement?.roles?.representative || 'Representative';
       case 'representative_manager':
-        return trans.userManagement.roles.representativeManager;
+        return trans.userManagement?.roles?.representativeManager || 'Representative Manager';
       case 'warehouse':
-        return trans.userManagement.roles.warehouse;
+        return trans.userManagement?.roles?.warehouse || 'Warehouse Staff';
       case 'warehouse_manager':
-        return trans.userManagement.roles.warehouseManager;
+        return trans.userManagement?.roles?.warehouseManager || 'Warehouse Manager';
       default:
-        return role || trans.common.unknown;
+        return role || trans.common?.unknown || 'Unknown';
     }
   };
 
@@ -198,14 +328,25 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
     }
   };
 
+  // Expose refetch function globally for parent component to use
+  useEffect(() => {
+    if (refetch) {
+      window.refetchUsers = refetch;
+    }
+
+    return () => {
+      delete window.refetchUsers;
+    };
+  }, [refetch]);
+
   if (loading) {
     return (
       <ComponentsWrapper>
-        <PresentationCard title={trans.userManagement.loading || 'Loading Users'}>
+        <PresentationCard title={trans.userManagement?.loading || 'Loading Users'}>
           <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
             <CircularProgress size={40} />
             <Typography sx={{ ml: 2 }} variant="body2" color="text.secondary">
-              {trans.userManagement.loading}
+              {trans.userManagement?.loading || 'Loading Users'}
             </Typography>
           </Box>
         </PresentationCard>
@@ -216,131 +357,17 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
   if (error) {
     return (
       <ComponentsWrapper title="Error">
-        <PresentationCard title={trans.userManagement.error || 'Error Loading Users'}>
+        <PresentationCard title={trans.userManagement?.error || 'Error Loading Users'}>
           <Alert severity="error" sx={{ mb: 2 }}>
-            {trans.userManagement.error}: {error}
+            {trans.userManagement?.error || 'Error'}: {error}
           </Alert>
           <Button onClick={refetch} variant="outlined" startIcon={<RefreshIcon />}>
-            {trans.userManagement.retry}
+            {trans.userManagement?.retry || 'Retry'}
           </Button>
         </PresentationCard>
       </ComponentsWrapper>
     );
   }
-
-  const UserTable = ({
-    users,
-    sectionName,
-    showPagination = false,
-    page = 0,
-    rowsPerPage = 10,
-    onPageChange,
-    onRowsPerPageChange,
-    totalCount
-  }) => {
-    if (!Array.isArray(users) || users.length === 0) {
-      return (
-        <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
-          {trans.userManagement.noUsersInSection.replace('sectionName', sectionName)}
-        </Typography>
-      );
-    }
-
-    return (
-      <>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Updated</TableCell>
-                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user._id || user.id} hover>
-                  <TableCell>
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <Avatar
-                        sx={{
-                          width: 32,
-                          height: 32,
-                          bgcolor: user.avatar || user.profileImage || user.image ? 'transparent' : getLevelColor(user.role) + '.main'
-                        }}
-                        src={user.avatar || user.profileImage || user.image}
-                        alt={user.name || user.email}
-                      >
-                        {!user.avatar && !user.profileImage && !user.image ? (
-                          <Typography variant="caption" sx={{ color: 'white', fontWeight: 'bold' }}>
-                            {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
-                          </Typography>
-                        ) : null}
-                      </Avatar>
-                      <Typography variant="body2" fontWeight={500}>
-                        {user.email || 'N/A'}
-                      </Typography>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>
-                    <Chip label={getRoleDisplayName(user.role)} color={getLevelColor(user.role)} size="small" variant="outlined" />
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={user.status === 'active' ? 'Active' : user.status === 'pending' ? 'Pending' : 'Inactive'}
-                      color={user.status === 'active' ? 'success' : user.status === 'pending' ? 'warning' : 'default'}
-                      size="small"
-                      variant="filled"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('vi-VN') : 'N/A'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={0.5} justifyContent="center">
-                      <IconButton size="small" color="primary" onClick={() => onOpenPermissionDialog(user)}>
-                        <SecurityIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small" color="secondary" onClick={() => onOpenEditUserDialog(user)}>
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small" color="error" onClick={() => onOpenDeactivateUserDialog(user)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        {showPagination && (
-          <TablePagination
-            component="div"
-            count={totalCount}
-            page={page}
-            onPageChange={onPageChange}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={onRowsPerPageChange}
-            rowsPerPageOptions={[7]}
-            labelRowsPerPage={trans.common.rowsPerPage || 'Rows per page:'}
-            labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of || 'of'} ${count}`}
-          />
-        )}
-      </>
-    );
-  };
 
   return (
     <Stack pl={3} pr={3} spacing={3}>
@@ -539,7 +566,15 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
       {/* If filtering by status - show one paginated table */}
       {filterStatus && filterStatus !== 'all' ? (
         <PresentationCard title={`Users with status "${filterStatus}"`}>
-          <UserTable users={pagedUsers} />
+          <UserTable
+            users={pagedUsers}
+            sectionName={`Users with status "${filterStatus}"`}
+            onOpenPermissionDialog={onOpenPermissionDialog}
+            onOpenEditUserDialog={onOpenEditUserDialog}
+            onOpenDeactivateUserDialog={onOpenDeactivateUserDialog}
+            getLevelColor={getLevelColor}
+            getRoleDisplayName={getRoleDisplayName}
+          />
           <TablePagination
             component="div"
             count={filteredUsers.length}
@@ -548,14 +583,21 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[5, 10, 25, 50]}
-            labelRowsPerPage={trans.common.rowsPerPage}
-            labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count}`}
+            labelRowsPerPage={trans.common?.rowsPerPage || 'Rows per page:'}
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common?.of || 'of'} ${count}`}
           />
         </PresentationCard>
       ) : filterRole && filterRole !== 'all' ? (
         // If filtering by role - show only that role card
         <PresentationCard title={getRoleDisplayName(filterRole)}>
-          <UserTable users={groupedUsers[filterRole]} sectionName={getRoleDisplayName(filterRole)} />
+          <UserTable
+            users={groupedUsers[filterRole]}
+            onOpenPermissionDialog={onOpenPermissionDialog}
+            onOpenEditUserDialog={onOpenEditUserDialog}
+            onOpenDeactivateUserDialog={onOpenDeactivateUserDialog}
+            getLevelColor={getLevelColor}
+            getRoleDisplayName={getRoleDisplayName}
+          />
         </PresentationCard>
       ) : (
         // No filters: show all roles cards
@@ -571,6 +613,11 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 rolePage.supervisor * roleRowsPerPage,
                 rolePage.supervisor * roleRowsPerPage + roleRowsPerPage
               )}
+              onOpenPermissionDialog={onOpenPermissionDialog}
+              onOpenEditUserDialog={onOpenEditUserDialog}
+              onOpenDeactivateUserDialog={onOpenDeactivateUserDialog}
+              getLevelColor={getLevelColor}
+              getRoleDisplayName={getRoleDisplayName}
               sectionName="Supervisors"
               showPagination={true}
               page={rolePage.supervisor}
@@ -592,6 +639,11 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 rolePage.representative_manager * roleRowsPerPage,
                 rolePage.representative_manager * roleRowsPerPage + roleRowsPerPage
               )}
+              onOpenPermissionDialog={onOpenPermissionDialog}
+              onOpenEditUserDialog={onOpenEditUserDialog}
+              onOpenDeactivateUserDialog={onOpenDeactivateUserDialog}
+              getLevelColor={getLevelColor}
+              getRoleDisplayName={getRoleDisplayName}
               sectionName="Representative Managers"
               showPagination={true}
               page={rolePage.representative_manager}
@@ -613,6 +665,11 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 rolePage.representative * roleRowsPerPage,
                 rolePage.representative * roleRowsPerPage + roleRowsPerPage
               )}
+              onOpenPermissionDialog={onOpenPermissionDialog}
+              onOpenEditUserDialog={onOpenEditUserDialog}
+              onOpenDeactivateUserDialog={onOpenDeactivateUserDialog}
+              getLevelColor={getLevelColor}
+              getRoleDisplayName={getRoleDisplayName}
               sectionName="Representatives"
               showPagination={true}
               page={rolePage.representative}
@@ -634,6 +691,11 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 rolePage.warehouse * roleRowsPerPage,
                 rolePage.warehouse * roleRowsPerPage + roleRowsPerPage
               )}
+              onOpenPermissionDialog={onOpenPermissionDialog}
+              onOpenEditUserDialog={onOpenEditUserDialog}
+              onOpenDeactivateUserDialog={onOpenDeactivateUserDialog}
+              getLevelColor={getLevelColor}
+              getRoleDisplayName={getRoleDisplayName}
               sectionName="Warehouse Staff"
               showPagination={true}
               page={rolePage.warehouse}
@@ -654,6 +716,11 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 rolePage.warehouse_manager * roleRowsPerPage,
                 rolePage.warehouse_manager * roleRowsPerPage + roleRowsPerPage
               )}
+              onOpenPermissionDialog={onOpenPermissionDialog}
+              onOpenEditUserDialog={onOpenEditUserDialog}
+              onOpenDeactivateUserDialog={onOpenDeactivateUserDialog}
+              getLevelColor={getLevelColor}
+              getRoleDisplayName={getRoleDisplayName}
               sectionName="Warehouse Managers"
               showPagination={true}
               page={rolePage.warehouse_manager}
