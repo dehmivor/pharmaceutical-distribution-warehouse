@@ -135,6 +135,15 @@ export default function CheckOrderDetail() {
 
   const handleCompleteCheck = async () => {
     if (!order) return
+    const uncheckedInspections = inspections.filter((inspection) => inspection.status !== "checked")
+    if (uncheckedInspections.length > 0) {
+      setSnackbar({
+        open: true,
+        message: `Không thể hoàn thành đơn kiểm kê. Còn ${uncheckedInspections.length} vị trí chưa được kiểm kê.`,
+        severity: "error",
+      })
+      return
+    }
     // Client-side validation logic
     const overExpectedPackages = new Set()
     const underExpectedPackages = new Set()
@@ -191,7 +200,11 @@ export default function CheckOrderDetail() {
       }
     } catch (err) {
       console.error(err)
-      setSnackbar({ open: true, message: "Đã xảy ra lỗi khi hoàn thành đơn kiểm kê", severity: "error" })
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Đã xảy ra lỗi khi hoàn thành đơn kiểm kê",
+        severity: "error",
+      })
     }
   }
 
