@@ -217,7 +217,7 @@ const useUsers = () => {
     isValidating,
     mutate
   } = useSWR(
-    shouldFetch ? `${backendUrl}/api/accounts` : null, // Updated endpoint
+    shouldFetch ? `${backendUrl}/api/accounts?limit=100` : null, // Updated endpoint
     fetcher,
     {
       // Enhanced SWR configuration
@@ -288,7 +288,9 @@ const useUsers = () => {
           dataLength: Array.isArray(data) ? data.length : 'not array',
           key
         });
-        setRetryCount(0); // Reset retry count on success
+        if (retryCount > 0) {
+          setRetryCount(0);
+        }
       }
     }
   );

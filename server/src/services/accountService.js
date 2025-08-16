@@ -366,7 +366,7 @@ const getAccounts = async (filters = {}) => {
       email,
       search,
       page = 1,
-      limit = 10,
+      limit,
       sortBy = 'createdAt',
       sortOrder = 'desc',
     } = filters;
@@ -533,9 +533,6 @@ const getAccountStatistics = async () => {
           inactive: {
             $sum: { $cond: [{ $eq: ['$status', 'inactive'] }, 1, 0] },
           },
-          managers: {
-            $sum: { $cond: ['$is_manager', 1, 0] },
-          },
         },
       },
       {
@@ -554,7 +551,9 @@ const getAccountStatistics = async () => {
           active_users: await User.countDocuments({ status: 'active' }),
           inactive_users: await User.countDocuments({ status: 'inactive' }),
           deleted_users: await User.countDocuments({ status: 'deleted' }),
-          total_managers: await User.countDocuments({ is_manager: true }),
+          total_managers: await User.countDocuments({
+            role: { $in: ['warehouse_manager', 'representative_manager'] },
+          }),
         },
       },
       message: 'Statistics retrieved successfully',

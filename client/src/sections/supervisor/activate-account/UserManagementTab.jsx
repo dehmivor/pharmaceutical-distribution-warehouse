@@ -65,6 +65,16 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  // Pagination states for role cards
+  const [rolePage, setRolePage] = useState({
+    supervisor: 0,
+    representative: 0,
+    representative_manager: 0,
+    warehouse: 0,
+    warehouse_manager: 0
+  });
+  const [roleRowsPerPage] = useState(7); // Fixed at 7 records per page for role cards
+
   // Initialize filteredUsers when users data is loaded or updated
   useEffect(() => {
     if (users) {
@@ -104,6 +114,14 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  // Pagination handlers for role cards
+  const handleChangeRolePage = (role, newPage) => {
+    setRolePage((prev) => ({
+      ...prev,
+      [role]: newPage
+    }));
   };
 
   // Get users for current page (only when filtering by status show pagination)
@@ -153,7 +171,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
       case 'representative':
         return trans.userManagement.roles.representative;
       case 'representative_manager':
-        return trans.userManagement.roles.representative_manager;
+        return trans.userManagement.roles.representativeManager;
       case 'warehouse':
         return trans.userManagement.roles.warehouse;
       case 'warehouse_manager':
@@ -210,7 +228,16 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
     );
   }
 
-  const UserTable = ({ users, sectionName }) => {
+  const UserTable = ({
+    users,
+    sectionName,
+    showPagination = false,
+    page = 0,
+    rowsPerPage = 10,
+    onPageChange,
+    onRowsPerPageChange,
+    totalCount
+  }) => {
     if (!Array.isArray(users) || users.length === 0) {
       return (
         <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
@@ -220,71 +247,102 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
     }
 
     return (
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Manager</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
-              <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user._id || user.id} hover>
-                <TableCell>
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main }}>{getRoleIcon(user.role)}</Avatar>
-                    <Typography variant="body2" fontWeight={500}>
-                      {user.email || 'N/A'}
-                    </Typography>
-                  </Stack>
-                </TableCell>
-                <TableCell>
-                  <Chip label={getRoleDisplayName(user.role)} color={getLevelColor(user.role)} size="small" variant="outlined" />
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={user.status === 'active' ? 'Active' : user.status === 'pending' ? 'Pending' : 'Inactive'}
-                    color={user.status === 'active' ? 'success' : user.status === 'pending' ? 'warning' : 'default'}
-                    size="small"
-                    variant="filled"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={user.is_manager ? 'Yes' : 'No'}
-                    color={user.is_manager ? 'primary' : 'default'}
-                    size="small"
-                    variant="outlined"
-                  />
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary">
-                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Stack direction="row" spacing={0.5} justifyContent="center">
-                    <IconButton size="small" color="primary" onClick={() => onOpenPermissionDialog(user)}>
-                      <SecurityIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton size="small" color="secondary">
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton size="small" color="error">
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Stack>
-                </TableCell>
+      <>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Manager</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Actions</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user._id || user.id} hover>
+                  <TableCell>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Avatar
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          bgcolor: user.avatar || user.profileImage || user.image ? 'transparent' : getLevelColor(user.role) + '.main'
+                        }}
+                        src={user.avatar || user.profileImage || user.image}
+                        alt={user.name || user.email}
+                      >
+                        {/* Fallback: hiển thị chữ cái đầu với màu theo role */}
+                        {!user.avatar && !user.profileImage && !user.image ? (
+                          <Typography variant="caption" sx={{ color: 'white', fontWeight: 'bold' }}>
+                            {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                          </Typography>
+                        ) : null}
+                      </Avatar>
+                      <Typography variant="body2" fontWeight={500}>
+                        {user.email || 'N/A'}
+                      </Typography>
+                    </Stack>
+                  </TableCell>
+                  <TableCell>
+                    <Chip label={getRoleDisplayName(user.role)} color={getLevelColor(user.role)} size="small" variant="outlined" />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={user.status === 'active' ? 'Active' : user.status === 'pending' ? 'Pending' : 'Inactive'}
+                      color={user.status === 'active' ? 'success' : user.status === 'pending' ? 'warning' : 'default'}
+                      size="small"
+                      variant="filled"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={user.is_manager ? 'Yes' : 'No'}
+                      color={user.is_manager ? 'primary' : 'default'}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={0.5} justifyContent="center">
+                      <IconButton size="small" color="primary" onClick={() => onOpenPermissionDialog(user)}>
+                        <SecurityIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" color="secondary">
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" color="error">
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {showPagination && (
+          <TablePagination
+            component="div"
+            count={totalCount}
+            page={page}
+            onPageChange={onPageChange}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={onRowsPerPageChange}
+            rowsPerPageOptions={[7]}
+            labelRowsPerPage={trans.common.rowsPerPage || 'Rows per page:'}
+            labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of || 'of'} ${count}`}
+          />
+        )}
+      </>
     );
   };
 
@@ -383,6 +441,13 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                   setFilteredUsers(users || []);
                   setPage(0);
                   setRowsPerPage(10);
+                  setRolePage({
+                    supervisor: 0,
+                    representative: 0,
+                    representative_manager: 0,
+                    warehouse: 0,
+                    warehouse_manager: 0
+                  });
                 }}
                 sx={{
                   background: 'linear-gradient(45deg, #f0f0f0 30%, #e0e0e0 90%)',
@@ -505,7 +570,19 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
               members.
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <UserTable users={groupedUsers?.supervisor} sectionName="Supervisors" />
+            <UserTable
+              users={groupedUsers?.supervisor?.slice(
+                rolePage.supervisor * roleRowsPerPage,
+                rolePage.supervisor * roleRowsPerPage + roleRowsPerPage
+              )}
+              sectionName="Supervisors"
+              showPagination={true}
+              page={rolePage.supervisor}
+              rowsPerPage={roleRowsPerPage}
+              onPageChange={(e, newPage) => handleChangeRolePage('supervisor', newPage)}
+              onRowsPerPageChange={() => {}} // No change allowed, fixed at 7
+              totalCount={groupedUsers?.supervisor?.length || 0}
+            />
           </PresentationCard>
 
           <PresentationCard title="Representative Managers">
@@ -514,7 +591,19 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
               contact for customers.
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <UserTable users={groupedUsers?.representative_manager} sectionName="Representative Managers" />
+            <UserTable
+              users={groupedUsers?.representative_manager?.slice(
+                rolePage.representative_manager * roleRowsPerPage,
+                rolePage.representative_manager * roleRowsPerPage + roleRowsPerPage
+              )}
+              sectionName="Representative Managers"
+              showPagination={true}
+              page={rolePage.representative_manager}
+              rowsPerPage={roleRowsPerPage}
+              onPageChange={(e, newPage) => handleChangeRolePage('representative_manager', newPage)}
+              onRowsPerPageChange={() => {}} // No change allowed, fixed at 7
+              totalCount={groupedUsers?.representative_manager?.length || 0}
+            />
           </PresentationCard>
 
           <PresentationCard title="Representatives">
@@ -523,7 +612,19 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
               for customers.
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <UserTable users={groupedUsers?.representative} sectionName="Representatives" />
+            <UserTable
+              users={groupedUsers?.representative?.slice(
+                rolePage.representative * roleRowsPerPage,
+                rolePage.representative * roleRowsPerPage + roleRowsPerPage
+              )}
+              sectionName="Representatives"
+              showPagination={true}
+              page={rolePage.representative}
+              rowsPerPage={roleRowsPerPage}
+              onPageChange={(e, newPage) => handleChangeRolePage('representative', newPage)}
+              onRowsPerPageChange={() => {}} // No change allowed, fixed at 7
+              totalCount={groupedUsers?.representative?.length || 0}
+            />
           </PresentationCard>
 
           <PresentationCard title="Warehouse Staff">
@@ -532,7 +633,19 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
               management.
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <UserTable users={groupedUsers?.warehouse} sectionName="Warehouse Staff" />
+            <UserTable
+              users={groupedUsers?.warehouse?.slice(
+                rolePage.warehouse * roleRowsPerPage,
+                rolePage.warehouse * roleRowsPerPage + roleRowsPerPage
+              )}
+              sectionName="Warehouse Staff"
+              showPagination={true}
+              page={rolePage.warehouse}
+              rowsPerPage={roleRowsPerPage}
+              onPageChange={(e, newPage) => handleChangeRolePage('warehouse', newPage)}
+              onRowsPerPageChange={() => {}} // No change allowed, fixed at 7
+              totalCount={groupedUsers?.warehouse?.length || 0}
+            />
           </PresentationCard>
 
           <PresentationCard title="Warehouse Managers">
@@ -540,7 +653,19 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
               Warehouse managers oversee warehouse operations and ensure efficient inventory management.
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <UserTable users={groupedUsers?.warehouse_manager} sectionName="Warehouse Managers" />
+            <UserTable
+              users={groupedUsers?.warehouse_manager?.slice(
+                rolePage.warehouse_manager * roleRowsPerPage,
+                rolePage.warehouse_manager * roleRowsPerPage + roleRowsPerPage
+              )}
+              sectionName="Warehouse Managers"
+              showPagination={true}
+              page={rolePage.warehouse_manager}
+              rowsPerPage={roleRowsPerPage}
+              onPageChange={(e, newPage) => handleChangeRolePage('warehouse_manager', newPage)}
+              onRowsPerPageChange={() => {}} // No change allowed, fixed at 7
+              totalCount={groupedUsers?.warehouse_manager?.length || 0}
+            />
           </PresentationCard>
         </>
       )}
