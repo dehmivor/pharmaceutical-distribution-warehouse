@@ -172,65 +172,85 @@ const getCheckOrderById = async (req, res) => {
 
 const updateCheckOrderStatus = async (req, res) => {
   try {
-    const checkOrderId = req.params.id;
-    const { status } = req.body;
-    const io = req.app.locals.io;
+    const checkOrderId = req.params.id
+    const { status } = req.body
+    const io = req.app.locals.io
 
     if (!mongoose.Types.ObjectId.isValid(checkOrderId)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid check order ID',
-      });
+        message: "Invalid check order ID",
+      })
     }
 
-    if (status?.toLowerCase() === 'processing') {
-      const otherProcessingOrders =
-        await inventoryService.getProcessingCheckOrdersExcept(checkOrderId);
+    if (status?.toLowerCase() === "processing") {
+      const otherProcessingOrders = await inventoryService.getProcessingCheckOrdersExcept(checkOrderId)
 
       if (Array.isArray(otherProcessingOrders) && otherProcessingOrders.length > 0) {
         return res.json({
           success: true,
           updated: false,
-          message: 'Đang có 1 đợt kiểm kê khác!',
-        });
+          message: "Đang có 1 đợt kiểm kê khác!",
+        })
       }
     }
 
-    let updatedCheckOrder;
+    let updatedCheckOrder
     if (status === INVENTORY_CHECK_ORDER_STATUSES.COMPLETED) {
+      // Kiểm tra tất cả inspections phải có trạng thái 'checked' trước khi hoàn thành
+      const allInspections = await inventoryCheckInspectionService.getInspectionsByOrderId(checkOrderId)
+
+      if (!allInspections || allInspections.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Không tìm thấy phiếu kiểm con nào cho đơn kiểm kê này",
+        })
+      }
+
+      const uncheckedInspections = allInspections.filter(
+        (inspection) => inspection.status !== INVENTORY_CHECK_INSPECTION_STATUSES.CHECKED,
+      )
+
+      if (uncheckedInspections.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Không thể hoàn thành đơn kiểm kê. Còn ${uncheckedInspections.length} phiếu kiểm con chưa được đánh dấu là 'checked'.`,
+        })
+      }
+
       // Áp dụng kết quả kiểm kê trước khi cập nhật trạng thái nếu hoàn thành
-      await inventoryCheckInspectionService.applyInspectionResults(checkOrderId);
+      await inventoryCheckInspectionService.applyInspectionResults(checkOrderId)
 
       // Cập nhật trạng thái đơn kiểm kê, có truyền io nếu hàm support
-      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status, io);
+      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status, io)
     } else {
       // Cập nhật trạng thái cho các trường hợp khác như cancelled, processing, ...
-      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status, io);
+      updatedCheckOrder = await inventoryService.updateCheckOrderStatus(checkOrderId, status, io)
     }
 
     if (!updatedCheckOrder) {
       return res.status(404).json({
         success: false,
-        message: 'Check Order not found',
-      });
+        message: "Check Order not found",
+      })
     }
 
     return res.json({
       success: true,
       updated: true,
       data: updatedCheckOrder,
-      message: 'Cập nhật trạng thái thành công',
-    });
+      message: "Cập nhật trạng thái thành công",
+    })
   } catch (error) {
-    console.error('Error updating check order status:', error);
+    console.error("Error updating check order status:", error)
 
     return res.status(500).json({
       success: false,
-      message: 'Lỗi xảy ra khi cập nhật trạng thái đơn kiểm kê',
-      error: error.message ?? 'Unknown error',
-    });
+      message: "Lỗi xảy ra khi cập nhật trạng thái đơn kiểm kê",
+      error: error.message ?? "Unknown error",
+    })
   }
-};
+}
 
 const clearInspections = async (req, res) => {
   try {
