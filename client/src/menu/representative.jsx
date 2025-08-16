@@ -35,13 +35,6 @@ const representative = {
       icon: 'IconFileExport'
     },
     {
-      id: 'rp-create-bills',
-      title: 'Create Bills',
-      type: 'item',
-      url: '/rp-create-bills',
-      icon: 'IconReceipt'
-    },
-    {
       id: 'rm-medicine-performance',
       title: 'Medicine performance',
       type: 'item',

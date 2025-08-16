@@ -18,6 +18,7 @@ import {
   Typography
 } from '@mui/material';
 import { useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 // Sample inventory data
 const sampleInventory = [
@@ -35,6 +36,7 @@ const statusMap = {
 };
 
 const InventoryDashboard = () => {
+  const trans = useTrans();
   const [search, setSearch] = useState('');
   const filtered = sampleInventory.filter(
     (item) => item.name.toLowerCase().includes(search.toLowerCase()) || item.id.toLowerCase().includes(search.toLowerCase())
@@ -49,10 +51,10 @@ const InventoryDashboard = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Inventory Management
+        {trans.manageInventory.title}
       </Typography>
       <Typography variant="body2" color="text.secondary" mb={3}>
-        Overview of all medicines and stock status in the warehouse
+        {trans.manageInventory.description}
       </Typography>
 
       {/* Dashboard Cards */}
@@ -61,7 +63,7 @@ const InventoryDashboard = () => {
           <Card variant="outlined">
             <CardContent>
               <Typography color="text.secondary" gutterBottom>
-                Total Items
+                {trans.manageInventory.totalItems}
               </Typography>
               <Typography variant="h5">{total}</Typography>
             </CardContent>
@@ -71,7 +73,7 @@ const InventoryDashboard = () => {
           <Card variant="outlined">
             <CardContent>
               <Typography color="text.secondary" gutterBottom>
-                In Stock
+                {trans.manageInventory.inStock}
               </Typography>
               <Typography variant="h5" color="success.main">
                 {inStock}
@@ -83,7 +85,7 @@ const InventoryDashboard = () => {
           <Card variant="outlined">
             <CardContent>
               <Typography color="text.secondary" gutterBottom>
-                Low Stock
+                {trans.manageInventory.lowStock}
               </Typography>
               <Typography variant="h5" color="warning.main">
                 {lowStock}
@@ -95,7 +97,7 @@ const InventoryDashboard = () => {
           <Card variant="outlined">
             <CardContent>
               <Typography color="text.secondary" gutterBottom>
-                Out of Stock
+                {trans.manageInventory.outOfStock}
               </Typography>
               <Typography variant="h5" color="error.main">
                 {outOfStock}
@@ -110,7 +112,7 @@ const InventoryDashboard = () => {
         <TextField
           fullWidth
           variant="outlined"
-          label="Search inventory by name or ID"
+          label={trans.manageInventory.searchPlaceholder}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           InputProps={{
@@ -124,11 +126,11 @@ const InventoryDashboard = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: 'primary.light' }}>
-              <TableCell sx={{ fontWeight: 'bold' }}>ID</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Quantity</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Unit</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageInventory.id}</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageInventory.name}</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageInventory.quantity}</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageInventory.unit}</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageInventory.status}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -136,7 +138,7 @@ const InventoryDashboard = () => {
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
-                    No inventory items found.
+                    {trans.manageInventory.noInventoryItems}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -167,13 +169,13 @@ const InventoryDashboard = () => {
       <Box mt={4}>
         <Divider sx={{ mb: 2 }} />
         <Typography variant="h6" gutterBottom>
-          Upcoming Features
+          {trans.manageInventory.upcomingFeatures}
         </Typography>
         <ul>
-          <li>Stock alerts & notifications</li>
-          <li>Inventory import/export</li>
-          <li>Batch/expiry tracking</li>
-          <li>Advanced analytics</li>
+          <li>{trans.manageInventory.stockAlerts}</li>
+          <li>{trans.manageInventory.inventoryImportExport}</li>
+          <li>{trans.manageInventory.batchExpiryTracking}</li>
+          <li>{trans.manageInventory.advancedAnalytics}</li>
         </ul>
       </Box>
     </Box>

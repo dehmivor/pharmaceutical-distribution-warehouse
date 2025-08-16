@@ -44,6 +44,7 @@ import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { useTheme } from '@mui/material/styles';
 import { constant } from 'lodash-es';
+import useTrans from '@/hooks/useTrans';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -55,6 +56,7 @@ const getAuthHeaders = () => {
 
 function ImportOrderDetail() {
   const theme = useTheme();
+  const trans = useTrans();
   const { orderId } = useParams();
   const [order, setOrder] = useState(null);
   const [inspections, setInspections] = useState([]);
@@ -352,19 +354,19 @@ function ImportOrderDetail() {
   function validatePackages({ packages, inspections, allBatchOptions, uniqueInspections }) {
     // 1) quick checks
     if (!packages || packages.length === 0) {
-      return { valid: false, message: 'You must add at least one package row.' };
+      return { valid: false, message: trans.assignedInboundOrderDetail.mustAddPackageRow };
     }
 
     // any row missing batch?
     const missingBatch = packages.some((p) => !p.batch_id);
     if (missingBatch) {
-      return { valid: false, message: 'Every package row must have a selected batch.' };
+      return { valid: false, message: trans.assignedInboundOrderDetail.everyRowMustHaveBatch };
     }
 
     // any row with non-positive quantity?
     const anyNonPositive = packages.some((p) => Number(p.quantity) <= 0 || p.quantity === '' || p.quantity == null);
     if (anyNonPositive) {
-      return { valid: false, message: 'All package quantities must be greater than 0.' };
+      return { valid: false, message: trans.assignedInboundOrderDetail.quantitiesMustBePositive };
     }
 
     // 2) Build metrics: medicineId -> net inspected qty
@@ -386,7 +388,7 @@ function ImportOrderDetail() {
 
     // 4) quick mismatch: distinct medicine counts
     if (Object.keys(netByMedicine).length !== Object.keys(packedByMedicine).length) {
-      return { valid: false, message: 'Number of distinct medicines in packages does not match inspections.' };
+      return { valid: false, message: trans.assignedInboundOrderDetail.medicineCountMismatch };
     }
 
     // 5) detailed diff: find over/under per medicine
@@ -410,7 +412,7 @@ function ImportOrderDetail() {
     }
 
     // all checks passed
-    return { valid: true, message: 'Valid input' };
+    return { valid: true, message: trans.assignedInboundOrderDetail.validInput };
   }
 
   const validation = validatePackages({ packages, inspections, allBatchOptions, uniqueInspections });
@@ -527,7 +529,7 @@ function ImportOrderDetail() {
       };
     } catch (err) {
       console.error('Error printing label', err);
-      setError('Không thể tạo nhãn mã vạch.');
+      setError(trans.assignedInboundOrderDetail.errorPrintingLabel);
     }
   };
 
@@ -542,7 +544,7 @@ function ImportOrderDetail() {
       );
     } catch (err) {
       console.error('Error assign self:', err);
-      setError('Lỗi khi assign đơn');
+      setError(trans.assignedInboundOrderDetail.errorAssigningOrder);
     }
   };
 
@@ -562,7 +564,7 @@ function ImportOrderDetail() {
       setAssignLoading(false);
     } catch (err) {
       console.error('Error updating status:', err);
-      setError('Lỗi khi cập nhật trạng thái đơn');
+      setError(trans.assignedInboundOrderDetail.errorUpdatingStatus);
     }
   };
 
@@ -581,7 +583,7 @@ function ImportOrderDetail() {
       setInspectionLoading(false);
     } catch (err) {
       console.error('Error updating status:', err);
-      setError('Lỗi khi cập nhật trạng thái đơn');
+      setError(trans.assignedInboundOrderDetail.errorUpdatingStatus);
     }
   };
 
@@ -662,7 +664,7 @@ function ImportOrderDetail() {
       setPackageLoading(false);
     } catch (err) {
       console.error(err);
-      setError('Error creating batches/packages');
+      setError(trans.assignedInboundOrderDetail.errorCreatingBatches);
     } finally {
       setSaving(false);
     }
@@ -700,7 +702,7 @@ function ImportOrderDetail() {
         }));
 
         if (billDetails.length === 0) {
-          setError('Không có chi tiết đơn hàng để tạo bill');
+          setError(trans.assignedInboundOrderDetail.noOrderDetailsForBill);
           return;
         }
 
@@ -720,17 +722,17 @@ function ImportOrderDetail() {
           if (createBillRes.data.success) {
             console.log('Bill mới đã được tạo:', createBillRes.data.data);
           } else {
-            setError('Lỗi khi tạo bill: ' + createBillRes.data.message);
+            setError(trans.assignedInboundOrderDetail.errorCreatingBill + ': ' + createBillRes.data.message);
           }
         } catch (billErr) {
           console.error('Lỗi khi gọi API tạo bill:', billErr);
-          setError('Lỗi khi tạo bill mới');
+          setError(trans.assignedInboundOrderDetail.errorCreatingBill);
         }
       }
       setFinalizeLoading(false);
     } catch (err) {
       console.error('Lỗi khi cập nhật trạng thái đơn:', err);
-      setError('Lỗi khi cập nhật trạng thái đơn');
+      setError(trans.assignedInboundOrderDetail.errorUpdatingStatus);
     }
   };
 
@@ -757,24 +759,24 @@ function ImportOrderDetail() {
     <Box sx={{ background: theme.palette.background.default, minHeight: '100vh', py: 4 }}>
       <Container>
         <Typography variant="h4" gutterBottom>
-          Import Order #{order._id}
+          {trans.assignedInboundOrderDetail.title} #{order._id}
         </Typography>
 
         <Typography variant="body1" color="text.secondary" mb={3}>
-          View detail, handle inspection and placing medicines
+          {trans.assignedInboundOrderDetail.description}
         </Typography>
 
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography variant="h6" fontWeight="bold">
-              Order Detail
+              {trans.assignedInboundOrderDetail.orderDetail}
             </Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Grid container spacing={2} mb={2} alignItems="center">
               <Grid item xs={12} sm={3}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Status:
+                  {trans.assignedInboundOrderDetail.status}:
                 </Typography>
                 <Typography variant="body1" fontWeight="medium">
                   {order.status}
@@ -782,7 +784,7 @@ function ImportOrderDetail() {
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Contract:
+                  {trans.assignedInboundOrderDetail.contract}:
                 </Typography>
                 <Typography variant="body1" fontWeight="medium">
                   {order.contract_id.contract_code}
@@ -790,7 +792,7 @@ function ImportOrderDetail() {
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Supplier:
+                  {trans.assignedInboundOrderDetail.supplier}:
                 </Typography>
                 <Typography variant="body1" fontWeight="medium">
                   {order.contract_id.partner_id.name}
@@ -804,7 +806,7 @@ function ImportOrderDetail() {
                   size="large"
                   loading={assignLoading}
                 >
-                  Arrived
+                  {trans.assignedInboundOrderDetail.arrived}
                 </Button>
               </Grid>
             </Grid>
@@ -812,7 +814,7 @@ function ImportOrderDetail() {
             <Divider sx={{ mb: 2 }} />
 
             <Typography variant="subtitle1" mb={1} fontWeight="bold">
-              Items:
+              {trans.assignedInboundOrderDetail.items}:
             </Typography>
             <Stack spacing={1} mb={2}>
               {order.details.map((d) => (
@@ -827,7 +829,7 @@ function ImportOrderDetail() {
         {/* Inspection */}
         <Accordion disabled={inspectionsDone} defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>Inspection</Typography>
+            <Typography>{trans.assignedInboundOrderDetail.inspection}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={2}>
@@ -839,10 +841,10 @@ function ImportOrderDetail() {
                 <Table size="medium">
                   <TableHead>
                     <TableRow>
-                      <TableCell>Medicine</TableCell>
-                      <TableCell>Thực nhập</TableCell>
-                      <TableCell>Số loại bỏ</TableCell>
-                      <TableCell>Hành động</TableCell>
+                      <TableCell>{trans.assignedInboundOrderDetail.medicine}</TableCell>
+                      <TableCell>{trans.assignedInboundOrderDetail.actualQuantity}</TableCell>
+                      <TableCell>{trans.assignedInboundOrderDetail.rejectedQuantity}</TableCell>
+                      <TableCell>{trans.assignedInboundOrderDetail.actions}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -884,7 +886,7 @@ function ImportOrderDetail() {
                 color={confirmFinishInspection ? 'warning' : 'primary'}
                 loading={inspectionLoading}
               >
-                {confirmFinishInspection ? 'Continue ?' : 'Finish inspection'}
+                {confirmFinishInspection ? trans.assignedInboundOrderDetail.continue : trans.assignedInboundOrderDetail.finishInspection}
               </Button>
             </Stack>
           </AccordionDetails>
@@ -893,7 +895,7 @@ function ImportOrderDetail() {
         {/* Packages Creation */}
         <Accordion disabled={packagesDone} defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>Packages</Typography>
+            <Typography>{trans.assignedInboundOrderDetail.packages}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={2}>
@@ -905,14 +907,14 @@ function ImportOrderDetail() {
                 sx={{ ml: 2 }}
                 startIcon={<AddCircleIcon />}
               >
-                New batch
+                {trans.assignedInboundOrderDetail.newBatch}
               </Button>
               {packages.map((p, idx) => {
                 const opt = batchOptions.find((o) => o.id === p.batch_id) || {};
                 return (
                   <Stack key={idx} direction="row" spacing={2} alignItems="center">
                     <FormControl sx={{ flex: 1 }} disabled={packagesDone}>
-                      <InputLabel>Batch</InputLabel>
+                      <InputLabel>{trans.assignedInboundOrderDetail.batch}</InputLabel>
                       <Select size="small" value={p.batch_id} onChange={(e) => handlePkgChange(idx, 'batch_id', e.target.value)}>
                         {allBatchOptions.map((opt) => (
                           <MenuItem key={opt.id} value={opt.id}>
@@ -923,7 +925,7 @@ function ImportOrderDetail() {
                     </FormControl>
                     <TextField
                       size="small"
-                      label="Quantity"
+                      label={trans.assignedInboundOrderDetail.quantity}
                       type="number"
                       value={p.quantity}
                       onChange={(e) => handlePkgChange(idx, 'quantity', e.target.value)}
@@ -938,7 +940,7 @@ function ImportOrderDetail() {
               })}
 
               <Button onClick={addPackageRow} size="small" disabled={packagesDone}>
-                + Add Package
+                {trans.assignedInboundOrderDetail.addPackage}
               </Button>
 
               <Divider />
@@ -956,7 +958,7 @@ function ImportOrderDetail() {
                 loading={packageLoading}
                 onClick={handleContinuePackages}
               >
-                {saving ? 'Saving…' : 'Continue to Put Away'}
+                {saving ? trans.assignedInboundOrderDetail.saving : trans.assignedInboundOrderDetail.continueToPutAway}
               </Button>
             </Stack>
           </AccordionDetails>
@@ -965,7 +967,7 @@ function ImportOrderDetail() {
         {/* Put Away */}
         <Accordion disabled={putAwayDone} defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>Put Away</Typography>
+            <Typography>{trans.assignedInboundOrderDetail.putAway}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={2}>
@@ -975,16 +977,16 @@ function ImportOrderDetail() {
               {loadingPutAway ? (
                 <CircularProgress />
               ) : putAway.length === 0 ? (
-                <Typography>No packages yet.</Typography>
+                <Typography>{trans.assignedInboundOrderDetail.noPackagesYet}</Typography>
               ) : (
                 <Paper>
                   <Table size="small" disabled={putAwayDone}>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Batch</TableCell>
-                        <TableCell>Qty</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Action</TableCell>
+                        <TableCell>{trans.assignedInboundOrderDetail.batch}</TableCell>
+                        <TableCell>{trans.assignedInboundOrderDetail.quantity}</TableCell>
+                        <TableCell>{trans.assignedInboundOrderDetail.status}</TableCell>
+                        <TableCell>{trans.assignedInboundOrderDetail.actions}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -994,7 +996,7 @@ function ImportOrderDetail() {
                             {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
                           </TableCell>
                           <TableCell>{pkg.quantity}</TableCell>
-                          <TableCell>{pkg.location_id ? 'Arranged' : 'Unarranged'}</TableCell>
+                          <TableCell>{pkg.location_id ? trans.assignedInboundOrderDetail.arranged : trans.assignedInboundOrderDetail.unarranged}</TableCell>
                           <TableCell>
                             {pkg.location_id && (
                               <IconButton size="small" color="error" onClick={() => handleClearLocation(pkg._id)} disabled={putAwayDone}>
@@ -1018,20 +1020,20 @@ function ImportOrderDetail() {
                 onClick={handleFinalize}
                 loading={finalizeLoading}
               >
-                Finalize
+                {trans.assignedInboundOrderDetail.finalize}
               </Button>
             </Stack>
           </AccordionDetails>
         </Accordion>
         {/* Batch Creation Dialog */}
         <Dialog open={batchDialogOpen} onClose={closeBatchDialog}>
-          <DialogTitle>Create New Batch</DialogTitle>
+          <DialogTitle>{trans.assignedInboundOrderDetail.createNewBatch}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1, minWidth: 300 }}>
-              <TextField label="Batch Code" value={newBatchCode} onChange={(e) => setNewBatchCode(e.target.value)} required />
+              <TextField label={trans.assignedInboundOrderDetail.batchCode} value={newBatchCode} onChange={(e) => setNewBatchCode(e.target.value)} required />
               <FormControl fullWidth>
-                <InputLabel>Medicine</InputLabel>
-                <Select value={newMedicineId} label="Medicine" onChange={(e) => setNewMedicineId(e.target.value)}>
+                <InputLabel>{trans.assignedInboundOrderDetail.medicine}</InputLabel>
+                <Select value={newMedicineId} label={trans.assignedInboundOrderDetail.medicine} onChange={(e) => setNewMedicineId(e.target.value)}>
                   {uniqueInspections.map((i) => (
                     <MenuItem key={i._id} value={i.medicine_id?._id}>
                       {i.medicine_id?.medicine_name || '—'}
@@ -1040,7 +1042,7 @@ function ImportOrderDetail() {
                 </Select>
               </FormControl>
               <TextField
-                label="Production Date"
+                label={trans.assignedInboundOrderDetail.productionDate}
                 type="date"
                 value={newProdDate}
                 onChange={(e) => {
@@ -1059,7 +1061,7 @@ function ImportOrderDetail() {
               />
 
               <TextField
-                label="Expiry Date"
+                label={trans.assignedInboundOrderDetail.expiryDate}
                 type="date"
                 slotProps={{
                   input: { min: newProdDate || undefined },
@@ -1073,10 +1075,10 @@ function ImportOrderDetail() {
           </DialogContent>
           <DialogActions>
             <Button onClick={closeBatchDialog} disabled={creatingBatch}>
-              Cancel
+              {trans.assignedInboundOrderDetail.cancel}
             </Button>
             <Button variant="contained" onClick={handleCreateBatch} disabled={creatingBatch}>
-              {creatingBatch ? 'Creating…' : 'Create Batch'}
+              {creatingBatch ? trans.assignedInboundOrderDetail.creating : trans.assignedInboundOrderDetail.createBatch}
             </Button>
           </DialogActions>
         </Dialog>

@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Box, Typography, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button } from '@mui/material';
+import useTrans from '@/hooks/useTrans';
 
 const ImportOrderDetails = ({ order, onClose }) => {
+  const trans = useTrans();
   const [orderData, setOrderData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -27,7 +29,7 @@ const ImportOrderDetails = ({ order, onClose }) => {
   }, [order._id]);
 
   if (loading) {
-    return <Typography>Loading...</Typography>;
+    return <Typography>{trans.common.loading}</Typography>;
   }
 
   const orderDetails = orderData?.data;
@@ -38,61 +40,61 @@ const ImportOrderDetails = ({ order, onClose }) => {
         {/* Order Information */}
         <Grid item xs={12}>
           <Typography variant="h6" gutterBottom>
-            Order Information
+            {trans.common.orderInformation}
           </Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
-            Order Code
+            {trans.common.orderCode}
           </Typography>
           <Typography variant="body1">{orderDetails.import_order_code}</Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
-            Contract
+            {trans.common.contract}
           </Typography>
           <Typography variant="body1">{orderDetails.contract_id.contract_code}</Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
-            Supplier
+            {trans.common.supplier}
           </Typography>
           <Typography variant="body1">{orderDetails.supplier_id.full_name}</Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
-            Warehouse
+            {trans.common.warehouse}
           </Typography>
           <Typography variant="body1">{orderDetails.warehouse_id.full_name}</Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
-            Import Date
+            {trans.common.importDate}
           </Typography>
           <Typography variant="body1">{new Date(orderDetails.import_date).toLocaleDateString()}</Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
-            Total Value
+            {trans.common.totalValue}
           </Typography>
-          <Typography variant="body1">{orderDetails.total_value.toLocaleString()} VND</Typography>
+          <Typography variant="body1">{orderDetails.total_value.toLocaleString()} {trans.common.currency}</Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
-            Status
+            {trans.common.status}
           </Typography>
           <Typography variant="body1">{orderDetails.status}</Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
-            Created By
+            {trans.common.createdBy}
           </Typography>
           <Typography variant="body1">{orderDetails.created_by.full_name}</Typography>
         </Grid>
         {orderDetails.approved_by && (
           <Grid item xs={12} sm={6}>
             <Typography variant="subtitle2" color="text.secondary">
-              Approved By
+              {trans.common.approvedBy}
             </Typography>
             <Typography variant="body1">{orderDetails.approved_by.full_name}</Typography>
           </Grid>
@@ -101,17 +103,17 @@ const ImportOrderDetails = ({ order, onClose }) => {
         {/* Order Details */}
         <Grid item xs={12}>
           <Typography variant="h6" gutterBottom>
-            Order Details
+            {trans.common.orderDetailsTitle}
           </Typography>
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Medicine</TableCell>
-                  <TableCell>Batch</TableCell>
-                  <TableCell>Quantity</TableCell>
-                  <TableCell>Unit Price</TableCell>
-                  <TableCell>Total</TableCell>
+                  <TableCell>{trans.common.medicine}</TableCell>
+                  <TableCell>{trans.common.batch}</TableCell>
+                  <TableCell>{trans.common.quantity}</TableCell>
+                  <TableCell>{trans.common.unitPrice}</TableCell>
+                  <TableCell>{trans.common.total}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -120,8 +122,8 @@ const ImportOrderDetails = ({ order, onClose }) => {
                     <TableCell>{detail.medicine_id.name}</TableCell>
                     <TableCell>{detail.batch_id.batch_code}</TableCell>
                     <TableCell>{detail.quantity}</TableCell>
-                    <TableCell>{detail.unit_price.toLocaleString()} VND</TableCell>
-                    <TableCell>{(detail.quantity * detail.unit_price).toLocaleString()} VND</TableCell>
+                    <TableCell>{detail.unit_price.toLocaleString()} {trans.common.currency}</TableCell>
+                    <TableCell>{(detail.quantity * detail.unit_price).toLocaleString()} {trans.common.currency}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -133,7 +135,7 @@ const ImportOrderDetails = ({ order, onClose }) => {
         <Grid item xs={12}>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
             <Button variant="outlined" onClick={onClose}>
-              Close
+              {trans.common.close}
             </Button>
           </Box>
         </Grid>

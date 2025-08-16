@@ -26,6 +26,7 @@ import Menu from '@mui/material/Menu';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -46,13 +47,14 @@ const getStatusColor = (status) =>
 
 export default function ManageExportOrders() {
   const router = useRouter();
+  const trans = useTrans();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [filterDate, setFilterDate] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All Status');
+  const [filterStatus, setFilterStatus] = useState(trans.common.allStatus);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOrder, setMenuOrder] = useState(null);
 
@@ -70,7 +72,7 @@ export default function ManageExportOrders() {
     setMenuOrder(null);
   };
 
-  const fetchOrders = async (p = null, rpp = null, date = null, status = 'All Status') => {
+  const fetchOrders = async (p = null, rpp = null, date = null, status = trans.common.allStatus) => {
     setLoading(true);
     setError(null);
 
@@ -88,9 +90,9 @@ export default function ManageExportOrders() {
       qp.append('page', (currentPage + 1).toString());
       qp.append('limit', currentLimit.toString());
       if (currentDate) qp.append('createdAt', currentDate);
-      if (currentStatus && currentStatus !== 'All Status') {
+      if (currentStatus && currentStatus !== trans.common.allStatus) {
         qp.append('status', currentStatus);
-      } else if (currentStatus === 'All Status') {
+      } else if (currentStatus === trans.common.allStatus) {
         const allStatusesExceptDraft = ['approved', 'returned', 'rejected', 'completed', 'cancelled'];
         allStatusesExceptDraft.forEach((s) => qp.append('status', s));
       }
@@ -99,7 +101,7 @@ export default function ManageExportOrders() {
       const resp = await axios.get(url, { headers: getAuthHeaders() });
 
       if (!resp.data.success) {
-        throw new Error(resp.data.error || 'Failed to load export orders');
+        throw new Error(resp.data.error || trans.common.failedToLoadOrder);
       }
 
       const data = resp.data.data || [];
@@ -141,7 +143,7 @@ export default function ManageExportOrders() {
 
   const handleReset = () => {
     setFilterDate('');
-    setFilterStatus('All Status');
+    setFilterStatus(trans.common.allStatus);
     setPage(0);
   };
 
@@ -166,29 +168,29 @@ export default function ManageExportOrders() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Export Orders Management
+            {trans.common.exportOrdersManagement}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Manage export order, track progress and view status
+            {trans.common.manageExportOrderTrackProgress}
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading}>
-          Refresh
+          {trans.common.refresh}
         </Button>
       </Box>
 
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
-            label="Export Date"
+            label={trans.common.exportDate}
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
             size="small"
           />
-          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
-            <MenuItem value="All Status">All Status</MenuItem>
+          <TextField select label={trans.common.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+            <MenuItem value={trans.common.allStatus}>{trans.common.allStatus}</MenuItem>
             {['approved', 'rejected', 'cancelled'].map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
@@ -196,10 +198,10 @@ export default function ManageExportOrders() {
             ))}
           </TextField>
           <Button size="small" variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick}>
-            Search
+            {trans.common.search}
           </Button>
           <Button size="small" variant="outlined" onClick={handleReset}>
-            Reset
+            {trans.common.reset}
           </Button>
         </Stack>
       </Paper>
@@ -208,12 +210,12 @@ export default function ManageExportOrders() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Export Date</TableCell>
-              <TableCell>Contract Code</TableCell>
-              <TableCell>Partner</TableCell>
-              <TableCell>Manager Email</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell>{trans.common.exportDate}</TableCell>
+              <TableCell>{trans.common.contractCode}</TableCell>
+              <TableCell>{trans.common.partner}</TableCell>
+              <TableCell>{trans.common.managerEmail}</TableCell>
+              <TableCell>{trans.common.status}</TableCell>
+              <TableCell>{trans.common.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -221,7 +223,7 @@ export default function ManageExportOrders() {
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
-                    No export orders found.
+                    {trans.common.noExportOrdersFound}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -270,7 +272,7 @@ export default function ManageExportOrders() {
             handleMenuClose();
           }}
         >
-          Detail
+          {trans.common.detail}
         </MenuItem>
       </Menu>
     </Box>

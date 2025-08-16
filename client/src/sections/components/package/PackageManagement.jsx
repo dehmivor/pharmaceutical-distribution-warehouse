@@ -33,6 +33,7 @@ import {
 import { useSnackbar } from 'notistack';
 import { useRole } from '@/contexts/RoleContext';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 import PackageDetailDialog from './PackageDetailDialog';
 import PackageLocationUpdateDialog from './PackageLocationUpdateDialog';
 
@@ -49,6 +50,7 @@ const axiosInstance = axios.create({
 const PackageManagement = () => {
   const { userRole } = useRole();
   const { enqueueSnackbar } = useSnackbar();
+  const trans = useTrans();
   const [packages, setPackages] = useState([]);
   const [medicines, setMedicines] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -119,7 +121,7 @@ const PackageManagement = () => {
       }
     } catch (error) {
       console.error('Error fetching packages:', error);
-      enqueueSnackbar('Lỗi khi tải danh sách packages', { variant: 'error' });
+      enqueueSnackbar(trans.common.errorLoadingPackages, { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -142,7 +144,7 @@ const PackageManagement = () => {
     setOpenLocationUpdateDialog(false);
     setSelectedPackage(null);
     fetchPackages();
-    enqueueSnackbar('Cập nhật vị trí thành công', { variant: 'success' });
+          enqueueSnackbar(trans.common.locationUpdateSuccess, { variant: 'success' });
   };
 
   // Handle refresh
@@ -182,12 +184,12 @@ const PackageManagement = () => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-          {userRole === 'supervisor' ? 'Quản Lý Package' : 'Xem Package'}
+          {userRole === 'supervisor' ? trans.common.packageManagement : trans.common.viewPackage}
         </Typography>
         <Typography variant="body1" color="text.secondary">
           {userRole === 'supervisor' 
-            ? 'Quản lý danh sách các package và vị trí lưu trữ' 
-            : 'Xem danh sách các package và vị trí lưu trữ'
+            ? trans.common.packageListDescription
+            : trans.common.viewPackageDescription
           }
         </Typography>
       </Box>
@@ -198,36 +200,36 @@ const PackageManagement = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
             <FilterIcon sx={{ color: 'primary.main', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-              Bộ Lọc Tìm Kiếm
+              {trans.common.searchFilterTitle}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel>Thuốc</InputLabel>
+              <InputLabel>{trans.common.medicine}</InputLabel>
               <Select
                 value={filterMedicineId}
-                label="Thuốc"
+                label={trans.common.medicine}
                 onChange={(e) => setFilterMedicineId(e.target.value)}
                 size="small"
               >
-                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value="">{trans.common.all}</MenuItem>
                 {medicines.map((medicine) => (
                   <MenuItem key={medicine._id} value={medicine._id}>
-                    {medicine.medicine_name + ' - ' + medicine.license_code}
+                    {trans.medicineDisplayFormat.replace('{name}', medicine.medicine_name).replace('{license}', medicine.license_code)}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel>Khu vực</InputLabel>
+              <InputLabel>{trans.common.area}</InputLabel>
               <Select
                 value={filterAreaId}
-                label="Khu vực"
+                label={trans.common.area}
                 onChange={(e) => setFilterAreaId(e.target.value)}
                 size="small"
               >
-                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value="">{trans.common.all}</MenuItem>
                 {areas.map((area) => (
                   <MenuItem key={area._id} value={area._id}>
                     {area.name}
@@ -241,7 +243,7 @@ const PackageManagement = () => {
               onClick={handleFilterChange}
               sx={{ minWidth: 100 }}
             >
-              Lọc
+              {trans.common.filter}
             </Button>
 
             <Button
@@ -249,7 +251,7 @@ const PackageManagement = () => {
               onClick={handleRefresh}
               startIcon={<RefreshIcon />}
             >
-              Làm mới
+              {trans.common.refresh}
             </Button>
           </Box>
         </CardContent>
@@ -260,25 +262,25 @@ const PackageManagement = () => {
         <CardContent sx={{ p: 0 }}>
           <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
             <Table stickyHeader>
-              <TableHead>
+              <TableHead> 
                 <TableRow>
                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    ID Package
+                    {trans.common.packageId}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    Vị Trí
+                    {trans.common.location}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    Mã License
+                    {trans.common.licenseCode}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    Tên Thuốc
+                    {trans.common.medicineName}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    Số Lượng
+                    {trans.common.quantity}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    Thao Tác
+                    {trans.common.actions}
                   </TableCell>
                 </TableRow>
               </TableHead>
@@ -286,13 +288,13 @@ const PackageManagement = () => {
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center">
-                      <Typography>Đang tải...</Typography>
+                      <Typography>{trans.common.loading}</Typography>
                     </TableCell>
                   </TableRow>
                 ) : packages.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center">
-                      <Typography>Không có dữ liệu</Typography>
+                      <Typography>{trans.common.noData}</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -330,7 +332,7 @@ const PackageManagement = () => {
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Tooltip title="Xem chi tiết">
+                          <Tooltip title={trans.common.viewDetails}>
                             <IconButton
                               size="small"
                               onClick={() => handleViewDetail(pkg)}
@@ -340,7 +342,7 @@ const PackageManagement = () => {
                             </IconButton>
                           </Tooltip>
                           {userRole === 'supervisor' && (
-                            <Tooltip title="Cập nhật vị trí">
+                            <Tooltip title={trans.common.updateLocation}>
                               <IconButton
                                 size="small"
                                 onClick={() => handleUpdateLocation(pkg)}
@@ -368,9 +370,9 @@ const PackageManagement = () => {
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[5, 10, 25, 50]}
-            labelRowsPerPage="Số hàng mỗi trang:"
+            labelRowsPerPage={trans.rowsPerPage}
             labelDisplayedRows={({ from, to, count }) =>
-              `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`
+              trans.displayedRows.replace('{from}', from).replace('{to}', to).replace('{count}', count !== -1 ? count : trans.moreThan.replace('{count}', to))
             }
           />
         </CardContent>

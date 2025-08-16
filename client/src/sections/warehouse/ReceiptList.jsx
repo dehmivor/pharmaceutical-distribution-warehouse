@@ -27,73 +27,12 @@ import {
   Tooltip
 } from '@mui/material';
 import { Visibility, Edit, Delete, CheckCircle, LabelImportantOutlineSharp, LocalShipping, Inventory } from '@mui/icons-material';
+import useTrans from '@/hooks/useTrans';
 
 function ImportOrderList({ onOrderSelect, onSendForApproval }) {
-  const mockImportOrders = [
-    {
-      _id: 'IO001',
-      id: 'IO001',
-      orderNumber: 'IO001',
-      status: 'pending',
-      createdAt: '2024-06-15T10:30:00Z',
-      contract_id: 'Nhà cung cấp A',
-      totalAmount: 5000000,
-      items: [
-        { product: { name: 'Sản phẩm A' }, quantity: 10, unitPrice: 250000 },
-        { product: { name: 'Sản phẩm B' }, quantity: 5, unitPrice: 500000 }
-      ]
-    },
-    {
-      _id: 'IO002',
-      id: 'IO002',
-      orderNumber: 'IO002',
-      status: 'approved',
-      createdAt: '2024-06-14T14:20:00Z',
-      contract_id: 'Nhà cung cấp B',
-      totalAmount: 3500000,
-      items: [{ product: { name: 'Sản phẩm C' }, quantity: 7, unitPrice: 500000 }]
-    },
-    {
-      _id: 'IO003',
-      id: 'IO003',
-      orderNumber: 'IO003',
-      status: 'shipped',
-      createdAt: '2024-06-13T09:15:00Z',
-      contract_id: 'Nhà cung cấp C',
-      totalAmount: 7200000,
-      items: [{ product: { name: 'Sản phẩm D' }, quantity: 12, unitPrice: 600000 }]
-    },
-    {
-      _id: 'IO004',
-      id: 'IO004',
-      orderNumber: 'IO004',
-      status: 'received',
-      createdAt: '2024-06-12T16:45:00Z',
-      contract_id: 'Nhà cung cấp D',
-      totalAmount: 2800000,
-      items: [{ product: { name: 'Sản phẩm E' }, quantity: 4, unitPrice: 700000 }]
-    },
-    {
-      _id: 'IO005',
-      id: 'IO005',
-      orderNumber: 'IO005',
-      status: 'verified',
-      createdAt: '2024-06-11T11:30:00Z',
-      contract_id: 'Nhà cung cấp E',
-      totalAmount: 4100000,
-      items: [{ product: { name: 'Sản phẩm F' }, quantity: 6, unitPrice: 683333 }]
-    },
-    {
-      _id: 'IO006',
-      id: 'IO006',
-      orderNumber: 'IO006',
-      status: 'completed',
-      createdAt: '2024-06-10T08:15:00Z',
-      contract_id: 'Nhà cung cấp F',
-      totalAmount: 6300000,
-      items: [{ product: { name: 'Sản phẩm G' }, quantity: 9, unitPrice: 700000 }]
-    }
-  ];
+  const trans = useTrans();
+  
+
 
   // State declarations
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -130,7 +69,9 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
   // Mock pagination
   const pagination = {
     totalPages: Math.ceil(importOrders.length / filters.limit)
-  }; // Mock functions thay thế cho API calls
+  };
+
+  // Mock functions thay thế cho API calls
   const updateStatus = async (orderId, status, notes) => {
     console.log(`Updating order ${orderId} to status ${status} with notes: ${notes}`);
     setImportOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status } : order)));
@@ -174,7 +115,25 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
   const mutateDetails = () => {
     console.log('Refreshing order details...');
     // Không cần làm gì
-  }; // Cleanup cho component lifecycle
+  };
+
+  // Add missing functions
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value,
+      page: 1 // Reset to first page when filters change
+    }));
+  };
+
+  const handlePageChange = (event, newPage) => {
+    setFilters(prev => ({
+      ...prev,
+      page: newPage
+    }));
+  };
+
+  // Cleanup cho component lifecycle
   useEffect(() => {
     let isMounted = true;
 
@@ -206,7 +165,9 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
         setIsLoadingDetails(false);
       }, 300);
     }
-  }, [selectedOrder]); // Event handlers - cập nhật để sử dụng mock data
+  }, [selectedOrder]);
+
+  // Event handlers - cập nhật để sử dụng mock data
   const handleViewOrder = (order) => {
     setSelectedOrder(order);
     setViewDialogOpen(true);
@@ -230,18 +191,18 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
   };
 
   const handleDeleteOrder = async (orderId) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')) {
+    if (window.confirm(trans.common.confirmDeleteOrder)) {
       try {
         await deleteImportOrder(orderId);
         setNotification({
           open: true,
-          message: 'Xóa đơn hàng thành công!',
+          message: trans.common.deleteOrderSuccess,
           severity: 'success'
         });
       } catch (error) {
         setNotification({
           open: true,
-          message: `Lỗi khi xóa đơn hàng: ${error.message}`,
+          message: `${trans.common.errorDeletingOrder}: ${error.message}`,
           severity: 'error'
         });
       }
@@ -256,13 +217,13 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
       });
       setNotification({
         open: true,
-        message: 'Xác nhận nhận hàng thành công!',
+        message: trans.common.receiveOrderSuccess,
         severity: 'success'
       });
     } catch (error) {
       setNotification({
         open: true,
-        message: `Lỗi khi nhận hàng: ${error.message}`,
+        message: `${trans.common.errorReceivingOrder}: ${error.message}`,
         severity: 'error'
       });
     }
@@ -276,13 +237,13 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
       });
       setNotification({
         open: true,
-        message: 'Xác minh hàng hóa thành công!',
+        message: trans.common.verifyOrderSuccess,
         severity: 'success'
       });
     } catch (error) {
       setNotification({
         open: true,
-        message: `Lỗi khi xác minh: ${error.message}`,
+        message: `${trans.common.errorVerifyingOrder}: ${error.message}`,
         severity: 'error'
       });
     }
@@ -296,13 +257,13 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
       });
       setNotification({
         open: true,
-        message: 'Hoàn thành đơn hàng thành công!',
+        message: trans.common.completeOrderSuccess,
         severity: 'success'
       });
     } catch (error) {
       setNotification({
         open: true,
-        message: `Lỗi khi hoàn thành: ${error.message}`,
+        message: `${trans.common.errorCompletingOrder}: ${error.message}`,
         severity: 'error'
       });
     }
@@ -313,18 +274,20 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
       await updateStatus(selectedOrder.id, statusForm.status, statusForm.notes);
       setNotification({
         open: true,
-        message: 'Cập nhật trạng thái thành công!',
+        message: trans.common.updateStatusSuccess,
         severity: 'success'
       });
       setStatusDialogOpen(false);
     } catch (error) {
       setNotification({
         open: true,
-        message: `Lỗi khi cập nhật trạng thái: ${error.message}`,
+        message: `${trans.common.errorUpdatingStatus}: ${error.message}`,
         severity: 'error'
       });
     }
-  }; // Filter mock data based on current filters
+  };
+
+  // Filter mock data based on current filters
   const filteredOrders = importOrders.filter((order) => {
     const statusMatch = filters.status === 'all' || order.status === filters.status;
     const supplierMatch = !filters.supplierId || order.contract_id.toLowerCase().includes(filters.supplierId.toLowerCase());
@@ -355,19 +318,19 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
 
   const getStatusText = (status) => {
     const statusTexts = {
-      pending: 'Chờ duyệt',
-      approved: 'Đã duyệt',
-      shipped: 'Đang vận chuyển',
-      received: 'Đã nhận',
-      verified: 'Đã xác minh',
-      completed: 'Hoàn thành',
-      cancelled: 'Đã hủy'
+      pending: trans.common.pending,
+      approved: trans.common.approved,
+      shipped: trans.common.shipped,
+      received: trans.common.received,
+      verified: trans.common.verified,
+      completed: trans.common.completed,
+      cancelled: trans.common.cancelled
     };
     return statusTexts[status] || status;
   };
 
   if (isError) {
-    return <Alert severity="error">Có lỗi xảy ra khi tải dữ liệu: {isError.message}</Alert>;
+    return <Alert severity="error">{trans.common.errorLoadingData}: {isError.message}</Alert>;
   }
 
   return (
@@ -375,22 +338,22 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
       {/* Filters */}
       <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
         <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel>Trạng thái</InputLabel>
-          <Select value={filters.status} label="Trạng thái" onChange={(e) => handleFilterChange('status', e.target.value)}>
-            <MenuItem value="all">Tất cả</MenuItem>
-            <MenuItem value="pending">Chờ duyệt</MenuItem>
-            <MenuItem value="approved">Đã duyệt</MenuItem>
-            <MenuItem value="shipped">Đang vận chuyển</MenuItem>
-            <MenuItem value="received">Đã nhận</MenuItem>
-            <MenuItem value="verified">Đã xác minh</MenuItem>
-            <MenuItem value="completed">Hoàn thành</MenuItem>
-            <MenuItem value="cancelled">Đã hủy</MenuItem>
+          <InputLabel>{trans.common.status}</InputLabel>
+          <Select value={filters.status} label={trans.common.status} onChange={(e) => handleFilterChange('status', e.target.value)}>
+            <MenuItem value="all">{trans.common.allStatuses}</MenuItem>
+            <MenuItem value="pending">{trans.common.pending}</MenuItem>
+            <MenuItem value="approved">{trans.common.approved}</MenuItem>
+            <MenuItem value="shipped">{trans.common.shipped}</MenuItem>
+            <MenuItem value="received">{trans.common.received}</MenuItem>
+            <MenuItem value="verified">{trans.common.verified}</MenuItem>
+            <MenuItem value="completed">{trans.common.completed}</MenuItem>
+            <MenuItem value="cancelled">{trans.common.cancelled}</MenuItem>
           </Select>
         </FormControl>
 
         <TextField
           size="small"
-          label="Mã nhà cung cấp"
+          label={trans.common.supplierCode}
           value={filters.supplierId}
           onChange={(e) => handleFilterChange('supplierId', e.target.value)}
           sx={{ minWidth: 200 }}
@@ -402,49 +365,43 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Mã đơn hàng</TableCell>
-              {/* <TableCell>Nhà cung cấp</TableCell> */}
-              <TableCell>Ngày nhập</TableCell>
-              {/* <TableCell>Liên kết với đơn mua</TableCell> */}
-              {/* <TableCell>Số mặt hàng đã nhập</TableCell> */}
-              <TableCell>Trạng thái</TableCell>
-              <TableCell align="center">Thao tác</TableCell>
+              <TableCell>{trans.common.orderCode}</TableCell>
+              <TableCell>{trans.common.importDate}</TableCell>
+              <TableCell>{trans.common.status}</TableCell>
+              <TableCell align="center">{trans.common.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">
-                  <Typography>Đang tải...</Typography>
+                <TableCell colSpan={4} align="center">
+                  <Typography>{trans.common.loading}</Typography>
                 </TableCell>
               </TableRow>
             ) : importOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">
-                  <Typography>Không có dữ liệu</Typography>
+                <TableCell colSpan={4} align="center">
+                  <Typography>{trans.common.noData}</Typography>
                 </TableCell>
               </TableRow>
             ) : (
               importOrders.map((order) => (
                 <TableRow key={order._id}>
                   <TableCell>{order._id}</TableCell>
-                  {/* <TableCell>{order.contract_id || 'N/A'}</TableCell> */}
                   <TableCell>{new Date(order.createdAt).toLocaleDateString('vi-VN')}</TableCell>
-                  {/* <TableCell>{order.purchase_order_id || 'N/A'}</TableCell> */}
-                  {/* <TableCell>{order.import_content.length || 'N/A'}</TableCell> */}
                   <TableCell>
                     <Chip label={getStatusText(order.status)} color={getStatusColor(order.status)} size="small" />
                   </TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                      <Tooltip title="Xem chi tiết">
+                      <Tooltip title={trans.common.viewDetails}>
                         <IconButton size="small" onClick={() => handleViewOrder(order)}>
                           <Visibility />
                         </IconButton>
                       </Tooltip>
 
                       {order.status === 'pending' && (
-                        <Tooltip title="Chỉnh sửa">
+                        <Tooltip title={trans.common.edit}>
                           <IconButton size="small" onClick={() => handleEditOrder(order)}>
                             <LabelImportantOutlineSharp />
                           </IconButton>
@@ -452,7 +409,7 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
                       )}
 
                       {order.status === 'shipped' && (
-                        <Tooltip title="Nhận hàng">
+                        <Tooltip title={trans.common.receiveOrder}>
                           <IconButton size="small" color="primary" onClick={() => handleReceiveOrder(order.id)}>
                             <LocalShipping />
                           </IconButton>
@@ -460,7 +417,7 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
                       )}
 
                       {order.status === 'received' && (
-                        <Tooltip title="Xác minh">
+                        <Tooltip title={trans.common.verify}>
                           <IconButton size="small" color="secondary" onClick={() => handleVerifyOrder(order.id)}>
                             <Inventory />
                           </IconButton>
@@ -468,21 +425,21 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
                       )}
 
                       {order.status === 'verified' && (
-                        <Tooltip title="Hoàn thành">
+                        <Tooltip title={trans.common.complete}>
                           <IconButton size="small" color="success" onClick={() => handleCompleteOrder(order.id)}>
                             <CheckCircle />
                           </IconButton>
                         </Tooltip>
                       )}
 
-                      <Tooltip title="Cập nhật trạng thái">
+                      <Tooltip title={trans.common.updateStatus}>
                         <IconButton size="small" onClick={() => handleStatusChange(order)}>
                           <Edit />
                         </IconButton>
                       </Tooltip>
 
                       {order.status === 'pending' && (
-                        <Tooltip title="Xóa">
+                        <Tooltip title={trans.common.delete}>
                           <IconButton size="small" color="error" onClick={() => handleDeleteOrder(order.id)}>
                             <Delete />
                           </IconButton>
@@ -506,29 +463,29 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Chi tiết đơn hàng nhập</DialogTitle>
+        <DialogTitle>{trans.common.importOrderDetails}</DialogTitle>
         <DialogContent>
           {isLoadingDetails ? (
-            <Typography>Đang tải...</Typography>
+            <Typography>{trans.common.loading}</Typography>
           ) : selectedOrderDetails ? (
             <Box>
               <Typography variant="h6" gutterBottom>
-                Thông tin đơn hàng
+                {trans.common.orderInformation}
               </Typography>
               <Typography>
-                <strong>Mã đơn:</strong> {selectedOrderDetails.orderNumber}
+                <strong>{trans.common.orderCode}:</strong> {selectedOrderDetails.orderNumber}
               </Typography>
               <Typography>
-                <strong>Nhà cung cấp:</strong> {selectedOrderDetails.contract_id}
+                <strong>{trans.common.supplier}:</strong> {selectedOrderDetails.contract_id}
               </Typography>
               <Typography>
-                <strong>Ngày tạo:</strong> {new Date(selectedOrderDetails.createdAt).toLocaleString('vi-VN')}
+                <strong>{trans.common.createdDate}:</strong> {new Date(selectedOrderDetails.createdAt).toLocaleString('vi-VN')}
               </Typography>
               <Typography>
-                <strong>Trạng thái:</strong> {getStatusText(selectedOrderDetails.status)}
+                <strong>{trans.common.status}:</strong> {getStatusText(selectedOrderDetails.status)}
               </Typography>
               <Typography>
-                <strong>Tổng tiền:</strong>{' '}
+                <strong>{trans.common.totalAmount}:</strong>{' '}
                 {new Intl.NumberFormat('vi-VN', {
                   style: 'currency',
                   currency: 'VND'
@@ -538,21 +495,21 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
               {selectedOrderDetails.items && selectedOrderDetails.items.length > 0 && (
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="h6" gutterBottom>
-                    Chi tiết sản phẩm
+                    {trans.common.productDetails}
                   </Typography>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell>Sản phẩm</TableCell>
-                        <TableCell>Số lượng</TableCell>
-                        <TableCell>Đơn giá</TableCell>
-                        <TableCell>Thành tiền</TableCell>
+                        <TableCell>{trans.common.product}</TableCell>
+                        <TableCell>{trans.common.quantity}</TableCell>
+                        <TableCell>{trans.common.unitPrice}</TableCell>
+                        <TableCell>{trans.common.total}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {selectedOrderDetails.items.map((item, index) => (
                         <TableRow key={index}>
-                          <TableCell>{item.product?.name || 'N/A'}</TableCell>
+                          <TableCell>{item.product?.name || trans.common.na}</TableCell>
                           <TableCell>{item.quantity}</TableCell>
                           <TableCell>
                             {new Intl.NumberFormat('vi-VN', {
@@ -574,33 +531,33 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
               )}
             </Box>
           ) : (
-            <Typography>Không có dữ liệu</Typography>
+            <Typography>{trans.common.noData}</Typography>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setViewDialogOpen(false)}>Đóng</Button>
+          <Button onClick={() => setViewDialogOpen(false)}>{trans.common.close}</Button>
         </DialogActions>
       </Dialog>
 
       {/* Status Update Dialog */}
       <Dialog open={statusDialogOpen} onClose={() => setStatusDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Cập nhật trạng thái</DialogTitle>
+        <DialogTitle>{trans.common.updateStatus}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <FormControl fullWidth>
-              <InputLabel>Trạng thái</InputLabel>
+              <InputLabel>{trans.common.status}</InputLabel>
               <Select
                 value={statusForm.status}
-                label="Trạng thái"
+                label={trans.common.status}
                 onChange={(e) => setStatusForm((prev) => ({ ...prev, status: e.target.value }))}
               >
-                <MenuItem value="pending">Chờ duyệt</MenuItem>
-                <MenuItem value="approved">Đã duyệt</MenuItem>
-                <MenuItem value="shipped">Đang vận chuyển</MenuItem>
-                <MenuItem value="received">Đã nhận</MenuItem>
-                <MenuItem value="verified">Đã xác minh</MenuItem>
-                <MenuItem value="completed">Hoàn thành</MenuItem>
-                <MenuItem value="cancelled">Đã hủy</MenuItem>
+                <MenuItem value="pending">{trans.common.pending}</MenuItem>
+                <MenuItem value="approved">{trans.common.approved}</MenuItem>
+                <MenuItem value="shipped">{trans.common.shipped}</MenuItem>
+                <MenuItem value="received">{trans.common.received}</MenuItem>
+                <MenuItem value="verified">{trans.common.verified}</MenuItem>
+                <MenuItem value="completed">{trans.common.completed}</MenuItem>
+                <MenuItem value="cancelled">{trans.common.cancelled}</MenuItem>
               </Select>
             </FormControl>
 
@@ -608,16 +565,16 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
               fullWidth
               multiline
               rows={3}
-              label="Ghi chú"
+              label={trans.common.notes}
               value={statusForm.notes}
               onChange={(e) => setStatusForm((prev) => ({ ...prev, notes: e.target.value }))}
             />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setStatusDialogOpen(false)}>Hủy</Button>
+          <Button onClick={() => setStatusDialogOpen(false)}>{trans.common.cancel}</Button>
           <Button onClick={handleStatusUpdate} variant="contained">
-            Cập nhật
+            {trans.common.update}
           </Button>
         </DialogActions>
       </Dialog>

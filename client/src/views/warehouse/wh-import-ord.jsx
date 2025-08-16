@@ -26,6 +26,7 @@ import Menu from '@mui/material/Menu';
 import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import useTrans from '@/hooks/useTrans';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -48,6 +49,7 @@ const getStatusColor = (status) =>
 
 export default function ManageImportOrders() {
   const router = useRouter();
+  const trans = useTrans();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -121,7 +123,7 @@ export default function ManageImportOrders() {
         const pag = resp.data.pagination;
         setTotalCount(pag?.total ?? filtered.length);
       } else {
-        throw new Error(resp.data.error || 'Failed to load orders');
+        throw new Error(resp.data.error || trans.common.failedToLoadOrder);
       }
     } catch (err) {
       setError(err.response?.data?.error || err.message);
@@ -184,14 +186,14 @@ export default function ManageImportOrders() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Import Orders Management
+            {trans.common.importOrdersManagement}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Manage and track import orders for the warehouse
+            {trans.common.manageAndTrackImportOrders}
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading}>
-          Refresh
+          {trans.common.refresh}
         </Button>
       </Box>
 
@@ -199,7 +201,7 @@ export default function ManageImportOrders() {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
             fullWidth
-            label="Import Date"
+            label={trans.common.importDate}
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
@@ -209,12 +211,12 @@ export default function ManageImportOrders() {
           <TextField
             fullWidth
             select
-            label="Trạng thái"
+            label={trans.common.status}
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             size="small"
           >
-            <MenuItem value="">Tất cả</MenuItem>
+            <MenuItem value="">{trans.common.all}</MenuItem>
             {['delivered', 'arranged'].map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
@@ -224,21 +226,21 @@ export default function ManageImportOrders() {
           <TextField
             fullWidth
             select
-            label="Type"
+            label={trans.common.type}
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
             size="small"
           >
-            <MenuItem value="all">All Types</MenuItem>
-            <MenuItem value="internal">Internal</MenuItem>
-            <MenuItem value="regular">Regular</MenuItem>
+            <MenuItem value="all">{trans.common.allTypes}</MenuItem>
+            <MenuItem value="internal">{trans.common.internal}</MenuItem>
+            <MenuItem value="regular">{trans.common.regular}</MenuItem>
           </TextField>
 
           <Button fullWidth variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
-            Search
+            {trans.common.search}
           </Button>
           <Button fullWidth variant="outlined" onClick={handleReset}>
-            Reset
+            {trans.common.reset}
           </Button>
         </Stack>
       </Box>
@@ -247,12 +249,12 @@ export default function ManageImportOrders() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Import Date</TableCell>
-              <TableCell>Contract Code</TableCell>
-              <TableCell>Supplier</TableCell>
-              <TableCell>Manager Email</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell>{trans.common.importDate}</TableCell>
+              <TableCell>{trans.common.contractCode}</TableCell>
+              <TableCell>{trans.common.supplier}</TableCell>
+              <TableCell>{trans.common.managerEmail}</TableCell>
+              <TableCell>{trans.common.status}</TableCell>
+              <TableCell>{trans.common.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -260,7 +262,7 @@ export default function ManageImportOrders() {
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
-                    No orders available.
+                    {trans.common.noOrdersAvailable}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -310,7 +312,7 @@ export default function ManageImportOrders() {
               handleMenuClose();
             }}
           >
-            Create Inspection
+            {trans.common.createInspection}
           </MenuItem>
         )}
         <MenuItem
@@ -324,7 +326,7 @@ export default function ManageImportOrders() {
             handleMenuClose();
           }}
         >
-          Detail
+          {trans.common.detail}
         </MenuItem>
       </Menu>
     </Box>

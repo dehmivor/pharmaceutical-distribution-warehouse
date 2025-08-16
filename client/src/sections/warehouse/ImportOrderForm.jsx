@@ -23,8 +23,10 @@ import { Delete as DeleteIcon } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import useTrans from '@/hooks/useTrans';
 
 const ImportOrderForm = ({ order, onClose }) => {
+  const trans = useTrans();
   const [formData, setFormData] = useState({
     import_order_code: '',
     contract_id: '',
@@ -237,7 +239,7 @@ const ImportOrderForm = ({ order, onClose }) => {
   };
 
   if (loading) {
-    return <Typography>Loading...</Typography>;
+    return <Typography>{trans.common.loading}</Typography>;
   }
 
   return (
@@ -246,13 +248,13 @@ const ImportOrderForm = ({ order, onClose }) => {
         {/* Order Information */}
         <Grid item xs={12}>
           <Typography variant="h6" gutterBottom>
-            Order Information
+            {trans.common.orderInformation}
           </Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Order Code"
+            label={trans.common.orderCode}
             name="import_order_code"
             value={formData.import_order_code}
             onChange={handleFormChange}
@@ -260,7 +262,7 @@ const ImportOrderForm = ({ order, onClose }) => {
           />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <TextField select fullWidth label="Contract" name="contract_id" value={formData.contract_id} onChange={handleFormChange} required>
+          <TextField select fullWidth label={trans.common.contract} name="contract_id" value={formData.contract_id} onChange={handleFormChange} required>
             {contracts.map((contract) => (
               <MenuItem key={contract._id} value={contract._id}>
                 {contract.contract_code}
@@ -269,7 +271,7 @@ const ImportOrderForm = ({ order, onClose }) => {
           </TextField>
         </Grid>
         <Grid item xs={12} sm={6}>
-          <TextField select fullWidth label="Supplier" name="supplier_id" value={formData.supplier_id} onChange={handleFormChange} required>
+          <TextField select fullWidth label={trans.common.supplier} name="supplier_id" value={formData.supplier_id} onChange={handleFormChange} required>
             {suppliers.map((supplier) => (
               <MenuItem key={supplier._id} value={supplier._id}>
                 {supplier.full_name}
@@ -281,7 +283,7 @@ const ImportOrderForm = ({ order, onClose }) => {
           <TextField
             select
             fullWidth
-            label="Warehouse"
+            label={trans.common.warehouse}
             name="warehouse_id"
             value={formData.warehouse_id}
             onChange={handleFormChange}
@@ -297,7 +299,7 @@ const ImportOrderForm = ({ order, onClose }) => {
         <Grid item xs={12} sm={6}>
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DatePicker
-              label="Import Date"
+              label={trans.common.importDate}
               value={formData.import_date}
               onChange={(newValue) => {
                 setFormData((prev) => ({
@@ -312,7 +314,7 @@ const ImportOrderForm = ({ order, onClose }) => {
         <Grid item xs={12} sm={6}>
           <TextField
             fullWidth
-            label="Total Value"
+            label={trans.common.totalValue}
             name="total_value"
             value={formData.total_value}
             InputProps={{
@@ -324,21 +326,21 @@ const ImportOrderForm = ({ order, onClose }) => {
         {/* Order Details */}
         <Grid item xs={12}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="h6">Order Details</Typography>
+            <Typography variant="h6">{trans.common.orderDetailsTitle}</Typography>
             <Button variant="outlined" onClick={addDetail}>
-              Add Detail
+              {trans.common.addDetail}
             </Button>
           </Box>
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Medicine</TableCell>
-                  <TableCell>Batch</TableCell>
-                  <TableCell>Quantity</TableCell>
-                  <TableCell>Unit Price</TableCell>
-                  <TableCell>Total</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell>{trans.common.medicine}</TableCell>
+                  <TableCell>{trans.common.batch}</TableCell>
+                  <TableCell>{trans.common.quantity}</TableCell>
+                  <TableCell>{trans.common.unitPrice}</TableCell>
+                  <TableCell>{trans.common.total}</TableCell>
+                  <TableCell>{trans.common.actions}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -411,10 +413,10 @@ const ImportOrderForm = ({ order, onClose }) => {
         <Grid item xs={12}>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
             <Button variant="outlined" onClick={onClose}>
-              Cancel
+              {trans.common.cancel}
             </Button>
             <Button type="submit" variant="contained" disabled={loading}>
-              {loading ? 'Saving...' : order ? 'Update Order' : 'Create Order'}
+              {loading ? trans.common.saving : order ? trans.common.updateOrder : trans.common.createOrder}
             </Button>
           </Box>
         </Grid>
