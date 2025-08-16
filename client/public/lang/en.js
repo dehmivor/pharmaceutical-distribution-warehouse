@@ -65,7 +65,7 @@ export default {
     confirmDelete: 'Are you sure you want to delete this item?',
     saveSuccess: 'Data saved successfully',
     deleteSuccess: 'Item deleted successfully',
-    welcomeBack: 'Welcome back! Select the method of login.',
+    welcomeBack: 'Welcome back! Login to continue working.',
     signUpFree: 'Sign Up for free. No credit card required.',
     alreadyHaveAccount: 'Already have an account?',
     needHelp: 'Need help?',
