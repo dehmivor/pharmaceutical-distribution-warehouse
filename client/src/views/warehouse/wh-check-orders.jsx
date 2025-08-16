@@ -26,6 +26,7 @@ import {
 } from '@mui/material';
 import Menu from '@mui/material/Menu';
 import { useEffect, useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
@@ -50,6 +51,7 @@ const statusOptions = ['pending', 'processing', 'completed', 'cancelled'];
 
 const CheckOrders = () => {
   const router = useRouter();
+  const trans = useTrans();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -104,11 +106,11 @@ const CheckOrders = () => {
         setOrders(res.data.data.inventoryCheckOrders || []);
         setTotalCount(res.data.data.pagination?.total || 0);
       } else {
-        setError(res.data.message || 'Lỗi khi tải phiếu kiểm kê');
+        setError(res.data.message || trans.common.errorLoadingInventoryCheckOrders);
       }
     } catch (err) {
       console.error(err);
-      setError('Lỗi khi tải phiếu kiểm kê');
+      setError(trans.common.errorLoadingInventoryCheckOrders);
     } finally {
       setLoading(false);
     }
@@ -181,10 +183,10 @@ const CheckOrders = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        List of Inventory Check Orders
+        {trans.common.listOfInventoryCheckOrders}
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
-        Manage and track inventory check order. You can filter, search, and view details of each inventory slip.
+        {trans.common.manageAndTrackInventoryCheckOrders}
       </Typography>
 
       {error && (
@@ -204,8 +206,8 @@ const CheckOrders = () => {
             fullWidth
             variant="outlined"
             size="small"
-            label="Tìm kiếm"
-            placeholder="Tìm kiếm "
+            label={trans.common.search}
+            placeholder={trans.common.search}
             value={searchTerm}
             onChange={(e) => handleFilterChange('search', e.target.value)}
             InputProps={{
@@ -218,7 +220,7 @@ const CheckOrders = () => {
           />
           <TextField
             fullWidth
-            label="Ngày kiểm kê"
+            label={trans.common.checkDate}
             type="date"
             value={filterDate}
             onChange={(e) => handleFilterChange('date', e.target.value)}
@@ -228,12 +230,12 @@ const CheckOrders = () => {
           <TextField
             fullWidth
             select
-            label="Trạng thái"
+            label={trans.common.status}
             value={filterStatus}
             onChange={(e) => handleFilterChange('status', e.target.value)}
             size="small"
           >
-            <MenuItem value="">Tất cả</MenuItem>
+            <MenuItem value="">{trans.common.all}</MenuItem>
             {statusOptions.map((s) => (
               <MenuItem key={s} value={s}>
                 {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -247,14 +249,14 @@ const CheckOrders = () => {
             startIcon={sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
             onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
           >
-            {sortDirection === 'asc' ? 'Tăng dần' : 'Giảm dần'}
+            {sortDirection === 'asc' ? trans.common.ascending : trans.common.descending}
           </Button>
 
           <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
-            Search
+            {trans.common.search}
           </Button>
           <Button fullWidth size="small" variant="outlined" onClick={handleReset}>
-            Refresh
+            {trans.common.refresh}
           </Button>
         </Stack>
       </Box>
@@ -263,15 +265,15 @@ const CheckOrders = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ bgcolor: 'grey.100', fontWeight: 'bold' }}>
-              <TableCell>ID Phiếu</TableCell>
-              <TableCell>Ngày kiểm kê</TableCell>
-              <TableCell>Warehouse Manager</TableCell>
-              <TableCell>Người tạo</TableCell>
-              <TableCell>Trạng thái</TableCell>
-              <TableCell>Ghi chú</TableCell>
-              <TableCell>Ngày tạo</TableCell>
-              <TableCell>Ngày cập nhật</TableCell>
-              <TableCell align="center">Hành động</TableCell>
+              <TableCell>{trans.common.receiptId}</TableCell>
+              <TableCell>{trans.common.checkDate}</TableCell>
+              <TableCell>{trans.common.warehouseManager}</TableCell>
+              <TableCell>{trans.common.createdBy}</TableCell>
+              <TableCell>{trans.common.status}</TableCell>
+              <TableCell>{trans.common.notes}</TableCell>
+              <TableCell>{trans.common.createdDate}</TableCell>
+              <TableCell>{trans.common.updatedDate}</TableCell>
+              <TableCell align="center">{trans.common.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -284,7 +286,7 @@ const CheckOrders = () => {
             ) : orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
-                  Không có phiếu kiểm kê
+                  {trans.common.noInventoryCheckOrdersFound}
                 </TableCell>
               </TableRow>
             ) : (
@@ -320,8 +322,8 @@ const CheckOrders = () => {
         page={page}
         onPageChange={handlePageChange}
         onRowsPerPageChange={handleRowsPerPageChange}
-        labelRowsPerPage="Số hàng mỗi trang"
-        labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`}
+        labelRowsPerPage={trans.common.rowsPerPage}
+        labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count !== -1 ? count : `${trans.common.moreThan} ${to}`}`}
       />
 
       <Menu
@@ -337,7 +339,7 @@ const CheckOrders = () => {
             handleMenuClose();
           }}
         >
-          View Detail
+          {trans.common.viewDetail}
         </MenuItem>
       </Menu>
     </Box>

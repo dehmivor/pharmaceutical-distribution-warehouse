@@ -53,7 +53,6 @@ function getTranslationKey(menuId) {
     'warehouse-dashboard': 'warehouseDashboard',
     'import-orders': 'import',
     'view-import-orders': 'importOrdersList',
-    'create-inspections-without-ord': 'inspectionUnknownOrders',
     'inventory': 'inventory',
     'view-inventory-check-orders': 'viewInventoryCheckOrders',
     'export-orders': 'export',
