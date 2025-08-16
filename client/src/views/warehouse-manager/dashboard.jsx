@@ -123,7 +123,7 @@ const RecentOrdersTable = ({ orders, title }) => {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : trans.common.notAvailable}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -201,7 +201,7 @@ const AlertsSection = ({ alerts }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <NotificationsIcon color="primary" />
           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-            System Alerts
+            {trans.warehouseManagerDashboard.systemAlerts}
           </Typography>
         </Box>
         <List sx={{ p: 0 }}>
@@ -345,11 +345,11 @@ const TopMedicinesSection = ({ topMedicines }) => {
                     {medicine.totalImported?.toLocaleString() || 0}
                   </Typography>
                 </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary">
-                    {medicine.totalValue?.toLocaleString() || 0} VND
-                  </Typography>
-                </TableCell>
+                                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {medicine.totalValue?.toLocaleString() || 0} {trans.common.currency}
+                    </Typography>
+                  </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -464,7 +464,7 @@ const WarehouseManagerDashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title={trans.warehouseManagerDashboard.totalInventoryValue}
-            value={`${(dashboardData.stats?.totalValue || 0).toLocaleString()} VND`}
+            value={`${(dashboardData.stats?.totalValue || 0).toLocaleString()} ${trans.common.currency}`}
             icon={<TrendingUpIcon />}
             color="secondary"
             subtitle={trans.warehouseManagerDashboard.currentStockValue}
@@ -548,7 +548,7 @@ const WarehouseManagerDashboard = () => {
                       <TableRow key={item.id || item._id} hover>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                            {item.name || item.medicine_id?.medicine_name || 'N/A'}
+                            {item.name || item.medicine_id?.medicine_name || trans.common.notAvailable}
                           </Typography>
                         </TableCell>
                         <TableCell>

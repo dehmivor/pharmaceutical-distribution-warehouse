@@ -2933,6 +2933,64 @@ export default {
     // Status colors
   },
 
+  // User Management Tab
+  userManagementTab: {
+    title: 'Thống kê người dùng',
+    description: 'Tóm tắt tài khoản người dùng với phân quyền vai trò',
+    // Search and Filters
+    searchPlaceholder: 'Tìm kiếm theo email hoặc tên',
+    filterByRole: 'Lọc theo vai trò',
+    filterByStatus: 'Lọc theo trạng thái',
+    allRoles: 'Tất cả vai trò',
+    allStatuses: 'Tất cả trạng thái',
+    search: 'Tìm kiếm',
+    refresh: 'Làm mới',
+    createNewUser: 'Tạo người dùng mới',
+    // Role Names
+    supervisor: 'Giám sát',
+    representative: 'Đại diện',
+    representativeManager: 'Quản lý đại diện',
+    warehouseStaff: 'Nhân viên kho',
+    warehouseManager: 'Quản lý kho',
+    // Status Names
+    active: 'Hoạt động',
+    pending: 'Đang chờ',
+    inactive: 'Không hoạt động',
+    // Table Headers
+    email: 'Email',
+    role: 'Vai trò',
+    status: 'Trạng thái',
+    manager: 'Quản lý',
+    created: 'Ngày tạo',
+    actions: 'Hành động',
+    // Manager Labels
+    yes: 'Có',
+    no: 'Không',
+    // Section Titles
+    supervisors: 'Giám sát',
+    representativeManagers: 'Quản lý đại diện',
+    representatives: 'Đại diện',
+    warehouseStaff: 'Nhân viên kho',
+    warehouseManagers: 'Quản lý kho',
+    // Section Descriptions
+    supervisorDescription: 'Quản lý tài khoản giám sát và quyền hạn của họ. Giám sát có quyền truy cập cao để giám sát hoạt động và quản lý thành viên nhóm.',
+    representativeManagerDescription: 'Quản lý đại diện dịch vụ khách hàng xử lý tương tác khách hàng và yêu cầu hỗ trợ. Họ là điểm liên hệ chính cho khách hàng.',
+    representativeDescription: 'Đại diện dịch vụ khách hàng xử lý tương tác khách hàng và yêu cầu hỗ trợ. Họ là điểm liên hệ chính cho khách hàng.',
+    warehouseStaffDescription: 'Nhân viên kho quản lý tồn kho, thực hiện và hoạt động hậu cần. Họ đảm bảo xử lý đơn hàng chính xác và quản lý tồn kho.',
+    warehouseManagerDescription: 'Quản lý kho giám sát hoạt động kho và đảm bảo quản lý tồn kho hiệu quả.',
+    // Statistics Cards
+    totalUsers: 'Tổng người dùng',
+    supervisors: 'Giám sát',
+    representatives: 'Đại diện',
+    representativeManagers: 'Quản lý đại diện',
+    warehouseStaff: 'Nhân viên kho',
+    warehouseManagers: 'Quản lý kho',
+    // Filter Status Title
+    usersWithStatus: 'Người dùng có trạng thái',
+    // No Users Message
+    noUsersInSection: 'Không có người dùng nào trong phần sectionName'
+  },
+
   // Warehouse Manager Dashboard
   warehouseManagerDashboard: {
     title: 'Bảng điều khiển Quản lý Kho',
