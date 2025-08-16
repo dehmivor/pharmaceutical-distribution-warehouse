@@ -800,6 +800,54 @@ const packageController = {
       });
     }
   },
+
+  getDistinctBatches: async(req, res) => {
+  try {
+    const { expiryBeforeMonths, expiryBeforeDate } = req.query;
+
+    const opts = {};
+
+    if (expiryBeforeDate) {
+      const d = new Date(expiryBeforeDate);
+      if (Number.isNaN(d.getTime())) {
+        return res.status(400).json({ success: false, error: 'expiryBeforeDate is not a valid date' });
+      }
+      opts.expiryBeforeDate = d;
+    } else if (expiryBeforeMonths !== undefined) {
+      const n = parseInt(expiryBeforeMonths, 10);
+      if (Number.isNaN(n)) {
+        return res.status(400).json({ success: false, error: 'expiryBeforeMonths must be an integer' });
+      }
+      opts.expiryBeforeMonths = n;
+    }
+
+    const batches = await packageService.getDistinctBatchesFromPackages(opts);
+
+    // compute expiryBefore ISO for meta (if provided)
+    let expiryBeforeIso = null;
+    if (opts.expiryBeforeDate) {
+      expiryBeforeIso = new Date(opts.expiryBeforeDate).toISOString();
+    } else if (opts.expiryBeforeMonths !== undefined) {
+      const now = new Date();
+      const target = new Date(now.getFullYear(), now.getMonth() + Number(opts.expiryBeforeMonths), 1, 0, 0, 0, 0);
+      expiryBeforeIso = target.toISOString();
+    }
+
+    return res.json({
+      success: true,
+      meta: {
+        count: Array.isArray(batches) ? batches.length : 0,
+        expiryBefore: expiryBeforeIso,
+        usedSimple: true,
+      },
+      data: batches,
+    });
+  } catch (err) {
+    console.error('packageController.getDistinctBatchesSimple error:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+}
+
 };
 
 module.exports = packageController;

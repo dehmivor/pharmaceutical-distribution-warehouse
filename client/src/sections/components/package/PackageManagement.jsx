@@ -215,7 +215,7 @@ const PackageManagement = () => {
                 <MenuItem value="">{trans.common.all}</MenuItem>
                 {medicines.map((medicine) => (
                   <MenuItem key={medicine._id} value={medicine._id}>
-                    {trans.common.medicineDisplayFormat.replace('{name}', medicine.medicine_name).replace('{license}', medicine.license_code)}
+                    {trans.medicineDisplayFormat.replace('{name}', medicine.medicine_name).replace('{license}', medicine.license_code)}
                   </MenuItem>
                 ))}
               </Select>
@@ -262,7 +262,7 @@ const PackageManagement = () => {
         <CardContent sx={{ p: 0 }}>
           <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
             <Table stickyHeader>
-              <TableHead>
+              <TableHead> 
                 <TableRow>
                   <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
                     {trans.common.packageId}
@@ -370,9 +370,9 @@ const PackageManagement = () => {
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             rowsPerPageOptions={[5, 10, 25, 50]}
-            labelRowsPerPage={trans.common.pagination.rowsPerPage}
+            labelRowsPerPage={trans.rowsPerPage}
             labelDisplayedRows={({ from, to, count }) =>
-              trans.common.pagination.displayedRows.replace('{from}', from).replace('{to}', to).replace('{count}', count !== -1 ? count : trans.common.moreThan.replace('{count}', to))
+              trans.displayedRows.replace('{from}', from).replace('{to}', to).replace('{count}', count !== -1 ? count : trans.moreThan.replace('{count}', to))
             }
           />
         </CardContent>

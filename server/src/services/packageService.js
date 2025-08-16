@@ -4,6 +4,21 @@ const Area = require('../models/Area');
 const Batch = require('../models/Batch');
 const mongoose = require('mongoose');
 
+
+function _resolveExpiryBeforeDate({ expiryBeforeMonths, expiryBeforeDate } = {}) {
+  if (expiryBeforeDate) {
+    const d = expiryBeforeDate instanceof Date ? expiryBeforeDate : new Date(expiryBeforeDate);
+    if (!Number.isNaN(d.getTime())) return d;
+    return null;
+  }
+  if (typeof expiryBeforeMonths === 'number' && Number.isFinite(expiryBeforeMonths)) {
+    const now = new Date();
+    const target = new Date(now.getFullYear(), now.getMonth() + expiryBeforeMonths, 1, 0, 0, 0, 0);
+    return target;
+  }
+  return null;
+}
+
 const packageService = {
   // ✅ Get all packages with filtering and pagination
   getAllPackages: async (filters = {}) => {
@@ -459,12 +474,12 @@ const packageService = {
           medicine_name: package.batch_id?.medicine_id?.medicine_name,
           location: package.location_id
             ? {
-                _id: package.location_id._id,
-                area_name: package.location_id.area_id?.name,
-                bay: package.location_id.bay,
-                row: package.location_id.row,
-                column: package.location_id.column,
-              }
+              _id: package.location_id._id,
+              area_name: package.location_id.area_id?.name,
+              bay: package.location_id.bay,
+              row: package.location_id.row,
+              column: package.location_id.column,
+            }
             : null,
           batch_id: package.batch_id?._id,
           medicine_id: package.batch_id?.medicine_id?._id,
@@ -538,12 +553,12 @@ const packageService = {
           medicine_name: updatedPackage.batch_id?.medicine_id?.medicine_name,
           location: updatedPackage.location_id
             ? {
-                _id: updatedPackage.location_id._id,
-                area_name: updatedPackage.location_id.area_id?.name,
-                bay: updatedPackage.location_id.bay,
-                row: updatedPackage.location_id.row,
-                column: updatedPackage.location_id.column,
-              }
+              _id: updatedPackage.location_id._id,
+              area_name: updatedPackage.location_id.area_id?.name,
+              bay: updatedPackage.location_id.bay,
+              row: updatedPackage.location_id.row,
+              column: updatedPackage.location_id.column,
+            }
             : null,
         },
       };
@@ -633,12 +648,12 @@ const packageService = {
           medicine_name: updatedPackage.batch_id?.medicine_id?.medicine_name,
           location: updatedPackage.location_id
             ? {
-                _id: updatedPackage.location_id._id,
-                area_name: updatedPackage.location_id.area_id?.name,
-                bay: updatedPackage.location_id.bay,
-                row: updatedPackage.location_id.row,
-                column: updatedPackage.location_id.column,
-              }
+              _id: updatedPackage.location_id._id,
+              area_name: updatedPackage.location_id.area_id?.name,
+              bay: updatedPackage.location_id.bay,
+              row: updatedPackage.location_id.row,
+              column: updatedPackage.location_id.column,
+            }
             : null,
         },
       };
@@ -652,30 +667,74 @@ const packageService = {
   },
 
   addLocation: async (packageId, locationId) => {
-  if (!packageId || !locationId) {
-    throw { status: 400, message: 'packageId and location_id are required' };
-  }
+    if (!packageId || !locationId) {
+      throw { status: 400, message: 'packageId and location_id are required' };
+    }
 
-  const updated = await Package.findByIdAndUpdate(
-    packageId,
-    { location_id: locationId },
-    { new: true }
-  )
+    const updated = await Package.findByIdAndUpdate(
+      packageId,
+      { location_id: locationId },
+      { new: true }
+    )
+      .populate({
+        path: 'location_id',
+        populate: { path: 'area_id', model: 'Area' },
+      })
+      .populate({
+        path: 'batch_id',
+        populate: { path: 'medicine_id', model: 'Medicine' },
+      });
+
+    if (!updated) {
+      throw { status: 404, message: `No package found with id ${packageId}` };
+    }
+
+    return updated;
+  },
+
+
+  getDistinctBatchesFromPackages: async ({ expiryBeforeMonths, expiryBeforeDate } = {}) => {
+    const expiryBefore = _resolveExpiryBeforeDate({ expiryBeforeMonths, expiryBeforeDate });
+
+    // get distinct ids referenced by packages
+    const ids = await Package.distinct('batch_id', { batch_id: { $ne: null } });
+    if (!ids || ids.length === 0) return [];
+
+    // Convert string ids to ObjectId instances safely.
+    // If an id is already an ObjectId, keep it as-is.
+    const objectIds = ids
+      .map((id) => {
+        if (!id) return null;
+        // If it's a string, construct a new ObjectId
+        if (typeof id === 'string') {
+          // validate before constructing
+          if (mongoose.Types.ObjectId.isValid(id)) {
+            return new mongoose.Types.ObjectId(id);
+          }
+          return null;
+        }
+        // if it's already an ObjectId (or other), return as-is
+        return id;
+      })
+      .filter((id) => id !== null);
+
+    if (objectIds.length === 0) return [];
+
+    const filter = { _id: { $in: objectIds } };
+    if (expiryBefore) {
+      filter.expiry_date = { $lt: expiryBefore };
+    }
+
+    const batches = await Batch.find(filter).select("-createdAt -updatedAt -supplier_id -quality_status")
     .populate({
-      path: 'location_id',
-      populate: { path: 'area_id', model: 'Area' },
+      path: 'medicine_id',
+      select: 'medicine_name license_code'
     })
-    .populate({
-      path: 'batch_id',
-      populate: { path: 'medicine_id', model: 'Medicine' },
-    });
-
-  if (!updated) {
-    throw { status: 404, message: `No package found with id ${packageId}` };
+    .sort({ expiry_date: 1 }).lean().exec();
+    
+    return batches;
   }
 
-  return updated;
-}
 };
 
 module.exports = packageService;

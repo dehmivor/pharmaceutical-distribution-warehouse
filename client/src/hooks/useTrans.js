@@ -34,4 +34,3 @@ export default function useTrans() {
     }
   }, [i18n]); // Chỉ tạo lại khi i18n thay đổi
 }
-

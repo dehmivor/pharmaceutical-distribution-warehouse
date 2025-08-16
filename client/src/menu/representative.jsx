@@ -33,6 +33,13 @@ const representative = {
       type: 'item',
       url: '/rp-export-orders',
       icon: 'IconFileExport'
+    },
+    {
+      id: 'rm-medicine-performance',
+      title: 'Medicine performance',
+      type: 'item',
+      url: '/rp-medicine-performance',
+      icon: 'IconChartHistogram'
     }
    
   ]

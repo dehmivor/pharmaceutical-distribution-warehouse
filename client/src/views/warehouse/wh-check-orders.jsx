@@ -265,8 +265,8 @@ const CheckOrders = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ bgcolor: 'grey.100', fontWeight: 'bold' }}>
-              <TableCell>{trans.common.receiptId}</TableCell>
-              <TableCell>{trans.common.checkDate}</TableCell>
+              <TableCell>{trans.common.inspectionId}</TableCell>
+              <TableCell>{trans.common.inspectionDate}</TableCell>
               <TableCell>{trans.common.warehouseManager}</TableCell>
               <TableCell>{trans.common.createdBy}</TableCell>
               <TableCell>{trans.common.status}</TableCell>

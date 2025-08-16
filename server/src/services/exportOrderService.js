@@ -509,6 +509,75 @@ async function getExportOrderById(orderId) {
   return order;
 }
 
+async function getExportedTotalsLast6Months() {
+  const now = new Date();
+  // start at first day of month 5 months ago (so total 6 months including current)
+  const startMonth = new Date(now.getFullYear(), now.getMonth() - 5, 1, 0, 0, 0, 0);
+
+  // aggregation pipeline
+  const pipeline = [
+    {
+      $match: {
+        status: EXPORT_ORDER_STATUSES.COMPLETED || 'completed',
+        updatedAt: { $gte: startMonth, $lte: now },
+      },
+    },
+
+    // unwind details array
+    { $unwind: '$details' },
+
+    // unwind actual_item (inspect entries). preserveNull so orders with no actual_item don't crash
+    { $unwind: { path: '$details.actual_item', preserveNullAndEmptyArrays: true } },
+
+    // group by medicine id in the detail and sum the exported quantity from actual_item.quantity
+    {
+      $group: {
+        _id: '$details.medicine_id',
+        totalExported: {
+          // sum quantity, fallback to 0 if missing
+          $sum: { $ifNull: ['$details.actual_item.quantity', 0] },
+        },
+      },
+    },
+
+    // join with medicines collection to get name/license (optional but helpful)
+    {
+      $lookup: {
+        from: 'medicines', // collection name (usually the lowercase plural of model)
+        localField: '_id',
+        foreignField: '_id',
+        as: 'medicine',
+      },
+    },
+    { $unwind: { path: '$medicine', preserveNullAndEmptyArrays: true } },
+
+    // project final shape
+    {
+      $project: {
+        _id: 0,
+        medicine_id: '$_id',
+        medicine_name: { $ifNull: ['$medicine.medicine_name', null] },
+        license_code: { $ifNull: ['$medicine.license_code', null] },
+        totalExported: 1,
+      },
+    },
+
+    // sort by total descending
+    { $sort: { totalExported: -1 } },
+    { $limit: 5 },
+  ];
+
+  const results = await ExportOrder.aggregate(pipeline).exec();
+
+  return {
+    meta: {
+      since: startMonth.toISOString(),
+      until: now.toISOString(),
+    },
+    data: results,
+  };
+}
+
 module.exports = {
   createExportOrder,
   getExportOrdersFilter,
@@ -522,5 +591,6 @@ module.exports = {
   addExportInspection,
   checkStockAvailability,
   assignWarehouseManager, // Thêm function mới
-  createInternalExportOrder // Thêm function mới
+  createInternalExportOrder, // Thêm function mới
+  getExportedTotalsLast6Months
 };

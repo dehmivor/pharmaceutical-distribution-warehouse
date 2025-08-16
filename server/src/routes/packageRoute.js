@@ -16,6 +16,9 @@ router.get('/packages', packageController.getAllPackages);
 // Get all available locations
 router.get('/locations', packageController.getAllLocations);
 
+router.get('/distinct-batches', packageController.getDistinctBatches);
+
+
 // Update package location
 router.put('/packages/:packageId/location', packageController.updatePackageLocation);
 
@@ -42,6 +45,7 @@ router.get('/:medicineId/packages', packageController.getPackagesByMedicineInExp
 router.get('/:id', packageController.getPackageById);
 
 router.get('/:batchId', packageController.getByBatch);
+
 
 
 module.exports = router; 

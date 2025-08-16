@@ -35,7 +35,6 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useTheme } from '@mui/material/styles';
 import DeleteIcon from '@mui/icons-material/Delete';
 import useTrans from '@/hooks/useTrans';
-import useTrans from '@/hooks/useTrans';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -80,7 +79,7 @@ export default function CheckOrderDetail() {
       if (data.success) {
         setOrder(data.data);
       } else {
-        throw new Error(data.error || trans.common.failedToLoadOrder);
+        throw new Error(data.error || trans.failedToLoadOrder);
       }
     } catch (err) {
       console.error(err);
@@ -99,7 +98,7 @@ export default function CheckOrderDetail() {
         headers: getAuthHeaders()
       });
       if (data.success) setInspections(data.data);
-      else throw new Error(data.error || trans.common.failedToLoadInspections);
+      else throw new Error(data.error || trans.failedToLoadInspections);
     } catch (err) {
       setError(err.message);
       setSnackbar({ open: true, message: err.message, severity: 'error' });
@@ -154,14 +153,14 @@ export default function CheckOrderDetail() {
         { headers: getAuthHeaders() }
       )
       .then(() => { })
-      .catch(() => setSnackbar({ open: true, message: trans.common.failedToUpdateStatus, severity: 'error' }));
+      .catch(() => setSnackbar({ open: true, message: trans.failedToUpdateStatus, severity: 'error' }));
   };
 
   const addSelfToChangeBy = async (val) => {
     await axios
       .patch(`/api/inventory-check-inspections/${val}/checker`, { checkBy: userId }, { headers: getAuthHeaders() })
       .then(() => { })
-      .catch(() => setSnackbar({ open: true, message: trans.common.failedToAssignSelf, severity: 'error' }));
+      .catch(() => setSnackbar({ open: true, message: trans.failedToAssignSelf, severity: 'error' }));
   };
 
   // Verify location input
@@ -170,7 +169,7 @@ export default function CheckOrderDetail() {
     setLocationInput(val);
     if (val.length === 24) {
       if (val !== selectedInspection.location_id._id) {
-        setVerifyError(trans.common.locationDoesNotMatch);
+        setVerifyError(trans.locationDoesNotMatch);
       } else {
         setVerifyError('');
         //add check_by
@@ -191,7 +190,7 @@ export default function CheckOrderDetail() {
         `/api/inventory-check-inspections/${inspectionId}/check-items`,
         { headers: getAuthHeaders() }
       );
-      if (!data.success) throw new Error(data.error || trans.common.failedToLoadCheckItems);
+      if (!data.success) throw new Error(data.error || trans.failedToLoadCheckItems);
 
       setPackages(data.data);
 
@@ -260,11 +259,11 @@ export default function CheckOrderDetail() {
     // Run them all in parallel
     try {
       await Promise.all(updates);
-      setSnackbar({ open: true, message: trans.common.checkItemsUpdated, severity: 'success' });
+      setSnackbar({ open: true, message: trans.checkItemsUpdated, severity: 'success' });
       finalize()
     } catch (err) {
       console.error('Error updating check items:', err);
-      setSnackbar({ open: true, message: trans.common.failedToSaveChanges, severity: 'error' });
+      setSnackbar({ open: true, message: trans.failedToSaveChanges, severity: 'error' });
     }
   };
 
@@ -292,7 +291,7 @@ export default function CheckOrderDetail() {
     // otherwise fetch unexpected
     try {
       const { data } = await axios.get(`/api/packages/${val}`, { headers: getAuthHeaders() });
-      if (!data.success) throw new Error(data.message || trans.common.notFound);
+      if (!data.success) throw new Error(data.message || trans.notFound);
 
       setUnexpected((u) => [...u, data.data]);
     } catch (err) {
@@ -317,16 +316,16 @@ export default function CheckOrderDetail() {
     <Box sx={{ background: theme.palette.background.default, minHeight: '100vh', py: 4 }}>
       <Container>
         <Typography variant="h4" gutterBottom>
-          {trans.common.checkInventoryOrderDetail}
+          {trans.checkInventoryOrderDetail}
         </Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-          {trans.common.updateQuantityEachLocation}
+          {trans.updateQuantityEachLocation}
         </Typography>
 
         {/* Order Detail Section */}
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6">{trans.common.orderDetail}</Typography>
+            <Typography variant="h6">{trans.checkInventoryOrderDetail}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             {loadingOrder ? (
@@ -339,7 +338,7 @@ export default function CheckOrderDetail() {
               <Grid container spacing={2} mb={2}>
                 <Grid item xs={12} sm={4}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    {trans.common.status}
+                    {trans.status}
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
                     {order.status}
@@ -347,26 +346,26 @@ export default function CheckOrderDetail() {
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    {trans.common.inventoryDate}
+                    {trans.inventoryDate}
                   </Typography>
                   <Typography variant="body1">{new Date(order.inventory_check_date).toLocaleDateString()}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    {trans.common.createdAt}
+                    {trans.createdAt}
                   </Typography>
                   <Typography variant="body1">{new Date(order.createdAt).toLocaleString()}</Typography>
                 </Grid>
 
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    {trans.common.warehouseManager}
+                    {trans.warehouseManager}
                   </Typography>
                   <Typography variant="body1">{order.warehouse_manager_id.email}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    {trans.common.createdBy}
+                    {trans.createdBy}
                   </Typography>
                   <Typography variant="body1">{order.created_by.email}</Typography>
                 </Grid>
@@ -374,14 +373,14 @@ export default function CheckOrderDetail() {
                 {order.notes && (
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      {trans.common.notes}
+                      {trans.notes}
                     </Typography>
                     <Typography variant="body1">{order.notes}</Typography>
                   </Grid>
                 )}
               </Grid>
             ) : (
-              <Typography>{trans.common.noOrderDetailsToDisplay}</Typography>
+              <Typography>{trans.noOrderDetailsToDisplay}</Typography>
             )}
           </AccordionDetails>
         </Accordion>
@@ -389,7 +388,7 @@ export default function CheckOrderDetail() {
         {/* Inspections Section */}
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6">{trans.common.inspections}</Typography>
+            <Typography variant="h6">{trans.inspections}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Stack direction="row" spacing={1} mb={2}>
@@ -408,9 +407,9 @@ export default function CheckOrderDetail() {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>{trans.common.location}</TableCell>
-                    <TableCell>{trans.common.status}</TableCell>
-                    <TableCell>{trans.common.action}</TableCell>
+                    <TableCell>{trans.location}</TableCell>
+                    <TableCell>{trans.status}</TableCell>
+                    <TableCell>{trans.action}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -429,7 +428,7 @@ export default function CheckOrderDetail() {
                             disabled={ins.status === 'checked' || (ins.status === 'checking' && ins.check_by != userId)}
                             onClick={() => handleProceed(ins)}
                           >
-                            {(ins.status === 'checking' && ins.check_by != userId) ? trans.common.continue : trans.common.proceed}
+                            {(ins.status === 'checking' && ins.check_by != userId) ? trans.continue : trans.proceed}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -444,11 +443,11 @@ export default function CheckOrderDetail() {
 
       {/* Proceed Dialog */}
       <Dialog open={dialogOpen} onClose={() => { }} disableEscapeKeyDown>
-        <DialogTitle>{trans.common.inspection} {step === 'verify' ? trans.common.locationVerification : trans.common.packages}</DialogTitle>
+        <DialogTitle>{trans.inspection} {step === 'verify' ? trans.locationVerification : trans.packages}</DialogTitle>
         <DialogContent>
           {step === 'verify' ? (
             <TextField
-              label={trans.common.scanLocationId}
+              label={trans.scanLocationId}
               value={locationInput}
               onChange={handleLocationChange}
               fullWidth
@@ -461,7 +460,7 @@ export default function CheckOrderDetail() {
             <>
               {/* Scan input */}
               <TextField
-                label={trans.common.scanPackageId}
+                label={trans.scanPackageId}
                 value={package_id}
                 onChange={(e) => {
                   const val = e.target.value.trim();
@@ -477,18 +476,18 @@ export default function CheckOrderDetail() {
 
               {/* Expected packages */}
               <Typography variant="subtitle2" gutterBottom>
-                {trans.common.expectedPackages}
+                {trans.expectedPackages}
               </Typography>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>{trans.common.id}</TableCell>
-                    <TableCell>{trans.common.medicine}</TableCell>
-                    <TableCell>{trans.common.batch}</TableCell>
-                    <TableCell>{trans.common.expected}</TableCell>
-                    <TableCell>{trans.common.actual}</TableCell>
-                    <TableCell>{trans.common.action}</TableCell>
-                    <TableCell>{trans.common.status}</TableCell>
+                    <TableCell>{trans.id}</TableCell>
+                    <TableCell>{trans.medicine}</TableCell>
+                    <TableCell>{trans.batch}</TableCell>
+                    <TableCell>{trans.expected}</TableCell>
+                    <TableCell>{trans.actual}</TableCell>
+                    <TableCell>{trans.action}</TableCell>
+                    <TableCell>{trans.status}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -497,11 +496,11 @@ export default function CheckOrderDetail() {
                     const isScanned = scannedIds.includes(pkgId);
                     let chip;
                     if (!isScanned) {
-                      chip = <Chip label={trans.common.unscanned} size="small" color="warning" />;
+                      chip = <Chip label={trans.unscanned} size="small" color="warning" />;
                     } else if (quantities[pkgId] === item.expected_quantity) {
-                      chip = <Chip label={trans.common.normal} size="small" color="success" />;
+                      chip = <Chip label={trans.normal} size="small" color="success" />;
                     } else {
-                      chip = <Chip label={trans.common.abnormal} size="small" color="error" />;
+                      chip = <Chip label={trans.abnormal} size="small" color="error" />;
                     }
                     return (
                       <TableRow key={pkgId} sx={isScanned ? { bgcolor: 'action.selected' } : {}}>
@@ -522,11 +521,11 @@ export default function CheckOrderDetail() {
                         <TableCell>
                           {item?.type === 'under_expected' ? (
                             <Button variant="outlined" size="small" onClick={() => handleMissing(item)}>
-                              {trans.common.undo}
+                              {trans.undo}
                             </Button>
                           ) : (
                             <Button variant="contained" size="small" color="error" onClick={() => handleMissing(item)}>
-                              {trans.common.missing}
+                              {trans.missing}
                             </Button>
                           )}
                         </TableCell>
@@ -539,18 +538,18 @@ export default function CheckOrderDetail() {
 
               {/* Unexpected packages */}
               <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>
-                {trans.common.unexpectedPackages}
+                {trans.unexpectedPackages}
               </Typography>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>{trans.common.id}</TableCell>
-                    <TableCell>{trans.common.medicine}</TableCell>
-                    <TableCell>{trans.common.batch}</TableCell>
-                    <TableCell>{trans.common.expected}</TableCell>
-                    <TableCell>{trans.common.actual}</TableCell>
-                    <TableCell>{trans.common.delete}</TableCell>
-                    <TableCell>{trans.common.status}</TableCell>
+                    <TableCell>{trans.id}</TableCell>
+                    <TableCell>{trans.medicine}</TableCell>
+                    <TableCell>{trans.batch}</TableCell>
+                    <TableCell>{trans.expected}</TableCell>
+                    <TableCell>{trans.actual}</TableCell>
+                    <TableCell>{trans.delete}</TableCell>
+                    <TableCell>{trans.status}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -558,8 +557,8 @@ export default function CheckOrderDetail() {
                     const pkgId = item._id;
                     const isScanned = scannedIds.includes(pkgId);
                     const chip = isScanned
-                      ? <Chip label={trans.common.abnormal} size="small" color="error" />
-                      : <Chip label={trans.common.unscanned} size="small" color="warning" />;
+                      ? <Chip label={trans.abnormal} size="small" color="error" />
+                      : <Chip label={trans.unscanned} size="small" color="warning" />;
                     return (
                       <TableRow key={pkgId} sx={isScanned ? { bgcolor: 'action.selected' } : {}}>
                         <TableCell>{pkgId.slice(-4)}</TableCell>
@@ -598,12 +597,12 @@ export default function CheckOrderDetail() {
         </DialogContent>
         <DialogActions>
           {step === 'verify' ? (
-            <Button onClick={handleDialogClose}>{trans.common.abort}</Button>
+            <Button onClick={handleDialogClose}>{trans.abort}</Button>
           ) : (
             <>
-              <Button onClick={handleDialogClose}>{trans.common.abort}</Button>
+              <Button onClick={handleDialogClose}>{trans.abort}</Button>
               <Button variant="contained" onClick={handleConfirm}>
-                {trans.common.confirm}
+                {trans.confirm}
               </Button>
             </>
           )}

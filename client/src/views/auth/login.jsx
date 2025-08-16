@@ -1,21 +1,20 @@
 'use client';
-
 // @next
 import NextLink from 'next/link';
 
 // @mui
+import useTrans from '@/hooks/useTrans';
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import useTrans from '@/hooks/useTrans';
 
 import AuthLogin from '@/sections/auth/AuthLogin';
 import Copyright from '@/sections/auth/Copyright';
 
 export default function Login() {
   const trans = useTrans();
-  
+
   return (
     <Stack sx={{ height: 1, alignItems: 'center', justifyContent: 'space-between', gap: 3 }}>
       <Box sx={{ width: 1, maxWidth: 458 }}>
