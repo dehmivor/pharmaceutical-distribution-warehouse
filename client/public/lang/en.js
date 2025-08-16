@@ -2940,5 +2940,63 @@ export default {
     // Recent Orders
     recentImportOrders: 'Recent Import Orders',
     recentExportOrders: 'Recent Export Orders'
+  },
+
+  // User Management Tab
+  userManagementTab: {
+    title: 'User Statistics',
+    description: 'Summary of user account with role authorization',
+    // Search and Filters
+    searchPlaceholder: 'Search by email or name',
+    filterByRole: 'Filter by Role',
+    filterByStatus: 'Filter by Status',
+    allRoles: 'All Roles',
+    allStatuses: 'All Statuses',
+    search: 'Search',
+    refresh: 'Refresh',
+    createNewUser: 'Create New User',
+    // Role Names
+    supervisor: 'Supervisor',
+    representative: 'Representative',
+    representativeManager: 'Representative Manager',
+    warehouseStaff: 'Warehouse Staff',
+    warehouseManager: 'Warehouse Manager',
+    // Status Names
+    active: 'Active',
+    pending: 'Pending',
+    inactive: 'Inactive',
+    // Table Headers
+    email: 'Email',
+    role: 'Role',
+    status: 'Status',
+    manager: 'Manager',
+    created: 'Created',
+    actions: 'Actions',
+    // Manager Labels
+    yes: 'Yes',
+    no: 'No',
+    // Section Titles
+    supervisors: 'Supervisors',
+    representativeManagers: 'Representative Managers',
+    representatives: 'Representatives',
+    warehouseStaff: 'Warehouse Staff',
+    warehouseManagers: 'Warehouse Managers',
+    // Section Descriptions
+    supervisorDescription: 'Manage supervisor accounts and their permissions. Supervisors have elevated access to oversee operations and manage team members.',
+    representativeManagerDescription: 'Customer service representatives managers handle client interactions and support requests. They serve as the primary point of contact for customers.',
+    representativeDescription: 'Customer service representatives handle client interactions and support requests. They serve as the primary point of contact for customers.',
+    warehouseStaffDescription: 'Warehouse staff manage inventory, fulfillment, and logistics operations. They ensure accurate order processing and inventory management.',
+    warehouseManagerDescription: 'Warehouse managers oversee warehouse operations and ensure efficient inventory management.',
+    // Statistics Cards
+    totalUsers: 'Total Users',
+    supervisors: 'Supervisors',
+    representatives: 'Representatives',
+    representativeManagers: 'Representative Managers',
+    warehouseStaff: 'Warehouse Staff',
+    warehouseManagers: 'Warehouse Managers',
+    // Filter Status Title
+    usersWithStatus: 'Users with status',
+    // No Users Message
+    noUsersInSection: 'No users in sectionName section'
   }
 };

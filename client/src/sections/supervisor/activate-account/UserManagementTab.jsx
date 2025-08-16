@@ -149,15 +149,15 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
   const getRoleDisplayName = (role) => {
     switch (role) {
       case 'supervisor':
-        return trans.userManagement.roles.supervisor;
+        return trans.userManagementTab.supervisor;
       case 'representative':
-        return trans.userManagement.roles.representative;
+        return trans.userManagementTab.representative;
       case 'representative_manager':
-        return trans.userManagement.roles.representative_manager;
+        return trans.userManagementTab.representativeManager;
       case 'warehouse':
-        return trans.userManagement.roles.warehouse;
+        return trans.userManagementTab.warehouseStaff;
       case 'warehouse_manager':
-        return trans.userManagement.roles.warehouseManager;
+        return trans.userManagementTab.warehouseManager;
       default:
         return role || trans.common.unknown;
     }
@@ -211,10 +211,11 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
   }
 
   const UserTable = ({ users, sectionName }) => {
+    const trans = useTrans();
     if (!Array.isArray(users) || users.length === 0) {
       return (
         <Typography variant="body2" color="text.secondary" align="center" sx={{ py: 4 }}>
-          {trans.userManagement.noUsersInSection.replace('sectionName', sectionName)}
+          {trans.userManagementTab.noUsersInSection.replace('sectionName', sectionName)}
         </Typography>
       );
     }
@@ -224,12 +225,12 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Manager</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
-              <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Actions</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{trans.userManagementTab.email}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{trans.userManagementTab.role}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{trans.userManagementTab.status}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{trans.userManagementTab.manager}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{trans.userManagementTab.created}</TableCell>
+              <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>{trans.userManagementTab.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -248,7 +249,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                 </TableCell>
                 <TableCell>
                   <Chip
-                    label={user.status === 'active' ? 'Active' : user.status === 'pending' ? 'Pending' : 'Inactive'}
+                    label={user.status === 'active' ? trans.userManagementTab.active : user.status === 'pending' ? trans.userManagementTab.pending : trans.userManagementTab.inactive}
                     color={user.status === 'active' ? 'success' : user.status === 'pending' ? 'warning' : 'default'}
                     size="small"
                     variant="filled"
@@ -256,7 +257,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                 </TableCell>
                 <TableCell>
                   <Chip
-                    label={user.is_manager ? 'Yes' : 'No'}
+                    label={user.is_manager ? trans.userManagementTab.yes : trans.userManagementTab.no}
                     color={user.is_manager ? 'primary' : 'default'}
                     size="small"
                     variant="outlined"
@@ -290,9 +291,9 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
 
   return (
     <Stack pl={3} pr={3} spacing={3}>
-      <PresentationCard title="User Statistics">
+      <PresentationCard title={trans.userManagementTab.title}>
         <Typography variant="body2" color="text.secondary">
-          Summary of user account with role authorization
+          {trans.userManagementTab.description}
         </Typography>
         <Box>
           <Grid container spacing={2} alignItems="center">
@@ -300,7 +301,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
               <TextField
                 size="small"
                 fullWidth
-                placeholder="Search by email or name"
+                placeholder={trans.userManagementTab.searchPlaceholder}
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 InputProps={{
@@ -318,16 +319,16 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                 fullWidth
                 displayEmpty
                 value={filterRole}
-                placeholder="Filter by Role"
+                placeholder={trans.userManagementTab.filterByRole}
                 onChange={(e) => setFilterRole(e.target.value)}
-                renderValue={(selected) => selected || 'Filter by Role'}
+                renderValue={(selected) => selected || trans.userManagementTab.filterByRole}
               >
-                <MenuItem value="">All Roles</MenuItem>
-                <MenuItem value="supervisor">Supervisor</MenuItem>
-                <MenuItem value="representative">Representative</MenuItem>
-                <MenuItem value="representative_manager">Representative Manager</MenuItem>
-                <MenuItem value="warehouse">Warehouse Staff</MenuItem>
-                <MenuItem value="warehouse_manager">Warehouse Manager</MenuItem>
+                <MenuItem value="">{trans.userManagementTab.allRoles}</MenuItem>
+                <MenuItem value="supervisor">{trans.userManagementTab.supervisor}</MenuItem>
+                <MenuItem value="representative">{trans.userManagementTab.representative}</MenuItem>
+                <MenuItem value="representative_manager">{trans.userManagementTab.representativeManager}</MenuItem>
+                <MenuItem value="warehouse">{trans.userManagementTab.warehouseStaff}</MenuItem>
+                <MenuItem value="warehouse_manager">{trans.userManagementTab.warehouseManager}</MenuItem>
               </Select>
             </Grid>
             <Grid item xs={6} sm={3} md={3}>
@@ -337,12 +338,12 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                 displayEmpty
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                renderValue={(selected) => selected || 'Filter by Status'}
+                renderValue={(selected) => selected || trans.userManagementTab.filterByStatus}
               >
-                <MenuItem value="">All Statuses</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
+                <MenuItem value="">{trans.userManagementTab.allStatuses}</MenuItem>
+                <MenuItem value="active">{trans.userManagementTab.active}</MenuItem>
+                <MenuItem value="pending">{trans.userManagementTab.pending}</MenuItem>
+                <MenuItem value="inactive">{trans.userManagementTab.inactive}</MenuItem>
               </Select>
             </Grid>
 
@@ -359,7 +360,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                   boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)'
                 }}
               >
-                Search
+                {trans.userManagementTab.search}
               </Button>
             </Grid>
 
@@ -384,7 +385,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                   boxShadow: '0 3px 5px 2px rgba(224, 224, 224, .3)'
                 }}
               >
-                Refresh
+                {trans.userManagementTab.refresh}
               </Button>
             </Grid>
 
@@ -401,7 +402,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                   boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)'
                 }}
               >
-                Create New User
+                {trans.userManagementTab.createNewUser}
               </Button>
             </Grid>
           </Grid>
@@ -416,7 +417,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                 <Typography variant="h4" fontWeight={700}>
                   {filteredUsers.length}
                 </Typography>
-                <Typography variant="body2">Total Users</Typography>
+                <Typography variant="body2">{trans.userManagementTab.totalUsers}</Typography>
               </Card>
             </Grid>
 
@@ -425,7 +426,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                 <Typography variant="h4" fontWeight={700}>
                   {groupedUsers?.supervisor?.length || 0}
                 </Typography>
-                <Typography variant="body2">Supervisors</Typography>
+                <Typography variant="body2">{trans.userManagementTab.supervisors}</Typography>
               </Card>
             </Grid>
 
@@ -434,7 +435,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                 <Typography variant="h4" fontWeight={700}>
                   {groupedUsers?.representative?.length || 0}
                 </Typography>
-                <Typography variant="body2">Representatives</Typography>
+                <Typography variant="body2">{trans.userManagementTab.representatives}</Typography>
               </Card>
             </Grid>
 
@@ -443,7 +444,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                 <Typography variant="h4" fontWeight={700}>
                   {groupedUsers?.representative_manager?.length || 0}
                 </Typography>
-                <Typography variant="body2">Representative Managers</Typography>
+                <Typography variant="body2">{trans.userManagementTab.representativeManagers}</Typography>
               </Card>
             </Grid>
 
@@ -452,7 +453,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                 <Typography variant="h4" fontWeight={700}>
                   {groupedUsers?.warehouse?.length || 0}
                 </Typography>
-                <Typography variant="body2">Warehouse Staff</Typography>
+                <Typography variant="body2">{trans.userManagementTab.warehouseStaff}</Typography>
               </Card>
             </Grid>
 
@@ -461,7 +462,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                 <Typography variant="h4" fontWeight={700}>
                   {groupedUsers?.warehouse_manager?.length || 0}
                 </Typography>
-                <Typography variant="body2">Warehouse Managers</Typography>
+                <Typography variant="body2">{trans.userManagementTab.warehouseManagers}</Typography>
               </Card>
             </Grid>
           </Grid>
@@ -472,7 +473,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
 
       {/* If filtering by status - show one paginated table */}
       {filterStatus ? (
-        <PresentationCard title={`Users with status "${filterStatus}"`}>
+        <PresentationCard title={`${trans.userManagementTab.usersWithStatus} "${filterStatus}"`}>
           <UserTable users={pagedUsers} />
           <TablePagination
             component="div"
@@ -494,48 +495,44 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
       ) : (
         // No filters: show all roles cards
         <>
-          <PresentationCard title="Supervisors">
+          <PresentationCard title={trans.userManagementTab.supervisors}>
             <Typography variant="body2" color="text.secondary" mb={1}>
-              Manage supervisor accounts and their permissions. Supervisors have elevated access to oversee operations and manage team
-              members.
+              {trans.userManagementTab.supervisorDescription}
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <UserTable users={groupedUsers?.supervisor} sectionName="Supervisors" />
+            <UserTable users={groupedUsers?.supervisor} sectionName={trans.userManagementTab.supervisors} />
           </PresentationCard>
 
-          <PresentationCard title="Representative Managers">
+          <PresentationCard title={trans.userManagementTab.representativeManagers}>
             <Typography variant="body2" color="text.secondary" mb={1}>
-              Customer service representatives managers handle client interactions and support requests. They serve as the primary point of
-              contact for customers.
+              {trans.userManagementTab.representativeManagerDescription}
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <UserTable users={groupedUsers?.representative_manager} sectionName="Representative Managers" />
+            <UserTable users={groupedUsers?.representative_manager} sectionName={trans.userManagementTab.representativeManagers} />
           </PresentationCard>
 
-          <PresentationCard title="Representatives">
+          <PresentationCard title={trans.userManagementTab.representatives}>
             <Typography variant="body2" color="text.secondary" mb={1}>
-              Customer service representatives handle client interactions and support requests. They serve as the primary point of contact
-              for customers.
+              {trans.userManagementTab.representativeDescription}
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <UserTable users={groupedUsers?.representative} sectionName="Representatives" />
+            <UserTable users={groupedUsers?.representative} sectionName={trans.userManagementTab.representatives} />
           </PresentationCard>
 
-          <PresentationCard title="Warehouse Staff">
+          <PresentationCard title={trans.userManagementTab.warehouseStaff}>
             <Typography variant="body2" color="text.secondary" mb={1}>
-              Warehouse staff manage inventory, fulfillment, and logistics operations. They ensure accurate order processing and inventory
-              management.
+              {trans.userManagementTab.warehouseStaffDescription}
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <UserTable users={groupedUsers?.warehouse} sectionName="Warehouse Staff" />
+            <UserTable users={groupedUsers?.warehouse} sectionName={trans.userManagementTab.warehouseStaff} />
           </PresentationCard>
 
-          <PresentationCard title="Warehouse Managers">
+          <PresentationCard title={trans.userManagementTab.warehouseManagers}>
             <Typography variant="body2" color="text.secondary" mb={1}>
-              Warehouse managers oversee warehouse operations and ensure efficient inventory management.
+              {trans.userManagementTab.warehouseManagerDescription}
             </Typography>
             <Divider sx={{ mb: 2 }} />
-            <UserTable users={groupedUsers?.warehouse_manager} sectionName="Warehouse Managers" />
+            <UserTable users={groupedUsers?.warehouse_manager} sectionName={trans.userManagementTab.warehouseManagers} />
           </PresentationCard>
         </>
       )}
