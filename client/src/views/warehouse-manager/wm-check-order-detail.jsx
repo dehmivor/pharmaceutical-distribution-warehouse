@@ -137,6 +137,15 @@ export default function CheckOrderDetail() {
 
   const handleCompleteCheck = async () => {
     if (!order) return
+    const uncheckedInspections = inspections.filter((inspection) => inspection.status !== "checked")
+    if (uncheckedInspections.length > 0) {
+      setSnackbar({
+        open: true,
+        message: `Không thể hoàn thành đơn kiểm kê. Còn ${uncheckedInspections.length} vị trí chưa được kiểm kê.`,
+        severity: "error",
+      })
+      return
+    }
     // Client-side validation logic
     const overExpectedPackages = new Set()
     const underExpectedPackages = new Set()

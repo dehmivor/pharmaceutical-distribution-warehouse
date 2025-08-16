@@ -918,7 +918,7 @@ export default function ManageExportOrders() {
                   </TableCell>
                   <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
                   <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
-                  <TableCell>{o.created_by?.email || '—'}</TableCell>
+                  <TableCell>{o.warehouse_manager_id?.email || '—'}</TableCell>
                   <TableCell>
                     <Chip label={getStatusBadge(o.status).props.label} color={getStatusBadge(o.status).props.color} size="small" />
                   </TableCell>
