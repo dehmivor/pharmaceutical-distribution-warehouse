@@ -48,7 +48,7 @@ import { useTheme } from '@mui/material/styles';
 import ComponentsWrapper from '@/components/ComponentsWrapper';
 import PresentationCard from '@/components/cards/PresentationCard';
 
-function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
+function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDeactivateUserDialog, onOpenAddUser }) {
   const theme = useTheme();
   const trans = useTrans();
   const { users, loading, error, refetch } = useUsers();
@@ -73,7 +73,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
     warehouse: 0,
     warehouse_manager: 0
   });
-  const [roleRowsPerPage] = useState(7); // Fixed at 7 records per page for role cards
+  const [roleRowsPerPage] = useState(5); // Fixed at 7 records per page for role cards
 
   // Initialize filteredUsers when users data is loaded or updated
   useEffect(() => {
@@ -255,8 +255,8 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                 <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Manager</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Created</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Updated</TableCell>
                 <TableCell sx={{ fontWeight: 600, textAlign: 'center' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -274,7 +274,6 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                         src={user.avatar || user.profileImage || user.image}
                         alt={user.name || user.email}
                       >
-                        {/* Fallback: hiển thị chữ cái đầu với màu theo role */}
                         {!user.avatar && !user.profileImage && !user.image ? (
                           <Typography variant="caption" sx={{ color: 'white', fontWeight: 'bold' }}>
                             {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
@@ -298,16 +297,13 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                     />
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      label={user.is_manager ? 'Yes' : 'No'}
-                      color={user.is_manager ? 'primary' : 'default'}
-                      size="small"
-                      variant="outlined"
-                    />
+                    <Typography variant="body2" color="text.secondary">
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                    </Typography>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                      {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('vi-VN') : 'N/A'}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -315,10 +311,10 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                       <IconButton size="small" color="primary" onClick={() => onOpenPermissionDialog(user)}>
                         <SecurityIcon fontSize="small" />
                       </IconButton>
-                      <IconButton size="small" color="secondary">
+                      <IconButton size="small" color="secondary" onClick={() => onOpenEditUserDialog(user)}>
                         <EditIcon fontSize="small" />
                       </IconButton>
-                      <IconButton size="small" color="error">
+                      <IconButton size="small" color="error" onClick={() => onOpenDeactivateUserDialog(user)}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Stack>

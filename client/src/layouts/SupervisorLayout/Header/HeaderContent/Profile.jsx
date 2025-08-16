@@ -36,11 +36,29 @@ import { IconChevronRight, IconLanguage, IconLogout, IconSettings, IconSunMoon, 
 
 // Import hook useRole
 import { useRole } from '@/contexts/RoleContext';
+import { Typography } from '@mui/material';
 
 const languageList = [
   { key: ThemeI18n.EN, value: 'English' },
   { key: ThemeI18n.VN, value: 'Vietnam' }
 ];
+// Hàm trả màu theo role (caption)
+const getLevelColor = (role) => {
+  switch (role) {
+    case 'supervisor':
+      return 'error';
+    case 'representative':
+      return 'warning';
+    case 'representative_manager':
+      return 'primary';
+    case 'warehouse':
+      return 'info';
+    case 'warehouse_manager':
+      return 'primary';
+    default:
+      return 'default';
+  }
+};
 
 export default function ProfileSection() {
   const theme = useTheme();
@@ -90,9 +108,8 @@ export default function ProfileSection() {
     }
   };
   const profileData = {
-    avatar: { src: user?.avatar || '/assets/images/users/avatar-2.png', size: AvatarSize.XS },
-    title: user?.email || 'Email',
-    caption: userRole || 'User Role'
+    title: user?.email || 'User',
+    caption: userRole || 'User'
   };
 
   return (
@@ -102,7 +119,18 @@ export default function ProfileSection() {
           <Profile {...profileData} />
         </Box>
         <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
-          <Avatar {...profileData.avatar} alt={profileData.title} />
+          <Avatar
+            sx={{
+              width: 32,
+              height: 32,
+              bgcolor: theme.palette[getLevelColor(profileData.caption)]?.main || 'grey'
+            }}
+            alt={profileData.title}
+          >
+            <Typography variant="caption" sx={{ color: 'white', fontWeight: 'bold' }}>
+              {(profileData.title && profileData.title.charAt(0).toUpperCase()) || '?'}
+            </Typography>
+          </Avatar>
         </Box>
       </Box>
       <Popper
