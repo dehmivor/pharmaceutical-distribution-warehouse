@@ -15,12 +15,11 @@ import {
   MenuItem,
   Box,
   IconButton,
-  FormControlLabel,
-  Switch,
   Alert,
   CircularProgress,
   Chip,
-  Avatar
+  Avatar,
+  useTheme
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -29,21 +28,33 @@ import {
   Person as PersonIcon,
   SupervisorAccount as SupervisorIcon,
   Save as SaveIcon,
-  Cancel as CancelIcon,
   Email as EmailIcon
 } from '@mui/icons-material';
 import useTrans from '@/hooks/useTrans';
 
+const getLevelColor = (role) => {
+  switch (role) {
+    case 'supervisor':
+      return 'error';
+    case 'representative':
+      return 'warning';
+    case 'representative_manager':
+      return 'primary';
+    case 'warehouse':
+      return 'info';
+    case 'warehouse_manager':
+      return 'primary';
+    default:
+      return 'default';
+  }
+};
+
 export default function EditUserDialog({ open, onClose, user, onUpdate }) {
+  const theme = useTheme();
   const trans = useTrans();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
-    name: '',
-    role: '',
-    is_manager: false,
-    phone: '',
-    address: ''
+    email: ''
   });
   const [errors, setErrors] = useState({});
 
@@ -51,12 +62,7 @@ export default function EditUserDialog({ open, onClose, user, onUpdate }) {
   useEffect(() => {
     if (user) {
       setFormData({
-        email: user.email || '',
-        name: user.name || '',
-        role: user.role || '',
-        is_manager: user.is_manager || false,
-        phone: user.phone || '',
-        address: user.address || ''
+        email: user.email || ''
       });
       setErrors({});
     }
@@ -84,23 +90,6 @@ export default function EditUserDialog({ open, onClose, user, onUpdate }) {
       newErrors.email = 'Invalid email format';
     }
 
-    // Name validation
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
-    } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
-    }
-
-    // Role validation
-    if (!formData.role) {
-      newErrors.role = 'Role is required';
-    }
-
-    // Phone validation (optional but if provided, must be valid)
-    if (formData.phone && !/^[\+]?[0-9\s\-\(\)]{10,}$/.test(formData.phone)) {
-      newErrors.phone = 'Invalid phone number format';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -113,7 +102,7 @@ export default function EditUserDialog({ open, onClose, user, onUpdate }) {
       await onUpdate(user._id, formData);
       onClose();
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error('Error updating user email:', error);
     } finally {
       setLoading(false);
     }
@@ -153,6 +142,19 @@ export default function EditUserDialog({ open, onClose, user, onUpdate }) {
     }
   };
 
+  const getStatusDisplayName = (status) => {
+    switch (status) {
+      case 'active':
+        return 'Active';
+      case 'inactive':
+        return 'Inactive';
+      case 'pending':
+        return 'Pending';
+      default:
+        return status || 'Unknown';
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -181,13 +183,22 @@ export default function EditUserDialog({ open, onClose, user, onUpdate }) {
             <Grid item xs={12} sm={2}>
               <Avatar
                 sx={{
-                  width: 48,
-                  height: 48,
-                  bgcolor: user.avatar ? 'transparent' : 'primary.main'
+                  width: { xs: 24, sm: 32, md: 40 },
+                  height: { xs: 24, sm: 32, md: 40 },
+                  bgcolor: theme.palette[getLevelColor(user.role)]?.main || 'grey'
                 }}
-                src={user.avatar}
+                alt={user.email}
               >
-                {!user.avatar && (user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase())}
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: { xs: '0.6rem', sm: '0.75rem', md: '0.875rem' }
+                  }}
+                >
+                  {(user.email && user.email.charAt(0).toUpperCase()) || '?'}
+                </Typography>
               </Avatar>
             </Grid>
             <Grid item xs={12} sm={10}>
@@ -207,20 +218,9 @@ export default function EditUserDialog({ open, onClose, user, onUpdate }) {
                   <Typography variant="body2" fontWeight={500}>
                     Status:
                     <Chip
-                      label={user.status}
+                      label={getStatusDisplayName(user.status)}
                       size="small"
                       color={user.status === 'active' ? 'success' : user.status === 'pending' ? 'warning' : 'error'}
-                      sx={{ ml: 1 }}
-                    />
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" fontWeight={500}>
-                    Manager:
-                    <Chip
-                      label={user.is_manager ? 'Yes' : 'No'}
-                      size="small"
-                      color={user.is_manager ? 'primary' : 'default'}
                       sx={{ ml: 1 }}
                     />
                   </Typography>
@@ -232,7 +232,7 @@ export default function EditUserDialog({ open, onClose, user, onUpdate }) {
 
         {/* Form Fields */}
         <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12}>
             <TextField
               fullWidth
               label="Email Address"
@@ -248,111 +248,12 @@ export default function EditUserDialog({ open, onClose, user, onUpdate }) {
               variant="outlined"
             />
           </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Full Name"
-              value={formData.name}
-              onChange={(e) => handleFormChange('name', e.target.value)}
-              error={!!errors.name}
-              helperText={errors.name}
-              disabled={loading}
-              variant="outlined"
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth variant="outlined" error={!!errors.role}>
-              <InputLabel>Role</InputLabel>
-              <Select value={formData.role} onChange={(e) => handleFormChange('role', e.target.value)} label="Role" disabled={loading}>
-                <MenuItem value="supervisor">
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <SupervisorIcon fontSize="small" />
-                    Supervisor
-                  </Box>
-                </MenuItem>
-                <MenuItem value="representative">
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <PersonIcon fontSize="small" />
-                    Representative
-                  </Box>
-                </MenuItem>
-                <MenuItem value="representative_manager">
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <PersonIcon fontSize="small" />
-                    Representative Manager
-                  </Box>
-                </MenuItem>
-                <MenuItem value="warehouse">
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <WarehouseIcon fontSize="small" />
-                    Warehouse Staff
-                  </Box>
-                </MenuItem>
-                <MenuItem value="warehouse_manager">
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <WarehouseIcon fontSize="small" />
-                    Warehouse Manager
-                  </Box>
-                </MenuItem>
-              </Select>
-              {errors.role && (
-                <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                  {errors.role}
-                </Typography>
-              )}
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Phone Number (Optional)"
-              value={formData.phone}
-              onChange={(e) => handleFormChange('phone', e.target.value)}
-              error={!!errors.phone}
-              helperText={errors.phone || 'Format: +84 123 456 789'}
-              disabled={loading}
-              variant="outlined"
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Address (Optional)"
-              value={formData.address}
-              onChange={(e) => handleFormChange('address', e.target.value)}
-              multiline
-              rows={2}
-              disabled={loading}
-              variant="outlined"
-            />
-          </Grid>
-
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.is_manager}
-                  onChange={(e) => handleFormChange('is_manager', e.target.checked)}
-                  disabled={loading}
-                />
-              }
-              label="Is Manager"
-            />
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-              Grant manager privileges to this user
-            </Typography>
-          </Grid>
         </Grid>
 
         {/* Info Alert */}
         <Alert severity="info" sx={{ mt: 3 }}>
           <Typography variant="body2">
-            <strong>Note:</strong> You can update user information including email, name, role, and contact details. Changes will take
-            effect immediately.
+            <strong>Note:</strong> You can update user email address. The change will take effect immediately.
           </Typography>
         </Alert>
       </DialogContent>
@@ -360,9 +261,6 @@ export default function EditUserDialog({ open, onClose, user, onUpdate }) {
       <Divider />
 
       <DialogActions sx={{ p: 2, gap: 1 }}>
-        <Button onClick={onClose} variant="outlined" startIcon={<CancelIcon />} disabled={loading}>
-          Cancel
-        </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
@@ -370,7 +268,8 @@ export default function EditUserDialog({ open, onClose, user, onUpdate }) {
           disabled={loading}
           sx={{
             background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-            boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)'
+            boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)',
+            minWidth: 100
           }}
         >
           {loading ? 'Saving...' : 'Save Changes'}

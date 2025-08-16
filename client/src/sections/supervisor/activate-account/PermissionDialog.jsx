@@ -7,7 +7,6 @@ import {
   Button,
   Divider,
   Grid,
-  TextField,
   Typography,
   FormControl,
   InputLabel,
@@ -15,11 +14,11 @@ import {
   MenuItem,
   Box,
   IconButton,
-  FormControlLabel,
-  Switch,
   Alert,
   CircularProgress,
-  Chip
+  Chip,
+  Avatar,
+  useTheme
 } from '@mui/material';
 import {
   Security as SecurityIcon,
@@ -27,18 +26,33 @@ import {
   Warehouse as WarehouseIcon,
   Person as PersonIcon,
   SupervisorAccount as SupervisorIcon,
-  Save as SaveIcon,
-  Cancel as CancelIcon
+  Save as SaveIcon
 } from '@mui/icons-material';
 import useTrans from '@/hooks/useTrans';
 
+const getLevelColor = (role) => {
+  switch (role) {
+    case 'supervisor':
+      return 'error';
+    case 'representative':
+      return 'warning';
+    case 'representative_manager':
+      return 'primary';
+    case 'warehouse':
+      return 'info';
+    case 'warehouse_manager':
+      return 'primary';
+    default:
+      return 'default';
+  }
+};
+
 export default function PermissionDialog({ open, onClose, user, onUpdate }) {
+  const theme = useTheme();
   const trans = useTrans();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    role: '',
-    is_manager: false,
-    status: ''
+    role: ''
   });
   const [errors, setErrors] = useState({});
 
@@ -46,9 +60,7 @@ export default function PermissionDialog({ open, onClose, user, onUpdate }) {
   useEffect(() => {
     if (user) {
       setFormData({
-        role: user.role || '',
-        is_manager: user.is_manager || false,
-        status: user.status || ''
+        role: user.role || ''
       });
       setErrors({});
     }
@@ -68,12 +80,12 @@ export default function PermissionDialog({ open, onClose, user, onUpdate }) {
 
   const validateForm = () => {
     const newErrors = {};
+
+    // Role validation
     if (!formData.role) {
       newErrors.role = 'Role is required';
     }
-    if (!formData.status) {
-      newErrors.status = 'Status is required';
-    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -86,7 +98,7 @@ export default function PermissionDialog({ open, onClose, user, onUpdate }) {
       await onUpdate(user._id, formData);
       onClose();
     } catch (error) {
-      console.error('Error updating permissions:', error);
+      console.error('Error updating user role:', error);
     } finally {
       setLoading(false);
     }
@@ -126,16 +138,16 @@ export default function PermissionDialog({ open, onClose, user, onUpdate }) {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusDisplayName = (status) => {
     switch (status) {
       case 'active':
-        return 'success';
-      case 'pending':
-        return 'warning';
+        return 'Active';
       case 'inactive':
-        return 'error';
+        return 'Inactive';
+      case 'pending':
+        return 'Pending';
       default:
-        return 'default';
+        return status || 'Unknown';
     }
   };
 
@@ -147,7 +159,7 @@ export default function PermissionDialog({ open, onClose, user, onUpdate }) {
         <Box display="flex" alignItems="center" gap={1}>
           <SecurityIcon color="primary" />
           <Typography variant="h6" fontWeight={600}>
-            Update User Permissions
+            Change User Permissions
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small" sx={{ color: 'text.secondary' }} disabled={loading}>
@@ -161,38 +173,62 @@ export default function PermissionDialog({ open, onClose, user, onUpdate }) {
         {/* User Info Display */}
         <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
           <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            User Information
+            Current User Information
           </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="body2" fontWeight={500}>
-                Email: <span style={{ fontWeight: 'normal' }}>{user.email}</span>
-              </Typography>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={2}>
+              <Avatar
+                sx={{
+                  width: { xs: 24, sm: 32, md: 40 },
+                  height: { xs: 24, sm: 32, md: 40 },
+                  bgcolor: theme.palette[getLevelColor(user.role)]?.main || 'grey'
+                }}
+                alt={user.email}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: { xs: '0.6rem', sm: '0.75rem', md: '0.875rem' }
+                  }}
+                >
+                  {(user.email && user.email.charAt(0).toUpperCase()) || '?'}
+                </Typography>
+              </Avatar>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="body2" fontWeight={500}>
-                Current Role:
-                <Chip label={getRoleDisplayName(user.role)} size="small" sx={{ ml: 1 }} icon={getRoleIcon(user.role)} />
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="body2" fontWeight={500}>
-                Current Status:
-                <Chip label={user.status} size="small" color={getStatusColor(user.status)} sx={{ ml: 1 }} />
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="body2" fontWeight={500}>
-                Manager:
-                <Chip label={user.is_manager ? 'Yes' : 'No'} size="small" color={user.is_manager ? 'primary' : 'default'} sx={{ ml: 1 }} />
-              </Typography>
+            <Grid item xs={12} sm={10}>
+              <Grid container spacing={1}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" fontWeight={500}>
+                    Email: <span style={{ fontWeight: 'normal' }}>{user.email}</span>
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" fontWeight={500}>
+                    Current Role:
+                    <Chip label={getRoleDisplayName(user.role)} size="small" sx={{ ml: 1 }} icon={getRoleIcon(user.role)} />
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" fontWeight={500}>
+                    Current Status:
+                    <Chip
+                      label={getStatusDisplayName(user.status)}
+                      size="small"
+                      color={user.status === 'active' ? 'success' : user.status === 'pending' ? 'warning' : 'error'}
+                      sx={{ ml: 1 }}
+                    />
+                  </Typography>
+                </Grid>
+              </Grid>
             </Grid>
           </Grid>
         </Box>
 
         {/* Form Fields */}
         <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12}>
             <FormControl fullWidth variant="outlined" error={!!errors.role}>
               <InputLabel>New Role</InputLabel>
               <Select value={formData.role} onChange={(e) => handleFormChange('role', e.target.value)} label="New Role" disabled={loading}>
@@ -234,50 +270,13 @@ export default function PermissionDialog({ open, onClose, user, onUpdate }) {
               )}
             </FormControl>
           </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth variant="outlined" error={!!errors.status}>
-              <InputLabel>New Status</InputLabel>
-              <Select
-                value={formData.status}
-                onChange={(e) => handleFormChange('status', e.target.value)}
-                label="New Status"
-                disabled={loading}
-              >
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-              {errors.status && (
-                <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
-                  {errors.status}
-                </Typography>
-              )}
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.is_manager}
-                  onChange={(e) => handleFormChange('is_manager', e.target.checked)}
-                  disabled={loading}
-                />
-              }
-              label="Is Manager"
-            />
-            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5 }}>
-              Grant manager privileges to this user
-            </Typography>
-          </Grid>
         </Grid>
 
         {/* Warning Alert */}
         <Alert severity="warning" sx={{ mt: 3 }}>
           <Typography variant="body2">
-            <strong>Warning:</strong> Changing user roles and permissions may affect their access to system features. Please ensure the new
-            permissions are appropriate for the user's responsibilities.
+            <strong>Warning:</strong> Changing user roles will affect their access permissions throughout the system. Please ensure these
+            changes are appropriate and necessary.
           </Typography>
         </Alert>
       </DialogContent>
@@ -285,7 +284,7 @@ export default function PermissionDialog({ open, onClose, user, onUpdate }) {
       <Divider />
 
       <DialogActions sx={{ p: 2, gap: 1 }}>
-        <Button onClick={onClose} variant="outlined" startIcon={<CancelIcon />} disabled={loading}>
+        <Button onClick={onClose} variant="outlined" disabled={loading} sx={{ minWidth: 100 }}>
           Cancel
         </Button>
         <Button
@@ -294,8 +293,9 @@ export default function PermissionDialog({ open, onClose, user, onUpdate }) {
           startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
           disabled={loading}
           sx={{
-            background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-            boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)'
+            background: 'linear-gradient(45deg, #FF9800 30%, #FFC107 90%)',
+            boxShadow: '0 3px 5px 2px rgba(255, 152, 0, .3)',
+            minWidth: 100
           }}
         >
           {loading ? 'Updating...' : 'Update Permissions'}
