@@ -55,8 +55,8 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
 
   // Filter states
   const [searchText, setSearchText] = useState('');
-  const [filterRole, setFilterRole] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterRole, setFilterRole] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   // Filtered users state (after applying filter on search)
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -84,11 +84,11 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
       );
     }
 
-    if (filterRole) {
+    if (filterRole && filterRole !== 'all') {
       filtered = filtered.filter((user) => user.role === filterRole);
     }
 
-    if (filterStatus) {
+    if (filterStatus && filterStatus !== 'all') {
       filtered = filtered.filter((user) => user.status === filterStatus);
     }
 
@@ -111,11 +111,11 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
 
   // Group filtered users by role only if not filtering by status or role
   const groupedUsers = useMemo(() => {
-    if (filterRole) {
+    if (filterRole && filterRole !== 'all') {
       return { [filterRole]: filteredUsers };
     }
 
-    if (filterStatus) {
+    if (filterStatus && filterStatus !== 'all') {
       // If filtering by status, we just show the filtered list, no grouping
       return null;
     }
@@ -300,7 +300,8 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
               <TextField
                 size="small"
                 fullWidth
-                placeholder="Search by email or name"
+                label="Search by email or name"
+                placeholder="Enter email or name to search"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 InputProps={{
@@ -310,40 +311,44 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                     </InputAdornment>
                   )
                 }}
+                variant="outlined"
               />
             </Grid>
             <Grid item xs={6} sm={3} md={3}>
-              <Select
+              <TextField
+                select
                 size="small"
                 fullWidth
-                displayEmpty
+                label="Filter by Role"
                 value={filterRole}
-                placeholder="Filter by Role"
                 onChange={(e) => setFilterRole(e.target.value)}
-                renderValue={(selected) => selected || 'Filter by Role'}
+                variant="outlined"
+                placeholder="Select role to filter"
               >
-                <MenuItem value="">All Roles</MenuItem>
+                <MenuItem value="all">All Roles</MenuItem>
                 <MenuItem value="supervisor">Supervisor</MenuItem>
                 <MenuItem value="representative">Representative</MenuItem>
                 <MenuItem value="representative_manager">Representative Manager</MenuItem>
                 <MenuItem value="warehouse">Warehouse Staff</MenuItem>
                 <MenuItem value="warehouse_manager">Warehouse Manager</MenuItem>
-              </Select>
+              </TextField>
             </Grid>
             <Grid item xs={6} sm={3} md={3}>
-              <Select
+              <TextField
+                select
                 size="small"
                 fullWidth
-                displayEmpty
+                label="Filter by Status"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                renderValue={(selected) => selected || 'Filter by Status'}
+                variant="outlined"
+                placeholder="Select status to filter"
               >
-                <MenuItem value="">All Statuses</MenuItem>
+                <MenuItem value="all">All Statuses</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
                 <MenuItem value="pending">Pending</MenuItem>
                 <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
+              </TextField>
             </Grid>
 
             {/* Search Button */}
@@ -373,8 +378,8 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
                 onClick={() => {
                   refetch();
                   setSearchText('');
-                  setFilterRole('');
-                  setFilterStatus('');
+                  setFilterRole('all');
+                  setFilterStatus('all');
                   setFilteredUsers(users || []);
                   setPage(0);
                   setRowsPerPage(10);
@@ -409,7 +414,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
         <Divider sx={{ mb: 2 }} />
 
         {/* Show cards with stats */}
-        {!filterRole && !filterStatus && (
+        {filterRole === 'all' && filterStatus === 'all' && (
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6} md={3}>
               <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.dark', color: 'white' }}>
@@ -471,7 +476,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
       {/* Display user tables conditionally */}
 
       {/* If filtering by status - show one paginated table */}
-      {filterStatus ? (
+      {filterStatus && filterStatus !== 'all' ? (
         <PresentationCard title={`Users with status "${filterStatus}"`}>
           <UserTable users={pagedUsers} />
           <TablePagination
@@ -486,7 +491,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenAddUser }) {
             labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count}`}
           />
         </PresentationCard>
-      ) : filterRole ? (
+      ) : filterRole && filterRole !== 'all' ? (
         // If filtering by role - show only that role card
         <PresentationCard title={getRoleDisplayName(filterRole)}>
           <UserTable users={groupedUsers[filterRole]} sectionName={getRoleDisplayName(filterRole)} />
