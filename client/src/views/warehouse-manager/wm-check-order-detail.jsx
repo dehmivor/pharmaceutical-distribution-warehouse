@@ -7,6 +7,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import RefreshIcon from "@mui/icons-material/Refresh"
 import DeleteIcon from "@mui/icons-material/Delete" // Added DeleteIcon
 import { useTheme } from "@mui/material/styles"
+import useTrans from "@/hooks/useTrans"
 
 // Lấy header Authorization từ localStorage
 const getAuthHeaders = () => {
@@ -48,6 +49,7 @@ const getStatusColor = (status) => {
 
 export default function CheckOrderDetail() {
   const theme = useTheme()
+  const trans = useTrans()
   const { checkOrderId } = useParams()
   const [order, setOrder] = useState(null)
   const [inspections, setInspections] = useState([])
@@ -68,7 +70,7 @@ export default function CheckOrderDetail() {
       if (res.data.success) {
         setOrder(res.data.data.checkorder)
       } else {
-        throw new Error(res.data.message || "Failed to load order")
+        throw new Error(res.data.message || trans.checkOrderDetail.failedToLoadOrder)
       }
     } catch (err) {
       console.error(err)
@@ -112,7 +114,7 @@ export default function CheckOrderDetail() {
         )
         setInspections(inspectionsWithItems)
       } else {
-        throw new Error(inspectionsData.error || "Failed to load inspections")
+        throw new Error(inspectionsData.error || trans.checkOrderDetail.failedToLoadInspections)
       }
     } catch (err) {
       setError(err.message)
@@ -159,7 +161,7 @@ export default function CheckOrderDetail() {
     if (validationFailed) {
       setSnackbar({
         open: true,
-        message: "Không thể hoàn thành đơn: Một số thùng 'over_expected' không có thùng 'under_expected' tương ứng.",
+        message: trans.checkOrderDetail.validationError,
         severity: "error",
       })
       return
@@ -179,19 +181,19 @@ export default function CheckOrderDetail() {
       )
       if (response.data.success) {
         setOrder((prev) => ({ ...prev, status: "completed" }))
-        setSnackbar({ open: true, message: "Đơn kiểm kê đã được hoàn thành thành công", severity: "success" })
+        setSnackbar({ open: true, message: trans.checkOrderDetail.completeCheckSuccess, severity: "success" })
         fetchOrder() // Refresh order data
         fetchInspections() // Refresh inspections data
       } else {
         setSnackbar({
           open: true,
-          message: response.data.message || "Không thể hoàn thành đơn kiểm kê",
+          message: response.data.message || trans.checkOrderDetail.completeCheckError,
           severity: "error",
         })
       }
     } catch (err) {
       console.error(err)
-      setSnackbar({ open: true, message: "Đã xảy ra lỗi khi hoàn thành đơn kiểm kê", severity: "error" })
+      setSnackbar({ open: true, message: trans.checkOrderDetail.completeCheckErrorGeneral, severity: "error" })
     }
   }
 
@@ -209,7 +211,7 @@ export default function CheckOrderDetail() {
       if (response.data.success) {
         setSnackbar({
           open: true,
-          message: "Đã xóa toàn bộ số lượng thực tế và đặt lại trạng thái phiếu kiểm con",
+          message: trans.checkOrderDetail.clearInspectionsSuccess,
           severity: "success",
         })
         fetchOrder() // Refresh order data to get updated status
@@ -217,13 +219,13 @@ export default function CheckOrderDetail() {
       } else {
         setSnackbar({
           open: true,
-          message: response.data.message || "Không thể xóa phiếu kiểm con",
+          message: response.data.message || trans.checkOrderDetail.clearInspectionsError,
           severity: "error",
         })
       }
     } catch (err) {
       console.error(err)
-      setSnackbar({ open: true, message: "Đã xảy ra lỗi khi xóa phiếu kiểm con", severity: "error" })
+      setSnackbar({ open: true, message: trans.checkOrderDetail.clearInspectionsErrorGeneral, severity: "error" })
     }
   }
 
@@ -243,19 +245,19 @@ export default function CheckOrderDetail() {
       )
       if (response.data.success) {
         setOrder((prev) => ({ ...prev, status: "cancelled" }))
-        setSnackbar({ open: true, message: "Đơn kiểm kê đã được hủy thành công", severity: "success" })
+        setSnackbar({ open: true, message: trans.checkOrderDetail.cancelOrderSuccess, severity: "success" })
         fetchOrder() // Refresh order data
         fetchInspections() // Refresh inspections data
       } else {
         setSnackbar({
           open: true,
-          message: response.data.message || "Không thể hủy đơn kiểm kê",
+          message: response.data.message || trans.checkOrderDetail.cancelOrderError,
           severity: "error",
         })
       }
     } catch (err) {
       console.error(err)
-      setSnackbar({ open: true, message: "Đã xảy ra lỗi khi hủy đơn kiểm kê", severity: "error" })
+      setSnackbar({ open: true, message: trans.checkOrderDetail.cancelOrderErrorGeneral, severity: "error" })
     }
   }
 
@@ -270,18 +272,18 @@ export default function CheckOrderDetail() {
         },
       )
       if (response.data.success) {
-        setSnackbar({ open: true, message: "Mục kiểm kê đã được xóa thành công", severity: "success" })
+        setSnackbar({ open: true, message: trans.checkOrderDetail.deleteItemSuccess, severity: "success" })
         fetchInspections() // Refresh inspections data
       } else {
         setSnackbar({
           open: true,
-          message: response.data.message || "Không thể xóa mục kiểm kê",
+          message: response.data.message || trans.checkOrderDetail.deleteItemError,
           severity: "error",
         })
       }
     } catch (err) {
       console.error(err)
-      setSnackbar({ open: true, message: "Đã xảy ra lỗi khi xóa mục kiểm kê", severity: "error" })
+      setSnackbar({ open: true, message: trans.checkOrderDetail.deleteItemErrorGeneral, severity: "error" })
     }
   }
 
@@ -298,7 +300,7 @@ export default function CheckOrderDetail() {
       <Box sx={{ p: 3 }}>
         <Alert severity="error">{error}</Alert>
         <Button sx={{ mt: 2 }} variant="contained" onClick={handleRefresh}>
-          Thử lại
+          {trans.checkOrderDetail.retry}
         </Button>
       </Box>
     )
@@ -314,44 +316,44 @@ export default function CheckOrderDetail() {
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
           <Box>
             <Typography variant="h4" gutterBottom>
-              Check Inventory Order Detail
+              {trans.checkOrderDetail.title}
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
-              Order ID: {order._id}
+              {trans.checkOrderDetail.orderId}: {order._id}
             </Typography>
           </Box>
           <Button variant="outlined" onClick={handleRefresh}>
-            <RefreshIcon fontSize="small" sx={{ mr: 1 }} /> Làm mới
+            <RefreshIcon fontSize="small" sx={{ mr: 1 }} /> {trans.checkOrderDetail.refresh}
           </Button>
         </Stack>
         {/* Order Detail Section */}
         <Accordion defaultExpanded sx={{ mb: 2 }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6">Order Detail</Typography>
+            <Typography variant="h6">{trans.checkOrderDetail.orderDetail}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Grid container spacing={2} mb={2}>
               <Grid item xs={12} sm={4}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Status
+                  {trans.checkOrderDetail.status}
                 </Typography>
                 <Chip variant="outlined" label={order.status} color={getStatusColor(order.status)} size="small" />
               </Grid>
               <Grid item xs={12} sm={4}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Inventory Date
+                  {trans.checkOrderDetail.inventoryDate}
                 </Typography>
                 <Typography variant="body1">{formatDate(order.inventory_check_date)}</Typography>
               </Grid>
               <Grid item xs={12} sm={4}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Created At
+                  {trans.checkOrderDetail.createdAt}
                 </Typography>
                 <Typography variant="body1">{formatDateTime(order.createdAt)}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Warehouse Manager
+                  {trans.checkOrderDetail.warehouseManager}
                 </Typography>
                 <Typography variant="body1">
                   {order.warehouse_manager_id?.email || order.warehouse_manager_id}
@@ -359,14 +361,14 @@ export default function CheckOrderDetail() {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  Created By
+                  {trans.checkOrderDetail.createdBy}
                 </Typography>
                 <Typography variant="body1">{order.created_by?.email || order.created_by}</Typography>
               </Grid>
               {order.notes && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Notes
+                    {trans.checkOrderDetail.notes}
                   </Typography>
                   <Typography variant="body1">{order.notes}</Typography>
                 </Grid>
@@ -377,7 +379,7 @@ export default function CheckOrderDetail() {
         {/* Inspections Section */}
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6">Inspections</Typography>
+            <Typography variant="h6">{trans.checkOrderDetail.inspections}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             {loadingInspections ? (
@@ -397,7 +399,7 @@ export default function CheckOrderDetail() {
                         <Grid container spacing={1} alignItems="center">
                           <Grid item xs={12} sm={4}>
                             <Typography variant="subtitle2" color="text.secondary">
-                              Location:
+                              {trans.checkOrderDetail.location}:
                             </Typography>
                             <Typography variant="body1" fontWeight="medium">
                               {locStr}
@@ -405,13 +407,13 @@ export default function CheckOrderDetail() {
                           </Grid>
                           <Grid item xs={12} sm={4}>
                             <Typography variant="subtitle2" color="text.secondary">
-                              Status:
+                              {trans.checkOrderDetail.status}:
                             </Typography>
                             <Chip label={ins.status} color={getStatusColor(ins.status)} size="small" />
                           </Grid>
                           <Grid item xs={12} sm={4}>
                             <Typography variant="subtitle2" color="text.secondary">
-                              Checked By:
+                              {trans.checkOrderDetail.checkedBy}:
                             </Typography>
                             <Typography variant="body1">{ins.check_by?.email || ins.check_by || "N/A"}</Typography>
                           </Grid>
@@ -419,31 +421,36 @@ export default function CheckOrderDetail() {
                       </AccordionSummary>
                       <AccordionDetails>
                         <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
-                          Packages in this Location:
+                          {trans.checkOrderDetail.packagesInLocation}:
                         </Typography>
                         {ins.check_items && ins.check_items.length > 0 ? (
                           <Table size="small">
                             <TableHead>
                               <TableRow>
-                                <TableCell>ID</TableCell>
-                                <TableCell>Medicine</TableCell>
-                                <TableCell>Batch</TableCell>
-                                <TableCell>Expected</TableCell>
-                                <TableCell>Actual</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Delete</TableCell> {/* Added Delete column header */}
+                                <TableCell>{trans.checkOrderDetail.id}</TableCell>
+                                <TableCell>{trans.checkOrderDetail.medicine}</TableCell>
+                                <TableCell>{trans.checkOrderDetail.batch}</TableCell>
+                                <TableCell>{trans.checkOrderDetail.expected}</TableCell>
+                                <TableCell>{trans.checkOrderDetail.actual}</TableCell>
+                                <TableCell>{trans.checkOrderDetail.status}</TableCell>
+                                <TableCell>{trans.checkOrderDetail.delete}</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {ins.check_items.map((item) => {
+                              {ins.check_items.map((item, index) => {
                                 const pkgId = item.package_id?._id
-                                const chipLabel = item.type
-                                  .replace(/_/g, " ")
-                                  .replace(/\b\w/g, (char) => char.toUpperCase()) // Format "over_expected" to "Over Expected"
+                                const uniqueKey = pkgId || `item-${ins._id}-${index}`
+                                const chipLabel = item.type === "over_expected" 
+                                  ? trans.checkOrderDetail.overExpected
+                                  : item.type === "under_expected"
+                                  ? trans.checkOrderDetail.underExpected
+                                  : item.type
+                                    .replace(/_/g, " ")
+                                    .replace(/\b\w/g, (char) => char.toUpperCase()) // Format other statuses
                                 const chip = <Chip label={chipLabel} size="small" color={getStatusColor(item.type)} />
                                 return (
-                                  <TableRow key={pkgId}>
-                                    <TableCell>{pkgId?.slice(-4)}</TableCell>
+                                  <TableRow key={uniqueKey}>
+                                    <TableCell>{pkgId?.slice(-4) || "N/A"}</TableCell>
                                     <TableCell>
                                       {`${item?.package_id?.batch_id?.medicine_id?.medicine_name || "N/A"} - ${item?.package_id?.batch_id?.medicine_id?.license_code || "N/A"}`}
                                     </TableCell>
@@ -457,7 +464,7 @@ export default function CheckOrderDetail() {
                                         aria-label="delete"
                                         size="small"
                                         onClick={() => handleDeleteItem(ins._id, pkgId)}
-                                        disabled={isCancelledOrCompleted} // Disable if order is cancelled or completed
+                                        disabled={isCancelledOrCompleted || !pkgId} // Disable if order is cancelled or completed or if no package ID
                                       >
                                         <DeleteIcon fontSize="small" />
                                       </IconButton>
@@ -469,7 +476,7 @@ export default function CheckOrderDetail() {
                           </Table>
                         ) : (
                           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            No packages found for this inspection.
+                            {trans.checkOrderDetail.noPackagesFound}
                           </Typography>
                         )}
                       </AccordionDetails>
@@ -479,7 +486,7 @@ export default function CheckOrderDetail() {
               </Stack>
             ) : (
               <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ py: 4 }}>
-                No inspections to display.
+                {trans.checkOrderDetail.noInspectionsToDisplay}
               </Typography>
             )}
           </AccordionDetails>
@@ -492,7 +499,7 @@ export default function CheckOrderDetail() {
             onClick={handleClearInspections}
             disabled={!isProcessing} // Only enabled if order is processing
           >
-            Clear
+            {trans.checkOrderDetail.clear}
           </Button>
           <Button
             variant="contained"
@@ -500,7 +507,7 @@ export default function CheckOrderDetail() {
             onClick={handleCancelOrder}
             disabled={isCancelledOrCompleted} // Disabled if already cancelled or completed
           >
-            Cancel
+            {trans.checkOrderDetail.cancel}
           </Button>
           <Button
             variant="contained"
@@ -508,7 +515,7 @@ export default function CheckOrderDetail() {
             onClick={handleCompleteCheck}
             disabled={!isProcessing} // Only enabled if order is processing
           >
-            Hoàn thành kiểm kê
+            {trans.checkOrderDetail.completeCheck}
           </Button>
         </Box>
         {/* Snackbar for messages */}

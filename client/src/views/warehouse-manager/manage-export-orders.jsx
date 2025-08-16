@@ -42,6 +42,7 @@ import axios from 'axios';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ModalConfirm from '../../views/general/ModalConfirm';
+import useTrans from '@/hooks/useTrans';
 
 const USER_ROLES = {
   WAREHOUSEMANAGER: 'warehouse_manager',
@@ -71,6 +72,7 @@ const getStatusBadge = (status) => {
 
 export default function ManageExportOrders() {
   const router = useRouter();
+  const trans = useTrans();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -837,47 +839,47 @@ export default function ManageExportOrders() {
         </Snackbar>
       )}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Export Orders Management</Typography>
+        <Typography variant="h4">{trans.manageExportOrders.title}</Typography>
         {currentUserRole === USER_ROLES.WAREHOUSEMANAGER && (
           <Button variant="contained" color="warning" onClick={openInternalDialog}>
-            Create Internal Export Order
+            {trans.manageExportOrders.createInternalExportOrder}
           </Button>
         )}
       </Box>
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
-            label="Export Date"
+            label={trans.manageExportOrders.exportDate}
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
             size="small"
           />
-          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
-            <MenuItem value="">All</MenuItem>
+          <TextField select label={trans.manageExportOrders.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+            <MenuItem value="">{trans.manageExportOrders.all}</MenuItem>
             {['draft', 'approved', 'returned', 'rejected', 'completed', 'cancelled'].map((s) => (
               <MenuItem key={s} value={s}>
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </MenuItem>
             ))}
           </TextField>
-          <TextField select label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} size="small">
-            <MenuItem value="all">All Types</MenuItem>
-            <MenuItem value="internal">Internal</MenuItem>
-            <MenuItem value="regular">Regular</MenuItem>
+          <TextField select label={trans.manageExportOrders.type} value={filterType} onChange={(e) => setFilterType(e.target.value)} size="small">
+            <MenuItem value="all">{trans.manageExportOrders.allTypes}</MenuItem>
+            <MenuItem value="internal">{trans.manageExportOrders.internal}</MenuItem>
+            <MenuItem value="regular">{trans.manageExportOrders.regular}</MenuItem>
           </TextField>
           <FormControlLabel
             control={
               <Checkbox checked={filterAssignedToMe} onChange={(e) => setFilterAssignedToMe(e.target.checked)} disabled={!currentUserId} />
             }
-            label="Assigned to Me"
+            label={trans.manageExportOrders.assignedToMe}
           />
           <Button variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick}>
-            Search
+            {trans.manageExportOrders.search}
           </Button>
           <Button variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />}>
-            Refresh
+            {trans.manageExportOrders.refresh}
           </Button>
         </Stack>
       </Paper>
@@ -885,13 +887,13 @@ export default function ManageExportOrders() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Export Date</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Contract Code</TableCell>
-              <TableCell>Partner</TableCell>
-              <TableCell>Manager Email</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell>{trans.manageExportOrders.exportDateCol}</TableCell>
+              <TableCell>{trans.manageExportOrders.typeCol}</TableCell>
+              <TableCell>{trans.manageExportOrders.contractCode}</TableCell>
+              <TableCell>{trans.manageExportOrders.partner}</TableCell>
+              <TableCell>{trans.manageExportOrders.managerEmail}</TableCell>
+              <TableCell>{trans.manageExportOrders.statusCol}</TableCell>
+              <TableCell>{trans.manageExportOrders.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -899,7 +901,7 @@ export default function ManageExportOrders() {
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
-                    No export orders found.
+                    {trans.manageExportOrders.noExportOrdersFound}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -909,9 +911,9 @@ export default function ManageExportOrders() {
                   <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     {o.contract_id ? (
-                      <Chip label="Regular" color="primary" size="small" variant="outlined" />
+                      <Chip label={trans.manageExportOrders.regular} color="primary" size="small" variant="outlined" />
                     ) : (
-                      <Chip label="Internal" color="warning" size="small" />
+                      <Chip label={trans.manageExportOrders.internal} color="warning" size="small" />
                     )}
                   </TableCell>
                   <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
@@ -952,7 +954,7 @@ export default function ManageExportOrders() {
             handleOpenViewDetailsDialog(menuOrder);
           }}
         >
-          Detail
+          {trans.manageExportOrders.detail}
         </MenuItem>
         {currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
           !!menuOrder?.contract_id &&
@@ -963,23 +965,23 @@ export default function ManageExportOrders() {
                 handleAssignToMyself(menuOrder._id);
               }}
             >
-              Assign order to myself
+              {trans.manageExportOrders.assignOrderToMyself}
             </MenuItem>
           )}
       </Menu>
 
       <Dialog open={viewDetailsDialogOpen} onClose={handleCloseViewDetailsDialog} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ pb: 1 }}>Chi tiết Đơn hàng Xuất kho</DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>{trans.manageExportOrders.orderDetails}</DialogTitle>
         <DialogContent dividers sx={{ pt: 2 }}>
           {selectedOrder && (
             <Box>
               <Typography variant="h6" gutterBottom>
-                Thông tin đơn hàng
+                {trans.manageExportOrders.orderDetails}
               </Typography>
               <Grid container spacing={2} mb={3}>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Mã đơn hàng:
+                    {trans.manageExportOrders.orderCode}:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
                     {selectedOrder._id || 'N/A'}
@@ -987,7 +989,7 @@ export default function ManageExportOrders() {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Mã hợp đồng:
+                    {trans.manageExportOrders.contractCodeLabel}:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
                     {selectedOrder.contract_id?.contract_code || 'N/A'}
@@ -995,7 +997,7 @@ export default function ManageExportOrders() {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Người tạo:
+                    {trans.manageExportOrders.createdBy}:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
                     {selectedOrder.created_by.email}
@@ -1003,15 +1005,15 @@ export default function ManageExportOrders() {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Nhân viên phụ trách:
+                    {trans.manageExportOrders.assignedStaff}:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
-                    {selectedOrder.warehouse_manager_id?.email || 'Chưa phân công'}
+                    {selectedOrder.warehouse_manager_id?.email || trans.manageExportOrders.notAssigned}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Trạng thái:
+                    {trans.manageExportOrders.statusLabel}:
                   </Typography>
                   <Typography component="div" variant="body1" fontWeight="medium">
                     {getStatusBadge(selectedOrder.status)}
@@ -1019,7 +1021,7 @@ export default function ManageExportOrders() {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Ngày tạo:
+                    {trans.manageExportOrders.createdAt}:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
                     {new Date(selectedOrder.createdAt).toLocaleDateString('vi-VN')}
@@ -1028,7 +1030,7 @@ export default function ManageExportOrders() {
                 {(selectedOrder.status === 'completed' || selectedOrder.status === 'cancelled') && (
                   <Grid item xs={12} sm={6}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      {selectedOrder.status === 'completed' ? 'Ngày hoàn thành:' : 'Ngày hủy:'}
+                      {selectedOrder.status === 'completed' ? trans.manageExportOrders.completedAt : trans.manageExportOrders.cancelledAt}:
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
                       {(() => {
@@ -1043,7 +1045,7 @@ export default function ManageExportOrders() {
                 {selectedOrder.contract_id && (
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Tổng giá trị:
+                      {trans.manageExportOrders.totalValue}:
                     </Typography>
                     <Typography variant="body1" fontWeight="medium" color="primary.main">
                       {formatCurrency(calculateTotalValue(selectedOrder))}
@@ -1053,26 +1055,26 @@ export default function ManageExportOrders() {
                 {selectedOrder.note && (
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Ghi chú:
+                      {trans.manageExportOrders.note}:
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {selectedOrder.note || 'Không có ghi chú'}
+                      {selectedOrder.note || trans.manageExportOrders.noNote}
                     </Typography>
                   </Grid>
                 )}
               </Grid>
               <Divider sx={{ my: 3 }} />
               <Typography variant="h6" gutterBottom>
-                Chi tiết mặt hàng
+                {trans.manageExportOrders.itemDetails}
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small" aria-label="Order details table">
                   <TableHead sx={{ bgcolor: 'grey.50' }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Thuốc</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>SL Yêu cầu</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>SL Thực tế</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>Đơn vị</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageExportOrders.medicine}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageExportOrders.expectedQuantity}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageExportOrders.actualQuantity}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageExportOrders.unit}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1100,7 +1102,7 @@ export default function ManageExportOrders() {
                 handleOpenPackingDialog(selectedOrder);
               }}
             >
-              Chi Tiết Đóng gói {/* Changed button text */}
+              {trans.manageExportOrders.packingDetails}
             </Button>
           )}
           {currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
@@ -1108,10 +1110,10 @@ export default function ManageExportOrders() {
             selectedOrder?.status === 'approved' && (
               <>
                 <Button variant="contained" color="primary" onClick={() => handleCompleteOrder(selectedOrder._id)}>
-                  Hoàn thành
+                  {trans.manageExportOrders.complete}
                 </Button>
                 <Button variant="contained" color="error" onClick={() => handleCancelOrder(selectedOrder._id)}>
-                  Hủy
+                  {trans.manageExportOrders.cancel}
                 </Button>
               </>
             )}
@@ -1124,10 +1126,10 @@ export default function ManageExportOrders() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ pb: 1 }}>Chi tiết Đóng gói</DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>{trans.manageExportOrders.packingDetails}</DialogTitle>
         <DialogContent dividers sx={{ pt: 2 }}>
           <Typography variant="body2" color="text.secondary" gutterBottom>
-            Xem chi tiết đóng gói cho đơn hàng{' '}
+            {trans.manageExportOrders.packingDetailsForOrder}{' '}
             <Typography component="span" fontWeight="medium">
               {selectedOrder?.contract_id?.contract_code || 'N/A'}
             </Typography>
@@ -1147,15 +1149,15 @@ export default function ManageExportOrders() {
                     {medicineName}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Yêu cầu: {detail.expected_quantity} {unitOfMeasure}
+                                         {trans.manageExportOrders.expectedQuantity}: {detail.expected_quantity} {unitOfMeasure}
                   </Typography>
                   <Divider sx={{ mb: 2 }} />
                   <Typography variant="subtitle2" gutterBottom>
-                    Thùng hàng đã chọn:
+                    {trans.manageExportOrders.selectedPackages}:
                   </Typography>
                   {detail.selected_packages.length === 0 ? (
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Chưa có thùng hàng nào được chọn.
+                      {trans.manageExportOrders.noPackagesSelected}
                     </Typography>
                   ) : (
                     <Stack spacing={1.5} sx={{ mb: 2 }}>
@@ -1179,8 +1181,8 @@ export default function ManageExportOrders() {
                           >
                             <Typography variant="body2" flex={1}>
                               {pkg
-                                ? `${pkg.batch.batch_code}, Vị trí: ${pkg.location.area_name || 'N/A'} - ${pkg.location.bay || 'N/A'} - ${pkg.location.row || 'N/A'} - ${pkg.location.column || 'N/A'}`
-                                : 'Gói không xác định'}
+                                ? `${pkg.batch.batch_code}, ${trans.manageExportOrders.location}: ${pkg.location.area_name || 'N/A'} - ${pkg.location.bay || 'N/A'} - ${pkg.location.row || 'N/A'} - ${pkg.location.column || 'N/A'}`
+                                : trans.manageExportOrders.packageInfo}
                             </Typography>
                             <TextField
                               type="number"
@@ -1191,7 +1193,7 @@ export default function ManageExportOrders() {
                               sx={{ width: 90 }}
                               disabled={selectedOrder?.status === 'completed'} // Disabled if order is completed
                               error={isInvalidQuantity}
-                              helperText={isInvalidQuantity ? `Tối đa ${maxQuantity}` : ''}
+                              helperText={isInvalidQuantity ? `${trans.manageExportOrders.maxQuantity} ${maxQuantity}` : ''}
                             />
                             <IconButton
                               color="error"
@@ -1207,10 +1209,10 @@ export default function ManageExportOrders() {
                     </Stack>
                   )}
                   <Typography variant="body2" sx={{ mt: 2, fontWeight: 'medium' }}>
-                    Tổng chọn: {totalActualQuantity} / {detail.expected_quantity} {unitOfMeasure}
+                    {trans.manageExportOrders.totalSelected}: {totalActualQuantity} / {detail.expected_quantity} {unitOfMeasure}
                     {currentUserRole === USER_ROLES.WAREHOUSE && isQuantityDeficient && selectedOrder?.status !== 'completed' && (
                       <Typography component="span" color="error" sx={{ ml: 1 }}>
-                        (Thiếu {detail.expected_quantity - totalActualQuantity})
+                        ({trans.manageExportOrders.insufficientQuantity} {detail.expected_quantity - totalActualQuantity})
                       </Typography>
                     )}
                   </Typography>
@@ -1221,13 +1223,13 @@ export default function ManageExportOrders() {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={handleClosePackingDialog} variant="outlined" color="secondary">
-            Đóng
+            {trans.manageExportOrders.close}
           </Button>
           {selectedOrder?.status !== 'completed' &&
             currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
             selectedOrder?.warehouse_manager_id?._id === currentUserId && (
               <Button variant="contained" color="primary" onClick={handleUpdatePacking}>
-                Cập nhật
+                {trans.manageExportOrders.update}
               </Button>
             )}
         </DialogActions>
@@ -1235,15 +1237,15 @@ export default function ManageExportOrders() {
 
       {/* Create Internal Export Order Dialog */}
       <Dialog open={internalDialogOpen} onClose={closeInternalDialog} maxWidth="md" fullWidth>
-        <DialogTitle component="div">Tạo phiếu xuất hủy</DialogTitle>
+        <DialogTitle component="div">{trans.manageExportOrders.createDestructionOrder}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
             <Button variant="outlined" onClick={addInternalLine} disabled={loadingMedicines}>
-              Thêm mặt hàng
+              {trans.manageExportOrders.addItem}
             </Button>
             {internalLines.length === 0 && (
               <Typography variant="body2" color="text.secondary">
-                Chưa có mặt hàng nào. Nhấn "Thêm mặt hàng".
+                                 {trans.manageExportOrders.noItemsYet}
               </Typography>
             )}
             {internalLines.map((line, idx) => {
@@ -1254,10 +1256,10 @@ export default function ManageExportOrders() {
                   <Grid container spacing={2} alignItems="center">
                     <Grid item xs={12} sm={6} md={5}>
                       <FormControl fullWidth size="small">
-                        <InputLabel id={`medicine-${idx}`}>Thuốc</InputLabel>
+                        <InputLabel id={`medicine-${idx}`}>{trans.manageExportOrders.medicine}</InputLabel>
                         <Select
                           labelId={`medicine-${idx}`}
-                          label="Thuốc"
+                          label={trans.manageExportOrders.medicine}
                           value={line.medicine_id}
                           onChange={(e) => changeInternalMedicine(idx, e.target.value)}
                         >
@@ -1273,7 +1275,7 @@ export default function ManageExportOrders() {
                       <TextField
                         type="number"
                         size="small"
-                        label="SL cần hủy"
+                                                 label={trans.manageExportOrders.destroyQuantity}
                         value={line.destroy_total}
                         onChange={(e) => setDestroyTotal(idx, e.target.value)}
                         fullWidth
@@ -1285,15 +1287,15 @@ export default function ManageExportOrders() {
                   <Divider sx={{ my: 2 }} />
 
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                    <Typography variant="subtitle2">Chọn thùng hàng (SL tồn, nhập SL hủy → hệ thống tính SL còn lại)</Typography>
+                    <Typography variant="subtitle2">{trans.manageExportOrders.selectPackages}</Typography>
                     <Button variant="outlined" startIcon={<QrCodeScanner />} onClick={() => handleScanPackageForLine(idx)} size="small">
-                      Quét Package
+                      {trans.manageExportOrders.scanPackage}
                     </Button>
                   </Box>
 
                   {pkgList.length === 0 ? (
                     <Typography variant="body2" color="text.secondary">
-                      {line.medicine_id ? 'Chưa có thùng phù hợp hoặc chưa tải.' : 'Chọn thuốc trước.'}
+                      {line.medicine_id ? trans.manageExportOrders.noPackagesFound : trans.manageExportOrders.selectMedicineFirst}
                     </Typography>
                   ) : (
                     <Stack spacing={1.5}>
@@ -1309,13 +1311,13 @@ export default function ManageExportOrders() {
                           >
                             <Box flex={1}>
                               <Typography variant="body2" gutterBottom>
-                                <strong>Batch:</strong> {pkg.batch.batch_code} | <strong>Tồn:</strong> {pkg.quantity} |{' '}
-                                <strong>Vị trí:</strong> {pkg.location.area_name || ''}-{pkg.location.bay || ''}-{pkg.location.row || ''}-
+                                <strong>{trans.manageExportOrders.batch}:</strong> {pkg.batch.batch_code} | <strong>{trans.manageExportOrders.stock}:</strong> {pkg.quantity} |{' '}
+                                <strong>{trans.manageExportOrders.location}:</strong> {pkg.location.area_name || ''}-{pkg.location.bay || ''}-{pkg.location.row || ''}-
                                 {pkg.location.column || ''}
                               </Typography>
-                              <Tooltip title={`Full Package ID: ${pkg._id}`} arrow>
+                              <Tooltip title={`${trans.manageExportOrders.fullPackageId}: ${pkg._id}`} arrow>
                                 <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'medium', cursor: 'help' }}>
-                                  📦 Package ID: ...{pkg._id.slice(-6)}
+                                  {trans.manageExportOrders.packageId}: ...{pkg._id.slice(-6)}
                                 </Typography>
                               </Tooltip>
                             </Box>
@@ -1324,14 +1326,14 @@ export default function ManageExportOrders() {
                                 <TextField
                                   type="number"
                                   size="small"
-                                  label="SL hủy"
+                                  label={trans.manageExportOrders.destroyQuantity}
                                   value={picked.destroy_qty}
                                   onChange={(e) => changeDestroyQty(idx, pkg._id, e.target.value)}
                                   inputProps={{ min: 0, max: picked.max }}
                                   sx={{ width: 110 }}
                                 />
                                 <Typography variant="body2" sx={{ minWidth: 120 }}>
-                                  Còn lại: {picked.remaining_after}
+                                  {trans.manageExportOrders.remaining}: {picked.remaining_after}
                                 </Typography>
                                 <IconButton color="error" onClick={() => removePickPackage(idx, pkg._id)} size="small">
                                   <Delete fontSize="small" />
@@ -1339,7 +1341,7 @@ export default function ManageExportOrders() {
                               </>
                             ) : (
                               <Button variant="text" onClick={() => addPickPackage(idx, pkg._id)}>
-                                Chọn
+                                {trans.manageExportOrders.select}
                               </Button>
                             )}
                           </Box>
@@ -1349,17 +1351,17 @@ export default function ManageExportOrders() {
                   )}
 
                   <Typography variant="body2" sx={{ mt: 2 }}>
-                    Đã phân bổ hủy: {totalPicked} / {line.destroy_total}
+                                         {trans.manageExportOrders.allocatedDestroy}: {totalPicked} / {line.destroy_total}
                     {totalPicked !== line.destroy_total && (
                       <Typography component="span" color="error" sx={{ ml: 1 }}>
-                        (Chưa đủ)
+                        ({trans.manageExportOrders.insufficient})
                       </Typography>
                     )}
                   </Typography>
 
                   <Box display="flex" justifyContent="flex-end" mt={1}>
                     <Button color="error" onClick={() => removeInternalLine(idx)}>
-                      Xóa dòng
+                                             {trans.manageExportOrders.deleteLine}
                     </Button>
                   </Box>
                 </Card>
@@ -1369,10 +1371,10 @@ export default function ManageExportOrders() {
         </DialogContent>
         <DialogActions>
           <Button variant="outlined" onClick={closeInternalDialog}>
-            Đóng
+            {trans.manageExportOrders.close}
           </Button>
           <Button variant="contained" onClick={submitInternalOrder} disabled={!canSubmitInternal || creatingInternal}>
-            {creatingInternal ? 'Đang tạo...' : 'Tạo đơn'}
+            {creatingInternal ? trans.manageExportOrders.creating : trans.manageExportOrders.createOrder}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1393,7 +1395,7 @@ export default function ManageExportOrders() {
         content={messageDialog.content}
         onCancel={() => setMessageDialog({ ...messageDialog, open: false })}
         onConfirm={() => setMessageDialog({ ...messageDialog, open: false })}
-        confirmText="Đóng"
+        confirmText={trans.manageExportOrders.close}
         cancelText=""
       />
     </Box>

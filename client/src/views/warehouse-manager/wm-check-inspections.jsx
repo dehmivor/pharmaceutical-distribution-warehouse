@@ -29,12 +29,14 @@ import axios from 'axios';
 import { useParams } from 'next/navigation';
 import { useSnackbar } from 'notistack';
 import { useRouter } from 'next/navigation';
+import useTrans from '@/hooks/useTrans';
 
 const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 function CheckInspections() {
   const { enqueueSnackbar } = useSnackbar();
   const router = useRouter();
+  const trans = useTrans();
 
   // States filter, sort, search
   const [searchTerm, setSearchTerm] = useState('');
@@ -417,10 +419,10 @@ function CheckInspections() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Danh sách phiếu kiểm kê con cho 1 đợt
+            {trans.checkInspections.title}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Quản lý và theo dõi các phiếu kiểm kê cho đợt kiểm kê toàn kho
+            {trans.checkInspections.description}
           </Typography>
         </Box>
       </Box>
@@ -428,24 +430,24 @@ function CheckInspections() {
       {orderData && (
         <Alert severity="info" sx={{ mb: 3 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            Thông tin Phiếu Kiểm Kê: <strong>{orderData._id}</strong>
+            {trans.checkInspections.checkOrderInfo}: <strong>{orderData._id}</strong>
           </Typography>
           <Typography variant="body2">
-            Warehouse Manager: {orderData.warehouse_manager_id.email} | Người tạo: {orderData.created_by?.email || '-'} | Ngày kiểm kê:{' '}
-            {orderData.inventory_check_date ? new Date(orderData.inventory_check_date).toLocaleDateString('vi-VN') : '-'} | Trạng thái:{' '}
+            {trans.checkInspections.warehouseManager}: {orderData.warehouse_manager_id.email} | {trans.checkInspections.createdBy}: {orderData.created_by?.email || '-'} | {trans.checkInspections.checkDate}:{' '}
+            {orderData.inventory_check_date ? new Date(orderData.inventory_check_date).toLocaleDateString('vi-VN') : '-'} | {trans.checkInspections.status}:{' '}
             {orderData.status === 'pending'
-              ? 'chưa bắt đầu'
+              ? trans.checkInspections.notStarted
               : orderData.status === 'processing'
-                ? 'đang tiến hành'
+                ? trans.checkInspections.inProgress
                 : orderData.status === 'completed'
-                  ? 'đã hoàn thành'
+                  ? trans.checkInspections.completed
                   : orderData.status}
           </Typography>
           <Typography variant="body2" sx={{ mt: 1 }}>
-            Ghi chú: {orderData.notes || '-'}
+            {trans.checkInspections.notes}: {orderData.notes || '-'}
           </Typography>
           <Typography variant="body2" sx={{ mt: 1, fontSize: '0.875rem' }}>
-            Ngày tạo: {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString('vi-VN') : '-'} | Ngày cập nhật:{' '}
+            {trans.checkInspections.createdAt}: {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString('vi-VN') : '-'} | {trans.checkInspections.updatedAt}:{' '}
             {orderData.updatedAt ? new Date(orderData.updatedAt).toLocaleString('vi-VN') : '-'}
           </Typography>
         </Alert>
@@ -459,8 +461,8 @@ function CheckInspections() {
             fullWidth
             variant="outlined"
             size="small"
-            label="Tìm kiếm"
-            placeholder="Tìm kiếm"
+            label={trans.checkInspections.search}
+            placeholder={trans.checkInspections.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => handleFilterChange('search', e.target.value)}
             InputProps={{
@@ -476,15 +478,15 @@ function CheckInspections() {
           <TextField
             fullWidth
             select
-            label="Vị trí kho"
+            label={trans.checkInspections.warehouseLocation}
             value={filterLocation}
             onChange={(e) => handleFilterChange('location', e.target.value)}
             size="small"
           >
-            <MenuItem value="">Tất cả vị trí</MenuItem>
+            <MenuItem value="">{trans.checkInspections.allLocations}</MenuItem>
             {locationsList.map((loc) => (
               <MenuItem key={loc._id} value={loc._id}>
-                {loc.area_id?.name || 'Không xác định'} - Bay: {loc.bay}, Row: {loc.row}, Column: {loc.column}
+                {loc.area_id?.name || trans.checkInspections.unidentified} - {trans.checkInspections.bay}: {loc.bay}, {trans.checkInspections.row}: {loc.row}, {trans.checkInspections.column}: {loc.column}
               </MenuItem>
             ))}
           </TextField>
@@ -492,7 +494,7 @@ function CheckInspections() {
           {/* Lọc thời điểm cập nhật */}
           <TextField
             fullWidth
-            label="Thời điểm cập nhật"
+            label={trans.checkInspections.updateTime}
             type="date"
             value={filterDate}
             onChange={(e) => handleFilterChange('date', e.target.value)}
@@ -504,12 +506,12 @@ function CheckInspections() {
           <TextField
             fullWidth
             select
-            label="Trạng thái"
+            label={trans.checkInspections.status}
             value={filterStatus}
             onChange={(e) => handleFilterChange('status', e.target.value)}
             size="small"
           >
-            <MenuItem value="">Tất cả</MenuItem>
+            <MenuItem value="">{trans.checkInspections.all}</MenuItem>
             {statusOptions.map((s) => (
               <MenuItem key={s} value={s}>
                 {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -525,17 +527,17 @@ function CheckInspections() {
             startIcon={sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
             onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
           >
-            {sortDirection === 'asc' ? 'Tăng dần' : 'Giảm dần'}
+            {sortDirection === 'asc' ? trans.checkInspections.ascending : trans.checkInspections.descending}
           </Button>
 
           {/* Nút tìm kiếm */}
           <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
-            Search
+            {trans.checkInspections.search}
           </Button>
 
           {/* Nút reset bộ lọc */}
           <Button fullWidth size="small" variant="outlined" onClick={handleReset}>
-            Refresh
+            {trans.checkInspections.refresh}
           </Button>
         </Stack>
       </Box>
@@ -551,11 +553,13 @@ function CheckInspections() {
           <>
             <Accordion defaultExpanded sx={{ mb: 3 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="h6">Mặt hàng chưa kiểm ({uncheckedInspections.length} phiếu)</Typography>
+                <Typography variant="h6">
+                  {trans.checkInspections.uncheckedItems} ({uncheckedInspections.length} {trans.checkInspections.inspections})
+                </Typography>
               </AccordionSummary>
               <AccordionDetails>
                 {uncheckedInspections.length === 0 ? (
-                  <Typography>Không có phiếu kiểm kê chưa kiểm.</Typography>
+                  <Typography>{trans.checkInspections.noUncheckedInspections}</Typography>
                 ) : (
                   <Stack spacing={2}>
                     {uncheckedInspections.map((inspection) => (
@@ -566,23 +570,23 @@ function CheckInspections() {
                         elevation={0}
                       >
                         <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-                          Vị trí: {getLocationLabel(inspection.location)} - Trạng thái:{' '}
+                          {trans.checkInspections.location}: {getLocationLabel(inspection.location)} - {trans.checkInspections.status}:{' '}
                           {inspection.status === 'draft'
-                            ? 'Chưa kiểm'
+                            ? trans.checkInspections.draft
                             : inspection.status === 'checking'
-                              ? 'Đang kiểm'
+                              ? trans.checkInspections.checking
                               : inspection.status === 'checked'
-                                ? 'Đã kiểm'
+                                ? trans.checkInspections.checked
                                 : inspection.status}
                         </Typography>
 
                         <Table size="small" aria-label="check-list-items">
                           <TableHead>
                             <TableRow>
-                              <TableCell>Tên thuốc</TableCell>
-                              <TableCell>License code</TableCell>
-                              <TableCell align="right">Số lượng dự kiến</TableCell>
-                              <TableCell align="right">Số lượng thực tế</TableCell>
+                              <TableCell>{trans.checkInspections.medicineName}</TableCell>
+                              <TableCell>{trans.checkInspections.licenseCode}</TableCell>
+                              <TableCell align="right">{trans.checkInspections.expectedQuantity}</TableCell>
+                              <TableCell align="right">{trans.checkInspections.actualQuantity}</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
@@ -603,7 +607,7 @@ function CheckInspections() {
                         </Table>
 
                         <Typography variant="body2" sx={{ mt: 1 }}>
-                          Ghi chú: {inspection.notes || '-'}
+                          {trans.checkInspections.notes}: {inspection.notes || '-'}
                         </Typography>
                       </Paper>
                     ))}
@@ -615,11 +619,13 @@ function CheckInspections() {
             {/* Hiển thị nhóm phiếu "đã kiểm" */}
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="h6">Mặt hàng đã kiểm ({checkedInspections.length} phiếu)</Typography>
+                <Typography variant="h6">
+                  {trans.checkInspections.checkedItems} ({checkedInspections.length} {trans.checkInspections.inspections})
+                </Typography>
               </AccordionSummary>
               <AccordionDetails>
                 {checkedInspections.length === 0 ? (
-                  <Typography>Không có phiếu kiểm kê đã kiểm.</Typography>
+                  <Typography>{trans.checkInspections.noCheckedInspections}</Typography>
                 ) : (
                   <>
                     <Stack spacing={2}>
@@ -637,10 +643,10 @@ function CheckInspections() {
                           <Table size="small" aria-label="check-list-items">
                             <TableHead>
                               <TableRow>
-                                <TableCell>Tên thuốc</TableCell>
-                                <TableCell>License code</TableCell>
-                                <TableCell align="right">Số lượng dự kiến</TableCell>
-                                <TableCell align="right">Số lượng thực tế</TableCell>
+                                <TableCell>{trans.checkInspections.medicineName}</TableCell>
+                                <TableCell>{trans.checkInspections.licenseCode}</TableCell>
+                                <TableCell align="right">{trans.checkInspections.expectedQuantity}</TableCell>
+                                <TableCell align="right">{trans.checkInspections.actualQuantity}</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
@@ -661,7 +667,7 @@ function CheckInspections() {
                           </Table>
 
                           <Typography variant="body2" sx={{ mt: 1 }}>
-                            Ghi chú: {inspection.notes || '-'}
+                            {trans.checkInspections.notes}: {inspection.notes || '-'}
                           </Typography>
                         </Paper>
                       ))}
@@ -675,7 +681,7 @@ function CheckInspections() {
                       rowsPerPage={rowsPerPage}
                       onRowsPerPageChange={handleChangeRowsPerPage}
                       rowsPerPageOptions={[5, 10, 25, 50]}
-                      labelRowsPerPage="Số hàng mỗi trang:"
+                      labelRowsPerPage={trans.checkInspections.rowsPerPage}
                       labelDisplayedRows={({ from, to, count }) => `${from}-${to} trong ${count !== -1 ? count : `hơn ${to}`}`}
                       sx={{ mt: 2 }}
                     />

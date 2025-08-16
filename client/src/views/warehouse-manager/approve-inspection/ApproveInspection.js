@@ -35,9 +35,11 @@ import LinearProgress from '@mui/material/LinearProgress';
 import { useTheme } from '@mui/material/styles';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 function ApproveInspection() {
   const theme = useTheme();
+  const trans = useTrans();
   const { fetchInspectionForApprove, loading, error } = useInspection();
   const [orders, setOrders] = useState([]);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
@@ -67,7 +69,7 @@ function ApproveInspection() {
       } catch (err) {
         setSnackbar({
           open: true,
-          message: `Lỗi khi tải dữ liệu: ${err.message}`,
+          message: `${trans.approveInspection.errorLoadingData}: ${err.message}`,
           severity: 'error'
         });
       }
@@ -81,7 +83,7 @@ function ApproveInspection() {
     if (!order) {
       setSnackbar({
         open: true,
-        message: 'Không tìm thấy đơn nhập!',
+        message: trans.approveInspection.orderNotFound,
         severity: 'warning'
       });
       return;
@@ -93,7 +95,7 @@ function ApproveInspection() {
     if (importItems.length !== inspections.length) {
       setSnackbar({
         open: true,
-        message: 'Số mặt hàng và số phiếu kiểm kê không khớp!',
+        message: trans.approveInspection.itemCountMismatch,
         severity: 'warning'
       });
       return;
@@ -108,7 +110,7 @@ function ApproveInspection() {
       if (!inspection) {
         setSnackbar({
           open: true,
-          message: `Thiếu phiếu kiểm kê cho mặt hàng ${item.medicine_id?.medicine_name || item.medicine_id}`,
+          message: `${trans.approveInspection.missingInspection} ${item.medicine_id?.medicine_name || item.medicine_id}`,
           severity: 'warning'
         });
         return;
@@ -116,7 +118,7 @@ function ApproveInspection() {
       if (inspection.actual_quantity < 0.9 * item.quantity) {
         setSnackbar({
           open: true,
-          message: `Số lượng thực nhập của mặt hàng ${item.medicine_id?.medicine_name || item.medicine_id} chưa đạt 90% yêu cầu!`,
+          message: `${trans.approveInspection.quantityNotMet} ${item.medicine_id?.medicine_name || item.medicine_id}`,
           severity: 'warning'
         });
         return;
@@ -135,13 +137,13 @@ function ApproveInspection() {
 
       setSnackbar({
         open: true,
-        message: `Đơn nhập ${importOrderId.slice(-6)} đã được cập nhật trạng thái kiểm tra!`,
+        message: `${trans.approveInspection.orderStatusUpdated} ${importOrderId.slice(-6)}!`,
         severity: 'success'
       });
     } catch (err) {
       setSnackbar({
         open: true,
-        message: `Lỗi khi cập nhật trạng thái: ${err.response?.data?.error || err.message}`,
+        message: `${trans.approveInspection.errorUpdatingStatus}: ${err.response?.data?.error || err.message}`,
         severity: 'error'
       });
     }
@@ -207,13 +209,13 @@ function ApproveInspection() {
       );
       setSnackbar({
         open: true,
-        message: 'Đã xóa phiếu kiểm nhập thành công!',
+        message: trans.approveInspection.inspectionDeletedSuccess,
         severity: 'success'
       });
     } catch (error) {
       setSnackbar({
         open: true,
-        message: error.response?.data?.message || 'Lỗi xóa phiếu kiểm nhập!',
+        message: error.response?.data?.message || trans.approveInspection.errorDeletingInspection,
         severity: 'error'
       });
     }
@@ -226,25 +228,25 @@ function ApproveInspection() {
       case 'delivered':
         return {
           icon: <LocalShippingIcon color="info" fontSize="small" />,
-          label: 'Đã giao',
+          label: trans.approveInspection.delivered,
           color: 'info'
         };
       case 'checked':
         return {
           icon: <CheckCircleIcon color="success" fontSize="small" />,
-          label: 'Đã kiểm tra',
+          label: trans.approveInspection.checked,
           color: 'success'
         };
       case 'pending':
         return {
           icon: <HourglassEmptyIcon color="warning" fontSize="small" />,
-          label: 'Chờ xử lý',
+          label: trans.approveInspection.pending,
           color: 'warning'
         };
       case 'cancelled':
         return {
           icon: <CancelIcon color="error" fontSize="small" />,
-          label: 'Đã hủy',
+          label: trans.approveInspection.cancelled,
           color: 'error'
         };
       default:
@@ -261,9 +263,9 @@ function ApproveInspection() {
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h5">Quản lý kiểm kê nhập kho</Typography>
+        <Typography variant="h5">{trans.approveInspection.title}</Typography>
         <Button variant="contained" color="primary" onClick={() => handleCompleteOrder(selectedOrderId)} disabled={!selectedOrderId}>
-          Hoàn thành kiểm tra
+          {trans.approveInspection.completeInspection}
         </Button>
       </Box>
 
@@ -279,7 +281,7 @@ function ApproveInspection() {
         <Box display="flex" gap={2} flexWrap="wrap">
           <Box minWidth={280} flexShrink={0}>
             <Typography variant="h6" mb={1}>
-              Danh sách đơn nhập
+              {trans.approveInspection.importOrderList}
             </Typography>
             <Box
               sx={{
@@ -313,7 +315,7 @@ function ApproveInspection() {
                           {/* Thông tin chính */}
                           <Box flex={1}>
                             <Typography variant="subtitle1" fontWeight={600}>
-                              Đơn: {order.importOrder._id.slice(-6)}
+                              {trans.approveInspection.order}: {order.importOrder._id.slice(-6)}
                             </Typography>
                             <Stack direction="row" spacing={1} alignItems="center" mt={0.5}>
                               {/* Chip trạng thái */}
@@ -353,25 +355,25 @@ function ApproveInspection() {
               <>
                 <Box mb={2}>
                   <Typography variant="h6" gutterBottom>
-                    Danh sách phiếu kiểm kê cho đơn {selectedOrder.importOrder._id.slice(-6)}
+                    {trans.approveInspection.inspectionListForOrder} {selectedOrder.importOrder._id.slice(-6)}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Tổng số phiếu kiểm kê: <b>{selectedOrder.inspections.length}</b>
+                    {trans.approveInspection.totalInspections}: <b>{selectedOrder.inspections.length}</b>
                   </Typography>
                 </Box>
                 <TableContainer>
                   <Table size="medium">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Số thứ tự</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>{trans.approveInspection.serialNumber}</TableCell>
                         <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>
-                          Inspection ID
+                          {trans.approveInspection.inspectionId}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Tên thuốc</TableCell>
-                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Thực nhập</TableCell>
-                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Số loại bỏ</TableCell>
-                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Người tạo</TableCell>
-                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>Hành động</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>{trans.approveInspection.medicineName}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>{trans.approveInspection.actualQuantity}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>{trans.approveInspection.rejectedQuantity}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>{trans.approveInspection.createdBy}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>{trans.approveInspection.actions}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -390,7 +392,7 @@ function ApproveInspection() {
                           <TableCell>{insp.rejected_quantity}</TableCell>
                           <TableCell>{insp.created_by?.email || '-'}</TableCell>
                           <TableCell>
-                            <Tooltip title="Xóa phiếu kiểm nhập">
+                            <Tooltip title={trans.approveInspection.deleteInspection}>
                               <span>
                                 <IconButton color="error" size="small" onClick={() => handleDeleteInspection(insp._id)}>
                                   <DeleteIcon />
@@ -406,7 +408,7 @@ function ApproveInspection() {
               </>
             ) : (
               <Typography variant="body2" color="text.secondary" align="center" py={4}>
-                {orders.length === 0 ? 'Không có đơn nhập nào' : 'Vui lòng chọn một đơn nhập để xem phiếu kiểm kê'}
+                {orders.length === 0 ? trans.approveInspection.noImportOrders : trans.approveInspection.pleaseSelectOrder}
               </Typography>
             )}
           </Box>
@@ -427,7 +429,7 @@ function ApproveInspection() {
       {selectedOrderId && (
         <Accordion sx={{ mt: 2 }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography fontWeight={600}>Tiến độ kiểm kê từng mặt hàng</Typography>
+            <Typography fontWeight={600}>{trans.approveInspection.inspectionProgress}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             {selectedOrder.importOrder.details.map((item, idx) => {
@@ -441,7 +443,7 @@ function ApproveInspection() {
               return (
                 <Box key={item._id || idx} mb={2}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center" mb={0.5}>
-                    <Typography variant="subtitle2">{item.medicine_id?.medicine_name || 'Mặt hàng'}</Typography>
+                    <Typography variant="subtitle2">{item.medicine_id?.medicine_name || trans.approveInspection.medicineName}</Typography>
                     <Typography variant="caption" color={percent >= 90 ? 'success.main' : 'warning.main'}>
                       {actual} / {item.quantity} ({percent}%)
                     </Typography>

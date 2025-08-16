@@ -50,6 +50,7 @@ import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import bwipjs from 'bwip-js/browser';
+import useTrans from '@/hooks/useTrans';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -89,6 +90,7 @@ const getStatusLabel = (status) => {
 
 const InternalImportOrderDetail = ({ orderId }) => {
   const router = useRouter();
+  const trans = useTrans();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -166,7 +168,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
       if (!token) {
         setSnackbar({
           open: true,
-          message: 'Authentication required. Please login again.',
+          message: trans.internalImportOrderDetail.authenticationRequired,
           severity: 'error'
         });
         return;
@@ -185,13 +187,13 @@ const InternalImportOrderDetail = ({ orderId }) => {
         if (newStatus === 'checked') {
           setSnackbar({
             open: true,
-            message: 'Order status updated to checked. Please create batches for inventory.',
+            message: trans.internalImportOrderDetail.orderStatusUpdatedToChecked,
             severity: 'info'
           });
         } else {
           setSnackbar({
             open: true,
-            message: 'Order status updated successfully',
+            message: trans.internalImportOrderDetail.orderStatusUpdatedSuccessfully,
             severity: 'success'
           });
         }
@@ -202,13 +204,13 @@ const InternalImportOrderDetail = ({ orderId }) => {
       if (error.response?.status === 401) {
         setSnackbar({
           open: true,
-          message: 'Authentication failed. Please login again.',
+          message: trans.internalImportOrderDetail.authenticationFailed,
           severity: 'error'
         });
       } else {
         setSnackbar({
           open: true,
-          message: error.response?.data?.error || 'Failed to update order status',
+          message: error.response?.data?.error || trans.internalImportOrderDetail.failedToUpdateOrderStatus,
           severity: 'error'
         });
       }
@@ -347,7 +349,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
         setOrder(response.data.data);
         setSnackbar({
           open: true,
-          message: 'Inspection completed successfully. Order status updated to checked.',
+          message: trans.internalImportOrderDetail.inspectionCompletedSuccessfully,
           severity: 'success'
         });
         setConfirmFinishInspection(false);
@@ -356,7 +358,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
       console.error('Error completing inspection:', error);
       setSnackbar({
         open: true,
-        message: error.response?.data?.error || 'Failed to complete inspection',
+        message: error.response?.data?.error || trans.internalImportOrderDetail.failedToCompleteInspection,
         severity: 'error'
       });
     }
@@ -488,7 +490,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
       console.error('Error printing label', err);
       setSnackbar({
         open: true,
-        message: 'Không thể tạo nhãn mã vạch.',
+        message: trans.internalImportOrderDetail.cannotCreateBarcodeLabel,
         severity: 'error'
       });
     }
@@ -566,14 +568,14 @@ const InternalImportOrderDetail = ({ orderId }) => {
 
       setSnackbar({
         open: true,
-        message: 'Packages created successfully. Order status updated to arranged.',
+        message: trans.internalImportOrderDetail.packagesCreatedSuccessfully,
         severity: 'success'
       });
     } catch (err) {
       console.error(err);
       setSnackbar({
         open: true,
-        message: 'Error creating batches/packages',
+        message: trans.internalImportOrderDetail.errorCreatingBatchesPackages,
         severity: 'error'
       });
     } finally {
@@ -597,7 +599,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
 
         setSnackbar({
           open: true,
-          message: 'Order finalized successfully.',
+          message: trans.internalImportOrderDetail.orderFinalizedSuccessfully,
           severity: 'success'
         });
       }
@@ -605,7 +607,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
       console.error('Lỗi khi cập nhật trạng thái đơn:', err);
       setSnackbar({
         open: true,
-        message: 'Lỗi khi cập nhật trạng thái đơn',
+        message: trans.internalImportOrderDetail.errorUpdatingOrderStatus,
         severity: 'error'
       });
     }
@@ -712,7 +714,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
     if (newBatches.length === 0) {
       setSnackbar({
         open: true,
-        message: 'No batches to create',
+        message: trans.internalImportOrderDetail.noBatchesToCreate,
         severity: 'warning'
       });
       return;
@@ -754,7 +756,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
 
       setSnackbar({
         open: true,
-        message: 'Batches and packages created successfully',
+        message: trans.internalImportOrderDetail.batchesAndPackagesCreatedSuccessfully,
         severity: 'success'
       });
 
@@ -764,7 +766,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
       console.error('Error creating batches:', error);
       setSnackbar({
         open: true,
-        message: error.response?.data?.message || 'Failed to create batches',
+        message: error.response?.data?.message || trans.internalImportOrderDetail.failedToCreateBatches,
         severity: 'error'
       });
     } finally {
@@ -785,7 +787,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
         setOrder((prev) => ({ ...prev, status: 'delivered' }));
         setSnackbar({
           open: true,
-          message: 'Order status updated to delivered.',
+          message: trans.internalImportOrderDetail.orderStatusUpdatedToDelivered,
           severity: 'success'
         });
         await fetchPutAway(); // Refresh packages after arrival
@@ -794,7 +796,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
       console.error('Error updating order status to delivered:', err);
       setSnackbar({
         open: true,
-        message: err.response?.data?.error || 'Failed to update order status to delivered',
+        message: err.response?.data?.error || trans.internalImportOrderDetail.failedToUpdateOrderStatusToDelivered,
         severity: 'error'
       });
     }
@@ -838,10 +840,10 @@ const InternalImportOrderDetail = ({ orderId }) => {
         </IconButton>
         <Box>
           <Typography variant="h4" component="h1">
-            Internal Import Order #{order._id}
+            {trans.internalImportOrderDetail.title} #{order._id}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Internal order for returned goods or inventory corrections
+            {trans.internalImportOrderDetail.description}
           </Typography>
         </Box>
       </Box>
@@ -853,14 +855,14 @@ const InternalImportOrderDetail = ({ orderId }) => {
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6" fontWeight="bold">
-                Order Detail
+                {trans.internalImportOrderDetail.orderDetail}
               </Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2} mb={2} alignItems="center">
                 <Grid item xs={12} sm={3}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Status:
+                    {trans.internalImportOrderDetail.status}:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
                     {order.status}
@@ -868,7 +870,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
                 </Grid>
                 <Grid item xs={12} sm={3}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Contract:
+                    {trans.internalImportOrderDetail.contract}:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
                     N/A
@@ -876,7 +878,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
                 </Grid>
                 <Grid item xs={12} sm={3}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Supplier:
+                    {trans.internalImportOrderDetail.supplier}:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
                     N/A
@@ -889,7 +891,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
               <Divider sx={{ mb: 2 }} />
 
               <Typography variant="subtitle1" mb={1} fontWeight="bold">
-                Items:
+                {trans.internalImportOrderDetail.items}:
               </Typography>
               <Stack spacing={1} mb={2}>
                 {order.details?.map((d) => (
@@ -908,7 +910,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6">Inspection</Typography>
+              <Typography variant="h6">{trans.internalImportOrderDetail.inspection}</Typography>
               <IconButton size="small" onClick={fetchInspection}>
                 <RefreshIcon />
               </IconButton>
@@ -918,10 +920,10 @@ const InternalImportOrderDetail = ({ orderId }) => {
               <Table size="medium">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Medicine</TableCell>
-                    <TableCell>Thực nhập</TableCell>
-                    <TableCell>Số loại bỏ</TableCell>
-                    <TableCell>Hành động</TableCell>
+                    <TableCell>{trans.internalImportOrderDetail.medicine}</TableCell>
+                    <TableCell>{trans.internalImportOrderDetail.actualQuantity}</TableCell>
+                    <TableCell>{trans.internalImportOrderDetail.rejectedQuantity}</TableCell>
+                    <TableCell>{trans.internalImportOrderDetail.actions}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -955,7 +957,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
                 onClick={onFinishClickInspection}
                 color={confirmFinishInspection ? 'warning' : 'primary'}
               >
-                {confirmFinishInspection ? 'Continue ?' : 'Finish Inspection'}
+                {confirmFinishInspection ? trans.internalImportOrderDetail.continue : trans.internalImportOrderDetail.finishInspection}
               </Button>
             </Box>
           </CardContent>
@@ -967,7 +969,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              Packages
+              {trans.internalImportOrderDetail.packages}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Create packages for inventory management
@@ -983,7 +985,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
                 return (
                   <Stack key={idx} direction="row" spacing={2} alignItems="center">
                     <FormControl sx={{ flex: 1 }} disabled={isCompleted}>
-                      <InputLabel>Batch</InputLabel>
+                      <InputLabel>{trans.internalImportOrderDetail.batch}</InputLabel>
                       <Select size="small" value={p.batch_id} onChange={(e) => handlePkgChange(idx, 'batch_id', e.target.value)}>
                         {allBatchOptions.map((opt) => (
                           <MenuItem key={opt.id} value={opt.id}>
@@ -994,7 +996,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
                     </FormControl>
                     <TextField
                       size="small"
-                      label="Quantity"
+                      label={trans.internalImportOrderDetail.quantity}
                       type="number"
                       value={p.quantity}
                       onChange={(e) => handlePkgChange(idx, 'quantity', e.target.value)}
@@ -1009,7 +1011,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
               })}
 
               <Button onClick={addPackageRow} size="small" disabled={isCompleted}>
-                + Add Package
+                {trans.internalImportOrderDetail.addPackage}
               </Button>
 
               <Divider />
@@ -1017,11 +1019,11 @@ const InternalImportOrderDetail = ({ orderId }) => {
               {/* VALIDITY STATUS */}
               {isValid ? (
                 <Alert severity="success" sx={{ mb: 2 }}>
-                  Valid input
+                  {trans.internalImportOrderDetail.validInput}
                 </Alert>
               ) : (
                 <Alert severity="error" sx={{ mb: 2 }}>
-                  Invalid input
+                  {trans.internalImportOrderDetail.invalidInput}
                   {Object.entries(netByMedicine)
                     .map(([license, netQty]) => {
                       const packedQty = packedByMedicine[license] || 0;
@@ -1042,7 +1044,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
                 disabled={!isValid || saving || isCompleted} 
                 onClick={handleContinuePackages}
               >
-                {saving ? 'Saving…' : 'Continue to Put Away'}
+                {saving ? trans.internalImportOrderDetail.saving : trans.internalImportOrderDetail.continueToPutAway}
               </Button>
             </Stack>
           </CardContent>
@@ -1054,7 +1056,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              Put Away
+              {trans.internalImportOrderDetail.putAway}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Manage package locations
@@ -1068,16 +1070,16 @@ const InternalImportOrderDetail = ({ orderId }) => {
               {loadingPutAway ? (
                 <CircularProgress />
               ) : putAway.length === 0 ? (
-                <Typography>No packages yet.</Typography>
+                <Typography>{trans.internalImportOrderDetail.noPackagesYet}</Typography>
               ) : (
                 <Paper>
                   <Table size="small">
                     <TableHead>
                       <TableRow>
-                        <TableCell>Batch</TableCell>
-                        <TableCell>Qty</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Action</TableCell>
+                        <TableCell>{trans.internalImportOrderDetail.batch}</TableCell>
+                        <TableCell>{trans.internalImportOrderDetail.quantity}</TableCell>
+                        <TableCell>{trans.internalImportOrderDetail.status}</TableCell>
+                        <TableCell>{trans.internalImportOrderDetail.actions}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1087,7 +1089,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
                             {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
                           </TableCell>
                           <TableCell>{pkg.quantity}</TableCell>
-                          <TableCell>{pkg.location_id ? 'Arranged' : 'Unarranged'}</TableCell>
+                          <TableCell>{pkg.location_id ? trans.internalImportOrderDetail.arranged : trans.internalImportOrderDetail.unarranged}</TableCell>
                           <TableCell>
                             {pkg.location_id && (
                               <IconButton size="small" color="error" onClick={() => handleClearLocation(pkg._id)} disabled={isCompleted}>
@@ -1110,7 +1112,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
                 disabled={isCompleted || !putAway.length || !putAway.every((p) => p.location_id)}
                 onClick={handleFinalize}
               >
-                Finalize
+                {trans.internalImportOrderDetail.finalize}
               </Button>
             </Stack>
           </CardContent>
@@ -1124,16 +1126,16 @@ const InternalImportOrderDetail = ({ orderId }) => {
 
       {/* Create Batch Dialog */}
       <Dialog open={batchDialogOpen} onClose={closeBatchDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Create New Batch</DialogTitle>
+        <DialogTitle>{trans.internalImportOrderDetail.createNewBatch}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <FormControl fullWidth>
-                <InputLabel>Medicine</InputLabel>
+                <InputLabel>{trans.internalImportOrderDetail.medicine}</InputLabel>
                 <Select
                   value={newMedicineId}
                   onChange={(e) => setNewMedicineId(e.target.value)}
-                  label="Medicine"
+                  label={trans.internalImportOrderDetail.medicine}
                 >
                   {order?.details?.map((detail) => (
                     <MenuItem key={detail.medicine_id._id} value={detail.medicine_id._id}>
@@ -1146,7 +1148,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Batch Code"
+                label={trans.internalImportOrderDetail.batchCode}
                 value={newBatchCode}
                 onChange={(e) => setNewBatchCode(e.target.value)}
                 placeholder="e.g., BATCH-2024-001"
@@ -1155,7 +1157,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
             <Grid item xs={6}>
               <TextField
                 fullWidth
-                label="Production Date"
+                label={trans.internalImportOrderDetail.productionDate}
                 type="date"
                 value={newProdDate}
                 onChange={(e) => setNewProdDate(e.target.value)}
@@ -1165,7 +1167,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
             <Grid item xs={6}>
               <TextField
                 fullWidth
-                label="Expiry Date"
+                label={trans.internalImportOrderDetail.expiryDate}
                 type="date"
                 value={newExpiryDate}
                 onChange={(e) => setNewExpiryDate(e.target.value)}
@@ -1181,14 +1183,14 @@ const InternalImportOrderDetail = ({ orderId }) => {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeBatchDialog}>
-            Cancel
+            {trans.internalImportOrderDetail.cancel}
           </Button>
           <Button
             onClick={handleCreateBatch}
             variant="contained"
             disabled={!newMedicineId || !newBatchCode || !newProdDate || !newExpiryDate}
           >
-            Create Batch
+            {trans.internalImportOrderDetail.createBatch}
           </Button>
         </DialogActions>
       </Dialog>
