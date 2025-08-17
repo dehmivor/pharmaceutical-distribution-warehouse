@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import React from 'react';
 import {
   Box,
@@ -43,7 +43,6 @@ import WarehouseManagerChart from '@/sections/dashboard/WarehouseManagerChart';
 import useWarehouseManagerDashboard from '@/hooks/useWarehouseManagerDashboard';
 import DashboardStats from '@/components/DashboardStats';
 import useTrans from '@/hooks/useTrans';
-
 
 const StatCard = ({ title, value, icon, color, subtitle }) => (
   <Card sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
@@ -100,40 +99,35 @@ const RecentOrdersTable = ({ orders, title }) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {orders && orders.slice(0, 5).map((order) => (
-                <TableRow key={order.id || order._id} hover>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                      {(order.id || order._id || '').toString().slice(-8).toUpperCase()}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={order.status || trans.warehouseManagerDashboard.unknown}
-                      size="small"
-                      color={
-                        order.status === 'completed'
-                          ? 'success'
-                          : order.status === 'pending'
-                          ? 'warning'
-                          : 'default'
-                      }
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : trans.common.notAvailable}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip title={trans.warehouseManagerDashboard.viewDetails}>
-                      <IconButton size="small" color="primary">
-                        <VisibilityIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {orders &&
+                orders.slice(0, 5).map((order) => (
+                  <TableRow key={order.id || order._id} hover>
+                    <TableCell>
+                      <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                        {(order.id || order._id || '').toString().slice(-8).toUpperCase()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={order.status || trans.warehouseManagerDashboard.unknown}
+                        size="small"
+                        color={order.status === 'completed' ? 'success' : order.status === 'pending' ? 'warning' : 'default'}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : trans.common.notAvailable}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip title={trans.warehouseManagerDashboard.viewDetails}>
+                        <IconButton size="small" color="primary">
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </TableContainer>
@@ -207,9 +201,7 @@ const AlertsSection = ({ alerts }) => {
           {(alerts || []).map((alert, index) => (
             <React.Fragment key={index}>
               <ListItem sx={{ px: 0 }}>
-                <ListItemIcon>
-                  {getAlertIcon(alert.severity)}
-                </ListItemIcon>
+                <ListItemIcon>{getAlertIcon(alert.severity)}</ListItemIcon>
                 <ListItemText
                   primary={
                     <Typography variant="subtitle2" sx={{ fontWeight: 'medium' }}>
@@ -227,11 +219,7 @@ const AlertsSection = ({ alerts }) => {
                     </Box>
                   }
                 />
-                <Chip
-                  label={alert.severity}
-                  size="small"
-                  color={getAlertColor(alert.severity)}
-                />
+                <Chip label={alert.severity} size="small" color={getAlertColor(alert.severity)} />
               </ListItem>
               {index < alerts.length - 1 && <Divider />}
             </React.Fragment>
@@ -248,7 +236,7 @@ const DashboardSkeleton = () => (
       <Skeleton variant="text" width={300} height={40} />
       <Skeleton variant="circular" width={40} height={40} />
     </Box>
-    
+
     {/* Statistics Cards Skeleton */}
     <Grid container spacing={3} sx={{ mb: 4 }}>
       {[1, 2, 3, 4].map((item) => (
@@ -263,7 +251,7 @@ const DashboardSkeleton = () => (
         </Grid>
       ))}
     </Grid>
-    
+
     {/* Chart Skeleton */}
     <Card sx={{ mb: 4 }}>
       <CardContent>
@@ -271,7 +259,7 @@ const DashboardSkeleton = () => (
         <Skeleton variant="rectangular" width="100%" height={300} />
       </CardContent>
     </Card>
-    
+
     {/* Tables Skeleton */}
     <Grid container spacing={3}>
       {[1, 2, 3].map((item) => (
@@ -314,48 +302,48 @@ const TopMedicinesSection = ({ topMedicines }) => {
   }
 
   return (
-  <Card sx={{ height: '100%' }}>
-    <CardContent>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <MedicationIcon color="primary" />
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          {trans.warehouseManagerDashboard.topMedicines}
-        </Typography>
-      </Box>
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>{trans.warehouseManagerDashboard.medicineName}</TableCell>
-              <TableCell>{trans.warehouseManagerDashboard.totalImported}</TableCell>
-              <TableCell>{trans.warehouseManagerDashboard.totalValue}</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {(topMedicines || []).map((medicine) => (
-              <TableRow key={medicine.id} hover>
-                <TableCell>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                    {medicine.name}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="primary">
-                    {medicine.totalImported?.toLocaleString() || 0}
-                  </Typography>
-                </TableCell>
-                                  <TableCell>
+    <Card sx={{ height: '100%' }}>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <MedicationIcon color="primary" />
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            {trans.warehouseManagerDashboard.topMedicines}
+          </Typography>
+        </Box>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>{trans.warehouseManagerDashboard.medicineName}</TableCell>
+                <TableCell>{trans.warehouseManagerDashboard.totalImported}</TableCell>
+                <TableCell>{trans.warehouseManagerDashboard.totalValue}</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {(topMedicines || []).map((medicine) => (
+                <TableRow key={medicine.id} hover>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                      {medicine.name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color="primary">
+                      {medicine.totalImported?.toLocaleString() || 0}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
                     <Typography variant="body2" color="text.secondary">
                       {medicine.totalValue?.toLocaleString() || 0} {trans.common.currency}
                     </Typography>
                   </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </CardContent>
-  </Card>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -389,22 +377,24 @@ const WarehouseManagerDashboard = () => {
           )}
         </Box>
         <Tooltip title={trans.warehouseManagerDashboard.refreshDashboard}>
-          <IconButton 
-            onClick={refreshDashboard} 
+          <IconButton
+            onClick={refreshDashboard}
             color="primary"
             disabled={refreshing}
-            sx={{ 
+            sx={{
               backgroundColor: 'primary.light',
               '&:hover': { backgroundColor: 'primary.main', color: 'white' }
             }}
           >
-            <RefreshIcon sx={{ 
-              animation: refreshing ? 'spin 1s linear infinite' : 'none',
-              '@keyframes spin': {
-                '0%': { transform: 'rotate(0deg)' },
-                '100%': { transform: 'rotate(360deg)' }
-              }
-            }} />
+            <RefreshIcon
+              sx={{
+                animation: refreshing ? 'spin 1s linear infinite' : 'none',
+                '@keyframes spin': {
+                  '0%': { transform: 'rotate(0deg)' },
+                  '100%': { transform: 'rotate(360deg)' }
+                }
+              }}
+            />
           </IconButton>
         </Tooltip>
       </Box>
@@ -502,16 +492,10 @@ const WarehouseManagerDashboard = () => {
       {/* Recent Orders and Low Stock */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={6}>
-          <RecentOrdersTable
-            orders={dashboardData.recentImportOrders || []}
-            title={trans.warehouseManagerDashboard.recentImportOrders}
-          />
+          <RecentOrdersTable orders={dashboardData.recentImportOrders || []} title={trans.warehouseManagerDashboard.recentImportOrders} />
         </Grid>
         <Grid item xs={12} md={6}>
-          <RecentOrdersTable
-            orders={dashboardData.recentExportOrders || []}
-            title={trans.warehouseManagerDashboard.recentExportOrders}
-          />
+          <RecentOrdersTable orders={dashboardData.recentExportOrders || []} title={trans.warehouseManagerDashboard.recentExportOrders} />
         </Grid>
       </Grid>
 
@@ -562,7 +546,12 @@ const WarehouseManagerDashboard = () => {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={item.status || (item.currentStock === 0 ? trans.warehouseManagerDashboard.outOfStock : trans.warehouseManagerDashboard.lowStock)}
+                            label={
+                              item.status ||
+                              (item.currentStock === 0
+                                ? trans.warehouseManagerDashboard.outOfStock
+                                : trans.warehouseManagerDashboard.lowStock)
+                            }
                             size="small"
                             color={item.status === 'critical' || item.currentStock === 0 ? 'error' : 'warning'}
                           />
@@ -580,4 +569,4 @@ const WarehouseManagerDashboard = () => {
   );
 };
 
-export default WarehouseManagerDashboard; 
+export default WarehouseManagerDashboard;

@@ -111,7 +111,7 @@ const ContractManagement = () => {
     if (isLoading) {
       return;
     }
-    
+
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -177,8 +177,6 @@ const ContractManagement = () => {
     }
   };
 
-
-
   // Handle add contract success
   const handleAddContractSuccess = () => {
     setSuccess(trans.common.addContractSuccess);
@@ -206,7 +204,7 @@ const ContractManagement = () => {
         fetchContracts();
       }
     } catch (error) {
-              setError(error.response?.data?.message || trans.common.errorOccurred);
+      setError(error.response?.data?.message || trans.common.errorOccurred);
     }
   };
 
@@ -295,9 +293,9 @@ const ContractManagement = () => {
       if (response.data.success) {
         const actionMessages = {
           confirm: trans.common.confirmAction,
-                  reject: trans.common.cancel,
-        cancel: trans.common.cancel,
-        draft: trans.common.cancel
+          reject: trans.common.cancel,
+          cancel: trans.common.cancel,
+          draft: trans.common.cancel
         };
 
         setSuccess(`${actionMessages[actionType]} ${trans.common.updateContractSuccess}`);
@@ -327,12 +325,12 @@ const ContractManagement = () => {
 
   useEffect(() => {
     if (!isLoading) {
-        fetchSuppliers();
-        fetchRetailers();
-        // Only fetch contracts on initial load when role context is ready
-        if (userRole) {
-          fetchContracts();
-        }
+      fetchSuppliers();
+      fetchRetailers();
+      // Only fetch contracts on initial load when role context is ready
+      if (userRole) {
+        fetchContracts();
+      }
     }
   }, [isLoading, userRole]);
 
@@ -351,7 +349,7 @@ const ContractManagement = () => {
     }
   }, [error, success]);
 
-          if (isLoading) return <div>{trans.common.loading || 'Loading...'}</div>; // or spinner
+  if (isLoading) return <div>{trans.common.loading || 'Loading...'}</div>; // or spinner
 
   return (
     <Box sx={{ p: 3 }}>
@@ -421,7 +419,11 @@ const ContractManagement = () => {
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {selected === 'economic' ? trans.common.economicContract : selected === 'principal' ? trans.common.principalContract : selected || trans.common.all}
+                        {selected === 'economic'
+                          ? trans.common.economicContract
+                          : selected === 'principal'
+                            ? trans.common.principalContract
+                            : selected || trans.common.all}
                       </span>
                     </Tooltip>
                   )}
@@ -568,10 +570,10 @@ const ContractManagement = () => {
                 <TableRow key={contract._id} hover>
                   <TableCell sx={{ fontWeight: 500 }}>{contract.contract_code}</TableCell>
                   <TableCell>
-                    <Chip 
-                      label={contract.contract_type === 'economic' ? trans.common.economicContract : trans.common.principalContract} 
-                      size="small" 
-                      variant="outlined" 
+                    <Chip
+                      label={contract.contract_type === 'economic' ? trans.common.economicContract : trans.common.principalContract}
+                      size="small"
+                      variant="outlined"
                       color={contract.contract_type === 'economic' ? 'primary' : 'secondary'}
                     />
                   </TableCell>
@@ -624,7 +626,7 @@ const ContractManagement = () => {
                             </IconButton>
                           </Tooltip>
                         )}
-                        
+
                         {/* Annex action for principal contracts with active status */}
                         {contract.contract_type === 'principal' && contract.status === 'active' && (
                           <Tooltip title={trans.common.annex}>
@@ -633,13 +635,13 @@ const ContractManagement = () => {
                               size="small"
                               onClick={async () => {
                                 // Find existing annex that can be edited (draft or rejected)
-                                const existingAnnex = contract.annexes?.find(annex => 
-                                  annex.status === 'draft' || annex.status === 'rejected'
+                                const existingAnnex = contract.annexes?.find(
+                                  (annex) => annex.status === 'draft' || annex.status === 'rejected'
                                 );
-                                
+
                                 // Force refresh data to ensure sync
                                 await fetchContracts();
-                                
+
                                 // Let AnnexDialog handle the logic based on fresh data
                                 handleOpenAnnexDialog(contract);
                               }}
@@ -688,7 +690,6 @@ const ContractManagement = () => {
                             </Tooltip>
                           </>
                         )}
-                      
                       </Box>
                     )}
                     {userRole === 'representative_manager' && (
@@ -731,26 +732,27 @@ const ContractManagement = () => {
                             </IconButton>
                           </Tooltip>
                         )}
-                        
+
                         {/* Annex action for representative_manager - only show if there's a draft annex */}
-                        {contract.contract_type === 'principal' && contract.status === 'active' && 
-                         contract.annexes?.some(annex => annex.status === 'draft') && (
-                          <Tooltip title={trans.common.approveAnnex}>
-                            <IconButton
-                              color="info"
-                              size="small"
-                              onClick={() => {
-                                handleOpenAnnexDialog(contract);
-                              }}
-                              sx={{
-                                bgcolor: 'info.50',
-                                '&:hover': { bgcolor: 'info.100' }
-                              }}
-                            >
-                              <AttachFileIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
+                        {contract.contract_type === 'principal' &&
+                          contract.status === 'active' &&
+                          contract.annexes?.some((annex) => annex.status === 'draft') && (
+                            <Tooltip title={trans.common.approveAnnex}>
+                              <IconButton
+                                color="info"
+                                size="small"
+                                onClick={() => {
+                                  handleOpenAnnexDialog(contract);
+                                }}
+                                sx={{
+                                  bgcolor: 'info.50',
+                                  '&:hover': { bgcolor: 'info.100' }
+                                }}
+                              >
+                                <AttachFileIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                       </Box>
                     )}
                   </TableCell>
@@ -768,7 +770,6 @@ const ContractManagement = () => {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-
           sx={{
             borderTop: '1px solid #e0e0e0',
             bgcolor: 'grey.50'

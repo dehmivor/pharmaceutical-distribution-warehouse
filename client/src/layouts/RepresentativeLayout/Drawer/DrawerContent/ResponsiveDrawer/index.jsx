@@ -13,20 +13,20 @@ import useTrans from '@/hooks/useTrans';
 export default function ResponsiveDrawer() {
   const pathname = usePathname();
   const trans = useTrans();
-  
+
   // Get the representative menu and apply translations
   const representativeMenu = menuItems.representative[0]; // Get the first (and only) item
-  
+
   // Create translated menu items
   const translatedMenu = {
     ...representativeMenu,
     title: trans?.common?.representative || representativeMenu.title,
-    children: representativeMenu.children.map(child => ({
+    children: representativeMenu.children.map((child) => ({
       ...child,
       title: trans?.common?.[getTranslationKey(child.id)] || child.title
     }))
   };
-  
+
   const navGroups = [translatedMenu].map((item, index) => {
     switch (item.type) {
       case 'group':

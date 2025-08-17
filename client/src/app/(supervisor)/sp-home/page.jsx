@@ -71,7 +71,13 @@ export default function SupervisorHomePage() {
       icon: IconClipboardCheck,
       color: '#d32f2f',
       url: '/inventory-management',
-      subItems: [{ title: trans.home.sections.inventoryManagement.inventoryCheckOrders, icon: IconClipboardCheck, url: '/sp-inventory-check-management' }]
+      subItems: [
+        {
+          title: trans.home.sections.inventoryManagement.inventoryCheckOrders,
+          icon: IconClipboardCheck,
+          url: '/sp-inventory-check-management'
+        }
+      ]
     },
     {
       title: trans.home.sections.locationManagement.title,

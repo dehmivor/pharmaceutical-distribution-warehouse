@@ -21,12 +21,9 @@ const useWarehouseManagerChart = (months = 6) => {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(
-        `${API_BASE_URL}/api/dashboard/warehouse-manager/chart?months=${months}`,
-        {
-          headers: getAuthHeaders()
-        }
-      );
+      const response = await axios.get(`${API_BASE_URL}/api/dashboard/warehouse-manager/chart?months=${months}`, {
+        headers: getAuthHeaders()
+      });
 
       if (response.data.success) {
         setChartData(response.data.data);
@@ -57,4 +54,4 @@ const useWarehouseManagerChart = (months = 6) => {
   };
 };
 
-export default useWarehouseManagerChart; 
+export default useWarehouseManagerChart;

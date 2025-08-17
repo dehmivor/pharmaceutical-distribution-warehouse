@@ -31,8 +31,6 @@ import useTrans from '@/hooks/useTrans';
 
 function ImportOrderList({ onOrderSelect, onSendForApproval }) {
   const trans = useTrans();
-  
-
 
   // State declarations
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -119,7 +117,7 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
 
   // Add missing functions
   const handleFilterChange = (field, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       [field]: value,
       page: 1 // Reset to first page when filters change
@@ -127,7 +125,7 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
   };
 
   const handlePageChange = (event, newPage) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       page: newPage
     }));
@@ -330,7 +328,11 @@ function ImportOrderList({ onOrderSelect, onSendForApproval }) {
   };
 
   if (isError) {
-    return <Alert severity="error">{trans.common.errorLoadingData}: {isError.message}</Alert>;
+    return (
+      <Alert severity="error">
+        {trans.common.errorLoadingData}: {isError.message}
+      </Alert>
+    );
   }
 
   return (

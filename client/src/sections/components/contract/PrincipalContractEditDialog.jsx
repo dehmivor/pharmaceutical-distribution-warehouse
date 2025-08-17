@@ -97,8 +97,8 @@ const InfoField = ({ label, value, icon: Icon, onChange, disabled = false, error
         error={error}
         sx={{
           '& .MuiInputBase-input': {
-            color: disabled ? 'text.disabled' : 'text.primary',
-          },
+            color: disabled ? 'text.disabled' : 'text.primary'
+          }
         }}
       />
     </Box>
@@ -117,17 +117,9 @@ async function updateContract(url, { arg: payload }) {
   return response.data;
 }
 
-const PrincipalContractEditDialog = ({ 
-  open, 
-  onClose, 
-  contract, 
-  onSuccess, 
-  suppliers = [], 
-  retailers = [], 
-  isViewMode = false
-  }) => {
-    const trans = useTrans();
-    const [formData, setFormData] = useState({
+const PrincipalContractEditDialog = ({ open, onClose, contract, onSuccess, suppliers = [], retailers = [], isViewMode = false }) => {
+  const trans = useTrans();
+  const [formData, setFormData] = useState({
     contract_code: '',
     contract_type: 'principal',
     partner_type: 'Supplier',
@@ -135,7 +127,7 @@ const PrincipalContractEditDialog = ({
     start_date: null,
     end_date: null,
     items: [{ medicine_id: '', unit_price: '' }],
-    annexes: [],
+    annexes: []
   });
   const [errorValidate, setErrorValidate] = useState({});
   const [errorApi, setErrorApi] = useState('');
@@ -171,35 +163,48 @@ const PrincipalContractEditDialog = ({
         partner_id: contract.partner_id?._id || contract.partner_id || '',
         start_date: contract.start_date ? new Date(contract.start_date) : null,
         end_date: contract.end_date ? new Date(contract.end_date) : null,
-        items: contract.items && contract.items.length > 0 ? contract.items.map((item) => ({
-          medicine_id: item.medicine_id?._id || item.medicine_id || '',
-          unit_price: item.unit_price?.toString() || '',
-        })) : [{ medicine_id: '', unit_price: '' }],
+        items:
+          contract.items && contract.items.length > 0
+            ? contract.items.map((item) => ({
+                medicine_id: item.medicine_id?._id || item.medicine_id || '',
+                unit_price: item.unit_price?.toString() || ''
+              }))
+            : [{ medicine_id: '', unit_price: '' }],
         annexes: contract.annexes
           ? contract.annexes
-              .filter(annex => contract.status === 'active' ? annex.status === 'active' : true)
+              .filter((annex) => (contract.status === 'active' ? annex.status === 'active' : true))
               .map((annex) => ({
-          ...annex,
-          signed_date: annex.signed_date ? new Date(annex.signed_date) : null,
-          end_date_change: annex.end_date_change ? {
-            ...annex.end_date_change,
-            new_end_date: annex.end_date_change.new_end_date ? new Date(annex.end_date_change.new_end_date) : null
-          } : null,
-          medicine_changes: annex.medicine_changes ? {
-            add_items: annex.medicine_changes.add_items ? annex.medicine_changes.add_items.map((item) => ({
-              medicine_id: item.medicine_id?._id || item.medicine_id || '',
-              unit_price: item.unit_price?.toString() || '',
-            })) : [],
-            remove_items: annex.medicine_changes.remove_items ? annex.medicine_changes.remove_items.map((item) => ({
-              medicine_id: item.medicine_id?._id || item.medicine_id || '',
-            })) : [],
-            update_prices: annex.medicine_changes.update_prices ? annex.medicine_changes.update_prices.map((item) => ({
-              medicine_id: item.medicine_id?._id || item.medicine_id || '',
-              unit_price: item.unit_price?.toString() || '',
-            })) : [],
-          } : { add_items: [], remove_items: [], update_prices: [] }
+                ...annex,
+                signed_date: annex.signed_date ? new Date(annex.signed_date) : null,
+                end_date_change: annex.end_date_change
+                  ? {
+                      ...annex.end_date_change,
+                      new_end_date: annex.end_date_change.new_end_date ? new Date(annex.end_date_change.new_end_date) : null
+                    }
+                  : null,
+                medicine_changes: annex.medicine_changes
+                  ? {
+                      add_items: annex.medicine_changes.add_items
+                        ? annex.medicine_changes.add_items.map((item) => ({
+                            medicine_id: item.medicine_id?._id || item.medicine_id || '',
+                            unit_price: item.unit_price?.toString() || ''
+                          }))
+                        : [],
+                      remove_items: annex.medicine_changes.remove_items
+                        ? annex.medicine_changes.remove_items.map((item) => ({
+                            medicine_id: item.medicine_id?._id || item.medicine_id || ''
+                          }))
+                        : [],
+                      update_prices: annex.medicine_changes.update_prices
+                        ? annex.medicine_changes.update_prices.map((item) => ({
+                            medicine_id: item.medicine_id?._id || item.medicine_id || '',
+                            unit_price: item.unit_price?.toString() || ''
+                          }))
+                        : []
+                    }
+                  : { add_items: [], remove_items: [], update_prices: [] }
               }))
-          : [],
+          : []
       });
       setErrorValidate({});
       setErrorApi('');
@@ -211,7 +216,7 @@ const PrincipalContractEditDialog = ({
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      ...(name === 'partner_type' && { partner_id: '' }),
+      ...(name === 'partner_type' && { partner_id: '' })
     }));
     setErrorValidate((prev) => ({ ...prev, [name]: '' }));
   };
@@ -231,7 +236,7 @@ const PrincipalContractEditDialog = ({
       if (newErrors.items && Array.isArray(newErrors.items) && newErrors.items[index]) {
         newErrors.items[index] = {
           ...newErrors.items[index],
-          [field]: '',
+          [field]: ''
         };
         if (Object.values(newErrors.items[index]).every((err) => !err)) {
           newErrors.items[index] = null;
@@ -245,7 +250,7 @@ const PrincipalContractEditDialog = ({
     const newItem = { medicine_id: '', unit_price: '' };
     setFormData((prev) => ({
       ...prev,
-      items: [...prev.items, newItem],
+      items: [...prev.items, newItem]
     }));
   };
 
@@ -278,7 +283,7 @@ const PrincipalContractEditDialog = ({
     };
     setFormData((prev) => ({
       ...prev,
-      annexes: [...prev.annexes, newAnnex],
+      annexes: [...prev.annexes, newAnnex]
     }));
   };
 
@@ -423,11 +428,11 @@ const PrincipalContractEditDialog = ({
     const itemErrors = [];
     formData.items.forEach((item, index) => {
       const itemError = {};
-      
+
       if (!item.medicine_id) {
         itemError.medicine_id = 'Vui lòng chọn thuốc';
       }
-      
+
       if (!item.unit_price) {
         itemError.unit_price = 'Giá đơn vị không được để trống';
       } else if (!isValidFloat(item.unit_price)) {
@@ -447,11 +452,11 @@ const PrincipalContractEditDialog = ({
     const annexErrors = [];
     formData.annexes.forEach((annex, annexIndex) => {
       const annexError = {};
-      
+
       if (!annex.annex_code) {
         annexError.annex_code = trans.common.annexCodeRequired;
       }
-      
+
       if (!annex.signed_date) {
         annexError.signed_date = trans.common.signedDateRequired;
       }
@@ -461,11 +466,11 @@ const PrincipalContractEditDialog = ({
         const addItemErrors = [];
         annex.medicine_changes.add_items.forEach((item, itemIndex) => {
           const itemError = {};
-          
+
           if (!item.medicine_id) {
             itemError.medicine_id = 'Vui lòng chọn thuốc';
           }
-          
+
           if (!item.unit_price) {
             itemError.unit_price = 'Đơn giá không được để trống';
           } else if (!isValidFloat(item.unit_price)) {
@@ -487,7 +492,7 @@ const PrincipalContractEditDialog = ({
         const removeItemErrors = [];
         annex.medicine_changes.remove_items.forEach((item, itemIndex) => {
           const itemError = {};
-          
+
           if (!item.medicine_id) {
             itemError.medicine_id = 'Vui lòng chọn thuốc';
           }
@@ -507,11 +512,11 @@ const PrincipalContractEditDialog = ({
         const updatePriceErrors = [];
         annex.medicine_changes.update_prices.forEach((item, itemIndex) => {
           const itemError = {};
-          
+
           if (!item.medicine_id) {
             itemError.medicine_id = 'Vui lòng chọn thuốc';
           }
-          
+
           if (!item.unit_price) {
             itemError.unit_price = 'Giá mới không được để trống';
           } else if (!isValidFloat(item.unit_price)) {
@@ -553,28 +558,33 @@ const PrincipalContractEditDialog = ({
         items: formData.items.map((item) => ({
           ...item,
           medicine_id: item.medicine_id,
-          unit_price: parseFloat(item.unit_price),
+          unit_price: parseFloat(item.unit_price)
         })),
         annexes: formData.annexes.map((annex) => ({
           ...annex,
           signed_date: annex.signed_date?.toISOString(),
-          end_date_change: annex.end_date_change?.new_end_date ? {
-            new_end_date: annex.end_date_change.new_end_date.toISOString()
-          } : null,
+          end_date_change: annex.end_date_change?.new_end_date
+            ? {
+                new_end_date: annex.end_date_change.new_end_date.toISOString()
+              }
+            : null,
           medicine_changes: {
-            add_items: annex.medicine_changes?.add_items?.map(item => ({
-              medicine_id: item.medicine_id,
-              unit_price: parseFloat(item.unit_price)
-            })) || [],
-            remove_items: annex.medicine_changes?.remove_items?.map(item => ({
-              medicine_id: item.medicine_id
-            })) || [],
-            update_prices: annex.medicine_changes?.update_prices?.map(item => ({
-              medicine_id: item.medicine_id,
-              unit_price: parseFloat(item.unit_price)
-            })) || []
+            add_items:
+              annex.medicine_changes?.add_items?.map((item) => ({
+                medicine_id: item.medicine_id,
+                unit_price: parseFloat(item.unit_price)
+              })) || [],
+            remove_items:
+              annex.medicine_changes?.remove_items?.map((item) => ({
+                medicine_id: item.medicine_id
+              })) || [],
+            update_prices:
+              annex.medicine_changes?.update_prices?.map((item) => ({
+                medicine_id: item.medicine_id,
+                unit_price: parseFloat(item.unit_price)
+              })) || []
           }
-        })),
+        }))
       };
 
       await trigger(payload);
@@ -618,13 +628,15 @@ const PrincipalContractEditDialog = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle sx={{ 
-        background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
-        color: 'white',
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-      }}>
+      <DialogTitle
+        sx={{
+          background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
+          color: 'white',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <ContractIcon />
           <Box>
@@ -681,7 +693,7 @@ const PrincipalContractEditDialog = ({
                       backgroundColor: '#fafafa',
                       minHeight: 40,
                       display: 'flex',
-                      alignItems: 'center',
+                      alignItems: 'center'
                     }}
                   >
                     <Typography>Hợp đồng nguyên tắc</Typography>
@@ -706,7 +718,7 @@ const PrincipalContractEditDialog = ({
                       display: 'flex',
                       alignItems: 'center',
                       width: '100%',
-                      minWidth: 200,
+                      minWidth: 200
                     }}
                   >
                     <FormControl fullWidth disabled={isViewMode}>
@@ -721,7 +733,7 @@ const PrincipalContractEditDialog = ({
                           '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                           '& .MuiInput-underline:before': { borderBottom: 'none' },
                           '& .MuiInput-underline:after': { borderBottom: 'none' },
-                          '& .MuiInput-underline:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
+                          '& .MuiInput-underline:hover:not(.Mui-disabled):before': { borderBottom: 'none' }
                         }}
                       >
                         <MenuItem value="Supplier">Nhà cung cấp</MenuItem>
@@ -753,16 +765,14 @@ const PrincipalContractEditDialog = ({
                       display: 'flex',
                       alignItems: 'center',
                       width: '100%',
-                      minWidth: 200,
+                      minWidth: 200
                     }}
                   >
                     <Autocomplete
                       options={getPartners()}
                       getOptionLabel={(option) => option.name || ''}
                       value={getPartners().find((p) => p._id === formData.partner_id) || null}
-                      onChange={(_, newValue) =>
-                        handleChange({ target: { name: 'partner_id', value: newValue?._id || '' } })
-                      }
+                      onChange={(_, newValue) => handleChange({ target: { name: 'partner_id', value: newValue?._id || '' } })}
                       disabled={isViewMode}
                       renderInput={(params) => (
                         <TextField
@@ -771,7 +781,7 @@ const PrincipalContractEditDialog = ({
                           placeholder={`Chọn ${formData.partner_type === 'Supplier' ? 'nhà cung cấp' : 'nhà thuốc'}`}
                           InputProps={{
                             ...params.InputProps,
-                            disableUnderline: true,
+                            disableUnderline: true
                           }}
                           sx={{ width: '100%' }}
                         />
@@ -803,14 +813,12 @@ const PrincipalContractEditDialog = ({
                       slotProps={{
                         textField: {
                           error: !!errorValidate.start_date,
-                          fullWidth: true,
-                        },
+                          fullWidth: true
+                        }
                       }}
                       disabled={isViewMode}
                     />
-                    {errorValidate.start_date && (
-                      <FormHelperText sx={{ color: 'error.main' }}>{errorValidate.start_date}</FormHelperText>
-                    )}
+                    {errorValidate.start_date && <FormHelperText sx={{ color: 'error.main' }}>{errorValidate.start_date}</FormHelperText>}
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -823,14 +831,12 @@ const PrincipalContractEditDialog = ({
                       slotProps={{
                         textField: {
                           error: !!errorValidate.end_date,
-                          fullWidth: true,
-                        },
+                          fullWidth: true
+                        }
                       }}
                       disabled={isViewMode}
                     />
-                    {errorValidate.end_date && (
-                      <FormHelperText sx={{ color: 'error.main' }}>{errorValidate.end_date}</FormHelperText>
-                    )}
+                    {errorValidate.end_date && <FormHelperText sx={{ color: 'error.main' }}>{errorValidate.end_date}</FormHelperText>}
                   </FormControl>
                 </Grid>
               </Grid>
@@ -844,19 +850,10 @@ const PrincipalContractEditDialog = ({
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <InventoryIcon color="secondary" /> Danh Sách Thuốc
-                <Chip 
-                  label="Nguyên tắc" 
-                  color="secondary"
-                  size="small"
-                />
+                <Chip label="Nguyên tắc" color="secondary" size="small" />
               </Typography>
               {!isViewMode && (
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={addItem}
-                  size="small"
-                >
+                <Button variant="outlined" startIcon={<AddIcon />} onClick={addItem} size="small">
                   Thêm thuốc
                 </Button>
               )}
@@ -868,12 +865,7 @@ const PrincipalContractEditDialog = ({
                     Thuốc #{index + 1}
                   </Typography>
                   {!isViewMode && formData.items.length > 1 && (
-                    <Button 
-                      size="small" 
-                      color="error" 
-                      onClick={() => removeItem(index)} 
-                      sx={{ textTransform: 'none' }}
-                    >
+                    <Button size="small" color="error" onClick={() => removeItem(index)} sx={{ textTransform: 'none' }}>
                       Xóa
                     </Button>
                   )}
@@ -899,20 +891,16 @@ const PrincipalContractEditDialog = ({
                           width: '100%',
                           minWidth: 200,
                           borderColor:
-                            errorValidate.items &&
-                            Array.isArray(errorValidate.items) &&
-                            errorValidate.items[index]?.medicine_id
+                            errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.medicine_id
                               ? 'red'
-                              : '#e0e0e0',
+                              : '#e0e0e0'
                         }}
                       >
                         <Autocomplete
                           options={medicines}
                           getOptionLabel={(option) => `${option.license_code}`}
                           value={medicines.find((m) => m._id === item.medicine_id) || null}
-                          onChange={(_, newValue) =>
-                            handleItemChange(index, 'medicine_id', newValue ? newValue._id : '')
-                          }
+                          onChange={(_, newValue) => handleItemChange(index, 'medicine_id', newValue ? newValue._id : '')}
                           disabled={isViewMode}
                           renderInput={(params) => (
                             <TextField
@@ -920,15 +908,11 @@ const PrincipalContractEditDialog = ({
                               variant="standard"
                               placeholder="Chọn thuốc"
                               error={
-                                !!(
-                                  errorValidate.items &&
-                                  Array.isArray(errorValidate.items) &&
-                                  errorValidate.items[index]?.medicine_id
-                                )
+                                !!(errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.medicine_id)
                               }
                               InputProps={{
                                 ...params.InputProps,
-                                disableUnderline: true,
+                                disableUnderline: true
                               }}
                               sx={{ width: '100%' }}
                             />
@@ -960,11 +944,9 @@ const PrincipalContractEditDialog = ({
                           display: 'flex',
                           alignItems: 'center',
                           borderColor:
-                            errorValidate.items &&
-                            Array.isArray(errorValidate.items) &&
-                            errorValidate.items[index]?.unit_price
+                            errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.unit_price
                               ? 'red'
-                              : '#e0e0e0',
+                              : '#e0e0e0'
                         }}
                       >
                         <TextField
@@ -975,15 +957,9 @@ const PrincipalContractEditDialog = ({
                           placeholder="Nhập đơn giá"
                           type="number"
                           inputProps={{ min: 0, step: 0.01 }}
-                          error={
-                            !!(
-                              errorValidate.items &&
-                              Array.isArray(errorValidate.items) &&
-                              errorValidate.items[index]?.unit_price
-                            )
-                          }
+                          error={!!(errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.unit_price)}
                           InputProps={{
-                            disableUnderline: true,
+                            disableUnderline: true
                           }}
                         />
                       </Box>
@@ -1006,19 +982,10 @@ const PrincipalContractEditDialog = ({
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <AnnexIcon color="secondary" /> Phụ lục hợp đồng
-                <Chip 
-                  label="Nguyên tắc" 
-                  color="secondary"
-                  size="small"
-                />
+                <Chip label="Nguyên tắc" color="secondary" size="small" />
               </Typography>
               {!isViewMode && (
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={addAnnex}
-                  size="small"
-                >
+                <Button variant="outlined" startIcon={<AddIcon />} onClick={addAnnex} size="small">
                   Thêm phụ lục
                 </Button>
               )}
@@ -1030,12 +997,7 @@ const PrincipalContractEditDialog = ({
                     Phụ lục #{annexIndex + 1}
                   </Typography>
                   {!isViewMode && (
-                    <Button 
-                      size="small" 
-                      color="error" 
-                      onClick={() => removeAnnex(annexIndex)} 
-                      sx={{ textTransform: 'none' }}
-                    >
+                    <Button size="small" color="error" onClick={() => removeAnnex(annexIndex)} sx={{ textTransform: 'none' }}>
                       Xóa
                     </Button>
                   )}
@@ -1098,13 +1060,13 @@ const PrincipalContractEditDialog = ({
                           format="dd/MM/yyyy"
                           slotProps={{
                             textField: {
-                              variant: "outlined",
-                              size: "small",
+                              variant: 'outlined',
+                              size: 'small',
                               fullWidth: true,
-                              placeholder: "Chọn ngày ký",
+                              placeholder: 'Chọn ngày ký',
                               error: !!(errorValidate.annexes && errorValidate.annexes[annexIndex]?.signed_date),
-                              helperText: errorValidate.annexes && errorValidate.annexes[annexIndex]?.signed_date,
-                            },
+                              helperText: errorValidate.annexes && errorValidate.annexes[annexIndex]?.signed_date
+                            }
                           }}
                           disabled={isViewMode}
                         />
@@ -1125,11 +1087,11 @@ const PrincipalContractEditDialog = ({
                           format="dd/MM/yyyy"
                           slotProps={{
                             textField: {
-                              variant: "outlined",
-                              size: "small",
+                              variant: 'outlined',
+                              size: 'small',
                               fullWidth: true,
-                              placeholder: "Chọn ngày kết thúc mới",
-                            },
+                              placeholder: 'Chọn ngày kết thúc mới'
+                            }
                           }}
                           disabled={isViewMode}
                         />
@@ -1157,67 +1119,88 @@ const PrincipalContractEditDialog = ({
                     )}
                   </Box>
 
-                  {annex.medicine_changes?.add_items && annex.medicine_changes.add_items.map((item, itemIndex) => (
-                    <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          Thuốc #{itemIndex + 1}
-                        </Typography>
-                        {!isViewMode && (
-                          <Button
-                            size="small"
-                            color="error"
-                            onClick={() => removeAnnexAddItem(annexIndex, itemIndex)}
-                            sx={{ textTransform: 'none' }}
-                          >
-                            Xóa
-                          </Button>
-                        )}
+                  {annex.medicine_changes?.add_items &&
+                    annex.medicine_changes.add_items.map((item, itemIndex) => (
+                      <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            Thuốc #{itemIndex + 1}
+                          </Typography>
+                          {!isViewMode && (
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={() => removeAnnexAddItem(annexIndex, itemIndex)}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              Xóa
+                            </Button>
+                          )}
+                        </Box>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} md={8}>
+                            <Autocomplete
+                              options={medicines}
+                              getOptionLabel={(option) => `${option.license_code}`}
+                              value={medicines.find((m) => m._id === item.medicine_id) || null}
+                              onChange={(_, newValue) => {
+                                handleAnnexAddItemChange(annexIndex, itemIndex, 'medicine_id', newValue ? newValue._id : '');
+                              }}
+                              disabled={isViewMode}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Chọn thuốc"
+                                  variant="outlined"
+                                  size="small"
+                                  error={
+                                    !!(
+                                      errorValidate.annexes &&
+                                      errorValidate.annexes[annexIndex]?.add_items &&
+                                      errorValidate.annexes[annexIndex].add_items[itemIndex]?.medicine_id
+                                    )
+                                  }
+                                  helperText={
+                                    errorValidate.annexes &&
+                                    errorValidate.annexes[annexIndex]?.add_items &&
+                                    errorValidate.annexes[annexIndex].add_items[itemIndex]?.medicine_id
+                                  }
+                                  sx={{ minWidth: 200 }}
+                                />
+                              )}
+                              sx={{ minWidth: 200 }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth
+                              label="Đơn giá"
+                              type="number"
+                              value={item.unit_price || ''}
+                              onChange={(e) => handleAnnexAddItemChange(annexIndex, itemIndex, 'unit_price', e.target.value)}
+                              variant="outlined"
+                              size="small"
+                              disabled={isViewMode}
+                              error={
+                                !!(
+                                  errorValidate.annexes &&
+                                  errorValidate.annexes[annexIndex]?.add_items &&
+                                  errorValidate.annexes[annexIndex].add_items[itemIndex]?.unit_price
+                                )
+                              }
+                              helperText={
+                                errorValidate.annexes &&
+                                errorValidate.annexes[annexIndex]?.add_items &&
+                                errorValidate.annexes[annexIndex].add_items[itemIndex]?.unit_price
+                              }
+                              InputProps={{
+                                endAdornment: <InputAdornment position="end">₫</InputAdornment>
+                              }}
+                            />
+                          </Grid>
+                        </Grid>
                       </Box>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} md={8}>
-                          <Autocomplete
-                            options={medicines}
-                            getOptionLabel={(option) => `${option.license_code}`}
-                            value={medicines.find((m) => m._id === item.medicine_id) || null}
-                            onChange={(_, newValue) => {
-                              handleAnnexAddItemChange(annexIndex, itemIndex, 'medicine_id', newValue ? newValue._id : '');
-                            }}
-                            disabled={isViewMode}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label="Chọn thuốc"
-                                variant="outlined"
-                                size="small"
-                                error={!!(errorValidate.annexes && errorValidate.annexes[annexIndex]?.add_items && errorValidate.annexes[annexIndex].add_items[itemIndex]?.medicine_id)}
-                                helperText={errorValidate.annexes && errorValidate.annexes[annexIndex]?.add_items && errorValidate.annexes[annexIndex].add_items[itemIndex]?.medicine_id}
-                                sx={{ minWidth: 200 }}
-                              />
-                            )}
-                            sx={{ minWidth: 200 }}
-                          />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                          <TextField
-                            fullWidth
-                            label="Đơn giá"
-                            type="number"
-                            value={item.unit_price || ''}
-                            onChange={(e) => handleAnnexAddItemChange(annexIndex, itemIndex, 'unit_price', e.target.value)}
-                            variant="outlined"
-                            size="small"
-                            disabled={isViewMode}
-                            error={!!(errorValidate.annexes && errorValidate.annexes[annexIndex]?.add_items && errorValidate.annexes[annexIndex].add_items[itemIndex]?.unit_price)}
-                            helperText={errorValidate.annexes && errorValidate.annexes[annexIndex]?.add_items && errorValidate.annexes[annexIndex].add_items[itemIndex]?.unit_price}
-                            InputProps={{
-                              endAdornment: <InputAdornment position="end">₫</InputAdornment>,
-                            }}
-                          />
-                        </Grid>
-                      </Grid>
-                    </Box>
-                  ))}
+                    ))}
                 </Box>
 
                 {/* Hàng 4: Xóa thuốc */}
@@ -1239,50 +1222,61 @@ const PrincipalContractEditDialog = ({
                     )}
                   </Box>
 
-                  {annex.medicine_changes?.remove_items && annex.medicine_changes.remove_items.map((item, itemIndex) => (
-                    <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          Thuốc #{itemIndex + 1}
-                        </Typography>
-                        {!isViewMode && (
-                          <Button
-                            size="small"
-                            color="error"
-                            onClick={() => removeAnnexRemoveItem(annexIndex, itemIndex)}
-                            sx={{ textTransform: 'none' }}
-                          >
-                            Xóa
-                          </Button>
-                        )}
-                      </Box>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12}>
-                          <Autocomplete
-                            options={medicines}
-                            getOptionLabel={(option) => `${option.license_code}`}
-                            value={medicines.find((m) => m._id === item.medicine_id) || null}
-                            onChange={(_, newValue) => {
-                              handleAnnexRemoveItemChange(annexIndex, itemIndex, 'medicine_id', newValue ? newValue._id : '');
-                            }}
-                            disabled={isViewMode}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label="Chọn thuốc cần xóa"
-                                variant="outlined"
-                                size="small"
-                                error={!!(errorValidate.annexes && errorValidate.annexes[annexIndex]?.remove_items && errorValidate.annexes[annexIndex].remove_items[itemIndex]?.medicine_id)}
-                                helperText={errorValidate.annexes && errorValidate.annexes[annexIndex]?.remove_items && errorValidate.annexes[annexIndex].remove_items[itemIndex]?.medicine_id}
-                                sx={{ minWidth: 200 }}
-                              />
-                            )}
-                            sx={{ minWidth: 200 }}
-                          />
+                  {annex.medicine_changes?.remove_items &&
+                    annex.medicine_changes.remove_items.map((item, itemIndex) => (
+                      <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            Thuốc #{itemIndex + 1}
+                          </Typography>
+                          {!isViewMode && (
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={() => removeAnnexRemoveItem(annexIndex, itemIndex)}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              Xóa
+                            </Button>
+                          )}
+                        </Box>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12}>
+                            <Autocomplete
+                              options={medicines}
+                              getOptionLabel={(option) => `${option.license_code}`}
+                              value={medicines.find((m) => m._id === item.medicine_id) || null}
+                              onChange={(_, newValue) => {
+                                handleAnnexRemoveItemChange(annexIndex, itemIndex, 'medicine_id', newValue ? newValue._id : '');
+                              }}
+                              disabled={isViewMode}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Chọn thuốc cần xóa"
+                                  variant="outlined"
+                                  size="small"
+                                  error={
+                                    !!(
+                                      errorValidate.annexes &&
+                                      errorValidate.annexes[annexIndex]?.remove_items &&
+                                      errorValidate.annexes[annexIndex].remove_items[itemIndex]?.medicine_id
+                                    )
+                                  }
+                                  helperText={
+                                    errorValidate.annexes &&
+                                    errorValidate.annexes[annexIndex]?.remove_items &&
+                                    errorValidate.annexes[annexIndex].remove_items[itemIndex]?.medicine_id
+                                  }
+                                  sx={{ minWidth: 200 }}
+                                />
+                              )}
+                              sx={{ minWidth: 200 }}
+                            />
+                          </Grid>
                         </Grid>
-                      </Grid>
-                    </Box>
-                  ))}
+                      </Box>
+                    ))}
                 </Box>
 
                 {/* Hàng 5: Cập nhật giá thuốc */}
@@ -1304,67 +1298,88 @@ const PrincipalContractEditDialog = ({
                     )}
                   </Box>
 
-                  {annex.medicine_changes?.update_prices && annex.medicine_changes.update_prices.map((item, itemIndex) => (
-                    <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          Thuốc #{itemIndex + 1}
-                        </Typography>
-                        {!isViewMode && (
-                          <Button
-                            size="small"
-                            color="error"
-                            onClick={() => removeAnnexUpdatePrice(annexIndex, itemIndex)}
-                            sx={{ textTransform: 'none' }}
-                          >
-                            Xóa
-                          </Button>
-                        )}
+                  {annex.medicine_changes?.update_prices &&
+                    annex.medicine_changes.update_prices.map((item, itemIndex) => (
+                      <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            Thuốc #{itemIndex + 1}
+                          </Typography>
+                          {!isViewMode && (
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={() => removeAnnexUpdatePrice(annexIndex, itemIndex)}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              Xóa
+                            </Button>
+                          )}
+                        </Box>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} md={8}>
+                            <Autocomplete
+                              options={medicines}
+                              getOptionLabel={(option) => `${option.license_code}`}
+                              value={medicines.find((m) => m._id === item.medicine_id) || null}
+                              onChange={(_, newValue) => {
+                                handleAnnexUpdatePriceChange(annexIndex, itemIndex, 'medicine_id', newValue ? newValue._id : '');
+                              }}
+                              disabled={isViewMode}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  label="Chọn thuốc"
+                                  variant="outlined"
+                                  size="small"
+                                  error={
+                                    !!(
+                                      errorValidate.annexes &&
+                                      errorValidate.annexes[annexIndex]?.update_prices &&
+                                      errorValidate.annexes[annexIndex].update_prices[itemIndex]?.medicine_id
+                                    )
+                                  }
+                                  helperText={
+                                    errorValidate.annexes &&
+                                    errorValidate.annexes[annexIndex]?.update_prices &&
+                                    errorValidate.annexes[annexIndex].update_prices[itemIndex]?.medicine_id
+                                  }
+                                  sx={{ minWidth: 200 }}
+                                />
+                              )}
+                              sx={{ minWidth: 200 }}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={4}>
+                            <TextField
+                              fullWidth
+                              label="Giá mới"
+                              type="number"
+                              value={item.unit_price || ''}
+                              onChange={(e) => handleAnnexUpdatePriceChange(annexIndex, itemIndex, 'unit_price', e.target.value)}
+                              variant="outlined"
+                              size="small"
+                              disabled={isViewMode}
+                              error={
+                                !!(
+                                  errorValidate.annexes &&
+                                  errorValidate.annexes[annexIndex]?.update_prices &&
+                                  errorValidate.annexes[annexIndex].update_prices[itemIndex]?.unit_price
+                                )
+                              }
+                              helperText={
+                                errorValidate.annexes &&
+                                errorValidate.annexes[annexIndex]?.update_prices &&
+                                errorValidate.annexes[annexIndex].update_prices[itemIndex]?.unit_price
+                              }
+                              InputProps={{
+                                endAdornment: <InputAdornment position="end">₫</InputAdornment>
+                              }}
+                            />
+                          </Grid>
+                        </Grid>
                       </Box>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} md={8}>
-                          <Autocomplete
-                            options={medicines}
-                            getOptionLabel={(option) => `${option.license_code}`}
-                            value={medicines.find((m) => m._id === item.medicine_id) || null}
-                            onChange={(_, newValue) => {
-                              handleAnnexUpdatePriceChange(annexIndex, itemIndex, 'medicine_id', newValue ? newValue._id : '');
-                            }}
-                            disabled={isViewMode}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label="Chọn thuốc"
-                                variant="outlined"
-                                size="small"
-                                error={!!(errorValidate.annexes && errorValidate.annexes[annexIndex]?.update_prices && errorValidate.annexes[annexIndex].update_prices[itemIndex]?.medicine_id)}
-                                helperText={errorValidate.annexes && errorValidate.annexes[annexIndex]?.update_prices && errorValidate.annexes[annexIndex].update_prices[itemIndex]?.medicine_id}
-                                sx={{ minWidth: 200 }}
-                              />
-                            )}
-                            sx={{ minWidth: 200 }}
-                          />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                          <TextField
-                            fullWidth
-                            label="Giá mới"
-                            type="number"
-                            value={item.unit_price || ''}
-                            onChange={(e) => handleAnnexUpdatePriceChange(annexIndex, itemIndex, 'unit_price', e.target.value)}
-                            variant="outlined"
-                            size="small"
-                            disabled={isViewMode}
-                            error={!!(errorValidate.annexes && errorValidate.annexes[annexIndex]?.update_prices && errorValidate.annexes[annexIndex].update_prices[itemIndex]?.unit_price)}
-                            helperText={errorValidate.annexes && errorValidate.annexes[annexIndex]?.update_prices && errorValidate.annexes[annexIndex].update_prices[itemIndex]?.unit_price}
-                            InputProps={{
-                              endAdornment: <InputAdornment position="end">₫</InputAdornment>,
-                            }}
-                          />
-                        </Grid>
-                      </Grid>
-                    </Box>
-                  ))}
+                    ))}
                 </Box>
               </Box>
             ))}
@@ -1377,12 +1392,7 @@ const PrincipalContractEditDialog = ({
           {isViewMode ? 'Đóng' : 'Hủy'}
         </Button>
         {!isViewMode && (
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={isMutating}
-            startIcon={isMutating ? null : <EditIcon />}
-          >
+          <Button onClick={handleSubmit} variant="contained" disabled={isMutating} startIcon={isMutating ? null : <EditIcon />}>
             {isMutating ? 'Đang cập nhật...' : 'Cập nhật hợp đồng'}
           </Button>
         )}
@@ -1391,4 +1401,4 @@ const PrincipalContractEditDialog = ({
   );
 };
 
-export default PrincipalContractEditDialog; 
+export default PrincipalContractEditDialog;

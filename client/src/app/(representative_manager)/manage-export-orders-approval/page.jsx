@@ -2,4 +2,4 @@ import ManageExportOrdersApproval from '@/views/representative_manager/manage-ex
 
 export default function Page() {
   return <ManageExportOrdersApproval />;
-} 
+}

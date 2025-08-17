@@ -3,7 +3,7 @@ import useTrans from '@/hooks/useTrans';
 
 const OrderTable = ({ orders, onSelectOrder }) => {
   const trans = useTrans();
-  
+
   const getStatusLabel = (status) => {
     const statusMap = {
       draft: trans.common.draft,
@@ -75,7 +75,9 @@ const OrderTable = ({ orders, onSelectOrder }) => {
                   <Typography variant="body2">{contract?.supplier_id?.name || trans.common.na}</Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2">{order.details?.length || 0} {trans.common.items}</Typography>
+                  <Typography variant="body2">
+                    {order.details?.length || 0} {trans.common.items}
+                  </Typography>
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" fontWeight="medium">

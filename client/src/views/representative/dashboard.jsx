@@ -1,4 +1,4 @@
-'use client'; 
+'use client';
 import { useState, useEffect } from 'react';
 import Grid from '@mui/material/Grid';
 import { Box, CircularProgress, Alert } from '@mui/material';
@@ -39,7 +39,6 @@ export default function RepresentativeDashboard() {
         });
 
         if (response.data.success) {
-
           setDashboardData(response.data.data);
         } else {
           throw new Error(response.data.error || 'Failed to fetch dashboard data');
@@ -57,12 +56,7 @@ export default function RepresentativeDashboard() {
 
   if (loading) {
     return (
-      <Box 
-        display="flex" 
-        justifyContent="center" 
-        alignItems="center" 
-        minHeight="400px"
-      >
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress size={60} />
       </Box>
     );
@@ -81,9 +75,7 @@ export default function RepresentativeDashboard() {
   if (!dashboardData) {
     return (
       <Box p={3}>
-        <Alert severity="warning">
-          No dashboard data available
-        </Alert>
+        <Alert severity="warning">No dashboard data available</Alert>
       </Box>
     );
   }
@@ -107,4 +99,4 @@ export default function RepresentativeDashboard() {
       </Grid>
     </Grid>
   );
-} 
+}

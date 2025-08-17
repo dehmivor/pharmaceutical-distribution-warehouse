@@ -339,18 +339,21 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
     }
   }, []);
 
-  const getStatusText = useCallback((status) => {
-    switch (status) {
-      case 'received':
-        return trans.common.receivedEnough;
-      case 'partial':
-        return trans.common.partialReceived;
-      case 'shortage':
-        return trans.common.shortage;
-      default:
-        return trans.common.waiting;
-    }
-  }, [trans]);
+  const getStatusText = useCallback(
+    (status) => {
+      switch (status) {
+        case 'received':
+          return trans.common.receivedEnough;
+        case 'partial':
+          return trans.common.partialReceived;
+        case 'shortage':
+          return trans.common.shortage;
+        default:
+          return trans.common.waiting;
+      }
+    },
+    [trans]
+  );
 
   // Get current user ID (simplified)
   const getCurrentUserId = () => {
@@ -484,7 +487,9 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">{trans.common.uncheckedItems} ({uncheckedItems?.length} {trans.common.products})</Typography>
+            <Typography variant="h6">
+              {trans.common.uncheckedItems} ({uncheckedItems?.length} {trans.common.products})
+            </Typography>
           </Box>
           {uncheckedItems.length === 0 && (
             <Typography variant="body2" color="textPrimary" mb={2}>

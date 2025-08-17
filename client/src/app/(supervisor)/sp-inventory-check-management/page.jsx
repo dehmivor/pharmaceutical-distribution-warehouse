@@ -4,4 +4,4 @@ const SupervisorInventoryCheckManagement = dynamic(() => import('@/views/supervi
 
 export default function Page() {
   return <SupervisorInventoryCheckManagement />;
-} 
+}

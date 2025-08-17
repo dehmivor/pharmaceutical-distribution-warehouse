@@ -320,7 +320,9 @@ const AreaManagement = () => {
                 onRowsPerPageChange={handleChangeRowsPerPage}
                 rowsPerPageOptions={[5, 10, 25, 50]}
                 labelRowsPerPage={trans.common.rowsPerPage}
-                labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count !== -1 ? count : trans.common.moreThan} ${to}`}
+                labelDisplayedRows={({ from, to, count }) =>
+                  `${from}-${to} ${trans.common.of} ${count !== -1 ? count : trans.common.moreThan} ${to}`
+                }
               />
             </>
           )}
@@ -337,9 +339,7 @@ const AreaManagement = () => {
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle>{trans.common.confirmDelete}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            {trans.common.confirmDeleteArea?.replace('{name}', areaToDelete?.name || '')}
-          </DialogContentText>
+          <DialogContentText>{trans.common.confirmDeleteArea?.replace('{name}', areaToDelete?.name || '')}</DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)} disabled={deleteLoading}>

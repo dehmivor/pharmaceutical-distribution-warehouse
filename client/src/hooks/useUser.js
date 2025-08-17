@@ -217,7 +217,7 @@ const useUsers = () => {
     isValidating,
     mutate
   } = useSWR(
-    shouldFetch ? `${backendUrl}/api/accounts` : null, // Updated endpoint
+    shouldFetch ? `${backendUrl}/api/accounts?limit=100` : null, // Updated endpoint
     fetcher,
     {
       // Enhanced SWR configuration
@@ -288,14 +288,16 @@ const useUsers = () => {
           dataLength: Array.isArray(data) ? data.length : 'not array',
           key
         });
-        setRetryCount(0); // Reset retry count on success
+        // Only reset retry count if it was greater than 0 to prevent unnecessary state updates
+        if (retryCount > 0) {
+          setRetryCount(0);
+        }
       }
     }
   );
 
   // Enhanced refetch function
-  const refetch = useCallback(async () => {
-    console.log('🔄 Manual refetch triggered');
+  const refetchUsers = useCallback(async () => {
     setRetryCount(0);
     try {
       return await mutate();
@@ -315,7 +317,7 @@ const useUsers = () => {
     isValidating,
     error: error?.message || error,
     errorDetails: error,
-    refetch,
+    refetchUsers,
     mutate,
     hasValidToken: shouldFetch,
     tokenExists: !!token,

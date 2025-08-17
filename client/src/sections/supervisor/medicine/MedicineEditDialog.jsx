@@ -77,7 +77,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
 
   const fetchMedicineData = async () => {
     if (!medicineId) return;
-    
+
     setLoading(true);
     try {
       const response = await axiosInstance.get(`/api/medicine/detail/${medicineId}`, {
@@ -193,8 +193,8 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
     if (formValues.storage_conditions.humidity.trim()) {
       const humidityValue = formValues.storage_conditions.humidity.trim();
       if (!/^\d+$|^\d+-\d+$/.test(humidityValue)) {
-        newErrors.storage_conditions = { 
-          ...newErrors.storage_conditions, 
+        newErrors.storage_conditions = {
+          ...newErrors.storage_conditions,
           humidity: trans.medicineEdit.validation.humidityFormatError
         };
       } else {
@@ -365,13 +365,13 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
               <Typography>{trans.medicineEdit.messages.loadError}</Typography>
             </Box>
           )}
-          
+
           {errors.general && (
             <Alert severity="error" sx={{ mb: 3 }} onClose={() => setErrors({})}>
               {errors.general}
             </Alert>
           )}
-          
+
           {/* Basic Information Section */}
           <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
             <CardContent sx={{ p: 3 }}>

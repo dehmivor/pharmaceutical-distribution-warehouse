@@ -13,24 +13,26 @@ import useTrans from '@/hooks/useTrans';
 export default function ResponsiveDrawer() {
   const pathname = usePathname();
   const trans = useTrans();
-  
+
   // Get the warehouse menu and apply translations
   const warehouseMenu = menuItems.warehouse[0]; // Get the first (and only) item
-  
+
   // Create translated menu items
   const translatedMenu = {
     ...warehouseMenu,
     title: trans?.common?.warehouseManagement || warehouseMenu.title,
-    children: warehouseMenu.children.map(child => ({
+    children: warehouseMenu.children.map((child) => ({
       ...child,
       title: trans?.common?.[getTranslationKey(child.id)] || child.title,
-      children: child.children ? child.children.map(grandChild => ({
-        ...grandChild,
-        title: trans?.common?.[getTranslationKey(grandChild.id)] || grandChild.title
-      })) : undefined
+      children: child.children
+        ? child.children.map((grandChild) => ({
+            ...grandChild,
+            title: trans?.common?.[getTranslationKey(grandChild.id)] || grandChild.title
+          }))
+        : undefined
     }))
   };
-  
+
   const navGroups = [translatedMenu].map((item, index) => {
     switch (item.type) {
       case 'group':
@@ -53,11 +55,11 @@ function getTranslationKey(menuId) {
     'warehouse-dashboard': 'warehouseDashboard',
     'import-orders': 'import',
     'view-import-orders': 'importOrdersList',
-    'inventory': 'inventory',
+    inventory: 'inventory',
     'view-inventory-check-orders': 'viewInventoryCheckOrders',
     'export-orders': 'export',
     'view-export-orders': 'exportOrdersList',
-    'management': 'management',
+    management: 'management',
     'manage-locations': 'locationManagement',
     'view-packages': 'packageManagement'
   };

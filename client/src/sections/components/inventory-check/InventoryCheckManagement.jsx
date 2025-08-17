@@ -26,14 +26,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  DialogContentText
+  DialogContentText,
+  TextField
 } from '@mui/material';
-import {
-  Visibility as ViewIcon,
-  Add as AddIcon,
-  Cancel as CancelIcon,
-  FilterList as FilterIcon
-} from '@mui/icons-material';
+import { Visibility as ViewIcon, Add as AddIcon, Cancel as CancelIcon, FilterList as FilterIcon } from '@mui/icons-material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -65,7 +61,7 @@ const InventoryCheckManagement = () => {
   const [warehouseManagers, setWarehouseManagers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const [totalCount, setTotalCount] = useState(0);
 
   // Filter states
@@ -85,7 +81,7 @@ const InventoryCheckManagement = () => {
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [selectedInventoryCheckOrder, setSelectedInventoryCheckOrder] = useState(null);
-  
+
   // Cancel confirmation dialog
   const [openCancelDialog, setOpenCancelDialog] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState(null);
@@ -101,11 +97,7 @@ const InventoryCheckManagement = () => {
       const params = new URLSearchParams({
         page: page + 1,
         limit: rowsPerPage,
-        ...Object.fromEntries(
-          Object.entries(filters).filter(([_, value]) => 
-            value !== '' && value !== null && value !== undefined
-          )
-        )
+        ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== '' && value !== null && value !== undefined))
       });
 
       // Convert dates to ISO string if they exist
@@ -202,7 +194,7 @@ const InventoryCheckManagement = () => {
   };
 
   const handleFilterChange = (field, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       [field]: value
     }));
@@ -270,7 +262,7 @@ const InventoryCheckManagement = () => {
     <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
           Quản Lý Phiếu Kiểm Kê
         </Typography>
         <Typography variant="body1" color="text.secondary">
@@ -305,6 +297,7 @@ const InventoryCheckManagement = () => {
                 <InputLabel>{trans.common.status}</InputLabel>
                 <Select
                   value={filters.status}
+                  placeholder="Select Status"
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                   label={trans.common.status}
                   renderValue={(selected) => (
@@ -314,12 +307,12 @@ const InventoryCheckManagement = () => {
                   )}
                   sx={{ width: 200 }}
                 >
-                  <MenuItem value="">{trans.common.all}</MenuItem>
                   {filterOptions?.status?.map((status) => (
                     <MenuItem key={status} value={status}>
                       {status}
                     </MenuItem>
                   ))}
+                  <MenuItem value="">{trans.common.all}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -328,10 +321,12 @@ const InventoryCheckManagement = () => {
                 <InputLabel>Warehouse Manager</InputLabel>
                 <Select
                   value={filters.warehouse_manager_id}
+                  type="text"
                   onChange={(e) => handleFilterChange('warehouse_manager_id', e.target.value)}
                   label="Warehouse Manager"
+                  placeholder="Select Warehouse Manager"
                   renderValue={(selected) => {
-                    const manager = warehouseManagers.find(m => m._id === selected);
+                    const manager = warehouseManagers.find((m) => m._id === selected);
                     return (
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {manager ? manager.email : trans.common.all}
@@ -350,50 +345,42 @@ const InventoryCheckManagement = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
-                <DatePicker
-                  label="Từ ngày"
-                  value={filters.startDate}
-                  onChange={(date) => handleFilterChange('startDate', date)}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      size: "medium",
-                      sx: { 
-                        maxWidth: 200,
-                        '& .MuiInputBase-root': {
-                          height: 56
-                        }
-                      }
-                    }
-                  }}
-                />
-              </LocalizationProvider>
+              <TextField
+                label="Từ ngày"
+                type="date"
+                value={filters.startDate ? filters.startDate.toISOString().split('T')[0] : ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleFilterChange('startDate', value ? new Date(value) : null);
+                }}
+                InputLabelProps={{
+                  shrink: true // Để label không bị chồng với giá trị ngày
+                }}
+                fullWidth
+                size="medium"
+              />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
-                <DatePicker
-                  label="Đến ngày"
-                  value={filters.endDate}
-                  onChange={(date) => handleFilterChange('endDate', date)}
-                  slotProps={{
-                    textField: {
-                      fullWidth: true,
-                      size: "medium",
-                      sx: { 
-                        maxWidth: 200,
-                        '& .MuiInputBase-root': {
-                          height: 56
-                        }
-                      }
-                    }
-                  }}
-                />
-              </LocalizationProvider>
+              <TextField
+                label="Đến ngày"
+                type="date"
+                value={filters.endDate ? filters.endDate.toISOString().split('T')[0] : ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleFilterChange('endDate', value ? new Date(value) : null);
+                }}
+                InputLabelProps={{
+                  shrink: true
+                }}
+                fullWidth
+                size="medium"
+              />
             </Grid>
             {userRole === 'supervisor' && (
-              <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+              <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <Button
+                  fullWidth
+                  size="small"
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={() => setOpenAddDialog(true)}
@@ -450,32 +437,15 @@ const InventoryCheckManagement = () => {
             <TableBody>
               {inventoryCheckOrders.map((order) => (
                 <TableRow key={order._id} hover>
-                  <TableCell sx={{ fontWeight: 500 }}>
-                    {formatDate(order.inventory_check_date)}
+                  <TableCell sx={{ fontWeight: 500 }}>{formatDate(order.inventory_check_date)}</TableCell>
+                  <TableCell>
+                    <Chip label={order.warehouse_manager_id?.email || 'N/A'} size="small" variant="outlined" color="primary" />
                   </TableCell>
                   <TableCell>
-                    <Chip 
-                      label={order.warehouse_manager_id?.email || 'N/A'} 
-                      size="small" 
-                      variant="outlined" 
-                      color="primary"
-                    />
+                    <Chip label={order.created_by?.email || 'N/A'} size="small" variant="outlined" color="secondary" />
                   </TableCell>
                   <TableCell>
-                    <Chip 
-                      label={order.created_by?.email || 'N/A'} 
-                      size="small" 
-                      variant="outlined" 
-                      color="secondary"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Chip 
-                      label={getStatusLabel(order.status)} 
-                      size="small" 
-                      color={getStatusColor(order.status)}
-                      variant="filled"
-                    />
+                    <Chip label={getStatusLabel(order.status)} size="small" color={getStatusColor(order.status)} variant="filled" />
                   </TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
@@ -495,7 +465,7 @@ const InventoryCheckManagement = () => {
                           <ViewIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      
+
                       {/* Cancel button - only show for pending or processing status */}
                       {(order.status === 'pending' || order.status === 'processing') && (
                         <Tooltip title={trans.common.cancelTicket}>
@@ -530,9 +500,7 @@ const InventoryCheckManagement = () => {
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
           labelRowsPerPage="Số hàng mỗi trang:"
-          labelDisplayedRows={({ from, to, count }) =>
-            `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`
-          }
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`}
         />
       </Card>
 
@@ -559,58 +527,42 @@ const InventoryCheckManagement = () => {
       )}
 
       {/* Cancel Confirmation Dialog */}
-      <Dialog
-        open={openCancelDialog}
-        onClose={handleCancelClose}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ 
-          bgcolor: 'error.main', 
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1
-        }}>
+      <Dialog open={openCancelDialog} onClose={handleCancelClose} maxWidth="sm" fullWidth>
+        <DialogTitle
+          sx={{
+            bgcolor: 'error.main',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
           <CancelIcon />
           {trans.common.confirmCancelOrder}
         </DialogTitle>
         <DialogContent sx={{ pt: 3 }}>
-          <DialogContentText>
-            Bạn có chắc chắn muốn hủy phiếu kiểm kê này không?
-          </DialogContentText>
+          <DialogContentText>Bạn có chắc chắn muốn hủy phiếu kiểm kê này không?</DialogContentText>
           {orderToCancel && (
             <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 Thông tin phiếu kiểm kê:
               </Typography>
               <Typography variant="body2">
-                {trans.common.cancelOrderDetails.replace('{date}', formatDate(orderToCancel.inventory_check_date)).replace('{manager}', orderToCancel.warehouse_manager?.email || 'N/A').replace('{status}', getStatusLabel(orderToCancel.status))}
+                {trans.common.cancelOrderDetails
+                  .replace('{date}', formatDate(orderToCancel.inventory_check_date))
+                  .replace('{manager}', orderToCancel.warehouse_manager?.email || 'N/A')
+                  .replace('{status}', getStatusLabel(orderToCancel.status))}
               </Typography>
-              <Typography variant="body2">
-                • Warehouse Manager: {orderToCancel.warehouse_manager_id?.email}
-              </Typography>
-              <Typography variant="body2">
-
-              </Typography>
+              <Typography variant="body2">• Warehouse Manager: {orderToCancel.warehouse_manager_id?.email}</Typography>
+              <Typography variant="body2"></Typography>
             </Box>
           )}
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
-          <Button
-            onClick={handleCancelClose}
-            disabled={cancelling}
-            sx={{ textTransform: 'none' }}
-          >
+          <Button onClick={handleCancelClose} disabled={cancelling} sx={{ textTransform: 'none' }}>
             {trans.common.cancel}
           </Button>
-          <Button
-            onClick={handleCancelConfirm}
-            disabled={cancelling}
-            variant="contained"
-            color="error"
-            sx={{ textTransform: 'none' }}
-          >
+          <Button onClick={handleCancelConfirm} disabled={cancelling} variant="contained" color="error" sx={{ textTransform: 'none' }}>
             {cancelling ? trans.common.cancelling : trans.common.confirmCancel}
           </Button>
         </DialogActions>
@@ -619,4 +571,4 @@ const InventoryCheckManagement = () => {
   );
 };
 
-export default InventoryCheckManagement; 
+export default InventoryCheckManagement;

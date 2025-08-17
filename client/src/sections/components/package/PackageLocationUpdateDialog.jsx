@@ -20,12 +20,7 @@ import {
   Alert,
   TextField
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  LocationOn as LocationIcon,
-  Inventory as InventoryIcon,
-  Save as SaveIcon
-} from '@mui/icons-material';
+import { Close as CloseIcon, LocationOn as LocationIcon, Inventory as InventoryIcon, Save as SaveIcon } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
 
@@ -77,8 +72,8 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
     try {
       const response = await axiosInstance.get('/api/locations/v2', {
         headers: getAuthHeaders(),
-        params: { 
-          page: 1, 
+        params: {
+          page: 1,
           limit: 1000,
           areaId: areaId,
           available: 'true'
@@ -135,11 +130,11 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
     setSaving(true);
     try {
       const updateData = {};
-      
+
       if (selectedLocationId) {
         updateData.newLocationId = selectedLocationId;
       }
-      
+
       if (newQuantity && parseInt(newQuantity) !== pkg.quantity) {
         updateData.quantity = parseInt(newQuantity);
       }
@@ -166,11 +161,11 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
   const hasActualChanges = () => {
     // For location change, check if selected location is different from current location
     const hasLocationChange = selectedLocationId && selectedLocationId !== pkg.location_id;
-    
+
     // For quantity change, check if it's different and valid (not negative)
     const quantityValue = newQuantity ? parseInt(newQuantity) : null;
     const hasQuantityChange = quantityValue !== null && quantityValue >= 0 && quantityValue !== pkg.quantity;
-    
+
     return hasLocationChange || hasQuantityChange;
   };
 
@@ -191,24 +186,18 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={handleClose}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        backgroundColor: 'primary.main',
-        color: 'white'
-      }}>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'primary.main',
+          color: 'white'
+        }}
+      >
         Cập Nhật Thông Tin Package
-        <Button
-          onClick={handleClose}
-          sx={{ color: 'white', minWidth: 'auto' }}
-        >
+        <Button onClick={handleClose} sx={{ color: 'white', minWidth: 'auto' }}>
           <CloseIcon />
         </Button>
       </DialogTitle>
@@ -233,12 +222,7 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
                   ID Package:
                 </Typography>
               </Box>
-              <Chip 
-                label={pkg?._id} 
-                color="primary" 
-                variant="outlined"
-                size="small"
-              />
+              <Chip label={pkg?._id} color="primary" variant="outlined" size="small" />
             </Grid>
             <Grid xs={12} sm={4}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -258,11 +242,7 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
                   Số lượng hiện tại:
                 </Typography>
               </Box>
-              <Chip 
-                label={pkg?.quantity || 0} 
-                color="secondary"
-                size="small"
-              />
+              <Chip label={pkg?.quantity || 0} color="secondary" size="small" />
             </Grid>
           </Grid>
         </Box>
@@ -274,7 +254,7 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
           <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main', mb: 2 }}>
             Cập Nhật Thông Tin
           </Typography>
-          
+
           <Grid container spacing={3}>
             {/* Location Selection */}
             <Grid xs={12}>
@@ -285,12 +265,7 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
                 <Grid xs={12} sm={6}>
                   <FormControl fullWidth sx={{ minWidth: 250 }}>
                     <InputLabel>Khu vực</InputLabel>
-                    <Select
-                      value={selectedAreaId}
-                      label="Khu vực"
-                      onChange={(e) => handleAreaChange(e.target.value)}
-                      size="small"
-                    >
+                    <Select value={selectedAreaId} label="Khu vực" onChange={(e) => handleAreaChange(e.target.value)} size="small">
                       <MenuItem value="">Chọn khu vực</MenuItem>
                       {areas.map((area) => (
                         <MenuItem key={area._id} value={area._id}>
@@ -312,11 +287,12 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
                       disabled={!selectedAreaId || loading}
                     >
                       <MenuItem value="">Chọn vị trí</MenuItem>
-                      {Array.isArray(locations) && locations.map((location) => (
-                        <MenuItem key={location._id} value={location._id}>
-                          {`${location.bay} - ${location.row} - ${location.column}`}
-                        </MenuItem>
-                      ))}
+                      {Array.isArray(locations) &&
+                        locations.map((location) => (
+                          <MenuItem key={location._id} value={location._id}>
+                            {`${location.bay} - ${location.row} - ${location.column}`}
+                          </MenuItem>
+                        ))}
                     </Select>
                   </FormControl>
                 </Grid>
@@ -334,7 +310,9 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
               {selectedLocationId && Array.isArray(locations) && (
                 <Box sx={{ mt: 2, p: 2, backgroundColor: 'success.50', borderRadius: 1 }}>
                   <Typography variant="body2" color="success.main" sx={{ fontWeight: 500 }}>
-                    Vị trí đã chọn: {locations.find(loc => loc._id === selectedLocationId)?.bay} - {locations.find(loc => loc._id === selectedLocationId)?.row} - {locations.find(loc => loc._id === selectedLocationId)?.column}
+                    Vị trí đã chọn: {locations.find((loc) => loc._id === selectedLocationId)?.bay} -{' '}
+                    {locations.find((loc) => loc._id === selectedLocationId)?.row} -{' '}
+                    {locations.find((loc) => loc._id === selectedLocationId)?.column}
                   </Typography>
                 </Box>
               )}
@@ -360,7 +338,7 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
                     size="small"
                     sx={{ minWidth: 200 }}
                     InputProps={{
-                      inputProps: { 
+                      inputProps: {
                         min: 0,
                         step: 1
                       }
@@ -376,14 +354,10 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
       </DialogContent>
 
       <DialogActions sx={{ p: 3, pt: 0 }}>
-        <Button 
-          onClick={handleClose}
-          variant="outlined"
-          disabled={saving}
-        >
+        <Button onClick={handleClose} variant="outlined" disabled={saving}>
           Hủy
         </Button>
-        <Button 
+        <Button
           onClick={handleSave}
           variant="contained"
           color="primary"
@@ -397,4 +371,4 @@ const PackageLocationUpdateDialog = ({ open, onClose, package: pkg, onSuccess })
   );
 };
 
-export default PackageLocationUpdateDialog; 
+export default PackageLocationUpdateDialog;

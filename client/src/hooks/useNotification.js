@@ -107,7 +107,7 @@ export default function useNotification(userId) {
       timeout: 20000,
       forceNew: true
     });
-    
+
     setSocket(newSocket);
 
     // Xử lý lỗi kết nối

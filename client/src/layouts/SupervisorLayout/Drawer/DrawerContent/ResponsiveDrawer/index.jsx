@@ -10,9 +10,9 @@ import NavGroup from './NavGroup';
 
 export default function ResponsiveDrawer() {
   const { supervisor, dataReports, other } = useMenu();
-  
+
   const allMenuItems = [...supervisor, ...dataReports, ...other];
-  
+
   const navGroups = allMenuItems.map((item, index) => {
     switch (item.type) {
       case 'group':

@@ -1,169 +1,183 @@
-"use client"
-import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
-import axios from "axios"
-import { Accordion, AccordionSummary, AccordionDetails, Box, Container, Grid, Stack, Typography, CircularProgress, Alert, Snackbar, Table, TableHead, TableBody, TableRow, TableCell, Button, Chip, IconButton } from "@mui/material" // Added IconButton
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import RefreshIcon from "@mui/icons-material/Refresh"
-import DeleteIcon from "@mui/icons-material/Delete" // Added DeleteIcon
-import { useTheme } from "@mui/material/styles"
-import useTrans from "@/hooks/useTrans"
+'use client';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import axios from 'axios';
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Box,
+  Container,
+  Grid,
+  Stack,
+  Typography,
+  CircularProgress,
+  Alert,
+  Snackbar,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Button,
+  Chip,
+  IconButton
+} from '@mui/material'; // Added IconButton
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import DeleteIcon from '@mui/icons-material/Delete'; // Added DeleteIcon
+import { useTheme } from '@mui/material/styles';
+import useTrans from '@/hooks/useTrans';
 
 // Lấy header Authorization từ localStorage
 const getAuthHeaders = () => {
-  const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
-    "Content-Type": "application/json",
-    ...(token && { Authorization: `Bearer ${token}` }),
-  }
-}
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
 
-const formatDate = (d) => (d ? new Date(d).toLocaleDateString("vi-VN") : "")
-const formatDateTime = (d) => (d ? new Date(d).toLocaleString("vi-VN", { hour12: false }) : "")
+const formatDate = (d) => (d ? new Date(d).toLocaleDateString('vi-VN') : '');
+const formatDateTime = (d) => (d ? new Date(d).toLocaleString('vi-VN', { hour12: false }) : '');
 const getStatusColor = (status) => {
   switch (status) {
-    case "pending":
-      return "warning"
-    case "processing":
-      return "info"
-    case "completed":
-      return "success"
-    case "cancelled":
-      return "error"
-    case "checking":
-      return "primary"
-    case "checked":
-      return "success"
-    case "draft":
-      return "default"
-    case "valid":
-      return "success"
-    case "over_expected":
-      return "error"
-    case "under_expected":
-      return "error"
+    case 'pending':
+      return 'warning';
+    case 'processing':
+      return 'info';
+    case 'completed':
+      return 'success';
+    case 'cancelled':
+      return 'error';
+    case 'checking':
+      return 'primary';
+    case 'checked':
+      return 'success';
+    case 'draft':
+      return 'default';
+    case 'valid':
+      return 'success';
+    case 'over_expected':
+      return 'error';
+    case 'under_expected':
+      return 'error';
     default:
-      return "default"
+      return 'default';
   }
-}
+};
 
 export default function CheckOrderDetail() {
-  const theme = useTheme()
-  const trans = useTrans()
-  const { checkOrderId } = useParams()
-  const [order, setOrder] = useState(null)
-  const [inspections, setInspections] = useState([])
-  const [loadingOrder, setLoadingOrder] = useState(true)
-  const [loadingInspections, setLoadingInspections] = useState(true)
-  const [error, setError] = useState(null)
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "error" })
+  const theme = useTheme();
+  const trans = useTrans();
+  const { checkOrderId } = useParams();
+  const [order, setOrder] = useState(null);
+  const [inspections, setInspections] = useState([]);
+  const [loadingOrder, setLoadingOrder] = useState(true);
+  const [loadingInspections, setLoadingInspections] = useState(true);
+  const [error, setError] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' });
 
   const fetchOrder = async () => {
-    setLoadingOrder(true)
-    setError(null)
+    setLoadingOrder(true);
+    setError(null);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       // Updated URL to match the new consolidated route structure
       const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
-        headers: getAuthHeaders(),
-      })
+        headers: getAuthHeaders()
+      });
       if (res.data.success) {
-        setOrder(res.data.data.checkorder)
+        setOrder(res.data.data.checkorder);
       } else {
-        throw new Error(res.data.message || trans.checkOrderDetail.failedToLoadOrder)
+        throw new Error(res.data.message || trans.checkOrderDetail.failedToLoadOrder);
       }
     } catch (err) {
-      console.error(err)
-      setError(err.message)
-      setSnackbar({ open: true, message: err.message, severity: "error" })
+      console.error(err);
+      setError(err.message);
+      setSnackbar({ open: true, message: err.message, severity: 'error' });
     } finally {
-      setLoadingOrder(false)
+      setLoadingOrder(false);
     }
-  }
+  };
 
   const fetchInspections = async () => {
-    if (!checkOrderId) return
-    setLoadingInspections(true)
+    if (!checkOrderId) return;
+    setLoadingInspections(true);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-      const { data: inspectionsData } = await axios.get(
-        `${backendUrl}/api/inventory-check-inspections/${checkOrderId}/inspections`,
-        {
-          headers: getAuthHeaders(),
-        },
-      )
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const { data: inspectionsData } = await axios.get(`${backendUrl}/api/inventory-check-inspections/${checkOrderId}/inspections`, {
+        headers: getAuthHeaders()
+      });
       if (inspectionsData.success) {
         const inspectionsWithItems = await Promise.all(
           inspectionsData.data.map(async (inspection) => {
             try {
-              const { data: itemsData } = await axios.get(
-                `${backendUrl}/api/inventory-check-inspections/${inspection._id}/check-items`,
-                {
-                  headers: getAuthHeaders(),
-                },
-              )
+              const { data: itemsData } = await axios.get(`${backendUrl}/api/inventory-check-inspections/${inspection._id}/check-items`, {
+                headers: getAuthHeaders()
+              });
               return {
                 ...inspection,
-                check_items: itemsData.success ? itemsData.data : [],
-              }
+                check_items: itemsData.success ? itemsData.data : []
+              };
             } catch (itemErr) {
-              console.error(`Failed to load check items for inspection ${inspection._id}:`, itemErr)
-              return { ...inspection, check_items: [] } // Return inspection even if items fail
+              console.error(`Failed to load check items for inspection ${inspection._id}:`, itemErr);
+              return { ...inspection, check_items: [] }; // Return inspection even if items fail
             }
-          }),
-        )
-        setInspections(inspectionsWithItems)
+          })
+        );
+        setInspections(inspectionsWithItems);
       } else {
-        throw new Error(inspectionsData.error || trans.checkOrderDetail.failedToLoadInspections)
+        throw new Error(inspectionsData.error || trans.checkOrderDetail.failedToLoadInspections);
       }
     } catch (err) {
-      setError(err.message)
-      setSnackbar({ open: true, message: err.message, severity: "error" })
+      setError(err.message);
+      setSnackbar({ open: true, message: err.message, severity: 'error' });
     } finally {
-      setLoadingInspections(false)
+      setLoadingInspections(false);
     }
-  }
+  };
 
   useEffect(() => {
-    if (!checkOrderId) return
-    fetchOrder()
-    fetchInspections()
-  }, [checkOrderId])
+    if (!checkOrderId) return;
+    fetchOrder();
+    fetchInspections();
+  }, [checkOrderId]);
 
   const handleRefresh = () => {
-    fetchOrder()
-    fetchInspections()
-  }
+    fetchOrder();
+    fetchInspections();
+  };
 
   const handleCompleteCheck = async () => {
-    if (!order) return
-    const uncheckedInspections = inspections.filter((inspection) => inspection.status !== "checked")
+    if (!order) return;
+    const uncheckedInspections = inspections.filter((inspection) => inspection.status !== 'checked');
     if (uncheckedInspections.length > 0) {
       setSnackbar({
         open: true,
         message: `Không thể hoàn thành đơn kiểm kê. Còn ${uncheckedInspections.length} vị trí chưa được kiểm kê.`,
-        severity: "error",
-      })
-      return
+        severity: 'error'
+      });
+      return;
     }
     // Client-side validation logic
-    const overExpectedPackages = new Set()
-    const underExpectedPackages = new Set()
+    const overExpectedPackages = new Set();
+    const underExpectedPackages = new Set();
     inspections.forEach((inspection) => {
       inspection.check_items.forEach((item) => {
-        if (item.type === "over_expected") {
-          overExpectedPackages.add(item.package_id._id)
-        } else if (item.type === "under_expected") {
-          underExpectedPackages.add(item.package_id._id)
+        if (item.type === 'over_expected') {
+          overExpectedPackages.add(item.package_id._id);
+        } else if (item.type === 'under_expected') {
+          underExpectedPackages.add(item.package_id._id);
         }
-      })
-    })
-    let validationFailed = false
+      });
+    });
+    let validationFailed = false;
     if (overExpectedPackages.size > 0) {
       for (const packageId of overExpectedPackages) {
         if (!underExpectedPackages.has(packageId)) {
-          validationFailed = true
-          break
+          validationFailed = true;
+          break;
         }
       }
     }
@@ -171,137 +185,134 @@ export default function CheckOrderDetail() {
       setSnackbar({
         open: true,
         message: trans.checkOrderDetail.validationError,
-        severity: "error",
-      })
-      return
+        severity: 'error'
+      });
+      return;
     }
     // Proceed with API call if validation passes
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       // Corrected URL to use the inventory/check-order route
       const response = await axios.patch(
         `${backendUrl}/api/inventory/check-order/${order._id}`,
         {
-          status: "completed",
+          status: 'completed'
         },
         {
-          headers: getAuthHeaders(),
-        },
-      )
+          headers: getAuthHeaders()
+        }
+      );
       if (response.data.success) {
-        setOrder((prev) => ({ ...prev, status: "completed" }))
-        setSnackbar({ open: true, message: trans.checkOrderDetail.completeCheckSuccess, severity: "success" })
-        fetchOrder() // Refresh order data
-        fetchInspections() // Refresh inspections data
+        setOrder((prev) => ({ ...prev, status: 'completed' }));
+        setSnackbar({ open: true, message: trans.checkOrderDetail.completeCheckSuccess, severity: 'success' });
+        fetchOrder(); // Refresh order data
+        fetchInspections(); // Refresh inspections data
       } else {
         setSnackbar({
           open: true,
           message: response.data.message || trans.checkOrderDetail.completeCheckError,
-          severity: "error",
-        })
+          severity: 'error'
+        });
       }
     } catch (err) {
-      console.error(err)
-      setSnackbar({ open: true, message: trans.checkOrderDetail.completeCheckErrorGeneral, severity: "error" })
+      console.error(err);
+      setSnackbar({ open: true, message: trans.checkOrderDetail.completeCheckErrorGeneral, severity: 'error' });
     }
-  }
+  };
 
   const handleClearInspections = async () => {
-    if (!order) return
+    if (!order) return;
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const response = await axios.patch(
         `${backendUrl}/api/inventory-check-inspections/${order._id}/clear-inspections`,
         {}, // Empty body as per your route definition
         {
-          headers: getAuthHeaders(),
-        },
-      )
+          headers: getAuthHeaders()
+        }
+      );
       if (response.data.success) {
         setSnackbar({
           open: true,
           message: trans.checkOrderDetail.clearInspectionsSuccess,
-          severity: "success",
-        })
-        fetchOrder() // Refresh order data to get updated status
-        fetchInspections() // Refresh inspections data to get cleared quantities and draft status
+          severity: 'success'
+        });
+        fetchOrder(); // Refresh order data to get updated status
+        fetchInspections(); // Refresh inspections data to get cleared quantities and draft status
       } else {
         setSnackbar({
           open: true,
           message: response.data.message || trans.checkOrderDetail.clearInspectionsError,
-          severity: "error",
-        })
+          severity: 'error'
+        });
       }
     } catch (err) {
-      console.error(err)
-      setSnackbar({ open: true, message: trans.checkOrderDetail.clearInspectionsErrorGeneral, severity: "error" })
+      console.error(err);
+      setSnackbar({ open: true, message: trans.checkOrderDetail.clearInspectionsErrorGeneral, severity: 'error' });
     }
-  }
+  };
 
   const handleCancelOrder = async () => {
-    if (!order) return
+    if (!order) return;
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       // Corrected URL to use the inventory/check-order route
       const response = await axios.patch(
         `${backendUrl}/api/inventory/check-order/${order._id}`,
         {
-          status: "cancelled",
+          status: 'cancelled'
         },
         {
-          headers: getAuthHeaders(),
-        },
-      )
+          headers: getAuthHeaders()
+        }
+      );
       if (response.data.success) {
-        setOrder((prev) => ({ ...prev, status: "cancelled" }))
-        setSnackbar({ open: true, message: trans.checkOrderDetail.cancelOrderSuccess, severity: "success" })
-        fetchOrder() // Refresh order data
-        fetchInspections() // Refresh inspections data
+        setOrder((prev) => ({ ...prev, status: 'cancelled' }));
+        setSnackbar({ open: true, message: trans.checkOrderDetail.cancelOrderSuccess, severity: 'success' });
+        fetchOrder(); // Refresh order data
+        fetchInspections(); // Refresh inspections data
       } else {
         setSnackbar({
           open: true,
           message: response.data.message || trans.checkOrderDetail.cancelOrderError,
-          severity: "error",
-        })
+          severity: 'error'
+        });
       }
     } catch (err) {
-      console.error(err)
-      setSnackbar({ open: true, message: trans.checkOrderDetail.cancelOrderErrorGeneral, severity: "error" })
+      console.error(err);
+      setSnackbar({ open: true, message: trans.checkOrderDetail.cancelOrderErrorGeneral, severity: 'error' });
     }
-  }
+  };
 
   // New function to handle deleting a check item
   const handleDeleteItem = async (inspectionId, packageId) => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
-      const response = await axios.delete(
-        `${backendUrl}/api/inventory-check-inspections/${inspectionId}/check-items/${packageId}`,
-        {
-          headers: getAuthHeaders(),
-        },
-      )
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.delete(`${backendUrl}/api/inventory-check-inspections/${inspectionId}/check-items/${packageId}`, {
+        headers: getAuthHeaders()
+      });
       if (response.data.success) {
-        setSnackbar({ open: true, message: trans.checkOrderDetail.deleteItemSuccess, severity: "success" })
-        fetchInspections() // Refresh inspections data
+        setSnackbar({ open: true, message: trans.checkOrderDetail.deleteItemSuccess, severity: 'success' });
+        fetchInspections(); // Refresh inspections data
       } else {
         setSnackbar({
           open: true,
           message: response.data.message || trans.checkOrderDetail.deleteItemError,
-          severity: "error",
-        })
+          severity: 'error'
+        });
       }
     } catch (err) {
-      console.error(err)
-      setSnackbar({ open: true, message: trans.checkOrderDetail.deleteItemErrorGeneral, severity: "error" })
+      console.error(err);
+      setSnackbar({ open: true, message: trans.checkOrderDetail.deleteItemErrorGeneral, severity: 'error' });
     }
-  }
+  };
 
   if (loadingOrder || loadingInspections) {
     return (
-      <Box sx={{ p: 3, textAlign: "center" }}>
+      <Box sx={{ p: 3, textAlign: 'center' }}>
         <CircularProgress />
       </Box>
-    )
+    );
   }
 
   if (error) {
@@ -312,15 +323,15 @@ export default function CheckOrderDetail() {
           {trans.checkOrderDetail.retry}
         </Button>
       </Box>
-    )
+    );
   }
 
-  if (!order) return null
-  const isProcessing = order.status === "processing"
-  const isCancelledOrCompleted = order.status === "cancelled" || order.status === "completed"
+  if (!order) return null;
+  const isProcessing = order.status === 'processing';
+  const isCancelledOrCompleted = order.status === 'cancelled' || order.status === 'completed';
 
   return (
-    <Box sx={{ background: theme.palette.background.default, minHeight: "100vh", py: 4 }}>
+    <Box sx={{ background: theme.palette.background.default, minHeight: '100vh', py: 4 }}>
       <Container>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
           <Box>
@@ -364,9 +375,7 @@ export default function CheckOrderDetail() {
                 <Typography variant="subtitle2" color="text.secondary">
                   {trans.checkOrderDetail.warehouseManager}
                 </Typography>
-                <Typography variant="body1">
-                  {order.warehouse_manager_id?.email || order.warehouse_manager_id}
-                </Typography>
+                <Typography variant="body1">{order.warehouse_manager_id?.email || order.warehouse_manager_id}</Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">
@@ -392,18 +401,16 @@ export default function CheckOrderDetail() {
           </AccordionSummary>
           <AccordionDetails>
             {loadingInspections ? (
-              <Box sx={{ display: "flex", justifyContent: "center", width: "100%", py: 4 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%', py: 4 }}>
                 <CircularProgress />
               </Box>
             ) : inspections.length > 0 ? (
               <Stack spacing={2}>
                 {inspections.map((ins) => {
-                  const loc = ins.location_id
-                  const locStr = loc
-                    ? `${loc.area_id?.name || ""} - ${loc.bay || ""} - ${loc.row || ""} - ${loc.column || ""}`
-                    : "N/A"
+                  const loc = ins.location_id;
+                  const locStr = loc ? `${loc.area_id?.name || ''} - ${loc.bay || ''} - ${loc.row || ''} - ${loc.column || ''}` : 'N/A';
                   return (
-                    <Accordion key={ins._id} sx={{ border: "1px solid #e0e0e0", boxShadow: "none" }}>
+                    <Accordion key={ins._id} sx={{ border: '1px solid #e0e0e0', boxShadow: 'none' }}>
                       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                         <Grid container spacing={1} alignItems="center">
                           <Grid item xs={12} sm={4}>
@@ -424,7 +431,7 @@ export default function CheckOrderDetail() {
                             <Typography variant="subtitle2" color="text.secondary">
                               {trans.checkOrderDetail.checkedBy}:
                             </Typography>
-                            <Typography variant="body1">{ins.check_by?.email || ins.check_by || "N/A"}</Typography>
+                            <Typography variant="body1">{ins.check_by?.email || ins.check_by || 'N/A'}</Typography>
                           </Grid>
                         </Grid>
                       </AccordionSummary>
@@ -447,23 +454,22 @@ export default function CheckOrderDetail() {
                             </TableHead>
                             <TableBody>
                               {ins.check_items.map((item, index) => {
-                                const pkgId = item.package_id?._id
-                                const uniqueKey = pkgId || `item-${ins._id}-${index}`
-                                const chipLabel = item.type === "over_expected" 
-                                  ? trans.checkOrderDetail.overExpected
-                                  : item.type === "under_expected"
-                                  ? trans.checkOrderDetail.underExpected
-                                  : item.type
-                                    .replace(/_/g, " ")
-                                    .replace(/\b\w/g, (char) => char.toUpperCase()) // Format other statuses
-                                const chip = <Chip label={chipLabel} size="small" color={getStatusColor(item.type)} />
+                                const pkgId = item.package_id?._id;
+                                const uniqueKey = pkgId || `item-${ins._id}-${index}`;
+                                const chipLabel =
+                                  item.type === 'over_expected'
+                                    ? trans.checkOrderDetail.overExpected
+                                    : item.type === 'under_expected'
+                                      ? trans.checkOrderDetail.underExpected
+                                      : item.type.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()); // Format other statuses
+                                const chip = <Chip label={chipLabel} size="small" color={getStatusColor(item.type)} />;
                                 return (
                                   <TableRow key={uniqueKey}>
-                                    <TableCell>{pkgId?.slice(-4) || "N/A"}</TableCell>
+                                    <TableCell>{pkgId?.slice(-4) || 'N/A'}</TableCell>
                                     <TableCell>
-                                      {`${item?.package_id?.batch_id?.medicine_id?.medicine_name || "N/A"} - ${item?.package_id?.batch_id?.medicine_id?.license_code || "N/A"}`}
+                                      {`${item?.package_id?.batch_id?.medicine_id?.medicine_name || 'N/A'} - ${item?.package_id?.batch_id?.medicine_id?.license_code || 'N/A'}`}
                                     </TableCell>
-                                    <TableCell>{item?.package_id?.batch_id?.batch_code || "N/A"}</TableCell>
+                                    <TableCell>{item?.package_id?.batch_id?.batch_code || 'N/A'}</TableCell>
                                     <TableCell>{item?.expected_quantity || 0}</TableCell>
                                     <TableCell>{item?.actual_quantity || 0}</TableCell>
                                     <TableCell>{chip}</TableCell>
@@ -479,7 +485,7 @@ export default function CheckOrderDetail() {
                                       </IconButton>
                                     </TableCell>
                                   </TableRow>
-                                )
+                                );
                               })}
                             </TableBody>
                           </Table>
@@ -490,7 +496,7 @@ export default function CheckOrderDetail() {
                         )}
                       </AccordionDetails>
                     </Accordion>
-                  )
+                  );
                 })}
               </Stack>
             ) : (
@@ -501,7 +507,7 @@ export default function CheckOrderDetail() {
           </AccordionDetails>
         </Accordion>
         {/* Action Buttons */}
-        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4, gap: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4, gap: 2 }}>
           <Button
             variant="contained"
             color="secondary"
@@ -532,17 +538,13 @@ export default function CheckOrderDetail() {
           open={snackbar.open}
           autoHideDuration={3000}
           onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
-          <Alert
-            onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
-            severity={snackbar.severity}
-            sx={{ width: "100%" }}
-          >
+          <Alert onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))} severity={snackbar.severity} sx={{ width: '100%' }}>
             {snackbar.message}
           </Alert>
         </Snackbar>
       </Container>
     </Box>
-  )
+  );
 }

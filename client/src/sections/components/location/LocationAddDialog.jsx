@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -14,11 +14,9 @@ import {
   MenuItem,
   Grid,
   Typography,
-  Box,
+  Box
 } from '@mui/material';
-import {
-  Add as AddIcon,
-} from '@mui/icons-material';
+import { Add as AddIcon } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
 import useTrans from '@/hooks/useTrans';
@@ -26,11 +24,11 @@ import useTrans from '@/hooks/useTrans';
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('auth-token')}`,
+  Authorization: `Bearer ${localStorage.getItem('auth-token')}`
 });
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
+  withCredentials: true
 });
 
 const LocationAddDialog = ({ open, onClose, onSuccess }) => {
@@ -42,7 +40,7 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
     area_id: '',
     bay: '',
     row: '',
-    column: '',
+    column: ''
   });
   const [errors, setErrors] = useState({});
 
@@ -63,14 +61,14 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
 
   // Handle form input changes
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [field]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         [field]: ''
       }));
@@ -140,7 +138,7 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
       area_id: '',
       bay: '',
       row: '',
-      column: '',
+      column: ''
     });
     setErrors({});
     onClose();
@@ -162,7 +160,7 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
           </Typography>
         </Box>
       </DialogTitle>
-      
+
       <DialogContent>
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid item xs={12}>
@@ -224,17 +222,12 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
           </Grid>
         </Grid>
       </DialogContent>
-      
+
       <DialogActions>
         <Button onClick={handleClose} disabled={loading}>
           {trans.common.cancel}
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
-          disabled={loading}
-          startIcon={<AddIcon />}
-        >
+        <Button onClick={handleSubmit} variant="contained" disabled={loading} startIcon={<AddIcon />}>
           {loading ? trans.common.creating : trans.common.createLocation}
         </Button>
       </DialogActions>
@@ -242,4 +235,4 @@ const LocationAddDialog = ({ open, onClose, onSuccess }) => {
   );
 };
 
-export default LocationAddDialog; 
+export default LocationAddDialog;

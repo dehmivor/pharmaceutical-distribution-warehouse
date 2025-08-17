@@ -82,7 +82,7 @@ export default function Notification({ recipientId }) {
     }
   ];
 
-  const unreadCount = mockNotifications.filter(n => n.status === 'unread').length;
+  const unreadCount = mockNotifications.filter((n) => n.status === 'unread').length;
 
   const open = Boolean(anchorEl);
   const innerOpen = Boolean(innerAnchorEl);
@@ -139,8 +139,8 @@ export default function Notification({ recipientId }) {
                 top: 4,
                 right: 4,
                 border: `1px solid ${theme.palette.background.default}`
-            }
-          }}
+              }
+            }}
           >
             <IconBell size={16} />
           </Badge>
@@ -177,11 +177,7 @@ export default function Notification({ recipientId }) {
                       <Stack direction="row" sx={{ gap: 1, justifyContent: 'space-between' }}>
                         <Typography variant="h6">Thông báo</Typography>
                         <Stack direction="row" sx={{ gap: 0.5 }}>
-                          <IconButton
-                            size="small"
-                            onClick={handleInnerActionClick}
-                            aria-describedby={innerId}
-                          >
+                          <IconButton size="small" onClick={handleInnerActionClick} aria-describedby={innerId}>
                             <IconChevronDown size={16} />
                           </IconButton>
                         </Stack>

@@ -5,4 +5,4 @@ const AreaManagementPage = () => {
   return <AreaManagement />;
 };
 
-export default AreaManagementPage; 
+export default AreaManagementPage;

@@ -262,7 +262,15 @@ const ImportOrderForm = ({ order, onClose }) => {
           />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <TextField select fullWidth label={trans.common.contract} name="contract_id" value={formData.contract_id} onChange={handleFormChange} required>
+          <TextField
+            select
+            fullWidth
+            label={trans.common.contract}
+            name="contract_id"
+            value={formData.contract_id}
+            onChange={handleFormChange}
+            required
+          >
             {contracts.map((contract) => (
               <MenuItem key={contract._id} value={contract._id}>
                 {contract.contract_code}
@@ -271,7 +279,15 @@ const ImportOrderForm = ({ order, onClose }) => {
           </TextField>
         </Grid>
         <Grid item xs={12} sm={6}>
-          <TextField select fullWidth label={trans.common.supplier} name="supplier_id" value={formData.supplier_id} onChange={handleFormChange} required>
+          <TextField
+            select
+            fullWidth
+            label={trans.common.supplier}
+            name="supplier_id"
+            value={formData.supplier_id}
+            onChange={handleFormChange}
+            required
+          >
             {suppliers.map((supplier) => (
               <MenuItem key={supplier._id} value={supplier._id}>
                 {supplier.full_name}
