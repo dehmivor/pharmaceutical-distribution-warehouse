@@ -110,14 +110,14 @@ const SupplierManagement = () => {
   const formatPhoneNumber = (value) => {
     // Remove all non-digits and non-plus
     const cleaned = value.replace(/[^\d+]/g, '');
-    
+
     // If starts with +84, format accordingly
     if (cleaned.startsWith('+84')) {
       const digits = cleaned.replace('+84', '').replace(/\D/g, '');
-      
+
       // Limit to 10 digits after +84
       if (digits.length > 10) return value;
-      
+
       // Format as +84 XX XXXX XXXX
       if (digits.length <= 2) return `+84 ${digits}`;
       if (digits.length <= 6) return `+84 ${digits.slice(0, 2)} ${digits.slice(2)}`;
@@ -125,10 +125,10 @@ const SupplierManagement = () => {
     } else {
       // If doesn't start with +84, add it
       const digits = cleaned.replace(/\D/g, '');
-      
+
       // Limit to 10 digits
       if (digits.length > 10) return value;
-      
+
       // Format as +84 XX XXXX XXXX
       if (digits.length <= 2) return `+84 ${digits}`;
       if (digits.length <= 6) return `+84 ${digits.slice(0, 2)} ${digits.slice(2)}`;
@@ -139,19 +139,19 @@ const SupplierManagement = () => {
   // Validate form data
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.name.trim()) {
-              newErrors.name = trans.suppliers.nameRequired;
+      newErrors.name = trans.suppliers.nameRequired;
     }
-    
+
     if (!formData.license.trim()) {
-              newErrors.license = trans.suppliers.licenseRequired;
+      newErrors.license = trans.suppliers.licenseRequired;
     }
-    
+
     if (formData.phone && !validatePhoneNumber(formData.phone)) {
-              newErrors.phone = trans.suppliers.phoneFormat;
+      newErrors.phone = trans.suppliers.phoneFormat;
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -175,7 +175,7 @@ const SupplierManagement = () => {
         setTotalCount(response.data.data.pagination.total);
       }
     } catch (error) {
-              setError(trans.suppliers.errorLoading);
+      setError(trans.suppliers.errorLoading);
       console.error('Error fetching suppliers:', error);
     } finally {
       setLoading(false);
@@ -284,13 +284,13 @@ const SupplierManagement = () => {
         }
       }
     } catch (error) {
-              setError(error.response?.data?.message || trans.suppliers.errorOccurred);
+      setError(error.response?.data?.message || trans.suppliers.errorOccurred);
       console.error('Error submitting form:', error);
     }
   };
 
   const handleDelete = async (supplier) => {
-          if (window.confirm(trans.common.confirmDelete.replace('{item}', trans.suppliers.title.toLowerCase()))) {
+    if (window.confirm(trans.common.confirmDelete.replace('{item}', trans.suppliers.title.toLowerCase()))) {
       try {
         const response = await axiosInstance.delete(`/api/supplier/${supplier._id}`, {
           headers: getAuthHeaders()
@@ -332,11 +332,7 @@ const SupplierManagement = () => {
             {trans.suppliers.description}
           </Typography>
         </Box>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />}
-          onClick={handleAddNew}
-        >
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddNew}>
           {trans.common.addNew}
         </Button>
       </Box>
@@ -468,34 +464,48 @@ const SupplierManagement = () => {
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
           labelRowsPerPage={trans.common.rowsPerPage}
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count !== -1 ? count : `${trans.common.moreThanTo} ${to}`}`}
+          labelDisplayedRows={({ from, to, count }) =>
+            `${from}-${to} ${trans.common.of} ${count !== -1 ? count : `${trans.common.moreThanTo} ${to}`}`
+          }
         />
       </Paper>
 
       {/* Detail Dialog */}
       <Dialog open={openDetailDialog} onClose={handleCloseDetailDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{trans.common.details} {trans.suppliers.title.toLowerCase()}</DialogTitle>
+        <DialogTitle>
+          {trans.common.details} {trans.suppliers.title.toLowerCase()}
+        </DialogTitle>
         <DialogContent>
           {selectedSupplier && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">{trans.common.supplierName}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {trans.common.supplierName}
+                </Typography>
                 <Typography variant="body1">{selectedSupplier.name}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">{trans.common.status}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {trans.common.status}
+                </Typography>
                 <Chip label={getStatusLabel(selectedSupplier.status)} color={getStatusColor(selectedSupplier.status)} />
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">{trans.common.address}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {trans.common.address}
+                </Typography>
                 <Typography variant="body1">{selectedSupplier.address || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">{trans.common.phone}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {trans.common.phone}
+                </Typography>
                 <Typography variant="body1">{selectedSupplier.phone || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary">{trans.common.license}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {trans.common.license}
+                </Typography>
                 <Typography variant="body1">{selectedSupplier.license}</Typography>
               </Grid>
             </Grid>
@@ -508,7 +518,9 @@ const SupplierManagement = () => {
 
       {/* Form Dialog */}
       <Dialog open={openFormDialog} onClose={handleCloseFormDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{isEditing ? trans.common.update : trans.common.addNew} {trans.suppliers.title.toLowerCase()}</DialogTitle>
+        <DialogTitle>
+          {isEditing ? trans.common.update : trans.common.addNew} {trans.suppliers.title.toLowerCase()}
+        </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} md={6}>
@@ -570,9 +582,9 @@ const SupplierManagement = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-                      <Button onClick={handleCloseFormDialog}>{trans.common.cancel}</Button>
+          <Button onClick={handleCloseFormDialog}>{trans.common.cancel}</Button>
           <Button onClick={handleFormSubmit} variant="contained">
-                            {isEditing ? trans.common.update : trans.common.addNew}
+            {isEditing ? trans.common.update : trans.common.addNew}
           </Button>
         </DialogActions>
       </Dialog>

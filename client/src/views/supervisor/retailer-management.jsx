@@ -110,10 +110,10 @@ const RetailerManagement = () => {
   const formatPhoneNumber = (value) => {
     // Remove all non-digits
     const digits = value.replace(/\D/g, '');
-    
+
     // Limit to 11 digits
     if (digits.length > 11) return value;
-    
+
     // Format as XXX-XXXX-XXXX
     if (digits.length <= 3) return digits;
     if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
@@ -123,19 +123,19 @@ const RetailerManagement = () => {
   // Validate form data
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.name.trim()) {
-              newErrors.name = trans.retailers.nameRequired;
+      newErrors.name = trans.retailers.nameRequired;
     }
-    
+
     if (!formData.license.trim()) {
-              newErrors.license = trans.retailers.licenseRequired;
+      newErrors.license = trans.retailers.licenseRequired;
     }
-    
+
     if (formData.phone && !validatePhoneNumber(formData.phone)) {
-              newErrors.phone = trans.retailers.phoneFormat;
+      newErrors.phone = trans.retailers.phoneFormat;
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -159,7 +159,7 @@ const RetailerManagement = () => {
         setTotalCount(response.data.data.pagination.total);
       }
     } catch (error) {
-              setError(trans.retailers.errorLoading);
+      setError(trans.retailers.errorLoading);
       console.error('Error fetching retailers:', error);
     } finally {
       setLoading(false);
@@ -268,13 +268,13 @@ const RetailerManagement = () => {
         }
       }
     } catch (error) {
-              setError(error.response?.data?.message || trans.retailers.errorOccurred);
+      setError(error.response?.data?.message || trans.retailers.errorOccurred);
       console.error('Error submitting form:', error);
     }
   };
 
   const handleDelete = async (retailer) => {
-          if (window.confirm(trans.common.confirmDelete.replace('{item}', trans.retailers.title.toLowerCase()))) {
+    if (window.confirm(trans.common.confirmDelete.replace('{item}', trans.retailers.title.toLowerCase()))) {
       try {
         const response = await axiosInstance.delete(`/api/retailer/${retailer._id}`, {
           headers: getAuthHeaders()
@@ -316,11 +316,7 @@ const RetailerManagement = () => {
             {trans.retailers.description}
           </Typography>
         </Box>
-        <Button 
-          variant="contained" 
-          startIcon={<AddIcon />}
-          onClick={handleAddNew}
-        >
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddNew}>
           {trans.common.addNew}
         </Button>
       </Box>
@@ -341,21 +337,21 @@ const RetailerManagement = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={12} md={4}>
-          <TextField
-            fullWidth
-            label={trans.common.retailerName}
-            value={filters.name || ''}
-            onChange={(e) => handleFilterChange('name', e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              )
-            }}
-          />
-        </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label={trans.common.retailerName}
+                value={filters.name || ''}
+                onChange={(e) => handleFilterChange('name', e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </Grid>
             <Grid item xs={12} md={4}>
               <FormControl fullWidth>
                 <InputLabel>{trans.common.status}</InputLabel>
@@ -463,23 +459,33 @@ const RetailerManagement = () => {
           {selectedRetailer && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">{trans.retailers.name}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {trans.retailers.name}
+                </Typography>
                 <Typography variant="body1">{selectedRetailer.name}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">{trans.retailers.status}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {trans.retailers.status}
+                </Typography>
                 <Chip label={getStatusLabel(selectedRetailer.status)} color={getStatusColor(selectedRetailer.status)} />
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">{trans.retailers.address}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {trans.retailers.address}
+                </Typography>
                 <Typography variant="body1">{selectedRetailer.address || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="text.secondary">{trans.retailers.phone}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {trans.retailers.phone}
+                </Typography>
                 <Typography variant="body1">{selectedRetailer.phone || 'N/A'}</Typography>
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary">{trans.retailers.license}</Typography>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {trans.retailers.license}
+                </Typography>
                 <Typography variant="body1">{selectedRetailer.license}</Typography>
               </Grid>
             </Grid>
@@ -492,19 +498,21 @@ const RetailerManagement = () => {
 
       {/* Form Dialog */}
       <Dialog open={openFormDialog} onClose={handleCloseFormDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{isEditing ? trans.common.update : trans.common.addNew} {trans.retailers.title.toLowerCase()}</DialogTitle>
+        <DialogTitle>
+          {isEditing ? trans.common.update : trans.common.addNew} {trans.retailers.title.toLowerCase()}
+        </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12} md={6}>
-                              <TextField
-                  fullWidth
-                  label={trans.common.retailerName}
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  error={!!errors.name}
-                  helperText={errors.name}
-                  required
-                />
+              <TextField
+                fullWidth
+                label={trans.common.retailerName}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                error={!!errors.name}
+                helperText={errors.name}
+                required
+              />
             </Grid>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth>
@@ -556,7 +564,7 @@ const RetailerManagement = () => {
         <DialogActions>
           <Button onClick={handleCloseFormDialog}>{trans.common.cancel}</Button>
           <Button onClick={handleFormSubmit} variant="contained">
-                            {isEditing ? trans.common.update : trans.common.addNew}
+            {isEditing ? trans.common.update : trans.common.addNew}
           </Button>
         </DialogActions>
       </Dialog>

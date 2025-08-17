@@ -6,4 +6,4 @@ const PackageManagement = dynamic(() => import('@/sections/components/package/Pa
 
 export default function PackageManagementPage() {
   return <PackageManagement />;
-} 
+}

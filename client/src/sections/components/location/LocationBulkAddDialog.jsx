@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -20,13 +20,9 @@ import {
   Grid,
   Chip,
   Divider,
-  Alert,
+  Alert
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Close as CloseIcon,
-} from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
 import useTrans from '@/hooks/useTrans';
@@ -34,11 +30,11 @@ import useTrans from '@/hooks/useTrans';
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('auth-token')}`,
+  Authorization: `Bearer ${localStorage.getItem('auth-token')}`
 });
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
+  withCredentials: true
 });
 
 const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
@@ -53,9 +49,9 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
       {
         id: 1,
         name: '',
-        columns: [],
-      },
-    ],
+        columns: []
+      }
+    ]
   });
 
   // Fetch areas on component mount
@@ -69,7 +65,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
     try {
       const response = await axiosInstance.get('/api/areas', {
         headers: getAuthHeaders(),
-        params: { page: 1, limit: 1000 }, // Get all areas
+        params: { page: 1, limit: 1000 } // Get all areas
       });
       setAreas(response.data.data.areas || []);
     } catch (error) {
@@ -79,83 +75,75 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: value
     }));
   };
 
   const addRow = () => {
-    const newRowId = Math.max(...formData.rows.map(row => row.id), 0) + 1;
-    setFormData(prev => ({
+    const newRowId = Math.max(...formData.rows.map((row) => row.id), 0) + 1;
+    setFormData((prev) => ({
       ...prev,
       rows: [
         ...prev.rows,
         {
           id: newRowId,
           name: '',
-          columns: [],
-        },
-      ],
+          columns: []
+        }
+      ]
     }));
   };
 
   const removeRow = (rowIndex) => {
     if (formData.rows.length > 1) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        rows: prev.rows.filter((_, index) => index !== rowIndex),
+        rows: prev.rows.filter((_, index) => index !== rowIndex)
       }));
     }
   };
 
   const updateRowName = (rowIndex, name) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      rows: prev.rows.map((row, index) =>
-        index === rowIndex ? { ...row, name } : row
-      ),
+      rows: prev.rows.map((row, index) => (index === rowIndex ? { ...row, name } : row))
     }));
   };
 
   const addColumn = (rowIndex) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      rows: prev.rows.map((row, index) =>
-        index === rowIndex
-          ? { ...row, columns: [...row.columns, ''] }
-          : row
-      ),
+      rows: prev.rows.map((row, index) => (index === rowIndex ? { ...row, columns: [...row.columns, ''] } : row))
     }));
   };
 
   const removeColumn = (rowIndex, columnIndex) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       rows: prev.rows.map((row, index) =>
         index === rowIndex
           ? {
               ...row,
-              columns: row.columns.filter((_, colIndex) => colIndex !== columnIndex),
+              columns: row.columns.filter((_, colIndex) => colIndex !== columnIndex)
             }
           : row
-      ),
+      )
     }));
   };
 
   const updateColumn = (rowIndex, columnIndex, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       rows: prev.rows.map((row, index) =>
         index === rowIndex
           ? {
               ...row,
-              columns: row.columns.map((col, colIndex) =>
-                colIndex === columnIndex ? value : col
-              ),
+              columns: row.columns.map((col, colIndex) => (colIndex === columnIndex ? value : col))
             }
           : row
-      ),
+      )
     }));
   };
 
@@ -177,7 +165,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
         enqueueSnackbar(trans.common.rowNameRequired, { variant: 'error' });
         return false;
       }
-      
+
       const rowName = row.name.trim();
       if (rowNames.includes(rowName)) {
         enqueueSnackbar(trans.common.rowNameDuplicate.replace('{name}', rowName), { variant: 'error' });
@@ -190,34 +178,36 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
     for (let i = 0; i < formData.rows.length; i++) {
       const row = formData.rows[i];
       const columnNames = [];
-      
+
       for (let j = 0; j < row.columns.length; j++) {
         if (!row.columns[j].trim()) {
           enqueueSnackbar(trans.common.columnNameRequired, { variant: 'error' });
           return false;
         }
-        
+
         const columnName = row.columns[j].trim();
         if (columnNames.includes(columnName)) {
-          enqueueSnackbar(trans.common.columnNameDuplicate.replace('{name}', columnName).replace('{rowName}', row.name.trim()), { variant: 'error' });
+          enqueueSnackbar(trans.common.columnNameDuplicate.replace('{name}', columnName).replace('{rowName}', row.name.trim()), {
+            variant: 'error'
+          });
           return false;
         }
         columnNames.push(columnName);
       }
     }
-    
+
     return true;
   };
 
   const generateLocations = () => {
     const locations = [];
-    formData.rows.forEach(row => {
-      row.columns.forEach(column => {
+    formData.rows.forEach((row) => {
+      row.columns.forEach((column) => {
         locations.push({
           area_id: formData.area_id,
           bay: formData.bay.trim(),
           row: row.name.trim(),
-          column: column.trim(),
+          column: column.trim()
         });
       });
     });
@@ -230,16 +220,16 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
     setLoading(true);
     try {
       const locations = generateLocations();
-      
+
       // Create locations one by one (or you can modify backend to accept bulk create)
-      const promises = locations.map(location =>
+      const promises = locations.map((location) =>
         axiosInstance.post('/api/locations/v2', location, {
-          headers: getAuthHeaders(),
+          headers: getAuthHeaders()
         })
       );
 
       await Promise.all(promises);
-      
+
       enqueueSnackbar(trans.common.successfullyCreatedLocations.replace('{count}', locations.length), { variant: 'success' });
       onSuccess();
       handleClose();
@@ -259,17 +249,14 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
         {
           id: 1,
           name: '',
-          columns: [],
-        },
-      ],
+          columns: []
+        }
+      ]
     });
     onClose();
   };
 
-  const totalLocations = formData.rows.reduce(
-    (total, row) => total + row.columns.length,
-    0
-  );
+  const totalLocations = formData.rows.reduce((total, row) => total + row.columns.length, 0);
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
@@ -332,11 +319,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
                     {trans.common.row} {rowIndex + 1}
                   </Typography>
                   {formData.rows.length > 1 && (
-                    <IconButton
-                      color="error"
-                      size="small"
-                      onClick={() => removeRow(rowIndex)}
-                    >
+                    <IconButton color="error" size="small" onClick={() => removeRow(rowIndex)}>
                       <DeleteIcon />
                     </IconButton>
                   )}
@@ -351,12 +334,12 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
                     onChange={(e) => updateRowName(rowIndex, e.target.value)}
                     placeholder={trans.common.rowNamePlaceholder}
                   />
-                  
+
                   {/* Row 2: Columns Label */}
                   <Typography variant="body2" color="text.secondary">
                     {trans.common.columns}
                   </Typography>
-                  
+
                   {/* Row 3: Add Column Button */}
                   <Button
                     size="small"
@@ -367,13 +350,13 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
                   >
                     {trans.common.addColumn}
                   </Button>
-                  
+
                   {/* Row 4: Column Inputs */}
                   {row.columns.length > 0 && (
-                    <Box 
-                      sx={{ 
-                        display: 'flex', 
-                        gap: 1, 
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        gap: 1,
                         flexWrap: 'wrap',
                         maxHeight: 120,
                         overflowY: 'auto',
@@ -384,12 +367,12 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
                       }}
                     >
                       {row.columns.map((column, columnIndex) => (
-                        <Box 
-                          key={columnIndex} 
-                          display="flex" 
-                          alignItems="center" 
+                        <Box
+                          key={columnIndex}
+                          display="flex"
+                          alignItems="center"
                           gap={0.5}
-                          sx={{ 
+                          sx={{
                             minWidth: 100,
                             flexShrink: 0
                           }}
@@ -399,7 +382,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
                             value={column}
                             onChange={(e) => updateColumn(rowIndex, columnIndex, e.target.value)}
                             placeholder={trans.common.columnName}
-                            sx={{ 
+                            sx={{
                               minWidth: 80,
                               maxWidth: 100,
                               '& .MuiInputBase-root': {
@@ -412,7 +395,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
                               size="small"
                               color="error"
                               onClick={() => removeColumn(rowIndex, columnIndex)}
-                              sx={{ 
+                              sx={{
                                 bgcolor: 'error.50',
                                 '&:hover': { bgcolor: 'error.100' }
                               }}
@@ -429,12 +412,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
             </Card>
           ))}
 
-          <Button
-            startIcon={<AddIcon />}
-            onClick={addRow}
-            variant="outlined"
-            sx={{ mt: 1 }}
-          >
+          <Button startIcon={<AddIcon />} onClick={addRow} variant="outlined" sx={{ mt: 1 }}>
             {trans.common.addRow}
           </Button>
         </Box>
@@ -444,11 +422,7 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
         <Button onClick={handleClose} disabled={loading}>
           {trans.common.cancel}
         </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading || totalLocations === 0}
-        >
+        <Button onClick={handleSubmit} variant="contained" disabled={loading || totalLocations === 0}>
           {loading ? trans.common.creatingMultipleLocations : trans.common.createMultipleLocationsButton.replace('{count}', totalLocations)}
         </Button>
       </DialogActions>
@@ -456,4 +430,4 @@ const LocationBulkAddDialog = ({ open, onClose, onSuccess }) => {
   );
 };
 
-export default LocationBulkAddDialog; 
+export default LocationBulkAddDialog;

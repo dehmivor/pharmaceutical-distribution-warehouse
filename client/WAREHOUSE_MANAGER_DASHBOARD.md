@@ -13,6 +13,7 @@ Warehouse Manager Dashboard là một giao diện quản lý tổng quan dành c
 ## Tính năng chính
 
 ### 1. Thống kê tổng quan (Statistics Cards)
+
 - **Total Inventory Items**: Tổng số sản phẩm trong kho
 - **Pending Import Orders**: Đơn hàng nhập đang chờ xử lý
 - **Pending Export Orders**: Đơn hàng xuất đang chờ xử lý
@@ -21,15 +22,18 @@ Warehouse Manager Dashboard là một giao diện quản lý tổng quan dành c
 - **Total Inventory Value**: Tổng giá trị hàng tồn kho (VND)
 
 ### 2. Bảng đơn hàng gần đây
+
 - **Recent Import Orders**: 5 đơn hàng nhập gần nhất
 - **Recent Export Orders**: 5 đơn hàng xuất gần nhất
 - Hiển thị: Order ID, Status, Created Date, Actions
 
 ### 3. Bảng sản phẩm sắp hết hàng
+
 - Danh sách 5 sản phẩm có số lượng thấp nhất
 - Hiển thị: Tên thuốc, Số lượng hiện tại, Số lượng tối thiểu, Trạng thái
 
 ### 4. Biểu đồ xu hướng đơn hàng
+
 - **Orders Trend Chart**: Biểu đồ đường hiển thị xu hướng đơn hàng nhập/xuất trong 6 tháng gần nhất
 - **Responsive Design**: Tự động điều chỉnh kích thước theo màn hình
 - **Toggle View**: Chuyển đổi giữa hiển thị số lượng đơn hàng và giá trị (VND)
@@ -69,15 +73,19 @@ server/src/routes/
 ## API Endpoints
 
 ### GET /api/dashboard/warehouse-manager
+
 Trả về dữ liệu dashboard cho warehouse manager:
 
 ### GET /api/dashboard/warehouse-manager/chart
+
 Trả về dữ liệu chart cho warehouse manager:
 
 **Query Parameters:**
+
 - `months` (optional): Số tháng muốn lấy dữ liệu (mặc định: 6)
 
 **Example:**
+
 ```
 GET /api/dashboard/warehouse-manager/chart?months=12
 ```
@@ -106,7 +114,7 @@ GET /api/dashboard/warehouse-manager/chart?months=12
           "borderColor": "#2196F3"
         },
         {
-          "label": "Export Orders", 
+          "label": "Export Orders",
           "data": [8, 12, 10, 15, 18, 14],
           "borderColor": "#4CAF50"
         }
@@ -146,4 +154,4 @@ GET /api/dashboard/warehouse-manager/chart?months=12
 
 - Dashboard tự động cập nhật dữ liệu khi component mount
 - Có thể thêm tính năng refresh manual
-- Dễ dàng mở rộng thêm các thống kê mới 
+- Dễ dàng mở rộng thêm các thống kê mới

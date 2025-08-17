@@ -856,7 +856,13 @@ export default function ManageExportOrders() {
             InputLabelProps={{ shrink: true }}
             size="small"
           />
-          <TextField select label={trans.manageExportOrders.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+          <TextField
+            select
+            label={trans.manageExportOrders.status}
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            size="small"
+          >
             <MenuItem value="">{trans.manageExportOrders.all}</MenuItem>
             {['draft', 'approved', 'returned', 'rejected', 'completed', 'cancelled'].map((s) => (
               <MenuItem key={s} value={s}>
@@ -864,7 +870,13 @@ export default function ManageExportOrders() {
               </MenuItem>
             ))}
           </TextField>
-          <TextField select label={trans.manageExportOrders.type} value={filterType} onChange={(e) => setFilterType(e.target.value)} size="small">
+          <TextField
+            select
+            label={trans.manageExportOrders.type}
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            size="small"
+          >
             <MenuItem value="all">{trans.manageExportOrders.allTypes}</MenuItem>
             <MenuItem value="internal">{trans.manageExportOrders.internal}</MenuItem>
             <MenuItem value="regular">{trans.manageExportOrders.regular}</MenuItem>
@@ -1149,7 +1161,7 @@ export default function ManageExportOrders() {
                     {medicineName}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                         {trans.manageExportOrders.expectedQuantity}: {detail.expected_quantity} {unitOfMeasure}
+                    {trans.manageExportOrders.expectedQuantity}: {detail.expected_quantity} {unitOfMeasure}
                   </Typography>
                   <Divider sx={{ mb: 2 }} />
                   <Typography variant="subtitle2" gutterBottom>
@@ -1245,7 +1257,7 @@ export default function ManageExportOrders() {
             </Button>
             {internalLines.length === 0 && (
               <Typography variant="body2" color="text.secondary">
-                                 {trans.manageExportOrders.noItemsYet}
+                {trans.manageExportOrders.noItemsYet}
               </Typography>
             )}
             {internalLines.map((line, idx) => {
@@ -1275,7 +1287,7 @@ export default function ManageExportOrders() {
                       <TextField
                         type="number"
                         size="small"
-                                                 label={trans.manageExportOrders.destroyQuantity}
+                        label={trans.manageExportOrders.destroyQuantity}
                         value={line.destroy_total}
                         onChange={(e) => setDestroyTotal(idx, e.target.value)}
                         fullWidth
@@ -1311,9 +1323,10 @@ export default function ManageExportOrders() {
                           >
                             <Box flex={1}>
                               <Typography variant="body2" gutterBottom>
-                                <strong>{trans.manageExportOrders.batch}:</strong> {pkg.batch.batch_code} | <strong>{trans.manageExportOrders.stock}:</strong> {pkg.quantity} |{' '}
-                                <strong>{trans.manageExportOrders.location}:</strong> {pkg.location.area_name || ''}-{pkg.location.bay || ''}-{pkg.location.row || ''}-
-                                {pkg.location.column || ''}
+                                <strong>{trans.manageExportOrders.batch}:</strong> {pkg.batch.batch_code} |{' '}
+                                <strong>{trans.manageExportOrders.stock}:</strong> {pkg.quantity} |{' '}
+                                <strong>{trans.manageExportOrders.location}:</strong> {pkg.location.area_name || ''}-
+                                {pkg.location.bay || ''}-{pkg.location.row || ''}-{pkg.location.column || ''}
                               </Typography>
                               <Tooltip title={`${trans.manageExportOrders.fullPackageId}: ${pkg._id}`} arrow>
                                 <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'medium', cursor: 'help' }}>
@@ -1351,7 +1364,7 @@ export default function ManageExportOrders() {
                   )}
 
                   <Typography variant="body2" sx={{ mt: 2 }}>
-                                         {trans.manageExportOrders.allocatedDestroy}: {totalPicked} / {line.destroy_total}
+                    {trans.manageExportOrders.allocatedDestroy}: {totalPicked} / {line.destroy_total}
                     {totalPicked !== line.destroy_total && (
                       <Typography component="span" color="error" sx={{ ml: 1 }}>
                         ({trans.manageExportOrders.insufficient})
@@ -1361,7 +1374,7 @@ export default function ManageExportOrders() {
 
                   <Box display="flex" justifyContent="flex-end" mt={1}>
                     <Button color="error" onClick={() => removeInternalLine(idx)}>
-                                             {trans.manageExportOrders.deleteLine}
+                      {trans.manageExportOrders.deleteLine}
                     </Button>
                   </Box>
                 </Card>

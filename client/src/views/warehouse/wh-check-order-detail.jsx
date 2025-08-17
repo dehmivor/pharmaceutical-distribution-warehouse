@@ -147,19 +147,15 @@ export default function CheckOrderDetail() {
 
   const changelocationStatus = async (locationStatus) => {
     await axios
-      .patch(
-        `/api/inventory-check-inspections/${selectedInspection._id}/status`,
-        { status: locationStatus },
-        { headers: getAuthHeaders() }
-      )
-      .then(() => { })
+      .patch(`/api/inventory-check-inspections/${selectedInspection._id}/status`, { status: locationStatus }, { headers: getAuthHeaders() })
+      .then(() => {})
       .catch(() => setSnackbar({ open: true, message: trans.failedToUpdateStatus, severity: 'error' }));
   };
 
   const addSelfToChangeBy = async (val) => {
     await axios
       .patch(`/api/inventory-check-inspections/${val}/checker`, { checkBy: userId }, { headers: getAuthHeaders() })
-      .then(() => { })
+      .then(() => {})
       .catch(() => setSnackbar({ open: true, message: trans.failedToAssignSelf, severity: 'error' }));
   };
 
@@ -186,21 +182,17 @@ export default function CheckOrderDetail() {
   // Fetch the inspection's own check_list items
   const fetchCheckItems = async (inspectionId) => {
     try {
-      const { data } = await axios.get(
-        `/api/inventory-check-inspections/${inspectionId}/check-items`,
-        { headers: getAuthHeaders() }
-      );
+      const { data } = await axios.get(`/api/inventory-check-inspections/${inspectionId}/check-items`, { headers: getAuthHeaders() });
       if (!data.success) throw new Error(data.error || trans.failedToLoadCheckItems);
 
       setPackages(data.data);
 
       // initialize editable quantities = expected_quantity
       const init = {};
-      data.data.forEach(item => {
+      data.data.forEach((item) => {
         init[item.package_id._id] = item.expected_quantity;
       });
       setQuantities(init);
-
     } catch (err) {
       setSnackbar({ open: true, message: err.message, severity: 'error' });
     }
@@ -223,7 +215,7 @@ export default function CheckOrderDetail() {
     const updates = [];
 
     // 1) Expected packages (whether "valid" or "under_expected")
-    packages.forEach(item => {
+    packages.forEach((item) => {
       const pkgId = item.package_id._id;
       updates.push(
         axios.patch(
@@ -232,7 +224,7 @@ export default function CheckOrderDetail() {
             package_id: pkgId,
             expected_quantity: item.expected_quantity,
             actual_quantity: quantities[pkgId],
-            type: item.type  // either 'valid' or 'under_expected'
+            type: item.type // either 'valid' or 'under_expected'
           },
           { headers }
         )
@@ -240,7 +232,7 @@ export default function CheckOrderDetail() {
     });
 
     // 2) Unexpected packages → always 'over_expected'
-    unexpected.forEach(item => {
+    unexpected.forEach((item) => {
       const pkgId = item._id;
       updates.push(
         axios.patch(
@@ -260,19 +252,18 @@ export default function CheckOrderDetail() {
     try {
       await Promise.all(updates);
       setSnackbar({ open: true, message: trans.checkItemsUpdated, severity: 'success' });
-      finalize()
+      finalize();
     } catch (err) {
       console.error('Error updating check items:', err);
       setSnackbar({ open: true, message: trans.failedToSaveChanges, severity: 'error' });
     }
   };
 
-
   const handleScanPackages = async (val) => {
     setPackage_id(val);
     if (val.length !== 24) return;
 
-    setScannedIds(ids => ids.includes(val) ? ids : [...ids, val]);
+    setScannedIds((ids) => (ids.includes(val) ? ids : [...ids, val]));
     setVerifyError('');
 
     // try expected list
@@ -428,7 +419,7 @@ export default function CheckOrderDetail() {
                             disabled={ins.status === 'checked' || (ins.status === 'checking' && ins.check_by != userId)}
                             onClick={() => handleProceed(ins)}
                           >
-                            {(ins.status === 'checking' && ins.check_by != userId) ? trans.continue : trans.proceed}
+                            {ins.status === 'checking' && ins.check_by != userId ? trans.continue : trans.proceed}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -442,8 +433,10 @@ export default function CheckOrderDetail() {
       </Container>
 
       {/* Proceed Dialog */}
-      <Dialog open={dialogOpen} onClose={() => { }} disableEscapeKeyDown>
-        <DialogTitle>{trans.inspection} {step === 'verify' ? trans.locationVerification : trans.packages}</DialogTitle>
+      <Dialog open={dialogOpen} onClose={() => {}} disableEscapeKeyDown>
+        <DialogTitle>
+          {trans.inspection} {step === 'verify' ? trans.locationVerification : trans.packages}
+        </DialogTitle>
         <DialogContent>
           {step === 'verify' ? (
             <TextField
@@ -491,7 +484,7 @@ export default function CheckOrderDetail() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {packages.map(item => {
+                  {packages.map((item) => {
                     const pkgId = item.package_id._id;
                     const isScanned = scannedIds.includes(pkgId);
                     let chip;
@@ -553,22 +546,22 @@ export default function CheckOrderDetail() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {unexpected.map(item => {
+                  {unexpected.map((item) => {
                     const pkgId = item._id;
                     const isScanned = scannedIds.includes(pkgId);
-                    const chip = isScanned
-                      ? <Chip label={trans.abnormal} size="small" color="error" />
-                      : <Chip label={trans.unscanned} size="small" color="warning" />;
+                    const chip = isScanned ? (
+                      <Chip label={trans.abnormal} size="small" color="error" />
+                    ) : (
+                      <Chip label={trans.unscanned} size="small" color="warning" />
+                    );
                     return (
                       <TableRow key={pkgId} sx={isScanned ? { bgcolor: 'action.selected' } : {}}>
                         <TableCell>{pkgId.slice(-4)}</TableCell>
-                        <TableCell>
-                          {`${item.batch_id.medicine_id.medicine_name} - ${item.batch_id.medicine_id.license_code}`}
-                        </TableCell>
+                        <TableCell>{`${item.batch_id.medicine_id.medicine_name} - ${item.batch_id.medicine_id.license_code}`}</TableCell>
                         <TableCell>{item.batch_id.batch_code}</TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         {/* Editable actual quantity */}
-                        <TableCell> 
+                        <TableCell>
                           <TextField
                             type="number"
                             value={quantities[pkgId] ?? item.quantity}
@@ -577,12 +570,7 @@ export default function CheckOrderDetail() {
                           />
                         </TableCell>
                         <TableCell>
-                          <IconButton
-                            size="small"
-                            onClick={() =>
-                              setUnexpected((u) => u.filter((x) => x._id !== pkgId))
-                            }
-                          >
+                          <IconButton size="small" onClick={() => setUnexpected((u) => u.filter((x) => x._id !== pkgId))}>
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         </TableCell>

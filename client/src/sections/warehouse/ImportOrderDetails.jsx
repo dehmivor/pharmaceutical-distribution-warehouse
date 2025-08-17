@@ -77,7 +77,9 @@ const ImportOrderDetails = ({ order, onClose }) => {
           <Typography variant="subtitle2" color="text.secondary">
             {trans.common.totalValue}
           </Typography>
-          <Typography variant="body1">{orderDetails.total_value.toLocaleString()} {trans.common.currency}</Typography>
+          <Typography variant="body1">
+            {orderDetails.total_value.toLocaleString()} {trans.common.currency}
+          </Typography>
         </Grid>
         <Grid item xs={12} sm={6}>
           <Typography variant="subtitle2" color="text.secondary">
@@ -122,8 +124,12 @@ const ImportOrderDetails = ({ order, onClose }) => {
                     <TableCell>{detail.medicine_id.name}</TableCell>
                     <TableCell>{detail.batch_id.batch_code}</TableCell>
                     <TableCell>{detail.quantity}</TableCell>
-                    <TableCell>{detail.unit_price.toLocaleString()} {trans.common.currency}</TableCell>
-                    <TableCell>{(detail.quantity * detail.unit_price).toLocaleString()} {trans.common.currency}</TableCell>
+                    <TableCell>
+                      {detail.unit_price.toLocaleString()} {trans.common.currency}
+                    </TableCell>
+                    <TableCell>
+                      {(detail.quantity * detail.unit_price).toLocaleString()} {trans.common.currency}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

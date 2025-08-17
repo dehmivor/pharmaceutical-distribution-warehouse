@@ -4,4 +4,4 @@ const SupervisorLocationManagement = dynamic(() => import('@/views/supervisor/lo
 
 export default function Page() {
   return <SupervisorLocationManagement />;
-} 
+}

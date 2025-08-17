@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Grid, 
-  Paper, 
-  Typography, 
-  Card, 
-  CardContent, 
-  Chip, 
-  Stack, 
-  Button, 
+import {
+  Box,
+  Grid,
+  Paper,
+  Typography,
+  Card,
+  CardContent,
+  Chip,
+  Stack,
+  Button,
   Alert,
   Tabs,
   Tab,
@@ -75,12 +75,8 @@ const DataSummaryCard = ({ title, tabs, activeTab, onTabChange, data, maxValue, 
     <Typography variant="h6" gutterBottom>
       {title}
     </Typography>
-    
-    <Tabs 
-      value={activeTab} 
-      onChange={(e, newValue) => onTabChange(newValue)}
-      sx={{ mb: 2 }}
-    >
+
+    <Tabs value={activeTab} onChange={(e, newValue) => onTabChange(newValue)} sx={{ mb: 2 }}>
       {tabs.map((tab, index) => (
         <Tab key={index} label={tab} />
       ))}
@@ -94,11 +90,7 @@ const DataSummaryCard = ({ title, tabs, activeTab, onTabChange, data, maxValue, 
       <List sx={{ p: 0 }}>
         {data.map((item, index) => (
           <ListItem key={index} sx={{ px: 0, py: 1 }}>
-            <ListItemText
-              primary={item.name}
-              secondary={`${item.value.toLocaleString()}`}
-              sx={{ flex: 1 }}
-            />
+            <ListItemText primary={item.name} secondary={`${item.value.toLocaleString()}`} sx={{ flex: 1 }} />
             <Box sx={{ width: 100, mr: 2 }}>
               <LinearProgress
                 variant="determinate"
@@ -126,7 +118,7 @@ export default function RepresentativeManagerDashboard() {
   const [topContractsData, setTopContractsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Tab states for summary cards
   const [topSuppliersTab, setTopSuppliersTab] = useState(0);
   const [topStatusTab, setTopStatusTab] = useState(0);
@@ -135,7 +127,7 @@ export default function RepresentativeManagerDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch import orders
       const ordersResponse = await axios.get(`${API_BASE_URL}/api/import-orders`, {
         headers: getAuthHeaders()
@@ -162,65 +154,64 @@ export default function RepresentativeManagerDashboard() {
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const currentMonth = new Date().getMonth();
       const chartDataArray = [];
-      
+
       for (let i = 5; i >= 0; i--) {
         const monthIndex = (currentMonth - i + 12) % 12;
-        const monthOrders = orders.filter(order => {
+        const monthOrders = orders.filter((order) => {
           const orderDate = new Date(order.createdAt);
           return orderDate.getMonth() === monthIndex && orderDate.getFullYear() === new Date().getFullYear();
         });
-        
+
         chartDataArray.push({
           month: months[monthIndex],
           orders: monthOrders.length,
-          approvals: monthOrders.filter(o => o.status === 'approved').length
+          approvals: monthOrders.filter((o) => o.status === 'approved').length
         });
       }
-      
+
       setChartData(chartDataArray);
 
       // Generate top suppliers data
       const supplierStats = {};
-      orders.forEach(order => {
+      orders.forEach((order) => {
         const supplierName = order.contract_id?.partner_id?.name || 'Unknown Supplier';
         supplierStats[supplierName] = (supplierStats[supplierName] || 0) + 1;
       });
-      
+
       const topSuppliers = Object.entries(supplierStats)
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 5);
-      
+
       setTopSuppliersData(topSuppliers);
 
       // Generate top status data
       const statusStats = {};
-      orders.forEach(order => {
+      orders.forEach((order) => {
         const status = order.status || 'unknown';
         statusStats[status] = (statusStats[status] || 0) + 1;
       });
-      
+
       const topStatus = Object.entries(statusStats)
         .map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 5);
-      
+
       setTopStatusData(topStatus);
 
       // Generate top contracts data
       const contractStats = {};
-      orders.forEach(order => {
+      orders.forEach((order) => {
         const contractCode = order.contract_id?.contract_code || 'Unknown Contract';
         contractStats[contractCode] = (contractStats[contractCode] || 0) + 1;
       });
-      
+
       const topContracts = Object.entries(contractStats)
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 5);
-      
-      setTopContractsData(topContracts);
 
+      setTopContractsData(topContracts);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       setError('Failed to load dashboard data');
@@ -268,21 +259,13 @@ export default function RepresentativeManagerDashboard() {
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip />
-              <Area 
-                type="monotone" 
-                dataKey="orders" 
-                stackId="1" 
-                stroke="#1976d2" 
-                fill="#1976d2" 
-                fillOpacity={0.6}
-                name="Total Orders"
-              />
-              <Area 
-                type="monotone" 
-                dataKey="approvals" 
-                stackId="1" 
-                stroke="#2e7d32" 
-                fill="#2e7d32" 
+              <Area type="monotone" dataKey="orders" stackId="1" stroke="#1976d2" fill="#1976d2" fillOpacity={0.6} name="Total Orders" />
+              <Area
+                type="monotone"
+                dataKey="approvals"
+                stackId="1"
+                stroke="#2e7d32"
+                fill="#2e7d32"
                 fillOpacity={0.6}
                 name="Approved Orders"
               />
@@ -316,7 +299,7 @@ export default function RepresentativeManagerDashboard() {
             activeTab={topSuppliersTab}
             onTabChange={setTopSuppliersTab}
             data={topSuppliersData}
-            maxValue={topSuppliersData.length > 0 ? Math.max(...topSuppliersData.map(item => item.value)) : 0}
+            maxValue={topSuppliersData.length > 0 ? Math.max(...topSuppliersData.map((item) => item.value)) : 0}
             loading={loading}
           />
         </Grid>
@@ -327,7 +310,7 @@ export default function RepresentativeManagerDashboard() {
             activeTab={topStatusTab}
             onTabChange={setTopStatusTab}
             data={topStatusData}
-            maxValue={topStatusData.length > 0 ? Math.max(...topStatusData.map(item => item.value)) : 0}
+            maxValue={topStatusData.length > 0 ? Math.max(...topStatusData.map((item) => item.value)) : 0}
             loading={loading}
           />
         </Grid>
@@ -338,7 +321,7 @@ export default function RepresentativeManagerDashboard() {
             activeTab={topContractsTab}
             onTabChange={setTopContractsTab}
             data={topContractsData}
-            maxValue={topContractsData.length > 0 ? Math.max(...topContractsData.map(item => item.value)) : 0}
+            maxValue={topContractsData.length > 0 ? Math.max(...topContractsData.map((item) => item.value)) : 0}
             loading={loading}
           />
         </Grid>

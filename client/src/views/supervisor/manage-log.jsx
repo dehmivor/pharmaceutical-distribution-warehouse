@@ -3,10 +3,24 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Alert, Box, Button, Chip, CircularProgress,
-  Paper, Snackbar, Table, TableBody, TableCell,
-  TableContainer, TableHead, TablePagination, TableRow,
-  TextField, Typography, Stack, MenuItem
+  Alert,
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  Paper,
+  Snackbar,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  TextField,
+  Typography,
+  Stack,
+  MenuItem
 } from '@mui/material';
 import { Refresh as RefreshIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
@@ -55,13 +69,14 @@ export default function ManageLog() {
 
   // fetch areas once
   useEffect(() => {
-    axios.get('/api/areas', { headers: getAuthHeaders() })
-      .then(res => {
+    axios
+      .get('/api/areas', { headers: getAuthHeaders() })
+      .then((res) => {
         if (res.data.success) {
           setAreas(res.data.data.areas);
         }
       })
-      .catch(() => { });
+      .catch(() => {});
   }, []);
 
   // fetch logs
@@ -79,7 +94,7 @@ export default function ManageLog() {
       ...(apArea && { areaId: apArea }),
       ...(apBay && { bay: apBay }),
       ...(apRow && { row: apRow }),
-      ...(apColumn && { column: apColumn }),
+      ...(apColumn && { column: apColumn })
     }).toString();
 
     try {
@@ -98,12 +113,7 @@ export default function ManageLog() {
     } finally {
       setLoading(false);
     }
-  }, [
-    page, rowsPerPage,
-    apStartDate, apEndDate,
-    apWorker, apOrder,
-    apArea, apBay, apRow, apColumn
-  ]);
+  }, [page, rowsPerPage, apStartDate, apEndDate, apWorker, apOrder, apArea, apBay, apRow, apColumn]);
 
   // initial & on-change
   useEffect(() => {
@@ -113,7 +123,7 @@ export default function ManageLog() {
   // handlers
   const handleRefresh = () => fetchLogs();
   const handleChangePage = (_, newPage) => setPage(newPage);
-  const handleChangeRowsPerPage = e => {
+  const handleChangeRowsPerPage = (e) => {
     setRowsPerPage(+e.target.value);
     setPage(0);
   };
@@ -137,11 +147,7 @@ export default function ManageLog() {
             {trans.common.manageLocationChanges}
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={handleRefresh}
-        >
+        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh}>
           {trans.logs.refresh}
         </Button>
       </Box>
@@ -154,57 +160,34 @@ export default function ManageLog() {
               label={trans.common.startDate}
               type="date"
               value={startDate}
-              onChange={e => setStartDate(e.target.value)}
+              onChange={(e) => setStartDate(e.target.value)}
               InputLabelProps={{ shrink: true }}
             />
             <TextField
               label={trans.common.endDate}
               type="date"
               value={endDate}
-              onChange={e => setEndDate(e.target.value)}
+              onChange={(e) => setEndDate(e.target.value)}
               InputLabelProps={{ shrink: true }}
               inputProps={{ min: startDate || undefined }}
             />
-            <TextField
-              label={trans.common.worker}
-              value={worker}
-              onChange={e => setWorker(e.target.value)}
-            />
-            <TextField
-              label={trans.logs.order}
-              value={order}
-              onChange={e => setOrder(e.target.value)}
-            />
+            <TextField label={trans.common.worker} value={worker} onChange={(e) => setWorker(e.target.value)} />
+            <TextField label={trans.logs.order} value={order} onChange={(e) => setOrder(e.target.value)} />
           </Stack>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-            <TextField
-              select
-              label={trans.common.area}
-              value={area}
-              onChange={e => setArea(e.target.value)}
-            >
+            <TextField select label={trans.common.area} value={area} onChange={(e) => setArea(e.target.value)}>
               <MenuItem value="">{trans.common.allAreas}</MenuItem>
-              {areas.map(a => (
-                <MenuItem key={a._id} value={a._id}>{a.name}</MenuItem>
+              {areas.map((a) => (
+                <MenuItem key={a._id} value={a._id}>
+                  {a.name}
+                </MenuItem>
               ))}
             </TextField>
 
-            <TextField
-              label={trans.common.bay}
-              value={bay}
-              onChange={e => setBay(e.target.value)}
-            />
-            <TextField
-              label={trans.common.row}
-              value={row}
-              onChange={e => setRow(e.target.value)}
-            />
-            <TextField
-              label={trans.common.column}
-              value={column}
-              onChange={e => setColumn(e.target.value)}
-            />
+            <TextField label={trans.common.bay} value={bay} onChange={(e) => setBay(e.target.value)} />
+            <TextField label={trans.common.row} value={row} onChange={(e) => setRow(e.target.value)} />
+            <TextField label={trans.common.column} value={column} onChange={(e) => setColumn(e.target.value)} />
           </Stack>
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -229,12 +212,22 @@ export default function ManageLog() {
               variant="outlined"
               onClick={() => {
                 // clear both pending & applied
-                setStartDate(''); setEndDate('');
-                setWorker(''); setOrder('');
-                setArea(''); setBay(''); setRow(''); setColumn('');
-                setApStartDate(''); setApEndDate('');
-                setApWorker(''); setApOrder('');
-                setApArea(''); setApBay(''); setApRow(''); setApColumn('');
+                setStartDate('');
+                setEndDate('');
+                setWorker('');
+                setOrder('');
+                setArea('');
+                setBay('');
+                setRow('');
+                setColumn('');
+                setApStartDate('');
+                setApEndDate('');
+                setApWorker('');
+                setApOrder('');
+                setApArea('');
+                setApBay('');
+                setApRow('');
+                setApColumn('');
                 setPage(0);
               }}
             >
@@ -250,12 +243,15 @@ export default function ManageLog() {
           <Box
             sx={{
               position: 'absolute',
-              top: 0, left: 0, right: 0, bottom: 0,
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
               bgcolor: 'rgba(255,255,255,0.7)',
-              zIndex: 1,
+              zIndex: 1
             }}
           >
             <CircularProgress />
@@ -281,28 +277,17 @@ export default function ManageLog() {
                 </TableCell>
               </TableRow>
             ) : (
-              orders.map(log => {
+              orders.map((log) => {
                 const locId = log.location || '----';
                 const userLoc = log.ware_house_id?.email.split('@')[0] || '----';
-                const orderId = (
-                  log.import_order_id ||
-                  log.export_order_id ||
-                  log.inventory_check_order_id ||
-                  {}
-                ).toString().slice(-4);
-                const batchTxt = log.batch
-                  ? `${log.batch.batch_code}: ${log.batch.medicine_id?.medicine_name}`
-                  : '—';
+                const orderId = (log.import_order_id || log.export_order_id || log.inventory_check_order_id || {}).toString().slice(-4);
+                const batchTxt = log.batch ? `${log.batch.batch_code}: ${log.batch.medicine_id?.medicine_name}` : '—';
 
                 return (
                   <TableRow key={log._id} hover>
                     <TableCell>{locId}</TableCell>
                     <TableCell>
-                      <Chip
-                        label={log.type}
-                        size="small"
-                        color={log.type === 'add' ? 'success' : 'error'}
-                      />
+                      <Chip label={log.type} size="small" color={log.type === 'add' ? 'success' : 'error'} />
                     </TableCell>
                     <TableCell>{log.quantity}</TableCell>
                     <TableCell>{batchTxt}</TableCell>

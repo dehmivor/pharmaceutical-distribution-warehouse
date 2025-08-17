@@ -365,15 +365,27 @@ function ApproveInspection() {
                   <Table size="medium">
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>{trans.approveInspection.serialNumber}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>
+                          {trans.approveInspection.serialNumber}
+                        </TableCell>
                         <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>
                           {trans.approveInspection.inspectionId}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>{trans.approveInspection.medicineName}</TableCell>
-                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>{trans.approveInspection.actualQuantity}</TableCell>
-                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>{trans.approveInspection.rejectedQuantity}</TableCell>
-                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>{trans.approveInspection.createdBy}</TableCell>
-                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>{trans.approveInspection.actions}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>
+                          {trans.approveInspection.medicineName}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>
+                          {trans.approveInspection.actualQuantity}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>
+                          {trans.approveInspection.rejectedQuantity}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>
+                          {trans.approveInspection.createdBy}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 600, borderBottom: `2px solid ${theme.palette.primary.main}` }}>
+                          {trans.approveInspection.actions}
+                        </TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>

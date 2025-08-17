@@ -63,7 +63,9 @@ const Alerts = () => {
             dynamicAlerts.push({
               id: `lowinv-${batch._id}`,
               type: trans.alerts.lowInventory,
-              message: trans.alerts.lowInventoryMessage.replace('{name}', batch.medicine_id?.medicine_name || 'Unknown').replace('{quantity}', batch.quantity),
+              message: trans.alerts.lowInventoryMessage
+                .replace('{name}', batch.medicine_id?.medicine_name || 'Unknown')
+                .replace('{quantity}', batch.quantity),
               date: new Date().toISOString(),
               handled: false
             });
@@ -164,20 +166,21 @@ const Alerts = () => {
 
     return (
       <TableContainer component={Paper} sx={{ mb: 3 }}>
-        <Typography variant="h6" sx={{ p:2 }}>
-          Batch hết hạn {label === '<6' ? trans.alerts.expiredUnder6 : trans.alerts.expiredAfter.replace('{months}', label)} {trans.alerts.months}:
+        <Typography variant="h6" sx={{ p: 2 }}>
+          Batch hết hạn {label === '<6' ? trans.alerts.expiredUnder6 : trans.alerts.expiredAfter.replace('{months}', label)}{' '}
+          {trans.alerts.months}:
         </Typography>
-                  <Table size="small" aria-label={`${label} tháng`}>
-            <TableHead>
-              <TableRow>
-                <TableCell>{trans.alerts.batchCode}</TableCell>
-                <TableCell>{trans.alerts.medicineName}</TableCell>
-                <TableCell>{trans.alerts.expiryDate}</TableCell>
-                <TableCell>{trans.alerts.remainingQuantity}</TableCell>
-                <TableCell>{trans.alerts.supplier}</TableCell>
-                <TableCell align="center">{trans.alerts.action}</TableCell>
-              </TableRow>
-            </TableHead>
+        <Table size="small" aria-label={`${label} tháng`}>
+          <TableHead>
+            <TableRow>
+              <TableCell>{trans.alerts.batchCode}</TableCell>
+              <TableCell>{trans.alerts.medicineName}</TableCell>
+              <TableCell>{trans.alerts.expiryDate}</TableCell>
+              <TableCell>{trans.alerts.remainingQuantity}</TableCell>
+              <TableCell>{trans.alerts.supplier}</TableCell>
+              <TableCell align="center">{trans.alerts.action}</TableCell>
+            </TableRow>
+          </TableHead>
           <TableBody>
             {displayBatches.map((batch) => (
               <TableRow key={batch._id}>
@@ -204,7 +207,9 @@ const Alerts = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
           rowsPerPageOptions={[5, 10, 25, 50]}
           labelRowsPerPage={trans.alerts.rowsPerPage}
-          labelDisplayedRows={({ from, to, count }) => trans.alerts.displayedRows.replace('{from}', from).replace('{to}', to).replace('{count}', count)}
+          labelDisplayedRows={({ from, to, count }) =>
+            trans.alerts.displayedRows.replace('{from}', from).replace('{to}', to).replace('{count}', count)
+          }
           sx={{ mt: 1 }}
         />
       </TableContainer>

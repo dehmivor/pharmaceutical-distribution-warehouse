@@ -118,7 +118,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
   const handleInputChange = (field, value) => {
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [parent]: {
           ...prev[parent],
@@ -126,7 +126,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
         }
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [field]: value
       }));
@@ -134,7 +134,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
 
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -178,8 +178,8 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
   };
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={handleClose}
       maxWidth="md"
       fullWidth
@@ -219,7 +219,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
                 {trans.common.basicInfo}
               </Typography>
-              
+
               <TextField
                 fullWidth
                 label={trans.common.areaNameRequired}
@@ -238,7 +238,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
                 {trans.common.storageConditions}
               </Typography>
-              
+
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
                 <TextField
                   label={trans.common.temperature}
@@ -248,7 +248,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
                   error={!!errors.temperature}
                   helperText={errors.temperature}
                 />
-                
+
                 <TextField
                   label={trans.common.humidity}
                   placeholder={trans.common.humidityPlaceholder}
@@ -282,7 +282,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
                 {trans.common.description}
               </Typography>
-              
+
               <TextField
                 fullWidth
                 label={trans.common.description}
@@ -304,12 +304,7 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
         <Button onClick={handleClose} disabled={loading}>
           {trans.common.cancel}
         </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={loading}
-          sx={{ borderRadius: 2 }}
-        >
+        <Button onClick={handleSubmit} variant="contained" disabled={loading} sx={{ borderRadius: 2 }}>
           {loading ? <CircularProgress size={20} /> : trans.common.createArea}
         </Button>
       </DialogActions>
@@ -317,4 +312,4 @@ const AreaAddDialog = ({ open, onClose, onSuccess }) => {
   );
 };
 
-export default AreaAddDialog; 
+export default AreaAddDialog;

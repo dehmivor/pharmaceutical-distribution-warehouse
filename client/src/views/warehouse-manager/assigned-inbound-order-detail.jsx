@@ -996,7 +996,9 @@ function ImportOrderDetail() {
                             {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
                           </TableCell>
                           <TableCell>{pkg.quantity}</TableCell>
-                          <TableCell>{pkg.location_id ? trans.assignedInboundOrderDetail.arranged : trans.assignedInboundOrderDetail.unarranged}</TableCell>
+                          <TableCell>
+                            {pkg.location_id ? trans.assignedInboundOrderDetail.arranged : trans.assignedInboundOrderDetail.unarranged}
+                          </TableCell>
                           <TableCell>
                             {pkg.location_id && (
                               <IconButton size="small" color="error" onClick={() => handleClearLocation(pkg._id)} disabled={putAwayDone}>
@@ -1030,10 +1032,19 @@ function ImportOrderDetail() {
           <DialogTitle>{trans.assignedInboundOrderDetail.createNewBatch}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1, minWidth: 300 }}>
-              <TextField label={trans.assignedInboundOrderDetail.batchCode} value={newBatchCode} onChange={(e) => setNewBatchCode(e.target.value)} required />
+              <TextField
+                label={trans.assignedInboundOrderDetail.batchCode}
+                value={newBatchCode}
+                onChange={(e) => setNewBatchCode(e.target.value)}
+                required
+              />
               <FormControl fullWidth>
                 <InputLabel>{trans.assignedInboundOrderDetail.medicine}</InputLabel>
-                <Select value={newMedicineId} label={trans.assignedInboundOrderDetail.medicine} onChange={(e) => setNewMedicineId(e.target.value)}>
+                <Select
+                  value={newMedicineId}
+                  label={trans.assignedInboundOrderDetail.medicine}
+                  onChange={(e) => setNewMedicineId(e.target.value)}
+                >
                   {uniqueInspections.map((i) => (
                     <MenuItem key={i._id} value={i.medicine_id?._id}>
                       {i.medicine_id?.medicine_name || '—'}

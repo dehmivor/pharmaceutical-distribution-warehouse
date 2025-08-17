@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, Fragment } from 'react';
 import {
@@ -23,14 +23,14 @@ import {
   Divider,
   CircularProgress,
   ToggleButton,
-  ToggleButtonGroup,
+  ToggleButtonGroup
 } from '@mui/material';
 import {
   LocationOn as LocationIcon,
   Inventory as InventoryIcon,
   LocalShipping as PackageIcon,
   ViewList as ViewListIcon,
-  Category as CategoryIcon,
+  Category as CategoryIcon
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import axios from 'axios';
@@ -39,11 +39,11 @@ import useTrans from '@/hooks/useTrans';
 // API configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem('auth-token')}`,
+  Authorization: `Bearer ${localStorage.getItem('auth-token')}`
 });
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,
+  withCredentials: true
 });
 
 const LocationDetailDialog = ({ open, onClose, location }) => {
@@ -55,7 +55,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
 
   const fetchLocationInfo = async () => {
     if (!location?._id) return;
-    
+
     setLoading(true);
     try {
       const response = await axiosInstance.get(`/api/locations/v2/${location._id}/info`, {
@@ -96,7 +96,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
           </Typography>
         </Box>
       </DialogTitle>
-      
+
       <DialogContent>
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -107,20 +107,20 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
             {/* Location Information */}
             <Card sx={{ mb: 3 }}>
               <CardContent>
-                                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
-                    {trans.common.locationInfo}
-                  </Typography>
-                
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
+                  {trans.common.locationInfo}
+                </Typography>
+
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
-                                          <Typography variant="body2" color="text.secondary">
-                        {trans.common.area}
-                      </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {trans.common.area}
+                    </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 500 }}>
                       {location.area_id?.name || 'N/A'}
                     </Typography>
                   </Grid>
-                  
+
                   <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">
                       {trans.common.status}
@@ -131,7 +131,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                       size="small"
                     />
                   </Grid>
-                  
+
                   <Grid item xs={12} sm={4}>
                     <Typography variant="body2" color="text.secondary">
                       {trans.common.bay}
@@ -140,7 +140,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                       {location.bay}
                     </Typography>
                   </Grid>
-                  
+
                   <Grid item xs={12} sm={4}>
                     <Typography variant="body2" color="text.secondary">
                       {trans.common.row}
@@ -149,7 +149,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
                       {location.row}
                     </Typography>
                   </Grid>
-                  
+
                   <Grid item xs={12} sm={4}>
                     <Typography variant="body2" color="text.secondary">
                       {trans.common.column}
@@ -174,112 +174,109 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
 
                 {locationInfo ? (
                   <>
-                                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                         <PackageIcon fontSize="small" />
-                         <Typography variant="body2" color="text.secondary">
-                           {viewMode === 'package' 
-                             ? trans.common.totalPackages.replace('{count}', locationInfo.total_packages)
-                             : trans.common.totalMedicineTypes.replace('{count}', locationInfo.medicine_summary.length)
-                           }
-                         </Typography>
-                       </Box>
-                       
-                       <ToggleButtonGroup
-                         value={viewMode}
-                         exclusive
-                         onChange={(e, newMode) => {
-                           if (newMode !== null) {
-                             setViewMode(newMode);
-                           }
-                         }}
-                         size="small"
-                       >
-                         <ToggleButton value="package" aria-label="view by package">
-                           <ViewListIcon sx={{ mr: 1 }} />
-                           {trans.common.viewByPackage}
-                         </ToggleButton>
-                         <ToggleButton value="medicine" aria-label="view by medicine">
-                           <CategoryIcon sx={{ mr: 1 }} />
-                           {trans.common.viewByMedicine}
-                         </ToggleButton>
-                       </ToggleButtonGroup>
-                     </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PackageIcon fontSize="small" />
+                        <Typography variant="body2" color="text.secondary">
+                          {viewMode === 'package'
+                            ? trans.common.totalPackages.replace('{count}', locationInfo.total_packages)
+                            : trans.common.totalMedicineTypes.replace('{count}', locationInfo.medicine_summary.length)}
+                        </Typography>
+                      </Box>
 
-                                         {locationInfo.total_packages > 0 ? (
-                       <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
-                         <Table>
-                           <TableHead>
-                             <TableRow>
-                               {viewMode === 'package' ? (
-                                 <>
-                                   <TableCell>{trans.common.packageCode}</TableCell>
-                                   <TableCell>{trans.common.batchCode}</TableCell>
-                                   <TableCell>{trans.common.medicineCode}</TableCell>
-                                   <TableCell align="right">{trans.common.quantity}</TableCell>
-                                 </>
-                               ) : (
-                                 <>
-                                   <TableCell>{trans.common.medicineCode}</TableCell>
-                                   <TableCell align="right">{trans.common.quantity}</TableCell>
-                                 </>
-                               )}
-                             </TableRow>
-                           </TableHead>
-                           <TableBody>
-                             {viewMode === 'package' ? (
-                               // Package view
-                               locationInfo.packages.map((pkg, index) => (
-                                 <TableRow key={index}>
-                                   <TableCell>
-                                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                       {pkg.package_id}
-                                     </Typography>
-                                   </TableCell>
-                                   <TableCell>
-                                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                       {pkg.batch_code}
-                                     </Typography>
-                                   </TableCell>
-                                   <TableCell>
-                                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                       {pkg.medicine_license_code}
-                                     </Typography>
-                                   </TableCell>
-                                   <TableCell align="right">
-                                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                       {pkg.quantity.toLocaleString()}
-                                     </Typography>
-                                   </TableCell>
-                                 </TableRow>
-                               ))
-                             ) : (
-                               // Medicine view
-                               locationInfo.medicine_summary.map((medicine, index) => (
-                                 <TableRow key={index}>
-                                   <TableCell>
-                                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                       {medicine.medicine_license_code}
-                                     </Typography>
-                                   </TableCell>
-                                   <TableCell align="right">
-                                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                       {medicine.total_quantity.toLocaleString()}
-                                     </Typography>
-                                   </TableCell>
-                                 </TableRow>
-                               ))
-                             )}
-                           </TableBody>
-                         </Table>
-                       </TableContainer>
-                     ) : (
-                       <Box sx={{ textAlign: 'center', py: 4 }}>
-                         <Typography variant="body1" color="text.secondary">
-                           {trans.common.noMedicineData}
-                         </Typography>
-                       </Box>
-                     )}
+                      <ToggleButtonGroup
+                        value={viewMode}
+                        exclusive
+                        onChange={(e, newMode) => {
+                          if (newMode !== null) {
+                            setViewMode(newMode);
+                          }
+                        }}
+                        size="small"
+                      >
+                        <ToggleButton value="package" aria-label="view by package">
+                          <ViewListIcon sx={{ mr: 1 }} />
+                          {trans.common.viewByPackage}
+                        </ToggleButton>
+                        <ToggleButton value="medicine" aria-label="view by medicine">
+                          <CategoryIcon sx={{ mr: 1 }} />
+                          {trans.common.viewByMedicine}
+                        </ToggleButton>
+                      </ToggleButtonGroup>
+                    </Box>
+
+                    {locationInfo.total_packages > 0 ? (
+                      <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
+                        <Table>
+                          <TableHead>
+                            <TableRow>
+                              {viewMode === 'package' ? (
+                                <>
+                                  <TableCell>{trans.common.packageCode}</TableCell>
+                                  <TableCell>{trans.common.batchCode}</TableCell>
+                                  <TableCell>{trans.common.medicineCode}</TableCell>
+                                  <TableCell align="right">{trans.common.quantity}</TableCell>
+                                </>
+                              ) : (
+                                <>
+                                  <TableCell>{trans.common.medicineCode}</TableCell>
+                                  <TableCell align="right">{trans.common.quantity}</TableCell>
+                                </>
+                              )}
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {viewMode === 'package'
+                              ? // Package view
+                                locationInfo.packages.map((pkg, index) => (
+                                  <TableRow key={index}>
+                                    <TableCell>
+                                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        {pkg.package_id}
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        {pkg.batch_code}
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        {pkg.medicine_license_code}
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        {pkg.quantity.toLocaleString()}
+                                      </Typography>
+                                    </TableCell>
+                                  </TableRow>
+                                ))
+                              : // Medicine view
+                                locationInfo.medicine_summary.map((medicine, index) => (
+                                  <TableRow key={index}>
+                                    <TableCell>
+                                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        {medicine.medicine_license_code}
+                                      </Typography>
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        {medicine.total_quantity.toLocaleString()}
+                                      </Typography>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    ) : (
+                      <Box sx={{ textAlign: 'center', py: 4 }}>
+                        <Typography variant="body1" color="text.secondary">
+                          {trans.common.noMedicineData}
+                        </Typography>
+                      </Box>
+                    )}
                   </>
                 ) : (
                   <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -294,7 +291,7 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
           </Box>
         )}
       </DialogContent>
-      
+
       <DialogActions>
         <Button onClick={handleClose}>{trans.common.close}</Button>
       </DialogActions>
@@ -302,4 +299,4 @@ const LocationDetailDialog = ({ open, onClose, location }) => {
   );
 };
 
-export default LocationDetailDialog; 
+export default LocationDetailDialog;

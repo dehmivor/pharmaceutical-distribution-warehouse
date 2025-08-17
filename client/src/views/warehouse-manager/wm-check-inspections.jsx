@@ -433,8 +433,10 @@ function CheckInspections() {
             {trans.checkInspections.checkOrderInfo}: <strong>{orderData._id}</strong>
           </Typography>
           <Typography variant="body2">
-            {trans.checkInspections.warehouseManager}: {orderData.warehouse_manager_id.email} | {trans.checkInspections.createdBy}: {orderData.created_by?.email || '-'} | {trans.checkInspections.checkDate}:{' '}
-            {orderData.inventory_check_date ? new Date(orderData.inventory_check_date).toLocaleDateString('vi-VN') : '-'} | {trans.checkInspections.status}:{' '}
+            {trans.checkInspections.warehouseManager}: {orderData.warehouse_manager_id.email} | {trans.checkInspections.createdBy}:{' '}
+            {orderData.created_by?.email || '-'} | {trans.checkInspections.checkDate}:{' '}
+            {orderData.inventory_check_date ? new Date(orderData.inventory_check_date).toLocaleDateString('vi-VN') : '-'} |{' '}
+            {trans.checkInspections.status}:{' '}
             {orderData.status === 'pending'
               ? trans.checkInspections.notStarted
               : orderData.status === 'processing'
@@ -447,8 +449,8 @@ function CheckInspections() {
             {trans.checkInspections.notes}: {orderData.notes || '-'}
           </Typography>
           <Typography variant="body2" sx={{ mt: 1, fontSize: '0.875rem' }}>
-            {trans.checkInspections.createdAt}: {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString('vi-VN') : '-'} | {trans.checkInspections.updatedAt}:{' '}
-            {orderData.updatedAt ? new Date(orderData.updatedAt).toLocaleString('vi-VN') : '-'}
+            {trans.checkInspections.createdAt}: {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString('vi-VN') : '-'} |{' '}
+            {trans.checkInspections.updatedAt}: {orderData.updatedAt ? new Date(orderData.updatedAt).toLocaleString('vi-VN') : '-'}
           </Typography>
         </Alert>
       )}
@@ -486,7 +488,8 @@ function CheckInspections() {
             <MenuItem value="">{trans.checkInspections.allLocations}</MenuItem>
             {locationsList.map((loc) => (
               <MenuItem key={loc._id} value={loc._id}>
-                {loc.area_id?.name || trans.checkInspections.unidentified} - {trans.checkInspections.bay}: {loc.bay}, {trans.checkInspections.row}: {loc.row}, {trans.checkInspections.column}: {loc.column}
+                {loc.area_id?.name || trans.checkInspections.unidentified} - {trans.checkInspections.bay}: {loc.bay},{' '}
+                {trans.checkInspections.row}: {loc.row}, {trans.checkInspections.column}: {loc.column}
               </MenuItem>
             ))}
           </TextField>

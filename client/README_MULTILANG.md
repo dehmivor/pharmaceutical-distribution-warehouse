@@ -7,15 +7,17 @@ Dự án đã được tích hợp hệ thống đa ngôn ngữ hoàn chỉnh v�
 ## 🚀 Cách sử dụng cơ bản
 
 ### 1. Import hook useTrans
+
 ```jsx
 import useTrans from '@/hooks/useTrans';
 ```
 
 ### 2. Sử dụng trong component
+
 ```jsx
 function MyComponent() {
   const trans = useTrans();
-  
+
   return (
     <div>
       <h1>{trans.header.title}</h1>
@@ -29,9 +31,11 @@ function MyComponent() {
 ## 📁 Cấu trúc file ngôn ngữ
 
 ### File tiếng Anh: `client/public/lang/en.js`
+
 ### File tiếng Việt: `client/public/lang/vi.js`
 
 Cấu trúc ngôn ngữ được tổ chức theo nhóm:
+
 ```javascript
 export default {
   header: {
@@ -56,6 +60,7 @@ export default {
 ## 🔧 Cách thêm ngôn ngữ mới
 
 ### 1. Tạo file ngôn ngữ mới
+
 ```javascript
 // client/public/lang/fr.js
 export default {
@@ -68,21 +73,22 @@ export default {
 ```
 
 ### 2. Cập nhật hook useTrans
+
 ```javascript
 // client/src/hooks/useTrans.js
 import fr from '../../public/lang/fr';
 
 export default function useTrans() {
   const { i18n } = useConfig();
-  
-  const trans = i18n === ThemeI18n.VN ? vi : 
-                i18n === ThemeI18n.FR ? fr : en;
-  
+
+  const trans = i18n === ThemeI18n.VN ? vi : i18n === ThemeI18n.FR ? fr : en;
+
   // ... phần còn lại
 }
 ```
 
 ### 3. Cập nhật config
+
 ```javascript
 // client/src/config.js
 export let ThemeI18n;
@@ -96,12 +102,14 @@ export let ThemeI18n;
 ## 🎯 Các nhóm ngôn ngữ có sẵn
 
 ### Header & Navigation
+
 - `trans.header.title` - Tiêu đề
 - `trans.header.description` - Mô tả
 - `trans.header.home` - Trang chủ
 - `trans.header.dashboard` - Bảng điều khiển
 
 ### Actions
+
 - `trans.actions.add` - Thêm
 - `trans.actions.edit` - Sửa
 - `trans.actions.delete` - Xóa
@@ -109,24 +117,28 @@ export let ThemeI18n;
 - `trans.actions.cancel` - Hủy
 
 ### Status
+
 - `trans.status.active` - Hoạt động
 - `trans.status.inactive` - Không hoạt động
 - `trans.status.pending` - Đang chờ
 - `trans.status.completed` - Hoàn thành
 
 ### Messages
+
 - `trans.messages.success` - Thành công
 - `trans.messages.error` - Lỗi
 - `trans.messages.warning` - Cảnh báo
 - `trans.messages.loading` - Đang tải
 
 ### Form Labels
+
 - `trans.form.name` - Tên
 - `trans.form.email` - Email
 - `trans.form.phone` - Số điện thoại
 - `trans.form.role` - Vai trò
 
 ### Roles
+
 - `trans.roles.supervisor` - Giám sát
 - `trans.roles.representative` - Đại diện
 - `trans.roles.warehouse` - Kho hàng
@@ -134,6 +146,7 @@ export let ThemeI18n;
 ## 🔄 Chuyển đổi ngôn ngữ
 
 ### Sử dụng LanguageSwitcher component
+
 ```jsx
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 
@@ -148,21 +161,22 @@ function Header() {
 ```
 
 ### Chuyển đổi bằng code
+
 ```jsx
 import useConfig from '@/hooks/useConfig';
 import { ThemeI18n } from '@/config';
 
 function LanguageButton() {
   const { setI18n } = useConfig();
-  
+
   const changeToVietnamese = () => {
     setI18n(ThemeI18n.VN);
   };
-  
+
   const changeToEnglish = () => {
     setI18n(ThemeI18n.EN);
   };
-  
+
   return (
     <div>
       <button onClick={changeToVietnamese}>Tiếng Việt</button>
@@ -182,6 +196,7 @@ function LanguageButton() {
 ## 🧪 Testing
 
 Sử dụng component `LanguageDemo` để test:
+
 ```jsx
 import LanguageDemo from '@/components/LanguageDemo';
 
@@ -200,11 +215,13 @@ function TestPage() {
 ## 🆘 Troubleshooting
 
 ### Lỗi key không tồn tại
+
 - Kiểm tra file ngôn ngữ có key đó không
 - Đảm bảo cấu trúc object giống nhau giữa 2 file
 - Sử dụng `console.log(trans)` để debug
 
 ### Ngôn ngữ không thay đổi
+
 - Kiểm tra ConfigContext có được wrap đúng không
 - Kiểm tra localStorage có được cập nhật không
 - Đảm bảo component được re-render khi thay đổi ngôn ngữ
@@ -212,6 +229,7 @@ function TestPage() {
 ## 📚 Ví dụ thực tế
 
 ### **Components đã được áp dụng:**
+
 - `client/src/components/Breadcrumbs.jsx` ✅
 - `client/src/components/DashboardStats.jsx` ✅
 - `client/src/components/ConnectionStatus.jsx` ✅
@@ -224,6 +242,7 @@ function TestPage() {
 - `client/src/components/Contact.jsx` ✅
 
 ### **Sections đã được áp dụng:**
+
 - `client/src/sections/supervisor/HeaderSection.jsx` ✅
 - `client/src/sections/supervisor/AddUserButton.jsx` ✅
 - `client/src/sections/supervisor/activate-account/ContentSection.jsx` ✅
@@ -231,6 +250,7 @@ function TestPage() {
 - `client/src/sections/supervisor/activate-account/TableSection.jsx` ✅
 
 ### **Test Components:**
+
 - `client/src/components/LanguageDemo.jsx` - Demo cơ bản
 - `client/src/components/MultilangTestPage.jsx` - Test tổng hợp
 - `client/src/components/LanguageSwitcher.jsx` - Chuyển đổi ngôn ngữ

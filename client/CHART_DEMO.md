@@ -3,16 +3,18 @@
 ## Tính năng Chart mới
 
 ### 1. Orders Trend Chart
+
 - **Biểu đồ đường**: Hiển thị xu hướng đơn hàng nhập/xuất trong 6 tháng gần nhất
 - **Toggle View**: Chuyển đổi giữa:
   - **Count**: Số lượng đơn hàng
   - **Value**: Giá trị đơn hàng (VND)
 
 ### 2. Dữ liệu Chart
+
 ```javascript
 // Dữ liệu mẫu cho chart
 const chartData = {
-  labels: ["1/2024", "2/2024", "3/2024", "4/2024", "5/2024", "6/2024"],
+  labels: ['1/2024', '2/2024', '3/2024', '4/2024', '5/2024', '6/2024'],
   datasets: [
     {
       label: 'Import Orders',
@@ -45,6 +47,7 @@ const chartData = {
 ```
 
 ### 3. Tính năng Chart
+
 - **Responsive**: Tự động điều chỉnh kích thước
 - **Interactive**: Hover để xem chi tiết
 - **Color-coded**: Màu sắc khác nhau cho từng loại dữ liệu
@@ -52,30 +55,33 @@ const chartData = {
 - **Legend**: Chú thích màu sắc ở dưới chart
 
 ### 4. API Integration
+
 - **Backend**: `getWarehouseManagerChartData()` method trong `dashboardService.js`
 - **Frontend**: `WarehouseManagerChart` component
 - **Data Flow**: API → Dashboard → Chart Component
 
 ### 5. Cách sử dụng
+
 1. Truy cập Warehouse Manager Dashboard
 2. Scroll xuống phần "Orders Trend Chart"
 3. Sử dụng toggle buttons để chuyển đổi view
 4. Hover vào chart để xem chi tiết
 
 ### 6. Cấu trúc Component
+
 ```jsx
-<WarehouseManagerChart 
-  chartData={dashboardData.chartData} 
-/>
+<WarehouseManagerChart chartData={dashboardData.chartData} />
 ```
 
 ### 7. Styling
+
 - **Card Layout**: Chart được bọc trong Card component
 - **Typography**: Sử dụng Material-UI typography
 - **Colors**: Consistent với theme của ứng dụng
 - **Spacing**: Proper spacing và margins
 
 ### 8. Error Handling
+
 - **No Data**: Hiển thị placeholder khi không có dữ liệu
 - **Loading**: Chart sẽ hiển thị loading state
-- **Fallback**: Graceful degradation khi chart không load được 
+- **Fallback**: Graceful degradation khi chart không load được

@@ -21,13 +21,7 @@ import {
   IconButton,
   Chip
 } from '@mui/material';
-import { 
-  Close as CloseIcon, 
-  Edit as EditIcon, 
-  Save as SaveIcon,
-  Cancel as CancelIcon,
-  Info as InfoIcon
-} from '@mui/icons-material';
+import { Close as CloseIcon, Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon, Info as InfoIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useSnackbar } from 'notistack';
 import useTrans from '@/hooks/useTrans';
@@ -141,7 +135,7 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
   const handleInputChange = (field, value) => {
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [parent]: {
           ...prev[parent],
@@ -149,7 +143,7 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
         }
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [field]: value
       }));
@@ -157,7 +151,7 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
 
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -210,29 +204,39 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
 
   const getLightColor = (light) => {
     switch (light) {
-      case 'none': return 'default';
-      case 'low': return 'warning';
-      case 'medium': return 'info';
-      case 'high': return 'error';
-      default: return 'default';
+      case 'none':
+        return 'default';
+      case 'low':
+        return 'warning';
+      case 'medium':
+        return 'info';
+      case 'high':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
   const getLightLabel = (light) => {
     switch (light) {
-      case 'none': return trans.common.lightNone;
-      case 'low': return trans.common.lightLow;
-      case 'medium': return trans.common.lightMedium;
-      case 'high': return trans.common.lightHigh;
-      default: return trans.common.unknown;
+      case 'none':
+        return trans.common.lightNone;
+      case 'low':
+        return trans.common.lightLow;
+      case 'medium':
+        return trans.common.lightMedium;
+      case 'high':
+        return trans.common.lightHigh;
+      default:
+        return trans.common.unknown;
     }
   };
 
   if (!area) return null;
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={handleClose}
       maxWidth="md"
       fullWidth
@@ -279,7 +283,7 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
                 {trans.common.basicInfo}
               </Typography>
-              
+
               {isEditing ? (
                 <TextField
                   fullWidth
@@ -308,7 +312,7 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
                 {trans.common.storageConditions}
               </Typography>
-              
+
               {isEditing ? (
                 <>
                   <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
@@ -320,7 +324,7 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
                       error={!!errors.temperature}
                       helperText={errors.temperature}
                     />
-                    
+
                     <TextField
                       label={trans.common.humidity}
                       placeholder={trans.common.humidityPlaceholder}
@@ -356,7 +360,7 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
                       {area.storage_conditions?.temperature ? `${area.storage_conditions.temperature}°C` : trans.common.unknown}
                     </Typography>
                   </Box>
-                  
+
                   <Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                       {trans.common.humidity}
@@ -365,7 +369,7 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
                       {area.storage_conditions?.humidity ? `${area.storage_conditions.humidity}%` : trans.common.unknown}
                     </Typography>
                   </Box>
-                  
+
                   <Box>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                       {trans.common.light}
@@ -391,7 +395,7 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.main' }}>
                 {trans.common.description}
               </Typography>
-              
+
               {isEditing ? (
                 <TextField
                   fullWidth
@@ -410,9 +414,7 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     {trans.common.description}
                   </Typography>
-                  <Typography variant="body1">
-                    {area.description || trans.common.noDescription}
-                  </Typography>
+                  <Typography variant="body1">{area.description || trans.common.noDescription}</Typography>
                 </Box>
               )}
             </CardContent>
@@ -427,13 +429,10 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
               <CancelIcon sx={{ mr: 1 }} />
               {trans.common.cancel}
             </Button>
-            <Button
-              onClick={handleSave}
-              variant="contained"
-              disabled={loading}
-              sx={{ borderRadius: 2 }}
-            >
-              {loading ? <CircularProgress size={20} /> : (
+            <Button onClick={handleSave} variant="contained" disabled={loading} sx={{ borderRadius: 2 }}>
+              {loading ? (
+                <CircularProgress size={20} />
+              ) : (
                 <>
                   <SaveIcon sx={{ mr: 1 }} />
                   {trans.common.saveChanges}
@@ -442,13 +441,11 @@ const AreaDetailDialog = ({ open, onClose, area, onSuccess }) => {
             </Button>
           </>
         ) : (
-          <Button onClick={handleClose}>
-            {trans.common.close}
-          </Button>
+          <Button onClick={handleClose}>{trans.common.close}</Button>
         )}
       </DialogActions>
     </Dialog>
   );
 };
 
-export default AreaDetailDialog; 
+export default AreaDetailDialog;

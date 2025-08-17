@@ -82,7 +82,7 @@ export default function ExportOrderDetail() {
 
   const [snackbar, setSnackbar] = useState({
     open: false,
-            message: trans.common.emptyMessage,
+    message: trans.common.emptyMessage,
     severity: trans.common.error
   });
 
@@ -106,7 +106,7 @@ export default function ExportOrderDetail() {
     e.preventDefault();
 
     if (!pkgDetail || verifyInput !== String(pkgDetail._id)) {
-              console.warn(trans.common.cannotSubmitInvalidPackage);
+      console.warn(trans.common.cannotSubmitInvalidPackage);
       return;
     }
 
@@ -354,7 +354,7 @@ export default function ExportOrderDetail() {
   const getPickedQty = (detail) => detail.actual_item?.reduce((s, i) => s + i.quantity, 0) || 0;
 
   return (
-          <Box sx={{ background: theme.palette.background.default, minHeight: trans.common.fullHeight, py: 4 }}>
+    <Box sx={{ background: theme.palette.background.default, minHeight: trans.common.fullHeight, py: 4 }}>
       <Container>
         <Typography variant="h4" gutterBottom>
           {trans.common.exportOrder} #{order._id}
@@ -744,7 +744,11 @@ export default function ExportOrderDetail() {
         onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
         anchorOrigin={{ vertical: trans.common.bottom, horizontal: trans.common.center }}
       >
-        <Alert onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))} severity={snackbar.severity} sx={{ width: trans.common.fullWidth }}>
+        <Alert
+          onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: trans.common.fullWidth }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>

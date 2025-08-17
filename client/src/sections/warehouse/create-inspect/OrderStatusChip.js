@@ -3,7 +3,7 @@ import useTrans from '@/hooks/useTrans';
 
 const OrderStatusChip = ({ status }) => {
   const trans = useTrans();
-  
+
   const statusConfig = {
     pending: { label: trans.common.waitingImport, color: 'warning' },
     confirmed: { label: trans.common.confirmed, color: 'info' },

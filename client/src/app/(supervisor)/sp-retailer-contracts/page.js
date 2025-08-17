@@ -9,4 +9,4 @@ const RetailerManagement = dynamic(() => import('@/views/supervisor/retailer-man
 
 export default function Page() {
   return <RetailerManagement />;
-} 
+}
