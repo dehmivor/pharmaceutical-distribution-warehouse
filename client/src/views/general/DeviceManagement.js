@@ -26,7 +26,6 @@ import {
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, DeviceHub as DeviceIcon } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useThingsBoardDevices, useThingsBoardMutations } from '@/hooks/useThingsBoard'; // Adjust the import path as necessary
 
 // Validation schema with Zod

@@ -372,7 +372,25 @@ export default {
     tryChangingFiltersOrCheckingData: 'Hãy thử thay đổi bộ lọc hoặc kiểm tra lại dữ liệu',
     uploadExcelFile: 'Upload File Excel',
     selectExcelFile: 'Chọn file Excel',
-    selectedFile: 'File đã chọn'
+    selectedFile: 'File đã chọn',
+
+    // ✅ Thêm key cho export report
+    exportReportTitle: 'Báo cáo Đơn hàng Xuất',
+    exportReportDescription: 'Tổng hợp báo cáo các đơn hàng xuất trong hệ thống',
+
+    // ✅ Thêm key cho status
+    draft: 'Nháp',
+    processing: 'Đang xử lý',
+    cancelled: 'Đã hủy',
+    rejected: 'Bị từ chối',
+
+    // ✅ Thêm key cho partner
+    retailer: 'Nhà bán lẻ',
+
+    // ✅ Thêm key cho export orders
+    createdBy: 'Tạo bởi',
+    approvedBy: 'Phê duyệt bởi',
+    updatedAt: 'Cập nhật lúc'
   },
 
   // Supplier Management

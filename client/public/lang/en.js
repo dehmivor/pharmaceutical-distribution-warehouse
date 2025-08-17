@@ -318,15 +318,6 @@ export default {
 
   // Reports
   reports: {
-    reportTitle: 'Report Bill',
-    reportDescription: 'Comprehensive report of all bill types in the system',
-    allStatus: 'All Status',
-    allTypes: 'All Types',
-    pending: 'Pending',
-    partial: 'Partial',
-    completed: 'Completed',
-    import: 'Import',
-    export: 'Export',
     title: 'Reports',
     billsReport: 'Bills Report',
     summary: 'Summary',
@@ -371,7 +362,36 @@ export default {
     tryChangingFiltersOrCheckingData: 'Try changing filters or check data again',
     uploadExcelFile: 'Upload Excel File',
     selectExcelFile: 'Select Excel File',
-    selectedFile: 'Selected file'
+    selectedFile: 'Selected file',
+
+    // ✅ Thêm key cho tiêu đề
+    reportTitle: 'Report Bill',
+    reportDescription: 'Comprehensive report of all bill types in the system',
+
+    // ✅ Thêm key cho export report
+    exportReportTitle: 'Export Orders Report',
+    exportReportDescription: 'Comprehensive report of all export orders in the system',
+
+    // ✅ Thêm key cho status
+    allStatus: 'All Status',
+    pending: 'Pending',
+    partial: 'Partial',
+    completed: 'Completed',
+    draft: 'Draft',
+    processing: 'Processing',
+    cancelled: 'Cancelled',
+    rejected: 'Rejected',
+
+    // ✅ Thêm key cho type
+    allTypes: 'All Types',
+
+    // ✅ Thêm key cho partner
+    retailer: 'Retailer',
+
+    // ✅ Thêm key cho export orders
+    createdBy: 'Created By',
+    approvedBy: 'Approved By',
+    updatedAt: 'Updated At'
   },
 
   // Supplier Management
@@ -555,8 +575,8 @@ export default {
         manageAreas: 'Manage Areas',
         manageLocations: 'Manage Locations'
       },
-      contractManagement: {
-        title: 'Contract Management',
+      partnerManagement: {
+        title: 'Partner Management',
         description: 'Manage retailer and supplier contracts',
         retailerManagement: 'Retailer Management',
         supplierManagement: 'Supplier Management'
