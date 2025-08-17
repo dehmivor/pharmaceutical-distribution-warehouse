@@ -341,6 +341,327 @@ class ReportService {
       throw error;
     }
   }
+
+  // Get import orders report
+  static async getImportOrdersReport(filters = {}) {
+    try {
+      const {
+        startDate,
+        endDate,
+        period = 'monthly',
+        status,
+        supplierId,
+        page = 1,
+        limit = 10,
+      } = filters;
+
+      const dateFilter = {};
+      if (startDate && endDate) {
+        dateFilter.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate),
+        };
+      }
+
+      const statusFilter = status && status !== 'all' ? { status } : {};
+      const supplierFilter =
+        supplierId && supplierId !== 'All Supplier' ? { 'contract_id.partner_id': supplierId } : {};
+
+      const combinedFilter = {
+        ...dateFilter,
+        ...statusFilter,
+        ...supplierFilter,
+      };
+
+      const skip = (page - 1) * limit;
+
+      // Find import orders with populated references
+      const importOrders = await ImportOrder.find(combinedFilter)
+        .populate({
+          path: 'contract_id',
+          select: 'contract_code partner_id status',
+          populate: {
+            path: 'partner_id',
+            select: 'name',
+          },
+        })
+        .populate({
+          path: 'warehouse_manager_id',
+          select: 'full_name',
+        })
+        .populate({
+          path: 'created_by',
+          select: 'full_name',
+        })
+        .populate({
+          path: 'approval_by',
+          select: 'full_name',
+        })
+        .populate({
+          path: 'details.medicine_id',
+          select: 'medicine_name license_code unit_of_measure category status',
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      // Get total count for pagination
+      const totalCount = await ImportOrder.countDocuments(combinedFilter);
+
+      // Process import orders data
+      const processedOrders = importOrders.map((order) => {
+        const contractCode = order.contract_id?.contract_code || 'N/A';
+        const contractStatus = order.contract_id?.status || 'N/A';
+        const supplierName = order.contract_id?.partner_id?.name || 'N/A';
+        const warehouseManager = order.warehouse_manager_id?.full_name || 'N/A';
+        const createdBy = order.created_by?.full_name || 'N/A';
+        const approvedBy = order.approval_by?.full_name || 'N/A';
+
+        // Calculate total value from medicine details
+        const totalValue = order.details.reduce((sum, detail) => {
+          const unitPrice = 1000; // Placeholder value since unit_price is not available
+          return sum + detail.quantity * unitPrice;
+        }, 0);
+
+        return {
+          id: order._id.toString(),
+          orderCode: `IMP_${order._id.toString().slice(-8)}`,
+          contractCode,
+          contractStatus,
+          supplierName,
+          warehouseManager,
+          status: order.status,
+          orderType: order.order_type || 'IMPORT',
+          totalValue: Math.round(totalValue / 1000), // Convert to thousands for VND display
+          createdBy,
+          approvedBy,
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+          // Medicine details for detailed view
+          medicineDetails: order.details.map((detail) => ({
+            medicineName: detail.medicine_id?.medicine_name || 'Unknown Medicine',
+            medicineCode: detail.medicine_id?.license_code || 'N/A',
+            quantity: detail.quantity,
+            unitPrice: 1000, // Placeholder value since unit_price is not available
+            totalPrice: detail.quantity * 1000,
+            category: detail.medicine_id?.category || 'N/A',
+            unitOfMeasure: detail.medicine_id?.unit_of_measure || 'N/A',
+            status: detail.medicine_id?.status || 'N/A',
+          })),
+        };
+      });
+
+      return {
+        success: true,
+        data: {
+          importOrders: processedOrders,
+          pagination: {
+            total: totalCount,
+            page,
+            limit,
+            totalPages: Math.ceil(totalCount / limit),
+          },
+        },
+      };
+    } catch (error) {
+      console.error('Error getting import orders report:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Export import orders report to Excel
+  static async exportImportOrdersReport(filters = {}) {
+    try {
+      const { startDate, endDate, period = 'monthly', status, supplierId } = filters;
+
+      const dateFilter = {};
+      if (startDate && endDate) {
+        dateFilter.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate),
+        };
+      }
+
+      const statusFilter = status && status !== 'all' ? { status } : {};
+      const supplierFilter =
+        supplierId && supplierId !== 'All Supplier' ? { 'contract_id.partner_id': supplierId } : {};
+
+      const combinedFilter = {
+        ...dateFilter,
+        ...statusFilter,
+        ...supplierFilter,
+      };
+
+      // Find all import orders for export (no pagination)
+      const importOrders = await ImportOrder.find(combinedFilter)
+        .populate({
+          path: 'contract_id',
+          select: 'contract_code partner_id status',
+          populate: {
+            path: 'partner_id',
+            select: 'name',
+          },
+        })
+        .populate({
+          path: 'warehouse_manager_id',
+          select: 'full_name',
+        })
+        .populate({
+          path: 'created_by',
+          select: 'full_name',
+        })
+        .populate({
+          path: 'approval_by',
+          select: 'full_name',
+        })
+        .populate({
+          path: 'details.medicine_id',
+          select: 'medicine_name license_code unit_of_measure category status',
+        })
+        .sort({ createdAt: -1 });
+
+      // Process export data
+      const exportData = importOrders.map((order) => {
+        const contractCode = order.contract_id?.contract_code || 'N/A';
+        const supplierName = order.contract_id?.partner_id?.name || 'N/A';
+        const warehouseManager = order.warehouse_manager_id?.full_name || 'N/A';
+        const createdBy = order.created_by?.full_name || 'N/A';
+        const approvedBy = order.approval_by?.full_name || 'N/A';
+
+        // Calculate total value
+        const totalValue = order.details.reduce((sum, detail) => {
+          const unitPrice = 1000; // Placeholder value
+          return sum + detail.quantity * unitPrice;
+        }, 0);
+
+        return {
+          'Order Code': `IMP_${order._id.toString().slice(-8)}`,
+          'Contract Code': contractCode,
+          'Supplier Name': supplierName,
+          'Warehouse Manager': warehouseManager,
+          Status: order.status,
+          'Order Type': order.order_type || 'IMPORT',
+          'Total Value (VND)': totalValue,
+          'Created By': createdBy,
+          'Approved By': approvedBy || 'N/A',
+          'Created At': order.createdAt.toISOString().split('T')[0],
+          'Updated At': order.updatedAt.toISOString().split('T')[0],
+        };
+      });
+
+      return {
+        success: true,
+        data: exportData,
+      };
+    } catch (error) {
+      console.error('Error exporting import orders report:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Get import report summary
+  static async getImportReportSummary(filters = {}) {
+    try {
+      const { startDate, endDate, period = 'monthly' } = filters;
+
+      const dateFilter = {};
+      if (startDate && endDate) {
+        dateFilter.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate),
+        };
+      }
+
+      // Get summary statistics
+      const totalOrders = await ImportOrder.countDocuments(dateFilter);
+      const completedOrders = await ImportOrder.countDocuments({
+        ...dateFilter,
+        status: 'completed',
+      });
+      const pendingOrders = await ImportOrder.countDocuments({ ...dateFilter, status: 'pending' });
+      const cancelledOrders = await ImportOrder.countDocuments({
+        ...dateFilter,
+        status: 'cancelled',
+      });
+
+      // Get total value
+      const ordersWithValue = await ImportOrder.find(dateFilter).populate('details.medicine_id');
+      const totalValue = ordersWithValue.reduce((sum, order) => {
+        const orderValue = order.details.reduce((detailSum, detail) => {
+          const unitPrice = 1000; // Placeholder value
+          return detailSum + detail.quantity * unitPrice;
+        }, 0);
+        return sum + orderValue;
+      }, 0);
+
+      return {
+        success: true,
+        data: {
+          totalOrders,
+          completedOrders,
+          pendingOrders,
+          cancelledOrders,
+          totalValue: Math.round(totalValue / 1000), // Convert to thousands
+          completionRate: totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0,
+        },
+      };
+    } catch (error) {
+      console.error('Error getting import report summary:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Get import report dashboard data
+  static async getImportReportDashboard(filters = {}) {
+    try {
+      const { startDate, endDate, period = 'monthly' } = filters;
+
+      const dateFilter = {};
+      if (startDate && endDate) {
+        dateFilter.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate),
+        };
+      }
+
+      // Get both report data and summary
+      const [reportResult, summaryResult] = await Promise.all([
+        this.getImportOrdersReport({ ...filters, page: 1, limit: 10 }),
+        this.getImportReportSummary(filters),
+      ]);
+
+      if (reportResult.success && summaryResult.success) {
+        return {
+          success: true,
+          data: {
+            recentOrders: reportResult.data.importOrders,
+            summary: summaryResult.data,
+            filters,
+          },
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Failed to retrieve dashboard data',
+        };
+      }
+    } catch (error) {
+      console.error('Error getting import report dashboard:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }
 
 module.exports = ReportService;

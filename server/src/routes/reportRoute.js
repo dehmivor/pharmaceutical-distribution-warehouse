@@ -48,4 +48,17 @@ router.get('/export-orders/export', exportReportController.exportExportOrdersToE
 // Get partner types for filtering
 router.get('/partner-types', exportReportController.getPartnerTypes);
 
+// ===== IMPORT ORDERS REPORT ROUTES =====
+// Get import orders report
+router.get('/import-orders', reportController.getImportOrdersReport);
+
+// Export import orders report to Excel
+router.get('/import-orders/export', reportController.exportImportOrdersReport);
+
+// Get import report summary statistics
+router.get('/import-orders/summary', reportController.getImportReportSummary);
+
+// Get import report dashboard data
+router.get('/import-orders/dashboard', reportController.getImportReportDashboard);
+
 module.exports = router;

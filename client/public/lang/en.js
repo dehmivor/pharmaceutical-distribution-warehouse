@@ -369,8 +369,10 @@ export default {
     reportDescription: 'Comprehensive report of all bill types in the system',
 
     // ✅ Thêm key cho export report
-    exportReportTitle: 'Export Orders Report',
-    exportReportDescription: 'Comprehensive report of all export orders in the system',
+      exportReportTitle: 'Export Orders Report',
+  exportReportDescription: 'Comprehensive report of all export orders in the system',
+  importReportTitle: 'Import Orders Report',
+  importReportDescription: 'Comprehensive report of all import orders with warehouse information',
 
     // ✅ Thêm key cho status
     allStatus: 'All Status',

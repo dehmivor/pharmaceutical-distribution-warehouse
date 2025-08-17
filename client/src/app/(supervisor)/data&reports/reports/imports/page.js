@@ -2,10 +2,11 @@
 import dynamic from 'next/dynamic';
 
 // @project
-const ReportMonthly = dynamic(() => import('@/views/supervisor/reports/weekly'));
 
-/***************************  DASHBOARD PAGE  ***************************/
+const ImportReport = dynamic(() => import('@/views/supervisor/import-report'));
 
-export default function DashboardPages() {
-  return <ReportMonthly />;
+/***************************  IMPORT REPORT  ***************************/
+
+export default function ImportReportPage() {
+  return <ImportReport />;
 }

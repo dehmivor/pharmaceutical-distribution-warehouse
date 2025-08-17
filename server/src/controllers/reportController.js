@@ -344,6 +344,181 @@ const getReportTemplates = async (req, res) => {
   }
 };
 
+// ===== IMPORT ORDERS REPORT METHODS =====
+
+// Get import orders report
+const getImportOrdersReport = async (req, res) => {
+  try {
+    const {
+      startDate,
+      endDate,
+      period = 'monthly',
+      status,
+      supplierId,
+      page = 1,
+      limit = 10,
+    } = req.query;
+
+    const filters = {
+      startDate,
+      endDate,
+      period,
+      status,
+      supplierId,
+      page: parseInt(page),
+      limit: parseInt(limit),
+    };
+
+    console.log('Import report filters:', filters);
+
+    const result = await ReportService.getImportOrdersReport(filters);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Import orders report retrieved successfully',
+        data: result.data,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error,
+      });
+    }
+  } catch (error) {
+    console.error('Error in getImportOrdersReport controller:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error while fetching import orders report',
+    });
+  }
+};
+
+// Export import orders report to Excel
+const exportImportOrdersReport = async (req, res) => {
+  try {
+    const { startDate, endDate, period = 'monthly', status, supplierId } = req.query;
+
+    const filters = {
+      startDate,
+      endDate,
+      period,
+      status,
+      supplierId,
+    };
+
+    console.log('Export import report filters:', filters);
+
+    const result = await ReportService.exportImportOrdersReport(filters);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error,
+      });
+    }
+
+    // Create Excel workbook using xlsx package
+    const workbook = xlsx.utils.book_new();
+    const worksheet = xlsx.utils.json_to_sheet(result.data);
+
+    // Add worksheet to workbook
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Import Orders Report');
+
+    // Set response headers for file download
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=import_orders_report_${new Date().toISOString().split('T')[0]}.xlsx`,
+    );
+
+    // Write to response as buffer
+    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    res.send(buffer);
+  } catch (error) {
+    console.error('Error in exportImportOrdersReport controller:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error while exporting import orders report',
+    });
+  }
+};
+
+// Get import report summary
+const getImportReportSummary = async (req, res) => {
+  try {
+    const { startDate, endDate, period = 'monthly' } = req.query;
+
+    const filters = {
+      startDate,
+      endDate,
+      period,
+    };
+
+    console.log('Import report summary filters:', filters);
+
+    const result = await ReportService.getImportReportSummary(filters);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Import report summary retrieved successfully',
+        data: result.data,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error,
+      });
+    }
+  } catch (error) {
+    console.error('Error in getImportReportSummary controller:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error while fetching import report summary',
+    });
+  }
+};
+
+// Get import report dashboard data
+const getImportReportDashboard = async (req, res) => {
+  try {
+    const { startDate, endDate, period = 'monthly' } = req.query;
+
+    const filters = {
+      startDate,
+      endDate,
+      period,
+    };
+
+    console.log('Import report dashboard filters:', filters);
+
+    const result = await ReportService.getImportReportDashboard(filters);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Import report dashboard data retrieved successfully',
+        data: result.data,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error,
+      });
+    }
+  } catch (error) {
+    console.error('Error in getImportReportDashboard controller:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error while fetching import report dashboard',
+    });
+  }
+};
+
 module.exports = {
   getComprehensiveReport,
   getReportByPeriod,
@@ -353,4 +528,9 @@ module.exports = {
   uploadExcelFile,
   getReportTemplates,
   upload,
+  // Import report methods
+  getImportOrdersReport,
+  exportImportOrdersReport,
+  getImportReportSummary,
+  getImportReportDashboard,
 };

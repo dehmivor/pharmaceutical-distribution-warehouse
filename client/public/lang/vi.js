@@ -375,8 +375,10 @@ export default {
     selectedFile: 'File đã chọn',
 
     // ✅ Thêm key cho export report
-    exportReportTitle: 'Báo cáo Đơn hàng Xuất',
-    exportReportDescription: 'Tổng hợp báo cáo các đơn hàng xuất trong hệ thống',
+      exportReportTitle: 'Báo cáo Đơn hàng Xuất',
+  exportReportDescription: 'Tổng hợp báo cáo các đơn hàng xuất trong hệ thống',
+  importReportTitle: 'Báo cáo Đơn hàng Nhập',
+  importReportDescription: 'Tổng hợp báo cáo các đơn hàng nhập với thông tin kho hàng',
 
     // ✅ Thêm key cho status
     draft: 'Nháp',
