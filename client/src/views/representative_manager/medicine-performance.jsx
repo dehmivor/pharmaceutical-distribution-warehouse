@@ -18,7 +18,8 @@ import {
   TableHead,
   TableBody,
   TableRow,
-  TableCell
+  TableCell,
+  Stack
 } from '@mui/material';
 import { Refresh as RefreshIcon } from '@mui/icons-material';
 import axios from 'axios';
@@ -31,7 +32,7 @@ const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
     'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` })
+    ...(token && { Authorization: `Bearer ${token}` }),
   };
 };
 
@@ -54,6 +55,7 @@ const RepresentativeManagerMedicinePerformance = () => {
   // top exported medicines
   const [topExported, setTopExported] = useState([]);
   const [topLoading, setTopLoading] = useState(false);
+
 
   // --- Distinct batches (minimal) ---
   const [batches, setBatches] = useState([]);
@@ -82,7 +84,7 @@ const RepresentativeManagerMedicinePerformance = () => {
         license_code: r.medicine_id?.license_code || '—',
         batch_code: r.batch_code || '—',
         production_date: r.production_date || null,
-        expiry_date: r.expiry_date || null
+        expiry_date: r.expiry_date || null,
       }));
       setBatches(rows);
     } catch (e) {
@@ -92,9 +94,7 @@ const RepresentativeManagerMedicinePerformance = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchDistinctBatches();
-  }, [fetchDistinctBatches]);
+  useEffect(() => { fetchDistinctBatches(); }, [fetchDistinctBatches]);
 
   const filteredBatches = React.useMemo(() => {
     const m = parseFloat(monthsFilter);
@@ -126,6 +126,7 @@ const RepresentativeManagerMedicinePerformance = () => {
     }
     return out;
   };
+
 
   // fetch top exported on mount so the table shows automatically
   useEffect(() => {
@@ -160,6 +161,7 @@ const RepresentativeManagerMedicinePerformance = () => {
     };
   }, []);
 
+
   const handleSubmit = useCallback(
     async (e) => {
       e?.preventDefault();
@@ -180,7 +182,7 @@ const RepresentativeManagerMedicinePerformance = () => {
 
         const [flowResp, historyResp] = await Promise.all([
           axios.get(flowUrl, { headers: getAuthHeaders() }).catch((err) => ({ error: err })),
-          axios.get(historyUrl, { headers: getAuthHeaders() }).catch((err) => ({ error: err }))
+          axios.get(historyUrl, { headers: getAuthHeaders() }).catch((err) => ({ error: err })),
         ]);
 
         // process flowResp
@@ -212,12 +214,12 @@ const RepresentativeManagerMedicinePerformance = () => {
         if (!historyResp || historyResp.error) {
           console.warn('history request failed', historyResp?.error || historyResp);
           // not fatal; show message if nothing else
-          setError((prev) => (prev ? prev + ' Also failed to fetch history.' : 'Failed to fetch history data (line chart).'));
+          setError((prev) => prev ? prev + ' Also failed to fetch history.' : 'Failed to fetch history data (line chart).');
         } else {
           const data = historyResp.data;
           if (!data || !data.success) {
             console.warn('history response invalid', data);
-            setError((prev) => (prev ? prev + ' History response invalid.' : 'Invalid history response.'));
+            setError((prev) => prev ? prev + ' History response invalid.' : 'Invalid history response.');
           } else {
             const hMonths = Array.isArray(data.data.months) ? data.data.months.map((m) => String(m)) : [];
             const quantities = data.data?.quantity || [];
@@ -225,6 +227,7 @@ const RepresentativeManagerMedicinePerformance = () => {
             setHistoryMonths(hMonths);
             setHistoryQuantity(safeNumericArray(quantities, len));
           }
+
         }
 
         // if both failed, keep error set (already set above)
@@ -235,7 +238,7 @@ const RepresentativeManagerMedicinePerformance = () => {
         setLoading(false);
       }
     },
-    [licenseCode]
+    [licenseCode],
   );
 
   // Build series for BarChart
@@ -251,7 +254,7 @@ const RepresentativeManagerMedicinePerformance = () => {
       { label: 'Import — Contracted', data: impContractedSafe, stack: 'import' },
       { label: 'Import — Uncontracted', data: impUn, stack: 'import' },
       { label: 'Export — Contracted', data: expContractedSafe, stack: 'export' },
-      { label: 'Export — Uncontracted', data: expUn, stack: 'export' }
+      { label: 'Export — Uncontracted', data: expUn, stack: 'export' },
     ];
   };
 
@@ -275,18 +278,21 @@ const RepresentativeManagerMedicinePerformance = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
-      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', fontWeight: 600 }}>
-        Medicine performance
-      </Typography>
-      <Typography variant="body1" color="text.secondary" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
-        Display the performance of notable medicine in the warehouse
-      </Typography>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Medicine performance
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Display the performance of notable medicine in the warehouse
+          </Typography>
+        </Box>
+      </Box>
 
       <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
-            <RefreshIcon sx={{ color: 'primary.main', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
               Search
             </Typography>
@@ -295,7 +301,12 @@ const RepresentativeManagerMedicinePerformance = () => {
           <Box component="form" onSubmit={handleSubmit}>
             <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} md={6}>
-                <TextField label="Medicine license code" value={licenseCode} onChange={(e) => setLicenseCode(e.target.value)} fullWidth />
+                <TextField
+                  label="Medicine license code"
+                  value={licenseCode}
+                  onChange={(e) => setLicenseCode(e.target.value)}
+                  fullWidth
+                />
               </Grid>
 
               <Grid item xs={12} md={6} sx={{ display: 'flex', gap: 1 }}>
@@ -351,7 +362,12 @@ const RepresentativeManagerMedicinePerformance = () => {
                   </Typography>
                 </Paper>
               ) : (
-                <BarChart key={months.join('-')} series={buildBarSeries()} xAxis={[{ data: months }]} height={420} />
+                <BarChart
+                  key={months.join('-')}
+                  series={buildBarSeries()}
+                  xAxis={[{ data: months }]}
+                  height={420}
+                />
               )}
             </CardContent>
           </Card>
@@ -382,7 +398,12 @@ const RepresentativeManagerMedicinePerformance = () => {
                   </Typography>
                 </Paper>
               ) : (
-                <BarChart key={months.join('-')} series={buildLineSeries()} xAxis={[{ data: historyMonths }]} height={420} />
+                <BarChart
+                  key={months.join('-')}
+                  series={buildLineSeries()}
+                  xAxis={[{ data: historyMonths }]}
+                  height={420}
+                />
               )}
             </CardContent>
           </Card>
@@ -437,17 +458,10 @@ const RepresentativeManagerMedicinePerformance = () => {
 
         <Box sx={{ mt: 2 }}>
           <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
-            <Box
-              sx={{
-                p: 2,
-                borderBottom: '1px solid #e0e0e0',
-                bgcolor: 'grey.50',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                justifyContent: 'space-between'
-              }}
-            >
+            <Box sx={{
+              p: 2, borderBottom: '1px solid #e0e0e0', bgcolor: 'grey.50',
+              display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'space-between'
+            }}>
               <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
                 Almost expire
               </Typography>
@@ -463,7 +477,12 @@ const RepresentativeManagerMedicinePerformance = () => {
                   sx={{ width: 220 }}
                   inputProps={{ min: 0 }}
                 />
-                <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchDistinctBatches} disabled={bLoading}>
+                <Button
+                  variant="outlined"
+                  startIcon={<RefreshIcon />}
+                  onClick={fetchDistinctBatches}
+                  disabled={bLoading}
+                >
                   Refresh
                 </Button>
               </Box>
@@ -518,6 +537,7 @@ const RepresentativeManagerMedicinePerformance = () => {
             </CardContent>
           </Card>
         </Box>
+
       </Box>
 
       <Snackbar open={!!error} onClose={() => setError('')} autoHideDuration={6000} message={error} />

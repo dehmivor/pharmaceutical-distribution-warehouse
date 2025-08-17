@@ -1,6 +1,6 @@
 'use client';
 
-import { Refresh as RefreshIcon, Search as SearchIcon, QrCodeScanner } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Search as SearchIcon, QrCodeScanner, Add as AddIcon } from '@mui/icons-material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
   Alert,
@@ -42,7 +42,6 @@ import axios from 'axios';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ModalConfirm from '../../views/general/ModalConfirm';
-import useTrans from '@/hooks/useTrans';
 
 const USER_ROLES = {
   WAREHOUSEMANAGER: 'warehouse_manager',
@@ -72,7 +71,6 @@ const getStatusBadge = (status) => {
 
 export default function ManageExportOrders() {
   const router = useRouter();
-  const trans = useTrans();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -98,7 +96,7 @@ export default function ManageExportOrders() {
     open: false,
     title: '',
     content: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
     confirmText: 'Đồng ý',
     cancelText: 'Hủy',
     loading: false
@@ -149,8 +147,7 @@ export default function ManageExportOrders() {
         return;
       }
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${backendUrl}/api/auth/me`, {
+        const res = await fetch(`/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) {
@@ -175,7 +172,6 @@ export default function ManageExportOrders() {
     setLoading(true);
     setError(null);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const currentPage = p !== null ? p : page;
       const currentLimit = rpp !== null ? rpp : rowsPerPage;
       const currentDate = date !== null ? date : filterDate;
@@ -188,7 +184,7 @@ export default function ManageExportOrders() {
       if (currentDate) qp.append('createdAt', currentDate);
       if (currentStatus) qp.append('status', currentStatus);
       if (currentAssignedToMe && currentUserId) qp.append('warehouse_manager_id', currentUserId);
-      const url = `${backendUrl}/api/export-orders${qp.toString() ? `?${qp.toString()}` : ''}`;
+      const url = `/api/export-orders${qp.toString() ? `?${qp.toString()}` : ''}`;
       const resp = await axios.get(url, { headers: getAuthHeaders() });
       if (!resp.data.success) {
         throw new Error(resp.data.error || 'Failed to load export orders');
@@ -213,10 +209,9 @@ export default function ManageExportOrders() {
   const fetchAllMedicines = async () => {
     setLoadingMedicines(true);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const token = getAuthToken();
       if (!token) throw new Error('No auth token found');
-      const res = await fetch(`${backendUrl}/api/medicine/all/v1`, {
+      const res = await fetch(`/api/medicine/all/v1`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -230,10 +225,9 @@ export default function ManageExportOrders() {
   };
 
   const fetchAvailablePackages = async (medicineId) => {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     const token = getAuthToken();
     if (!token) throw new Error('No auth token found');
-    const res = await fetch(`${backendUrl}/api/packages/${medicineId}/packages`, {
+    const res = await fetch(`/api/packages/${medicineId}/packages`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) {
@@ -346,9 +340,9 @@ export default function ManageExportOrders() {
       prev.map((detail) =>
         detail.medicine_id === medicineId
           ? {
-              ...detail,
-              selected_packages: detail.selected_packages.map((sp) => (sp.package_id === packageId ? { ...sp, quantity } : sp))
-            }
+            ...detail,
+            selected_packages: detail.selected_packages.map((sp) => (sp.package_id === packageId ? { ...sp, quantity } : sp))
+          }
           : detail
       )
     );
@@ -359,9 +353,9 @@ export default function ManageExportOrders() {
       prev.map((detail) =>
         detail.medicine_id === medicineId
           ? {
-              ...detail,
-              selected_packages: [...detail.selected_packages, { package_id: packageId, quantity: 0, created_by: currentUserId }]
-            }
+            ...detail,
+            selected_packages: [...detail.selected_packages, { package_id: packageId, quantity: 0, created_by: currentUserId }]
+          }
           : detail
       )
     );
@@ -373,9 +367,9 @@ export default function ManageExportOrders() {
       prev.map((detail) =>
         detail.medicine_id === medicineId
           ? {
-              ...detail,
-              selected_packages: detail.selected_packages.filter((sp) => sp.package_id !== packageId)
-            }
+            ...detail,
+            selected_packages: detail.selected_packages.filter((sp) => sp.package_id !== packageId)
+          }
           : detail
       )
     );
@@ -435,7 +429,6 @@ export default function ManageExportOrders() {
   const performUpdatePacking = async () => {
     setConfirmDialog((prev) => ({ ...prev, loading: true }));
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const token = getAuthToken();
       if (!token) {
         setMessageDialog({ open: true, title: 'Lỗi', content: 'Không có token xác thực. Vui lòng đăng nhập lại.' });
@@ -451,7 +444,7 @@ export default function ManageExportOrders() {
           created_by: sp.created_by
         }))
       }));
-      const res = await fetch(`${backendUrl}/api/export-orders/${selectedOrder._id}/update-packing`, {
+      const res = await fetch(`/api/export-orders/${selectedOrder._id}/update-packing`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -492,13 +485,12 @@ export default function ManageExportOrders() {
       onConfirm: async () => {
         setConfirmDialog((prev) => ({ ...prev, loading: true }));
         try {
-          const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
           const token = getAuthToken();
           if (!token) {
             setMessageDialog({ open: true, title: 'Lỗi', content: 'Không có token xác thực. Vui lòng đăng nhập lại.' });
             return;
           }
-          const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/complete`, {
+          const res = await fetch(`/api/export-orders/${orderId}/complete`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -580,13 +572,12 @@ export default function ManageExportOrders() {
       onConfirm: async () => {
         setConfirmDialog((prev) => ({ ...prev, loading: true }));
         try {
-          const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
           const token = getAuthToken();
           if (!token) {
             setMessageDialog({ open: true, title: 'Lỗi', content: 'Không có token xác thực. Vui lòng đăng nhập lại.' });
             return;
           }
-          const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/cancel`, {
+          const res = await fetch(`/api/export-orders/${orderId}/cancel`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -622,14 +613,13 @@ export default function ManageExportOrders() {
       onConfirm: async () => {
         setConfirmDialog((prev) => ({ ...prev, loading: true }));
         try {
-          const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
           const token = getAuthToken();
           if (!token) {
             setMessageDialog({ open: true, title: 'Lỗi', content: 'Không có token xác thực. Vui lòng đăng nhập lại.' });
             return;
           }
 
-          const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/assign-warehouse-manager`, {
+          const res = await fetch(`/api/export-orders/${orderId}/assign-warehouse-manager`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -787,7 +777,6 @@ export default function ManageExportOrders() {
   const submitInternalOrder = async () => {
     try {
       setCreatingInternal(true);
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const token = getAuthToken();
       if (!token) throw new Error('Không có token xác thực');
 
@@ -804,7 +793,7 @@ export default function ManageExportOrders() {
           }))
       }));
 
-      const res = await fetch(`${backendUrl}/api/export-orders/internal`, {
+      const res = await fetch(`/api/export-orders/internal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ details })
@@ -839,73 +828,76 @@ export default function ManageExportOrders() {
         </Snackbar>
       )}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">{trans.manageExportOrders.title}</Typography>
-        {currentUserRole === USER_ROLES.WAREHOUSEMANAGER && (
-          <Button variant="contained" color="warning" onClick={openInternalDialog}>
-            {trans.manageExportOrders.createInternalExportOrder}
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Export Orders Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Manage and inspect export orders, track their status, and perform inspections.
+          </Typography>
+        </Box>
+
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={openInternalDialog}
+            color="primary"
+          >Create Internal Export Order
           </Button>
-        )}
+
+        </Stack>
       </Box>
-      <Paper sx={{ p: 2, mb: 3 }}>
+      <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
-            label={trans.manageExportOrders.exportDate}
+            label="Export Date"
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
             size="small"
+            fullWidth
           />
-          <TextField
-            select
-            label={trans.manageExportOrders.status}
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            size="small"
-          >
-            <MenuItem value="">{trans.manageExportOrders.all}</MenuItem>
+          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small" fullWidth>
+            <MenuItem value="">All</MenuItem>
             {['draft', 'approved', 'returned', 'rejected', 'completed', 'cancelled'].map((s) => (
               <MenuItem key={s} value={s}>
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </MenuItem>
             ))}
           </TextField>
-          <TextField
-            select
-            label={trans.manageExportOrders.type}
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            size="small"
-          >
-            <MenuItem value="all">{trans.manageExportOrders.allTypes}</MenuItem>
-            <MenuItem value="internal">{trans.manageExportOrders.internal}</MenuItem>
-            <MenuItem value="regular">{trans.manageExportOrders.regular}</MenuItem>
+          <TextField select label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} size="small" fullWidth>
+            <MenuItem value="all">All Types</MenuItem>
+            <MenuItem value="internal">Internal</MenuItem>
+            <MenuItem value="regular">Regular</MenuItem>
           </TextField>
           <FormControlLabel
             control={
               <Checkbox checked={filterAssignedToMe} onChange={(e) => setFilterAssignedToMe(e.target.checked)} disabled={!currentUserId} />
             }
-            label={trans.manageExportOrders.assignedToMe}
+            label="Assigned to Me"
           />
-          <Button variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick}>
-            {trans.manageExportOrders.search}
+          <Button variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick} fullWidth>
+            Search
           </Button>
-          <Button variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />}>
-            {trans.manageExportOrders.refresh}
+          <Button variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />} fullWidth>
+            Refresh
           </Button>
         </Stack>
-      </Paper>
+      </Box>
+
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>{trans.manageExportOrders.exportDateCol}</TableCell>
-              <TableCell>{trans.manageExportOrders.typeCol}</TableCell>
-              <TableCell>{trans.manageExportOrders.contractCode}</TableCell>
-              <TableCell>{trans.manageExportOrders.partner}</TableCell>
-              <TableCell>{trans.manageExportOrders.managerEmail}</TableCell>
-              <TableCell>{trans.manageExportOrders.statusCol}</TableCell>
-              <TableCell>{trans.manageExportOrders.actions}</TableCell>
+              <TableCell>Export Date</TableCell>
+              <TableCell>Type</TableCell>
+              <TableCell>Contract Code</TableCell>
+              <TableCell>Partner</TableCell>
+              <TableCell>Manager Email</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -913,7 +905,7 @@ export default function ManageExportOrders() {
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
-                    {trans.manageExportOrders.noExportOrdersFound}
+                    No export orders found.
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -923,14 +915,14 @@ export default function ManageExportOrders() {
                   <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     {o.contract_id ? (
-                      <Chip label={trans.manageExportOrders.regular} color="primary" size="small" variant="outlined" />
+                      <Chip label="Regular" color="primary" size="small" variant="outlined" />
                     ) : (
-                      <Chip label={trans.manageExportOrders.internal} color="warning" size="small" />
+                      <Chip label="Internal" color="warning" size="small" />
                     )}
                   </TableCell>
                   <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
                   <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
-                  <TableCell>{o.warehouse_manager_id?.email || '—'}</TableCell>
+                  <TableCell>{o.created_by?.email || '—'}</TableCell>
                   <TableCell>
                     <Chip label={getStatusBadge(o.status).props.label} color={getStatusBadge(o.status).props.color} size="small" />
                   </TableCell>
@@ -966,7 +958,7 @@ export default function ManageExportOrders() {
             handleOpenViewDetailsDialog(menuOrder);
           }}
         >
-          {trans.manageExportOrders.detail}
+          Detail
         </MenuItem>
         {currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
           !!menuOrder?.contract_id &&
@@ -977,23 +969,23 @@ export default function ManageExportOrders() {
                 handleAssignToMyself(menuOrder._id);
               }}
             >
-              {trans.manageExportOrders.assignOrderToMyself}
+              Assign order to myself
             </MenuItem>
           )}
       </Menu>
 
       <Dialog open={viewDetailsDialogOpen} onClose={handleCloseViewDetailsDialog} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ pb: 1 }}>{trans.manageExportOrders.orderDetails}</DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>Chi tiết Đơn hàng Xuất kho</DialogTitle>
         <DialogContent dividers sx={{ pt: 2 }}>
           {selectedOrder && (
             <Box>
               <Typography variant="h6" gutterBottom>
-                {trans.manageExportOrders.orderDetails}
+                Thông tin đơn hàng
               </Typography>
               <Grid container spacing={2} mb={3}>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    {trans.manageExportOrders.orderCode}:
+                    Mã đơn hàng:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
                     {selectedOrder._id || 'N/A'}
@@ -1001,7 +993,7 @@ export default function ManageExportOrders() {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    {trans.manageExportOrders.contractCodeLabel}:
+                    Mã hợp đồng:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
                     {selectedOrder.contract_id?.contract_code || 'N/A'}
@@ -1009,7 +1001,7 @@ export default function ManageExportOrders() {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    {trans.manageExportOrders.createdBy}:
+                    Người tạo:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
                     {selectedOrder.created_by.email}
@@ -1017,15 +1009,15 @@ export default function ManageExportOrders() {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    {trans.manageExportOrders.assignedStaff}:
+                    Nhân viên phụ trách:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
-                    {selectedOrder.warehouse_manager_id?.email || trans.manageExportOrders.notAssigned}
+                    {selectedOrder.warehouse_manager_id?.email || 'Chưa phân công'}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    {trans.manageExportOrders.statusLabel}:
+                    Trạng thái:
                   </Typography>
                   <Typography component="div" variant="body1" fontWeight="medium">
                     {getStatusBadge(selectedOrder.status)}
@@ -1033,7 +1025,7 @@ export default function ManageExportOrders() {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    {trans.manageExportOrders.createdAt}:
+                    Ngày tạo:
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
                     {new Date(selectedOrder.createdAt).toLocaleDateString('vi-VN')}
@@ -1042,7 +1034,7 @@ export default function ManageExportOrders() {
                 {(selectedOrder.status === 'completed' || selectedOrder.status === 'cancelled') && (
                   <Grid item xs={12} sm={6}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      {selectedOrder.status === 'completed' ? trans.manageExportOrders.completedAt : trans.manageExportOrders.cancelledAt}:
+                      {selectedOrder.status === 'completed' ? 'Ngày hoàn thành:' : 'Ngày hủy:'}
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
                       {(() => {
@@ -1057,7 +1049,7 @@ export default function ManageExportOrders() {
                 {selectedOrder.contract_id && (
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      {trans.manageExportOrders.totalValue}:
+                      Tổng giá trị:
                     </Typography>
                     <Typography variant="body1" fontWeight="medium" color="primary.main">
                       {formatCurrency(calculateTotalValue(selectedOrder))}
@@ -1067,26 +1059,26 @@ export default function ManageExportOrders() {
                 {selectedOrder.note && (
                   <Grid item xs={12}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      {trans.manageExportOrders.note}:
+                      Ghi chú:
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {selectedOrder.note || trans.manageExportOrders.noNote}
+                      {selectedOrder.note || 'Không có ghi chú'}
                     </Typography>
                   </Grid>
                 )}
               </Grid>
               <Divider sx={{ my: 3 }} />
               <Typography variant="h6" gutterBottom>
-                {trans.manageExportOrders.itemDetails}
+                Chi tiết mặt hàng
               </Typography>
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small" aria-label="Order details table">
                   <TableHead sx={{ bgcolor: 'grey.50' }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageExportOrders.medicine}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageExportOrders.expectedQuantity}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageExportOrders.actualQuantity}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.manageExportOrders.unit}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Thuốc</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>SL Yêu cầu</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>SL Thực tế</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Đơn vị</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1107,25 +1099,25 @@ export default function ManageExportOrders() {
         <DialogActions sx={{ p: 3 }}>
           {(currentUserRole === USER_ROLES.WAREHOUSE ||
             (currentUserRole === USER_ROLES.WAREHOUSEMANAGER && selectedOrder?.warehouse_manager_id?._id === currentUserId)) && (
-            <Button
-              variant="outlined"
-              color="info"
-              onClick={() => {
-                handleOpenPackingDialog(selectedOrder);
-              }}
-            >
-              {trans.manageExportOrders.packingDetails}
-            </Button>
-          )}
+              <Button
+                variant="outlined"
+                color="info"
+                onClick={() => {
+                  handleOpenPackingDialog(selectedOrder);
+                }}
+              >
+                Chi Tiết Đóng gói {/* Changed button text */}
+              </Button>
+            )}
           {currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
             selectedOrder?.warehouse_manager_id?._id === currentUserId &&
             selectedOrder?.status === 'approved' && (
               <>
                 <Button variant="contained" color="primary" onClick={() => handleCompleteOrder(selectedOrder._id)}>
-                  {trans.manageExportOrders.complete}
+                  Hoàn thành
                 </Button>
                 <Button variant="contained" color="error" onClick={() => handleCancelOrder(selectedOrder._id)}>
-                  {trans.manageExportOrders.cancel}
+                  Hủy
                 </Button>
               </>
             )}
@@ -1138,10 +1130,10 @@ export default function ManageExportOrders() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ pb: 1 }}>{trans.manageExportOrders.packingDetails}</DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>Chi tiết Đóng gói</DialogTitle>
         <DialogContent dividers sx={{ pt: 2 }}>
           <Typography variant="body2" color="text.secondary" gutterBottom>
-            {trans.manageExportOrders.packingDetailsForOrder}{' '}
+            Xem chi tiết đóng gói cho đơn hàng{' '}
             <Typography component="span" fontWeight="medium">
               {selectedOrder?.contract_id?.contract_code || 'N/A'}
             </Typography>
@@ -1161,15 +1153,15 @@ export default function ManageExportOrders() {
                     {medicineName}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {trans.manageExportOrders.expectedQuantity}: {detail.expected_quantity} {unitOfMeasure}
+                    Yêu cầu: {detail.expected_quantity} {unitOfMeasure}
                   </Typography>
                   <Divider sx={{ mb: 2 }} />
                   <Typography variant="subtitle2" gutterBottom>
-                    {trans.manageExportOrders.selectedPackages}:
+                    Thùng hàng đã chọn:
                   </Typography>
                   {detail.selected_packages.length === 0 ? (
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {trans.manageExportOrders.noPackagesSelected}
+                      Chưa có thùng hàng nào được chọn.
                     </Typography>
                   ) : (
                     <Stack spacing={1.5} sx={{ mb: 2 }}>
@@ -1193,8 +1185,8 @@ export default function ManageExportOrders() {
                           >
                             <Typography variant="body2" flex={1}>
                               {pkg
-                                ? `${pkg.batch.batch_code}, ${trans.manageExportOrders.location}: ${pkg.location.area_name || 'N/A'} - ${pkg.location.bay || 'N/A'} - ${pkg.location.row || 'N/A'} - ${pkg.location.column || 'N/A'}`
-                                : trans.manageExportOrders.packageInfo}
+                                ? `${pkg.batch.batch_code}, Vị trí: ${pkg.location.area_name || 'N/A'} - ${pkg.location.bay || 'N/A'} - ${pkg.location.row || 'N/A'} - ${pkg.location.column || 'N/A'}`
+                                : 'Gói không xác định'}
                             </Typography>
                             <TextField
                               type="number"
@@ -1205,7 +1197,7 @@ export default function ManageExportOrders() {
                               sx={{ width: 90 }}
                               disabled={selectedOrder?.status === 'completed'} // Disabled if order is completed
                               error={isInvalidQuantity}
-                              helperText={isInvalidQuantity ? `${trans.manageExportOrders.maxQuantity} ${maxQuantity}` : ''}
+                              helperText={isInvalidQuantity ? `Tối đa ${maxQuantity}` : ''}
                             />
                             <IconButton
                               color="error"
@@ -1221,10 +1213,10 @@ export default function ManageExportOrders() {
                     </Stack>
                   )}
                   <Typography variant="body2" sx={{ mt: 2, fontWeight: 'medium' }}>
-                    {trans.manageExportOrders.totalSelected}: {totalActualQuantity} / {detail.expected_quantity} {unitOfMeasure}
+                    Tổng chọn: {totalActualQuantity} / {detail.expected_quantity} {unitOfMeasure}
                     {currentUserRole === USER_ROLES.WAREHOUSE && isQuantityDeficient && selectedOrder?.status !== 'completed' && (
                       <Typography component="span" color="error" sx={{ ml: 1 }}>
-                        ({trans.manageExportOrders.insufficientQuantity} {detail.expected_quantity - totalActualQuantity})
+                        (Thiếu {detail.expected_quantity - totalActualQuantity})
                       </Typography>
                     )}
                   </Typography>
@@ -1235,13 +1227,13 @@ export default function ManageExportOrders() {
         </DialogContent>
         <DialogActions sx={{ p: 3 }}>
           <Button onClick={handleClosePackingDialog} variant="outlined" color="secondary">
-            {trans.manageExportOrders.close}
+            Đóng
           </Button>
           {selectedOrder?.status !== 'completed' &&
             currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
             selectedOrder?.warehouse_manager_id?._id === currentUserId && (
               <Button variant="contained" color="primary" onClick={handleUpdatePacking}>
-                {trans.manageExportOrders.update}
+                Cập nhật
               </Button>
             )}
         </DialogActions>
@@ -1249,15 +1241,15 @@ export default function ManageExportOrders() {
 
       {/* Create Internal Export Order Dialog */}
       <Dialog open={internalDialogOpen} onClose={closeInternalDialog} maxWidth="md" fullWidth>
-        <DialogTitle component="div">{trans.manageExportOrders.createDestructionOrder}</DialogTitle>
+        <DialogTitle component="div">Tạo phiếu xuất hủy</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
             <Button variant="outlined" onClick={addInternalLine} disabled={loadingMedicines}>
-              {trans.manageExportOrders.addItem}
+              Thêm mặt hàng
             </Button>
             {internalLines.length === 0 && (
               <Typography variant="body2" color="text.secondary">
-                {trans.manageExportOrders.noItemsYet}
+                Chưa có mặt hàng nào. Nhấn "Thêm mặt hàng".
               </Typography>
             )}
             {internalLines.map((line, idx) => {
@@ -1268,10 +1260,10 @@ export default function ManageExportOrders() {
                   <Grid container spacing={2} alignItems="center">
                     <Grid item xs={12} sm={6} md={5}>
                       <FormControl fullWidth size="small">
-                        <InputLabel id={`medicine-${idx}`}>{trans.manageExportOrders.medicine}</InputLabel>
+                        <InputLabel id={`medicine-${idx}`}>Thuốc</InputLabel>
                         <Select
                           labelId={`medicine-${idx}`}
-                          label={trans.manageExportOrders.medicine}
+                          label="Thuốc"
                           value={line.medicine_id}
                           onChange={(e) => changeInternalMedicine(idx, e.target.value)}
                         >
@@ -1287,7 +1279,7 @@ export default function ManageExportOrders() {
                       <TextField
                         type="number"
                         size="small"
-                        label={trans.manageExportOrders.destroyQuantity}
+                        label="SL cần hủy"
                         value={line.destroy_total}
                         onChange={(e) => setDestroyTotal(idx, e.target.value)}
                         fullWidth
@@ -1299,15 +1291,15 @@ export default function ManageExportOrders() {
                   <Divider sx={{ my: 2 }} />
 
                   <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                    <Typography variant="subtitle2">{trans.manageExportOrders.selectPackages}</Typography>
+                    <Typography variant="subtitle2">Chọn thùng hàng (SL tồn, nhập SL hủy → hệ thống tính SL còn lại)</Typography>
                     <Button variant="outlined" startIcon={<QrCodeScanner />} onClick={() => handleScanPackageForLine(idx)} size="small">
-                      {trans.manageExportOrders.scanPackage}
+                      Quét Package
                     </Button>
                   </Box>
 
                   {pkgList.length === 0 ? (
                     <Typography variant="body2" color="text.secondary">
-                      {line.medicine_id ? trans.manageExportOrders.noPackagesFound : trans.manageExportOrders.selectMedicineFirst}
+                      {line.medicine_id ? 'Chưa có thùng phù hợp hoặc chưa tải.' : 'Chọn thuốc trước.'}
                     </Typography>
                   ) : (
                     <Stack spacing={1.5}>
@@ -1323,14 +1315,13 @@ export default function ManageExportOrders() {
                           >
                             <Box flex={1}>
                               <Typography variant="body2" gutterBottom>
-                                <strong>{trans.manageExportOrders.batch}:</strong> {pkg.batch.batch_code} |{' '}
-                                <strong>{trans.manageExportOrders.stock}:</strong> {pkg.quantity} |{' '}
-                                <strong>{trans.manageExportOrders.location}:</strong> {pkg.location.area_name || ''}-
-                                {pkg.location.bay || ''}-{pkg.location.row || ''}-{pkg.location.column || ''}
+                                <strong>Batch:</strong> {pkg.batch.batch_code} | <strong>Tồn:</strong> {pkg.quantity} |{' '}
+                                <strong>Vị trí:</strong> {pkg.location.area_name || ''}-{pkg.location.bay || ''}-{pkg.location.row || ''}-
+                                {pkg.location.column || ''}
                               </Typography>
-                              <Tooltip title={`${trans.manageExportOrders.fullPackageId}: ${pkg._id}`} arrow>
+                              <Tooltip title={`Full Package ID: ${pkg._id}`} arrow>
                                 <Typography variant="caption" color="primary.main" sx={{ fontWeight: 'medium', cursor: 'help' }}>
-                                  {trans.manageExportOrders.packageId}: ...{pkg._id.slice(-6)}
+                                  📦 Package ID: ...{pkg._id.slice(-6)}
                                 </Typography>
                               </Tooltip>
                             </Box>
@@ -1339,14 +1330,14 @@ export default function ManageExportOrders() {
                                 <TextField
                                   type="number"
                                   size="small"
-                                  label={trans.manageExportOrders.destroyQuantity}
+                                  label="SL hủy"
                                   value={picked.destroy_qty}
                                   onChange={(e) => changeDestroyQty(idx, pkg._id, e.target.value)}
                                   inputProps={{ min: 0, max: picked.max }}
                                   sx={{ width: 110 }}
                                 />
                                 <Typography variant="body2" sx={{ minWidth: 120 }}>
-                                  {trans.manageExportOrders.remaining}: {picked.remaining_after}
+                                  Còn lại: {picked.remaining_after}
                                 </Typography>
                                 <IconButton color="error" onClick={() => removePickPackage(idx, pkg._id)} size="small">
                                   <Delete fontSize="small" />
@@ -1354,7 +1345,7 @@ export default function ManageExportOrders() {
                               </>
                             ) : (
                               <Button variant="text" onClick={() => addPickPackage(idx, pkg._id)}>
-                                {trans.manageExportOrders.select}
+                                Chọn
                               </Button>
                             )}
                           </Box>
@@ -1364,17 +1355,17 @@ export default function ManageExportOrders() {
                   )}
 
                   <Typography variant="body2" sx={{ mt: 2 }}>
-                    {trans.manageExportOrders.allocatedDestroy}: {totalPicked} / {line.destroy_total}
+                    Đã phân bổ hủy: {totalPicked} / {line.destroy_total}
                     {totalPicked !== line.destroy_total && (
                       <Typography component="span" color="error" sx={{ ml: 1 }}>
-                        ({trans.manageExportOrders.insufficient})
+                        (Chưa đủ)
                       </Typography>
                     )}
                   </Typography>
 
                   <Box display="flex" justifyContent="flex-end" mt={1}>
                     <Button color="error" onClick={() => removeInternalLine(idx)}>
-                      {trans.manageExportOrders.deleteLine}
+                      Xóa dòng
                     </Button>
                   </Box>
                 </Card>
@@ -1384,10 +1375,10 @@ export default function ManageExportOrders() {
         </DialogContent>
         <DialogActions>
           <Button variant="outlined" onClick={closeInternalDialog}>
-            {trans.manageExportOrders.close}
+            Đóng
           </Button>
           <Button variant="contained" onClick={submitInternalOrder} disabled={!canSubmitInternal || creatingInternal}>
-            {creatingInternal ? trans.manageExportOrders.creating : trans.manageExportOrders.createOrder}
+            {creatingInternal ? 'Đang tạo...' : 'Tạo đơn'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1408,7 +1399,7 @@ export default function ManageExportOrders() {
         content={messageDialog.content}
         onCancel={() => setMessageDialog({ ...messageDialog, open: false })}
         onConfirm={() => setMessageDialog({ ...messageDialog, open: false })}
-        confirmText={trans.manageExportOrders.close}
+        confirmText="Đóng"
         cancelText=""
       />
     </Box>
