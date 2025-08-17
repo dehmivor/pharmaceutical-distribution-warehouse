@@ -103,8 +103,6 @@ const createAccount = async (accountData) => {
       throw new Error('Password is required when generatePassword is false');
     }
 
-    // 5. Hash password
-    const bcrypt = require('bcrypt');
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     console.log('✅ Password hashed successfully');

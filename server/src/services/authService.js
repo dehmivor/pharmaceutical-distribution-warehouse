@@ -850,7 +850,6 @@ const authService = {
       console.log('✅ OTP validation passed');
 
       // 5. Hash password
-      const bcrypt = require('bcrypt');
       const hashedPassword = await bcrypt.hash(newPassword, 12);
 
       console.log('✅ Password hashed');

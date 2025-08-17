@@ -394,18 +394,10 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
             : 'User Statistics'
         }
       >
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" gutterBottom>
           Summary of user account with role authorization
         </Typography>
         <Box>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Set your filters below and click Search to apply them. Filters will not be applied automatically.
-          </Typography>
-          {((searchText && searchText.trim() !== '') || filterRole !== 'all' || filterStatus !== 'all') && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              Filters are set but not yet applied. Click Search to see filtered results.
-            </Alert>
-          )}
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={4} md={4}>
               <TextField
@@ -493,8 +485,8 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 fullWidth
                 variant="outlined"
                 startIcon={<RefreshIcon />}
-                onClick={() => {
-                  refetch();
+                onClick={async () => {
+                  await refetchUsers();
                   handleResetFilters();
                 }}
                 sx={{
