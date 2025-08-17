@@ -134,6 +134,23 @@ function ManageExportOrdersApproval() {
     setPage(0);
   };
 
+  // Refresh data - reset everything and fetch fresh data
+  const handleRefresh = () => {
+    // Reset to first page
+    setPage(0);
+    // Clear all filters
+    const emptyFilters = {
+      search: '',
+      status: '',
+      contract_type: '',
+      created_by: ''
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    // Fetch fresh data
+    fetchOrders();
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
@@ -355,7 +372,7 @@ function ManageExportOrdersApproval() {
             <Grid item xs={12} sm={6} md={2}>
               <Button
                 variant="outlined"
-                onClick={fetchOrders}
+                onClick={handleRefresh}
                 disabled={loading}
                 fullWidth
                 sx={{ height: '56px' }}

@@ -141,10 +141,10 @@ const ViewListLocation = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        {trans.common.viewLocation}
+        {trans.viewLocation}
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
-        {trans.common.filterAndViewLocationDetails}
+        {trans.filterAndViewLocationDetails}
       </Typography>
 
       {/* Filters */}

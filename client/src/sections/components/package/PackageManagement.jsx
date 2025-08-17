@@ -183,10 +183,10 @@ const PackageManagement = () => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-          {userRole === 'supervisor' ? trans.common.packageManagement : trans.common.viewPackage}
+          {userRole === 'supervisor' ? trans.common.packageManagement : trans.viewPackage}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          {userRole === 'supervisor' ? trans.common.packageListDescription : trans.common.viewPackageDescription}
+          {userRole === 'supervisor' ? trans.common.packageListDescription : trans.viewPackageDescription}
         </Typography>
       </Box>
 
@@ -318,12 +318,9 @@ const PackageManagement = () => {
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={handleChangeRowsPerPage}
         rowsPerPageOptions={[5, 10, 25, 50]}
-        labelRowsPerPage={trans.rowsPerPage}
+        labelRowsPerPage={trans?.common?.rowsPerPage || 'Rows per page:'}
         labelDisplayedRows={({ from, to, count }) =>
-          trans.displayedRows
-            .replace('{from}', from)
-            .replace('{to}', to)
-            .replace('{count}', count !== -1 ? count : trans.moreThan.replace('{count}', to))
+          `${from}-${to} of ${count !== -1 ? count : `more than ${to}`}`
         }
       />
 
