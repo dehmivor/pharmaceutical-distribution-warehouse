@@ -428,10 +428,15 @@ async function checkStockAvailability(details) {
         continue;
       }
 
-      // Tìm tất cả batch của thuốc này
-      const batches = await Batch.find({ medicine_id }).lean();
+      // Tìm tất cả batch của thuốc này còn hạn và có chất lượng tốt
+      const currentDate = new Date();
+      const validBatches = await Batch.find({ 
+        medicine_id,
+        expiry_date: { $gt: currentDate }, // Chỉ lấy batch còn hạn
+        quality_status: 'pass' // Chỉ lấy batch đã pass kiểm tra chất lượng
+      }).lean();
       
-      if (batches.length === 0) {
+      if (validBatches.length === 0) {
         stockCheckResults.push({
           medicine_id,
           medicine_name: medicine.medicine_name,
@@ -439,19 +444,26 @@ async function checkStockAvailability(details) {
           expected_quantity,
           available_quantity: 0,
           is_available: false,
-          error: 'No batches found for this medicine'
+          error: 'No valid batches found (expired or failed quality check)'
         });
         continue;
       }
 
-      const batchIds = batches.map(batch => batch._id);
+      const validBatchIds = validBatches.map(batch => batch._id);
 
-      // Tính tổng số lượng có sẵn từ tất cả package
+      // Tính tổng số lượng có sẵn từ các package của batch còn hạn
       const packages = await Package.find({ 
-        batch_id: { $in: batchIds }
+        batch_id: { $in: validBatchIds }
       }).lean();
 
       const availableQuantity = packages.reduce((sum, pkg) => sum + (pkg.quantity || 0), 0);
+
+      // Thêm thông tin về batch còn hạn
+      const validBatchInfo = validBatches.map(batch => ({
+        batch_code: batch.batch_code,
+        expiry_date: batch.expiry_date,
+        days_until_expiry: Math.ceil((batch.expiry_date - currentDate) / (1000 * 60 * 60 * 24))
+      }));
 
       stockCheckResults.push({
         medicine_id,
@@ -460,7 +472,9 @@ async function checkStockAvailability(details) {
         expected_quantity,
         available_quantity: availableQuantity,
         is_available: availableQuantity >= expected_quantity,
-        error: availableQuantity >= expected_quantity ? null : 'Insufficient stock'
+        error: availableQuantity >= expected_quantity ? null : 'Insufficient stock',
+        valid_batches: validBatchInfo,
+        total_valid_batches: validBatches.length
       });
     }
 

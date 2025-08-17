@@ -1165,6 +1165,25 @@ function ExportOrderPage() {
                               </Typography>
                             </Alert>
                           )}
+                          
+                          {/* Thông tin về batch còn hạn */}
+                          {result.valid_batches && result.valid_batches.length > 0 && (
+                            <Box sx={{ mt: 1, p: 1, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
+                              <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main', display: 'block', mb: 0.5 }}>
+                                📦 Batch còn hạn: {result.total_valid_batches}
+                              </Typography>
+                              {result.valid_batches.slice(0, 2).map((batch, batchIndex) => (
+                                <Typography key={batchIndex} variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                                  • {batch.batch_code}: Còn {batch.days_until_expiry} ngày
+                                </Typography>
+                              ))}
+                              {result.valid_batches.length > 2 && (
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                                  ...và {result.valid_batches.length - 2} batch khác
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
                         </Paper>
                       </Grid>
                     ))}
@@ -1191,6 +1210,11 @@ function ExportOrderPage() {
                       <Chip 
                         label={trans.common.insufficientMedicines.replace('{count}', stockCheckResults.filter(r => !r.is_available).length)} 
                         color="error" 
+                        variant="outlined" 
+                      />
+                      <Chip 
+                        label={`Batch còn hạn: ${stockCheckResults.reduce((sum, r) => sum + (r.total_valid_batches || 0), 0)}`}
+                        color="info" 
                         variant="outlined" 
                       />
                     </Box>
@@ -1503,6 +1527,7 @@ function ExportOrderPage() {
                         <TableCell align="right"><strong>Yêu cầu</strong></TableCell>
                         <TableCell align="right"><strong>Có sẵn</strong></TableCell>
                         <TableCell align="center"><strong>Trạng thái</strong></TableCell>
+                        <TableCell><strong>Batch còn hạn</strong></TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1525,6 +1550,29 @@ function ExportOrderPage() {
                               size="small"
                             />
                           </TableCell>
+                          <TableCell>
+                            {result.valid_batches && result.valid_batches.length > 0 ? (
+                              <Box>
+                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
+                                  {result.total_valid_batches} batch
+                                </Typography>
+                                {result.valid_batches.slice(0, 2).map((batch, batchIndex) => (
+                                  <Typography key={batchIndex} variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                                    • {batch.batch_code}: {batch.days_until_expiry} ngày
+                                  </Typography>
+                                ))}
+                                {result.valid_batches.length > 2 && (
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                                    +{result.valid_batches.length - 2} khác
+                                  </Typography>
+                                )}
+                              </Box>
+                            ) : (
+                              <Typography variant="caption" color="error.main">
+                                Không có batch còn hạn
+                              </Typography>
+                            )}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1535,7 +1583,8 @@ function ExportOrderPage() {
                   <Typography variant="body2" color="text.secondary">
                     Tổng: {stockCheckResults.length} loại thuốc | 
                     Đủ: {stockCheckResults.filter(r => r.is_available).length} | 
-                    Thiếu: {stockCheckResults.filter(r => !r.is_available).length}
+                    Thiếu: {stockCheckResults.filter(r => !r.is_available).length} |
+                    Batch còn hạn: {stockCheckResults.reduce((sum, r) => sum + (r.total_valid_batches || 0), 0)}
                   </Typography>
                   <Button
                     variant="outlined"
