@@ -61,7 +61,7 @@ const warehouseManager = {
 // Function for internationalization (optional use)
 export const getWarehouseManagerMenu = (trans) => ({
   id: 'group-manage',
-  title: trans?.common?.manage || 'Manage',
+  title: trans?.common?.warehouseManager || 'Manage',
   icon: 'IconBrandAsana',
   type: 'group',
   children: [

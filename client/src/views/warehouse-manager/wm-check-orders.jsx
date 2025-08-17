@@ -104,7 +104,7 @@ const CheckOrders = () => {
         setOrders(res.data.data.inventoryCheckOrders || []);
         setTotalCount(res.data.data.pagination?.total || 0);
       } else {
-        setError(trans.checkOrders.errorLoadingCheckOrders);
+        setError(trans?.checkOrders?.errorLoadingCheckOrders || 'Error loading check orders');
       }
     } catch (err) {
       console.error(err);
@@ -181,10 +181,10 @@ const CheckOrders = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        {trans.checkOrders.title}
+        {trans?.checkOrders?.title || 'List of Inventory Check Orders'}
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
-        {trans.checkOrders.description}
+        {trans?.checkOrders?.description || 'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.'}
       </Typography>
 
       {error && (
@@ -200,12 +200,12 @@ const CheckOrders = () => {
 
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-          <TextField
-            fullWidth
-            variant="outlined"
-            size="small"
-            label={trans.checkOrders.search}
-            placeholder={trans.checkOrders.searchPlaceholder}
+                        <TextField
+                fullWidth
+                variant="outlined"
+                size="small"
+                label={trans?.checkOrders?.search || 'Search'}
+                placeholder={trans?.checkOrders?.searchPlaceholder || 'Search'}
             value={searchTerm}
             onChange={(e) => handleFilterChange('search', e.target.value)}
             InputProps={{
@@ -218,7 +218,7 @@ const CheckOrders = () => {
           />
           <TextField
             fullWidth
-            label={trans.checkOrders.inventoryDate}
+            label={trans?.checkOrders?.inventoryDate || 'Inventory Date'}
             type="date"
             value={filterDate}
             onChange={(e) => handleFilterChange('date', e.target.value)}
@@ -228,12 +228,12 @@ const CheckOrders = () => {
           <TextField
             fullWidth
             select
-            label={trans.checkOrders.status}
+            label={trans?.checkOrders?.status || 'Status'}
             value={filterStatus}
             onChange={(e) => handleFilterChange('status', e.target.value)}
             size="small"
           >
-            <MenuItem value="">{trans.checkOrders.all}</MenuItem>
+            <MenuItem value="">{trans?.checkOrders?.all || 'All'}</MenuItem>
             {statusOptions.map((s) => (
               <MenuItem key={s} value={s}>
                 {trans.checkOrders[s] || s.charAt(0).toUpperCase() + s.slice(1)}
@@ -247,14 +247,14 @@ const CheckOrders = () => {
             startIcon={sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
             onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
           >
-            {sortDirection === 'asc' ? trans.checkOrders.ascending : trans.checkOrders.descending}
+            {sortDirection === 'asc' ? (trans?.checkOrders?.ascending || 'Ascending') : (trans?.checkOrders?.descending || 'Descending')}
           </Button>
 
           <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
-            {trans.checkOrders.search}
+            {trans?.checkOrders?.search || 'Search'}
           </Button>
           <Button fullWidth size="small" variant="outlined" onClick={handleReset}>
-            {trans.checkOrders.refresh}
+            {trans?.checkOrders?.refresh || 'Refresh'}
           </Button>
         </Stack>
       </Box>
@@ -263,15 +263,15 @@ const CheckOrders = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ bgcolor: 'grey.100', fontWeight: 'bold' }}>
-              <TableCell>{trans.checkOrders.id}</TableCell>
-              <TableCell>{trans.checkOrders.inventoryDate}</TableCell>
-              <TableCell>{trans.checkOrders.warehouseManager}</TableCell>
-              <TableCell>{trans.checkOrders.createdBy}</TableCell>
-              <TableCell>{trans.checkOrders.status}</TableCell>
-              <TableCell>{trans.checkOrders.notes}</TableCell>
-              <TableCell>{trans.checkOrders.createdAt}</TableCell>
-              <TableCell>{trans.checkOrders.updatedAt}</TableCell>
-              <TableCell align="center">{trans.checkOrders.actions}</TableCell>
+                          <TableCell>{trans?.checkOrders?.id || 'ID'}</TableCell>
+            <TableCell>{trans?.checkOrders?.inventoryDate || 'Inventory Date'}</TableCell>
+            <TableCell>{trans?.checkOrders?.warehouseManager || 'Warehouse Manager'}</TableCell>
+            <TableCell>{trans?.checkOrders?.createdBy || 'Created By'}</TableCell>
+            <TableCell>{trans?.checkOrders?.status || 'Status'}</TableCell>
+            <TableCell>{trans?.checkOrders?.notes || 'Notes'}</TableCell>
+            <TableCell>{trans?.checkOrders?.createdAt || 'Created At'}</TableCell>
+            <TableCell>{trans?.checkOrders?.updatedAt || 'Updated At'}</TableCell>
+            <TableCell align="center">{trans?.checkOrders?.actions || 'Actions'}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -284,7 +284,7 @@ const CheckOrders = () => {
             ) : orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
-                  {trans.checkOrders.noCheckOrders}
+                  {trans?.checkOrders?.noCheckOrders || 'No check orders found'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -320,7 +320,7 @@ const CheckOrders = () => {
         page={page}
         onPageChange={handlePageChange}
         onRowsPerPageChange={handleRowsPerPageChange}
-        labelRowsPerPage={trans.checkOrders.rowsPerPage}
+        labelRowsPerPage={trans?.checkOrders?.rowsPerPage || 'Rows per page'}
         labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`}
       />
 
@@ -337,7 +337,7 @@ const CheckOrders = () => {
             handleMenuClose();
           }}
         >
-          {trans.checkOrders.viewDetail}
+          {trans?.checkOrders?.viewDetail || 'View Detail'}
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -345,7 +345,7 @@ const CheckOrders = () => {
             handleMenuClose();
           }}
         >
-          {trans.checkOrders.startCheckingInventory}
+          {trans?.checkOrders?.startCheckingInventory || 'Start Checking Inventory'}
         </MenuItem>
       </Menu>
     </Box>

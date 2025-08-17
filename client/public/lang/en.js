@@ -804,9 +804,13 @@ export default {
   // Common form labels and actions
   common: {
     addNew: 'Add New',
+    clear: 'Clear filters',
     update: 'Update',
+    updatedDate: 'Updated Date',
+    na: 'N/A',
     refresh: 'Refresh',
     loading: 'Loading...',
+    dashboard: 'Dashboard',
     managerEmail: 'Manager Email',
     inspectionDate: 'Inspection Date',
     inspectionId: 'Inspection ID',
@@ -1366,6 +1370,7 @@ export default {
     status: 'Status',
     createdBy: 'Created By',
     warehouseManager: 'Warehouse Manager',
+
     actions: 'Actions',
     loading: 'Loading...',
     noExportOrdersFound: 'No export orders found',
@@ -1439,9 +1444,9 @@ export default {
     totalMedicines: 'Total: {count} medicines',
     sufficientMedicines: 'Sufficient: {count} medicines',
     insufficientMedicines: 'Insufficient: {count} medicines',
-    required: 'Required: {count}',
-    available: 'Available: {count}',
-    missing: 'Missing: {count}',
+    required: 'Required',
+    available: 'Available',
+    missing: 'Missing',
     insufficientStockButton: '❌ Insufficient Stock',
     checkingStockButton: 'Checking Stock...',
     // Order details
@@ -2165,11 +2170,10 @@ export default {
   noLocationsFound: 'No locations found',
   rowsPerPage: 'Rows per page:',
   of: 'of',
-
+  na: 'N/A',
   // Inventory Check Orders
   listOfInventoryCheckOrders: 'List of Inventory Check Orders',
-  manageAndTrackInventoryCheckOrders:
-    'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.',
+  manageAndTrackInventoryCheckOrders: 'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.',
   errorLoadingInventoryCheckOrders: 'Error loading inventory check orders',
   search: 'Search',
   checkDate: 'Check Date',

@@ -806,7 +806,9 @@ export default {
   common: {
     addNew: 'Thêm mới',
     update: 'Cập nhật',
+    updatedDate: 'Ngày cập nhật',
     refresh: 'Làm mới',
+    clear: 'Xóa',
     loading: 'Đang tải...',
     inspectionDate: 'Ngày kiểm tra',
     inspectionId: 'Mã kiểm kê',
@@ -1232,6 +1234,7 @@ export default {
     errorCreatingLocations: 'Có lỗi xảy ra khi tạo vị trí',
     successfullyCreatedLocations: 'Tạo thành công {count} vị trí',
     // Additional common keys
+    dashboard: 'Bảng điều khiển',
     weekly: 'Tuần',
     quarterly: 'Quý',
     partialPayment: 'Thanh toán một phần',
@@ -1495,9 +1498,9 @@ export default {
     totalMedicines: 'Tổng: {count} thuốc',
     sufficientMedicines: 'Đủ: {count} thuốc',
     insufficientMedicines: 'Thiếu: {count} thuốc',
-    required: 'Yêu cầu: {count}',
-    available: 'Có sẵn: {count}',
-    missing: 'Thiếu: {count}',
+    required: 'Yêu cầu',
+    available: 'Có sẵn',
+    missing: 'Thiếu',
     insufficientStockButton: '❌ Thiếu Tồn Kho',
     checkingStockButton: 'Đang Kiểm Tra Tồn Kho...',
     // Order details
