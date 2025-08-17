@@ -171,7 +171,7 @@ export default function ManageLog() {
               onChange={e => setWorker(e.target.value)}
             />
             <TextField
-              label={trans.common.order}
+              label={trans.logs.order}
               value={order}
               onChange={e => setOrder(e.target.value)}
             />
@@ -264,7 +264,7 @@ export default function ManageLog() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>{trans.common.location}</TableCell>
+              <TableCell>{trans.common.area}</TableCell>
               <TableCell>{trans.common.type}</TableCell>
               <TableCell>{trans.common.quantity}</TableCell>
               <TableCell>{trans.common.batch}</TableCell>

@@ -26,6 +26,7 @@ import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Info as InfoIco
 import axios from 'axios';
 import ImportOrderForm from '@/sections/warehouse/ImportOrderForm';
 import ImportOrderDetails from '@/sections/warehouse/ImportOrderDetails';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -38,6 +39,7 @@ const getAuthHeaders = () => {
 };
 
 const ManageImportOrder = () => {
+  const trans = useTrans();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,7 +59,7 @@ const ManageImportOrder = () => {
       });
       setOrders(response.data.data || []);
     } catch (error) {
-      setError(error.response?.data?.error || 'Failed to fetch orders');
+      setError(error.response?.data?.error || trans.common.failedToLoadOrder);
     } finally {
       setLoading(false);
     }
@@ -68,15 +70,15 @@ const ManageImportOrder = () => {
   }, []);
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this order?')) {
+    if (window.confirm(trans.common.confirmDeleteOrder)) {
       try {
         await axios.delete(`${API_BASE_URL}/import-orders/${id}`, {
           headers: getAuthHeaders()
         });
-        setSuccess('Order deleted successfully');
+        setSuccess(trans.common.orderDeletedSuccessfully);
         fetchOrders();
       } catch (error) {
-        setError(error.response?.data?.error || 'Failed to delete order');
+        setError(error.response?.data?.error || trans.common.failedToDeleteOrder);
       }
     }
   };
@@ -155,29 +157,29 @@ const ManageImportOrder = () => {
   };
 
   if (loading) {
-    return <Typography>Loading...</Typography>;
+    return <Typography>{trans.common.loading}</Typography>;
   }
 
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">View Import Orders</Typography>
+        <Typography variant="h4">{trans.common.viewImportOrders}</Typography>
         <Typography variant="body2" color="text.secondary">
-          Warehouse staff can only view orders. Status changes are managed by warehouse managers.
+          {trans.common.warehouseStaffViewOnly}
         </Typography>
       </Box>
 
-      <TextField fullWidth label="Search Orders" variant="outlined" value={searchTerm} onChange={handleSearch} sx={{ mb: 3 }} />
+      <TextField fullWidth label={trans.common.searchOrders} variant="outlined" value={searchTerm} onChange={handleSearch} sx={{ mb: 3 }} />
 
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Manager</TableCell>
-              <TableCell>Import Date</TableCell>
-              <TableCell>Supplier Contract</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell>{trans.common.manager}</TableCell>
+              <TableCell>{trans.common.importDate}</TableCell>
+              <TableCell>{trans.common.supplierContract}</TableCell>
+              <TableCell>{trans.common.status}</TableCell>
+              <TableCell>{trans.common.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -190,7 +192,7 @@ const ManageImportOrder = () => {
                   <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
                 </TableCell>
                 <TableCell>
-                  <IconButton color="info" onClick={() => handleOpenDetails(order)} title="View Details">
+                  <IconButton color="info" onClick={() => handleOpenDetails(order)} title={trans.common.viewDetails}>
                     <InfoIcon />
                   </IconButton>
                 </TableCell>
@@ -211,7 +213,7 @@ const ManageImportOrder = () => {
 
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="md" fullWidth>
-        <DialogTitle>Import Order Details</DialogTitle>
+        <DialogTitle>{trans.common.importOrderDetails}</DialogTitle>
         <DialogContent>
           <ImportOrderDetails order={selectedOrder} onClose={handleCloseDetails} />
         </DialogContent>

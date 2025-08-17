@@ -100,7 +100,7 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
       }
     } catch (error) {
       console.error('Error fetching medicine data:', error);
-      setError(trans.medicine.messages.loadDetailError);
+      setError(trans.medicineManagement.messages.loadDetailError);
     } finally {
       setLoading(false);
     }
@@ -209,7 +209,7 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
                     <Grid item xs={12} md={6}>
                       <InfoField 
                         label={trans.medicineDetail.basicInfo.status} 
-                        value={medicine.status === 'active' ? trans.medicine.filters.active : trans.medicine.filters.inactive} 
+                        value={medicine.status === 'active' ? trans.medicineManagement.filters.active : trans.medicineManagement.filters.inactive} 
                         icon={SettingsIcon} 
                       />
                     </Grid>

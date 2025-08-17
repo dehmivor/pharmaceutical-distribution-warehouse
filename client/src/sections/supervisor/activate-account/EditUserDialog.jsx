@@ -204,18 +204,18 @@ export default function EditUserDialog({ open, onClose, user, onUpdate }) {
             <Grid item xs={12} sm={10}>
               <Grid container spacing={1}>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" fontWeight={500}>
+                  <Typography variant="body2" fontWeight={500} component="span">
                     Email: <span style={{ fontWeight: 'normal' }}>{user.email}</span>
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" fontWeight={500}>
+                  <Typography variant="body2" fontWeight={500} component="span">
                     Role:
                     <Chip label={getRoleDisplayName(user.role)} size="small" sx={{ ml: 1 }} icon={getRoleIcon(user.role)} />
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" fontWeight={500}>
+                  <Typography variant="body2" fontWeight={500} component="span">
                     Status:
                     <Chip
                       label={getStatusDisplayName(user.status)}

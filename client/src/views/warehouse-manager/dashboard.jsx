@@ -43,7 +43,7 @@ import {
 import WarehouseManagerChart from '@/sections/dashboard/WarehouseManagerChart';
 import useWarehouseManagerDashboard from '@/hooks/useWarehouseManagerDashboard';
 import DashboardStats from '@/components/DashboardStats';
-
+import useTrans from '@/hooks/useTrans';
 
 
 const StatCard = ({ title, value, icon, color, subtitle }) => (
@@ -82,65 +82,69 @@ const StatCard = ({ title, value, icon, color, subtitle }) => (
   </Card>
 );
 
-const RecentOrdersTable = ({ orders, title }) => (
-  <Card sx={{ height: '100%' }}>
-    <CardContent>
-      <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-        {title}
-      </Typography>
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Order ID</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Created</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {orders && orders.slice(0, 5).map((order) => (
-              <TableRow key={order.id || order._id} hover>
-                <TableCell>
-                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                    {(order.id || order._id || '').toString().slice(-8).toUpperCase()}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    label={order.status || 'Unknown'}
-                    size="small"
-                    color={
-                      order.status === 'completed'
-                        ? 'success'
-                        : order.status === 'pending'
-                        ? 'warning'
-                        : 'default'
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary">
-                    {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Tooltip title="View Details">
-                    <IconButton size="small" color="primary">
-                      <VisibilityIcon />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
+const RecentOrdersTable = ({ orders, title }) => {
+  const trans = useTrans();
+  return (
+    <Card sx={{ height: '100%' }}>
+      <CardContent>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+          {title}
+        </Typography>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>{trans.warehouseManagerDashboard.orderId}</TableCell>
+                <TableCell>{trans.warehouseManagerDashboard.status}</TableCell>
+                <TableCell>{trans.warehouseManagerDashboard.created}</TableCell>
+                <TableCell>{trans.warehouseManagerDashboard.actions}</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </CardContent>
-  </Card>
-);
+            </TableHead>
+            <TableBody>
+              {orders && orders.slice(0, 5).map((order) => (
+                <TableRow key={order.id || order._id} hover>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                      {(order.id || order._id || '').toString().slice(-8).toUpperCase()}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={order.status || trans.warehouseManagerDashboard.unknown}
+                      size="small"
+                      color={
+                        order.status === 'completed'
+                          ? 'success'
+                          : order.status === 'pending'
+                          ? 'warning'
+                          : 'default'
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : trans.common.notAvailable}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip title={trans.warehouseManagerDashboard.viewDetails}>
+                      <IconButton size="small" color="primary">
+                        <VisibilityIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </CardContent>
+    </Card>
+  );
+};
 
 const AlertsSection = ({ alerts }) => {
+  const trans = useTrans();
   if (!alerts || alerts.length === 0) {
     return (
       <Card sx={{ height: '100%' }}>
@@ -148,13 +152,13 @@ const AlertsSection = ({ alerts }) => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <NotificationsIcon color="primary" />
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              System Alerts
+              {trans.warehouseManagerDashboard.systemAlerts}
             </Typography>
           </Box>
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <SuccessIcon color="success" sx={{ fontSize: 48, mb: 2 }} />
             <Typography variant="body2" color="text.secondary">
-              No alerts at the moment. All systems are running normally.
+              {trans.warehouseManagerDashboard.noAlerts}
             </Typography>
           </Box>
         </CardContent>
@@ -197,7 +201,7 @@ const AlertsSection = ({ alerts }) => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
           <NotificationsIcon color="primary" />
           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-            System Alerts
+            {trans.warehouseManagerDashboard.systemAlerts}
           </Typography>
         </Box>
         <List sx={{ p: 0 }}>
@@ -288,6 +292,7 @@ const DashboardSkeleton = () => (
 );
 
 const TopMedicinesSection = ({ topMedicines }) => {
+  const trans = useTrans();
   if (!topMedicines || topMedicines.length === 0) {
     return (
       <Card sx={{ height: '100%' }}>
@@ -295,13 +300,13 @@ const TopMedicinesSection = ({ topMedicines }) => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <MedicationIcon color="primary" />
             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              Top Medicines
+              {trans.warehouseManagerDashboard.topMedicines}
             </Typography>
           </Box>
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <MedicationIcon color="disabled" sx={{ fontSize: 48, mb: 2 }} />
             <Typography variant="body2" color="text.secondary">
-              No medicine data available at the moment.
+              {trans.warehouseManagerDashboard.noMedicineData}
             </Typography>
           </Box>
         </CardContent>
@@ -315,16 +320,16 @@ const TopMedicinesSection = ({ topMedicines }) => {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <MedicationIcon color="primary" />
         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          Top Medicines
+          {trans.warehouseManagerDashboard.topMedicines}
         </Typography>
       </Box>
       <TableContainer>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Medicine Name</TableCell>
-              <TableCell>Total Imported</TableCell>
-              <TableCell>Total Value</TableCell>
+              <TableCell>{trans.warehouseManagerDashboard.medicineName}</TableCell>
+              <TableCell>{trans.warehouseManagerDashboard.totalImported}</TableCell>
+              <TableCell>{trans.warehouseManagerDashboard.totalValue}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -340,11 +345,11 @@ const TopMedicinesSection = ({ topMedicines }) => {
                     {medicine.totalImported?.toLocaleString() || 0}
                   </Typography>
                 </TableCell>
-                <TableCell>
-                  <Typography variant="body2" color="text.secondary">
-                    {medicine.totalValue?.toLocaleString() || 0} VND
-                  </Typography>
-                </TableCell>
+                                  <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                      {medicine.totalValue?.toLocaleString() || 0} {trans.common.currency}
+                    </Typography>
+                  </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -357,6 +362,7 @@ const TopMedicinesSection = ({ topMedicines }) => {
 
 const WarehouseManagerDashboard = () => {
   const { dashboardData, loading, refreshing, error, lastUpdated, refreshDashboard } = useWarehouseManagerDashboard();
+  const trans = useTrans();
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -375,15 +381,15 @@ const WarehouseManagerDashboard = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-            Warehouse Manager Dashboard
+            {trans.warehouseManagerDashboard.title}
           </Typography>
           {lastUpdated && (
             <Typography variant="caption" color="text.secondary">
-              Last updated: {lastUpdated.toLocaleString('vi-VN')}
+              {trans.warehouseManagerDashboard.lastUpdated}: {lastUpdated.toLocaleString('vi-VN')}
             </Typography>
           )}
         </Box>
-        <Tooltip title="Refresh Dashboard">
+        <Tooltip title={trans.warehouseManagerDashboard.refreshDashboard}>
           <IconButton 
             onClick={refreshDashboard} 
             color="primary"
@@ -408,38 +414,38 @@ const WarehouseManagerDashboard = () => {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Inventory Items"
+            title={trans.warehouseManagerDashboard.totalInventoryItems}
             value={dashboardData.stats?.totalInventory || 0}
             icon={<InventoryIcon />}
             color="primary"
-            subtitle="Active items in stock"
+            subtitle={trans.warehouseManagerDashboard.activeItemsInStock}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Pending Import Orders"
+            title={trans.warehouseManagerDashboard.pendingImportOrders}
             value={dashboardData.stats?.pendingImportOrders || 0}
             icon={<ShippingIcon />}
             color="warning"
-            subtitle="Awaiting processing"
+            subtitle={trans.warehouseManagerDashboard.awaitingProcessing}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Pending Export Orders"
+            title={trans.warehouseManagerDashboard.pendingExportOrders}
             value={dashboardData.stats?.pendingExportOrders || 0}
             icon={<AssignmentIcon />}
             color="info"
-            subtitle="Ready for shipment"
+            subtitle={trans.warehouseManagerDashboard.readyForShipment}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Completed Orders"
+            title={trans.warehouseManagerDashboard.completedOrders}
             value={dashboardData.stats?.completedOrders || 0}
             icon={<CheckCircleIcon />}
             color="success"
-            subtitle="This month"
+            subtitle={trans.warehouseManagerDashboard.thisMonth}
           />
         </Grid>
       </Grid>
@@ -448,38 +454,38 @@ const WarehouseManagerDashboard = () => {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Low Stock Items"
+            title={trans.warehouseManagerDashboard.lowStockItems}
             value={dashboardData.stats?.lowStockItems || 0}
             icon={<WarningIcon />}
             color="error"
-            subtitle="Need attention"
+            subtitle={trans.warehouseManagerDashboard.needAttention}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Inventory Value"
-            value={`${(dashboardData.stats?.totalValue || 0).toLocaleString()} VND`}
+            title={trans.warehouseManagerDashboard.totalInventoryValue}
+            value={`${(dashboardData.stats?.totalValue || 0).toLocaleString()} ${trans.common.currency}`}
             icon={<TrendingUpIcon />}
             color="secondary"
-            subtitle="Current stock value"
+            subtitle={trans.warehouseManagerDashboard.currentStockValue}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Monthly Import Orders"
+            title={trans.warehouseManagerDashboard.monthlyImportOrders}
             value={dashboardData.detailedStats?.monthly?.importOrders || 0}
             icon={<ShippingIcon />}
             color="primary"
-            subtitle="This month"
+            subtitle={trans.warehouseManagerDashboard.thisMonth}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Monthly Export Orders"
+            title={trans.warehouseManagerDashboard.monthlyExportOrders}
             value={dashboardData.detailedStats?.monthly?.exportOrders || 0}
             icon={<AssignmentIcon />}
             color="success"
-            subtitle="This month"
+            subtitle={trans.warehouseManagerDashboard.thisMonth}
           />
         </Grid>
       </Grid>
@@ -499,13 +505,13 @@ const WarehouseManagerDashboard = () => {
         <Grid item xs={12} md={6}>
           <RecentOrdersTable
             orders={dashboardData.recentImportOrders || []}
-            title="Recent Import Orders"
+            title={trans.warehouseManagerDashboard.recentImportOrders}
           />
         </Grid>
         <Grid item xs={12} md={6}>
           <RecentOrdersTable
             orders={dashboardData.recentExportOrders || []}
-            title="Recent Export Orders"
+            title={trans.warehouseManagerDashboard.recentExportOrders}
           />
         </Grid>
       </Grid>
@@ -524,17 +530,17 @@ const WarehouseManagerDashboard = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                 <WarningIcon color="warning" />
                 <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  Low Stock Medicines
+                  {trans.warehouseManagerDashboard.lowStockMedicines}
                 </Typography>
               </Box>
               <TableContainer>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell>Medicine Name</TableCell>
-                      <TableCell>Current Stock</TableCell>
-                      <TableCell>Minimum Required</TableCell>
-                      <TableCell>Status</TableCell>
+                      <TableCell>{trans.warehouseManagerDashboard.medicineName}</TableCell>
+                      <TableCell>{trans.warehouseManagerDashboard.currentStock}</TableCell>
+                      <TableCell>{trans.warehouseManagerDashboard.minimumRequired}</TableCell>
+                      <TableCell>{trans.warehouseManagerDashboard.status}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -542,7 +548,7 @@ const WarehouseManagerDashboard = () => {
                       <TableRow key={item.id || item._id} hover>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                            {item.name || item.medicine_id?.medicine_name || 'N/A'}
+                            {item.name || item.medicine_id?.medicine_name || trans.common.notAvailable}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -557,7 +563,7 @@ const WarehouseManagerDashboard = () => {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={item.status || (item.currentStock === 0 ? 'Out of Stock' : 'Low Stock')}
+                            label={item.status || (item.currentStock === 0 ? trans.warehouseManagerDashboard.outOfStock : trans.warehouseManagerDashboard.lowStock)}
                             size="small"
                             color={item.status === 'critical' || item.currentStock === 0 ? 'error' : 'warning'}
                           />

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import EnhancedReceiptForm from '@/sections/warehouse/create-inspect/EnhancedReceiptForm';
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
 import { enqueueSnackbar } from 'notistack';
+import useTrans from '@/hooks/useTrans';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -16,6 +17,7 @@ const getAuthHeaders = () => {
 
 export default function CreateInspectionWithExistImportOrderId() {
   const params = useParams();
+  const trans = useTrans();
   const importOrderId = params.importOrderId;
   const [orderData, setOrderData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,19 +36,19 @@ export default function CreateInspectionWithExistImportOrderId() {
       });
 
       if (!response.ok) {
-        throw new Error('Không tìm thấy đơn hàng');
+        throw new Error(trans.common.orderNotFound);
       }
 
       const result = await response.json();
 
       if (!result.success) {
-        throw new Error(result.error || 'Lỗi khi tải đơn hàng');
+        throw new Error(result.error || trans.common.errorLoadingOrder);
       }
 
       return result.data;
     } catch (err) {
       setError(err.message);
-      showAlert(`Lỗi: ${err.message}`, 'error');
+      showAlert(`${trans.common.error}: ${err.message}`, 'error');
       return null;
     } finally {
       setLoading(false);
@@ -60,7 +62,7 @@ export default function CreateInspectionWithExistImportOrderId() {
     return {
       orderId: selectedOrder._id?.slice(-8).toUpperCase() || selectedOrder._id,
       orderCode: selectedOrder.contract_id?.contract_code || 'N/A',
-      supplier: selectedOrder.contract_id?.partner_id?.name || 'Unknown Supplier',
+      supplier: selectedOrder.contract_id?.partner_id?.name || trans.common.unknownSupplier,
       orderDate: selectedOrder.createdAt || new Date().toISOString(),
       status: selectedOrder.status,
       totalItems: selectedOrder.details?.length || 0,
@@ -79,7 +81,7 @@ export default function CreateInspectionWithExistImportOrderId() {
           orderedQuantity: detail.quantity,
           unitPrice: detail.unit_price,
           totalPrice: detail.quantity * detail.unit_price,
-          unit: 'viên'
+          unit: trans.common.unit
         })) || []
     };
   };
@@ -90,7 +92,7 @@ export default function CreateInspectionWithExistImportOrderId() {
         if (selectedOrder) {
           const convertedOrder = convertOrderData(selectedOrder);
           setOrderData(convertedOrder);
-          showAlert(`Đã tải đơn hàng ${convertedOrder.orderCode} từ ${convertedOrder.supplier}`, 'success');
+          showAlert(`${trans.common.orderLoadedSuccessfully} ${convertedOrder.orderCode} ${trans.common.from} ${convertedOrder.supplier}`, 'success');
         }
       });
     }
@@ -107,7 +109,7 @@ export default function CreateInspectionWithExistImportOrderId() {
   if (error) {
     return (
       <Alert severity="error" sx={{ m: 2 }}>
-        <Typography variant="subtitle2">Lỗi khi tải đơn hàng:</Typography>
+        <Typography variant="subtitle2">{trans.common.errorLoadingOrderDetails}:</Typography>
         <Typography variant="body2">{error}</Typography>
       </Alert>
     );
@@ -116,7 +118,7 @@ export default function CreateInspectionWithExistImportOrderId() {
   if (!orderData) {
     return (
       <Alert severity="warning" sx={{ m: 2 }}>
-        Không tìm thấy đơn hàng với ID: {importOrderId}
+        {trans.common.orderNotFoundWithId}: {importOrderId}
       </Alert>
     );
   }
@@ -124,32 +126,32 @@ export default function CreateInspectionWithExistImportOrderId() {
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography variant="h4">Tạo Phiếu Kiểm Tra Đơn Nhập</Typography>
+        <Typography variant="h4">{trans.common.createInspectionReceiptFromOrder}</Typography>
         <Box display="flex" gap={2}>
           <Button variant="contained" className="p-4" onClick={() => router.push('/wh-create-inspections/without-import-ord')}>
-            Suspected Medicine
+            {trans.common.suspectedMedicine}
           </Button>
-          <Button variant="outlined" onClick={() => enqueueSnackbar('You have sent require to warehouse manager', { variant: 'info' })}>
-            Ask for Warehouse Manager to create inspect
+          <Button variant="outlined" onClick={() => enqueueSnackbar(trans.common.youHaveSentRequireToWarehouseManager, { variant: 'info' })}>
+            {trans.common.askWarehouseManagerToCreateInspect}
           </Button>
         </Box>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Tạo phiếu kiểm nhập từ đơn đặt hàng đã chọn
+        {trans.common.createInspectionFromSelectedOrder}
       </Typography>
 
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="subtitle2">
-          Đang tạo phiếu nhập cho đơn hàng: <strong>{orderData.orderCode}</strong>
+          {trans.common.creatingReceiptForOrder}: <strong>{orderData.orderCode}</strong>
         </Typography>
         <Typography variant="body2">
-          Nhà cung cấp: {orderData.supplier} | Số sản phẩm: {orderData.items?.length || 0} | Tổng tiền:{' '}
-          {orderData.totalAmount?.toLocaleString('vi-VN')} ₫ | Trạng thái:{' '}
-          {orderData.status === 'approved' ? 'Đã duyệt' : orderData.status === 'delivered' ? 'Đã giao' : orderData.status}
+          {trans.common.supplier}: {orderData.supplier} | {trans.common.numberOfProducts}: {orderData.items?.length || 0} | {trans.common.totalAmount}:{' '}
+          {orderData.totalAmount?.toLocaleString('vi-VN')} ₫ | {trans.common.status}:{' '}
+          {orderData.status === 'approved' ? trans.common.approved : orderData.status === 'delivered' ? trans.common.delivered : orderData.status}
         </Typography>
         {orderData.contractInfo?.contractCode && (
           <Typography variant="body2" sx={{ mt: 1 }}>
-            Hợp đồng: {orderData.contractInfo.contractCode} | Hiệu lực:{' '}
+            {trans.common.contract}: {orderData.contractInfo.contractCode} | {trans.common.validity}:{' '}
             {new Date(orderData.contractInfo.startDate).toLocaleDateString('vi-VN')} -{' '}
             {new Date(orderData.contractInfo.endDate).toLocaleDateString('vi-VN')}
           </Typography>
@@ -160,7 +162,7 @@ export default function CreateInspectionWithExistImportOrderId() {
         orderData={orderData}
         onReceiptCreate={(receiptData) => {
           console.log('Receipt created:', receiptData);
-          showAlert('Tạo phiếu nhập thành công!', 'success');
+          showAlert(trans.common.receiptCreatedSuccessfully, 'success');
         }}
       />
     </Box>

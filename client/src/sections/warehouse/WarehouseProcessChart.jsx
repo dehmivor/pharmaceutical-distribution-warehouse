@@ -10,6 +10,7 @@ import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 /***************************  CHART - DATA  ***************************/
 
@@ -37,18 +38,19 @@ const timeLabels = {
   monthly: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12']
 };
 
-const timeFilter = ['Hàng ngày', 'Hàng tuần', 'Hàng tháng'];
-
 /***************************  CHART - COMPONENT  ***************************/
 
 export default function WarehouseProcessChart() {
   const theme = useTheme();
+  const trans = useTrans();
   const [view, setView] = useState('daily');
   const [visibilityOption, setVisibilityOption] = useState({
     receipts: true,
     approved: true,
     pending: true
   });
+
+  const timeFilter = [trans.common.daily, trans.common.weekly, trans.common.monthly];
 
   const handleViewChange = (_event, newValue) => {
     const viewMap = { 0: 'daily', 1: 'weekly', 2: 'monthly' };
@@ -67,21 +69,21 @@ export default function WarehouseProcessChart() {
       data: currentData.receipts,
       color: theme.palette.primary.main,
       visible: visibilityOption.receipts,
-      label: 'Tổng phiếu nhập'
+      label: trans.common.totalReceipts
     },
     {
       id: 'approved',
       data: currentData.approved,
       color: theme.palette.success.main,
       visible: visibilityOption.approved,
-      label: 'Đã duyệt'
+      label: trans.common.approved
     },
     {
       id: 'pending',
       data: currentData.pending,
       color: theme.palette.warning.main,
       visible: visibilityOption.pending,
-      label: 'Chờ duyệt'
+      label: trans.common.waitingApproval
     }
   ];
 
@@ -103,10 +105,10 @@ export default function WarehouseProcessChart() {
         <Stack direction="row" sx={{ alignItems: 'end', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
           <Stack sx={{ gap: 0.5 }}>
             <Typography variant="h5" sx={{ fontWeight: 500 }}>
-              Thống Kê Quy Trình Nhập Kho
+              {trans.common.warehouseProcessStats}
             </Typography>
             <Typography variant="caption" sx={{ color: 'grey.700' }}>
-              Theo dõi tiến độ xử lý phiếu nhập kho theo thời gian
+              {trans.common.trackImportProgress}
             </Typography>
           </Stack>
           <Tabs

@@ -494,7 +494,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                   boxShadow: '0 3px 5px 2px rgba(224, 224, 224, .3)'
                 }}
               >
-                Refresh
+                {trans.userManagementTab.refresh}
               </Button>
             </Grid>
 
@@ -511,7 +511,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                   boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)'
                 }}
               >
-                Create New User
+                {trans.userManagementTab.createNewUser}
               </Button>
             </Grid>
           </Grid>
@@ -526,7 +526,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 <Typography variant="h4" fontWeight={700}>
                   {filteredUsers.length}
                 </Typography>
-                <Typography variant="body2">Total Users</Typography>
+                <Typography variant="body2">{trans.userManagementTab.totalUsers}</Typography>
               </Card>
             </Grid>
 
@@ -535,7 +535,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 <Typography variant="h4" fontWeight={700}>
                   {groupedUsers?.supervisor?.length || 0}
                 </Typography>
-                <Typography variant="body2">Supervisors</Typography>
+                <Typography variant="body2">{trans.userManagementTab.supervisors}</Typography>
               </Card>
             </Grid>
 
@@ -544,7 +544,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 <Typography variant="h4" fontWeight={700}>
                   {groupedUsers?.representative?.length || 0}
                 </Typography>
-                <Typography variant="body2">Representatives</Typography>
+                <Typography variant="body2">{trans.userManagementTab.representatives}</Typography>
               </Card>
             </Grid>
 
@@ -553,7 +553,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 <Typography variant="h4" fontWeight={700}>
                   {groupedUsers?.representative_manager?.length || 0}
                 </Typography>
-                <Typography variant="body2">Representative Managers</Typography>
+                <Typography variant="body2">{trans.userManagementTab.representativeManagers}</Typography>
               </Card>
             </Grid>
 
@@ -562,7 +562,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 <Typography variant="h4" fontWeight={700}>
                   {groupedUsers?.warehouse?.length || 0}
                 </Typography>
-                <Typography variant="body2">Warehouse Staff</Typography>
+                <Typography variant="body2">{trans.userManagementTab.warehouseStaff}</Typography>
               </Card>
             </Grid>
 
@@ -571,7 +571,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 <Typography variant="h4" fontWeight={700}>
                   {groupedUsers?.warehouse_manager?.length || 0}
                 </Typography>
-                <Typography variant="body2">Warehouse Managers</Typography>
+                <Typography variant="body2">{trans.userManagementTab.warehouseManagers}</Typography>
               </Card>
             </Grid>
           </Grid>
@@ -619,10 +619,9 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
       ) : (
         // No filters: show all roles cards
         <>
-          <PresentationCard title="Supervisors">
+          <PresentationCard title={trans.userManagementTab.supervisors}>
             <Typography variant="body2" color="text.secondary" mb={1}>
-              Manage supervisor accounts and their permissions. Supervisors have elevated access to oversee operations and manage team
-              members.
+              {trans.userManagementTab.supervisorDescription}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <UserTable
@@ -645,10 +644,9 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
             />
           </PresentationCard>
 
-          <PresentationCard title="Representative Managers">
+          <PresentationCard title={trans.userManagementTab.representativeManagers}>
             <Typography variant="body2" color="text.secondary" mb={1}>
-              Customer service representatives managers handle client interactions and support requests. They serve as the primary point of
-              contact for customers.
+              {trans.userManagementTab.representativeManagerDescription}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <UserTable
@@ -671,10 +669,9 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
             />
           </PresentationCard>
 
-          <PresentationCard title="Representatives">
+          <PresentationCard title={trans.userManagementTab.representatives}>
             <Typography variant="body2" color="text.secondary" mb={1}>
-              Customer service representatives handle client interactions and support requests. They serve as the primary point of contact
-              for customers.
+              {trans.userManagementTab.representativeDescription}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <UserTable
@@ -697,10 +694,9 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
             />
           </PresentationCard>
 
-          <PresentationCard title="Warehouse Staff">
+          <PresentationCard title={trans.userManagementTab.warehouseStaff}>
             <Typography variant="body2" color="text.secondary" mb={1}>
-              Warehouse staff manage inventory, fulfillment, and logistics operations. They ensure accurate order processing and inventory
-              management.
+              {trans.userManagementTab.warehouseStaffDescription}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <UserTable
@@ -723,9 +719,9 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
             />
           </PresentationCard>
 
-          <PresentationCard title="Warehouse Managers">
+          <PresentationCard title={trans.userManagementTab.warehouseManagers}>
             <Typography variant="body2" color="text.secondary" mb={1}>
-              Warehouse managers oversee warehouse operations and ensure efficient inventory management.
+              {trans.userManagementTab.warehouseManagerDescription}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <UserTable

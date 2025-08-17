@@ -464,7 +464,7 @@ const MedicineEditDialog = ({ open, onClose, medicineId, onSubmit, categoryOptio
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
                 <StorageIcon sx={{ color: 'info.main', fontSize: 24 }} />
                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'info.main' }}>
-                  {trans.medicineEdit.storageConditions.title} (Tùy chọn)
+                  {trans.medicineEdit.storageConditions.title} ({trans.medicineEdit.optional})
                 </Typography>
               </Box>
 

@@ -1,3 +1,4 @@
+
 import InventoryCheckManagement from '@/sections/components/inventory-check/InventoryCheckManagement';
 
 function InventoryCheckManagementPage() {
