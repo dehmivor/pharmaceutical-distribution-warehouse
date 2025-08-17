@@ -85,7 +85,7 @@ export default function Report() {
 
   // Pagination state
   const [page, setPage] = useState(0); // 0-based for TablePagination
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(7);
   const [totalCount, setTotalCount] = useState(0);
 
   const [filters, setFilters] = useState({
@@ -315,10 +315,10 @@ export default function Report() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Report Bill
+            {trans.reports.reportTitle}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Tổng hợp báo cáo các loại bill trong hệ thống
+            {trans.reports.reportDescription}
           </Typography>
         </Box>
       </Box>
@@ -336,7 +336,7 @@ export default function Report() {
             {/* Filter inputs */}
             <Grid item xs={12} md={3}>
               <TextField
-                label="Từ ngày"
+                label={trans.reports.startDate}
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => handleFilterChange('startDate', e.target.value)}
@@ -346,7 +346,7 @@ export default function Report() {
             </Grid>
             <Grid item xs={12} md={3}>
               <TextField
-                label="Đến ngày"
+                label={trans.reports.endDate}
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => handleFilterChange('endDate', e.target.value)}
@@ -356,7 +356,7 @@ export default function Report() {
             </Grid>
             <Grid item xs={12} md={2}>
               <FormControl fullWidth>
-                <InputLabel id="period-label">Chu kỳ</InputLabel>
+                <InputLabel id="period-label">{trans.reports.period}</InputLabel>
                 <Select
                   labelId="period-label"
                   value={filters.period}
@@ -371,37 +371,43 @@ export default function Report() {
               </FormControl>
             </Grid>
             <Grid item xs={12} md={2}>
-              <FormControl fullWidth>
-                <InputLabel label={trans.common.status} id="status-label">
-                  {trans.common.status}
-                </InputLabel>
-                <Select
-                  labelId="status-label"
-                  value={filters.status || 'all'}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
-                  label={trans.common.status}
-                >
-                  <MenuItem value="all">{trans.common.allStatuses}</MenuItem>
-                  <MenuItem value="pending">{trans.common.pendingProcessing}</MenuItem>
-                  <MenuItem value="partial">{trans.common.partialPayment}</MenuItem>
-                  <MenuItem value="completed">{trans.common.completed}</MenuItem>
-                  <MenuItem value="overdue">{trans.common.overdue}</MenuItem>
+              <FormControl fullWidth size="small">
+                <InputLabel>{trans.reports.status}</InputLabel>
+                <Select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} label={trans.reports.status}>
+                  <MenuItem value="all">{trans.reports.allStatus}</MenuItem>
+                  <MenuItem value="pending">
+                    <Typography noWrap sx={{ maxWidth: '120px' }}>
+                      {trans.reports.pending.length > 7 ? `${trans.reports.pending.substring(0, 7)}...` : trans.reports.pending}
+                    </Typography>
+                  </MenuItem>
+                  <MenuItem value="partial">
+                    <Typography noWrap sx={{ maxWidth: '120px' }}>
+                      {trans.reports.partial.length > 7 ? `${trans.reports.partial.substring(0, 7)}...` : trans.reports.partial}
+                    </Typography>
+                  </MenuItem>
+                  <MenuItem value="completed">
+                    <Typography noWrap sx={{ maxWidth: '120px' }}>
+                      {trans.reports.completed.length > 7 ? `${trans.reports.completed.substring(0, 7)}...` : trans.reports.completed}
+                    </Typography>
+                  </MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={2}>
-              <FormControl fullWidth>
-                <InputLabel id="type-label">{trans.common.type}</InputLabel>
-                <Select
-                  labelId="type-label"
-                  value={filters.type || 'all'}
-                  onChange={(e) => handleFilterChange('type', e.target.value)}
-                  label={trans.common.type}
-                >
-                  <MenuItem value="all">{trans.common.allTypes}</MenuItem>
-                  <MenuItem value="IMPORT">{trans.common.import}</MenuItem>
-                  <MenuItem value="EXPORT">{trans.common.export}</MenuItem>
-                  <MenuItem value="PAYMENT_VOUCHER">{trans.common.paymentVoucher}</MenuItem>
+              <FormControl fullWidth size="small">
+                <InputLabel>{trans.reports.type}</InputLabel>
+                <Select value={filters.type} onChange={(e) => handleFilterChange('type', e.target.value)} label={trans.reports.type}>
+                  <MenuItem value="all">{trans.reports.allTypes}</MenuItem>
+                  <MenuItem value="import">
+                    <Typography noWrap sx={{ maxWidth: '120px' }}>
+                      {trans.reports.import.length > 7 ? `${trans.reports.import.substring(0, 7)}...` : trans.reports.import}
+                    </Typography>
+                  </MenuItem>
+                  <MenuItem value="export">
+                    <Typography noWrap sx={{ maxWidth: '120px' }}>
+                      {trans.reports.export.length > 7 ? `${trans.reports.export.substring(0, 7)}...` : trans.reports.export}
+                    </Typography>
+                  </MenuItem>
                 </Select>
               </FormControl>
             </Grid>

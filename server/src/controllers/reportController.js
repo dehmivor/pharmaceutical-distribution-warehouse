@@ -38,7 +38,16 @@ const upload = multer({
 // Get comprehensive report
 const getComprehensiveReport = async (req, res) => {
   try {
-    const { startDate, endDate, period = 'monthly', status, type, partnerType } = req.query;
+    const {
+      startDate,
+      endDate,
+      period = 'monthly',
+      status,
+      type,
+      page,
+      limit,
+      partnerType,
+    } = req.query;
 
     const filters = {
       startDate,
@@ -47,6 +56,8 @@ const getComprehensiveReport = async (req, res) => {
       status,
       type,
       partnerType,
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 10,
     };
 
     const reportData = await ReportService.getComprehensiveReport(filters);

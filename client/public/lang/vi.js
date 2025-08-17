@@ -319,6 +319,15 @@ export default {
 
   // Reports
   reports: {
+    reportTitle: 'Báo cáo Hóa đơn',
+    reportDescription: 'Tổng hợp báo cáo các loại bill trong hệ thống',
+    allStatus: 'Tất cả Trạng thái',
+    allTypes: 'Tất cả Loại',
+    pending: 'Đang chờ',
+    partial: 'Một phần',
+    completed: 'Hoàn thành',
+    import: 'Nhập',
+    export: 'Xuất',
     title: 'Báo cáo',
     billsReport: 'Báo cáo Hóa đơn',
     summary: 'Tóm tắt',

@@ -17,8 +17,8 @@ class ReportService {
         status,
         type,
         partnerType,
-        page = 1,
-        limit = 10,
+        page,
+        limit,
       } = filters;
 
       console.log('Filters received:', filters);

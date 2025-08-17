@@ -318,6 +318,15 @@ export default {
 
   // Reports
   reports: {
+    reportTitle: 'Report Bill',
+    reportDescription: 'Comprehensive report of all bill types in the system',
+    allStatus: 'All Status',
+    allTypes: 'All Types',
+    pending: 'Pending',
+    partial: 'Partial',
+    completed: 'Completed',
+    import: 'Import',
+    export: 'Export',
     title: 'Reports',
     billsReport: 'Bills Report',
     summary: 'Summary',
