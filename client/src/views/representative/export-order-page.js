@@ -957,24 +957,36 @@ function ExportOrderPage() {
                         <TextField
                           fullWidth
                           label={trans.common.quantity}
-                          type="number"
-                          value={detail.expected_quantity}
+                          type="text"
+                          value={detail.expected_quantity ? detail.expected_quantity.toLocaleString() : ''}
                           onChange={(e) => {
-                            const value = parseInt(e.target.value) || 0;
+                            // Remove all non-digit characters and convert to number
+                            const rawValue = e.target.value.replace(/[^\d]/g, '');
+                            const value = parseInt(rawValue) || 0;
                             // Prevent negative values
                             const validValue = Math.max(1, value);
                             handleDetailChange(index, 'expected_quantity', validValue);
                           }}
-                          InputProps={{ min: 1 }}
+                          onBlur={(e) => {
+                            // Format on blur if empty
+                            if (!e.target.value) {
+                              handleDetailChange(index, 'expected_quantity', 0);
+                            }
+                          }}
+                          InputProps={{ 
+                            min: 1,
+                            inputMode: 'numeric',
+                            pattern: '[0-9]*'
+                          }}
                           required
                           disabled={!detail.medicine_id || formData.contract_type === 'economic'}
                           helperText={(() => {
                             const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
                             if (contractItem) {
                               if (formData.contract_type === 'principal') {
-                                return `Min: ${contractItem.min_order_quantity || 1} (Có thể chỉnh sửa quantity)`;
+                                return `Min: ${(contractItem.min_order_quantity || 1).toLocaleString()} (Có thể chỉnh sửa quantity)`;
                               } else {
-                                return `Từ hợp đồng: ${contractItem.quantity || contractItem.min_order_quantity || 1} (Economic - Không thể sửa)`;
+                                return `Từ hợp đồng: ${(contractItem.quantity || contractItem.min_order_quantity || 1).toLocaleString()} (Economic - Không thể sửa)`;
                               }
                             }
                             return '';
@@ -987,10 +999,18 @@ function ExportOrderPage() {
                           fullWidth
                           label={trans.common.unitPrice}
                           type="text"
-                          value={detail.unit_price}
+                          value={detail.unit_price ? detail.unit_price.toLocaleString() : ''}
                           onChange={(e) => {
-                            const value = parseFloat(e.target.value) || 0;
+                            // Remove all non-digit and non-decimal characters and convert to number
+                            const rawValue = e.target.value.replace(/[^\d.,]/g, '');
+                            const value = parseFloat(rawValue) || 0;
                             handleDetailChange(index, 'unit_price', value);
+                          }}
+                          onBlur={(e) => {
+                            // Format on blur if empty
+                            if (!e.target.value) {
+                              handleDetailChange(index, 'unit_price', 0);
+                            }
                           }}
                           InputProps={{
                             inputMode: 'decimal',
@@ -1373,9 +1393,20 @@ function ExportOrderPage() {
                   <Grid item xs={12} sm={3}>
                     <TextField
                       label={trans.common.quantity}
-                      type="number"
-                      value={detail.expected_quantity}
-                      onChange={(e) => handleDetailChange(index, 'expected_quantity', e.target.value)}
+                      type="text"
+                      value={detail.expected_quantity ? detail.expected_quantity.toLocaleString() : ''}
+                      onChange={(e) => {
+                        // Remove all non-digit characters and convert to number
+                        const rawValue = e.target.value.replace(/[^\d]/g, '');
+                        const value = parseInt(rawValue) || 0;
+                        handleDetailChange(index, 'expected_quantity', value);
+                      }}
+                      onBlur={(e) => {
+                        // Format on blur if empty
+                        if (!e.target.value) {
+                          handleDetailChange(index, 'expected_quantity', 0);
+                        }
+                      }}
                       fullWidth
                       required
                       disabled={formData.contract_type === 'economic'}
@@ -1384,6 +1415,10 @@ function ExportOrderPage() {
                           ? trans.common.economicContractAutoFilled
                           : trans.common.principalContractQuantityEditable
                       }
+                      InputProps={{
+                        inputMode: 'numeric',
+                        pattern: '[0-9]*'
+                      }}
                       sx={{
                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
                         '& .MuiInputBase-input.Mui-disabled': {
@@ -1396,9 +1431,20 @@ function ExportOrderPage() {
                   <Grid item xs={12} sm={3}>
                     <TextField
                       label={trans.common.unitPrice}
-                      type="number"
-                      value={detail.unit_price}
-                      onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
+                      type="text"
+                      value={detail.unit_price ? detail.unit_price.toLocaleString() : ''}
+                      onChange={(e) => {
+                        // Remove all non-digit and non-decimal characters and convert to number
+                        const rawValue = e.target.value.replace(/[^\d.,]/g, '');
+                        const value = parseFloat(rawValue) || 0;
+                        handleDetailChange(index, 'unit_price', value);
+                      }}
+                      onBlur={(e) => {
+                        // Format on blur if empty
+                        if (!e.target.value) {
+                          handleDetailChange(index, 'unit_price', 0);
+                        }
+                      }}
                       fullWidth
                       required
                       disabled={formData.contract_type === 'economic'}
@@ -1407,6 +1453,10 @@ function ExportOrderPage() {
                           ? trans.common.economicContractAutoFilled
                           : trans.common.principalContractQuantityEditable
                       }
+                      InputProps={{
+                        inputMode: 'decimal',
+                        pattern: '[0-9]*[.,]?[0-9]*'
+                      }}
                       sx={{
                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
                         '& .MuiInputBase-input.Mui-disabled': {

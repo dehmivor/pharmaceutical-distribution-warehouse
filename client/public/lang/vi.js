@@ -1503,7 +1503,7 @@ export default {
     // Order details
     basicInformation: 'Thông Tin Cơ Bản',
     orderDetailsTitle: 'Chi Tiết Đơn Hàng',
-    totalAmount: 'Tổng Tiền: {amount} VND',
+    totalAmount: 'Tổng Tiền',
     recheckStock: 'Kiểm tra lại',
     editingRejectedExportOrder: 'Đang sửa export order bị từ chối. Order sẽ tự động chuyển về trạng thái draft sau khi lưu.',
     existingExportOrderError:
