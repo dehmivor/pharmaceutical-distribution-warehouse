@@ -37,7 +37,6 @@ import {
   Medication as MedicationIcon,
   Info as InfoIcon,
   Error as ErrorIcon,
-  Success as SuccessIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import WarehouseManagerChart from '@/sections/dashboard/WarehouseManagerChart';

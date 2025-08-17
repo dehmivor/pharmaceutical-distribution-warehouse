@@ -1,9 +1,11 @@
+'use client';
+
 import React from 'react';
 import useTrans from '@/hooks/useTrans';
 
-function support() {
+function Support() {
   const trans = useTrans();
   return <div>{trans.placeholders.support}</div>;
 }
 
-export default support;
+export default Support;

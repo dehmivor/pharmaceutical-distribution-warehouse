@@ -1,3 +1,4 @@
+'use client';  
 // @next
 import NextLink from 'next/link';
 
