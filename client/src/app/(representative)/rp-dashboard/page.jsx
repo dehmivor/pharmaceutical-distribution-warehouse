@@ -8,4 +8,4 @@ const RepresentativeDashboard = dynamic(() => import('@/views/representative/das
 
 export default function RepresentativeDashboardPage() {
   return <RepresentativeDashboard />;
-} 
+}

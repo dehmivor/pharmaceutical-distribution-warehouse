@@ -32,10 +32,7 @@ import {
 import axios from 'axios';
 import useTrans from '@/hooks/useTrans';
 
-import {
-  Search as SearchIcon,
-  FilterList as FilterIcon
-} from '@mui/icons-material';
+import { Search as SearchIcon, FilterList as FilterIcon } from '@mui/icons-material';
 
 // Ensure API_BASE_URL doesn't duplicate /api, and all endpoints have /api/export-orders
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -65,12 +62,12 @@ function ManageExportOrdersApproval() {
   const [rejectLoading, setRejectLoading] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [orderToView, setOrderToView] = useState(null);
-  
+
   // Pagination states
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
-  
+
   // Filter states
   const [filters, setFilters] = useState({
     search: '',
@@ -93,8 +90,6 @@ function ManageExportOrdersApproval() {
     contract_type: [],
     created_by: []
   });
-  
-
 
   useEffect(() => {
     fetchOrders();
@@ -144,9 +139,9 @@ function ManageExportOrdersApproval() {
     try {
       console.log('Fetching from:', `${API_BASE_URL}/api/export-orders`);
       console.log('Auth headers:', getAuthHeaders());
-      
+
       const response = await axios.get(`${API_BASE_URL}/api/export-orders`, { headers: getAuthHeaders() });
-      
+
       console.log('API Response:', response.data);
       if (response.data.success) {
         const allOrders = response.data.data || [];
@@ -169,19 +164,19 @@ function ManageExportOrdersApproval() {
         const startIndex = page * rowsPerPage;
         const endIndex = startIndex + rowsPerPage;
         const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
-        
+
         setOrders(paginatedOrders);
         setTotalCount(filteredOrders.length);
-        
+
         // Generate filter options from data
-        const statusOptions = [...new Set(allOrders.map(order => order.status))];
-        const contractTypeOptions = [...new Set(allOrders.map(order => order.contract_id?.contract_type).filter(Boolean))];
-        const createdByOptions = [...new Set(allOrders.map(order => order.created_by?.email).filter(Boolean))];
-        
+        const statusOptions = [...new Set(allOrders.map((order) => order.status))];
+        const contractTypeOptions = [...new Set(allOrders.map((order) => order.contract_id?.contract_type).filter(Boolean))];
+        const createdByOptions = [...new Set(allOrders.map((order) => order.created_by?.email).filter(Boolean))];
+
         setFilterOptions({
           status: statusOptions,
           contract_type: contractTypeOptions,
-          created_by: createdByOptions.map(email => ({ email }))
+          created_by: createdByOptions.map((email) => ({ email }))
         });
       } else {
         setOrders([]);
@@ -211,11 +206,9 @@ function ManageExportOrdersApproval() {
         {}, // No longer sending status, only sending empty body
         { headers: getAuthHeaders() }
       );
-              setSuccess(trans.representativeManagerExportOrdersApproval.messages.orderApproved);
+      setSuccess(trans.representativeManagerExportOrdersApproval.messages.orderApproved);
       fetchOrders();
       handleCloseApproveDialog();
-
-
     } catch (error) {
       setError(error.response?.data?.error || error.message);
     } finally {
@@ -240,11 +233,9 @@ function ManageExportOrdersApproval() {
         { reason: '' }, // Always send an empty reason for rejection
         { headers: getAuthHeaders() }
       );
-              setSuccess(trans.representativeManagerExportOrdersApproval.messages.orderRejected);
+      setSuccess(trans.representativeManagerExportOrdersApproval.messages.orderRejected);
       fetchOrders();
       handleCloseRejectDialog();
-
-
     } catch (error) {
       setError(error.response?.data?.error || error.message);
     } finally {
@@ -266,7 +257,7 @@ function ManageExportOrdersApproval() {
       <Typography variant="h4" sx={{ mb: 3 }}>
         {trans.representativeManagerExportOrdersApproval.title}
       </Typography>
-      
+
       {/* Filters */}
       <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
         <CardContent sx={{ p: 3 }}>
@@ -323,7 +314,11 @@ function ManageExportOrdersApproval() {
                   <MenuItem value="">{trans.representativeManagerExportOrdersApproval.filters.allContractTypes}</MenuItem>
                   {filterOptions?.contract_type?.map((type) => (
                     <MenuItem key={type} value={type}>
-                      {type === 'economic' ? trans.representativeManagerExportOrdersApproval.filters.economic : type === 'principal' ? trans.representativeManagerExportOrdersApproval.filters.principal : type}
+                      {type === 'economic'
+                        ? trans.representativeManagerExportOrdersApproval.filters.economic
+                        : type === 'principal'
+                          ? trans.representativeManagerExportOrdersApproval.filters.principal
+                          : type}
                     </MenuItem>
                   ))}
                 </Select>
@@ -405,7 +400,9 @@ function ManageExportOrdersApproval() {
                 <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerExportOrdersApproval.table.contract}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerExportOrdersApproval.table.createdBy}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerExportOrdersApproval.table.status}</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 600 }}>{trans.representativeManagerExportOrdersApproval.table.actions}</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>
+                  {trans.representativeManagerExportOrdersApproval.table.actions}
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -416,7 +413,15 @@ function ManageExportOrdersApproval() {
                   <TableCell>
                     <Chip
                       label={order.status}
-                      color={order.status === 'approved' ? 'success' : order.status === 'rejected' ? 'error' : order.status === 'draft' ? 'default' : 'info'}
+                      color={
+                        order.status === 'approved'
+                          ? 'success'
+                          : order.status === 'rejected'
+                            ? 'error'
+                            : order.status === 'draft'
+                              ? 'default'
+                              : 'info'
+                      }
                       size="small"
                     />
                   </TableCell>
@@ -442,7 +447,11 @@ function ManageExportOrdersApproval() {
               {orders.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} align="center">
-                    <Typography color="text.secondary">{loading ? trans.representativeManagerExportOrdersApproval.table.loadingOrders : trans.representativeManagerExportOrdersApproval.table.noOrders}</Typography>
+                    <Typography color="text.secondary">
+                      {loading
+                        ? trans.representativeManagerExportOrdersApproval.table.loadingOrders
+                        : trans.representativeManagerExportOrdersApproval.table.noOrders}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               )}
@@ -457,7 +466,6 @@ function ManageExportOrdersApproval() {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-
           sx={{
             borderTop: '1px solid #e0e0e0',
             bgcolor: 'grey.50'
@@ -473,7 +481,9 @@ function ManageExportOrdersApproval() {
         <DialogActions>
           <Button onClick={handleCloseApproveDialog}>{trans.representativeManagerExportOrdersApproval.dialogs.approve.cancel}</Button>
           <Button onClick={handleApprove} color="success" variant="contained" disabled={approveLoading}>
-            {approveLoading ? trans.representativeManagerExportOrdersApproval.actions.approving : trans.representativeManagerExportOrdersApproval.actions.approve}
+            {approveLoading
+              ? trans.representativeManagerExportOrdersApproval.actions.approving
+              : trans.representativeManagerExportOrdersApproval.actions.approve}
           </Button>
         </DialogActions>
       </Dialog>
@@ -485,12 +495,16 @@ function ManageExportOrdersApproval() {
         <DialogActions>
           <Button onClick={handleCloseRejectDialog}>{trans.representativeManagerExportOrdersApproval.dialogs.reject.cancel}</Button>
           <Button onClick={handleReject} color="error" variant="contained" disabled={rejectLoading}>
-            {rejectLoading ? trans.representativeManagerExportOrdersApproval.actions.rejecting : trans.representativeManagerExportOrdersApproval.actions.reject}
+            {rejectLoading
+              ? trans.representativeManagerExportOrdersApproval.actions.rejecting
+              : trans.representativeManagerExportOrdersApproval.actions.reject}
           </Button>
         </DialogActions>
       </Dialog>
       <Dialog open={detailsDialogOpen} onClose={handleCloseDetailsDialog} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600, fontSize: 22, pb: 1 }}>{trans.representativeManagerExportOrdersApproval.dialogs.details.title}</DialogTitle>
+        <DialogTitle sx={{ textAlign: 'center', fontWeight: 600, fontSize: 22, pb: 1 }}>
+          {trans.representativeManagerExportOrdersApproval.dialogs.details.title}
+        </DialogTitle>
         <DialogContent>
           {orderToView && (
             <Box sx={{ mt: 1 }}>
@@ -501,10 +515,12 @@ function ManageExportOrdersApproval() {
                       {trans.representativeManagerExportOrdersApproval.dialogs.details.basicInfo}
                     </Typography>
                     <Typography variant="body2">
-                      <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.contract}:</b> {orderToView.contract_id?.contract_code || trans.common.na}
+                      <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.contract}:</b>{' '}
+                      {orderToView.contract_id?.contract_code || trans.common.na}
                     </Typography>
                     <Typography variant="body2">
-                      <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.createdBy}:</b> {orderToView.created_by?.email || trans.common.na}
+                      <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.createdBy}:</b>{' '}
+                      {orderToView.created_by?.email || trans.common.na}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                       <Typography variant="body2" component="span">
@@ -513,7 +529,8 @@ function ManageExportOrdersApproval() {
                       <Chip label={orderToView.status} color="info" size="small" sx={{ ml: 1 }} />
                     </Box>
                     <Typography variant="body2">
-                      <strong>{trans.representativeManagerExportOrdersApproval.dialogs.details.warehouseManager}:</strong> {orderToView.warehouse_manager_id?.email || '-'}
+                      <strong>{trans.representativeManagerExportOrdersApproval.dialogs.details.warehouseManager}:</strong>{' '}
+                      {orderToView.warehouse_manager_id?.email || '-'}
                     </Typography>
                   </Paper>
                 </Grid>
@@ -523,12 +540,15 @@ function ManageExportOrdersApproval() {
                       {trans.representativeManagerExportOrdersApproval.dialogs.details.orderOverview}
                     </Typography>
                     <Typography variant="body2">
-                      <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.medicineTypes}:</b> {orderToView.details?.length || 0}
+                      <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.medicineTypes}:</b>{' '}
+                      {orderToView.details?.length || 0}
                     </Typography>
                     <Typography variant="body2">
                       <b>{trans.representativeManagerExportOrdersApproval.dialogs.details.totalAmount}:</b>{' '}
                       {orderToView.details
-                        ? orderToView.details.reduce((sum, d) => sum + d.expected_quantity * d.unit_price, 0).toLocaleString() + ' ' + trans.common.currency
+                        ? orderToView.details.reduce((sum, d) => sum + d.expected_quantity * d.unit_price, 0).toLocaleString() +
+                          ' ' +
+                          trans.common.currency
                         : '0 ' + trans.common.currency}
                     </Typography>
                   </Paper>
@@ -571,7 +591,9 @@ function ManageExportOrdersApproval() {
                       </TableCell>
                       <TableCell align="right">
                         {orderToView.details
-                          ? orderToView.details.reduce((sum, d) => sum + d.expected_quantity * d.unit_price, 0).toLocaleString() + ' ' + trans.common.currency
+                          ? orderToView.details.reduce((sum, d) => sum + d.expected_quantity * d.unit_price, 0).toLocaleString() +
+                            ' ' +
+                            trans.common.currency
                           : '0 ' + trans.common.currency}
                       </TableCell>
                     </TableRow>

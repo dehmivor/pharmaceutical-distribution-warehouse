@@ -71,7 +71,7 @@ const RepresentativeManagerImportOrders = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
-  
+
   // Filter states
   const [filters, setFilters] = useState({
     search: '',
@@ -112,12 +112,12 @@ const RepresentativeManagerImportOrders = () => {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       console.log('Fetching from:', `${backendUrl}/api/import-orders`);
       console.log('Auth headers:', getAuthHeaders());
-      
+
       const response = await axios.get(`${backendUrl}/api/import-orders`, {
         headers: getAuthHeaders(),
         timeout: 10000 // 10 seconds timeout
       });
-      
+
       console.log('API Response:', response.data);
 
       if (response.data.success) {
@@ -131,14 +131,14 @@ const RepresentativeManagerImportOrders = () => {
         applyFiltersToData(allOrders);
         
         // Generate filter options from data
-        const statusOptions = [...new Set(allOrders.map(order => order.status))];
-        const contractTypeOptions = [...new Set(allOrders.map(order => order.contract_id?.contract_type).filter(Boolean))];
-        const createdByOptions = [...new Set(allOrders.map(order => order.created_by?.email).filter(Boolean))];
-        
+        const statusOptions = [...new Set(allOrders.map((order) => order.status))];
+        const contractTypeOptions = [...new Set(allOrders.map((order) => order.contract_id?.contract_type).filter(Boolean))];
+        const createdByOptions = [...new Set(allOrders.map((order) => order.created_by?.email).filter(Boolean))];
+
         setFilterOptions({
           status: statusOptions,
           contract_type: contractTypeOptions,
-          created_by: createdByOptions.map(email => ({ email }))
+          created_by: createdByOptions.map((email) => ({ email }))
         });
       } else {
         throw new Error(response.data.error || 'Failed to fetch orders');
@@ -185,14 +185,14 @@ const RepresentativeManagerImportOrders = () => {
       setContractMedicines([]);
       return;
     }
-    
+
     try {
       setLoadingMedicines(true);
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const response = await axios.get(`${backendUrl}/api/contract/${contractId}/medicines`, {
         headers: getAuthHeaders()
       });
-      
+
       if (response.data.success) {
         setContractMedicines(response.data.data || []);
       } else {
@@ -242,8 +242,6 @@ const RepresentativeManagerImportOrders = () => {
         setStatusDialog(false);
         setSelectedOrder(null);
         fetchOrders(); // Refresh the list
-
-
       } else {
         throw new Error(response.data.error || 'Failed to update status');
       }
@@ -277,15 +275,18 @@ const RepresentativeManagerImportOrders = () => {
     setSelectedOrder(null);
   }, []);
 
-  const handleViewDetails = useCallback(async (order) => {
-    setSelectedOrderForDetails(order);
-    setDetailsDialog(true);
-    
-    // Fetch contract medicines when viewing details
-    if (order.contract_id?._id) {
-      await fetchContractMedicines(order.contract_id._id);
-    }
-  }, [fetchContractMedicines]);
+  const handleViewDetails = useCallback(
+    async (order) => {
+      setSelectedOrderForDetails(order);
+      setDetailsDialog(true);
+
+      // Fetch contract medicines when viewing details
+      if (order.contract_id?._id) {
+        await fetchContractMedicines(order.contract_id._id);
+      }
+    },
+    [fetchContractMedicines]
+  );
 
   const handleCloseDetailsDialog = useCallback(() => {
     setDetailsDialog(false);
@@ -444,7 +445,7 @@ const RepresentativeManagerImportOrders = () => {
       <Typography variant="body1" color="text.secondary" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
         {trans.representativeManagerImportOrders.description}
       </Typography>
-      
+
       {/* Filters */}
       <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
         <CardContent sx={{ p: 3 }}>
@@ -501,7 +502,11 @@ const RepresentativeManagerImportOrders = () => {
                   <MenuItem value="">{trans.representativeManagerImportOrders.filters.allContractTypes}</MenuItem>
                   {filterOptions?.contract_type?.map((type) => (
                     <MenuItem key={type} value={type}>
-                      {type === 'economic' ? trans.representativeManagerImportOrders.filters.economic : type === 'principal' ? trans.representativeManagerImportOrders.filters.principal : type}
+                      {type === 'economic'
+                        ? trans.representativeManagerImportOrders.filters.economic
+                        : type === 'principal'
+                          ? trans.representativeManagerImportOrders.filters.principal
+                          : type}
                     </MenuItem>
                   ))}
                 </Select>
@@ -598,14 +603,20 @@ const RepresentativeManagerImportOrders = () => {
                 <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerImportOrders.table.createdBy}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerImportOrders.table.createdDate}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerImportOrders.table.totalAmount}</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 600 }}>{trans.representativeManagerImportOrders.table.actions}</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>
+                  {trans.representativeManagerImportOrders.table.actions}
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {orders.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
-                    <Typography color="text.secondary">{loading ? trans.representativeManagerImportOrders.table.loadingOrders : trans.representativeManagerImportOrders.table.noOrders}</Typography>
+                    <Typography color="text.secondary">
+                      {loading
+                        ? trans.representativeManagerImportOrders.table.loadingOrders
+                        : trans.representativeManagerImportOrders.table.noOrders}
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -614,11 +625,11 @@ const RepresentativeManagerImportOrders = () => {
                   return (
                     <TableRow key={order._id} hover>
                       <TableCell>{order._id}</TableCell>
-                                             <TableCell>{order.contract_id?.partner_id?.name || trans.common.na}</TableCell>
+                      <TableCell>{order.contract_id?.partner_id?.name || trans.common.na}</TableCell>
                       <TableCell>
                         <Chip label={order.status?.toUpperCase()} color={getStatusColor(order.status)} size="small" />
                       </TableCell>
-                                             <TableCell>{order.created_by?.email || trans.common.na}</TableCell>
+                      <TableCell>{order.created_by?.email || trans.common.na}</TableCell>
                       <TableCell>{formatDate(order.createdAt)}</TableCell>
                       <TableCell>{formatCurrency(order.total_amount)}</TableCell>
                       <TableCell>
@@ -656,8 +667,20 @@ const RepresentativeManagerImportOrders = () => {
                               </Button>
                             </>
                           )}
-                          {isOrderLocked(order) && <Chip label={trans.representativeManagerImportOrders.table.locked} color="error" size="small" variant="outlined" />}
-                          <IconButton size="small" color="info" title={trans.representativeManagerImportOrders.actions.viewDetails} onClick={() => handleViewDetails(order)}>
+                          {isOrderLocked(order) && (
+                            <Chip
+                              label={trans.representativeManagerImportOrders.table.locked}
+                              color="error"
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                          <IconButton
+                            size="small"
+                            color="info"
+                            title={trans.representativeManagerImportOrders.actions.viewDetails}
+                            onClick={() => handleViewDetails(order)}
+                          >
                             <ViewIcon />
                           </IconButton>
                         </Box>
@@ -721,7 +744,11 @@ const RepresentativeManagerImportOrders = () => {
                       {trans.representativeManagerImportOrders.details.contractType}
                     </Typography>
                     <Chip
-                      label={selectedOrderForDetails.contract_id?.contract_type === 'principal' ? trans.representativeManagerImportOrders.filters.principal : trans.representativeManagerImportOrders.filters.economic}
+                      label={
+                        selectedOrderForDetails.contract_id?.contract_type === 'principal'
+                          ? trans.representativeManagerImportOrders.filters.principal
+                          : trans.representativeManagerImportOrders.filters.economic
+                      }
                       color={selectedOrderForDetails.contract_id?.contract_type === 'principal' ? 'primary' : 'secondary'}
                       size="small"
                       variant="outlined"
@@ -748,7 +775,7 @@ const RepresentativeManagerImportOrders = () => {
                       {trans.representativeManagerImportOrders.details.activeAnnexes}
                     </Typography>
                     <Typography variant="body2">
-                      {selectedOrderForDetails.contract_id?.annexes?.filter(a => a.status === 'active').length || 0}
+                      {selectedOrderForDetails.contract_id?.annexes?.filter((a) => a.status === 'active').length || 0}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -775,11 +802,11 @@ const RepresentativeManagerImportOrders = () => {
                         {selectedOrderForDetails.details?.map((detail, index) => (
                           <TableRow key={index}>
                             <TableCell>
-                                                             {detail.medicine_id?.medicine_name || trans.common.na}
-                               <br />
-                               <Typography variant="caption" color="text.secondary">
-                                 {detail.medicine_id?.license_code || trans.common.na}
-                               </Typography>
+                              {detail.medicine_id?.medicine_name || trans.common.na}
+                              <br />
+                              <Typography variant="caption" color="text.secondary">
+                                {detail.medicine_id?.license_code || trans.common.na}
+                              </Typography>
                             </TableCell>
                             <TableCell align="right">{detail.quantity}</TableCell>
                             <TableCell align="right">{formatCurrency(detail.unit_price)}</TableCell>
@@ -827,27 +854,29 @@ const RepresentativeManagerImportOrders = () => {
                         {loadingMedicines ? (
                           <TableRow>
                             <TableCell colSpan={4} align="center">
-                              <Typography color="text.secondary">{trans.representativeManagerImportOrders.details.loadingContractMedicines}</Typography>
+                              <Typography color="text.secondary">
+                                {trans.representativeManagerImportOrders.details.loadingContractMedicines}
+                              </Typography>
                             </TableCell>
                           </TableRow>
                         ) : contractMedicines.length > 0 ? (
                           contractMedicines.map((item, index) => (
                             <TableRow key={index}>
                               <TableCell>
-                                                               {item.medicine_id?.medicine_name || trans.common.na}
-                               <br />
-                               <Typography variant="caption" color="text.secondary">
-                                 {item.medicine_id?.license_code || trans.common.na}
-                               </Typography>
+                                {item.medicine_id?.medicine_name || trans.common.na}
+                                <br />
+                                <Typography variant="caption" color="text.secondary">
+                                  {item.medicine_id?.license_code || trans.common.na}
+                                </Typography>
                               </TableCell>
                               <TableCell align="right">{item.quantity || item.min_order_quantity || trans.common.na}</TableCell>
                               <TableCell align="right">{formatCurrency(item.unit_price)}</TableCell>
                               <TableCell align="center">
-                                <Chip 
-                                  label={item.source || trans.representativeManagerImportOrders.details.contractSource} 
-                                  color={item.source === 'ANNEX' ? 'warning' : 'success'} 
-                                  size="small" 
-                                  variant="outlined" 
+                                <Chip
+                                  label={item.source || trans.representativeManagerImportOrders.details.contractSource}
+                                  color={item.source === 'ANNEX' ? 'warning' : 'success'}
+                                  size="small"
+                                  variant="outlined"
                                 />
                               </TableCell>
                             </TableRow>
@@ -855,7 +884,9 @@ const RepresentativeManagerImportOrders = () => {
                         ) : (
                           <TableRow>
                             <TableCell colSpan={4} align="center">
-                              <Typography color="text.secondary">{trans.representativeManagerImportOrders.details.noContractMedicines}</Typography>
+                              <Typography color="text.secondary">
+                                {trans.representativeManagerImportOrders.details.noContractMedicines}
+                              </Typography>
                             </TableCell>
                           </TableRow>
                         )}
@@ -866,14 +897,14 @@ const RepresentativeManagerImportOrders = () => {
               </Grid>
 
               {/* Annexes Information */}
-              {selectedOrderForDetails.contract_id?.annexes?.filter(a => a.status === 'active').length > 0 && (
+              {selectedOrderForDetails.contract_id?.annexes?.filter((a) => a.status === 'active').length > 0 && (
                 <Paper sx={{ p: 2, mt: 3 }}>
                   <Typography variant="h6" gutterBottom>
                     {trans.representativeManagerImportOrders.details.activeAnnexesInfo}
                   </Typography>
                   <Grid container spacing={2}>
                     {selectedOrderForDetails.contract_id.annexes
-                      .filter(annex => annex.status === 'active')
+                      .filter((annex) => annex.status === 'active')
                       .map((annex, index) => (
                         <Grid item xs={12} sm={6} md={4} key={index}>
                           <Box sx={{ p: 1, border: '1px solid #e0e0e0', borderRadius: 1, backgroundColor: '#f8f9fa' }}>
@@ -887,17 +918,20 @@ const RepresentativeManagerImportOrders = () => {
                               <Box sx={{ mt: 1 }}>
                                 {annex.medicine_changes.add_items?.length > 0 && (
                                   <Typography variant="body2" color="success.main">
-                                    + {trans.representativeManagerImportOrders.details.added}: {annex.medicine_changes.add_items.length} {trans.representativeManagerImportOrders.details.medicines}
+                                    + {trans.representativeManagerImportOrders.details.added}: {annex.medicine_changes.add_items.length}{' '}
+                                    {trans.representativeManagerImportOrders.details.medicines}
                                   </Typography>
                                 )}
                                 {annex.medicine_changes.remove_items?.length > 0 && (
                                   <Typography variant="body2" color="error.main">
-                                    - {trans.representativeManagerImportOrders.details.removed}: {annex.medicine_changes.remove_items.length} {trans.representativeManagerImportOrders.details.medicines}
+                                    - {trans.representativeManagerImportOrders.details.removed}:{' '}
+                                    {annex.medicine_changes.remove_items.length} {trans.representativeManagerImportOrders.details.medicines}
                                   </Typography>
                                 )}
                                 {annex.medicine_changes.update_prices?.length > 0 && (
                                   <Typography variant="body2" color="warning.main">
-                                    ~ {trans.representativeManagerImportOrders.details.updated}: {annex.medicine_changes.update_prices.length} {trans.representativeManagerImportOrders.details.prices}
+                                    ~ {trans.representativeManagerImportOrders.details.updated}:{' '}
+                                    {annex.medicine_changes.update_prices.length} {trans.representativeManagerImportOrders.details.prices}
                                   </Typography>
                                 )}
                               </Box>
@@ -908,8 +942,6 @@ const RepresentativeManagerImportOrders = () => {
                   </Grid>
                 </Paper>
               )}
-
-
             </Box>
           )}
         </DialogContent>

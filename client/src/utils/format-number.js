@@ -15,7 +15,7 @@ export function fPercent(number) {
 export function fCurrency(number) {
   return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'VND',
+    currency: 'VND'
   }).format(number);
 }
 
@@ -24,6 +24,6 @@ export function fCurrency(number) {
 export function fShortenNumber(number) {
   return new Intl.NumberFormat('en-US', {
     notation: 'compact',
-    maximumFractionDigits: 1,
+    maximumFractionDigits: 1
   }).format(number);
-} 
+}

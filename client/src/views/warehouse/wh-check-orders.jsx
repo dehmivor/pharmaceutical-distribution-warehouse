@@ -323,7 +323,9 @@ const CheckOrders = () => {
         onPageChange={handlePageChange}
         onRowsPerPageChange={handleRowsPerPageChange}
         labelRowsPerPage={trans.common.rowsPerPage}
-        labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count !== -1 ? count : `${trans.common.moreThan} ${to}`}`}
+        labelDisplayedRows={({ from, to, count }) =>
+          `${from}-${to} ${trans.common.of} ${count !== -1 ? count : `${trans.common.moreThan} ${to}`}`
+        }
       />
 
       <Menu

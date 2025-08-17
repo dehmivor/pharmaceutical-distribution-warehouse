@@ -107,7 +107,7 @@ export const getWarehouseMenu = (trans) => ({
           type: 'item',
           url: '/wh-import-orders',
           icon: 'IconList'
-        } 
+        }
       ]
     },
     {

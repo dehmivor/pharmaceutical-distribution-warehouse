@@ -256,11 +256,15 @@ export default function PurchaseOrderListTab() {
                       <Chip label={getStatusLabel(order.status)} color={getStatusColor(order.status)} size="small" />
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{order.details?.length || 0} {trans.common.items}</Typography>
+                      <Typography variant="body2">
+                        {order.details?.length || 0} {trans.common.items}
+                      </Typography>
                     </TableCell>
                     <TableCell>
                       {' '}
-                      <Typography variant="body2">{order.details?.length || 0} {trans.common.receipts}</Typography>
+                      <Typography variant="body2">
+                        {order.details?.length || 0} {trans.common.receipts}
+                      </Typography>
                     </TableCell>
                     <TableCell align="center">
                       <IconButton size="small" onClick={(e) => handleMenuClick(e, order)}>

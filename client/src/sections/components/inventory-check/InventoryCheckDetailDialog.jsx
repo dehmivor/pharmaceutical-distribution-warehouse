@@ -19,7 +19,7 @@ import {
   MenuItem,
   FormHelperText,
   Alert,
-  Chip,
+  Chip
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -53,14 +53,7 @@ const axiosInstance = axios.create({
   withCredentials: true
 });
 
-const InventoryCheckDetailDialog = ({
-  open,
-  onClose,
-  inventoryCheckOrder,
-  onSuccess,
-  warehouseManagers = [],
-  isViewMode = false
-}) => {
+const InventoryCheckDetailDialog = ({ open, onClose, inventoryCheckOrder, onSuccess, warehouseManagers = [], isViewMode = false }) => {
   const trans = useTrans();
   const [formData, setFormData] = useState({
     warehouse_manager_id: '',
@@ -88,14 +81,14 @@ const InventoryCheckDetailDialog = ({
   }, [open, inventoryCheckOrder]);
 
   const handleChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [field]: value
     }));
 
     // Clear error for this field
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         [field]: ''
       }));
@@ -119,7 +112,7 @@ const InventoryCheckDetailDialog = ({
       today.setHours(0, 0, 0, 0); // Set to start of today
       const checkDate = new Date(formData.inventory_check_date);
       checkDate.setHours(0, 0, 0, 0);
-      
+
       if (checkDate <= today) {
         newErrors.inventory_check_date = trans.common.inventoryCheckDateMustBeAfterToday;
       }
@@ -149,11 +142,9 @@ const InventoryCheckDetailDialog = ({
         notes: formData.notes || undefined
       };
 
-      const response = await axiosInstance.put(
-        `/api/inventory-check-orders/${inventoryCheckOrder._id}`,
-        payload,
-        { headers: getAuthHeaders() }
-      );
+      const response = await axiosInstance.put(`/api/inventory-check-orders/${inventoryCheckOrder._id}`, payload, {
+        headers: getAuthHeaders()
+      });
 
       if (response.data.success) {
         onSuccess();
@@ -163,11 +154,11 @@ const InventoryCheckDetailDialog = ({
       }
     } catch (error) {
       console.error('Error updating inventory check order:', error);
-      
+
       if (error.response?.data?.errors) {
         // Handle validation errors from server
         const serverErrors = {};
-        error.response.data.errors.forEach(err => {
+        error.response.data.errors.forEach((err) => {
           serverErrors[err.path] = err.msg;
         });
         setErrors(serverErrors);
@@ -209,15 +200,15 @@ const InventoryCheckDetailDialog = ({
       <DialogTitle
         sx={{
           background: isViewMode
-            ? "linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)"
-            : "linear-gradient(135deg, #ed6c02 0%, #ff9800 100%)",
-          color: "white",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
+            ? 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)'
+            : 'linear-gradient(135deg, #ed6c02 0%, #ff9800 100%)',
+          color: 'white',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {isViewMode ? <ViewIcon /> : <EditIcon />}
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -228,20 +219,13 @@ const InventoryCheckDetailDialog = ({
             </Typography>
           </Box>
         </Box>
-        <Box sx={{ display: "flex", gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1 }}>
           {isViewMode && !isEditing && inventoryCheckOrder?.status === 'pending' && (
-            <IconButton
-              onClick={() => setIsEditing(true)}
-              sx={{ color: "white" }}
-            >
+            <IconButton onClick={() => setIsEditing(true)} sx={{ color: 'white' }}>
               <EditIcon />
             </IconButton>
           )}
-          <IconButton
-            onClick={handleClose}
-            disabled={loading}
-            sx={{ color: "white" }}
-          >
+          <IconButton onClick={handleClose} disabled={loading} sx={{ color: 'white' }}>
             <CloseIcon />
           </IconButton>
         </Box>
@@ -262,36 +246,34 @@ const InventoryCheckDetailDialog = ({
           </Alert>
         )}
 
-                {/* Card 1: Thông tin chính */}
-        <Card sx={{ mb: 3, border: "1px solid #e0e0e0" }}>
+        {/* Card 1: Thông tin chính */}
+        <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
           <CardContent>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
               <PersonIcon color="primary" /> Thông Tin Chính
             </Typography>
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Box>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
-                    <PersonIcon sx={{ fontSize: 20, color: "text.secondary" }} />
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                    <PersonIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
                       Warehouse Manager
                     </Typography>
                   </Box>
                   {isViewMode && !isEditing ? (
                     <Box
                       sx={{
-                        border: "1px solid #e0e0e0",
+                        border: '1px solid #e0e0e0',
                         borderRadius: 1,
-                        padding: "8px 12px",
-                        backgroundColor: "#fafafa",
+                        padding: '8px 12px',
+                        backgroundColor: '#fafafa',
                         minHeight: 40,
-                        display: "flex",
-                        alignItems: "center",
+                        display: 'flex',
+                        alignItems: 'center'
                       }}
                     >
-                      <Typography variant="body1">
-                        {inventoryCheckOrder?.warehouse_manager_id?.email || 'N/A'}
-                      </Typography>
+                      <Typography variant="body1">{inventoryCheckOrder?.warehouse_manager_id?.email || 'N/A'}</Typography>
                     </Box>
                   ) : (
                     <FormControl fullWidth error={!!errors.warehouse_manager_id}>
@@ -301,7 +283,7 @@ const InventoryCheckDetailDialog = ({
                         disabled={loading}
                         sx={{
                           '& .MuiSelect-select': {
-                            padding: '8px 12px',
+                            padding: '8px 12px'
                           }
                         }}
                       >
@@ -311,9 +293,7 @@ const InventoryCheckDetailDialog = ({
                           </MenuItem>
                         ))}
                       </Select>
-                      {errors.warehouse_manager_id && (
-                        <FormHelperText>{errors.warehouse_manager_id}</FormHelperText>
-                      )}
+                      {errors.warehouse_manager_id && <FormHelperText>{errors.warehouse_manager_id}</FormHelperText>}
                     </FormControl>
                   )}
                 </Box>
@@ -321,22 +301,22 @@ const InventoryCheckDetailDialog = ({
 
               <Grid item xs={12} md={6}>
                 <Box>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
-                    <EventIcon sx={{ fontSize: 20, color: "text.secondary" }} />
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                    <EventIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
                       {trans.common.inventoryCheckDate}
                     </Typography>
                   </Box>
                   {isViewMode && !isEditing ? (
                     <Box
                       sx={{
-                        border: "1px solid #e0e0e0",
+                        border: '1px solid #e0e0e0',
                         borderRadius: 1,
-                        padding: "8px 12px",
-                        backgroundColor: "#fafafa",
+                        padding: '8px 12px',
+                        backgroundColor: '#fafafa',
                         minHeight: 40,
-                        display: "flex",
-                        alignItems: "center",
+                        display: 'flex',
+                        alignItems: 'center'
                       }}
                     >
                       <Typography variant="body1">
@@ -354,12 +334,12 @@ const InventoryCheckDetailDialog = ({
                         slotProps={{
                           textField: {
                             error: !!errors.inventory_check_date,
-                            fullWidth: true,
-                          },
+                            fullWidth: true
+                          }
                         }}
                       />
                       {errors.inventory_check_date && (
-                        <FormHelperText sx={{ color: "error.main" }}>{errors.inventory_check_date}</FormHelperText>
+                        <FormHelperText sx={{ color: 'error.main' }}>{errors.inventory_check_date}</FormHelperText>
                       )}
                     </LocalizationProvider>
                   )}
@@ -370,65 +350,61 @@ const InventoryCheckDetailDialog = ({
         </Card>
 
         {/* Card 2: Thông tin hệ thống */}
-        <Card sx={{ mb: 3, border: "1px solid #e0e0e0" }}>
+        <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
           <CardContent>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
               <InfoIcon color="info" /> Thông Tin Hệ Thống
             </Typography>
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Box>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
-                    <PersonIcon sx={{ fontSize: 20, color: "text.secondary" }} />
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                    <PersonIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
                       Người Tạo
                     </Typography>
                   </Box>
                   <Box
                     sx={{
-                      border: "1px solid #e0e0e0",
+                      border: '1px solid #e0e0e0',
                       borderRadius: 1,
-                      padding: "8px 12px",
-                      backgroundColor: "#fafafa",
+                      padding: '8px 12px',
+                      backgroundColor: '#fafafa',
                       minHeight: 40,
-                      display: "flex",
-                      alignItems: "center",
+                      display: 'flex',
+                      alignItems: 'center'
                     }}
                   >
-                    <Typography variant="body1">
-                      {inventoryCheckOrder?.created_by?.email || 'N/A'}
-                    </Typography>
+                    <Typography variant="body1">{inventoryCheckOrder?.created_by?.email || 'N/A'}</Typography>
                   </Box>
                 </Box>
               </Grid>
 
               <Grid item xs={12} md={6}>
                 <Box>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
                     {/* <Chip 
                       label={inventoryCheckOrder?.status} 
                       size="small" 
                       color={getStatusColor(inventoryCheckOrder?.status)}
                       variant="filled"
                     /> */}
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
                       Trạng Thái
                     </Typography>
                   </Box>
                   <Box
                     sx={{
-                      border: "1px solid #e0e0e0",
+                      border: '1px solid #e0e0e0',
                       borderRadius: 1,
-                      padding: "8px 12px",
-                      backgroundColor: "#fafafa",
+                      padding: '8px 12px',
+                      backgroundColor: '#fafafa',
                       minHeight: 40,
-                      display: "flex",
-                      alignItems: "center",
+                      display: 'flex',
+                      alignItems: 'center'
                     }}
                   >
-                    <Typography variant="body1">
-                      {inventoryCheckOrder?.status || 'N/A'}
-                    </Typography>
+                    <Typography variant="body1">{inventoryCheckOrder?.status || 'N/A'}</Typography>
                   </Box>
                 </Box>
               </Grid>
@@ -437,24 +413,22 @@ const InventoryCheckDetailDialog = ({
         </Card>
 
         {/* Card 3: Ghi chú */}
-        <Card sx={{ mb: 3, border: "1px solid #e0e0e0" }}>
+        <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
           <CardContent>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
               <NoteIcon color="secondary" /> Ghi Chú
             </Typography>
             {isViewMode && !isEditing ? (
               <Box
                 sx={{
-                  border: "1px solid #e0e0e0",
+                  border: '1px solid #e0e0e0',
                   borderRadius: 1,
-                  padding: "12px",
-                  backgroundColor: "#fafafa",
-                  minHeight: 60,
+                  padding: '12px',
+                  backgroundColor: '#fafafa',
+                  minHeight: 60
                 }}
               >
-                <Typography variant="body1">
-                  {inventoryCheckOrder?.notes || 'Không có ghi chú'}
-                </Typography>
+                <Typography variant="body1">{inventoryCheckOrder?.notes || 'Không có ghi chú'}</Typography>
               </Box>
             ) : (
               <TextField
@@ -469,7 +443,7 @@ const InventoryCheckDetailDialog = ({
                 placeholder="Nhập ghi chú về phiếu kiểm kê..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    backgroundColor: '#fafafa',
+                    backgroundColor: '#fafafa'
                   }
                 }}
               />
@@ -534,4 +508,4 @@ const InventoryCheckDetailDialog = ({
   );
 };
 
-export default InventoryCheckDetailDialog; 
+export default InventoryCheckDetailDialog;

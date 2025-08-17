@@ -65,7 +65,7 @@ export default {
     confirmDelete: 'Are you sure you want to delete this item?',
     saveSuccess: 'Data saved successfully',
     deleteSuccess: 'Item deleted successfully',
-    welcomeBack: 'Welcome back! Select the method of login.',
+    welcomeBack: 'Welcome back! Login to continue working.',
     signUpFree: 'Sign Up for free. No credit card required.',
     alreadyHaveAccount: 'Already have an account?',
     needHelp: 'Need help?',
@@ -989,7 +989,7 @@ export default {
     expiredBatch: 'Expired Batch',
     recall: 'Recall',
     newEntry: 'New Entry',
-    filter: 'Filter', 
+    filter: 'Filter',
     info: 'Info',
     startDate: 'Start Date',
     endDate: 'End Date',
@@ -1233,7 +1233,7 @@ export default {
     saving: 'Saving...',
     updateOrder: 'Update Order',
     createOrder: 'Create Order',
-      // Import Order List
+    // Import Order List
     importOrderList: 'Import Order List',
     importReceiptList: 'Import Receipt List',
     orderNumber: 'Order Number',
@@ -2168,7 +2168,8 @@ export default {
 
   // Inventory Check Orders
   listOfInventoryCheckOrders: 'List of Inventory Check Orders',
-  manageAndTrackInventoryCheckOrders: 'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.',
+  manageAndTrackInventoryCheckOrders:
+    'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.',
   errorLoadingInventoryCheckOrders: 'Error loading inventory check orders',
   search: 'Search',
   checkDate: 'Check Date',
@@ -2448,15 +2449,18 @@ export default {
     destructionOrderCreated: 'Destruction order created successfully (approved)!',
     cannotCreateDestructionOrder: 'Cannot create destruction order',
     scanPackageFeature: 'Scan Package Feature',
-    scanPackageFeatureDescription: 'Barcode/QR code scanning functionality will be implemented in the next version. This package has been automatically selected for now.',
+    scanPackageFeatureDescription:
+      'Barcode/QR code scanning functionality will be implemented in the next version. This package has been automatically selected for now.',
     scanPackageForLine: 'Scan Package',
-    scanPackageForLineDescription: 'Barcode/QR code scanning functionality will be implemented in the next version.\n\nWhen scanning, the system will automatically:\n1. Find the package in the list\n2. Jump down and highlight that package\n3. Automatically select the package and open the destroy quantity input\n\nFor now, you can manually select packages using the "Select" button.',
+    scanPackageForLineDescription:
+      'Barcode/QR code scanning functionality will be implemented in the next version.\n\nWhen scanning, the system will automatically:\n1. Find the package in the list\n2. Jump down and highlight that package\n3. Automatically select the package and open the destroy quantity input\n\nFor now, you can manually select packages using the "Select" button.',
     confirmContinue: 'Confirm Continue',
     confirmContinueDescription: 'Some items have not reached the required quantity. Do you want to continue updating?',
     continue: 'Continue',
     cancel: 'Cancel',
     confirmComplete: 'Confirm Complete',
-    confirmCompleteDescription: 'Are you sure you want to complete this order? Package quantities will be updated and location changes will be recorded.',
+    confirmCompleteDescription:
+      'Are you sure you want to complete this order? Package quantities will be updated and location changes will be recorded.',
     complete: 'Complete',
     confirmCancel: 'Confirm Cancel',
     confirmCancelDescription: 'Are you sure you want to cancel this order?',
@@ -2607,7 +2611,8 @@ export default {
     deleteItemSuccess: 'Check item has been deleted successfully',
     deleteItemError: 'Cannot delete check item',
     deleteItemErrorGeneral: 'Error occurred while deleting check item',
-    validationError: 'Cannot complete order: Some packages with "over_expected" status do not have corresponding "under_expected" packages.',
+    validationError:
+      'Cannot complete order: Some packages with "over_expected" status do not have corresponding "under_expected" packages.',
     failedToLoadOrder: 'Failed to load order',
     failedToLoadInspections: 'Failed to load inspections',
     // Status colors
@@ -2982,10 +2987,14 @@ export default {
     warehouseStaff: 'Warehouse Staff',
     warehouseManagers: 'Warehouse Managers',
     // Section Descriptions
-    supervisorDescription: 'Manage supervisor accounts and their permissions. Supervisors have elevated access to oversee operations and manage team members.',
-    representativeManagerDescription: 'Customer service representatives managers handle client interactions and support requests. They serve as the primary point of contact for customers.',
-    representativeDescription: 'Customer service representatives handle client interactions and support requests. They serve as the primary point of contact for customers.',
-    warehouseStaffDescription: 'Warehouse staff manage inventory, fulfillment, and logistics operations. They ensure accurate order processing and inventory management.',
+    supervisorDescription:
+      'Manage supervisor accounts and their permissions. Supervisors have elevated access to oversee operations and manage team members.',
+    representativeManagerDescription:
+      'Customer service representatives managers handle client interactions and support requests. They serve as the primary point of contact for customers.',
+    representativeDescription:
+      'Customer service representatives handle client interactions and support requests. They serve as the primary point of contact for customers.',
+    warehouseStaffDescription:
+      'Warehouse staff manage inventory, fulfillment, and logistics operations. They ensure accurate order processing and inventory management.',
     warehouseManagerDescription: 'Warehouse managers oversee warehouse operations and ensure efficient inventory management.',
     // Statistics Cards
     totalUsers: 'Total Users',

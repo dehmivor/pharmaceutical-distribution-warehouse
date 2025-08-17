@@ -23,7 +23,7 @@ import useTrans from '@/hooks/useTrans';
 
 function InventoryCheck({ orderItems, onCheckComplete }) {
   const trans = useTrans();
-  
+
   const [checkedItems, setCheckedItems] = useState(
     orderItems.map((item) => ({
       ...item,

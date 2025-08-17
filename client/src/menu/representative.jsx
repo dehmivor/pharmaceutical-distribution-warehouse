@@ -19,7 +19,7 @@ const representative = {
       url: '/rp-manage-contracts',
       icon: 'IconFileInvoice'
     },
-    
+
     {
       id: 'rp-import-orders',
       title: 'Manage Import Orders',
@@ -41,7 +41,6 @@ const representative = {
       url: '/rp-medicine-performance',
       icon: 'IconChartHistogram'
     }
-   
   ]
 };
 
@@ -66,7 +65,7 @@ export const getRepresentativeMenu = (trans) => ({
       url: '/rp-manage-contracts',
       icon: 'IconFileInvoice'
     },
-    
+
     {
       id: 'rp-import-orders',
       title: trans?.common?.manageImportOrders || 'Manage Import Orders',
@@ -81,7 +80,6 @@ export const getRepresentativeMenu = (trans) => ({
       url: '/rp-export-orders',
       icon: 'IconFileExport'
     }
-   
   ]
 });
 

@@ -24,16 +24,17 @@ export default function RepresentativeMonthlyChart({ data }) {
   const averageOrders = data?.length ? Math.round(totalOrders / data.length) : 0;
 
   // Prepare chart data with Date objects
-  const chartData = data?.map(item => {
-    const [year, month] = item.month.split('-').map(Number);
-    const date = new Date(year, month - 1, 1);
-    
-    return {
-      date: date,
-      'Orders': Number(item.count || 0),
-      'Value': Number(item.value || 0)
-    };
-  }) || [];
+  const chartData =
+    data?.map((item) => {
+      const [year, month] = item.month.split('-').map(Number);
+      const date = new Date(year, month - 1, 1);
+
+      return {
+        date: date,
+        Orders: Number(item.count || 0),
+        Value: Number(item.value || 0)
+      };
+    }) || [];
 
   // If no data or invalid data, show placeholder
   if (!data || !Array.isArray(data) || chartData.length === 0) {
@@ -48,19 +49,15 @@ export default function RepresentativeMonthlyChart({ data }) {
             </Typography>
           </Box>
         </Box>
-        
+
         <Box sx={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Box sx={{ textAlign: 'center' }}>
             <IconPackage size={48} color={theme.palette.primary.main} />
-            <Typography sx={{ mt: 2, color: 'text.secondary' }}>
-              No data available for chart
-            </Typography>
+            <Typography sx={{ mt: 2, color: 'text.secondary' }}>No data available for chart</Typography>
             <Typography sx={{ fontSize: '14px', color: 'text.secondary', mt: 1 }}>
               Total: {totalOrders} orders ({fCurrency(totalValue)})
             </Typography>
-            <Typography sx={{ fontSize: '14px', color: 'text.secondary' }}>
-              Average: {averageOrders} orders/month
-            </Typography>
+            <Typography sx={{ fontSize: '14px', color: 'text.secondary' }}>Average: {averageOrders} orders/month</Typography>
           </Box>
         </Box>
       </MainCard>
@@ -78,31 +75,33 @@ export default function RepresentativeMonthlyChart({ data }) {
           </Typography>
         </Box>
       </Box>
-      
+
       <Box sx={{ height: '300px', width: '100%' }}>
-                           <LineChart
-                     dataset={chartData.length > 0 ? chartData : [{ date: new Date(), 'Orders': 0 }]}
-                     xAxis={[{ 
-                       dataKey: 'date', 
-                       scaleType: 'point',
-                       valueFormatter: (date) => date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-                     }]}
-                     series={[
-                       { 
-                         dataKey: 'Orders', 
-                         color: theme.palette.primary.main,
-                         area: true,
-                         areaOpacity: 0.3,
-                         curve: 'linear'
-                       }
-                     ]}
-                     height={300}
-                     margin={{ top: 20, bottom: 40, left: 50, right: 20 }}
-                     grid={{ horizontal: true }}
-                     slotProps={{ legend: { hidden: true } }}
-                   />
+        <LineChart
+          dataset={chartData.length > 0 ? chartData : [{ date: new Date(), Orders: 0 }]}
+          xAxis={[
+            {
+              dataKey: 'date',
+              scaleType: 'point',
+              valueFormatter: (date) => date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+            }
+          ]}
+          series={[
+            {
+              dataKey: 'Orders',
+              color: theme.palette.primary.main,
+              area: true,
+              areaOpacity: 0.3,
+              curve: 'linear'
+            }
+          ]}
+          height={300}
+          margin={{ top: 20, bottom: 40, left: 50, right: 20 }}
+          grid={{ horizontal: true }}
+          slotProps={{ legend: { hidden: true } }}
+        />
       </Box>
-      
+
       <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
         <Box>
           <Typography variant="h6" color="primary.main">
@@ -134,9 +133,11 @@ export default function RepresentativeMonthlyChart({ data }) {
 }
 
 RepresentativeMonthlyChart.propTypes = {
-  data: PropTypes.arrayOf(PropTypes.shape({
-    month: PropTypes.string,
-    count: PropTypes.number,
-    value: PropTypes.number
-  }))
-}; 
+  data: PropTypes.arrayOf(
+    PropTypes.shape({
+      month: PropTypes.string,
+      count: PropTypes.number,
+      value: PropTypes.number
+    })
+  )
+};

@@ -6,7 +6,7 @@ import useTrans from '@/hooks/useTrans';
 
 function OrderStatus({ orderId, status, onStatusChange }) {
   const trans = useTrans();
-  
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending':

@@ -4,4 +4,4 @@ function LocationManagementPage() {
   return <LocationManagement />;
 }
 
-export default LocationManagementPage; 
+export default LocationManagementPage;

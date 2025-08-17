@@ -11,20 +11,20 @@ import useTrans from '@/hooks/useTrans';
 
 export default function ResponsiveDrawer() {
   const trans = useTrans();
-  
+
   // Get the representative manager menu and apply translations
   const representativeManagerMenu = menuItems.representativeManager[0]; // Get the first (and only) item
-  
+
   // Create translated menu items
   const translatedMenu = {
     ...representativeManagerMenu,
     title: trans?.common?.representativeManager || representativeManagerMenu.title,
-    children: representativeManagerMenu.children.map(child => ({
+    children: representativeManagerMenu.children.map((child) => ({
       ...child,
       title: trans?.common?.[getTranslationKey(child.id)] || child.title
     }))
   };
-  
+
   const navGroups = [translatedMenu].map((item, index) => {
     switch (item.type) {
       case 'group':
@@ -44,7 +44,7 @@ export default function ResponsiveDrawer() {
 // Helper function to map menu IDs to translation keys
 function getTranslationKey(menuId) {
   const translationMap = {
-    'dashboard': 'representativeManagerDashboard',
+    dashboard: 'representativeManagerDashboard',
     'manage-import-orders-approval': 'importOrdersApproval',
     'manage-export-orders-approval': 'exportOrdersApproval',
     'rm-manage-contracts': 'manageContracts',

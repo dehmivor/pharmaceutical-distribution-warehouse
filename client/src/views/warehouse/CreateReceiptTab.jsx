@@ -127,9 +127,13 @@ export default function CreateReceiptTab() {
             {trans.common.creatingReceiptForOrder}: <strong>{orderData.orderCode}</strong>
           </Typography>
           <Typography variant="body2">
-            {trans.common.supplier}: {orderData.supplier} | {trans.common.numberOfProducts}: {orderData.items?.length || 0} | {trans.common.totalAmount}:{' '}
-            {orderData.totalAmount?.toLocaleString('vi-VN')} ₫ | {trans.common.status}:{' '}
-            {orderData.status === 'approved' ? trans.common.approved : orderData.status === 'delivered' ? trans.common.delivered : orderData.status}
+            {trans.common.supplier}: {orderData.supplier} | {trans.common.numberOfProducts}: {orderData.items?.length || 0} |{' '}
+            {trans.common.totalAmount}: {orderData.totalAmount?.toLocaleString('vi-VN')} ₫ | {trans.common.status}:{' '}
+            {orderData.status === 'approved'
+              ? trans.common.approved
+              : orderData.status === 'delivered'
+                ? trans.common.delivered
+                : orderData.status}
           </Typography>
           {orderData.contractInfo?.contractCode && (
             <Typography variant="body2" sx={{ mt: 1 }}>

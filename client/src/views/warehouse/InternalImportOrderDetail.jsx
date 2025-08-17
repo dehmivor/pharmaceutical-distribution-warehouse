@@ -229,7 +229,7 @@ function InternalImportOrderDetailWH() {
       const orderIdStr = order._id;
       const supplierName = trans.common.internalOrder;
       const med = pkg.batch_id?.medicine_id;
-              const medicineLabel = med ? `${med.medicine_name} (${med.license_code})` : trans.common.unknownMedicine;
+      const medicineLabel = med ? `${med.medicine_name} (${med.license_code})` : trans.common.unknownMedicine;
 
       const canvas = document.createElement('canvas');
       await bwipjs.toCanvas(canvas, {
@@ -283,7 +283,7 @@ function InternalImportOrderDetailWH() {
         setTimeout(() => document.body.removeChild(iframe), 0);
       };
     } catch (err) {
-              console.error(trans.common.errorPrintingLabel, err);
+      console.error(trans.common.errorPrintingLabel, err);
       setError(trans.common.cannotPrintLabel);
     }
   };
@@ -483,7 +483,11 @@ function InternalImportOrderDetailWH() {
 
               <FormControl fullWidth>
                 <InputLabel>{trans.common.area}</InputLabel>
-                <Select value={locForm.area_id || ''} label={trans.common.area} onChange={(e) => setLocForm({ ...locForm, area_id: e.target.value })}>
+                <Select
+                  value={locForm.area_id || ''}
+                  label={trans.common.area}
+                  onChange={(e) => setLocForm({ ...locForm, area_id: e.target.value })}
+                >
                   {Array.isArray(areas) &&
                     areas.map((a) => (
                       <MenuItem key={a._id} value={a._id}>

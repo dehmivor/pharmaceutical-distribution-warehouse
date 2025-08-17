@@ -66,14 +66,14 @@ const ANNEX_ACTIONS = {
   ADD: 'add',
   REMOVE: 'remove',
   UPDATE_PRICE: 'update_price',
-  UPDATE_END_DATE: 'update_end_date',
+  UPDATE_END_DATE: 'update_end_date'
 };
 
 const getAnnexActionLabels = (trans) => ({
   [ANNEX_ACTIONS.ADD]: trans.common.addNewMedicine,
   [ANNEX_ACTIONS.REMOVE]: trans.common.removeMedicine,
   [ANNEX_ACTIONS.UPDATE_PRICE]: trans.common.updateMedicinePrice,
-  [ANNEX_ACTIONS.UPDATE_END_DATE]: trans.common.updateContractEndDate,
+  [ANNEX_ACTIONS.UPDATE_END_DATE]: trans.common.updateContractEndDate
 });
 
 const InfoField = ({ label, value, icon: Icon, onChange, disabled = false, error = false, helperText = '' }) => (
@@ -93,7 +93,7 @@ const InfoField = ({ label, value, icon: Icon, onChange, disabled = false, error
         minHeight: 40,
         display: 'flex',
         alignItems: 'center',
-        borderColor: error ? 'red' : '#e0e0e0',
+        borderColor: error ? 'red' : '#e0e0e0'
       }}
     >
       <TextField
@@ -105,8 +105,8 @@ const InfoField = ({ label, value, icon: Icon, onChange, disabled = false, error
         error={error}
         sx={{
           '& .MuiInputBase-input': {
-            color: disabled ? 'text.disabled' : 'text.primary',
-          },
+            color: disabled ? 'text.disabled' : 'text.primary'
+          }
         }}
       />
     </Box>
@@ -204,7 +204,7 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
       ...prev,
       [name]: value,
       ...(name === 'partner_type' && { partner_id: '' }),
-      ...(name === 'contract_type' && { 
+      ...(name === 'contract_type' && {
         items: [{ medicine_id: '', quantity: '', unit_price: '' }],
         annexes: []
       })
@@ -399,7 +399,7 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
     }
 
     if (!formData.partner_id) {
-              errors.partner_id = trans.contractAdd.validation.partnerRequired;
+      errors.partner_id = trans.contractAdd.validation.partnerRequired;
     }
 
     if (!formData.start_date) {
@@ -547,7 +547,7 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
         ...formData,
         start_date: formData.start_date.toISOString(),
         end_date: formData.end_date.toISOString(),
-        items: formData.items.map(item => ({
+        items: formData.items.map((item) => ({
           medicine_id: item.medicine_id,
           ...(isEconomic && { quantity: parseInt(item.quantity) }),
           unit_price: parseFloat(item.unit_price)
@@ -558,23 +558,28 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
             signed_date: annex.signed_date ? annex.signed_date.toISOString() : null,
             description: annex.description,
             medicine_changes: {
-              add_items: annex.medicine_changes?.add_items?.map(item => ({
-                medicine_id: item.medicine_id,
-                unit_price: parseFloat(item.unit_price)
-              })) || [],
-              remove_items: annex.medicine_changes?.remove_items?.map(item => ({
-                medicine_id: item.medicine_id
-              })) || [],
-              update_prices: annex.medicine_changes?.update_prices?.map(item => ({
-                medicine_id: item.medicine_id,
-                unit_price: parseFloat(item.unit_price)
-              })) || []
+              add_items:
+                annex.medicine_changes?.add_items?.map((item) => ({
+                  medicine_id: item.medicine_id,
+                  unit_price: parseFloat(item.unit_price)
+                })) || [],
+              remove_items:
+                annex.medicine_changes?.remove_items?.map((item) => ({
+                  medicine_id: item.medicine_id
+                })) || [],
+              update_prices:
+                annex.medicine_changes?.update_prices?.map((item) => ({
+                  medicine_id: item.medicine_id,
+                  unit_price: parseFloat(item.unit_price)
+                })) || []
             },
-            end_date_change: annex.end_date_change?.new_end_date ? {
-              new_end_date: annex.end_date_change.new_end_date.toISOString()
-            } : null
-          })),
-        }),
+            end_date_change: annex.end_date_change?.new_end_date
+              ? {
+                  new_end_date: annex.end_date_change.new_end_date.toISOString()
+                }
+              : null
+          }))
+        })
       };
 
       const result = await trigger(payload);
@@ -599,10 +604,10 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
   const isPrincipal = formData.contract_type === 'principal';
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="lg" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
       fullWidth
       PaperProps={{
         sx: {
@@ -611,13 +616,15 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
         }
       }}
     >
-      <DialogTitle sx={{ 
-        background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
-        color: 'white',
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-      }}>
+      <DialogTitle
+        sx={{
+          background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
+          color: 'white',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <ContractIcon />
           <Box>
@@ -646,9 +653,9 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
         {/* Card 1: General Information */}
         <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
           <CardContent>
-                          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ContractIcon color="primary" /> {trans.contractAdd.generalInfo}
-              </Typography>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ContractIcon color="primary" /> {trans.contractAdd.generalInfo}
+            </Typography>
             <Grid container spacing={3}>
               <Grid item xs={12} md={4}>
                 <InfoField
@@ -677,7 +684,7 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                       backgroundColor: '#fafafa',
                       minHeight: 40,
                       display: 'flex',
-                      alignItems: 'center',
+                      alignItems: 'center'
                     }}
                   >
                     <FormControl fullWidth>
@@ -692,7 +699,7 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                           '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
                           '& .MuiInput-underline:before': { borderBottom: 'none' },
                           '& .MuiInput-underline:after': { borderBottom: 'none' },
-                          '& .MuiInput-underline:hover:not(.Mui-disabled):before': { borderBottom: 'none' },
+                          '& .MuiInput-underline:hover:not(.Mui-disabled):before': { borderBottom: 'none' }
                         }}
                       >
                         <MenuItem value="economic">
@@ -729,20 +736,20 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                       display: 'flex',
                       alignItems: 'center',
                       width: '100%',
-                      minWidth: 200,
+                      minWidth: 200
                     }}
                   >
                     <Autocomplete
                       options={[
                         { value: 'Supplier', label: trans.contractAdd.supplier },
-                        { value: 'Retailer', label: trans.contractAdd.retailer },
+                        { value: 'Retailer', label: trans.contractAdd.retailer }
                       ]}
                       getOptionLabel={(option) => option.label || ''}
                       value={
                         formData.partner_type
                           ? [
                               { value: 'Supplier', label: trans.contractAdd.supplier },
-                              { value: 'Retailer', label: trans.contractAdd.retailer },
+                              { value: 'Retailer', label: trans.contractAdd.retailer }
                             ].find((opt) => opt.value === formData.partner_type)
                           : { value: 'Supplier', label: trans.contractAdd.supplier }
                       }
@@ -750,7 +757,7 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                         setFormData((prev) => ({
                           ...prev,
                           partner_type: newValue ? newValue.value : 'Supplier',
-                          partner_id: '',
+                          partner_id: ''
                         }));
                       }}
                       renderInput={(params) => (
@@ -760,7 +767,7 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                           placeholder={trans.contractAdd.selectPartner}
                           InputProps={{
                             ...params.InputProps,
-                            disableUnderline: true,
+                            disableUnderline: true
                           }}
                           sx={{ width: '100%' }}
                         />
@@ -794,17 +801,17 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                       alignItems: 'center',
                       width: '100%',
                       minWidth: 250,
-                      borderColor: !!errorValidate.partner_id ? 'red' : '#e0e0e0',
+                      borderColor: !!errorValidate.partner_id ? 'red' : '#e0e0e0'
                     }}
                   >
                     <Autocomplete
                       options={getPartners()}
                       getOptionLabel={(option) => option.name || ''}
-                      value={getPartners().find(p => p._id === formData.partner_id) || null}
+                      value={getPartners().find((p) => p._id === formData.partner_id) || null}
                       onChange={(_, newValue) => {
                         setFormData((prev) => ({
                           ...prev,
-                          partner_id: newValue ? newValue._id : '',
+                          partner_id: newValue ? newValue._id : ''
                         }));
                         setErrorValidate((prev) => ({ ...prev, partner_id: '' }));
                       }}
@@ -812,12 +819,14 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                         <TextField
                           {...params}
                           variant="standard"
-                          placeholder={formData.partner_type === 'Supplier' ? trans.contractAdd.selectSupplier : trans.contractAdd.selectRetailer}
+                          placeholder={
+                            formData.partner_type === 'Supplier' ? trans.contractAdd.selectSupplier : trans.contractAdd.selectRetailer
+                          }
                           error={!!errorValidate.partner_id}
                           helperText={errorValidate.partner_id}
                           InputProps={{
                             ...params.InputProps,
-                            disableUnderline: true,
+                            disableUnderline: true
                           }}
                           sx={{ width: '100%' }}
                         />
@@ -844,21 +853,19 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth error={!!errorValidate.start_date}>
-                                          <DatePicker
-                        label={trans.contractAdd.startDate}
-                        value={formData.start_date}
-                        onChange={handleDateChange('start_date')}
-                        format="dd/MM/yyyy"
-                        slotProps={{
-                          textField: {
-                            error: !!errorValidate.start_date,
-                            fullWidth: true,
-                          },
-                        }}
-                      />
-                    {errorValidate.start_date && (
-                      <FormHelperText sx={{ color: 'error.main' }}>{errorValidate.start_date}</FormHelperText>
-                    )}
+                    <DatePicker
+                      label={trans.contractAdd.startDate}
+                      value={formData.start_date}
+                      onChange={handleDateChange('start_date')}
+                      format="dd/MM/yyyy"
+                      slotProps={{
+                        textField: {
+                          error: !!errorValidate.start_date,
+                          fullWidth: true
+                        }
+                      }}
+                    />
+                    {errorValidate.start_date && <FormHelperText sx={{ color: 'error.main' }}>{errorValidate.start_date}</FormHelperText>}
                   </FormControl>
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -871,13 +878,11 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                       slotProps={{
                         textField: {
                           error: !!errorValidate.end_date,
-                          fullWidth: true,
-                        },
+                          fullWidth: true
+                        }
                       }}
                     />
-                    {errorValidate.end_date && (
-                      <FormHelperText sx={{ color: 'error.main' }}>{errorValidate.end_date}</FormHelperText>
-                    )}
+                    {errorValidate.end_date && <FormHelperText sx={{ color: 'error.main' }}>{errorValidate.end_date}</FormHelperText>}
                   </FormControl>
                 </Grid>
               </Grid>
@@ -891,18 +896,13 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <InventoryIcon color="secondary" /> {trans.contractAdd.medicineList}
-                <Chip 
-                  label={getContractTypeLabel(formData.contract_type)} 
+                <Chip
+                  label={getContractTypeLabel(formData.contract_type)}
                   color={formData.contract_type === 'economic' ? 'primary' : 'secondary'}
                   size="small"
                 />
               </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={addItem}
-                size="small"
-              >
+              <Button variant="outlined" startIcon={<AddIcon />} onClick={addItem} size="small">
                 {trans.contractAdd.addMedicine}
               </Button>
             </Box>
@@ -914,12 +914,7 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                     {trans.contractAdd.medicine} #{index + 1}
                   </Typography>
                   {formData.items.length > 1 && (
-                    <Button 
-                      size="small" 
-                      color="error" 
-                      onClick={() => removeItem(index)} 
-                      sx={{ textTransform: 'none' }}
-                    >
+                    <Button size="small" color="error" onClick={() => removeItem(index)} sx={{ textTransform: 'none' }}>
                       {trans.contractAdd.actions.delete}
                     </Button>
                   )}
@@ -945,11 +940,9 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                           width: '100%',
                           minWidth: 200,
                           borderColor:
-                            errorValidate.items &&
-                            Array.isArray(errorValidate.items) &&
-                            errorValidate.items[index]?.medicine_id
+                            errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.medicine_id
                               ? 'red'
-                              : '#e0e0e0',
+                              : '#e0e0e0'
                         }}
                       >
                         <Autocomplete
@@ -965,23 +958,17 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                               variant="standard"
                               placeholder={trans.contractAdd.selectMedicine}
                               error={
-                                !!(
-                                  errorValidate.items &&
-                                  Array.isArray(errorValidate.items) &&
-                                  errorValidate.items[index]?.medicine_id
-                                )
+                                !!(errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.medicine_id)
                               }
                               InputProps={{
                                 ...params.InputProps,
-                                disableUnderline: true,
+                                disableUnderline: true
                               }}
                               sx={{ width: '100%' }}
                             />
                           )}
                           filterOptions={(options, { inputValue }) =>
-                            options.filter((option) =>
-                              `${option.license_code}`.toLowerCase().includes(inputValue.toLowerCase()),
-                            )
+                            options.filter((option) => `${option.license_code}`.toLowerCase().includes(inputValue.toLowerCase()))
                           }
                           sx={{ width: '100%' }}
                         />
@@ -998,9 +985,9 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                     <Grid item xs={12} sm={6} md={3}>
                       <Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-                                                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                          {trans.contractAdd.quantity}
-                        </Typography>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                            {trans.contractAdd.quantity}
+                          </Typography>
                         </Box>
                         <Box
                           sx={{
@@ -1012,11 +999,9 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                             display: 'flex',
                             alignItems: 'center',
                             borderColor:
-                              errorValidate.items &&
-                              Array.isArray(errorValidate.items) &&
-                              errorValidate.items[index]?.quantity
+                              errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.quantity
                                 ? 'red'
-                                : '#e0e0e0',
+                                : '#e0e0e0'
                           }}
                         >
                           <TextField
@@ -1027,15 +1012,9 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                             placeholder={trans.contractAdd.enterQuantity}
                             type="number"
                             inputProps={{ min: 1 }}
-                            error={
-                              !!(
-                                errorValidate.items &&
-                                Array.isArray(errorValidate.items) &&
-                                errorValidate.items[index]?.quantity
-                              )
-                            }
+                            error={!!(errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.quantity)}
                             InputProps={{
-                              disableUnderline: true,
+                              disableUnderline: true
                             }}
                           />
                         </Box>
@@ -1051,9 +1030,9 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                   <Grid item xs={12} sm={6} md={isEconomic ? 3 : 6}>
                     <Box>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-                                                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                            {trans.contractAdd.unitPrice}
-                          </Typography>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                          {trans.contractAdd.unitPrice}
+                        </Typography>
                       </Box>
                       <Box
                         sx={{
@@ -1065,11 +1044,9 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                           display: 'flex',
                           alignItems: 'center',
                           borderColor:
-                            errorValidate.items &&
-                            Array.isArray(errorValidate.items) &&
-                            errorValidate.items[index]?.unit_price
+                            errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.unit_price
                               ? 'red'
-                              : '#e0e0e0',
+                              : '#e0e0e0'
                         }}
                       >
                         <TextField
@@ -1080,15 +1057,9 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                           placeholder={trans.contractAdd.enterUnitPrice}
                           type="number"
                           inputProps={{ min: 0, step: 0.01 }}
-                          error={
-                            !!(
-                              errorValidate.items &&
-                              Array.isArray(errorValidate.items) &&
-                              errorValidate.items[index]?.unit_price
-                            )
-                          }
+                          error={!!(errorValidate.items && Array.isArray(errorValidate.items) && errorValidate.items[index]?.unit_price)}
                           InputProps={{
-                            disableUnderline: true,
+                            disableUnderline: true
                           }}
                         />
                       </Box>
@@ -1112,19 +1083,9 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <DescriptionIcon color="secondary" /> {trans.contractAdd.annexes}
-                  <Chip 
-                    label={trans.common.principalContract} 
-                    color="secondary"
-                    size="small"
-                  />
+                  <Chip label={trans.common.principalContract} color="secondary" size="small" />
                 </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={addAnnex}
-                  size="small"
-                  color="secondary"
-                >
+                <Button variant="outlined" startIcon={<AddIcon />} onClick={addAnnex} size="small" color="secondary">
                   {trans.contractAdd.addAnnex}
                 </Button>
               </Box>
@@ -1133,329 +1094,378 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
                 {trans.contractAdd.annexDescription}
               </Typography>
 
-              {formData.annexes && formData.annexes.map((annex, index) => (
-                <Box key={index} sx={{ mb: 3, p: 2, border: '1px dashed #ccc', borderRadius: 2, bgcolor: 'grey.50' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'secondary.main' }}>
-                      {trans.contractAdd.annex} #{index + 1}
-                    </Typography>
-                    <Button 
-                      size="small" 
-                      color="error" 
-                      onClick={() => removeAnnex(index)} 
-                      sx={{ textTransform: 'none' }}
-                    >
-                      {trans.contractAdd.actions.delete}
-                    </Button>
-                  </Box>
-
-                  {/* Row 1: Annex Code + Description */}
-                  <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={12} md={6}>
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-                                                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                          {trans.contractAdd.annexCode}
-                        </Typography>
-                        </Box>
-                        <TextField
-                          fullWidth
-                          value={annex.annex_code || ''}
-                          onChange={(e) => handleAnnexChange(index, 'annex_code', e.target.value)}
-                          variant="outlined"
-                          size="small"
-                          placeholder={trans.contractAdd.enterAnnexCode}
-                          error={!!(errorValidate.annexes && errorValidate.annexes[index]?.annex_code)}
-                          helperText={errorValidate.annexes && errorValidate.annexes[index]?.annex_code}
-                        />
-                      </Box>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-                                                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                          {trans.contractAdd.description}
-                        </Typography>
-                        </Box>
-                        <TextField
-                          fullWidth
-                          value={annex.description || ''}
-                          onChange={(e) => handleAnnexChange(index, 'description', e.target.value)}
-                          variant="outlined"
-                          size="small"
-                          placeholder={trans.contractAdd.enterDescription}
-                        />
-                      </Box>
-                    </Grid>
-                  </Grid>
-
-                  {/* Row 2: Signed Date + Update End Date */}
-                  <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={12} md={6}>
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-                                                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                          {trans.contractAdd.signedDate}
-                        </Typography>
-                        </Box>
-                        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
-                          <DatePicker
-                            value={annex.signed_date || null}
-                            onChange={(date) => handleAnnexChange(index, 'signed_date', date)}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                variant="outlined"
-                                size="small"
-                                fullWidth
-                                placeholder={trans.contractAdd.selectSignedDate}
-                                error={!!(errorValidate.annexes && errorValidate.annexes[index]?.signed_date)}
-                                helperText={errorValidate.annexes && errorValidate.annexes[index]?.signed_date}
-                              />
-                            )}
-                          />
-                        </LocalizationProvider>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
-                                                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                          {trans.contractAdd.updateEndDate}
-                        </Typography>
-                        </Box>
-                        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
-                          <DatePicker
-                            value={annex.end_date_change?.new_end_date || null}
-                            onChange={(date) => handleAnnexEndDateChange(index, date)}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                variant="outlined"
-                                size="small"
-                                fullWidth
-                                placeholder={trans.contractAdd.selectNewEndDate}
-                              />
-                            )}
-                          />
-                        </LocalizationProvider>
-                      </Box>
-                    </Grid>
-                  </Grid>
-
-                  {/* Row 3: Add New Medicine */}
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                      {trans.contractAdd.addNewMedicine}
-                    </Typography>
-                      <Button
-                        variant="outlined"
-                        startIcon={<AddIcon />}
-                        onClick={() => addAnnexAddItem(index)}
-                        size="small"
-                        color="secondary"
-                      >
-                        {trans.contractAdd.addMedicineToAnnex}
+              {formData.annexes &&
+                formData.annexes.map((annex, index) => (
+                  <Box key={index} sx={{ mb: 3, p: 2, border: '1px dashed #ccc', borderRadius: 2, bgcolor: 'grey.50' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'secondary.main' }}>
+                        {trans.contractAdd.annex} #{index + 1}
+                      </Typography>
+                      <Button size="small" color="error" onClick={() => removeAnnex(index)} sx={{ textTransform: 'none' }}>
+                        {trans.contractAdd.actions.delete}
                       </Button>
                     </Box>
 
-                    {annex.medicine_changes?.add_items && annex.medicine_changes.add_items.map((item, itemIndex) => (
-                      <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {trans.contractAdd.medicine} #{itemIndex + 1}
-                          </Typography>
-                          <Button
+                    {/* Row 1: Annex Code + Description */}
+                    <Grid container spacing={2} sx={{ mb: 2 }}>
+                      <Grid item xs={12} md={6}>
+                        <Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                              {trans.contractAdd.annexCode}
+                            </Typography>
+                          </Box>
+                          <TextField
+                            fullWidth
+                            value={annex.annex_code || ''}
+                            onChange={(e) => handleAnnexChange(index, 'annex_code', e.target.value)}
+                            variant="outlined"
                             size="small"
-                            color="error"
-                            onClick={() => removeAnnexAddItem(index, itemIndex)}
-                            sx={{ textTransform: 'none' }}
-                          >
-                            {trans.contractAdd.actions.delete}
-                          </Button>
+                            placeholder={trans.contractAdd.enterAnnexCode}
+                            error={!!(errorValidate.annexes && errorValidate.annexes[index]?.annex_code)}
+                            helperText={errorValidate.annexes && errorValidate.annexes[index]?.annex_code}
+                          />
                         </Box>
-                        <Grid container spacing={2}>
-                          <Grid item xs={12} md={6}>
-                            <Autocomplete
-                              options={medicines}
-                              getOptionLabel={(option) => `${option.license_code}`}
-                              value={medicines.find((m) => m._id === item.medicine_id) || null}
-                              onChange={(event, newValue) => {
-                                handleAnnexAddItemChange(index, itemIndex, 'medicine_id', newValue ? newValue._id : '');
-                              }}
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                              {trans.contractAdd.description}
+                            </Typography>
+                          </Box>
+                          <TextField
+                            fullWidth
+                            value={annex.description || ''}
+                            onChange={(e) => handleAnnexChange(index, 'description', e.target.value)}
+                            variant="outlined"
+                            size="small"
+                            placeholder={trans.contractAdd.enterDescription}
+                          />
+                        </Box>
+                      </Grid>
+                    </Grid>
+
+                    {/* Row 2: Signed Date + Update End Date */}
+                    <Grid container spacing={2} sx={{ mb: 2 }}>
+                      <Grid item xs={12} md={6}>
+                        <Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                              {trans.contractAdd.signedDate}
+                            </Typography>
+                          </Box>
+                          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
+                            <DatePicker
+                              value={annex.signed_date || null}
+                              onChange={(date) => handleAnnexChange(index, 'signed_date', date)}
                               renderInput={(params) => (
                                 <TextField
                                   {...params}
-                                  label={trans.contractAdd.selectMedicine}
                                   variant="outlined"
                                   size="small"
-                                  error={!!(errorValidate.annexes && errorValidate.annexes[index]?.add_items && errorValidate.annexes[index].add_items[itemIndex]?.medicine_id)}
-                                  helperText={errorValidate.annexes && errorValidate.annexes[index]?.add_items && errorValidate.annexes[index].add_items[itemIndex]?.medicine_id}
-                                  sx={{ minWidth: 200 }}
+                                  fullWidth
+                                  placeholder={trans.contractAdd.selectSignedDate}
+                                  error={!!(errorValidate.annexes && errorValidate.annexes[index]?.signed_date)}
+                                  helperText={errorValidate.annexes && errorValidate.annexes[index]?.signed_date}
                                 />
                               )}
-                              sx={{ minWidth: 200 }}
                             />
-                          </Grid>
-                          <Grid item xs={12} md={6}>
-                            <TextField
-                              fullWidth
-                              label={trans.contractAdd.unitPrice}
-                              type="number"
-                              value={item.unit_price || ''}
-                              onChange={(e) => handleAnnexAddItemChange(index, itemIndex, 'unit_price', e.target.value)}
-                              variant="outlined"
-                              size="small"
-                              error={!!(errorValidate.annexes && errorValidate.annexes[index]?.add_items && errorValidate.annexes[index].add_items[itemIndex]?.unit_price)}
-                              helperText={errorValidate.annexes && errorValidate.annexes[index]?.add_items && errorValidate.annexes[index].add_items[itemIndex]?.unit_price}
-                              InputProps={{
-                                endAdornment: <InputAdornment position="end">₫</InputAdornment>,
-                              }}
+                          </LocalizationProvider>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                              {trans.contractAdd.updateEndDate}
+                            </Typography>
+                          </Box>
+                          <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={vi}>
+                            <DatePicker
+                              value={annex.end_date_change?.new_end_date || null}
+                              onChange={(date) => handleAnnexEndDateChange(index, date)}
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  variant="outlined"
+                                  size="small"
+                                  fullWidth
+                                  placeholder={trans.contractAdd.selectNewEndDate}
+                                />
+                              )}
                             />
-                          </Grid>
-                        </Grid>
-                      </Box>
-                    ))}
-                  </Box>
+                          </LocalizationProvider>
+                        </Box>
+                      </Grid>
+                    </Grid>
 
-                  {/* Row 4: Remove Medicine */}
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                      {trans.contractAdd.removeMedicine}
-                    </Typography>
-                      <Button
-                        variant="outlined"
-                        startIcon={<AddIcon />}
-                        onClick={() => addAnnexRemoveItem(index)}
-                        size="small"
-                        color="secondary"
-                      >
-                        {trans.contractAdd.removeMedicineFromAnnex}
-                      </Button>
-                    </Box>
-
-                    {annex.medicine_changes?.remove_items && annex.medicine_changes.remove_items.map((item, itemIndex) => (
-                      <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {trans.contractAdd.medicine} #{itemIndex + 1}
+                    {/* Row 3: Add New Medicine */}
+                    <Box sx={{ mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                          {trans.contractAdd.addNewMedicine}
                         </Typography>
                         <Button
+                          variant="outlined"
+                          startIcon={<AddIcon />}
+                          onClick={() => addAnnexAddItem(index)}
                           size="small"
-                          color="error"
-                          onClick={() => removeAnnexRemoveItem(index, itemIndex)}
-                          sx={{ textTransform: 'none' }}
+                          color="secondary"
                         >
-                          {trans.contractAdd.actions.delete}
+                          {trans.contractAdd.addMedicineToAnnex}
                         </Button>
-                        </Box>
-                        <Grid container spacing={2}>
-                          <Grid item xs={12}>
-                            <Autocomplete
-                              options={medicines}
-                              getOptionLabel={(option) => `${option.license_code}`}
-                              value={medicines.find((m) => m._id === item.medicine_id) || null}
-                              onChange={(event, newValue) => {
-                                handleAnnexRemoveItemChange(index, itemIndex, 'medicine_id', newValue ? newValue._id : '');
-                              }}
-                              renderInput={(params) => (
-                                <TextField
-                                  {...params}
-                                  label={trans.contractAdd.removeMedicineFromAnnex}
-                                  variant="outlined"
-                                  size="small"
-                                  error={!!(errorValidate.annexes && errorValidate.annexes[index]?.remove_items && errorValidate.annexes[index].remove_items[itemIndex]?.medicine_id)}
-                                  helperText={errorValidate.annexes && errorValidate.annexes[index]?.remove_items && errorValidate.annexes[index].remove_items[itemIndex]?.medicine_id}
+                      </Box>
+
+                      {annex.medicine_changes?.add_items &&
+                        annex.medicine_changes.add_items.map((item, itemIndex) => (
+                          <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {trans.contractAdd.medicine} #{itemIndex + 1}
+                              </Typography>
+                              <Button
+                                size="small"
+                                color="error"
+                                onClick={() => removeAnnexAddItem(index, itemIndex)}
+                                sx={{ textTransform: 'none' }}
+                              >
+                                {trans.contractAdd.actions.delete}
+                              </Button>
+                            </Box>
+                            <Grid container spacing={2}>
+                              <Grid item xs={12} md={6}>
+                                <Autocomplete
+                                  options={medicines}
+                                  getOptionLabel={(option) => `${option.license_code}`}
+                                  value={medicines.find((m) => m._id === item.medicine_id) || null}
+                                  onChange={(event, newValue) => {
+                                    handleAnnexAddItemChange(index, itemIndex, 'medicine_id', newValue ? newValue._id : '');
+                                  }}
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      label={trans.contractAdd.selectMedicine}
+                                      variant="outlined"
+                                      size="small"
+                                      error={
+                                        !!(
+                                          errorValidate.annexes &&
+                                          errorValidate.annexes[index]?.add_items &&
+                                          errorValidate.annexes[index].add_items[itemIndex]?.medicine_id
+                                        )
+                                      }
+                                      helperText={
+                                        errorValidate.annexes &&
+                                        errorValidate.annexes[index]?.add_items &&
+                                        errorValidate.annexes[index].add_items[itemIndex]?.medicine_id
+                                      }
+                                      sx={{ minWidth: 200 }}
+                                    />
+                                  )}
                                   sx={{ minWidth: 200 }}
                                 />
-                              )}
-                              sx={{ minWidth: 200 }}
-                            />
-                          </Grid>
-                        </Grid>
-                      </Box>
-                    ))}
-                  </Box>
-
-                  {/* Row 5: Update Medicine Price */}
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                      {trans.contractAdd.updateMedicinePrice}
-                    </Typography>
-                      <Button
-                        variant="outlined"
-                        startIcon={<AddIcon />}
-                        onClick={() => addAnnexUpdatePrice(index)}
-                        size="small"
-                        color="secondary"
-                      >
-                        {trans.contractAdd.updateMedicinePriceInAnnex}
-                      </Button>
+                              </Grid>
+                              <Grid item xs={12} md={6}>
+                                <TextField
+                                  fullWidth
+                                  label={trans.contractAdd.unitPrice}
+                                  type="number"
+                                  value={item.unit_price || ''}
+                                  onChange={(e) => handleAnnexAddItemChange(index, itemIndex, 'unit_price', e.target.value)}
+                                  variant="outlined"
+                                  size="small"
+                                  error={
+                                    !!(
+                                      errorValidate.annexes &&
+                                      errorValidate.annexes[index]?.add_items &&
+                                      errorValidate.annexes[index].add_items[itemIndex]?.unit_price
+                                    )
+                                  }
+                                  helperText={
+                                    errorValidate.annexes &&
+                                    errorValidate.annexes[index]?.add_items &&
+                                    errorValidate.annexes[index].add_items[itemIndex]?.unit_price
+                                  }
+                                  InputProps={{
+                                    endAdornment: <InputAdornment position="end">₫</InputAdornment>
+                                  }}
+                                />
+                              </Grid>
+                            </Grid>
+                          </Box>
+                        ))}
                     </Box>
 
-                    {annex.medicine_changes?.update_prices && annex.medicine_changes.update_prices.map((item, itemIndex) => (
-                      <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {trans.contractAdd.medicine} #{itemIndex + 1}
+                    {/* Row 4: Remove Medicine */}
+                    <Box sx={{ mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                          {trans.contractAdd.removeMedicine}
                         </Typography>
                         <Button
+                          variant="outlined"
+                          startIcon={<AddIcon />}
+                          onClick={() => addAnnexRemoveItem(index)}
                           size="small"
-                          color="error"
-                          onClick={() => removeAnnexUpdatePrice(index, itemIndex)}
-                          sx={{ textTransform: 'none' }}
+                          color="secondary"
                         >
-                          {trans.contractAdd.actions.delete}
+                          {trans.contractAdd.removeMedicineFromAnnex}
                         </Button>
-                        </Box>
-                        <Grid container spacing={2}>
-                          <Grid item xs={12} md={6}>
-                            <Autocomplete
-                              options={medicines}
-                              getOptionLabel={(option) => `${option.license_code}`}
-                              value={medicines.find((m) => m._id === item.medicine_id) || null}
-                              onChange={(event, newValue) => {
-                                handleAnnexUpdatePriceChange(index, itemIndex, 'medicine_id', newValue ? newValue._id : '');
-                              }}
-                              renderInput={(params) => (
-                                <TextField
-                                  {...params}
-                                  label={trans.contractAdd.selectMedicine}
-                                  variant="outlined"
-                                  size="small"
-                                  error={!!(errorValidate.annexes && errorValidate.annexes[index]?.update_prices && errorValidate.annexes[index].update_prices[itemIndex]?.medicine_id)}
-                                  helperText={errorValidate.annexes && errorValidate.annexes[index]?.update_prices && errorValidate.annexes[index].update_prices[itemIndex]?.medicine_id}
+                      </Box>
+
+                      {annex.medicine_changes?.remove_items &&
+                        annex.medicine_changes.remove_items.map((item, itemIndex) => (
+                          <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {trans.contractAdd.medicine} #{itemIndex + 1}
+                              </Typography>
+                              <Button
+                                size="small"
+                                color="error"
+                                onClick={() => removeAnnexRemoveItem(index, itemIndex)}
+                                sx={{ textTransform: 'none' }}
+                              >
+                                {trans.contractAdd.actions.delete}
+                              </Button>
+                            </Box>
+                            <Grid container spacing={2}>
+                              <Grid item xs={12}>
+                                <Autocomplete
+                                  options={medicines}
+                                  getOptionLabel={(option) => `${option.license_code}`}
+                                  value={medicines.find((m) => m._id === item.medicine_id) || null}
+                                  onChange={(event, newValue) => {
+                                    handleAnnexRemoveItemChange(index, itemIndex, 'medicine_id', newValue ? newValue._id : '');
+                                  }}
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      label={trans.contractAdd.removeMedicineFromAnnex}
+                                      variant="outlined"
+                                      size="small"
+                                      error={
+                                        !!(
+                                          errorValidate.annexes &&
+                                          errorValidate.annexes[index]?.remove_items &&
+                                          errorValidate.annexes[index].remove_items[itemIndex]?.medicine_id
+                                        )
+                                      }
+                                      helperText={
+                                        errorValidate.annexes &&
+                                        errorValidate.annexes[index]?.remove_items &&
+                                        errorValidate.annexes[index].remove_items[itemIndex]?.medicine_id
+                                      }
+                                      sx={{ minWidth: 200 }}
+                                    />
+                                  )}
                                   sx={{ minWidth: 200 }}
                                 />
-                              )}
-                              sx={{ minWidth: 200 }}
-                            />
-                          </Grid>
-                          <Grid item xs={12} md={6}>
-                            <TextField
-                              fullWidth
-                              label={trans.contractAdd.newPrice}
-                              type="number"
-                              value={item.unit_price || ''}
-                              onChange={(e) => handleAnnexUpdatePriceChange(index, itemIndex, 'unit_price', e.target.value)}
-                              variant="outlined"
-                              size="small"
-                              error={!!(errorValidate.annexes && errorValidate.annexes[index]?.update_prices && errorValidate.annexes[index].update_prices[itemIndex]?.unit_price)}
-                              helperText={errorValidate.annexes && errorValidate.annexes[index]?.update_prices && errorValidate.annexes[index].update_prices[itemIndex]?.unit_price}
-                              InputProps={{
-                                endAdornment: <InputAdornment position="end">₫</InputAdornment>,
-                              }}
-                            />
-                          </Grid>
-                        </Grid>
+                              </Grid>
+                            </Grid>
+                          </Box>
+                        ))}
+                    </Box>
+
+                    {/* Row 5: Update Medicine Price */}
+                    <Box sx={{ mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                          {trans.contractAdd.updateMedicinePrice}
+                        </Typography>
+                        <Button
+                          variant="outlined"
+                          startIcon={<AddIcon />}
+                          onClick={() => addAnnexUpdatePrice(index)}
+                          size="small"
+                          color="secondary"
+                        >
+                          {trans.contractAdd.updateMedicinePriceInAnnex}
+                        </Button>
                       </Box>
-                    ))}
+
+                      {annex.medicine_changes?.update_prices &&
+                        annex.medicine_changes.update_prices.map((item, itemIndex) => (
+                          <Box key={itemIndex} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {trans.contractAdd.medicine} #{itemIndex + 1}
+                              </Typography>
+                              <Button
+                                size="small"
+                                color="error"
+                                onClick={() => removeAnnexUpdatePrice(index, itemIndex)}
+                                sx={{ textTransform: 'none' }}
+                              >
+                                {trans.contractAdd.actions.delete}
+                              </Button>
+                            </Box>
+                            <Grid container spacing={2}>
+                              <Grid item xs={12} md={6}>
+                                <Autocomplete
+                                  options={medicines}
+                                  getOptionLabel={(option) => `${option.license_code}`}
+                                  value={medicines.find((m) => m._id === item.medicine_id) || null}
+                                  onChange={(event, newValue) => {
+                                    handleAnnexUpdatePriceChange(index, itemIndex, 'medicine_id', newValue ? newValue._id : '');
+                                  }}
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      label={trans.contractAdd.selectMedicine}
+                                      variant="outlined"
+                                      size="small"
+                                      error={
+                                        !!(
+                                          errorValidate.annexes &&
+                                          errorValidate.annexes[index]?.update_prices &&
+                                          errorValidate.annexes[index].update_prices[itemIndex]?.medicine_id
+                                        )
+                                      }
+                                      helperText={
+                                        errorValidate.annexes &&
+                                        errorValidate.annexes[index]?.update_prices &&
+                                        errorValidate.annexes[index].update_prices[itemIndex]?.medicine_id
+                                      }
+                                      sx={{ minWidth: 200 }}
+                                    />
+                                  )}
+                                  sx={{ minWidth: 200 }}
+                                />
+                              </Grid>
+                              <Grid item xs={12} md={6}>
+                                <TextField
+                                  fullWidth
+                                  label={trans.contractAdd.newPrice}
+                                  type="number"
+                                  value={item.unit_price || ''}
+                                  onChange={(e) => handleAnnexUpdatePriceChange(index, itemIndex, 'unit_price', e.target.value)}
+                                  variant="outlined"
+                                  size="small"
+                                  error={
+                                    !!(
+                                      errorValidate.annexes &&
+                                      errorValidate.annexes[index]?.update_prices &&
+                                      errorValidate.annexes[index].update_prices[itemIndex]?.unit_price
+                                    )
+                                  }
+                                  helperText={
+                                    errorValidate.annexes &&
+                                    errorValidate.annexes[index]?.update_prices &&
+                                    errorValidate.annexes[index].update_prices[itemIndex]?.unit_price
+                                  }
+                                  InputProps={{
+                                    endAdornment: <InputAdornment position="end">₫</InputAdornment>
+                                  }}
+                                />
+                              </Grid>
+                            </Grid>
+                          </Box>
+                        ))}
+                    </Box>
                   </Box>
-                </Box>
-              ))}
+                ))}
             </CardContent>
           </Card>
         )}
@@ -1481,4 +1491,4 @@ const ContractAddDialog = ({ open, onClose, onSuccess, suppliers = [], retailers
   );
 };
 
-export default ContractAddDialog; 
+export default ContractAddDialog;

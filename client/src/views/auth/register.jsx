@@ -1,4 +1,4 @@
-'use client';  
+'use client';
 // @next
 import NextLink from 'next/link';
 
@@ -20,7 +20,7 @@ import useTrans from '@/hooks/useTrans';
 
 export default function Register() {
   const trans = useTrans();
-  
+
   return (
     <Stack sx={{ height: 1, alignItems: 'center', justifyContent: 'space-between', gap: 3 }}>
       <Box sx={{ width: 1, maxWidth: 458 }}>

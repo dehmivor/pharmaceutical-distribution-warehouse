@@ -29,15 +29,9 @@ import {
   FormControl,
   Select
 } from '@mui/material';
-import {
-  Info as InfoIcon,
-  ForkLeft as ForwardIcon,
-  Refresh as RefreshIcon,
-  Search as SearchIcon
-} from '@mui/icons-material';
+import { Info as InfoIcon, ForkLeft as ForwardIcon, Refresh as RefreshIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
 import useTrans from '@/hooks/useTrans';
-
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -147,8 +141,6 @@ export default function ExportOrderSupervisor() {
     }
   }, [page, rowsPerPage, filterDate, filterStatus, filterType]);
 
-
-
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
@@ -176,9 +168,6 @@ export default function ExportOrderSupervisor() {
 
   // Edit dialog open/close and form change handlers
 
-
-
-
   // Details dialog open/close
   const handleOpenDetails = async (order) => {
     setSelectedOrder(order);
@@ -194,9 +183,7 @@ export default function ExportOrderSupervisor() {
           });
         });
         const uniqueIds = Array.from(new Set(pkgIds));
-        const results = await Promise.all(
-          uniqueIds.map((id) => axiosInstance.get(`/packages/v2/${id}`).catch(() => null)),
-        );
+        const results = await Promise.all(uniqueIds.map((id) => axiosInstance.get(`/packages/v2/${id}`).catch(() => null)));
         const map = {};
         results.forEach((res, idx) => {
           const id = uniqueIds[idx];
@@ -234,7 +221,7 @@ export default function ExportOrderSupervisor() {
         await axiosInstance.put(`/export-orders/${orderId}/cancel`);
       }
       setEditingStatusOrderId(null);
-              setSuccess(trans.exportOrders.statusUpdatedSuccess);
+      setSuccess(trans.exportOrders.statusUpdatedSuccess);
       fetchOrders();
     } catch (error) {
       setError(error.response?.data?.error || error.response?.data?.message || error.message);
@@ -298,7 +285,13 @@ export default function ExportOrderSupervisor() {
             <MenuItem value="internal">{trans.common.internal}</MenuItem>
             <MenuItem value="regular">{trans.common.regular}</MenuItem>
           </TextField>
-          <TextField select label={trans.exportOrders.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+          <TextField
+            select
+            label={trans.exportOrders.status}
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            size="small"
+          >
             <MenuItem value="All Status">{trans.exportOrders.allStatus}</MenuItem>
             {Object.values(EXPORT_ORDER_STATUSES).map((s) => (
               <MenuItem key={s} value={s}>
@@ -344,15 +337,15 @@ export default function ExportOrderSupervisor() {
             ) : (
               orders.map((order) => {
                 const totalAmount = (order.details || []).reduce((acc, d) => {
-                  const actual = Array.isArray(d.actual_item)
-                    ? d.actual_item.reduce((s, it) => s + (it.quantity || 0), 0)
-                    : 0;
-                  const qty = actual > 0 ? actual : (d.expected_quantity || 0);
+                  const actual = Array.isArray(d.actual_item) ? d.actual_item.reduce((s, it) => s + (it.quantity || 0), 0) : 0;
+                  const qty = actual > 0 ? actual : d.expected_quantity || 0;
                   return acc + qty * (d.unit_price || 0);
                 }, 0);
                 return (
                   <TableRow hover key={order._id}>
-                    <TableCell title={order._id}>{order._id ? `${order._id.slice(0, 6)}...${order._id.slice(-4)}` : trans.common.na}</TableCell>
+                    <TableCell title={order._id}>
+                      {order._id ? `${order._id.slice(0, 6)}...${order._id.slice(-4)}` : trans.common.na}
+                    </TableCell>
                     <TableCell>
                       {order.contract_id ? (
                         <Chip label={trans.common.regular} color="primary" size="small" variant="outlined" />
@@ -373,7 +366,7 @@ export default function ExportOrderSupervisor() {
                               // Supervisor: allow only INTERNAL and APPROVED to change to Completed or Cancelled
                               const val = e.target.value;
                               if (
-                                (!order.contract_id) &&
+                                !order.contract_id &&
                                 order.status === EXPORT_ORDER_STATUSES.APPROVED &&
                                 (val === EXPORT_ORDER_STATUSES.COMPLETED || val === EXPORT_ORDER_STATUSES.CANCELLED)
                               ) {
@@ -383,10 +376,10 @@ export default function ExportOrderSupervisor() {
                             onBlur={() => setEditingStatusOrderId(null)}
                             autoFocus
                           >
-                            {(!order.contract_id) && order.status === EXPORT_ORDER_STATUSES.APPROVED && (
+                            {!order.contract_id && order.status === EXPORT_ORDER_STATUSES.APPROVED && (
                               <MenuItem value={EXPORT_ORDER_STATUSES.COMPLETED}>Completed</MenuItem>
                             )}
-                            {(!order.contract_id) && order.status === EXPORT_ORDER_STATUSES.APPROVED && (
+                            {!order.contract_id && order.status === EXPORT_ORDER_STATUSES.APPROVED && (
                               <MenuItem value={EXPORT_ORDER_STATUSES.CANCELLED}>Cancelled</MenuItem>
                             )}
                           </Select>
@@ -437,8 +430,6 @@ export default function ExportOrderSupervisor() {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </TableContainer>
-
-
 
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
@@ -532,7 +523,9 @@ export default function ExportOrderSupervisor() {
                           <Typography variant="subtitle2" color="textSecondary">
                             {trans.common.warehouseManager}
                           </Typography>
-                          <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || selectedOrder.created_by?.email || trans.common.notAssigned}</Typography>
+                          <Typography variant="body1">
+                            {selectedOrder.warehouse_manager_id?.email || selectedOrder.created_by?.email || trans.common.notAssigned}
+                          </Typography>
                         </Grid>
                       </Grid>
                     </Paper>
@@ -549,13 +542,17 @@ export default function ExportOrderSupervisor() {
                         <Typography variant="subtitle2" color="textSecondary">
                           {trans.common.warehouseManager}
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || selectedOrder.created_by?.email || trans.common.notAssigned}</Typography>
+                        <Typography variant="body1">
+                          {selectedOrder.warehouse_manager_id?.email || selectedOrder.created_by?.email || trans.common.notAssigned}
+                        </Typography>
                       </Grid>
                       <Grid item xs={6} md={12}>
                         <Typography variant="subtitle2" color="textSecondary">
                           {trans.common.managerEmail}
                         </Typography>
-                        <Typography variant="body1">{selectedOrder.warehouse_manager_id?.email || selectedOrder.created_by?.email || trans.common.na}</Typography>
+                        <Typography variant="body1">
+                          {selectedOrder.warehouse_manager_id?.email || selectedOrder.created_by?.email || trans.common.na}
+                        </Typography>
                       </Grid>
                     </Grid>
                   </Paper>
@@ -580,7 +577,6 @@ export default function ExportOrderSupervisor() {
                         </Typography>
                         <Typography variant="body1">{selectedOrder.created_by?.email || trans.common.na}</Typography>
                       </Grid>
-
                     </Grid>
                   </Paper>
                 </Grid>
@@ -610,27 +606,27 @@ export default function ExportOrderSupervisor() {
                             <TableRow key={idx}>
                               <TableCell>{detail.medicine_id?.medicine_name || trans.common.na}</TableCell>
                               <TableCell>{detail.medicine_id?.license_code || trans.common.na}</TableCell>
-                              <TableCell align="right">{
-                                (() => {
+                              <TableCell align="right">
+                                {(() => {
                                   const actual = Array.isArray(detail.actual_item)
                                     ? detail.actual_item.reduce((s, it) => s + (it.quantity || 0), 0)
                                     : 0;
-                                  return actual > 0 ? actual : (detail.expected_quantity || 0);
-                                })()
-                              }</TableCell>
+                                  return actual > 0 ? actual : detail.expected_quantity || 0;
+                                })()}
+                              </TableCell>
                               {/* Only show pricing values for regular orders */}
                               {selectedOrder.contract_id && (
                                 <>
                                   <TableCell align="right">{formatCurrency(detail.unit_price)}</TableCell>
-                                  <TableCell align="right">{
-                                    (() => {
+                                  <TableCell align="right">
+                                    {(() => {
                                       const actual = Array.isArray(detail.actual_item)
                                         ? detail.actual_item.reduce((s, it) => s + (it.quantity || 0), 0)
                                         : 0;
-                                      const qty = actual > 0 ? actual : (detail.expected_quantity || 0);
+                                      const qty = actual > 0 ? actual : detail.expected_quantity || 0;
                                       return formatCurrency(qty * (detail.unit_price || 0));
-                                    })()
-                                  }</TableCell>
+                                    })()}
+                                  </TableCell>
                                 </>
                               )}
                             </TableRow>
@@ -650,7 +646,7 @@ export default function ExportOrderSupervisor() {
                                       const actual = Array.isArray(detail.actual_item)
                                         ? detail.actual_item.reduce((s, it) => s + (it.quantity || 0), 0)
                                         : 0;
-                                      const qty = actual > 0 ? actual : (detail.expected_quantity || 0);
+                                      const qty = actual > 0 ? actual : detail.expected_quantity || 0;
                                       return total + qty * (detail.unit_price || 0);
                                     }, 0)
                                   )}
@@ -737,7 +733,7 @@ export default function ExportOrderSupervisor() {
       <Dialog open={confirmDialog.open} onClose={handleCancelStatusChange}>
         <DialogTitle>{trans.common.confirmStatusChange}</DialogTitle>
         <DialogContent>
-                      {trans.common.confirmStatusChangeMessage} <br />
+          {trans.common.confirmStatusChangeMessage} <br />
           <b>{trans.common.irreversibleAction}</b>
         </DialogContent>
         <DialogActions>

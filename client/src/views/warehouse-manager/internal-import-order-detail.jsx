@@ -69,7 +69,7 @@ const getStatusColor = (status) => {
     arranged: 'secondary',
     completed: 'success',
     cancelled: 'error',
-    rejected: 'error',
+    rejected: 'error'
   };
   return statusColors[status] || 'default';
 };
@@ -83,7 +83,7 @@ const getStatusLabel = (status) => {
     arranged: 'Arranged',
     completed: 'Completed',
     cancelled: 'Cancelled',
-    rejected: 'Rejected',
+    rejected: 'Rejected'
   };
   return statusLabels[status] || status;
 };
@@ -98,7 +98,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
   const [newStatus, setNewStatus] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  
+
   // Batch creation states
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
   const [creatingBatch, setCreatingBatch] = useState(false);
@@ -129,14 +129,14 @@ const InternalImportOrderDetail = ({ orderId }) => {
     try {
       setLoading(true);
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      
+
       // Check if token exists
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
       if (!token) {
         setError('Authentication required. Please login again.');
         return;
       }
-      
+
       const response = await axios.get(`${backendUrl}/api/import-orders/${orderId}`, {
         headers: getAuthHeaders()
       });
@@ -162,7 +162,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
     try {
       setUpdatingStatus(true);
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      
+
       // Check if token exists
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
       if (!token) {
@@ -173,7 +173,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
         });
         return;
       }
-      
+
       const response = await axios.patch(
         `${backendUrl}/api/import-orders/${orderId}/status`,
         { status: newStatus },
@@ -182,7 +182,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
 
       if (response.data.success) {
         setOrder(response.data.data);
-        
+
         // If status changed to "checked", automatically create batches
         if (newStatus === 'checked') {
           setSnackbar({
@@ -226,7 +226,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
   // Create inspection data from order details for internal orders
   useEffect(() => {
     if (order && order.details) {
-      const inspectionData = order.details.map(detail => ({
+      const inspectionData = order.details.map((detail) => ({
         _id: `temp_${detail.medicine_id._id}`,
         medicine_id: detail.medicine_id,
         actual_quantity: detail.quantity, // For internal orders, actual = order quantity
@@ -306,7 +306,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
   const fetchInspection = async () => {
     // For internal orders, inspection data is derived from order details
     if (order && order.details) {
-      const inspectionData = order.details.map(detail => ({
+      const inspectionData = order.details.map((detail) => ({
         _id: `temp_${detail.medicine_id._id}`,
         medicine_id: detail.medicine_id,
         actual_quantity: detail.quantity,
@@ -320,7 +320,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
   const handleDeleteInspection = async (inspectionId) => {
     // For internal orders, we don't actually delete inspections
     // Just remove from local state for UI purposes
-    setInspections(prev => prev.filter(insp => insp._id !== inspectionId));
+    setInspections((prev) => prev.filter((insp) => insp._id !== inspectionId));
   };
 
   const onFinishClickInspection = async () => {
@@ -337,7 +337,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
   const handleFinishInspection = async () => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      
+
       // Update order status to checked
       const response = await axios.patch(
         `${backendUrl}/api/import-orders/${orderId}/status`,
@@ -503,7 +503,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      
+
       // 1) Create any new batches
       const createdMap = {};
       for (let spec of newBatches) {
@@ -556,11 +556,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
       );
 
       // 5) Advance order status
-      await axios.patch(
-        `${backendUrl}/api/import-orders/${orderId}/status`,
-        { status: 'arranged' },
-        { headers: getAuthHeaders() }
-      );
+      await axios.patch(`${backendUrl}/api/import-orders/${orderId}/status`, { status: 'arranged' }, { headers: getAuthHeaders() });
       setOrder((prev) => ({ ...prev, status: 'arranged' }));
 
       // 6) Refresh the list
@@ -693,8 +689,8 @@ const InternalImportOrderDetail = ({ orderId }) => {
       return;
     }
 
-    const medicine = order?.details?.find(d => d.medicine_id._id === newMedicineId)?.medicine_id;
-    
+    const medicine = order?.details?.find((d) => d.medicine_id._id === newMedicineId)?.medicine_id;
+
     setNewBatches((list) => [
       ...list,
       {
@@ -723,33 +719,41 @@ const InternalImportOrderDetail = ({ orderId }) => {
     setCreatingBatch(true);
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      
+
       // Create batches
-      const batchPromises = newBatches.map(batch => 
-        axios.post(`${backendUrl}/api/batch`, {
-          medicine_id: batch.medicine_id,
-          batch_code: batch.batch_code,
-          production_date: batch.production_date,
-          expiry_date: batch.expiry_date,
-          supplier_id: null // Internal order has no supplier
-        }, {
-          headers: getAuthHeaders()
-        })
+      const batchPromises = newBatches.map((batch) =>
+        axios.post(
+          `${backendUrl}/api/batch`,
+          {
+            medicine_id: batch.medicine_id,
+            batch_code: batch.batch_code,
+            production_date: batch.production_date,
+            expiry_date: batch.expiry_date,
+            supplier_id: null // Internal order has no supplier
+          },
+          {
+            headers: getAuthHeaders()
+          }
+        )
       );
 
       const batchResponses = await Promise.all(batchPromises);
-      const createdBatches = batchResponses.map(res => res.data.data);
+      const createdBatches = batchResponses.map((res) => res.data.data);
 
       // Create packages for each batch
       const packagePromises = createdBatches.map((batch, index) => {
-        const orderDetail = order.details.find(d => d.medicine_id._id === batch.medicine_id);
-        return axios.post(`${backendUrl}/api/packages`, {
-          import_order_id: orderId,
-          batch_id: batch._id,
-          quantity: orderDetail?.quantity || 0
-        }, {
-          headers: getAuthHeaders()
-        });
+        const orderDetail = order.details.find((d) => d.medicine_id._id === batch.medicine_id);
+        return axios.post(
+          `${backendUrl}/api/packages`,
+          {
+            import_order_id: orderId,
+            batch_id: batch._id,
+            quantity: orderDetail?.quantity || 0
+          },
+          {
+            headers: getAuthHeaders()
+          }
+        );
       });
 
       await Promise.all(packagePromises);
@@ -828,7 +832,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
 
   // Calculate totals
   const totalQuantity = order.details?.reduce((sum, detail) => sum + (detail.quantity || 0), 0) || 0;
-  const totalAmount = order.details?.reduce((sum, detail) => sum + ((detail.quantity || 0) * (detail.unit_price || 0)), 0) || 0;
+  const totalAmount = order.details?.reduce((sum, detail) => sum + (detail.quantity || 0) * (detail.unit_price || 0), 0) || 0;
   const isCompleted = order.status === 'completed';
 
   return (
@@ -847,7 +851,6 @@ const InternalImportOrderDetail = ({ orderId }) => {
           </Typography>
         </Box>
       </Box>
-
 
       {/* Order Detail Section */}
       <Card sx={{ mb: 3 }}>
@@ -884,8 +887,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
                     N/A
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={3} display="flex" justifyContent="flex-end" alignItems="center">
-                </Grid>
+                <Grid item xs={12} sm={3} display="flex" justifyContent="flex-end" alignItems="center"></Grid>
               </Grid>
 
               <Divider sx={{ mb: 2 }} />
@@ -937,11 +939,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
                       <TableCell>{insp.actual_quantity}</TableCell>
                       <TableCell>{insp.rejected_quantity}</TableCell>
                       <TableCell>
-                        <IconButton
-                          color="error"
-                          size="small"
-                          onClick={() => handleDeleteInspection(insp._id)}
-                        >
+                        <IconButton color="error" size="small" onClick={() => handleDeleteInspection(insp._id)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </TableCell>
@@ -952,11 +950,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
             </TableContainer>
 
             <Box display="flex" justifyContent="center" mt={2}>
-              <Button
-                variant="contained"
-                onClick={onFinishClickInspection}
-                color={confirmFinishInspection ? 'warning' : 'primary'}
-              >
+              <Button variant="contained" onClick={onFinishClickInspection} color={confirmFinishInspection ? 'warning' : 'primary'}>
                 {confirmFinishInspection ? trans.internalImportOrderDetail.continue : trans.internalImportOrderDetail.finishInspection}
               </Button>
             </Box>
@@ -974,12 +968,12 @@ const InternalImportOrderDetail = ({ orderId }) => {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Create packages for inventory management
             </Typography>
-            
+
             <Stack spacing={2}>
               <IconButton size="small" color="primary" onClick={openBatchDialog} sx={{ ml: 2 }} disabled={isCompleted}>
                 <AddCircleIcon />
               </IconButton>
-              
+
               {packages.map((p, idx) => {
                 const opt = batchOptions.find((o) => o.id === p.batch_id) || {};
                 return (
@@ -1039,11 +1033,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
                 </Alert>
               )}
 
-              <Button 
-                variant="contained" 
-                disabled={!isValid || saving || isCompleted} 
-                onClick={handleContinuePackages}
-              >
+              <Button variant="contained" disabled={!isValid || saving || isCompleted} onClick={handleContinuePackages}>
                 {saving ? trans.internalImportOrderDetail.saving : trans.internalImportOrderDetail.continueToPutAway}
               </Button>
             </Stack>
@@ -1061,12 +1051,12 @@ const InternalImportOrderDetail = ({ orderId }) => {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Manage package locations
             </Typography>
-            
+
             <Stack spacing={2}>
               <IconButton onClick={fetchPutAway} size="small" sx={{ ml: 2 }}>
                 <RefreshIcon />
               </IconButton>
-              
+
               {loadingPutAway ? (
                 <CircularProgress />
               ) : putAway.length === 0 ? (
@@ -1089,7 +1079,9 @@ const InternalImportOrderDetail = ({ orderId }) => {
                             {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
                           </TableCell>
                           <TableCell>{pkg.quantity}</TableCell>
-                          <TableCell>{pkg.location_id ? trans.internalImportOrderDetail.arranged : trans.internalImportOrderDetail.unarranged}</TableCell>
+                          <TableCell>
+                            {pkg.location_id ? trans.internalImportOrderDetail.arranged : trans.internalImportOrderDetail.unarranged}
+                          </TableCell>
                           <TableCell>
                             {pkg.location_id && (
                               <IconButton size="small" color="error" onClick={() => handleClearLocation(pkg._id)} disabled={isCompleted}>
@@ -1182,9 +1174,7 @@ const InternalImportOrderDetail = ({ orderId }) => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeBatchDialog}>
-            {trans.internalImportOrderDetail.cancel}
-          </Button>
+          <Button onClick={closeBatchDialog}>{trans.internalImportOrderDetail.cancel}</Button>
           <Button
             onClick={handleCreateBatch}
             variant="contained"

@@ -107,4 +107,4 @@ RepresentativeOverviewCard.propTypes = {
     totalContracts: PropTypes.number,
     totalValue: PropTypes.number
   })
-}; 
+};

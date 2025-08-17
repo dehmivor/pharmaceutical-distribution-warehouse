@@ -4,7 +4,7 @@ import { Box, Typography } from '@mui/material';
 const HeaderSection = () => {
   const trans = useTrans();
   return (
-    <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 1, md: 3 }, mx: 'auto' }}>
       <Typography variant="h4" gutterBottom>
         {trans.header.title}
       </Typography>

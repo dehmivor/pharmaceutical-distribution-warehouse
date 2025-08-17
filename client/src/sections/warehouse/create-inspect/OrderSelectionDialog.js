@@ -17,7 +17,7 @@ import useTrans from '@/hooks/useTrans';
 
 const OrderSelectionDialog = ({ open, onClose, orders, loading, searchTerm, onSearchChange, onSelectOrder, onRefresh }) => {
   const trans = useTrans();
-  
+
   // Filter orders based on search term
   const filteredOrders = orders.filter((order) => {
     if (!searchTerm) return true;
@@ -38,7 +38,9 @@ const OrderSelectionDialog = ({ open, onClose, orders, loading, searchTerm, onSe
       <DialogTitle>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box>
-            <Typography variant="h6">{trans.common.selectImportOrder} ({validOrders.length} {trans.common.orders})</Typography>
+            <Typography variant="h6">
+              {trans.common.selectImportOrder} ({validOrders.length} {trans.common.orders})
+            </Typography>
             <Typography variant="body2" color="text.secondary">
               {trans.common.selectImportOrderDesc}
             </Typography>

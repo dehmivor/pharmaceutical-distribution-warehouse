@@ -808,7 +808,7 @@ export default {
     update: 'Cập nhật',
     refresh: 'Làm mới',
     loading: 'Đang tải...',
-    inspectionDate: 'Ngày kiểm tra',  
+    inspectionDate: 'Ngày kiểm tra',
     inspectionId: 'Mã kiểm kê',
     all: 'Tất cả',
     currency: 'VND',
@@ -2489,15 +2489,18 @@ export default {
     destructionOrderCreated: 'Tạo đơn xuất nội bộ thành công (đã duyệt)!',
     cannotCreateDestructionOrder: 'Không thể tạo đơn xuất nội bộ',
     scanPackageFeature: 'Tính năng Scan Package',
-    scanPackageFeatureDescription: 'Tính năng quét barcode/QR code sẽ được implement trong phiên bản tiếp theo. Hiện tại đã tự động chọn package này.',
+    scanPackageFeatureDescription:
+      'Tính năng quét barcode/QR code sẽ được implement trong phiên bản tiếp theo. Hiện tại đã tự động chọn package này.',
     scanPackageForLine: 'Quét Package',
-    scanPackageForLineDescription: 'Tính năng quét barcode/QR code sẽ được implement trong phiên bản tiếp theo.\n\nKhi scan, hệ thống sẽ tự động:\n1. Tìm package trong danh sách\n2. Nhảy xuống và highlight package đó\n3. Tự động chọn package và mở input nhập số lượng hủy\n\nHiện tại bạn có thể chọn package thủ công bằng nút "Chọn".',
+    scanPackageForLineDescription:
+      'Tính năng quét barcode/QR code sẽ được implement trong phiên bản tiếp theo.\n\nKhi scan, hệ thống sẽ tự động:\n1. Tìm package trong danh sách\n2. Nhảy xuống và highlight package đó\n3. Tự động chọn package và mở input nhập số lượng hủy\n\nHiện tại bạn có thể chọn package thủ công bằng nút "Chọn".',
     confirmContinue: 'Xác nhận tiếp tục',
     confirmContinueDescription: 'Một số mặt hàng chưa đạt số lượng yêu cầu. Bạn có muốn tiếp tục cập nhật không?',
     continue: 'Tiếp tục',
     cancel: 'Hủy',
     confirmComplete: 'Xác nhận hoàn thành',
-    confirmCompleteDescription: 'Bạn có chắc chắn muốn hoàn thành đơn hàng này không? Số lượng gói hàng sẽ được cập nhật và thay đổi vị trí sẽ được ghi lại.',
+    confirmCompleteDescription:
+      'Bạn có chắc chắn muốn hoàn thành đơn hàng này không? Số lượng gói hàng sẽ được cập nhật và thay đổi vị trí sẽ được ghi lại.',
     complete: 'Hoàn thành',
     confirmCancel: 'Xác nhận hủy',
     confirmCancelDescription: 'Bạn có chắc chắn muốn hủy đơn hàng này không?',
@@ -2929,7 +2932,7 @@ export default {
     failedToUpdateOrderStatus: 'Không thể cập nhật trạng thái đơn hàng',
     failedToCompleteInspection: 'Không thể hoàn thành kiểm nhập',
     failedToCreateBatches: 'Không thể tạo lô',
-    failedToUpdateOrderStatusToDelivered: 'Không thể cập nhật trạng thái đơn hàng thành delivered',
+    failedToUpdateOrderStatusToDelivered: 'Không thể cập nhật trạng thái đơn hàng thành delivered'
     // Status colors
   },
 
@@ -2973,10 +2976,14 @@ export default {
     warehouseStaff: 'Nhân viên kho',
     warehouseManagers: 'Quản lý kho',
     // Section Descriptions
-    supervisorDescription: 'Quản lý tài khoản giám sát và quyền hạn của họ. Giám sát có quyền truy cập cao để giám sát hoạt động và quản lý thành viên nhóm.',
-    representativeManagerDescription: 'Quản lý đại diện dịch vụ khách hàng xử lý tương tác khách hàng và yêu cầu hỗ trợ. Họ là điểm liên hệ chính cho khách hàng.',
-    representativeDescription: 'Đại diện dịch vụ khách hàng xử lý tương tác khách hàng và yêu cầu hỗ trợ. Họ là điểm liên hệ chính cho khách hàng.',
-    warehouseStaffDescription: 'Nhân viên kho quản lý tồn kho, thực hiện và hoạt động hậu cần. Họ đảm bảo xử lý đơn hàng chính xác và quản lý tồn kho.',
+    supervisorDescription:
+      'Quản lý tài khoản giám sát và quyền hạn của họ. Giám sát có quyền truy cập cao để giám sát hoạt động và quản lý thành viên nhóm.',
+    representativeManagerDescription:
+      'Quản lý đại diện dịch vụ khách hàng xử lý tương tác khách hàng và yêu cầu hỗ trợ. Họ là điểm liên hệ chính cho khách hàng.',
+    representativeDescription:
+      'Đại diện dịch vụ khách hàng xử lý tương tác khách hàng và yêu cầu hỗ trợ. Họ là điểm liên hệ chính cho khách hàng.',
+    warehouseStaffDescription:
+      'Nhân viên kho quản lý tồn kho, thực hiện và hoạt động hậu cần. Họ đảm bảo xử lý đơn hàng chính xác và quản lý tồn kho.',
     warehouseManagerDescription: 'Quản lý kho giám sát hoạt động kho và đảm bảo quản lý tồn kho hiệu quả.',
     // Statistics Cards
     totalUsers: 'Tổng người dùng',
@@ -3040,7 +3047,7 @@ export default {
     // Recent Orders
     recentImportOrders: 'Đơn hàng Nhập Gần đây',
     recentExportOrders: 'Đơn hàng Xuất Gần đây'
-  },
+  }
 
   // Dashboard
 };

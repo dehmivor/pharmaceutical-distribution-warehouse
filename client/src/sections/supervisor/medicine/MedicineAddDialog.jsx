@@ -136,8 +136,6 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
       newErrors.unit_of_measure = trans.medicineAdd.validation.unitOfMeasureRequired;
     }
 
-
-
     // Storage conditions validation (optional)
     if (formData.storage_conditions.temperature.trim()) {
       const tempValue = formData.storage_conditions.temperature.trim();
@@ -151,10 +149,10 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
         if (tempValue.includes('-')) {
           const [min, max] = tempValue.split('-').map(Number);
           if (min > max) {
-                      newErrors.storage_conditions = {
-            ...newErrors.storage_conditions,
-            temperature: trans.medicineAdd.validation.temperatureRange
-          };
+            newErrors.storage_conditions = {
+              ...newErrors.storage_conditions,
+              temperature: trans.medicineAdd.validation.temperatureRange
+            };
           }
         }
       }
@@ -163,8 +161,8 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
     if (formData.storage_conditions.humidity.trim()) {
       const humidityValue = formData.storage_conditions.humidity.trim();
       if (!/^\d+$|^\d+-\d+$/.test(humidityValue)) {
-        newErrors.storage_conditions = { 
-          ...newErrors.storage_conditions, 
+        newErrors.storage_conditions = {
+          ...newErrors.storage_conditions,
           humidity: trans.medicineAdd.validation.humidityFormat
         };
       } else {
@@ -186,10 +184,10 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
         } else {
           const humidity = Number(humidityValue);
           if (humidity > 100) {
-                      newErrors.storage_conditions = {
-            ...newErrors.storage_conditions,
-            humidity: trans.medicineAdd.validation.humidityValue
-          };
+            newErrors.storage_conditions = {
+              ...newErrors.storage_conditions,
+              humidity: trans.medicineAdd.validation.humidityValue
+            };
           }
         }
       }
@@ -582,7 +580,6 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     }}
                   />
                 </Grid>
-
               </Grid>
             </CardContent>
           </Card>

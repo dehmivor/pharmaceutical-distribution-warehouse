@@ -26,34 +26,34 @@ export default function RepresentativeOverviewChart({ data }) {
 
   // Prepare chart data with Date objects
   const chartData = [];
-  
+
   // Only process if we have valid data
   if (data && Array.isArray(data.export) && Array.isArray(data.import)) {
     const months = new Set();
-    
+
     // Collect all months
-    data.export.forEach(item => {
+    data.export.forEach((item) => {
       if (item && item.month) months.add(item.month);
     });
-    data.import.forEach(item => {
+    data.import.forEach((item) => {
       if (item && item.month) months.add(item.month);
     });
-    
+
     // Sort months and convert to Date objects
     const sortedMonths = Array.from(months).sort();
-    
+
     // Create chart data with Date objects
-    sortedMonths.forEach(monthStr => {
+    sortedMonths.forEach((monthStr) => {
       const [year, month] = monthStr.split('-').map(Number);
       const date = new Date(year, month - 1, 1); // month - 1 because Date constructor uses 0-based months
-      
-      const exportItem = data.export.find(item => item && item.month === monthStr);
-      const importItem = data.import.find(item => item && item.month === monthStr);
-      
+
+      const exportItem = data.export.find((item) => item && item.month === monthStr);
+      const importItem = data.import.find((item) => item && item.month === monthStr);
+
       chartData.push({
         date: date,
         'Export Orders': Number(exportItem?.count || 0),
-        'Import Orders': Number(importItem?.count || 0),
+        'Import Orders': Number(importItem?.count || 0)
       });
     });
   }
@@ -71,13 +71,11 @@ export default function RepresentativeOverviewChart({ data }) {
             </Typography>
           </Box>
         </Box>
-        
+
         <Box sx={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Box sx={{ textAlign: 'center' }}>
             <IconPackage size={48} color={theme.palette.primary.main} />
-            <Typography sx={{ mt: 2, color: 'text.secondary' }}>
-              No data available for chart
-            </Typography>
+            <Typography sx={{ mt: 2, color: 'text.secondary' }}>No data available for chart</Typography>
             <Typography sx={{ fontSize: '14px', color: 'text.secondary', mt: 1 }}>
               Export: {exportTotal} orders ({fCurrency(exportValue)})
             </Typography>
@@ -101,38 +99,40 @@ export default function RepresentativeOverviewChart({ data }) {
           </Typography>
         </Box>
       </Box>
-      
+
       <Box sx={{ height: '300px', width: '100%' }}>
-                           <LineChart
-                     dataset={chartData.length > 0 ? chartData : [{ date: new Date(), 'Export Orders': 0, 'Import Orders': 0 }]}
-                     xAxis={[{ 
-                       dataKey: 'date', 
-                       scaleType: 'point',
-                       valueFormatter: (date) => date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-                     }]}
-                     series={[
-                       { 
-                         dataKey: 'Export Orders', 
-                         color: theme.palette.primary.main,
-                         area: true,
-                         areaOpacity: 0.2,
-                         curve: 'linear'
-                       },
-                       { 
-                         dataKey: 'Import Orders', 
-                         color: theme.palette.secondary.main,
-                         area: true,
-                         areaOpacity: 0.2,
-                         curve: 'linear'
-                       }
-                     ]}
-                     height={300}
-                     margin={{ top: 20, bottom: 40, left: 50, right: 20 }}
-                     grid={{ horizontal: true }}
-                     slotProps={{ legend: { hidden: true } }}
-                   />
+        <LineChart
+          dataset={chartData.length > 0 ? chartData : [{ date: new Date(), 'Export Orders': 0, 'Import Orders': 0 }]}
+          xAxis={[
+            {
+              dataKey: 'date',
+              scaleType: 'point',
+              valueFormatter: (date) => date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+            }
+          ]}
+          series={[
+            {
+              dataKey: 'Export Orders',
+              color: theme.palette.primary.main,
+              area: true,
+              areaOpacity: 0.2,
+              curve: 'linear'
+            },
+            {
+              dataKey: 'Import Orders',
+              color: theme.palette.secondary.main,
+              area: true,
+              areaOpacity: 0.2,
+              curve: 'linear'
+            }
+          ]}
+          height={300}
+          margin={{ top: 20, bottom: 40, left: 50, right: 20 }}
+          grid={{ horizontal: true }}
+          slotProps={{ legend: { hidden: true } }}
+        />
       </Box>
-      
+
       <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
         <Box>
           <Typography variant="h6" color="primary.main">
@@ -163,15 +163,19 @@ export default function RepresentativeOverviewChart({ data }) {
 
 RepresentativeOverviewChart.propTypes = {
   data: PropTypes.shape({
-    export: PropTypes.arrayOf(PropTypes.shape({
-      month: PropTypes.string,
-      count: PropTypes.number,
-      value: PropTypes.number
-    })),
-    import: PropTypes.arrayOf(PropTypes.shape({
-      month: PropTypes.string,
-      count: PropTypes.number,
-      value: PropTypes.number
-    }))
+    export: PropTypes.arrayOf(
+      PropTypes.shape({
+        month: PropTypes.string,
+        count: PropTypes.number,
+        value: PropTypes.number
+      })
+    ),
+    import: PropTypes.arrayOf(
+      PropTypes.shape({
+        month: PropTypes.string,
+        count: PropTypes.number,
+        value: PropTypes.number
+      })
+    )
   })
-}; 
+};

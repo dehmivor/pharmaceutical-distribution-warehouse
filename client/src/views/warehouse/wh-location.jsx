@@ -150,7 +150,14 @@ const ViewListLocation = () => {
       {/* Filters */}
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-          <TextField fullWidth select size="small" label={trans.common.area} value={filterAreaId} onChange={(e) => setFilterAreaId(e.target.value)}>
+          <TextField
+            fullWidth
+            select
+            size="small"
+            label={trans.common.area}
+            value={filterAreaId}
+            onChange={(e) => setFilterAreaId(e.target.value)}
+          >
             <MenuItem value="">{trans.common.all}</MenuItem>
             {areas.map((area) => (
               <MenuItem key={area._id} value={area._id}>

@@ -33,13 +33,7 @@ const useWarehouseManagerDashboard = () => {
       setError(null);
 
       // Fetch all dashboard data from APIs
-      const [
-        dashboardResponse, 
-        chartResponse, 
-        detailedStatsResponse, 
-        topMedicinesResponse, 
-        alertsResponse
-      ] = await Promise.all([
+      const [dashboardResponse, chartResponse, detailedStatsResponse, topMedicinesResponse, alertsResponse] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/dashboard/warehouse-manager`, {
           headers: getAuthHeaders()
         }),
@@ -69,7 +63,6 @@ const useWarehouseManagerDashboard = () => {
       } else {
         setError('Failed to load dashboard data');
       }
-
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       setError(error.response?.data?.error || 'Failed to load dashboard data');
@@ -92,11 +85,14 @@ const useWarehouseManagerDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    
+
     // Auto-refresh every 5 minutes
-    const interval = setInterval(() => {
-      fetchDashboardData();
-    }, 5 * 60 * 1000);
+    const interval = setInterval(
+      () => {
+        fetchDashboardData();
+      },
+      5 * 60 * 1000
+    );
 
     return () => clearInterval(interval);
   }, []);

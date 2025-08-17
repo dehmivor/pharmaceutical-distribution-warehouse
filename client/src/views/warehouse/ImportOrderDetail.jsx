@@ -254,7 +254,7 @@ function ImportOrderDetail() {
 
       // Fetch medicine details
       const med = pkg.batch_id?.medicine_id;
-              const medicineLabel = med ? `${med.medicine_name} (${med.license_code})` : trans.common.unknownMedicine;
+      const medicineLabel = med ? `${med.medicine_name} (${med.license_code})` : trans.common.unknownMedicine;
 
       // Render barcode to offscreen canvas
       const canvas = document.createElement('canvas');
@@ -312,7 +312,7 @@ function ImportOrderDetail() {
         setTimeout(() => document.body.removeChild(iframe), 0);
       };
     } catch (err) {
-              console.error(trans.common.errorPrintingLabel, err);
+      console.error(trans.common.errorPrintingLabel, err);
       setError(trans.common.cannotPrintLabel);
     }
   };
@@ -409,7 +409,7 @@ function ImportOrderDetail() {
               <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 2 }}>
                 <Button size="small" color="primary" onClick={openSearchModal} sx={{ ml: 2 }} startIcon={<SearchIcon />}>
                   {trans.common.findPackageById}
-                </Button >
+                </Button>
               </Stack>
               {loadingPutAway ? (
                 <CircularProgress />
@@ -447,11 +447,7 @@ function ImportOrderDetail() {
                                   <LocationOnIcon fontSize="small" />
                                 </IconButton>
 
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handlePrintLabel(pkg)}
-                                >
+                                <IconButton size="small" color="primary" onClick={() => handlePrintLabel(pkg)}>
                                   <ReceiptIcon fontSize="small" />
                                 </IconButton>
                               </TableCell>
@@ -492,11 +488,7 @@ function ImportOrderDetail() {
                                   : '—'}
                               </TableCell>
                               <TableCell>
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handlePrintLabel(pkg)}
-                                >
+                                <IconButton size="small" color="primary" onClick={() => handlePrintLabel(pkg)}>
                                   <ReceiptIcon fontSize="small" />
                                 </IconButton>
                               </TableCell>
@@ -533,7 +525,12 @@ function ImportOrderDetail() {
 
               <FormControl fullWidth>
                 <InputLabel>{trans.common.area}</InputLabel>
-                <Select value={locForm.area_id || ''} label={trans.common.area} onChange={(e) => setLocForm({ ...locForm, area_id: e.target.value })} disabled>
+                <Select
+                  value={locForm.area_id || ''}
+                  label={trans.common.area}
+                  onChange={(e) => setLocForm({ ...locForm, area_id: e.target.value })}
+                  disabled
+                >
                   {Array.isArray(areas) &&
                     areas.map((a) => (
                       <MenuItem key={a._id} value={a._id}>

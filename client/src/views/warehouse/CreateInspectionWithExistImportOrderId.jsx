@@ -92,7 +92,10 @@ export default function CreateInspectionWithExistImportOrderId() {
         if (selectedOrder) {
           const convertedOrder = convertOrderData(selectedOrder);
           setOrderData(convertedOrder);
-          showAlert(`${trans.common.orderLoadedSuccessfully} ${convertedOrder.orderCode} ${trans.common.from} ${convertedOrder.supplier}`, 'success');
+          showAlert(
+            `${trans.common.orderLoadedSuccessfully} ${convertedOrder.orderCode} ${trans.common.from} ${convertedOrder.supplier}`,
+            'success'
+          );
         }
       });
     }
@@ -131,7 +134,10 @@ export default function CreateInspectionWithExistImportOrderId() {
           <Button variant="contained" className="p-4" onClick={() => router.push('/wh-create-inspections/without-import-ord')}>
             {trans.common.suspectedMedicine}
           </Button>
-          <Button variant="outlined" onClick={() => enqueueSnackbar(trans.common.youHaveSentRequireToWarehouseManager, { variant: 'info' })}>
+          <Button
+            variant="outlined"
+            onClick={() => enqueueSnackbar(trans.common.youHaveSentRequireToWarehouseManager, { variant: 'info' })}
+          >
             {trans.common.askWarehouseManagerToCreateInspect}
           </Button>
         </Box>
@@ -145,9 +151,13 @@ export default function CreateInspectionWithExistImportOrderId() {
           {trans.common.creatingReceiptForOrder}: <strong>{orderData.orderCode}</strong>
         </Typography>
         <Typography variant="body2">
-          {trans.common.supplier}: {orderData.supplier} | {trans.common.numberOfProducts}: {orderData.items?.length || 0} | {trans.common.totalAmount}:{' '}
-          {orderData.totalAmount?.toLocaleString('vi-VN')} ₫ | {trans.common.status}:{' '}
-          {orderData.status === 'approved' ? trans.common.approved : orderData.status === 'delivered' ? trans.common.delivered : orderData.status}
+          {trans.common.supplier}: {orderData.supplier} | {trans.common.numberOfProducts}: {orderData.items?.length || 0} |{' '}
+          {trans.common.totalAmount}: {orderData.totalAmount?.toLocaleString('vi-VN')} ₫ | {trans.common.status}:{' '}
+          {orderData.status === 'approved'
+            ? trans.common.approved
+            : orderData.status === 'delivered'
+              ? trans.common.delivered
+              : orderData.status}
         </Typography>
         {orderData.contractInfo?.contractCode && (
           <Typography variant="body2" sx={{ mt: 1 }}>

@@ -144,7 +144,7 @@ export default function Report() {
       }
     } catch (error) {
       console.error('Error fetching report data:', error);
-              setError(error.response?.data?.error || trans.reports.failedToLoad);
+      setError(error.response?.data?.error || trans.reports.failedToLoad);
     } finally {
       setLoading(false);
     }
@@ -189,7 +189,7 @@ export default function Report() {
       link.remove();
     } catch (error) {
       console.error('Error exporting to Excel:', error);
-              setError(trans.reports.failedToExport);
+      setError(trans.reports.failedToExport);
     } finally {
       setLoading(false);
     }
@@ -381,8 +381,8 @@ export default function Report() {
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                   label={trans.common.status}
                 >
-                                  <MenuItem value="all">{trans.common.allStatuses}</MenuItem>
-                <MenuItem value="pending">{trans.common.pendingProcessing}</MenuItem>
+                  <MenuItem value="all">{trans.common.allStatuses}</MenuItem>
+                  <MenuItem value="pending">{trans.common.pendingProcessing}</MenuItem>
                   <MenuItem value="partial">{trans.common.partialPayment}</MenuItem>
                   <MenuItem value="completed">{trans.common.completed}</MenuItem>
                   <MenuItem value="overdue">{trans.common.overdue}</MenuItem>
@@ -494,7 +494,9 @@ export default function Report() {
                 onRowsPerPageChange={handleChangeRowsPerPage}
                 rowsPerPageOptions={[5, 10, 25, 50]}
                 labelRowsPerPage={trans.reports.rowsPerPage}
-                labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.reports.of} ${count !== -1 ? count : trans.reports.moreThanTo}`}
+                labelDisplayedRows={({ from, to, count }) =>
+                  `${from}-${to} ${trans.reports.of} ${count !== -1 ? count : trans.reports.moreThanTo}`
+                }
               />
             </>
           ) : (
@@ -535,9 +537,9 @@ export default function Report() {
           </Box>
         </DialogContent>
         <DialogActions>
-                      <Button onClick={() => setUploadDialog(false)}>{trans.common.cancel}</Button>
+          <Button onClick={() => setUploadDialog(false)}>{trans.common.cancel}</Button>
           <Button onClick={handleFileUpload} variant="contained" disabled={!uploadFile || uploading}>
-                          {uploading ? trans.common.uploading : trans.common.upload}
+            {uploading ? trans.common.uploading : trans.common.upload}
           </Button>
         </DialogActions>
       </Dialog>

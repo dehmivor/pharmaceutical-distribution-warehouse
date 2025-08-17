@@ -77,19 +77,13 @@ const updateAnnexStatus = async (url, { arg: payload }) => {
   return response.data;
 };
 
-const AnnexDialog = ({ 
-  open, 
-  onClose, 
-  contractId, 
-  onSuccess
-}) => {
+const AnnexDialog = ({ open, onClose, contractId, onSuccess }) => {
   const trans = useTrans();
   const { userRole, user } = useRole();
   const { enqueueSnackbar } = useSnackbar();
   const [contract, setContract] = useState(null);
   const [annex, setAnnex] = useState(null);
   const [medicines, setMedicines] = useState([]);
-  
 
   const [formData, setFormData] = useState({
     annex_code: '',
@@ -109,21 +103,19 @@ const AnnexDialog = ({
   // Fetch contract detail and annex data
   const fetchContractDetail = async () => {
     if (!contractId) return;
-    
+
     try {
       const response = await axiosInstance.get(`/api/contract/${contractId}`, {
         headers: getAuthHeaders()
       });
-      
+
       if (response.data.success) {
         const contractData = response.data.data;
         setContract(contractData);
-        
+
         // Find the annex that can be edited (draft or rejected)
         if (contractData.annexes) {
-          const existingAnnex = contractData.annexes.find(annex => 
-            annex.status === 'draft' || annex.status === 'rejected'
-          );
+          const existingAnnex = contractData.annexes.find((annex) => annex.status === 'draft' || annex.status === 'rejected');
           if (existingAnnex) {
             setAnnex(existingAnnex);
           } else {
@@ -132,8 +124,6 @@ const AnnexDialog = ({
         } else {
           setAnnex(null);
         }
-        
-
       }
     } catch (error) {
       console.error('Error fetching contract detail:', error);
@@ -147,7 +137,7 @@ const AnnexDialog = ({
       const response = await axiosInstance.get('/api/medicine/all/v1', {
         headers: getAuthHeaders()
       });
-      
+
       if (response.data.success) {
         const medicinesData = response.data.data || [];
         setMedicines(medicinesData);
@@ -202,16 +192,14 @@ const AnnexDialog = ({
   const currentMode = useMemo(() => {
     return determineMode(annex, userRole);
   }, [annex, userRole]);
-  
-  const isReadOnly = currentMode === 'approve' || currentMode === 'view';
-  
 
+  const isReadOnly = currentMode === 'approve' || currentMode === 'view';
 
   // Initialize form data and fetch data based on role
   useEffect(() => {
     if (open && contractId) {
       fetchContractDetail();
-      
+
       // For representative: fetch all medicines for selection
       if (userRole === 'representative') {
         fetchAllMedicines();
@@ -228,15 +216,15 @@ const AnnexDialog = ({
         const addItems = annex.medicine_changes.add_items || [];
         const removeItems = annex.medicine_changes.remove_items || [];
         const updateItems = annex.medicine_changes.update_prices || [];
-        
+
         // Extract medicine objects (already populated from backend)
         annexMedicines = [
-          ...addItems.map(item => item.medicine_id),
-          ...removeItems.map(item => item.medicine_id),
-          ...updateItems.map(item => item.medicine_id)
-        ].filter(medicine => medicine && typeof medicine === 'object'); // Filter out string IDs
+          ...addItems.map((item) => item.medicine_id),
+          ...removeItems.map((item) => item.medicine_id),
+          ...updateItems.map((item) => item.medicine_id)
+        ].filter((medicine) => medicine && typeof medicine === 'object'); // Filter out string IDs
       }
-      
+
       setMedicines(annexMedicines);
     }
   }, [annex, userRole]);
@@ -248,21 +236,21 @@ const AnnexDialog = ({
         description: annex.description || '',
         signed_date: annex.signed_date ? new Date(annex.signed_date) : null,
         medicine_changes: {
-          add_items: (annex.medicine_changes?.add_items || []).map(item => {
+          add_items: (annex.medicine_changes?.add_items || []).map((item) => {
             const medicineId = typeof item.medicine_id === 'object' ? item.medicine_id._id : item.medicine_id;
             return {
               medicine_id: medicineId,
               unit_price: item.unit_price
             };
           }),
-          remove_items: (annex.medicine_changes?.remove_items || []).map(item => {
+          remove_items: (annex.medicine_changes?.remove_items || []).map((item) => {
             const medicineId = typeof item.medicine_id === 'object' ? item.medicine_id._id : item.medicine_id;
             return {
               medicine_id: medicineId,
               unit_price: item.unit_price
             };
           }),
-          update_prices: (annex.medicine_changes?.update_prices || []).map(item => {
+          update_prices: (annex.medicine_changes?.update_prices || []).map((item) => {
             const medicineId = typeof item.medicine_id === 'object' ? item.medicine_id._id : item.medicine_id;
             return {
               medicine_id: medicineId,
@@ -274,7 +262,7 @@ const AnnexDialog = ({
           new_end_date: annex.end_date_change?.new_end_date ? new Date(annex.end_date_change.new_end_date) : null
         }
       };
-      
+
       setFormData(parsedFormData);
     } else {
       setFormData({
@@ -295,20 +283,20 @@ const AnnexDialog = ({
   }, [annex, open, medicines]);
 
   const handleChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [field]: value
     }));
     // Clear validation error
     if (errorValidate[field]) {
-      setErrorValidate(prev => ({
+      setErrorValidate((prev) => ({
         ...prev,
         [field]: ''
       }));
     }
     // Clear general error when any field changes
     if (errorValidate.general) {
-      setErrorValidate(prev => ({
+      setErrorValidate((prev) => ({
         ...prev,
         general: ''
       }));
@@ -316,7 +304,7 @@ const AnnexDialog = ({
   };
 
   const handleAnnexChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       end_date_change: {
         ...prev.end_date_change,
@@ -325,14 +313,14 @@ const AnnexDialog = ({
     }));
     // Clear validation error
     if (errorValidate.end_date) {
-      setErrorValidate(prev => ({
+      setErrorValidate((prev) => ({
         ...prev,
         end_date: ''
       }));
     }
     // Clear general error when end date changes
     if (errorValidate.general) {
-      setErrorValidate(prev => ({
+      setErrorValidate((prev) => ({
         ...prev,
         general: ''
       }));
@@ -340,27 +328,23 @@ const AnnexDialog = ({
   };
 
   const handleItemChange = (section, index, field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       medicine_changes: {
         ...prev.medicine_changes,
-        [section]: prev.medicine_changes[section].map((item, i) =>
-          i === index ? { ...item, [field]: value } : item
-        )
+        [section]: prev.medicine_changes[section].map((item, i) => (i === index ? { ...item, [field]: value } : item))
       }
     }));
     // Clear validation error
     if (errorValidate[section] && errorValidate[section][index] && errorValidate[section][index][field]) {
-      setErrorValidate(prev => ({
+      setErrorValidate((prev) => ({
         ...prev,
-        [section]: prev[section].map((item, i) =>
-          i === index ? { ...item, [field]: '' } : item
-        )
+        [section]: prev[section].map((item, i) => (i === index ? { ...item, [field]: '' } : item))
       }));
     }
     // Clear general error when any item changes
     if (errorValidate.general) {
-      setErrorValidate(prev => ({
+      setErrorValidate((prev) => ({
         ...prev,
         general: ''
       }));
@@ -368,7 +352,7 @@ const AnnexDialog = ({
   };
 
   const addItem = (section) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       medicine_changes: {
         ...prev.medicine_changes,
@@ -377,7 +361,7 @@ const AnnexDialog = ({
     }));
     // Clear general error when adding items
     if (errorValidate.general) {
-      setErrorValidate(prev => ({
+      setErrorValidate((prev) => ({
         ...prev,
         general: ''
       }));
@@ -385,7 +369,7 @@ const AnnexDialog = ({
   };
 
   const removeItem = (section, index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       medicine_changes: {
         ...prev.medicine_changes,
@@ -414,9 +398,9 @@ const AnnexDialog = ({
     }
 
     // Validate that annex has at least one meaningful change
-    const hasAddItems = formData.medicine_changes.add_items.some(item => item.medicine_id && item.medicine_id !== '');
-    const hasRemoveItems = formData.medicine_changes.remove_items.some(item => item.medicine_id && item.medicine_id !== '');
-    const hasUpdatePrices = formData.medicine_changes.update_prices.some(item => item.medicine_id && item.medicine_id !== '');
+    const hasAddItems = formData.medicine_changes.add_items.some((item) => item.medicine_id && item.medicine_id !== '');
+    const hasRemoveItems = formData.medicine_changes.remove_items.some((item) => item.medicine_id && item.medicine_id !== '');
+    const hasUpdatePrices = formData.medicine_changes.update_prices.some((item) => item.medicine_id && item.medicine_id !== '');
     const hasEndDateChange = formData.end_date_change.new_end_date;
 
     if (!hasAddItems && !hasRemoveItems && !hasUpdatePrices && !hasEndDateChange) {
@@ -424,14 +408,14 @@ const AnnexDialog = ({
     }
 
     // Validate medicine items
-    ['add_items', 'remove_items', 'update_prices'].forEach(section => {
+    ['add_items', 'remove_items', 'update_prices'].forEach((section) => {
       if (formData.medicine_changes[section].length > 0) {
         errors[section] = formData.medicine_changes[section].map((item, index) => {
           // Only validate items that have medicine_id
           if (!item.medicine_id || item.medicine_id === '') {
             return null; // Skip validation for empty items
           }
-          
+
           const itemErrors = {};
           if (section !== 'remove_items' && (!item.unit_price || item.unit_price === '')) {
             itemErrors.unit_price = 'Đơn giá là bắt buộc';
@@ -445,15 +429,15 @@ const AnnexDialog = ({
     });
 
     setErrorValidate(errors);
-    
+
     // Check if there are any actual errors (not just empty arrays or null values)
-    const hasErrors = Object.keys(errors).some(key => {
+    const hasErrors = Object.keys(errors).some((key) => {
       const value = errors[key];
       if (typeof value === 'string' && value) return true;
-      if (Array.isArray(value) && value.some(item => item !== null)) return true;
+      if (Array.isArray(value) && value.some((item) => item !== null)) return true;
       return false;
     });
-    
+
     return !hasErrors;
   };
 
@@ -461,7 +445,7 @@ const AnnexDialog = ({
     const payload = {
       annex_code: formData.annex_code,
       description: formData.description,
-      signed_date: formData.signed_date ? format(formData.signed_date, 'yyyy-MM-dd') : null,
+      signed_date: formData.signed_date ? format(formData.signed_date, 'yyyy-MM-dd') : null
     };
 
     // Initialize medicine_changes object
@@ -469,21 +453,21 @@ const AnnexDialog = ({
 
     // Medicine changes
     const add_items = formData.medicine_changes.add_items
-      .filter(item => item.medicine_id)
-      .map(item => ({
+      .filter((item) => item.medicine_id)
+      .map((item) => ({
         medicine_id: item.medicine_id,
         unit_price: item.unit_price
       }));
     if (add_items.length > 0) medicine_changes.add_items = add_items;
 
     const remove_items = formData.medicine_changes.remove_items
-      .filter(item => item.medicine_id)
-      .map(item => ({ medicine_id: item.medicine_id }));
+      .filter((item) => item.medicine_id)
+      .map((item) => ({ medicine_id: item.medicine_id }));
     if (remove_items.length > 0) medicine_changes.remove_items = remove_items;
 
     const update_prices = formData.medicine_changes.update_prices
-      .filter(item => item.medicine_id)
-      .map(item => ({
+      .filter((item) => item.medicine_id)
+      .map((item) => ({
         medicine_id: item.medicine_id,
         unit_price: item.unit_price
       }));
@@ -509,7 +493,6 @@ const AnnexDialog = ({
 
     try {
       const payload = buildAnnexPayload();
-      
 
       let result;
       if (currentMode === 'create') {
@@ -569,7 +552,7 @@ const AnnexDialog = ({
     if (!window.confirm('Bạn có chắc chắn muốn xóa phụ lục này?')) {
       return;
     }
-    
+
     try {
       const result = await deleteAnnexTrigger();
       if (result) {
@@ -595,22 +578,33 @@ const AnnexDialog = ({
 
   const getDialogTitle = () => {
     switch (currentMode) {
-      case 'create': return 'Tạo Phụ Lục Mới';
-      case 'edit': return trans.common.editAnnex;
-      case 'resubmit': return 'Gửi Lại Phụ Lục';
-      case 'approve': return 'Duyệt Phụ Lục';
-      case 'view': return 'Xem Phụ Lục';
-      default: return 'Phụ Lục';
+      case 'create':
+        return 'Tạo Phụ Lục Mới';
+      case 'edit':
+        return trans.common.editAnnex;
+      case 'resubmit':
+        return 'Gửi Lại Phụ Lục';
+      case 'approve':
+        return 'Duyệt Phụ Lục';
+      case 'view':
+        return 'Xem Phụ Lục';
+      default:
+        return 'Phụ Lục';
     }
   };
 
   const getSubmitButtonText = () => {
     switch (currentMode) {
-      case 'create': return 'Tạo';
-      case 'edit': return 'Cập Nhật';
-      case 'resubmit': return 'Gửi Duyệt Lại';
-      case 'approve': return 'Duyệt';
-      default: return 'Xác Nhận';
+      case 'create':
+        return 'Tạo';
+      case 'edit':
+        return 'Cập Nhật';
+      case 'resubmit':
+        return 'Gửi Duyệt Lại';
+      case 'approve':
+        return 'Duyệt';
+      default:
+        return 'Xác Nhận';
     }
   };
 
@@ -627,7 +621,7 @@ const AnnexDialog = ({
         {getDialogTitle()}
       </DialogTitle>
 
-      <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto', paddingTop: "10px !important" }}>
+      <DialogContent sx={{ maxHeight: '70vh', overflowY: 'auto', paddingTop: '10px !important' }}>
         {errorValidate.general && (
           <Box sx={{ mb: 2, p: 2, bgcolor: 'error.light', color: 'error.contrastText', borderRadius: 1 }}>
             <Typography variant="body2">{errorValidate.general}</Typography>
@@ -711,13 +705,7 @@ const AnnexDialog = ({
                 Thêm Thuốc Mới
               </Typography>
               {!isReadOnly && (
-                <Button
-                  variant="outlined"
-                  startIcon={<AddIcon />}
-                  onClick={() => addItem('add_items')}
-                  size="small"
-                  color="success"
-                >
+                <Button variant="outlined" startIcon={<AddIcon />} onClick={() => addItem('add_items')} size="small" color="success">
                   Thêm thuốc
                 </Button>
               )}
@@ -730,17 +718,12 @@ const AnnexDialog = ({
                     Thuốc #{itemIndex + 1}
                   </Typography>
                   {!isReadOnly && (
-                    <Button
-                      size="small"
-                      color="error"
-                      onClick={() => removeItem('add_items', itemIndex)}
-                      sx={{ textTransform: 'none' }}
-                    >
+                    <Button size="small" color="error" onClick={() => removeItem('add_items', itemIndex)} sx={{ textTransform: 'none' }}>
                       Xóa
                     </Button>
                   )}
                 </Box>
-                
+
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6}>
                     <Autocomplete
@@ -748,8 +731,8 @@ const AnnexDialog = ({
                       getOptionLabel={(option) => `${option.license_code}`}
                       value={(() => {
                         if (!Array.isArray(medicines)) return null;
-                        const found = medicines.find(m => m._id.toString() === item.medicine_id.toString());
-                        
+                        const found = medicines.find((m) => m._id.toString() === item.medicine_id.toString());
+
                         return found || null;
                       })()}
                       onChange={(_, newValue) => {
@@ -766,10 +749,10 @@ const AnnexDialog = ({
                           helperText={errorValidate.add_items && errorValidate.add_items[itemIndex]?.medicine_id}
                         />
                       )}
-                      sx = {{ minWidth: 200 }}
+                      sx={{ minWidth: 200 }}
                     />
                   </Grid>
-                  
+
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
@@ -781,7 +764,7 @@ const AnnexDialog = ({
                       error={!!(errorValidate.add_items && errorValidate.add_items[itemIndex]?.unit_price)}
                       helperText={errorValidate.add_items && errorValidate.add_items[itemIndex]?.unit_price}
                       InputProps={{
-                        endAdornment: <InputAdornment position="end">₫</InputAdornment>,
+                        endAdornment: <InputAdornment position="end">₫</InputAdornment>
                       }}
                       size="small"
                     />
@@ -799,13 +782,7 @@ const AnnexDialog = ({
                 Loại Bỏ Thuốc
               </Typography>
               {!isReadOnly && (
-                <Button
-                  variant="outlined"
-                  startIcon={<RemoveIcon />}
-                  onClick={() => addItem('remove_items')}
-                  size="small"
-                  color="error"
-                >
+                <Button variant="outlined" startIcon={<RemoveIcon />} onClick={() => addItem('remove_items')} size="small" color="error">
                   Thêm thuốc
                 </Button>
               )}
@@ -818,23 +795,20 @@ const AnnexDialog = ({
                     Thuốc #{itemIndex + 1}
                   </Typography>
                   {!isReadOnly && (
-                    <Button
-                      size="small"
-                      color="error"
-                      onClick={() => removeItem('remove_items', itemIndex)}
-                      sx={{ textTransform: 'none' }}
-                    >
+                    <Button size="small" color="error" onClick={() => removeItem('remove_items', itemIndex)} sx={{ textTransform: 'none' }}>
                       Xóa
                     </Button>
                   )}
                 </Box>
-                
+
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <Autocomplete
                       options={Array.isArray(medicines) ? medicines : []}
                       getOptionLabel={(option) => `${option.license_code}`}
-                      value={Array.isArray(medicines) ? medicines.find(m => m._id.toString() === item.medicine_id.toString()) || null : null}
+                      value={
+                        Array.isArray(medicines) ? medicines.find((m) => m._id.toString() === item.medicine_id.toString()) || null : null
+                      }
                       onChange={(_, newValue) => {
                         handleItemChange('remove_items', itemIndex, 'medicine_id', newValue ? newValue._id : '');
                       }}
@@ -849,7 +823,7 @@ const AnnexDialog = ({
                           helperText={errorValidate.remove_items && errorValidate.remove_items[itemIndex]?.medicine_id}
                         />
                       )}
-                      sx = {{ minWidth: 200 }}
+                      sx={{ minWidth: 200 }}
                     />
                   </Grid>
                 </Grid>
@@ -865,13 +839,7 @@ const AnnexDialog = ({
                 Cập Nhật Giá Thuốc
               </Typography>
               {!isReadOnly && (
-                <Button
-                  variant="outlined"
-                  startIcon={<EditIcon />}
-                  onClick={() => addItem('update_prices')}
-                  size="small"
-                  color="warning"
-                >
+                <Button variant="outlined" startIcon={<EditIcon />} onClick={() => addItem('update_prices')} size="small" color="warning">
                   Thêm thuốc
                 </Button>
               )}
@@ -894,13 +862,15 @@ const AnnexDialog = ({
                     </Button>
                   )}
                 </Box>
-                
+
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6}>
                     <Autocomplete
                       options={Array.isArray(medicines) ? medicines : []}
                       getOptionLabel={(option) => `${option.license_code}`}
-                      value={Array.isArray(medicines) ? medicines.find(m => m._id.toString() === item.medicine_id.toString()) || null : null}
+                      value={
+                        Array.isArray(medicines) ? medicines.find((m) => m._id.toString() === item.medicine_id.toString()) || null : null
+                      }
                       onChange={(_, newValue) => {
                         handleItemChange('update_prices', itemIndex, 'medicine_id', newValue ? newValue._id : '');
                       }}
@@ -915,10 +885,10 @@ const AnnexDialog = ({
                           helperText={errorValidate.update_prices && errorValidate.update_prices[itemIndex]?.medicine_id}
                         />
                       )}
-                      sx = {{ minWidth: 200 }}
+                      sx={{ minWidth: 200 }}
                     />
                   </Grid>
-                  
+
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
@@ -930,7 +900,7 @@ const AnnexDialog = ({
                       error={!!(errorValidate.update_prices && errorValidate.update_prices[itemIndex]?.unit_price)}
                       helperText={errorValidate.update_prices && errorValidate.update_prices[itemIndex]?.unit_price}
                       InputProps={{
-                        endAdornment: <InputAdornment position="end">₫</InputAdornment>,
+                        endAdornment: <InputAdornment position="end">₫</InputAdornment>
                       }}
                       size="small"
                     />
@@ -946,34 +916,20 @@ const AnnexDialog = ({
         <Button onClick={onClose} disabled={isLoading}>
           Hủy
         </Button>
-        
+
         {canDeleteAnnex() && (
-          <Button 
-            onClick={handleDelete} 
-            variant="outlined" 
-            color="error" 
-            disabled={isLoading}
-          >
+          <Button onClick={handleDelete} variant="outlined" color="error" disabled={isLoading}>
             Xóa Phụ Lục
           </Button>
         )}
-        
+
         {currentMode === 'approve' && (
-          <Button 
-            onClick={handleReject} 
-            variant="outlined" 
-            color="error" 
-            disabled={isLoading}
-          >
+          <Button onClick={handleReject} variant="outlined" color="error" disabled={isLoading}>
             Từ Chối
           </Button>
         )}
-        
-        <Button 
-          onClick={handleSubmit} 
-          variant="contained" 
-          disabled={isLoading}
-        >
+
+        <Button onClick={handleSubmit} variant="contained" disabled={isLoading}>
           {getSubmitButtonText()}
         </Button>
       </DialogActions>
@@ -981,4 +937,4 @@ const AnnexDialog = ({
   );
 };
 
-export default AnnexDialog; 
+export default AnnexDialog;
