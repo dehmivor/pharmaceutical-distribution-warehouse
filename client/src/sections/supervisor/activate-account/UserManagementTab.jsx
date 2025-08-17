@@ -172,7 +172,7 @@ const UserTable = ({
 function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDeactivateUserDialog, onOpenAddUser }) {
   const theme = useTheme();
   const trans = useTrans();
-  const { users, loading, error, refetch } = useUsers();
+  const { users, loading, error, refetchUsers } = useUsers();
 
   // Filter states
   const [searchText, setSearchText] = useState('');
@@ -234,6 +234,22 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
 
     setFilteredUsers(filtered);
     setPage(0);
+  };
+
+  // Reset filters to show all users
+  const handleResetFilters = () => {
+    setSearchText('');
+    setFilterRole('all');
+    setFilterStatus('all');
+    setFilteredUsers(users || []);
+    setPage(0);
+    setRolePage({
+      supervisor: 0,
+      representative: 0,
+      representative_manager: 0,
+      warehouse: 0,
+      warehouse_manager: 0
+    });
   };
 
   // Pagination handlers
@@ -330,14 +346,14 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
 
   // Expose refetch function globally for parent component to use
   useEffect(() => {
-    if (refetch) {
-      window.refetchUsers = refetch;
+    if (refetchUsers) {
+      window.refetchUsers = refetchUsers;
     }
 
     return () => {
       delete window.refetchUsers;
     };
-  }, [refetch]);
+  }, [refetchUsers]);
 
   if (loading) {
     return (
@@ -371,11 +387,25 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
 
   return (
     <Stack pl={3} pr={3} spacing={3}>
-      <PresentationCard title="User Statistics">
+      <PresentationCard
+        title={
+          (searchText && searchText.trim() !== '') || filterRole !== 'all' || filterStatus !== 'all'
+            ? `User Statistics - Filters Set (Click Search to Apply)`
+            : 'User Statistics'
+        }
+      >
         <Typography variant="body2" color="text.secondary">
           Summary of user account with role authorization
         </Typography>
         <Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Set your filters below and click Search to apply them. Filters will not be applied automatically.
+          </Typography>
+          {((searchText && searchText.trim() !== '') || filterRole !== 'all' || filterStatus !== 'all') && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Filters are set but not yet applied. Click Search to see filtered results.
+            </Alert>
+          )}
           <Grid container spacing={2} alignItems="center">
             <Grid item xs={12} sm={4} md={4}>
               <TextField
@@ -441,11 +471,18 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 startIcon={<SearchIcon />}
                 onClick={handleSearch}
                 sx={{
-                  background: 'linear-gradient(45deg, #59GBD3 30%, #83PA3 90%)',
-                  boxShadow: '0 3px 5px 2px rgba(33, 203, 243, .3)'
+                  background:
+                    (searchText && searchText.trim() !== '') || filterRole !== 'all' || filterStatus !== 'all'
+                      ? 'linear-gradient(45deg, #FF6B35 30%, #F7931E 90%)'
+                      : 'linear-gradient(45deg, #59GBD3 30%, #83PA3 90%)',
+                  boxShadow:
+                    (searchText && searchText.trim() !== '') || filterRole !== 'all' || filterStatus !== 'all'
+                      ? '0 3px 5px 2px rgba(255, 107, 53, .3)'
+                      : '0 3px 5px 2px rgba(33, 203, 243, .3)',
+                  fontWeight: (searchText && searchText.trim() !== '') || filterRole !== 'all' || filterStatus !== 'all' ? 'bold' : 'normal'
                 }}
               >
-                Search
+                {(searchText && searchText.trim() !== '') || filterRole !== 'all' || filterStatus !== 'all' ? 'Apply Filters' : 'Search'}
               </Button>
             </Grid>
 
@@ -458,19 +495,7 @@ function UserManagement({ onOpenPermissionDialog, onOpenEditUserDialog, onOpenDe
                 startIcon={<RefreshIcon />}
                 onClick={() => {
                   refetch();
-                  setSearchText('');
-                  setFilterRole('all');
-                  setFilterStatus('all');
-                  setFilteredUsers(users || []);
-                  setPage(0);
-                  setRowsPerPage(10);
-                  setRolePage({
-                    supervisor: 0,
-                    representative: 0,
-                    representative_manager: 0,
-                    warehouse: 0,
-                    warehouse_manager: 0
-                  });
+                  handleResetFilters();
                 }}
                 sx={{
                   background: 'linear-gradient(45deg, #f0f0f0 30%, #e0e0e0 90%)',

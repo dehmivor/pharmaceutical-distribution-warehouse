@@ -297,8 +297,7 @@ const useUsers = () => {
   );
 
   // Enhanced refetch function
-  const refetch = useCallback(async () => {
-    console.log('🔄 Manual refetch triggered');
+  const refetchUsers = useCallback(async () => {
     setRetryCount(0);
     try {
       return await mutate();
@@ -318,7 +317,7 @@ const useUsers = () => {
     isValidating,
     error: error?.message || error,
     errorDetails: error,
-    refetch,
+    refetchUsers,
     mutate,
     hasValidToken: shouldFetch,
     tokenExists: !!token,

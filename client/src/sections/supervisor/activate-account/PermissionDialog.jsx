@@ -205,13 +205,13 @@ export default function PermissionDialog({ open, onClose, user, onUpdate }) {
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" fontWeight={500}>
+                  <Typography variant="body2" fontWeight={500} component="span">
                     Current Role:
                     <Chip label={getRoleDisplayName(user.role)} size="small" sx={{ ml: 1 }} icon={getRoleIcon(user.role)} />
                   </Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="body2" fontWeight={500}>
+                  <Typography variant="body2" fontWeight={500} component="span">
                     Current Status:
                     <Chip
                       label={getStatusDisplayName(user.status)}

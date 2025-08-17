@@ -1,5 +1,6 @@
 'use client';
 import useTrans from '@/hooks/useTrans';
+import useUsers from '@/hooks/useUser';
 import AddUserDialog from '@/sections/supervisor/activate-account/AddUserDialog';
 import DeactivateUserDialog from '@/sections/supervisor/activate-account/DeactivateUserDialog';
 import EditUserDialog from '@/sections/supervisor/activate-account/EditUserDialog';
@@ -39,6 +40,7 @@ function ManageUsers() {
   // Status Change Dialog states
   const [openStatusChangeDialog, setOpenStatusChangeDialog] = useState(false);
   const [statusChangingUser, setStatusChangingUser] = useState(null);
+  const { users, loading, error, refetchUsers } = useUsers();
 
   // API base URL
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -155,10 +157,7 @@ function ManageUsers() {
 
       if (response.status === 200) {
         enqueueSnackbar('User role updated successfully!', { variant: 'success' });
-        // Refetch user list to update UI
-        if (window.refetchUsers) {
-          window.refetchUsers();
-        }
+        await refetchUsers();
         return response.data;
       } else {
         throw new Error(response.data.message || 'Failed to update user role');
@@ -182,9 +181,7 @@ function ManageUsers() {
       if (response.status === 200) {
         enqueueSnackbar('User email updated successfully!', { variant: 'success' });
         // Refetch user list to update UI
-        if (window.refetchUsers) {
-          window.refetchUsers();
-        }
+        await refetchUsers();
         return response.data;
       } else {
         throw new Error(response.data.message || 'Failed to update user email');
@@ -213,10 +210,7 @@ function ManageUsers() {
 
       if (response.status === 200) {
         enqueueSnackbar('User status updated successfully!', { variant: 'success' });
-        // Refetch user list to update UI
-        if (window.refetchUsers) {
-          window.refetchUsers();
-        }
+        await refetchUsers();
         return response.data;
       } else {
         throw new Error(response.data.message || 'Failed to update user status');
