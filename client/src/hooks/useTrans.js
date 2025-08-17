@@ -6,7 +6,7 @@ import { useMemo } from 'react';
 
 export default function useTrans() {
   const { i18n } = useConfig();
-
+  
   return useMemo(() => {
     try {
       // Fallback to English if i18n is not available
@@ -18,7 +18,7 @@ export default function useTrans() {
             return target[prop];
           }
           return `{trans.${String(prop)}}`;
-        }
+        },
       });
     } catch (error) {
       console.warn('useTrans hook error, falling back to English:', error);
@@ -29,7 +29,7 @@ export default function useTrans() {
             return target[prop];
           }
           return `{trans.${String(prop)}}`;
-        }
+        },
       });
     }
   }, [i18n]); // Chỉ tạo lại khi i18n thay đổi
