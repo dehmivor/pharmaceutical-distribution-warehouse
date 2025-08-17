@@ -55,6 +55,15 @@ function ExportOrderPage() {
     created_by: ''
   });
   const [userEmails, setUserEmails] = useState([]);
+  
+  // Add applied filters state to separate current filters from applied ones
+  const [appliedFilters, setAppliedFilters] = useState({
+    status: '',
+    contract_code: '',
+    contract_type: '',
+    date_filter: '',
+    created_by: ''
+  });
 
   // Định nghĩa lại hàm fetchOrders
   const fetchOrders = async () => {
@@ -205,7 +214,7 @@ function ExportOrderPage() {
 
   // Reset page when filters change
   useEffect(() => {
-    setPage(0);
+    // Remove this effect since we now control page reset manually
   }, [filters]);
 
   // Gọi fetchContractMedicines khi chọn contract
@@ -441,23 +450,32 @@ function ExportOrderPage() {
     }));
   };
 
+  // Apply filters when search button is clicked
+  const applyFilters = () => {
+    setAppliedFilters(filters);
+    setPage(0); // Reset to first page when applying new filters
+  };
+
   // Clear all filters
   const clearFilters = () => {
-    setFilters({
+    const emptyFilters = {
       status: '',
       contract_code: '',
       contract_type: '',
       date_filter: '',
       created_by: ''
-    });
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setPage(0);
   };
 
-  // Filter orders based on current filters
+  // Filter orders based on applied filters (not current filters)
   const filteredOrders = orders.filter((order) => {
-    if (filters.status && order.status !== filters.status) return false;
-    if (filters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(filters.contract_code.toLowerCase())) return false;
-    if (filters.contract_type && order.contract_id?.contract_type !== filters.contract_type) return false;
-    if (filters.created_by && order.created_by?.email !== filters.created_by) return false;
+    if (appliedFilters.status && order.status !== appliedFilters.status) return false;
+    if (appliedFilters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(appliedFilters.contract_code.toLowerCase())) return false;
+    if (appliedFilters.contract_type && order.contract_id?.contract_type !== appliedFilters.contract_type) return false;
+    if (appliedFilters.created_by && order.created_by?.email !== appliedFilters.created_by) return false;
     return true;
   });
 
@@ -754,16 +772,26 @@ function ExportOrderPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: '100%' }}>
-                  <Button
-                    variant="outlined"
-                    onClick={clearFilters}
-                    fullWidth
-                  >
-                    {trans.common.clearFilters}
-                  </Button>
-                </Box>
+              <Grid item xs={12} sm={6} md={2}>
+                <Button
+                  variant="contained"
+                  onClick={applyFilters}
+                  fullWidth
+                  sx={{ height: '56px' }}
+                  startIcon={<SearchIcon />}
+                >
+                  {trans.common.search || 'Search'}
+                </Button>
+              </Grid>
+              <Grid item xs={12} sm={6} md={1}>
+                <Button
+                  variant="outlined"
+                  onClick={clearFilters}
+                  fullWidth
+                  sx={{ height: '56px' }}
+                >
+                  {trans.common.clear || 'Clear'}
+                </Button>
               </Grid>
             </Grid>
           </CardContent>
@@ -1166,24 +1194,7 @@ function ExportOrderPage() {
                             </Alert>
                           )}
                           
-                          {/* Thông tin về batch còn hạn */}
-                          {result.valid_batches && result.valid_batches.length > 0 && (
-                            <Box sx={{ mt: 1, p: 1, bgcolor: 'info.50', borderRadius: 1, border: '1px solid', borderColor: 'info.200' }}>
-                              <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main', display: 'block', mb: 0.5 }}>
-                                📦 Batch còn hạn: {result.total_valid_batches}
-                              </Typography>
-                              {result.valid_batches.slice(0, 2).map((batch, batchIndex) => (
-                                <Typography key={batchIndex} variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                                  • {batch.batch_code}: Còn {batch.days_until_expiry} ngày
-                                </Typography>
-                              ))}
-                              {result.valid_batches.length > 2 && (
-                                <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                                  ...và {result.valid_batches.length - 2} batch khác
-                                </Typography>
-                              )}
-                            </Box>
-                          )}
+                                                     
                         </Paper>
                       </Grid>
                     ))}
@@ -1212,11 +1223,7 @@ function ExportOrderPage() {
                         color="error" 
                         variant="outlined" 
                       />
-                      <Chip 
-                        label={`Batch còn hạn: ${stockCheckResults.reduce((sum, r) => sum + (r.total_valid_batches || 0), 0)}`}
-                        color="info" 
-                        variant="outlined" 
-                      />
+
                     </Box>
                   </Box>
                 )}
@@ -1527,7 +1534,7 @@ function ExportOrderPage() {
                         <TableCell align="right"><strong>Yêu cầu</strong></TableCell>
                         <TableCell align="right"><strong>Có sẵn</strong></TableCell>
                         <TableCell align="center"><strong>Trạng thái</strong></TableCell>
-                        <TableCell><strong>Batch còn hạn</strong></TableCell>
+
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1550,29 +1557,7 @@ function ExportOrderPage() {
                               size="small"
                             />
                           </TableCell>
-                          <TableCell>
-                            {result.valid_batches && result.valid_batches.length > 0 ? (
-                              <Box>
-                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'info.main' }}>
-                                  {result.total_valid_batches} batch
-                                </Typography>
-                                {result.valid_batches.slice(0, 2).map((batch, batchIndex) => (
-                                  <Typography key={batchIndex} variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                                    • {batch.batch_code}: {batch.days_until_expiry} ngày
-                                  </Typography>
-                                ))}
-                                {result.valid_batches.length > 2 && (
-                                  <Typography variant="caption" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                                    +{result.valid_batches.length - 2} khác
-                                  </Typography>
-                                )}
-                              </Box>
-                            ) : (
-                              <Typography variant="caption" color="error.main">
-                                Không có batch còn hạn
-                              </Typography>
-                            )}
-                          </TableCell>
+
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1583,8 +1568,7 @@ function ExportOrderPage() {
                   <Typography variant="body2" color="text.secondary">
                     Tổng: {stockCheckResults.length} loại thuốc | 
                     Đủ: {stockCheckResults.filter(r => r.is_available).length} | 
-                    Thiếu: {stockCheckResults.filter(r => !r.is_available).length} |
-                    Batch còn hạn: {stockCheckResults.reduce((sum, r) => sum + (r.total_valid_batches || 0), 0)}
+                    Thiếu: {stockCheckResults.filter(r => !r.is_available).length}
                   </Typography>
                   <Button
                     variant="outlined"

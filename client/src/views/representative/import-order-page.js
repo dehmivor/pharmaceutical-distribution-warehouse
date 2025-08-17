@@ -30,7 +30,7 @@ import {
   Card,
   CardContent
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Info as InfoIcon, Refresh as RefreshIcon, FilterList as FilterListIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Info as InfoIcon, Refresh as RefreshIcon, FilterList as FilterListIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
 import useTrans from '@/hooks/useTrans';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -75,6 +75,15 @@ function ImportOrderPage() {
   });
   const [userEmails, setUserEmails] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  
+  // Add applied filters state to separate current filters from applied ones
+  const [appliedFilters, setAppliedFilters] = useState({
+    contract_code: '',
+    contract_type: '',
+    supplier: '',
+    date_filter: '',
+    created_by: ''
+  });
 
   // Form states
   const [formData, setFormData] = useState({
@@ -543,15 +552,24 @@ function ImportOrderPage() {
     }));
   };
 
+  // Apply filters when search button is clicked
+  const applyFilters = () => {
+    setAppliedFilters(filters);
+    setPage(0); // Reset to first page when applying new filters
+  };
+
   // Clear all filters
   const clearFilters = () => {
-    setFilters({
+    const emptyFilters = {
       contract_code: '',
       contract_type: '',
       supplier: '',
       date_filter: '',
       created_by: ''
-    });
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setPage(0);
   };
 
   // Filter contracts based on selected contract_type
@@ -560,12 +578,12 @@ function ImportOrderPage() {
     return contract.contract_type === formData.contract_type;
   });
 
-  // Filter orders based on current filters
+  // Filter orders based on applied filters (not current filters)
   const filteredOrders = orders.filter((order) => {
-    if (filters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(filters.contract_code.toLowerCase())) return false;
-    if (filters.contract_type && order.contract_id?.contract_type !== filters.contract_type) return false;
-    if (filters.supplier && order.contract_id?.partner_id?.name !== filters.supplier) return false;
-    if (filters.created_by && order.created_by?.email !== filters.created_by) return false;
+    if (appliedFilters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(appliedFilters.contract_code.toLowerCase())) return false;
+    if (appliedFilters.contract_type && order.contract_id?.contract_type !== appliedFilters.contract_type) return false;
+    if (appliedFilters.supplier && order.contract_id?.partner_id?.name !== appliedFilters.supplier) return false;
+    if (appliedFilters.created_by && order.created_by?.email !== appliedFilters.created_by) return false;
     return true;
   });
 
@@ -673,16 +691,26 @@ function ImportOrderPage() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: '100%' }}>
-                <Button
-                  variant="outlined"
-                  onClick={clearFilters}
-                  fullWidth
-                >
-                  {trans.common.clearFilters}
-                </Button>
-              </Box>
+            <Grid item xs={12} sm={6} md={2}>
+              <Button
+                variant="contained"
+                onClick={applyFilters}
+                fullWidth
+                sx={{ height: '56px' }}
+                startIcon={<SearchIcon />}
+              >
+                {trans.common.search || 'Search'}
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={6} md={1}>
+              <Button
+                variant="outlined"
+                onClick={clearFilters}
+                fullWidth
+                sx={{ height: '56px' }}
+              >
+                {trans.common.clear || 'Clear'}
+              </Button>
             </Grid>
           </Grid>
         </CardContent>

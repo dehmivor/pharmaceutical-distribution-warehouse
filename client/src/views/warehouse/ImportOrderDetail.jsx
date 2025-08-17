@@ -428,7 +428,7 @@ function ImportOrderDetail() {
                           <TableRow>
                             <TableCell>{trans.common.batch}</TableCell>
                             <TableCell>{trans.common.qty}</TableCell>
-                            <TableCell>{trans.common.action}</TableCell>
+                            <TableCell>{trans.common.actions}</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -544,14 +544,14 @@ function ImportOrderDetail() {
               </FormControl>
               <TextField label={trans.common.bay} value={locForm.bay} onChange={(e) => setLocForm({ ...locForm, bay: e.target.value })} fullWidth disabled/>
               <TextField label={trans.common.row} value={locForm.row} onChange={(e) => setLocForm({ ...locForm, row: e.target.value })} fullWidth disabled/>
-              <TextField label={trans.common.level} value={locForm.level} onChange={(e) => setLocForm({ ...locForm, level: e.target.value })} fullWidth disabled/>
+              <TextField label={trans.common.column} value={locForm.level} onChange={(e) => setLocForm({ ...locForm, level: e.target.value })} fullWidth disabled/>
               {locError && <Alert severity="error">{locError}</Alert>}
             </Stack>
           </DialogContent>
           <DialogActions>
             <Button onClick={closePutAwayModal}>{trans.common.cancel}</Button>
             <Button onClick={handleSubmitPutAway} variant="contained">
-              {trans.common.submit}
+              {trans.submit}
             </Button>
           </DialogActions>
         </Dialog>

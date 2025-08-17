@@ -428,12 +428,16 @@ async function checkStockAvailability(details) {
         continue;
       }
 
-      // Tìm tất cả batch của thuốc này còn hạn và có chất lượng tốt
+      // Tìm tất cả batch của thuốc này còn hạn trên 1 năm
       const currentDate = new Date();
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+      
       const validBatches = await Batch.find({ 
         medicine_id,
-        expiry_date: { $gt: currentDate }, // Chỉ lấy batch còn hạn
-        quality_status: 'pass' // Chỉ lấy batch đã pass kiểm tra chất lượng
+        expiry_date: { 
+          $gt: oneYearFromNow // Chỉ lấy batch còn hạn trên 1 năm
+        }
       }).lean();
       
       if (validBatches.length === 0) {
@@ -444,17 +448,17 @@ async function checkStockAvailability(details) {
           expected_quantity,
           available_quantity: 0,
           is_available: false,
-          error: 'No valid batches found (expired or failed quality check)'
+          error: 'No valid batches found (all batches expired or expiring within 1 year)'
         });
         continue;
       }
 
       const validBatchIds = validBatches.map(batch => batch._id);
 
-      // Tính tổng số lượng có sẵn từ các package của batch còn hạn
-      const packages = await Package.find({ 
-        batch_id: { $in: validBatchIds }
-      }).lean();
+             // Tính tổng số lượng có sẵn từ các package của batch còn hạn trên 1 năm
+       const packages = await Package.find({ 
+         batch_id: { $in: validBatchIds }
+       }).lean();
 
       const availableQuantity = packages.reduce((sum, pkg) => sum + (pkg.quantity || 0), 0);
 
