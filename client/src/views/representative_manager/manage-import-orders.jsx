@@ -80,6 +80,14 @@ const RepresentativeManagerImportOrders = () => {
     created_by: ''
   });
 
+  // Add applied filters state to separate current filters from applied ones
+  const [appliedFilters, setAppliedFilters] = useState({
+    search: '',
+    status: '',
+    contract_type: '',
+    created_by: ''
+  });
+
   // Filter options
   const [filterOptions, setFilterOptions] = useState({
     status: [],
@@ -92,6 +100,9 @@ const RepresentativeManagerImportOrders = () => {
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState(null);
   const [contractMedicines, setContractMedicines] = useState([]);
   const [loadingMedicines, setLoadingMedicines] = useState(false);
+  
+  // Store original data for filtering
+  const [allOrdersData, setAllOrdersData] = useState([]);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -112,32 +123,13 @@ const RepresentativeManagerImportOrders = () => {
       if (response.data.success) {
         const allOrders = response.data.data || [];
         console.log('All import orders:', allOrders);
-
-        // Client-side filtering
-        let filteredOrders = allOrders.filter((order) => {
-          const matchesSearch =
-            !filters.search ||
-            order._id?.toLowerCase().includes(filters.search.toLowerCase()) ||
-            order.contract_id?.partner_id?.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
-            order.contract_id?.contract_code?.toLowerCase().includes(filters.search.toLowerCase());
-
-          const matchesStatus = !filters.status || order.status === filters.status;
-          const matchesContractType = !filters.contract_type || order.contract_id?.contract_type === filters.contract_type;
-          const matchesCreatedBy = !filters.created_by || order.created_by?.email === filters.created_by;
-
-          return matchesSearch && matchesStatus && matchesContractType && matchesCreatedBy;
-        });
-
-        // Client-side pagination
-        const startIndex = page * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-        const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
-
-        setOrders(paginatedOrders);
-        setTotalCount(filteredOrders.length);
-        console.log('Filtered orders:', filteredOrders);
-        console.log('Paginated orders:', paginatedOrders);
-
+        
+        // Store original data for filtering
+        setAllOrdersData(allOrders);
+        
+        // Apply current filters to the new data
+        applyFiltersToData(allOrders);
+        
         // Generate filter options from data
         const statusOptions = [...new Set(allOrders.map((order) => order.status))];
         const contractTypeOptions = [...new Set(allOrders.map((order) => order.contract_id?.contract_type).filter(Boolean))];
@@ -170,7 +162,7 @@ const RepresentativeManagerImportOrders = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, rowsPerPage, filters]);
+  }, [page, rowsPerPage, appliedFilters]);
 
   const fetchContracts = useCallback(async () => {
     try {
@@ -217,7 +209,14 @@ const RepresentativeManagerImportOrders = () => {
   useEffect(() => {
     fetchOrders();
     fetchContracts();
-  }, [fetchOrders, fetchContracts]);
+  }, []); // Only run once on mount
+
+  // Apply filters when page or rowsPerPage changes
+  useEffect(() => {
+    if (allOrdersData.length > 0) {
+      applyFiltersToData();
+    }
+  }, [page, rowsPerPage, appliedFilters]);
 
   const handleStatusChange = useCallback(async () => {
     if (!selectedOrder || !selectedOrder._id || !selectedOrder.nextStatus) return;
@@ -360,7 +359,42 @@ const RepresentativeManagerImportOrders = () => {
       ...prev,
       [field]: value
     }));
-    setPage(0); // Reset to first page when filtering
+    // Remove auto page reset - only reset when applying filters
+  };
+
+  // Apply filters to existing data without calling API
+  const applyFiltersToData = (dataToFilter = allOrdersData) => {
+    // Client-side filtering using appliedFilters
+    let filteredOrders = dataToFilter.filter((order) => {
+      const matchesSearch = !appliedFilters.search || 
+        order._id?.toLowerCase().includes(appliedFilters.search.toLowerCase()) ||
+        order.contract_id?.partner_id?.name?.toLowerCase().includes(appliedFilters.search.toLowerCase()) ||
+        order.contract_id?.contract_code?.toLowerCase().includes(appliedFilters.search.toLowerCase());
+      
+      const matchesStatus = !appliedFilters.status || order.status === appliedFilters.status;
+      const matchesContractType = !appliedFilters.contract_type || order.contract_id?.contract_type === appliedFilters.contract_type;
+      const matchesCreatedBy = !appliedFilters.created_by || order.created_by?.email === appliedFilters.created_by;
+      
+      return matchesSearch && matchesStatus && matchesContractType && matchesCreatedBy;
+    });
+
+    // Client-side pagination
+    const startIndex = page * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
+    
+    setOrders(paginatedOrders);
+    setTotalCount(filteredOrders.length);
+    console.log('Filtered orders:', filteredOrders);
+    console.log('Paginated orders:', paginatedOrders);
+  };
+
+  // Apply filters when search button is clicked
+  const applyFilters = () => {
+    setAppliedFilters(filters);
+    setPage(0); // Reset to first page when applying new filters
+    // Apply filters to existing data
+    applyFiltersToData();
   };
 
   // Handle page change
@@ -376,13 +410,17 @@ const RepresentativeManagerImportOrders = () => {
 
   // Clear all filters
   const clearFilters = () => {
-    setFilters({
+    const emptyFilters = {
       search: '',
       status: '',
       contract_type: '',
       created_by: ''
-    });
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
     setPage(0);
+    // Apply empty filters to existing data
+    setTimeout(() => applyFiltersToData(), 0);
   };
 
   if (loading || isLoading) {
@@ -491,18 +529,37 @@ const RepresentativeManagerImportOrders = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+            <Grid item xs={12} sm={6} md={2}>
+              <Button
+                variant="contained"
+                onClick={applyFilters}
+                fullWidth
+                sx={{ height: '56px' }}
+                startIcon={<SearchIcon />}
+              >
+                {trans.common.search || 'Search'}
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
               <Button
                 variant="outlined"
                 startIcon={<RefreshIcon />}
                 onClick={fetchOrders}
                 disabled={loading}
-                sx={{ px: 3, py: 1.2, borderRadius: 2 }}
+                fullWidth
+                sx={{ height: '56px' }}
               >
                 {trans.representativeManagerImportOrders.filters.refresh}
               </Button>
-              <Button variant="outlined" onClick={clearFilters} sx={{ px: 3, py: 1.2, borderRadius: 2 }}>
-                {trans.representativeManagerImportOrders.filters.clearFilters}
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Button
+                variant="outlined"
+                onClick={clearFilters}
+                fullWidth
+                sx={{ height: '56px' }}
+              >
+                {trans.common.clear || 'Clear'}
               </Button>
             </Grid>
           </Grid>

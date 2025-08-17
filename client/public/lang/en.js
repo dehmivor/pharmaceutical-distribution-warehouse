@@ -1447,7 +1447,7 @@ export default {
     // Order details
     basicInformation: 'Basic Information',
     orderDetailsTitle: 'Order Details',
-    totalAmount: 'Total Amount: {amount} VND',
+    totalAmount: 'Total Amount',
     recheckStock: 'Recheck',
     editingRejectedExportOrder: 'Editing rejected export order. It will be reverted to draft after saving.',
     existingExportOrderError:
