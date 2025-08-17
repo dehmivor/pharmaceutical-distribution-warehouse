@@ -425,16 +425,16 @@ export default function ExportOrderDetail() {
           </AccordionDetails>
         </Accordion>
 
-        <Accordion disabled={pickingDone} defaultExpanded>
+        <Accordion disabled={pickingDone || order.status != 'approved'} defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography>{trans.common.picking}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Stack direction="row" spacing={1} mb={2}>
-              <Button size="small" variant="outlined" onClick={handleOpenModal}>
+              <Button size="small" variant="outlined" onClick={handleOpenModal} disabled={pickingDone || order.status != 'approved'}>
                 {trans.common.scanLocation}
               </Button>
-              <Button size="small" variant="outlined" onClick={handleOpenPkgModal}>
+              <Button size="small" variant="outlined" onClick={handleOpenPkgModal} disabled={pickingDone || order.status != 'approved'}>
                 {trans.common.scanPackage}
               </Button>
               <IconButton size="small" onClick={handleRefresh}>
@@ -490,6 +490,7 @@ export default function ExportOrderDetail() {
                                   <TableCell>{pkg.take_quantity}</TableCell>
                                   <TableCell>
                                     <Button
+                                      disabled={pickingDone || order.status != 'approved'}
                                       key={pkg.package_id}
                                       size="small"
                                       variant="contained"
