@@ -117,8 +117,8 @@ export default function useMenu() {
             ]
           },
           {
-            id: 'contract-management',
-            title: trans.menu.contractManagement || 'Contract Management',
+            id: 'partner-management',
+            title: trans.menu.contractManagement || 'Partner Management',
             type: 'collapse',
             url: '/contract-management',
             icon: 'IconContract',

@@ -109,8 +109,8 @@ const supervisor = {
       ]
     },
     {
-      id: 'contract-management',
-      title: 'Contract Management',
+      id: 'partner-management',
+      title: 'Partner Management',
       type: 'collapse',
       url: '/contract-management',
       icon: 'IconContract',
