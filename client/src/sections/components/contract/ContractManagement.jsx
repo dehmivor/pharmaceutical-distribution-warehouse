@@ -80,6 +80,14 @@ const ContractManagement = () => {
     contract_type: ''
   });
 
+  // Add applied filters state to separate current filters from applied ones
+  const [appliedFilters, setAppliedFilters] = useState({
+    contract_code: '',
+    status: '',
+    partner_type: '',
+    contract_type: ''
+  });
+
   // Filter options
   const [filterOptions, setFilterOptions] = useState({
     status: [],
@@ -117,7 +125,7 @@ const ContractManagement = () => {
       const params = new URLSearchParams({
         page: page + 1,
         limit: rowsPerPage,
-        ...Object.fromEntries(Object.entries(filters).filter(([_, value]) => value !== ''))
+        ...Object.fromEntries(Object.entries(appliedFilters).filter(([_, value]) => value !== ''))
       });
 
       if (userRole === 'representative' && user) {
@@ -214,7 +222,26 @@ const ContractManagement = () => {
       ...prev,
       [field]: value
     }));
-    setPage(0); // Reset to first page when filtering
+    // Remove auto page reset - only reset when applying filters
+  };
+
+  // Apply filters when search button is clicked
+  const applyFilters = () => {
+    setAppliedFilters(filters);
+    setPage(0); // Reset to first page when applying new filters
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    const emptyFilters = {
+      contract_code: '',
+      status: '',
+      partner_type: '',
+      contract_type: ''
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setPage(0);
   };
 
   // Handle page change
@@ -336,7 +363,7 @@ const ContractManagement = () => {
 
   useEffect(() => {
     fetchContracts();
-  }, [page, rowsPerPage, filters]);
+  }, [page, rowsPerPage, appliedFilters]); // Use appliedFilters instead of filters
 
   // Clear alerts after 5 seconds
   useEffect(() => {
@@ -508,8 +535,29 @@ const ContractManagement = () => {
                 </Select>
               </FormControl>
             </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Button
+                variant="contained"
+                onClick={applyFilters}
+                fullWidth
+                sx={{ height: '56px' }}
+                startIcon={<SearchIcon />}
+              >
+                {trans.common.search || 'Search'}
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={6} md={1}>
+              <Button
+                variant="outlined"
+                onClick={clearFilters}
+                fullWidth
+                sx={{ height: '56px' }}
+              >
+                {trans.common.clear || 'Clear'}
+              </Button>
+            </Grid>
             {userRole === 'representative' && (
-              <Grid item xs={12} sm={12} md={4} sx={{ display: 'flex', justifyContent: 'flex-end', ml: 'auto' }}>
+              <Grid item xs={12} sm={12} md={3} sx={{ display: 'flex', justifyContent: 'flex-end', ml: 'auto' }}>
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}

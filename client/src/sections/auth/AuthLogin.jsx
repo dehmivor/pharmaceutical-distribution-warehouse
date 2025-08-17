@@ -66,11 +66,11 @@ export default function AuthLogin({ inputSx }) {
         </Grid>
 
         <Grid size={12}>
-          <InputLabel>Password</InputLabel>
+          <InputLabel>Mật khẩu</InputLabel>
           <OutlinedInput
             {...register('password', passwordSchema)}
             type={isOpen ? 'text' : 'password'}
-            placeholder="Enter password"
+            placeholder="Nhập mật khẩu"
             fullWidth
             error={Boolean(errors.password)}
             endAdornment={
@@ -98,7 +98,7 @@ export default function AuthLogin({ inputSx }) {
             endIcon={loading && <CircularProgress color="secondary" size={16} />}
             sx={{ width: 150 }}
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </Button>
         </Grid>
       </Grid>

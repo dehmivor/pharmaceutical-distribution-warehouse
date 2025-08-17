@@ -33,11 +33,11 @@ export default function Copyright() {
         </Typography>
         <Divider orientation="vertical" flexItem sx={copyrightSX} />
         <Link {...linkProps} href="https://saasable.io/privacy-policy">
-          Privacy Policy
+          Chính sách bảo mật
         </Link>
         <Divider orientation="vertical" flexItem />
         <Link {...linkProps} href="https://mui.com/store/terms/">
-          Terms & Conditions
+          Điều khoản & Điều kiện
         </Link>
       </Stack>
 
