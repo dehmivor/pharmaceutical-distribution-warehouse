@@ -264,7 +264,7 @@ function ManageBills() {
       case 'completed':
         return 'success';
       case 'cancelled':
-        return 'error'; // Thay đổi từ 'default' thành 'error' để hiển thị rõ ràng hơn
+        return 'error';
       default:
         return 'draft';
     }
@@ -680,14 +680,14 @@ function ManageBills() {
 
       <Box component={Paper} sx={{ p: 2, mb: 2 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={2} alignItems="center">
-                      <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>{trans.common.type}</InputLabel>
-              <Select label={trans.common.type} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-                <MenuItem value="ALL">{trans.common.all}</MenuItem>
-                <MenuItem value="IMPORT">IMPORT</MenuItem>
-                <MenuItem value="EXPORT">EXPORT</MenuItem>
-              </Select>
-            </FormControl>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>{trans.common.type}</InputLabel>
+            <Select label={trans.common.type} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+              <MenuItem value="ALL">{trans.common.all}</MenuItem>
+              <MenuItem value="IMPORT">IMPORT</MenuItem>
+              <MenuItem value="EXPORT">EXPORT</MenuItem>
+            </Select>
+          </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 140 }}>
             <InputLabel>Trạng thái</InputLabel>
@@ -744,7 +744,9 @@ function ManageBills() {
                 : ''
             }
           >
-            {loadingPaymentId === 'multi' ? trans.common.processing : `${trans.common.payment} (${selectedBills.length}) ${trans.common.multiPaymentBills}`}
+            {loadingPaymentId === 'multi'
+              ? trans.common.processing
+              : `${trans.common.payment} (${selectedBills.length}) ${trans.common.multiPaymentBills}`}
           </Button>
         </Stack>
       </Box>
@@ -797,7 +799,6 @@ function ManageBills() {
                       }
                     />
                   </TableCell>
-                  <TableCell>{bill.type.slice(0, 3) || 'N/A'}</TableCell>
                   <TableCell>{bill.voucher_code ? bill.voucher_code.slice(0, 6) : bill._id.slice(0, 6)}</TableCell>
                   <TableCell>{bill.type || 'N/A'}</TableCell>
                   <TableCell>
@@ -819,7 +820,7 @@ function ManageBills() {
                   <TableCell
                     sx={{
                       whiteSpace: 'normal',
-                      maxWidth: 120,
+                      maxWidth: 200,
                       wordBreak: 'break-word',
                       display: '-webkit-box',
                       WebkitLineClamp: 3,
@@ -1019,7 +1020,7 @@ function ManageBills() {
               variant="contained"
               disabled={loadingPaymentId !== null || !partialAmount || parseFormattedNumber(partialAmount) <= 0}
             >
-                              {loadingPaymentId === detailData?._id ? trans.common.processing : trans.common.payment}
+              {loadingPaymentId === detailData?._id ? trans.common.processing : trans.common.payment}
             </Button>
           </DialogActions>
         )}
