@@ -8,4 +8,4 @@ const WarehouseManagerDashboardPage = dynamic(() => import('@/views/warehouse-ma
 
 export default function WarehouseManagerDashboardPages() {
   return <WarehouseManagerDashboardPage />;
-} 
+}

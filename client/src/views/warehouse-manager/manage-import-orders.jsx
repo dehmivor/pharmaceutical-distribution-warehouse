@@ -34,6 +34,7 @@ import Menu from '@mui/material/Menu';
 import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import useTrans from '@/hooks/useTrans';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -56,6 +57,7 @@ const getStatusColor = (status) =>
 
 export default function ManageImportOrders() {
   const router = useRouter();
+  const trans = useTrans();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,9 +75,7 @@ export default function ManageImportOrders() {
   const [openInternalDialog, setOpenInternalDialog] = useState(false);
   const [internalOrderLoading, setInternalOrderLoading] = useState(false);
   const [medicines, setMedicines] = useState([]);
-  const [internalOrderDetails, setInternalOrderDetails] = useState([
-    { medicine_id: '', quantity: 1 }
-  ]);
+  const [internalOrderDetails, setInternalOrderDetails] = useState([{ medicine_id: '', quantity: 1 }]);
 
   // paging
   const [page, setPage] = useState(1); // 1-based
@@ -114,25 +114,29 @@ export default function ManageImportOrders() {
     setInternalOrderLoading(true);
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      
+
       // Filter out empty medicine selections
-      const validDetails = internalOrderDetails.filter(detail => detail.medicine_id && detail.quantity > 0);
-      
+      const validDetails = internalOrderDetails.filter((detail) => detail.medicine_id && detail.quantity > 0);
+
       if (validDetails.length === 0) {
-        throw new Error('Please add at least one medicine with quantity');
+        throw new Error(trans.manageImportOrders.pleaseAddMedicine);
       }
 
-             // Backend sẽ tự động set warehouse_manager_id và created_by
-       // Không cần gửi orderData vì endpoint internal sẽ tự xử lý
+      // Backend sẽ tự động set warehouse_manager_id và created_by
+      // Không cần gửi orderData vì endpoint internal sẽ tự xử lý
 
-      const response = await axios.post(`${backendUrl}/api/import-orders/internal`, {
-        orderDetails: validDetails
-      }, {
-        headers: getAuthHeaders()
-      });
+      const response = await axios.post(
+        `${backendUrl}/api/import-orders/internal`,
+        {
+          orderDetails: validDetails
+        },
+        {
+          headers: getAuthHeaders()
+        }
+      );
 
       if (response.data.success) {
-        setSuccess('Internal import order created successfully!');
+        setSuccess(trans.manageImportOrders.internalOrderCreatedSuccess);
         setOpenInternalDialog(false);
         setInternalOrderDetails([{ medicine_id: '', quantity: 1 }]);
         fetchOrders({ page: 1, limit: rowsPerPage }); // Refresh the list
@@ -199,7 +203,7 @@ export default function ManageImportOrders() {
           setOrders(filtered);
           setTotalCount(resp.data.pagination?.total ?? filtered.length);
         } else {
-          throw new Error(resp.data.error || 'Failed to load orders');
+          throw new Error(resp.data.error || trans.manageImportOrders.failedToLoadOrders);
         }
       } catch (err) {
         setError(err.response?.data?.error || err.message);
@@ -264,20 +268,15 @@ export default function ManageImportOrders() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Import Orders Management
+            {trans.manageImportOrders.title}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Manage and inspect import orders, track their status, and perform inspections.
+            {trans.manageImportOrders.description}
           </Typography>
         </Box>
         <Stack direction="row" spacing={2}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setOpenInternalDialog(true)}
-            color="primary"
-          >
-            Create Internal Order
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenInternalDialog(true)} color="primary">
+            {trans.manageImportOrders.createInternalOrder}
           </Button>
           <Button
             variant="outlined"
@@ -285,7 +284,7 @@ export default function ManageImportOrders() {
             onClick={() => fetchOrders({ page: 1, limit: rowsPerPage })}
             disabled={loading}
           >
-            Refresh
+            {trans.manageImportOrders.refresh}
           </Button>
         </Stack>
       </Box>
@@ -295,7 +294,7 @@ export default function ManageImportOrders() {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
             fullWidth
-            label="Import Date"
+            label={trans.manageImportOrders.importDate}
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
@@ -305,22 +304,36 @@ export default function ManageImportOrders() {
           <TextField
             fullWidth
             select
-            label="Assigned To"
+            label={trans.manageImportOrders.assignedTo}
             value={filterAssigned}
             onChange={(e) => setFilterAssigned(e.target.value)}
             size="small"
           >
-            <MenuItem value="self">My Orders</MenuItem>
-            <MenuItem value="unassigned">Unassigned</MenuItem>
-            <MenuItem value="all">All</MenuItem>
+            <MenuItem value="self">{trans.manageImportOrders.myOrders}</MenuItem>
+            <MenuItem value="unassigned">{trans.manageImportOrders.unassigned}</MenuItem>
+            <MenuItem value="all">{trans.manageImportOrders.all}</MenuItem>
           </TextField>
-          <TextField fullWidth select label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} size="small">
-            <MenuItem value="all">All Types</MenuItem>
-            <MenuItem value="internal">Internal</MenuItem>
-            <MenuItem value="regular">Regular</MenuItem>
+          <TextField
+            fullWidth
+            select
+            label={trans.manageImportOrders.type}
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            size="small"
+          >
+            <MenuItem value="all">{trans.manageImportOrders.allTypes}</MenuItem>
+            <MenuItem value="internal">{trans.manageImportOrders.internal}</MenuItem>
+            <MenuItem value="regular">{trans.manageImportOrders.regular}</MenuItem>
           </TextField>
-          <TextField fullWidth select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
-            <MenuItem value="All Status">All Status</MenuItem>
+          <TextField
+            fullWidth
+            select
+            label={trans.manageImportOrders.status}
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            size="small"
+          >
+            <MenuItem value="All Status">{trans.manageImportOrders.allStatus}</MenuItem>
             {['draft', 'approved', 'rejected', 'delivered', 'checked', 'arranged', 'completed', 'cancelled'].map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
@@ -328,7 +341,7 @@ export default function ManageImportOrders() {
             ))}
           </TextField>
           <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
-            Search
+            {trans.manageImportOrders.search}
           </Button>
           <Button
             fullWidth
@@ -343,7 +356,7 @@ export default function ManageImportOrders() {
               fetchOrders({ page: 1, limit: rowsPerPage, type: 'all' });
             }}
           >
-            Reset
+            {trans.manageImportOrders.reset}
           </Button>
         </Stack>
       </Box>
@@ -353,13 +366,13 @@ export default function ManageImportOrders() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Import Date</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Contract Code</TableCell>
-              <TableCell>Supplier</TableCell>
-              <TableCell>Manager Email</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell>{trans.manageImportOrders.importDateCol}</TableCell>
+              <TableCell>{trans.manageImportOrders.typeCol}</TableCell>
+              <TableCell>{trans.manageImportOrders.contractCode}</TableCell>
+              <TableCell>{trans.manageImportOrders.supplier}</TableCell>
+              <TableCell>{trans.manageImportOrders.managerEmail}</TableCell>
+              <TableCell>{trans.manageImportOrders.statusCol}</TableCell>
+              <TableCell>{trans.manageImportOrders.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -367,7 +380,7 @@ export default function ManageImportOrders() {
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
-                    No orders available.
+                    {trans.manageImportOrders.noOrdersAvailable}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -377,14 +390,12 @@ export default function ManageImportOrders() {
                   <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     {o.contract_id ? (
-                      <Chip label="Regular" color="primary" size="small" variant="outlined" />
+                      <Chip label={trans.manageImportOrders.regular} color="primary" size="small" variant="outlined" />
                     ) : (
-                      <Chip label="Internal" color="warning" size="small" />
+                      <Chip label={trans.manageImportOrders.internal} color="warning" size="small" />
                     )}
                   </TableCell>
-                  <TableCell>
-                    {o.contract_id?.contract_code || '—'}
-                  </TableCell>
+                  <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
                   <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
                   <TableCell>{o.warehouse_manager_id?.email || '—'}</TableCell>
                   <TableCell>
@@ -433,37 +444,34 @@ export default function ManageImportOrders() {
             handleMenuClose();
           }}
         >
-          Order detail
+          {trans.manageImportOrders.orderDetail}
         </MenuItem>
       </Menu>
 
       {/* Internal Order Dialog */}
-      <Dialog 
-        open={openInternalDialog} 
-        onClose={() => setOpenInternalDialog(false)}
-        maxWidth="md"
-        fullWidth
-      >
+      <Dialog open={openInternalDialog} onClose={() => setOpenInternalDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>
-          <Typography variant="h6" component="div">Create Internal Import Order</Typography>
+          <Typography variant="h6" component="div">
+            {trans.manageImportOrders.createInternalImportOrder}
+          </Typography>
           <Typography variant="body2" color="text.secondary">
-            Create an internal import order for returned goods or inventory corrections
+            {trans.manageImportOrders.createInternalOrderDescription}
           </Typography>
         </DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
             <Typography variant="subtitle1" gutterBottom>
-              Order Details
+              {trans.manageImportOrders.orderDetails}
             </Typography>
             {internalOrderDetails.map((detail, index) => (
               <Grid container spacing={2} key={index} sx={{ mb: 2 }}>
                 <Grid item xs={6}>
                   <FormControl fullWidth size="small">
-                    <InputLabel>Medicine</InputLabel>
+                    <InputLabel>{trans.manageImportOrders.medicine}</InputLabel>
                     <Select
                       value={detail.medicine_id}
                       onChange={(e) => handleInternalDetailChange(index, 'medicine_id', e.target.value)}
-                      label="Medicine"
+                      label={trans.manageImportOrders.medicine}
                     >
                       {medicines.map((medicine) => (
                         <MenuItem key={medicine._id} value={medicine._id}>
@@ -476,7 +484,7 @@ export default function ManageImportOrders() {
                 <Grid item xs={4}>
                   <TextField
                     fullWidth
-                    label="Quantity"
+                    label={trans.manageImportOrders.quantity}
                     type="number"
                     size="small"
                     value={detail.quantity}
@@ -485,35 +493,21 @@ export default function ManageImportOrders() {
                   />
                 </Grid>
                 <Grid item xs={2}>
-                  <IconButton 
-                    onClick={() => removeMedicineRow(index)}
-                    disabled={internalOrderDetails.length === 1}
-                    color="error"
-                  >
+                  <IconButton onClick={() => removeMedicineRow(index)} disabled={internalOrderDetails.length === 1} color="error">
                     <DeleteIcon />
                   </IconButton>
                 </Grid>
               </Grid>
             ))}
-            <Button
-              variant="outlined"
-              onClick={addMedicineRow}
-              sx={{ mt: 1 }}
-            >
-              Add Medicine
+            <Button variant="outlined" onClick={addMedicineRow} sx={{ mt: 1 }}>
+              {trans.manageImportOrders.addMedicine}
             </Button>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenInternalDialog(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={createInternalOrder}
-            variant="contained"
-            disabled={internalOrderLoading}
-          >
-            {internalOrderLoading ? <CircularProgress size={20} /> : 'Create Order'}
+          <Button onClick={() => setOpenInternalDialog(false)}>{trans.manageImportOrders.cancel}</Button>
+          <Button onClick={createInternalOrder} variant="contained" disabled={internalOrderLoading}>
+            {internalOrderLoading ? <CircularProgress size={20} /> : trans.manageImportOrders.createOrder}
           </Button>
         </DialogActions>
       </Dialog>

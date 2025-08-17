@@ -18,6 +18,7 @@ import { useState } from 'react';
 import ImportOrderListTab from '@/sections/warehouse/ImportOrderListTab';
 import ReceiptList from '@/sections/warehouse/ReceiptList';
 import CreateReceiptTab from '@/views/warehouse/CreateReceiptTab';
+import useTrans from '@/hooks/useTrans';
 
 /***************************  BORDER WITH RADIUS  ***************************/
 
@@ -54,25 +55,26 @@ export function applyBorderWithRadius(radius, theme) {
 
 function WarehouseBreadcrumbs({ currentPath, onNavigate }) {
   const theme = useTheme();
+  const trans = useTrans();
 
   const breadcrumbsConfig = {
     dashboard: {
-      label: 'Dashboard',
+      label: trans.common.dashboard,
       icon: <IconHome size={16} />,
       path: 'dashboard'
     },
     warehouse: {
-      label: 'Quản lý nhập kho',
+      label: trans.common.warehouseManagement,
       icon: <IconPackage size={16} />,
       path: 'warehouse'
     },
     list: {
-      label: 'Danh sách phiếu kiểm nhập',
+      label: trans.common.importReceiptList,
       icon: <IconList size={16} />,
       path: 'list'
     },
     create: {
-      label: 'Tạo phiếu nhập',
+      label: trans.common.createReceipt,
       icon: <IconPackage size={16} />,
       path: 'create'
     }
@@ -164,6 +166,7 @@ function TabPanel({ children, value, index, ...other }) {
 
 export default function WarehouseActivityTabs({ onBackToDashboard }) {
   const theme = useTheme();
+  const trans = useTrans();
   const [activeTab, setActiveTab] = useState(1); // Mặc định hiển thị tab danh sách
   const [currentBreadcrumbPath, setCurrentBreadcrumbPath] = useState(1);
 
@@ -218,12 +221,12 @@ export default function WarehouseActivityTabs({ onBackToDashboard }) {
           {/* Breadcrumbs Navigation */}
           <WarehouseBreadcrumbs currentPath={currentBreadcrumbPath} onNavigate={handleBreadcrumbNavigate} />
 
-          <Typography variant="h6">Quản Lý Đơn Kiểm Tra Nhập</Typography>
+          <Typography variant="h6">{trans.common.importOrderManagement}</Typography>
 
           <Box>
             <Tabs variant="fullWidth" value={activeTab} onChange={handleTabChange} type={TabsType.SEGMENTED}>
-              <Tab label="Tạo phiếu kiểm tra đơn nhập" />
-              <Tab label="Danh sách đơn nhập" />
+              <Tab label={trans.common.createImportReceipt} />
+              <Tab label={trans.common.importOrderList} />
             </Tabs>
 
             <TabPanel value={activeTab} index={0}>

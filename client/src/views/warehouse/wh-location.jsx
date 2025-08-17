@@ -23,6 +23,7 @@ import {
 import axios from 'axios';
 import { useSnackbar } from 'notistack';
 import { useEffect, useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const getAuthHeaders = () => ({
@@ -35,6 +36,7 @@ const axiosInstance = axios.create({
 
 const ViewListLocation = () => {
   const { enqueueSnackbar } = useSnackbar();
+  const trans = useTrans();
   const [locations, setLocations] = useState([]);
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -91,11 +93,11 @@ const ViewListLocation = () => {
         setLocations(response.data.data.locations);
         setTotalCount(response.data.data.pagination.totalItems);
       } else {
-        enqueueSnackbar(response.data.message || 'Không thể tải danh sách vị trí', { variant: 'error' });
+        enqueueSnackbar(response.data.message || trans.common.failedToLoadLocations, { variant: 'error' });
       }
     } catch (error) {
       console.error('Error fetching locations:', error);
-      enqueueSnackbar(error.response?.data?.message || 'Không thể tải danh sách vị trí', { variant: 'error' });
+      enqueueSnackbar(error.response?.data?.message || trans.common.failedToLoadLocations, { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -139,17 +141,24 @@ const ViewListLocation = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        View Location
+        {trans.common.viewLocation}
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
-        Filter and view details of locations.
+        {trans.common.filterAndViewLocationDetails}
       </Typography>
 
       {/* Filters */}
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-          <TextField fullWidth select size="small" label="Khu vực" value={filterAreaId} onChange={(e) => setFilterAreaId(e.target.value)}>
-            <MenuItem value="">Tất cả</MenuItem>
+          <TextField
+            fullWidth
+            select
+            size="small"
+            label={trans.common.area}
+            value={filterAreaId}
+            onChange={(e) => setFilterAreaId(e.target.value)}
+          >
+            <MenuItem value="">{trans.common.all}</MenuItem>
             {areas.map((area) => (
               <MenuItem key={area._id} value={area._id}>
                 {area.name}
@@ -161,44 +170,44 @@ const ViewListLocation = () => {
             fullWidth
             select
             size="small"
-            label="Trạng thái"
+            label={trans.common.status}
             value={filterAvailable}
             onChange={(e) => setFilterAvailable(e.target.value)}
           >
-            <MenuItem value="">Tất cả</MenuItem>
-            <MenuItem value="true">Có sẵn</MenuItem>
-            <MenuItem value="false">Không có sẵn</MenuItem>
+            <MenuItem value="">{trans.common.all}</MenuItem>
+            <MenuItem value="true">{trans.common.available}</MenuItem>
+            <MenuItem value="false">{trans.common.notAvailable}</MenuItem>
           </TextField>
 
           <TextField
             fullWidth
             size="small"
-            label="Bay"
+            label={trans.common.bay}
             value={filterBay}
             onChange={(e) => setFilterBay(e.target.value)}
-            placeholder="Nhập Bay"
+            placeholder={trans.common.enterBay}
           />
 
           <TextField
             fullWidth
             size="small"
-            label="Row"
+            label={trans.common.row}
             value={filterRow}
             onChange={(e) => setFilterRow(e.target.value)}
-            placeholder="Nhập Row"
+            placeholder={trans.common.enterRow}
           />
 
           <TextField
             fullWidth
             size="small"
-            label="Column"
+            label={trans.common.column}
             value={filterColumn}
             onChange={(e) => setFilterColumn(e.target.value)}
-            placeholder="Nhập Column"
+            placeholder={trans.common.enterColumn}
           />
 
           <Button variant="outlined" size="small" onClick={handleResetFilters}>
-            Reset
+            {trans.common.reset}
           </Button>
         </Stack>
       </Box>
@@ -208,25 +217,25 @@ const ViewListLocation = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Khu vực</TableCell>
-              <TableCell>Bay</TableCell>
-              <TableCell>Row</TableCell>
-              <TableCell>Column</TableCell>
-              <TableCell>Trạng thái</TableCell>
-              <TableCell align="center">Hành động</TableCell>
+              <TableCell>{trans.common.area}</TableCell>
+              <TableCell>{trans.common.bay}</TableCell>
+              <TableCell>{trans.common.row}</TableCell>
+              <TableCell>{trans.common.column}</TableCell>
+              <TableCell>{trans.common.status}</TableCell>
+              <TableCell align="center">{trans.common.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
-                  Đang tải...
+                  {trans.common.loading}
                 </TableCell>
               </TableRow>
             ) : locations.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 5 }}>
-                  Không có vị trí
+                  {trans.common.noLocationsFound}
                 </TableCell>
               </TableRow>
             ) : (
@@ -236,9 +245,9 @@ const ViewListLocation = () => {
                   <TableCell>{location.bay}</TableCell>
                   <TableCell>{location.row}</TableCell>
                   <TableCell>{location.column}</TableCell>
-                  <TableCell>{location.available ? 'Có sẵn' : 'Không có sẵn'}</TableCell>
+                  <TableCell>{location.available ? trans.common.available : trans.common.notAvailable}</TableCell>
                   <TableCell align="center">
-                    <Tooltip title="Xem chi tiết">
+                    <Tooltip title={trans.common.viewDetails}>
                       <IconButton color="primary" size="small" onClick={() => handleViewDetail(location)}>
                         <VisibilityIcon fontSize="small" />
                       </IconButton>
@@ -259,8 +268,8 @@ const ViewListLocation = () => {
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={handleChangeRowsPerPage}
         rowsPerPageOptions={[5, 10, 25, 50]}
-        labelRowsPerPage="Số hàng mỗi trang:"
-        labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count}`}
+        labelRowsPerPage={trans.common.rowsPerPage}
+        labelDisplayedRows={({ from, to, count }) => `${from}-${to} ${trans.common.of} ${count}`}
       />
 
       {/* Detail Dialog */}

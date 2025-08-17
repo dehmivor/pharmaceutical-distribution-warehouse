@@ -1,9 +1,11 @@
+'use client';
+
 import React from 'react';
 import useTrans from '@/hooks/useTrans';
 
-function yearly() {
+function Yearly() {
   const trans = useTrans();
   return <div>{trans.placeholders.yearly}</div>;
 }
 
-export default yearly;
+export default Yearly;

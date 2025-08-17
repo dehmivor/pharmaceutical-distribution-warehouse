@@ -37,7 +37,8 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  Refresh
 } from '@mui/icons-material';
 import axios from 'axios';
 import MedicineDetailDialog from './MedicineDetailDialog'; // Import the detail dialog component
@@ -108,7 +109,7 @@ const MedicineManagement = () => {
         setTotalCount(response.data.data.pagination.total);
       }
     } catch (error) {
-      setError(trans.medicine.messages.loadError);
+      setError(trans.medicineManagement.messages.loadError);
       console.error('Error fetching medicines:', error);
     } finally {
       setLoading(false);
@@ -131,7 +132,7 @@ const MedicineManagement = () => {
 
   const handleUpdateMedicine = async (updatedMedicine) => {
     if (!updatedMedicine || !updatedMedicine._id) {
-      setError(trans.medicine.messages.updateError);
+      setError(trans.medicineManagement.messages.updateError);
       return;
     }
 
@@ -146,12 +147,12 @@ const MedicineManagement = () => {
         setSelectedMedicine(null);
         fetchMedicines();
       } else {
-        setError(response.data.message || trans.medicine.messages.updateError);
+        setError(response.data.message || trans.medicineManagement.messages.updateError);
       }
     } catch (err) {
       console.error('Update medicine error:', err);
       const serverMessage = err.response?.data?.message;
-      setError(serverMessage || trans.medicine.messages.updateErrorGeneric);
+      setError(serverMessage || trans.medicineManagement.messages.updateErrorGeneric);
     }
   };
 
@@ -169,13 +170,13 @@ const MedicineManagement = () => {
       });
 
       if (response.data.success) {
-        setSuccess(trans.medicine.messages.deleteSuccess);
+        setSuccess(trans.medicineManagement.messages.deleteSuccess);
         setOpenDeleteDialog(false);
         setSelectedMedicine(null);
         fetchMedicines();
       }
     } catch (error) {
-      setError(error.response?.data?.message || trans.medicine.messages.deleteError);
+      setError(error.response?.data?.message || trans.medicineManagement.messages.deleteError);
       // Tự động đóng dialog khi có lỗi
       setOpenDeleteDialog(false);
       setSelectedMedicine(null);
@@ -224,13 +225,30 @@ const MedicineManagement = () => {
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-          {trans.medicine.title}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {trans.medicine.description}
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+            {trans.medicineManagement.title}
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {trans.medicineManagement.description}
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<Refresh />}
+          onClick={() => {
+            setFilters({
+              license_code: '',
+              category: '',
+              status: ''
+            });
+            fetchMedicines();
+          }}
+          disabled={loading}
+        >
+          {trans.common.refresh}
+        </Button>
       </Box>
 
       {/* Alerts */}
@@ -251,14 +269,14 @@ const MedicineManagement = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
             <FilterIcon sx={{ color: 'primary.main', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-              {trans.medicine.filters.title}
+              {trans.medicineManagement.filters.title}
             </Typography>
           </Box>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={6} md={4}>
               <TextField
                 fullWidth
-                label={trans.medicine.filters.licenseCode}
+                label={trans.medicineManagement.filters.licenseCode}
                 value={filters.license_code}
                 onChange={(e) => handleFilterChange('license_code', e.target.value)}
                 variant="outlined"
@@ -274,11 +292,11 @@ const MedicineManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 300 }}>
-                <InputLabel>{trans.medicine.filters.category}</InputLabel>
+                <InputLabel>{trans.medicineManagement.filters.category}</InputLabel>
                 <Select
-                  value={filters.category}
+                  value={filters.category ?? ''}
                   onChange={(e) => handleFilterChange('category', e.target.value)}
-                  label={trans.medicine.filters.category}
+                  label={trans.medicineManagement.filters.category}
                   renderValue={(selected) => (
                     <Tooltip title={selected}>
                       <span
@@ -289,15 +307,12 @@ const MedicineManagement = () => {
                           whiteSpace: 'nowrap'
                         }}
                       >
-                        {selected || trans.medicine.filters.all}
+                        {selected || trans.medicineManagement.filters.all}
                       </span>
                     </Tooltip>
                   )}
-                  sx={{
-                    width: 300
-                  }}
                 >
-                  <MenuItem value="">{trans.medicine.filters.all}</MenuItem>
+                  <MenuItem value="">{trans.medicineManagement.filters.all}</MenuItem>
                   {filterOptions?.category?.map((cate) => (
                     <MenuItem key={cate} value={cate} title={cate}>
                       {cate}
@@ -308,29 +323,28 @@ const MedicineManagement = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <FormControl fullWidth size="medium" sx={{ maxWidth: 300 }}>
-                <InputLabel>{trans.medicine.filters.status}</InputLabel>
+                <InputLabel>{trans.medicineManagement.filters.status}</InputLabel>
                 <Select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
-                  label={trans.medicine.filters.status}
+                  label={trans.medicineManagement.filters.status}
                   renderValue={(selected) => {
-                    if (selected === '') return trans.medicine.filters.all;
-                    if (selected === 'active') return trans.medicine.filters.active;
-                    if (selected === 'inactive') return trans.medicine.filters.inactive;
+                    if (selected === '') return trans.medicineManagement.filters.all;
+                    if (selected === 'active') return trans.medicineManagement.filters.active;
+                    if (selected === 'inactive') return trans.medicineManagement.filters.inactive;
                     return selected;
                   }}
-                  sx={{
-                    width: 300
-                  }}
                 >
-                  <MenuItem value="">{trans.medicine.filters.all}</MenuItem>
-                  <MenuItem value="active">{trans.medicine.filters.active}</MenuItem>
-                  <MenuItem value="inactive">{trans.medicine.filters.inactive}</MenuItem>
+                  <MenuItem value="">{trans.medicineManagement.filters.all}</MenuItem>
+                  <MenuItem value="active">{trans.medicineManagement.filters.active}</MenuItem>
+                  <MenuItem value="inactive">{trans.medicineManagement.filters.inactive}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={12} md={3} sx={{ display: 'flex', justifyContent: 'flex-end', ml: 'auto' }}>
+            <Grid item xs={12} sm={12} md={12} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
               <Button
+                fullWidth
+                size="small"
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => setOpenAddDialog(true)}
@@ -343,10 +357,11 @@ const MedicineManagement = () => {
                   py: 1.2,
                   borderRadius: 2,
                   textTransform: 'none',
-                  fontWeight: 600
+                  fontWeight: 600,
+                  maxWidth: 200
                 }}
               >
-                {trans.medicine.addNew}
+                {trans.medicineManagement.addNew}
               </Button>
             </Grid>
           </Grid>
@@ -357,16 +372,16 @@ const MedicineManagement = () => {
       <Card sx={{ border: '1px solid #e0e0e0' }}>
         <Box
           sx={{
-            p: 3,
+            p: 2,
             borderBottom: '1px solid #e0e0e0',
             bgcolor: 'grey.50'
           }}
         >
           <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-            {trans.medicine.table.title}
+            {trans.medicineManagement.table.title}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {trans.medicine.table.totalCount.replace('{count}', totalCount)}
+            {trans.medicineManagement.table.totalCount.replace('{count}', totalCount)}
           </Typography>
         </Box>
 
@@ -374,13 +389,13 @@ const MedicineManagement = () => {
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
-                <TableCell sx={{ fontWeight: 600 }}>{trans.medicine.table.headers.medicineName}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{trans.medicine.table.headers.licenseCode}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{trans.medicine.table.headers.category}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{trans.medicine.table.headers.unitOfMeasure}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{trans.medicine.table.headers.status}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.medicineManagement.table.headers.medicineName}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.medicineManagement.table.headers.licenseCode}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.medicineManagement.table.headers.category}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.medicineManagement.table.headers.unitOfMeasure}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{trans.medicineManagement.table.headers.status}</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600 }}>
-                  {trans.medicine.table.headers.actions}
+                  {trans.medicineManagement.table.headers.actions}  
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -399,16 +414,18 @@ const MedicineManagement = () => {
                   </TableCell>
                   <TableCell>{medicine.unit_of_measure}</TableCell>
                   <TableCell>
-                    <Chip 
-                      label={medicine.status === 'active' ? trans.medicine.filters.active : trans.medicine.filters.inactive} 
-                      size="small" 
-                      color={medicine.status === 'active' ? 'success' : 'error'} 
-                      variant="outlined" 
+                    <Chip
+                      label={
+                        medicine.status === 'active' ? trans.medicineManagement.filters.active : trans.medicineManagement.filters.inactive
+                      }
+                      size="small"
+                      color={medicine.status === 'active' ? 'success' : 'error'}
+                      variant="outlined"
                     />
                   </TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                      <Tooltip title={trans.medicine.actions.view}>
+                      <Tooltip title={trans.medicineManagement.actions.view}>
                         <IconButton
                           color="primary"
                           size="small"
@@ -425,7 +442,7 @@ const MedicineManagement = () => {
                         </IconButton>
                       </Tooltip>
 
-                      <Tooltip title={trans.medicine.actions.edit}>
+                      <Tooltip title={trans.medicineManagement.actions.edit}>
                         <IconButton
                           color="secondary"
                           size="small"
@@ -442,7 +459,7 @@ const MedicineManagement = () => {
                         </IconButton>
                       </Tooltip>
 
-                      <Tooltip title={trans.medicine.actions.delete}>
+                      <Tooltip title={trans.medicineManagement.actions.delete}>
                         <IconButton
                           color="error"
                           size="small"
@@ -474,8 +491,13 @@ const MedicineManagement = () => {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-          labelRowsPerPage={trans.common.pagination.rowsPerPage}
-          labelDisplayedRows={({ from, to, count }) => trans.common.pagination.displayedRows.replace('{from}', from).replace('{to}', to).replace('{count}', count)}
+          labelRowsPerPage={trans.rowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            trans.displayedRows
+              .replace('{from}', from)
+              .replace('{to}', to)
+              .replace('{count}', count !== -1 ? count : trans.moreThan.replace('{count}', to))
+          }
           sx={{
             borderTop: '1px solid #e0e0e0',
             bgcolor: 'grey.50'
@@ -522,12 +544,12 @@ const MedicineManagement = () => {
         >
           <DeleteIcon sx={{ fontSize: 24 }} />
           <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-            {trans.medicine.deleteDialog.title}
+            {trans.medicineManagement.deleteDialog.title}
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ p: 3 }}>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            {trans.medicine.deleteDialog.message}
+            {trans.medicineManagement.deleteDialog.message}
           </Typography>
           <Box
             sx={{
@@ -542,10 +564,10 @@ const MedicineManagement = () => {
               {selectedMedicine?.medicine_name}
             </Typography>
             <Typography variant="caption" color="error.main">
-              {trans.medicine.deleteDialog.warning}
+              {trans.medicineManagement.deleteDialog.warning}
             </Typography>
           </Box>
-          
+
           {/* Điều kiện xóa */}
           <Box
             sx={{
@@ -558,13 +580,13 @@ const MedicineManagement = () => {
             }}
           >
             <Typography variant="body2" sx={{ fontWeight: 600, color: 'warning.main', mb: 1 }}>
-              {trans.medicine.deleteDialog.conditions.title}
+              {trans.medicineManagement.deleteDialog.conditions.title}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-              {trans.medicine.deleteDialog.conditions.stockZero}
+              {trans.medicineManagement.deleteDialog.conditions.stockZero}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {trans.medicine.deleteDialog.conditions.statusInactive}
+              {trans.medicineManagement.deleteDialog.conditions.statusInactive}
             </Typography>
           </Box>
         </DialogContent>
@@ -587,7 +609,7 @@ const MedicineManagement = () => {
               fontWeight: 600
             }}
           >
-            {trans.medicine.deleteDialog.cancel}
+            {trans.medicineManagement.deleteDialog.cancel}
           </Button>
           <Button
             onClick={handleDeleteMedicine}
@@ -606,7 +628,7 @@ const MedicineManagement = () => {
               }
             }}
           >
-            {trans.medicine.deleteDialog.delete}
+            {trans.medicineManagement.deleteDialog.delete}
           </Button>
         </DialogActions>
       </Dialog>

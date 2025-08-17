@@ -41,10 +41,10 @@ const PackageDetailDialog = ({ open, onClose, package: pkg }) => {
   // Fetch package detail
   const fetchPackageDetail = async () => {
     if (!pkg?.full_id) return;
-    
+
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await axiosInstance.get(`/api/packages/v2/${pkg.full_id}`, {
         headers: getAuthHeaders()
@@ -83,24 +83,18 @@ const PackageDetailDialog = ({ open, onClose, package: pkg }) => {
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={handleClose}
-      maxWidth="md"
-      fullWidth
-    >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        backgroundColor: 'primary.main',
-        color: 'white'
-      }}>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <DialogTitle
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          backgroundColor: 'primary.main',
+          color: 'white'
+        }}
+      >
         Chi Tiết Package
-        <Button
-          onClick={handleClose}
-          sx={{ color: 'white', minWidth: 'auto' }}
-        >
+        <Button onClick={handleClose} sx={{ color: 'white', minWidth: 'auto' }}>
           <CloseIcon />
         </Button>
       </DialogTitle>
@@ -129,12 +123,7 @@ const PackageDetailDialog = ({ open, onClose, package: pkg }) => {
                       ID Package:
                     </Typography>
                   </Box>
-                  <Chip 
-                    label={packageDetail._id} 
-                    color="primary" 
-                    variant="outlined"
-                    size="small"
-                  />
+                  <Chip label={packageDetail._id} color="primary" variant="outlined" size="small" />
                 </Grid>
                 <Grid xs={12} sm={6}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -143,11 +132,7 @@ const PackageDetailDialog = ({ open, onClose, package: pkg }) => {
                       Số lượng:
                     </Typography>
                   </Box>
-                  <Chip 
-                    label={packageDetail.quantity} 
-                    color="secondary"
-                    size="small"
-                  />
+                  <Chip label={packageDetail.quantity} color="secondary" size="small" />
                 </Grid>
               </Grid>
             </Box>
@@ -240,12 +225,14 @@ const PackageDetailDialog = ({ open, onClose, package: pkg }) => {
                   </Grid>
                 </Grid>
               ) : (
-                <Box sx={{ 
-                  p: 2, 
-                  backgroundColor: 'grey.100', 
-                  borderRadius: 1,
-                  textAlign: 'center'
-                }}>
+                <Box
+                  sx={{
+                    p: 2,
+                    backgroundColor: 'grey.100',
+                    borderRadius: 1,
+                    textAlign: 'center'
+                  }}
+                >
                   <Typography variant="body2" color="text.secondary">
                     Package chưa được gán vị trí
                   </Typography>
@@ -257,11 +244,7 @@ const PackageDetailDialog = ({ open, onClose, package: pkg }) => {
       </DialogContent>
 
       <DialogActions sx={{ p: 3, pt: 0 }}>
-        <Button 
-          onClick={handleClose}
-          variant="contained"
-          color="primary"
-        >
+        <Button onClick={handleClose} variant="contained" color="primary">
           Đóng
         </Button>
       </DialogActions>
@@ -269,4 +252,4 @@ const PackageDetailDialog = ({ open, onClose, package: pkg }) => {
   );
 };
 
-export default PackageDetailDialog; 
+export default PackageDetailDialog;

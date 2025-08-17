@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  Chip,
-  Divider
-} from '@mui/material';
+import { Box, Card, CardContent, Typography, Grid, Chip, Divider } from '@mui/material';
 import useTrans from '@/hooks/useTrans';
 import {
   TrendingUp as TrendingUpIcon,
@@ -19,7 +11,7 @@ import {
 
 const DashboardStats = ({ detailedStats }) => {
   const trans = useTrans();
-  
+
   if (!detailedStats || Object.keys(detailedStats).length === 0) {
     return null;
   }
@@ -33,7 +25,7 @@ const DashboardStats = ({ detailedStats }) => {
             {trans.header.description}
           </Typography>
         </Box>
-        
+
         <Grid container spacing={3}>
           {/* Monthly Statistics */}
           <Grid item xs={12} md={6}>
@@ -46,22 +38,14 @@ const DashboardStats = ({ detailedStats }) => {
                   <ShippingIcon color="primary" fontSize="small" />
                   <Typography variant="body2">Import Orders</Typography>
                 </Box>
-                <Chip 
-                  label={detailedStats.monthly?.importOrders || 0} 
-                  size="small" 
-                  color="primary" 
-                />
+                <Chip label={detailedStats.monthly?.importOrders || 0} size="small" color="primary" />
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <AssignmentIcon color="success" fontSize="small" />
                   <Typography variant="body2">Export Orders</Typography>
                 </Box>
-                <Chip 
-                  label={detailedStats.monthly?.exportOrders || 0} 
-                  size="small" 
-                  color="success" 
-                />
+                <Chip label={detailedStats.monthly?.exportOrders || 0} size="small" color="success" />
               </Box>
             </Box>
           </Grid>
@@ -77,22 +61,14 @@ const DashboardStats = ({ detailedStats }) => {
                   <ShippingIcon color="primary" fontSize="small" />
                   <Typography variant="body2">Import Orders</Typography>
                 </Box>
-                <Chip 
-                  label={detailedStats.weekly?.importOrders || 0} 
-                  size="small" 
-                  color="primary" 
-                />
+                <Chip label={detailedStats.weekly?.importOrders || 0} size="small" color="primary" />
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <AssignmentIcon color="success" fontSize="small" />
                   <Typography variant="body2">Export Orders</Typography>
                 </Box>
-                <Chip 
-                  label={detailedStats.weekly?.exportOrders || 0} 
-                  size="small" 
-                  color="success" 
-                />
+                <Chip label={detailedStats.weekly?.exportOrders || 0} size="small" color="success" />
               </Box>
             </Box>
           </Grid>
@@ -112,22 +88,14 @@ const DashboardStats = ({ detailedStats }) => {
                   <MedicationIcon color="info" fontSize="small" />
                   <Typography variant="body2">Total Unique Medicines</Typography>
                 </Box>
-                <Chip 
-                  label={detailedStats.inventory?.totalMedicines || 0} 
-                  size="small" 
-                  color="info" 
-                />
+                <Chip label={detailedStats.inventory?.totalMedicines || 0} size="small" color="info" />
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <WarningIcon color="warning" fontSize="small" />
                   <Typography variant="body2">Expiring Soon</Typography>
                 </Box>
-                <Chip 
-                  label={detailedStats.inventory?.expiringMedicines || 0} 
-                  size="small" 
-                  color="warning" 
-                />
+                <Chip label={detailedStats.inventory?.expiringMedicines || 0} size="small" color="warning" />
               </Box>
             </Box>
           </Grid>

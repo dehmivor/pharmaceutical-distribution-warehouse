@@ -33,8 +33,10 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 
 import useImportOrders from '@/hooks/useImportOrders'; // Adjust the import path
+import useTrans from '@/hooks/useTrans';
 
 export default function PurchaseOrderListTab() {
+  const trans = useTrans();
   // Replace mock state with the custom hook
   const { orders: purchaseOrders, loading: isLoading, error: isError, fetchOrders } = useImportOrders();
   const [page, setPage] = useState(1);
@@ -101,11 +103,11 @@ export default function PurchaseOrderListTab() {
 
   const getStatusLabel = (status) => {
     const statusLabels = {
-      draft: 'Nháp',
-      delivered: 'Đã giao',
-      approved: 'Đã duyệt',
-      arranged: 'Đã sắp xếp',
-      checked: 'Đã kiểm tra'
+      draft: trans.common.draft,
+      delivered: trans.common.delivered,
+      approved: trans.common.approved,
+      arranged: trans.common.arranged,
+      checked: trans.common.checked
     };
     return statusLabels[status] || status;
   };
@@ -134,10 +136,10 @@ export default function PurchaseOrderListTab() {
     return (
       <Box>
         <Alert severity="error" sx={{ mb: 2 }}>
-          Có lỗi xảy ra khi tải dữ liệu: {isError}
+          {trans.common.errorLoadingData}: {isError}
         </Alert>
         <Button onClick={mutate} variant="outlined">
-          Thử lại
+          {trans.common.tryAgain}
         </Button>
       </Box>
     );
@@ -146,7 +148,7 @@ export default function PurchaseOrderListTab() {
   return (
     <Box>
       <Typography variant="subtitle1" sx={{ mb: 2 }}>
-        Danh sách phiếu kiểm nhập
+        {trans.common.importReceiptList}
       </Typography>
       <Box
         sx={{
@@ -159,22 +161,22 @@ export default function PurchaseOrderListTab() {
       >
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Trạng thái</InputLabel>
-            <Select value={statusFilter} label="Trạng thái" onChange={(e) => setStatusFilter(e.target.value)}>
-              <MenuItem value="all">Tất cả</MenuItem>
-              <MenuItem value="draft">Nháp</MenuItem>
-              <MenuItem value="delivered">Đã giao</MenuItem>
-              <MenuItem value="approved">Đã duyệt</MenuItem>
-              <MenuItem value="checked">Đã kiểm tra</MenuItem>
-              <MenuItem value="arranged">Đã sắp xếp</MenuItem>
-              <MenuItem value="completed">Hoàn thành</MenuItem>
-              <MenuItem value="cancelled">Hủy</MenuItem>
+            <InputLabel>{trans.common.status}</InputLabel>
+            <Select value={statusFilter} label={trans.common.status} onChange={(e) => setStatusFilter(e.target.value)}>
+              <MenuItem value="all">{trans.common.allStatuses}</MenuItem>
+              <MenuItem value="draft">{trans.common.draft}</MenuItem>
+              <MenuItem value="delivered">{trans.common.delivered}</MenuItem>
+              <MenuItem value="approved">{trans.common.approved}</MenuItem>
+              <MenuItem value="checked">{trans.common.checked}</MenuItem>
+              <MenuItem value="arranged">{trans.common.arranged}</MenuItem>
+              <MenuItem value="completed">{trans.common.completed}</MenuItem>
+              <MenuItem value="cancelled">{trans.common.cancelled}</MenuItem>
             </Select>
           </FormControl>
 
           <TextField
             size="small"
-            placeholder="Tìm kiếm..."
+            placeholder={trans.common.search}
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
             InputProps={{
@@ -184,18 +186,18 @@ export default function PurchaseOrderListTab() {
         </Box>
 
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Tooltip title="Làm mới">
+          <Tooltip title={trans.common.refresh}>
             <IconButton onClick={() => mutate()} disabled={isLoading}>
               <RefreshIcon />
             </IconButton>
           </Tooltip>
 
           <Button variant="outlined" startIcon={<FileDownloadIcon />} disabled={isLoading}>
-            Xuất Excel
+            {trans.common.exportExcel}
           </Button>
 
           <Button variant="contained" startIcon={<AddIcon />}>
-            Gửi tới thủ kho
+            {trans.common.sendToWarehouse}
           </Button>
         </Box>
       </Box>
@@ -203,14 +205,14 @@ export default function PurchaseOrderListTab() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Mã đơn</TableCell>
-              <TableCell>Mã hợp đồng</TableCell>
-              <TableCell>Nhà cung cấp</TableCell>
-              <TableCell>Tổng tiền</TableCell>
-              <TableCell>Trạng thái</TableCell>
-              <TableCell>Số mặt hàng</TableCell>
-              <TableCell>Số phiếu đã tạo</TableCell>
-              <TableCell align="center">Thao tác</TableCell>
+              <TableCell>{trans.common.orderNumber}</TableCell>
+              <TableCell>{trans.common.contractCode}</TableCell>
+              <TableCell>{trans.common.supplierName}</TableCell>
+              <TableCell>{trans.common.totalAmount}</TableCell>
+              <TableCell>{trans.common.status}</TableCell>
+              <TableCell>{trans.common.itemCount}</TableCell>
+              <TableCell>{trans.common.receiptCount}</TableCell>
+              <TableCell align="center">{trans.common.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -224,7 +226,7 @@ export default function PurchaseOrderListTab() {
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
-                    Không có đơn mua nào
+                    {trans.common.noImportOrders}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -240,10 +242,10 @@ export default function PurchaseOrderListTab() {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{order.supplier_contract_id?.contract_code || 'N/A'}</Typography>
+                      <Typography variant="body2">{order.supplier_contract_id?.contract_code || trans.common.na}</Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{order.supplier_contract_id?.supplier_id?.name || 'N/A'}</Typography>
+                      <Typography variant="body2">{order.supplier_contract_id?.supplier_id?.name || trans.common.na}</Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" fontWeight="medium">
@@ -254,11 +256,15 @@ export default function PurchaseOrderListTab() {
                       <Chip label={getStatusLabel(order.status)} color={getStatusColor(order.status)} size="small" />
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{order.details?.length || 0} mặt hàng</Typography>
+                      <Typography variant="body2">
+                        {order.details?.length || 0} {trans.common.items}
+                      </Typography>
                     </TableCell>
                     <TableCell>
                       {' '}
-                      <Typography variant="body2">{order.details?.length || 0} phiếu</Typography>
+                      <Typography variant="body2">
+                        {order.details?.length || 0} {trans.common.receipts}
+                      </Typography>
                     </TableCell>
                     <TableCell align="center">
                       <IconButton size="small" onClick={(e) => handleMenuClick(e, order)}>
@@ -280,8 +286,8 @@ export default function PurchaseOrderListTab() {
       )}
 
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-        <MenuItem>Xem chi tiết</MenuItem>
-        <MenuItem>Xuất PDF</MenuItem>
+        <MenuItem>{trans.common.viewDetails}</MenuItem>
+        <MenuItem>{trans.common.exportPDF}</MenuItem>
       </Menu>
     </Box>
   );

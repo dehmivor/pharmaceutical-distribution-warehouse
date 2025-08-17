@@ -27,12 +27,7 @@ import {
   Stack,
   MenuItem
 } from '@mui/material';
-import {
-  Info as InfoIcon,
-  ForkLeft as ForwardIcon,
-  Refresh as RefreshIcon,
-  Search as SearchIcon
-} from '@mui/icons-material';
+import { Info as InfoIcon, ForkLeft as ForwardIcon, Refresh as RefreshIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
 import useTrans from '@/hooks/useTrans';
 
@@ -133,8 +128,6 @@ export default function ImportOrderSupervisor() {
     }
   }, [page, rowsPerPage, filterDate, filterStatus]);
 
-
-
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
@@ -161,9 +154,6 @@ export default function ImportOrderSupervisor() {
 
   // Edit dialog open/close and form change handlers
 
-
-
-
   // Details dialog open/close
   const handleOpenDetails = (order) => {
     setSelectedOrder(order);
@@ -174,8 +164,6 @@ export default function ImportOrderSupervisor() {
     setSelectedOrder(null);
     setOpenDetails(false);
   };
-
-
 
   const formatCurrency = (value) => {
     if (!value) return '-';
@@ -223,7 +211,13 @@ export default function ImportOrderSupervisor() {
             size="small"
           />
 
-          <TextField select label={trans.importOrders.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+          <TextField
+            select
+            label={trans.importOrders.status}
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            size="small"
+          >
             <MenuItem value="All Status">{trans.importOrders.allStatus}</MenuItem>
             {Object.values(IMPORT_ORDER_STATUSES).map((s) => (
               <MenuItem key={s} value={s}>
@@ -270,17 +264,15 @@ export default function ImportOrderSupervisor() {
                 const totalAmount = order.details?.reduce((acc, d) => acc + (d.quantity || 0) * (d.unit_price || 0), 0) || 0;
                 return (
                   <TableRow hover key={order._id}>
-                    <TableCell title={order._id}>{order._id ? `${order._id.slice(0, 6)}...${order._id.slice(-4)}` : trans.common.na}</TableCell>
+                    <TableCell title={order._id}>
+                      {order._id ? `${order._id.slice(0, 6)}...${order._id.slice(-4)}` : trans.common.na}
+                    </TableCell>
                     <TableCell>{order.contract_id?.contract_code || trans.common.na}</TableCell>
                     <TableCell>{order.contract_id?.partner_id?.name || trans.common.na}</TableCell>
                     <TableCell>{order.created_by?.email || trans.common.na}</TableCell>
                     <TableCell align="right">{formatCurrency(totalAmount)}</TableCell>
                     <TableCell>
-                      <Chip
-                        label={order.status}
-                        color={getStatusColor(order.status)}
-                        size="small"
-                      />
+                      <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
                     </TableCell>
                     <TableCell>{order.warehouse_manager_id?.email || trans.common.notAssigned}</TableCell>
                     <TableCell>
@@ -313,8 +305,6 @@ export default function ImportOrderSupervisor() {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </TableContainer>
-
-
 
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
@@ -425,7 +415,9 @@ export default function ImportOrderSupervisor() {
                           <Typography variant="subtitle2" color="textSecondary">
                             {trans.common.approvedBy}
                           </Typography>
-                          <Typography variant="body1">{selectedOrder.approved_by?.name || selectedOrder.approval_by?.name || trans.common.na}</Typography>
+                          <Typography variant="body1">
+                            {selectedOrder.approved_by?.name || selectedOrder.approval_by?.name || trans.common.na}
+                          </Typography>
                         </Grid>
                       )}
                     </Grid>
@@ -509,8 +501,6 @@ export default function ImportOrderSupervisor() {
           <Button onClick={handleCloseDetails}>{trans.common.close}</Button>
         </DialogActions>
       </Dialog>
-
-
 
       {/* Snackbar: Error */}
       <Snackbar

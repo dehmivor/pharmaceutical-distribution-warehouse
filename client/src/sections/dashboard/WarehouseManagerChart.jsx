@@ -32,7 +32,7 @@ const WarehouseManagerChart = ({ months = 6 }) => {
         setChartWidth(Math.max(800, window.innerWidth - 200));
       }
     };
-    
+
     updateWidth();
     window.addEventListener('resize', updateWidth);
     return () => window.removeEventListener('resize', updateWidth);
@@ -92,9 +92,7 @@ const WarehouseManagerChart = ({ months = 6 }) => {
             </Typography>
           </Box>
           <Box sx={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography color="text.secondary">
-              No data available for chart
-            </Typography>
+            <Typography color="text.secondary">No data available for chart</Typography>
           </Box>
         </CardContent>
       </Card>
@@ -110,7 +108,7 @@ const WarehouseManagerChart = ({ months = 6 }) => {
   // Prepare data for the chart
   const getChartData = () => {
     if (chartType === 'count') {
-      return chartData.datasets.map(dataset => ({
+      return chartData.datasets.map((dataset) => ({
         ...dataset,
         data: dataset.data.map((value, index) => ({
           x: index,
@@ -118,7 +116,7 @@ const WarehouseManagerChart = ({ months = 6 }) => {
         }))
       }));
     } else {
-      return chartData.valueDatasets.map(dataset => ({
+      return chartData.valueDatasets.map((dataset) => ({
         ...dataset,
         data: dataset.data.map((value, index) => ({
           x: index,
@@ -143,12 +141,7 @@ const WarehouseManagerChart = ({ months = 6 }) => {
             </Typography>
           </Stack>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ToggleButtonGroup
-              value={chartType}
-              exclusive
-              onChange={handleChartTypeChange}
-              size="small"
-            >
+            <ToggleButtonGroup value={chartType} exclusive onChange={handleChartTypeChange} size="small">
               <ToggleButton value="count">Count</ToggleButton>
               <ToggleButton value="value">Value (VND)</ToggleButton>
             </ToggleButtonGroup>
@@ -177,10 +170,7 @@ const WarehouseManagerChart = ({ months = 6 }) => {
             yAxis={[
               {
                 scaleType: 'linear',
-                valueFormatter: (value) => 
-                  chartType === 'value' 
-                    ? `${(value / 1000000).toFixed(1)}M VND`
-                    : value.toString(),
+                valueFormatter: (value) => (chartType === 'value' ? `${(value / 1000000).toFixed(1)}M VND` : value.toString()),
                 tickLabelStyle: {
                   fontSize: 12,
                   fontWeight: 500
@@ -224,4 +214,4 @@ const WarehouseManagerChart = ({ months = 6 }) => {
   );
 };
 
-export default WarehouseManagerChart; 
+export default WarehouseManagerChart;

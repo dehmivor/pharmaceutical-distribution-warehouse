@@ -27,6 +27,7 @@ import { useEffect, useState } from 'react';
 
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import useTrans from '@/hooks/useTrans';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -48,6 +49,7 @@ const statusOptions = ['pending', 'processing', 'completed', 'cancelled'];
 
 const CheckOrders = () => {
   const router = useRouter();
+  const trans = useTrans();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +104,7 @@ const CheckOrders = () => {
         setOrders(res.data.data.inventoryCheckOrders || []);
         setTotalCount(res.data.data.pagination?.total || 0);
       } else {
-        setError(res.data.message || 'Lỗi khi tải phiếu kiểm kê');
+        setError(trans.checkOrders.errorLoadingCheckOrders);
       }
     } catch (err) {
       console.error(err);
@@ -179,10 +181,10 @@ const CheckOrders = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        List of Inventory Check Orders
+        {trans.checkOrders.title}
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
-        Manage and track inventory check order. You can filter, search, and view details of each inventory slip.
+        {trans.checkOrders.description}
       </Typography>
 
       {error && (
@@ -202,8 +204,8 @@ const CheckOrders = () => {
             fullWidth
             variant="outlined"
             size="small"
-            label="Tìm kiếm"
-            placeholder="Tìm kiếm "
+            label={trans.checkOrders.search}
+            placeholder={trans.checkOrders.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => handleFilterChange('search', e.target.value)}
             InputProps={{
@@ -216,7 +218,7 @@ const CheckOrders = () => {
           />
           <TextField
             fullWidth
-            label="Ngày kiểm kê"
+            label={trans.checkOrders.inventoryDate}
             type="date"
             value={filterDate}
             onChange={(e) => handleFilterChange('date', e.target.value)}
@@ -226,15 +228,15 @@ const CheckOrders = () => {
           <TextField
             fullWidth
             select
-            label="Trạng thái"
+            label={trans.checkOrders.status}
             value={filterStatus}
             onChange={(e) => handleFilterChange('status', e.target.value)}
             size="small"
           >
-            <MenuItem value="">Tất cả</MenuItem>
+            <MenuItem value="">{trans.checkOrders.all}</MenuItem>
             {statusOptions.map((s) => (
               <MenuItem key={s} value={s}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}
+                {trans.checkOrders[s] || s.charAt(0).toUpperCase() + s.slice(1)}
               </MenuItem>
             ))}
           </TextField>
@@ -245,14 +247,14 @@ const CheckOrders = () => {
             startIcon={sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
             onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
           >
-            {sortDirection === 'asc' ? 'Tăng dần' : 'Giảm dần'}
+            {sortDirection === 'asc' ? trans.checkOrders.ascending : trans.checkOrders.descending}
           </Button>
 
           <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
-            Search
+            {trans.checkOrders.search}
           </Button>
           <Button fullWidth size="small" variant="outlined" onClick={handleReset}>
-            Refresh
+            {trans.checkOrders.refresh}
           </Button>
         </Stack>
       </Box>
@@ -261,15 +263,15 @@ const CheckOrders = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ bgcolor: 'grey.100', fontWeight: 'bold' }}>
-              <TableCell>ID Phiếu</TableCell>
-              <TableCell>Ngày kiểm kê</TableCell>
-              <TableCell>Warehouse Manager</TableCell>
-              <TableCell>Người tạo</TableCell>
-              <TableCell>Trạng thái</TableCell>
-              <TableCell>Ghi chú</TableCell>
-              <TableCell>Ngày tạo</TableCell>
-              <TableCell>Ngày cập nhật</TableCell>
-              <TableCell align="center">Hành động</TableCell>
+              <TableCell>{trans.checkOrders.id}</TableCell>
+              <TableCell>{trans.checkOrders.inventoryDate}</TableCell>
+              <TableCell>{trans.checkOrders.warehouseManager}</TableCell>
+              <TableCell>{trans.checkOrders.createdBy}</TableCell>
+              <TableCell>{trans.checkOrders.status}</TableCell>
+              <TableCell>{trans.checkOrders.notes}</TableCell>
+              <TableCell>{trans.checkOrders.createdAt}</TableCell>
+              <TableCell>{trans.checkOrders.updatedAt}</TableCell>
+              <TableCell align="center">{trans.checkOrders.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -282,7 +284,7 @@ const CheckOrders = () => {
             ) : orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
-                  Không có phiếu kiểm kê
+                  {trans.checkOrders.noCheckOrders}
                 </TableCell>
               </TableRow>
             ) : (
@@ -318,7 +320,7 @@ const CheckOrders = () => {
         page={page}
         onPageChange={handlePageChange}
         onRowsPerPageChange={handleRowsPerPageChange}
-        labelRowsPerPage="Số hàng mỗi trang"
+        labelRowsPerPage={trans.checkOrders.rowsPerPage}
         labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`}
       />
 
@@ -335,7 +337,7 @@ const CheckOrders = () => {
             handleMenuClose();
           }}
         >
-          View Detail
+          {trans.checkOrders.viewDetail}
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -343,7 +345,7 @@ const CheckOrders = () => {
             handleMenuClose();
           }}
         >
-          Start Checking Inventory
+          {trans.checkOrders.startCheckingInventory}
         </MenuItem>
       </Menu>
     </Box>

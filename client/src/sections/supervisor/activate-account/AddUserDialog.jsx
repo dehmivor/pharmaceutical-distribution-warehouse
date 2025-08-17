@@ -82,7 +82,12 @@ export default function AddUserDialog({ open, onClose, formData, setFormData, fo
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth variant="outlined" error={!!formErrors.role}>
                 <InputLabel>{trans.userManagement.role}</InputLabel>
-                <Select value={formData.role} onChange={(e) => handleFormChange('role', e.target.value)} label={trans.userManagement.role} disabled={submitting}>
+                <Select
+                  value={formData.role}
+                  onChange={(e) => handleFormChange('role', e.target.value)}
+                  label={trans.userManagement.role}
+                  disabled={submitting}
+                >
                   <MenuItem value="warehouse">
                     <Box display="flex" alignItems="center" gap={1}>
                       <WarehouseIcon fontSize="small" />

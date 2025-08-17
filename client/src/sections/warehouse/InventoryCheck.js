@@ -19,8 +19,11 @@ import {
   Chip
 } from '@mui/material';
 import { Check as CheckIcon, Close as CloseIcon } from '@mui/icons-material';
+import useTrans from '@/hooks/useTrans';
 
 function InventoryCheck({ orderItems, onCheckComplete }) {
+  const trans = useTrans();
+
   const [checkedItems, setCheckedItems] = useState(
     orderItems.map((item) => ({
       ...item,
@@ -71,13 +74,13 @@ function InventoryCheck({ orderItems, onCheckComplete }) {
   const getStatusText = (status) => {
     switch (status) {
       case 'match':
-        return 'Đúng';
+        return trans.common.correct;
       case 'shortage':
-        return 'Thiếu';
+        return trans.common.shortage;
       case 'excess':
-        return 'Thừa';
+        return trans.common.excess;
       default:
-        return 'Chưa kiểm';
+        return trans.common.notChecked;
     }
   };
 
@@ -89,19 +92,19 @@ function InventoryCheck({ orderItems, onCheckComplete }) {
     <Card variant="outlined" sx={{ mb: 3 }}>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          Kiểm Kê Số Lượng Hàng Nhập
+          {trans.common.inventoryCheck}
         </Typography>
 
         <TableContainer component={Paper} variant="outlined">
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Tên hàng</TableCell>
-                <TableCell>Đơn vị</TableCell>
-                <TableCell>SL dự kiến</TableCell>
-                <TableCell>SL thực tế</TableCell>
-                <TableCell>Trạng thái</TableCell>
-                <TableCell>Ghi chú</TableCell>
+                <TableCell>{trans.common.itemName}</TableCell>
+                <TableCell>{trans.common.unit}</TableCell>
+                <TableCell>{trans.common.expectedQuantity}</TableCell>
+                <TableCell>{trans.common.actualQuantity}</TableCell>
+                <TableCell>{trans.common.status}</TableCell>
+                <TableCell>{trans.common.notes}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -125,7 +128,7 @@ function InventoryCheck({ orderItems, onCheckComplete }) {
                   <TableCell>
                     <TextField
                       size="small"
-                      placeholder="Ghi chú..."
+                      placeholder={trans.common.notes}
                       value={item.notes}
                       onChange={(e) => handleNotesChange(index, e.target.value)}
                       sx={{ width: 150 }}
@@ -144,7 +147,7 @@ function InventoryCheck({ orderItems, onCheckComplete }) {
             onClick={handleCompleteCheck}
             disabled={checkedItems.some((item) => !item.actualQuantity)}
           >
-            Hoàn Thành Kiểm Kê
+            {trans.common.completeCheck}
           </Button>
         </Grid>
       </CardContent>

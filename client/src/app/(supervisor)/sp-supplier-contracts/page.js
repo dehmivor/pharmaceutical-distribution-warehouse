@@ -9,4 +9,4 @@ const SupplierManagement = dynamic(() => import('@/views/supervisor/supplier-man
 
 export default function Page() {
   return <SupplierManagement />;
-} 
+}

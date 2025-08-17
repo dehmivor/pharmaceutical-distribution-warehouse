@@ -1,13 +1,16 @@
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, Chip, Typography, Box } from '@mui/material';
+import useTrans from '@/hooks/useTrans';
 
 const OrderTable = ({ orders, onSelectOrder }) => {
+  const trans = useTrans();
+
   const getStatusLabel = (status) => {
     const statusMap = {
-      draft: 'Nháp',
-      approved: 'Đã duyệt',
-      delivered: 'Đã giao',
-      pending: 'Chờ duyệt',
-      rejected: 'Từ chối'
+      draft: trans.common.draft,
+      approved: trans.common.approved,
+      delivered: trans.common.delivered,
+      pending: trans.common.pending,
+      rejected: trans.common.rejected
     };
     return statusMap[status] || status;
   };
@@ -31,7 +34,7 @@ const OrderTable = ({ orders, onSelectOrder }) => {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
         <Typography variant="body2" color="text.secondary">
-          Không tìm thấy đơn nhập nào
+          {trans.common.noImportOrdersFound}
         </Typography>
       </Box>
     );
@@ -42,14 +45,14 @@ const OrderTable = ({ orders, onSelectOrder }) => {
       <Table stickyHeader>
         <TableHead>
           <TableRow>
-            <TableCell>Mã đơn</TableCell>
-            <TableCell>Mã hợp đồng</TableCell>
-            <TableCell>Nhà cung cấp</TableCell>
-            <TableCell>Số mặt hàng</TableCell>
-            <TableCell>Tổng tiền</TableCell>
-            <TableCell>Trạng thái</TableCell>
-            <TableCell>Hiệu lực HĐ</TableCell>
-            <TableCell align="center">Thao tác</TableCell>
+            <TableCell>{trans.common.orderNumber}</TableCell>
+            <TableCell>{trans.common.contractCode}</TableCell>
+            <TableCell>{trans.common.supplierName}</TableCell>
+            <TableCell>{trans.common.itemCount}</TableCell>
+            <TableCell>{trans.common.totalAmount}</TableCell>
+            <TableCell>{trans.common.status}</TableCell>
+            <TableCell>{trans.common.contractValidity}</TableCell>
+            <TableCell align="center">{trans.common.actions}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -66,13 +69,15 @@ const OrderTable = ({ orders, onSelectOrder }) => {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2">{contract?.contract_code || 'N/A'}</Typography>
+                  <Typography variant="body2">{contract?.contract_code || trans.common.na}</Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2">{contract?.supplier_id?.name || 'N/A'}</Typography>
+                  <Typography variant="body2">{contract?.supplier_id?.name || trans.common.na}</Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2">{order.details?.length || 0} mặt hàng</Typography>
+                  <Typography variant="body2">
+                    {order.details?.length || 0} {trans.common.items}
+                  </Typography>
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" fontWeight="medium">
@@ -90,18 +95,18 @@ const OrderTable = ({ orders, onSelectOrder }) => {
                         <br />- {new Date(contract.end_date).toLocaleDateString('vi-VN')}
                         {isExpired && (
                           <Typography variant="caption" color="error" display="block">
-                            (Đã hết hạn)
+                            ({trans.common.expired})
                           </Typography>
                         )}
                       </>
                     ) : (
-                      'N/A'
+                      trans.common.na
                     )}
                   </Typography>
                 </TableCell>
                 <TableCell align="center">
                   <Button variant="outlined" size="small" onClick={() => onSelectOrder(order)} disabled={order.details?.length === 0}>
-                    Chọn
+                    {trans.common.select}
                   </Button>
                 </TableCell>
               </TableRow>

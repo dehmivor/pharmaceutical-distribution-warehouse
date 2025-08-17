@@ -5,8 +5,10 @@ import OrderSelectionDialog from '@/sections/warehouse/create-inspect/OrderSelec
 import EnhancedReceiptForm from '@/sections/warehouse/create-inspect/EnhancedReceiptForm';
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 
 export default function CreateReceiptTab() {
+  const trans = useTrans();
   const [orderData, setOrderData] = useState({});
   const [orderDialog, setOrderDialog] = useState({
     open: false,
@@ -55,7 +57,7 @@ export default function CreateReceiptTab() {
     const convertedOrder = {
       orderId: selectedOrder._id?.slice(-8).toUpperCase() || selectedOrder._id, // Use last 8 chars of _id
       orderCode: selectedOrder.supplier_contract_id?.contract_code || 'N/A',
-      supplier: selectedOrder.supplier_contract_id?.supplier_id?.name || 'Unknown Supplier',
+      supplier: selectedOrder.supplier_contract_id?.supplier_id?.name || trans.common.unknownSupplier,
       orderDate: new Date().toISOString(), // Use current date as no order_date in data
       status: selectedOrder.status,
       totalItems: selectedOrder.details?.length || 0,
@@ -74,47 +76,47 @@ export default function CreateReceiptTab() {
           orderedQuantity: detail.quantity,
           unitPrice: detail.unit_price,
           totalPrice: detail.quantity * detail.unit_price,
-          unit: 'viên' // Default unit as not specified in data
+          unit: trans.common.unit // Default unit as not specified in data
         })) || []
     };
 
     setOrderData(convertedOrder);
     handleCloseOrderDialog();
-    showAlert(`Đã chọn đơn hàng ${convertedOrder.orderCode} từ ${convertedOrder.supplier}`, 'success');
+    showAlert(`${trans.common.orderSelected} ${convertedOrder.orderCode} ${trans.common.from} ${convertedOrder.supplier}`, 'success');
   };
 
   const handleRefresh = () => {
     fetchOrders();
-    showAlert('Đã làm mới danh sách đơn hàng', 'info');
+    showAlert(trans.common.orderListRefreshed, 'info');
   };
 
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
-        Tạo Phiếu Kiểm Tra Đơn Nhập
+        {trans.common.createInspectionReceiptFromOrder}
       </Typography>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Tạo phiếu kiểm nhập từ đơn đặt hàng hoặc nhập thủ công
+        {trans.common.createInspectionFromSelectedOrder}
       </Typography>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          <Typography variant="subtitle2">Lỗi khi tải danh sách đơn hàng:</Typography>
+          <Typography variant="subtitle2">{trans.common.errorLoadingOrderList}:</Typography>
           <Typography variant="body2">{error}</Typography>
           <Button size="small" onClick={handleRefresh} sx={{ mt: 1 }}>
-            Thử lại
+            {trans.common.tryAgain}
           </Button>
         </Alert>
       )}
 
       <Box sx={{ mb: 3 }}>
         <Button variant="outlined" onClick={handleOpenOrderDialog} sx={{ mr: 2 }} disabled={loading}>
-          {loading ? <CircularProgress size={20} /> : 'Chọn Đơn Nhập'}
+          {loading ? <CircularProgress size={20} /> : trans.common.selectImportOrder}
         </Button>
         {orderData.orderId && (
           <Button variant="text" onClick={() => setOrderData({})} color="error">
-            Xóa Đơn Hàng Đã Chọn
+            {trans.common.removeSelectedOrder}
           </Button>
         )}
       </Box>
@@ -122,16 +124,20 @@ export default function CreateReceiptTab() {
       {orderData.orderId && orderData.supplier && (
         <Alert severity="info" sx={{ mb: 3 }}>
           <Typography variant="subtitle2">
-            Đang tạo phiếu nhập cho đơn hàng: <strong>{orderData.orderCode}</strong>
+            {trans.common.creatingReceiptForOrder}: <strong>{orderData.orderCode}</strong>
           </Typography>
           <Typography variant="body2">
-            Nhà cung cấp: {orderData.supplier} | Số sản phẩm: {orderData.items?.length || 0} | Tổng tiền:{' '}
-            {orderData.totalAmount?.toLocaleString('vi-VN')} ₫ | Trạng thái:{' '}
-            {orderData.status === 'approved' ? 'Đã duyệt' : orderData.status === 'delivered' ? 'Đã giao' : orderData.status}
+            {trans.common.supplier}: {orderData.supplier} | {trans.common.numberOfProducts}: {orderData.items?.length || 0} |{' '}
+            {trans.common.totalAmount}: {orderData.totalAmount?.toLocaleString('vi-VN')} ₫ | {trans.common.status}:{' '}
+            {orderData.status === 'approved'
+              ? trans.common.approved
+              : orderData.status === 'delivered'
+                ? trans.common.delivered
+                : orderData.status}
           </Typography>
           {orderData.contractInfo?.contractCode && (
             <Typography variant="body2" sx={{ mt: 1 }}>
-              Hợp đồng: {orderData.contractInfo.contractCode} | Hiệu lực:{' '}
+              {trans.common.contract}: {orderData.contractInfo.contractCode} | {trans.common.validity}:{' '}
               {new Date(orderData.contractInfo.startDate).toLocaleDateString('vi-VN')} -{' '}
               {new Date(orderData.contractInfo.endDate).toLocaleDateString('vi-VN')}
             </Typography>
@@ -144,7 +150,7 @@ export default function CreateReceiptTab() {
           orderData={orderData}
           onReceiptCreate={(receiptData) => {
             console.log('Receipt created:', receiptData);
-            showAlert('Tạo phiếu nhập thành công!', 'success');
+            showAlert(trans.common.receiptCreatedSuccessfully, 'success');
           }}
         />
       )}

@@ -20,13 +20,7 @@ import {
   IconButton,
   Alert
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  Add as AddIcon,
-  Person as PersonIcon,
-  Event as EventIcon,
-  Note as NoteIcon
-} from '@mui/icons-material';
+import { Close as CloseIcon, Add as AddIcon, Person as PersonIcon, Event as EventIcon, Note as NoteIcon } from '@mui/icons-material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -49,12 +43,7 @@ const axiosInstance = axios.create({
   withCredentials: true
 });
 
-const InventoryCheckAddDialog = ({
-  open,
-  onClose,
-  onSuccess,
-  warehouseManagers = []
-}) => {
+const InventoryCheckAddDialog = ({ open, onClose, onSuccess, warehouseManagers = [] }) => {
   const trans = useTrans();
   const [formData, setFormData] = useState({
     warehouse_manager_id: '',
@@ -80,14 +69,14 @@ const InventoryCheckAddDialog = ({
   }, [open]);
 
   const handleChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [field]: value
     }));
 
     // Clear error for this field
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         [field]: ''
       }));
@@ -111,7 +100,7 @@ const InventoryCheckAddDialog = ({
       today.setHours(0, 0, 0, 0); // Set to start of today
       const checkDate = new Date(formData.inventory_check_date);
       checkDate.setHours(0, 0, 0, 0);
-      
+
       if (checkDate <= today) {
         newErrors.inventory_check_date = trans.common.inventoryCheckDateMustBeAfterToday;
       }
@@ -170,14 +159,14 @@ const InventoryCheckAddDialog = ({
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle
         sx={{
-          background: "linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)",
-          color: "white",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
+          background: 'linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)',
+          color: 'white',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <AddIcon />
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
@@ -188,7 +177,7 @@ const InventoryCheckAddDialog = ({
             </Typography>
           </Box>
         </Box>
-        <IconButton onClick={handleClose} sx={{ color: "white" }}>
+        <IconButton onClick={handleClose} sx={{ color: 'white' }}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
@@ -201,17 +190,17 @@ const InventoryCheckAddDialog = ({
         )}
 
         {/* Card 1: Thông tin chính */}
-        <Card sx={{ mb: 3, border: "1px solid #e0e0e0" }}>
+        <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
           <CardContent>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
               <PersonIcon color="primary" /> Thông Tin Chính
             </Typography>
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Box>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
-                    <PersonIcon sx={{ fontSize: 20, color: "text.secondary" }} />
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                    <PersonIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
                       Warehouse Manager *
                     </Typography>
                   </Box>
@@ -222,7 +211,7 @@ const InventoryCheckAddDialog = ({
                       disabled={loading}
                       sx={{
                         '& .MuiSelect-select': {
-                          padding: '8px 12px',
+                          padding: '8px 12px'
                         }
                       }}
                     >
@@ -232,18 +221,16 @@ const InventoryCheckAddDialog = ({
                         </MenuItem>
                       ))}
                     </Select>
-                    {errors.warehouse_manager_id && (
-                      <FormHelperText>{errors.warehouse_manager_id}</FormHelperText>
-                    )}
+                    {errors.warehouse_manager_id && <FormHelperText>{errors.warehouse_manager_id}</FormHelperText>}
                   </FormControl>
                 </Box>
               </Grid>
 
               <Grid item xs={12} md={6}>
                 <Box>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 1, gap: 1 }}>
-                    <EventIcon sx={{ fontSize: 20, color: "text.secondary" }} />
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
+                    <EventIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
                       {trans.common.inventoryCheckDate} *
                     </Typography>
                   </Box>
@@ -257,12 +244,12 @@ const InventoryCheckAddDialog = ({
                       slotProps={{
                         textField: {
                           error: !!errors.inventory_check_date,
-                          fullWidth: true,
-                        },
+                          fullWidth: true
+                        }
                       }}
                     />
                     {errors.inventory_check_date && (
-                      <FormHelperText sx={{ color: "error.main" }}>{errors.inventory_check_date}</FormHelperText>
+                      <FormHelperText sx={{ color: 'error.main' }}>{errors.inventory_check_date}</FormHelperText>
                     )}
                   </LocalizationProvider>
                 </Box>
@@ -272,9 +259,9 @@ const InventoryCheckAddDialog = ({
         </Card>
 
         {/* Card 2: Ghi chú */}
-        <Card sx={{ mb: 3, border: "1px solid #e0e0e0" }}>
+        <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
           <CardContent>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
               <NoteIcon color="secondary" /> Ghi Chú
             </Typography>
             <TextField
@@ -289,7 +276,7 @@ const InventoryCheckAddDialog = ({
               placeholder="Nhập ghi chú về phiếu kiểm kê..."
               sx={{
                 '& .MuiOutlinedInput-root': {
-                  backgroundColor: '#fafafa',
+                  backgroundColor: '#fafafa'
                 }
               }}
             />
@@ -336,4 +323,4 @@ const InventoryCheckAddDialog = ({
   );
 };
 
-export default InventoryCheckAddDialog; 
+export default InventoryCheckAddDialog;

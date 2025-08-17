@@ -5,20 +5,11 @@ const supervisor = {
   type: 'group',
   children: [
     {
-      id: 'user-management',
-      title: 'User & Role Management',
-      type: 'collapse',
-      url: '/user-management',
-      icon: 'IconUsers',
-      children: [
-        {
-          id: 'manage-users',
-          title: 'Manage Users',
-          type: 'item',
-          url: '/sp-manage-users',
-          icon: 'IconUser'
-        }
-      ]
+      id: 'manage-users',
+      title: 'Manage Users',
+      type: 'item',
+      url: '/sp-manage-users',
+      icon: 'IconUser'
     },
     {
       id: 'order-management',
@@ -44,20 +35,11 @@ const supervisor = {
       ]
     },
     {
-      id: 'medicine-management',
-      title: 'Medicine Management',
-      type: 'collapse',
-      url: '/medicine-management',
-      icon: 'IconPill',
-      children: [
-        {
-          id: 'manage-medicines',
-          title: 'Manage Medicines',
-          type: 'item',
-          url: '/sp-manage-medicines',
-          icon: 'IconPill'
-        }
-      ]
+      id: 'manage-medicines',
+      title: 'Manage Medicines',
+      type: 'item',
+      url: '/sp-manage-medicines',
+      icon: 'IconPill'
     },
     {
       id: 'bill-management',
@@ -127,8 +109,8 @@ const supervisor = {
       ]
     },
     {
-      id: 'contract-management',
-      title: 'Contract Management',
+      id: 'partner-management',
+      title: 'Partner Management',
       type: 'collapse',
       url: '/contract-management',
       icon: 'IconContract',
@@ -154,8 +136,8 @@ const supervisor = {
       title: 'Log Management',
       type: 'item',
       url: '/sp-location-log',
-      icon: 'IconTimelineEventText',
-    },
+      icon: 'IconTimelineEventText'
+    }
   ]
 };
 

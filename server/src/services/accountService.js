@@ -103,8 +103,6 @@ const createAccount = async (accountData) => {
       throw new Error('Password is required when generatePassword is false');
     }
 
-    // 5. Hash password
-    const bcrypt = require('bcrypt');
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     console.log('✅ Password hashed successfully');
@@ -237,7 +235,7 @@ const createBulkAccounts = async (bulkData) => {
 // 3. Cập nhật thông tin tài khoản
 const updateAccount = async (userId, updateData) => {
   try {
-    const { role, is_manager, status, email, permissions = [] } = updateData;
+    const { role, status, email } = updateData;
 
     // Kiểm tra user tồn tại
     const user = await User.findById(userId);
@@ -247,18 +245,13 @@ const updateAccount = async (userId, updateData) => {
 
     const updates = {};
 
-    // Cập nhật role và validate permissions
+    // Cập nhật role
     if (role) {
       if (!Object.values(constants.USER_ROLES).includes(role)) {
         throw new Error(
           `Invalid role. Must be one of: ${Object.values(constants.USER_ROLES).join(', ')}`,
         );
       }
-
-      if (permissions.length > 0 && !validateRolePermissions(role, permissions)) {
-        throw new Error(`Invalid permissions for role ${role}`);
-      }
-
       updates.role = role;
     }
 
@@ -281,8 +274,16 @@ const updateAccount = async (userId, updateData) => {
       updates.email = normalizedEmail;
     }
 
-    if (typeof is_manager !== 'undefined') updates.is_manager = is_manager;
-    if (status) updates.status = status;
+    // Cập nhật status
+    if (status) {
+      if (!Object.values(constants.USER_STATUSES).includes(status)) {
+        throw new Error(
+          `Invalid status. Must be one of: ${Object.values(constants.USER_STATUSES).join(', ')}`,
+        );
+      }
+      updates.status = status;
+    }
+
     updates.updatedAt = new Date();
 
     // Thực hiện cập nhật
@@ -293,10 +294,7 @@ const updateAccount = async (userId, updateData) => {
 
     return {
       success: true,
-      data: {
-        ...updatedUser.toObject(),
-        permissions: permissions,
-      },
+      data: updatedUser.toObject(),
       message: 'Account updated successfully',
     };
   } catch (error) {
@@ -366,7 +364,7 @@ const getAccounts = async (filters = {}) => {
       email,
       search,
       page = 1,
-      limit = 10,
+      limit,
       sortBy = 'createdAt',
       sortOrder = 'desc',
     } = filters;
@@ -533,9 +531,6 @@ const getAccountStatistics = async () => {
           inactive: {
             $sum: { $cond: [{ $eq: ['$status', 'inactive'] }, 1, 0] },
           },
-          managers: {
-            $sum: { $cond: ['$is_manager', 1, 0] },
-          },
         },
       },
       {
@@ -554,7 +549,9 @@ const getAccountStatistics = async () => {
           active_users: await User.countDocuments({ status: 'active' }),
           inactive_users: await User.countDocuments({ status: 'inactive' }),
           deleted_users: await User.countDocuments({ status: 'deleted' }),
-          total_managers: await User.countDocuments({ is_manager: true }),
+          total_managers: await User.countDocuments({
+            role: { $in: ['warehouse_manager', 'representative_manager'] },
+          }),
         },
       },
       message: 'Statistics retrieved successfully',

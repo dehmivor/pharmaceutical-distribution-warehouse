@@ -28,41 +28,29 @@ export default function LanguageSwitcher() {
 
   return (
     <Box>
-      <Button
-        onClick={handleClick}
-        startIcon={<IconLanguage size={20} />}
-        variant="outlined"
-        size="small"
-        sx={{ minWidth: 'auto', px: 2 }}
-      >
+      <Button onClick={handleClick} startIcon={<IconLanguage size={20} />} variant="outlined" size="small" sx={{ minWidth: 'auto', px: 2 }}>
         <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
           {getCurrentLanguageName()}
         </Typography>
       </Button>
-      
+
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleClose}
         anchorOrigin={{
           vertical: 'bottom',
-          horizontal: 'right',
+          horizontal: 'right'
         }}
         transformOrigin={{
           vertical: 'top',
-          horizontal: 'right',
+          horizontal: 'right'
         }}
       >
-        <MenuItem 
-          onClick={() => handleLanguageChange(ThemeI18n.EN)}
-          selected={i18n === ThemeI18n.EN}
-        >
+        <MenuItem onClick={() => handleLanguageChange(ThemeI18n.EN)} selected={i18n === ThemeI18n.EN}>
           🇺🇸 English
         </MenuItem>
-        <MenuItem 
-          onClick={() => handleLanguageChange(ThemeI18n.VN)}
-          selected={i18n === ThemeI18n.VN}
-        >
+        <MenuItem onClick={() => handleLanguageChange(ThemeI18n.VN)} selected={i18n === ThemeI18n.VN}>
           🇻🇳 Tiếng Việt
         </MenuItem>
       </Menu>

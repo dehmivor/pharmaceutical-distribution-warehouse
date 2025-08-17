@@ -45,6 +45,7 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import SearchIcon from '@mui/icons-material/Search';
 import { useTheme } from '@mui/material/styles';
+import useTrans from '@/hooks/useTrans';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -59,6 +60,7 @@ const userId = userData.userId;
 
 function ImportOrderDetail() {
   const theme = useTheme();
+  const trans = useTrans();
   const { orderId } = useParams();
 
   const [order, setOrder] = useState(null);
@@ -120,11 +122,11 @@ function ImportOrderDetail() {
         // 1) Load the order
         const { data: orderResp } = await axios.get(`/api/import-orders/${orderId}`, { headers: getAuthHeaders() });
         if (!orderResp.success) {
-          throw new Error('Failed to load order');
+          throw new Error(trans.common.failedToLoadOrder);
         }
         setOrder(orderResp.data);
 
-        // 2) Load “put away” packages
+        // 2) Load "put away" packages
         await fetchPutAway();
 
         // 3) Fetch all areas
@@ -192,7 +194,7 @@ function ImportOrderDetail() {
   const handleLookupLocation = async () => {
     try {
       const { location_id } = locForm;
-      if (!location_id) throw new Error('Enter a location ID');
+      if (!location_id) throw new Error(trans.common.enterLocationId);
       const r = await axios.get(`/api/locations/${location_id}`, { headers: getAuthHeaders() });
       const loc = r.data.data;
       setLocForm({
@@ -220,7 +222,7 @@ function ImportOrderDetail() {
     try {
       const { location_id } = locForm;
       // Grab the current warehouse user and the import‑order ID
-      const ware_house_id = userId; // or wherever you keep the logged‑in user’s ID
+      const ware_house_id = userId; // or wherever you keep the logged‑in user's ID
       const import_order_id = order._id;
 
       await axios.patch(
@@ -252,14 +254,14 @@ function ImportOrderDetail() {
 
       // Fetch medicine details
       const med = pkg.batch_id?.medicine_id;
-      const medicineLabel = med ? `${med.medicine_name} (${med.license_code})` : 'Unknown Medicine';
+      const medicineLabel = med ? `${med.medicine_name} (${med.license_code})` : trans.common.unknownMedicine;
 
       // Render barcode to offscreen canvas
       const canvas = document.createElement('canvas');
       await bwipjs.toCanvas(canvas, {
         bcid: 'qrcode', // use the QR‑code generator
         text: pkgId, // data to encode
-        scale: 6, // how many pixels per “module”
+        scale: 6, // how many pixels per "module"
         version: 5, // 1–40, controls size; omit to auto‑fit
         eclevel: 'M', // error‑correction: L, M, Q, H
         includeMargin: true // add a quiet zone around the code
@@ -310,8 +312,8 @@ function ImportOrderDetail() {
         setTimeout(() => document.body.removeChild(iframe), 0);
       };
     } catch (err) {
-      console.error('Error printing label', err);
-      setError('Không thể tạo nhãn mã vạch.');
+      console.error(trans.common.errorPrintingLabel, err);
+      setError(trans.common.cannotPrintLabel);
     }
   };
 
@@ -346,7 +348,7 @@ function ImportOrderDetail() {
   if (!order)
     return (
       <Alert severity="info" sx={{ m: 4 }}>
-        Order not found
+        {trans.common.orderNotFound}
       </Alert>
     );
 
@@ -354,27 +356,27 @@ function ImportOrderDetail() {
     <Box sx={{ background: theme.palette.background.default, minHeight: '100vh', py: 4 }}>
       <Container maxWidth="md">
         <Typography variant="h4" gutterBottom>
-          Import Order #{order._id}
+          {trans.common.importOrder} #{order._id}
         </Typography>
 
         {/* Order Detail */}
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>Order Detail</Typography>
+            <Typography>{trans.common.orderDetail}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Typography>
-              <strong>Status:</strong> {order.status}
+              <strong>{trans.common.status}:</strong> {order.status}
             </Typography>
             <Typography>
-              <strong>Contract:</strong> {order.contract_id.contract_code}
+              <strong>{trans.common.contract}:</strong> {order.contract_id.contract_code}
             </Typography>
             <Typography>
-              <strong>Supplier:</strong> {order.contract_id.partner_id.name}
+              <strong>{trans.common.supplier}:</strong> {order.contract_id.partner_id.name}
             </Typography>
             <Divider sx={{ my: 2 }} />
             <Typography>
-              <strong>Items:</strong>
+              <strong>{trans.common.items}:</strong>
             </Typography>
             {order.details.map((d) => (
               <Typography key={d._id}>
@@ -387,7 +389,7 @@ function ImportOrderDetail() {
         {/* Inspection */}
         <Accordion disabled={inspectionsDone} defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>Inspection</Typography>
+            <Typography>{trans.common.inspection}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={2}></Stack>
@@ -397,7 +399,7 @@ function ImportOrderDetail() {
         {/* Put Away */}
         <Accordion disabled={putAwayDone} defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>Put Away</Typography>
+            <Typography>{trans.common.putAway}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Stack spacing={2}>
@@ -406,8 +408,8 @@ function ImportOrderDetail() {
               </IconButton>
               <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 2 }}>
                 <Button size="small" color="primary" onClick={openSearchModal} sx={{ ml: 2 }} startIcon={<SearchIcon />}>
-                  Find package by ID
-                </Button >
+                  {trans.common.findPackageById}
+                </Button>
               </Stack>
               {loadingPutAway ? (
                 <CircularProgress />
@@ -416,24 +418,24 @@ function ImportOrderDetail() {
                   {/* Unarranged packages */}
                   <Paper sx={{ flex: 1, p: 1 }}>
                     <Typography variant="subtitle1" gutterBottom>
-                      To Put Away
+                      {trans.common.toPutAway}
                     </Typography>
                     {unarranged.length === 0 ? (
-                      <Typography>No unarranged packages.</Typography>
+                      <Typography>{trans.common.noUnarrangedPackages}</Typography>
                     ) : (
                       <Table size="small">
                         <TableHead>
                           <TableRow>
-                            <TableCell>Batch</TableCell>
-                            <TableCell>Qty</TableCell>
-                            <TableCell>Action</TableCell>
+                            <TableCell>{trans.common.batch}</TableCell>
+                            <TableCell>{trans.common.qty}</TableCell>
+                            <TableCell>{trans.common.action}</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
                           {unarranged.map((pkg) => (
                             <TableRow key={pkg._id} sx={pkg._id === highlightedPkgId ? { backgroundColor: 'rgba(255,255,0,0.3)' } : {}}>
                               <TableCell>
-                                {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
+                                {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
                               </TableCell>
                               <TableCell>{pkg.quantity}</TableCell>
                               <TableCell>
@@ -445,11 +447,7 @@ function ImportOrderDetail() {
                                   <LocationOnIcon fontSize="small" />
                                 </IconButton>
 
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handlePrintLabel(pkg)}
-                                >
+                                <IconButton size="small" color="primary" onClick={() => handlePrintLabel(pkg)}>
                                   <ReceiptIcon fontSize="small" />
                                 </IconButton>
                               </TableCell>
@@ -463,25 +461,25 @@ function ImportOrderDetail() {
                   {/* Arranged packages */}
                   <Paper sx={{ flex: 1, p: 1 }}>
                     <Typography variant="subtitle1" gutterBottom>
-                      Arranged
+                      {trans.common.arranged}
                     </Typography>
                     {arranged.length === 0 ? (
-                      <Typography>No arranged packages.</Typography>
+                      <Typography>{trans.common.noArrangedPackages}</Typography>
                     ) : (
                       <Table size="small">
                         <TableHead>
                           <TableRow>
-                            <TableCell>Batch</TableCell>
-                            <TableCell>Qty</TableCell>
-                            <TableCell>Location</TableCell>
-                            <TableCell>Action</TableCell>
+                            <TableCell>{trans.common.batch}</TableCell>
+                            <TableCell>{trans.common.qty}</TableCell>
+                            <TableCell>{trans.common.location}</TableCell>
+                            <TableCell>{trans.common.action}</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
                           {arranged.map((pkg) => (
                             <TableRow key={pkg._id} sx={pkg._id === highlightedPkgId ? { backgroundColor: 'rgba(255,255,0,0.3)' } : {}}>
                               <TableCell>
-                                {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
+                                {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
                               </TableCell>
                               <TableCell>{pkg.quantity}</TableCell>
                               <TableCell>
@@ -490,11 +488,7 @@ function ImportOrderDetail() {
                                   : '—'}
                               </TableCell>
                               <TableCell>
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handlePrintLabel(pkg)}
-                                >
+                                <IconButton size="small" color="primary" onClick={() => handlePrintLabel(pkg)}>
                                   <ReceiptIcon fontSize="small" />
                                 </IconButton>
                               </TableCell>
@@ -511,12 +505,12 @@ function ImportOrderDetail() {
         </Accordion>
 
         <Dialog open={putAwayModalOpen} onClose={closePutAwayModal}>
-          <DialogTitle>Assign Put‑Away Location</DialogTitle>
+          <DialogTitle>{trans.common.assignPutAwayLocation}</DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ pt: 1, minWidth: 300 }}>
               <Stack direction="row" spacing={1} alignItems="center">
                 <TextField
-                  label="Location ID"
+                  label={trans.common.locationId}
                   fullWidth
                   autoFocus
                   value={locForm.location_id}
@@ -525,13 +519,18 @@ function ImportOrderDetail() {
                   inputProps={{ maxLength: 24 }}
                 />
                 <Button onClick={handleLookupLocation} variant="outlined">
-                  Check
+                  {trans.common.check}
                 </Button>
               </Stack>
 
               <FormControl fullWidth>
-                <InputLabel>Area</InputLabel>
-                <Select value={locForm.area_id || ''} label="Area" onChange={(e) => setLocForm({ ...locForm, area_id: e.target.value })} disabled>
+                <InputLabel>{trans.common.area}</InputLabel>
+                <Select
+                  value={locForm.area_id || ''}
+                  label={trans.common.area}
+                  onChange={(e) => setLocForm({ ...locForm, area_id: e.target.value })}
+                  disabled
+                >
                   {Array.isArray(areas) &&
                     areas.map((a) => (
                       <MenuItem key={a._id} value={a._id}>
@@ -540,30 +539,48 @@ function ImportOrderDetail() {
                     ))}
                 </Select>
               </FormControl>
-              <TextField label="Bay" value={locForm.bay} onChange={(e) => setLocForm({ ...locForm, bay: e.target.value })} fullWidth disabled/>
-              <TextField label="Row" value={locForm.row} onChange={(e) => setLocForm({ ...locForm, row: e.target.value })} fullWidth disabled/>
-              <TextField label="Level" value={locForm.level} onChange={(e) => setLocForm({ ...locForm, level: e.target.value })} fullWidth disabled/>
+              <TextField
+                label={trans.common.bay}
+                value={locForm.bay}
+                onChange={(e) => setLocForm({ ...locForm, bay: e.target.value })}
+                fullWidth
+                disabled
+              />
+              <TextField
+                label={trans.common.row}
+                value={locForm.row}
+                onChange={(e) => setLocForm({ ...locForm, row: e.target.value })}
+                fullWidth
+                disabled
+              />
+              <TextField
+                label={trans.common.level}
+                value={locForm.level}
+                onChange={(e) => setLocForm({ ...locForm, level: e.target.value })}
+                fullWidth
+                disabled
+              />
               {locError && <Alert severity="error">{locError}</Alert>}
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button onClick={closePutAwayModal}>Cancel</Button>
+            <Button onClick={closePutAwayModal}>{trans.common.cancel}</Button>
             <Button onClick={handleSubmitPutAway} variant="contained">
-              Submit
+              {trans.common.submit}
             </Button>
           </DialogActions>
         </Dialog>
 
         <Dialog open={relatedModalOpen} onClose={() => setRelatedModalOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Related Locations</DialogTitle>
+          <DialogTitle>{trans.common.relatedLocations}</DialogTitle>
           <DialogContent dividers>
             {relatedError && <Alert severity="error">{relatedError}</Alert>}
 
             <Typography variant="subtitle1" mt={1}>
-              Same Batch Locations
+              {trans.common.sameBatchLocations}
             </Typography>
             {relatedBatchLocs.length === 0 ? (
-              <Typography>No locations found for this batch.</Typography>
+              <Typography>{trans.common.noLocationsFoundForBatch}</Typography>
             ) : (
               relatedBatchLocs.map((loc) => (
                 <Typography key={loc._id}>
@@ -574,9 +591,9 @@ function ImportOrderDetail() {
 
             <Divider sx={{ my: 2 }} />
 
-            <Typography variant="subtitle1">Same Medicine Locations</Typography>
+            <Typography variant="subtitle1">{trans.common.sameMedicineLocations}</Typography>
             {relatedMedLocs.length === 0 ? (
-              <Typography>No locations found for this medicine.</Typography>
+              <Typography>{trans.common.noLocationsFoundForMedicine}</Typography>
             ) : (
               relatedMedLocs.map((loc) => (
                 <Typography key={loc._id}>
@@ -586,12 +603,12 @@ function ImportOrderDetail() {
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setRelatedModalOpen(false)}>Close</Button>
+            <Button onClick={() => setRelatedModalOpen(false)}>{trans.common.close}</Button>
           </DialogActions>
         </Dialog>
         {/* 3) The Search Modal */}
         <Dialog open={searchModalOpen} onClose={closeSearchModal}>
-          <DialogTitle>Find Package</DialogTitle>
+          <DialogTitle>{trans.common.findPackage}</DialogTitle>
           <DialogContent>
             <form
               onSubmit={(e) => {
@@ -601,7 +618,7 @@ function ImportOrderDetail() {
             >
               <Stack spacing={2} sx={{ mt: 1, minWidth: 300 }}>
                 <TextField
-                  label="Package ID"
+                  label={trans.common.packageId}
                   fullWidth
                   value={searchPackageId}
                   onChange={(e) => setSearchPackageId(e.target.value)}
@@ -609,7 +626,7 @@ function ImportOrderDetail() {
                   inputProps={{ maxLength: 24 }}
                 />
                 <Button type="submit" variant="contained">
-                  Search
+                  {trans.common.search}
                 </Button>
               </Stack>
             </form>

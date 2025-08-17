@@ -42,8 +42,6 @@ const axiosInstance = axios.create({
   withCredentials: true
 });
 
-
-
 const InfoField = ({ label, value, icon: Icon }) => (
   <Box>
     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, gap: 1 }}>
@@ -86,7 +84,7 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
 
   const fetchMedicineData = async () => {
     if (!medicineId) return;
-    
+
     setLoading(true);
     try {
       const response = await axiosInstance.get(`/api/medicine/detail/${medicineId}`, {
@@ -100,7 +98,7 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
       }
     } catch (error) {
       console.error('Error fetching medicine data:', error);
-      setError(trans.medicine.messages.loadDetailError);
+      setError(trans.medicineManagement.messages.loadDetailError);
     } finally {
       setLoading(false);
     }
@@ -174,13 +172,13 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
               <Typography>{trans.medicineDetail.loading}</Typography>
             </Box>
           )}
-          
+
           {error && (
             <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
               {error}
             </Alert>
           )}
-          
+
           {!loading && medicine && (
             <>
               {/* Basic Information Section */}
@@ -204,20 +202,26 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
                       <InfoField label={trans.medicineDetail.basicInfo.category} value={medicine.category} icon={CategoryIcon} />
                     </Grid>
                     <Grid item xs={12} md={6}>
-                      <InfoField label={trans.medicineDetail.basicInfo.unitOfMeasure} value={medicine.unit_of_measure} icon={InventoryIcon} />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <InfoField 
-                        label={trans.medicineDetail.basicInfo.status} 
-                        value={medicine.status === 'active' ? trans.medicine.filters.active : trans.medicine.filters.inactive} 
-                        icon={SettingsIcon} 
+                      <InfoField
+                        label={trans.medicineDetail.basicInfo.unitOfMeasure}
+                        value={medicine.unit_of_measure}
+                        icon={InventoryIcon}
                       />
                     </Grid>
                     <Grid item xs={12} md={6}>
-                      <InfoField 
-                        label={trans.medicineDetail.basicInfo.stockQuantity} 
-                        value={amountInfo ? `${amountInfo.total_amount} ${medicine.unit_of_measure}` : '—'} 
-                        icon={InventoryIcon} 
+                      <InfoField
+                        label={trans.medicineDetail.basicInfo.status}
+                        value={
+                          medicine.status === 'active' ? trans.medicineManagement.filters.active : trans.medicineManagement.filters.inactive
+                        }
+                        icon={SettingsIcon}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <InfoField
+                        label={trans.medicineDetail.basicInfo.stockQuantity}
+                        value={amountInfo ? `${amountInfo.total_amount} ${medicine.unit_of_measure}` : '—'}
+                        icon={InventoryIcon}
                       />
                     </Grid>
                   </Grid>
@@ -294,8 +298,6 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
                   </Grid>
                 </CardContent>
               </Card>
-
-
             </>
           )}
         </Box>
@@ -324,7 +326,7 @@ const MedicineDetailDialog = ({ open, onClose, medicineId }) => {
             }
           }}
         >
-                     {trans.medicineDetail.close}
+          {trans.medicineDetail.close}
         </Button>
       </DialogActions>
     </Dialog>

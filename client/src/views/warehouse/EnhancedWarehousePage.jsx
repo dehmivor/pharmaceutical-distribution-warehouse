@@ -8,8 +8,10 @@ import UnitConversion from '@/sections/warehouse/UnitConversion';
 import EnhancedReceiptForm from '@/sections/warehouse/create-inspect/EnhancedReceiptForm';
 import ReceiptList from '@/sections/warehouse/ReceiptList';
 import SupervisorApproval from '@/sections/supervisor/SupervisorApproval';
+import useTrans from '@/hooks/useTrans';
 
 function EnhancedWarehousePage() {
+  const trans = useTrans();
   const [activeStep, setActiveStep] = useState(0);
   const [tabValue, setTabValue] = useState(0);
   const [orderData, setOrderData] = useState({
@@ -29,7 +31,12 @@ function EnhancedWarehousePage() {
   const [receipts, setReceipts] = useState([]);
   const [selectedReceiptForApproval, setSelectedReceiptForApproval] = useState(null);
 
-  const steps = ['Xác nhận trạng thái đơn hàng', 'Kiểm kê số lượng hàng', 'Quy đổi đơn vị', 'Tạo phiếu nhập kho'];
+  const steps = [
+    trans.common.confirmOrderStatus,
+    trans.common.checkInventoryQuantity,
+    trans.common.convertUnits,
+    trans.common.createImportReceipt
+  ];
 
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -101,7 +108,7 @@ function EnhancedWarehousePage() {
       case 3:
         return <EnhancedReceiptForm orderData={orderData} checkedItems={checkedItems} onReceiptCreate={handleReceiptCreate} />;
       default:
-        return 'Unknown step';
+        return trans.common.unknownStep;
     }
   };
 
@@ -111,8 +118,8 @@ function EnhancedWarehousePage() {
         {/* Tabs */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
           <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-            <Tab label="Quy trình nhập hàng" />
-            <Tab label="Danh sách phiếu kiểm nhập" />
+            <Tab label={trans.common.importProcess} />
+            <Tab label={trans.common.importReceiptList} />
           </Tabs>
         </Box>
 
@@ -131,7 +138,7 @@ function EnhancedWarehousePage() {
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Button disabled={activeStep === 0} onClick={handleBack}>
-                Quay lại
+                {trans.common.back}
               </Button>
 
               {activeStep < steps.length - 1 && (
@@ -143,7 +150,7 @@ function EnhancedWarehousePage() {
                     (activeStep === 2 && Object.keys(conversions).length < checkedItems.length)
                   }
                 >
-                  Tiếp theo
+                  {trans.common.next}
                 </Button>
               )}
             </Box>
@@ -157,7 +164,7 @@ function EnhancedWarehousePage() {
             {selectedReceiptForApproval ? (
               <SupervisorApproval receipt={selectedReceiptForApproval} onApprovalSubmit={handleApproveReceipt} userRole="supervisor" />
             ) : (
-              <Alert severity="info">Chọn một phiếu nhập từ danh sách để tiến hành duyệt.</Alert>
+              <Alert severity="info">{trans.common.selectImportReceiptFromList}</Alert>
             )}
           </Box>
         )}

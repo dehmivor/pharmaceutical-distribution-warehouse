@@ -4,4 +4,4 @@ function InventoryCheckManagementPage() {
   return <InventoryCheckManagement />;
 }
 
-export default InventoryCheckManagementPage; 
+export default InventoryCheckManagementPage;

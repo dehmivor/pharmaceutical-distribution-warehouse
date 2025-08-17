@@ -13,8 +13,11 @@ import {
 } from '@mui/material';
 import { Search, Refresh } from '@mui/icons-material';
 import OrderTable from './OrderTable';
+import useTrans from '@/hooks/useTrans';
 
 const OrderSelectionDialog = ({ open, onClose, orders, loading, searchTerm, onSearchChange, onSelectOrder, onRefresh }) => {
+  const trans = useTrans();
+
   // Filter orders based on search term
   const filteredOrders = orders.filter((order) => {
     if (!searchTerm) return true;
@@ -35,9 +38,11 @@ const OrderSelectionDialog = ({ open, onClose, orders, loading, searchTerm, onSe
       <DialogTitle>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box>
-            <Typography variant="h6">Chọn Đơn Nhập ({validOrders.length} đơn hàng)</Typography>
+            <Typography variant="h6">
+              {trans.common.selectImportOrder} ({validOrders.length} {trans.common.orders})
+            </Typography>
             <Typography variant="body2" color="text.secondary">
-              Chọn đơn nhập hàng để tạo phiếu kiểm tra
+              {trans.common.selectImportOrderDesc}
             </Typography>
           </Box>
           <IconButton onClick={onRefresh} disabled={loading}>
@@ -48,7 +53,7 @@ const OrderSelectionDialog = ({ open, onClose, orders, loading, searchTerm, onSe
       <DialogContent>
         <TextField
           fullWidth
-          placeholder="Tìm kiếm theo mã đơn, mã hợp đồng hoặc nhà cung cấp..."
+          placeholder={trans.common.searchByOrderContractSupplier}
           value={searchTerm}
           onChange={onSearchChange}
           sx={{ mb: 2 }}
@@ -70,7 +75,7 @@ const OrderSelectionDialog = ({ open, onClose, orders, loading, searchTerm, onSe
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Hủy</Button>
+        <Button onClick={onClose}>{trans.common.cancel}</Button>
       </DialogActions>
     </Dialog>
   );

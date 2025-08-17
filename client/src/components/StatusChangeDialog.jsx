@@ -7,7 +7,7 @@ import useTrans from '@/hooks/useTrans';
 
 const StatusChangeDialog = ({ open, onClose, onConfirm, currentStatus, orderId, userRole, loading, nextStatus }) => {
   const trans = useTrans();
-  
+
   const getStatusInfo = () => {
     switch (nextStatus) {
       case 'approved':

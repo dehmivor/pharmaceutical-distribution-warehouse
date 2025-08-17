@@ -136,8 +136,6 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
       newErrors.unit_of_measure = trans.medicineAdd.validation.unitOfMeasureRequired;
     }
 
-
-
     // Storage conditions validation (optional)
     if (formData.storage_conditions.temperature.trim()) {
       const tempValue = formData.storage_conditions.temperature.trim();
@@ -151,10 +149,10 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
         if (tempValue.includes('-')) {
           const [min, max] = tempValue.split('-').map(Number);
           if (min > max) {
-                      newErrors.storage_conditions = {
-            ...newErrors.storage_conditions,
-            temperature: trans.medicineAdd.validation.temperatureRange
-          };
+            newErrors.storage_conditions = {
+              ...newErrors.storage_conditions,
+              temperature: trans.medicineAdd.validation.temperatureRange
+            };
           }
         }
       }
@@ -163,8 +161,8 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
     if (formData.storage_conditions.humidity.trim()) {
       const humidityValue = formData.storage_conditions.humidity.trim();
       if (!/^\d+$|^\d+-\d+$/.test(humidityValue)) {
-        newErrors.storage_conditions = { 
-          ...newErrors.storage_conditions, 
+        newErrors.storage_conditions = {
+          ...newErrors.storage_conditions,
           humidity: trans.medicineAdd.validation.humidityFormat
         };
       } else {
@@ -186,10 +184,10 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
         } else {
           const humidity = Number(humidityValue);
           if (humidity > 100) {
-                      newErrors.storage_conditions = {
-            ...newErrors.storage_conditions,
-            humidity: trans.medicineAdd.validation.humidityValue
-          };
+            newErrors.storage_conditions = {
+              ...newErrors.storage_conditions,
+              humidity: trans.medicineAdd.validation.humidityValue
+            };
           }
         }
       }
@@ -475,7 +473,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
                 <StorageIcon sx={{ color: 'info.main', fontSize: 24 }} />
                 <Typography variant="h6" sx={{ fontWeight: 600, color: 'info.main' }}>
-                  {trans.medicineAdd.storageConditions.title} (Tùy chọn)
+                  {trans.medicineAdd.storageConditions.title} ({trans.medicineAdd.optional})
                 </Typography>
               </Box>
 
@@ -488,7 +486,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     value={formData.storage_conditions.temperature}
                     onChange={(e) => handleInputChange('storage_conditions.temperature', e.target.value)}
                     error={!!errors.storage_conditions?.temperature}
-                    helperText={errors.storage_conditions?.temperature || trans.common.form.formatExamples.temperature}
+                    helperText={errors.storage_conditions?.temperature || trans.medicineAdd.storageConditions.temperatureHelper}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -504,7 +502,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     value={formData.storage_conditions.humidity}
                     onChange={(e) => handleInputChange('storage_conditions.humidity', e.target.value)}
                     error={!!errors.storage_conditions?.humidity}
-                    helperText={errors.storage_conditions?.humidity || trans.common.form.formatExamples.humidity}
+                    helperText={errors.storage_conditions?.humidity || trans.medicineAdd.storageConditions.humidityHelper}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -521,7 +519,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                       label={trans.medicineAdd.storageConditions.light}
                       startAdornment={<StorageIcon sx={{ mr: 1, color: 'text.secondary' }} />}
                     >
-                      <MenuItem value="">{trans.common.form.notSelected}</MenuItem>
+                      <MenuItem value="">{trans.medicineAdd.storageConditions.notSelected}</MenuItem>
                       <MenuItem value="none">{trans.medicineAdd.storageConditions.lightOptions.none}</MenuItem>
                       <MenuItem value="low">{trans.medicineAdd.storageConditions.lightOptions.low}</MenuItem>
                       <MenuItem value="medium">{trans.medicineAdd.storageConditions.lightOptions.medium}</MenuItem>
@@ -554,7 +552,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     value={formData.min_stock_threshold}
                     onChange={(e) => handleInputChange('min_stock_threshold', e.target.value)}
                     error={!!errors.min_stock_threshold}
-                    helperText={errors.min_stock_threshold || 'Để trống nếu không cần thiết'}
+                    helperText={errors.min_stock_threshold || trans.medicineAdd.stockManagement.minThresholdHelper}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -573,7 +571,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     value={formData.max_stock_threshold}
                     onChange={(e) => handleInputChange('max_stock_threshold', e.target.value)}
                     error={!!errors.max_stock_threshold}
-                    helperText={errors.max_stock_threshold || 'Để trống nếu không cần thiết'}
+                    helperText={errors.max_stock_threshold || trans.medicineAdd.stockManagement.maxThresholdHelper}
                     variant="outlined"
                     size="medium"
                     InputProps={{
@@ -582,7 +580,6 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
                     }}
                   />
                 </Grid>
-
               </Grid>
             </CardContent>
           </Card>
@@ -599,7 +596,7 @@ const MedicineAddDialog = ({ open, onClose, onSuccess, filterOptions }) => {
             }}
           >
             <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
-              <strong>{trans.common.note}:</strong> {trans.common.form.requiredFieldsNote}
+              <strong>{trans.medicineAdd.requiredFieldsNote.title}:</strong> {trans.medicineAdd.requiredFieldsNote.description}
             </Typography>
           </Box>
         </Box>

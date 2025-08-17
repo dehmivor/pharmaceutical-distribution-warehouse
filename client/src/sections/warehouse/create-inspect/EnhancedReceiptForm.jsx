@@ -29,6 +29,7 @@ import {
 } from '@mui/material';
 import ReceiptStatistics from '../dashboard-import/ReceiptStatistics';
 import { Delete as DeleteIcon } from '@mui/icons-material';
+import useTrans from '@/hooks/useTrans';
 
 const UNIT_CONVERSIONS = {
   kg: { g: 1000, tấn: 0.001 },
@@ -46,6 +47,7 @@ const UNIT_CONVERSIONS = {
 function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
   const router = useRouter();
   const params = useParams();
+  const trans = useTrans();
   const importOrderId = params.importOrderId;
   const [inspections, setInspections] = useState([]);
   const [loadingInspections, setLoadingInspections] = useState(false);
@@ -108,7 +110,7 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
         const order = response.data.data || response.data;
         console.log('🔍 Fetched import order:', order);
 
-        if (!order?._id) throw new Error('Không tìm thấy đơn hàng hợp lệ');
+        if (!order?._id) throw new Error(trans.common.noValidOrderData);
 
         setOrderData(order);
 
@@ -137,15 +139,15 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
         }
         setReceiptItems(items);
       } catch (e) {
-        setLoadError(e.message || 'Lỗi khi tải đơn hàng');
-        enqueueSnackbar(e.message || 'Lỗi khi tải đơn hàng', { variant: 'error' });
+        setLoadError(e.message || trans.common.errorLoadingOrder);
+        enqueueSnackbar(e.message || trans.common.errorLoadingOrder, { variant: 'error' });
       } finally {
         setLoadingOrder(false);
       }
     };
 
     fetchImportOrder();
-  }, [importOrderId, inspections, setInspections, enqueueSnackbar, checkedItems]);
+  }, [importOrderId, inspections, setInspections, enqueueSnackbar, checkedItems, trans]);
 
   // Initialize receiptItems when orderData or checkedItems changes
   useEffect(() => {
@@ -197,7 +199,7 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
         }));
       }
     }
-  }, [orderData, checkedItems, inspections]);
+  }, [orderData, checkedItems, inspections, trans]);
 
   // Fetch inspections for this order
   useEffect(() => {
@@ -217,14 +219,14 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
         setInspections(response.data || []);
         console.log('🔍 Fetched inspections:', response.data);
       } catch (error) {
-        setInspectionsError(error.message || 'Lỗi khi tải phiếu kiểm nhập');
+        setInspectionsError(error.message || trans.common.errorLoadingInspections);
       } finally {
         setLoadingInspections(false);
       }
     };
 
     fetchInspections();
-  }, [importOrderId]);
+  }, [importOrderId, trans]);
 
   // Calculate statistics
   const calculateStatistics = useCallback(() => {
@@ -277,7 +279,7 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
             if (['actualQuantity', 'rejectedQuantity', 'expectedQuantity'].includes(field)) {
               newValue = parseFloat(value);
               if (isNaN(newValue) || newValue < 0) {
-                enqueueSnackbar('Số lượng phải lớn hơn hoặc bằng 0', { variant: 'warning' });
+                enqueueSnackbar(trans.common.quantityMustBeGreaterThanZero, { variant: 'warning' });
                 return item;
               }
             }
@@ -289,7 +291,7 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
             const expectedQty = parseFloat(item.expectedQuantity) || 0;
 
             if (currentActualQty + currentRejectedQty > expectedQty) {
-              enqueueSnackbar('Tổng số lượng thực nhận và từ chối không được vượt quá số lượng dự kiến', { variant: 'error' });
+              enqueueSnackbar(trans.common.totalQuantityExceedsExpected, { variant: 'error' });
               return item;
             }
 
@@ -315,7 +317,7 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
         })
       );
     },
-    [convertUnit]
+    [convertUnit, trans]
   );
 
   // Remove item (only for unchecked items)
@@ -337,18 +339,21 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
     }
   }, []);
 
-  const getStatusText = useCallback((status) => {
-    switch (status) {
-      case 'received':
-        return 'Đã nhận đủ';
-      case 'partial':
-        return 'Nhận một phần';
-      case 'shortage':
-        return 'Thiếu hàng';
-      default:
-        return 'Đang chờ';
-    }
-  }, []);
+  const getStatusText = useCallback(
+    (status) => {
+      switch (status) {
+        case 'received':
+          return trans.common.receivedEnough;
+        case 'partial':
+          return trans.common.partialReceived;
+        case 'shortage':
+          return trans.common.shortage;
+        default:
+          return trans.common.waiting;
+      }
+    },
+    [trans]
+  );
 
   // Get current user ID (simplified)
   const getCurrentUserId = () => {
@@ -366,15 +371,15 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
   // Handle create receipt submit
   const handleCreateReceipt = useCallback(async () => {
     if (receiptItems.length === 0) {
-      enqueueSnackbar('Vui lòng thêm ít nhất một sản phẩm', { variant: 'warning' });
+      enqueueSnackbar(trans.common.pleaseAddAtLeastOneProduct, { variant: 'warning' });
       return;
     }
     if (!orderData?._id) {
-      enqueueSnackbar('Chưa có dữ liệu đơn hàng hợp lệ.', { variant: 'error' });
+      enqueueSnackbar(trans.common.noValidOrderData, { variant: 'error' });
       return;
     }
     if (receiptItems.actual_quantity === 0) {
-      enqueueSnackbar('Số lượng thực nhận không được bằng 0', { variant: 'warning' });
+      enqueueSnackbar(trans.common.actualQuantityCannotBeZero, { variant: 'warning' });
     }
     setIsCreating(true);
 
@@ -402,11 +407,11 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
       if (onReceiptCreate) onReceiptCreate(res.data);
       setReceiptData((prev) => ({ ...prev, notes: '' }));
     } catch (error) {
-      enqueueSnackbar('Không thể tạo phiếu kiểm nhập', { variant: 'error' });
+      enqueueSnackbar(trans.common.cannotCreateInspectionReceipt, { variant: 'error' });
     } finally {
       setIsCreating(false);
     }
-  }, [receiptItems, orderData, receiptData.notes, onReceiptCreate, router]);
+  }, [receiptItems, orderData, receiptData.notes, onReceiptCreate, router, trans]);
 
   // Loading and error states
   if (loadingOrder) {
@@ -443,14 +448,14 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>
-            Tạo Phiếu Kiểm Tra Nhập
+            {trans.common.createInspectionReceipt}
           </Typography>
           <form onSubmit={(e) => e.preventDefault()}>
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Số phiếu nhập"
+                  label={trans.common.receiptNumber}
                   value={receiptData.receiptId}
                   onChange={(e) => setReceiptData((prev) => ({ ...prev, receiptId: e.target.value }))}
                   required
@@ -459,7 +464,7 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Ngày nhập"
+                  label={trans.common.importDate}
                   type="date"
                   value={receiptData.date}
                   onChange={(e) => setReceiptData((prev) => ({ ...prev, date: e.target.value }))}
@@ -468,10 +473,10 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth label="Mã đơn hàng" value={receiptData.orderId} InputProps={{ readOnly: true }} />
+                <TextField fullWidth label={trans.common.orderCode} value={receiptData.orderId} InputProps={{ readOnly: true }} />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth label="Nhà cung cấp" value={receiptData.supplier} InputProps={{ readOnly: true }} />
+                <TextField fullWidth label={trans.common.supplier} value={receiptData.supplier} InputProps={{ readOnly: true }} />
               </Grid>
             </Grid>
           </form>
@@ -482,11 +487,13 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
       <Card variant="outlined" sx={{ mb: 3 }}>
         <CardContent>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">Danh Sách Hàng Hóa Chưa Kiểm ({uncheckedItems?.length} sản phẩm)</Typography>
+            <Typography variant="h6">
+              {trans.common.uncheckedItems} ({uncheckedItems?.length} {trans.common.products})
+            </Typography>
           </Box>
           {uncheckedItems.length === 0 && (
             <Typography variant="body2" color="textPrimary" mb={2}>
-              Không còn hàng hóa để kiểm.
+              {trans.common.noItemsToCheck}
             </Typography>
           )}
           {uncheckedItems.length !== 0 && (
@@ -494,14 +501,14 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Mã SP</TableCell>
-                    <TableCell>Tên sản phẩm</TableCell>
-                    <TableCell>SL dự kiến</TableCell>
-                    <TableCell>SL từ chối</TableCell>
-                    <TableCell>SL thực nhận</TableCell>
-                    <TableCell>Trạng thái</TableCell>
-                    <TableCell>Ghi chú</TableCell>
-                    <TableCell>Thao tác</TableCell>
+                    <TableCell>{trans.common.productCode}</TableCell>
+                    <TableCell>{trans.common.productName}</TableCell>
+                    <TableCell>{trans.common.expectedQuantity}</TableCell>
+                    <TableCell>{trans.common.rejectedQuantity}</TableCell>
+                    <TableCell>{trans.common.actualQuantity}</TableCell>
+                    <TableCell>{trans.common.status}</TableCell>
+                    <TableCell>{trans.common.notes}</TableCell>
+                    <TableCell>{trans.common.actions}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -595,7 +602,7 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                           size="small"
                           value={item.notes}
                           onChange={(e) => updateReceiptItem(item.id, 'notes', e.target.value)}
-                          sx={{ minWidth: 150 }}
+                          sx={{ width: 150 }}
                         />
                       </TableCell>
                       <TableCell>
@@ -634,7 +641,7 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
           startIcon={isCreating ? <CircularProgress size={20} /> : null}
           sx={{ minWidth: 200 }}
         >
-          {isCreating ? 'Đang tạo phiếu...' : 'Tạo Phiếu Nhập Kho'}
+          {isCreating ? trans.common.creatingReceipt : trans.common.createWarehouseReceipt}
         </Button>
       </Box>
     </Box>

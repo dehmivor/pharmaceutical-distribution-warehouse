@@ -21,18 +21,13 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Button,
-  Alert
+  Button
 } from '@mui/material';
-import {
-  Visibility as VisibilityIcon,
-  Edit as EditIcon,
-  FilterList as FilterIcon,
-  Refresh as RefreshIcon
-} from '@mui/icons-material';
+import { Visibility as VisibilityIcon, Edit as EditIcon, FilterList as FilterIcon, Refresh as RefreshIcon } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { useRole } from '@/contexts/RoleContext';
 import axios from 'axios';
+import useTrans from '@/hooks/useTrans';
 import PackageDetailDialog from './PackageDetailDialog';
 import PackageLocationUpdateDialog from './PackageLocationUpdateDialog';
 
@@ -49,15 +44,20 @@ const axiosInstance = axios.create({
 const PackageManagement = () => {
   const { userRole } = useRole();
   const { enqueueSnackbar } = useSnackbar();
+  const trans = useTrans();
+
   const [packages, setPackages] = useState([]);
   const [medicines, setMedicines] = useState([]);
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const [totalCount, setTotalCount] = useState(0);
+
   const [filterMedicineId, setFilterMedicineId] = useState('');
   const [filterAreaId, setFilterAreaId] = useState('');
+
   const [openDetailDialog, setOpenDetailDialog] = useState(false);
   const [openLocationUpdateDialog, setOpenLocationUpdateDialog] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
@@ -97,7 +97,7 @@ const PackageManagement = () => {
     setLoading(true);
     try {
       const params = {
-        page: page + 1,
+        page: page + 1, // API pages are 1-based
         limit: rowsPerPage
       };
 
@@ -119,7 +119,7 @@ const PackageManagement = () => {
       }
     } catch (error) {
       console.error('Error fetching packages:', error);
-      enqueueSnackbar('Lỗi khi tải danh sách packages', { variant: 'error' });
+      enqueueSnackbar(trans.common.errorLoadingPackages, { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -142,7 +142,7 @@ const PackageManagement = () => {
     setOpenLocationUpdateDialog(false);
     setSelectedPackage(null);
     fetchPackages();
-    enqueueSnackbar('Cập nhật vị trí thành công', { variant: 'success' });
+    enqueueSnackbar(trans.common.locationUpdateSuccess, { variant: 'success' });
   };
 
   // Handle refresh
@@ -161,18 +161,19 @@ const PackageManagement = () => {
     setPage(0);
   };
 
-  // Handle filter change
+  // Handle filter change (button filter)
   const handleFilterChange = () => {
     setPage(0);
     fetchPackages();
   };
 
-  // Effect to fetch data
+  // Initial fetch medicines and areas on mount
   useEffect(() => {
     fetchMedicines();
     fetchAreas();
   }, []);
 
+  // Fetch packages when page or rowsPerPage changes
   useEffect(() => {
     fetchPackages();
   }, [page, rowsPerPage]);
@@ -182,13 +183,10 @@ const PackageManagement = () => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-          {userRole === 'supervisor' ? 'Quản Lý Package' : 'Xem Package'}
+          {userRole === 'supervisor' ? trans.common.packageManagement : trans.common.viewPackage}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          {userRole === 'supervisor' 
-            ? 'Quản lý danh sách các package và vị trí lưu trữ' 
-            : 'Xem danh sách các package và vị trí lưu trữ'
-          }
+          {userRole === 'supervisor' ? trans.common.packageListDescription : trans.common.viewPackageDescription}
         </Typography>
       </Box>
 
@@ -198,36 +196,31 @@ const PackageManagement = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
             <FilterIcon sx={{ color: 'primary.main', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-              Bộ Lọc Tìm Kiếm
+              {trans.common.searchFilter}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel>Thuốc</InputLabel>
+              <InputLabel>{trans.common.medicine}</InputLabel>
               <Select
                 value={filterMedicineId}
-                label="Thuốc"
+                label={trans.common.medicine}
                 onChange={(e) => setFilterMedicineId(e.target.value)}
                 size="small"
               >
-                <MenuItem value="">Tất cả</MenuItem>
+                <MenuItem value="">{trans.common.all}</MenuItem>
                 {medicines.map((medicine) => (
                   <MenuItem key={medicine._id} value={medicine._id}>
-                    {medicine.medicine_name + ' - ' + medicine.license_code}
+                    {trans.medicineDisplayFormat.replace('{name}', medicine.medicine_name).replace('{license}', medicine.license_code)}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             <FormControl sx={{ minWidth: 200 }}>
-              <InputLabel>Khu vực</InputLabel>
-              <Select
-                value={filterAreaId}
-                label="Khu vực"
-                onChange={(e) => setFilterAreaId(e.target.value)}
-                size="small"
-              >
-                <MenuItem value="">Tất cả</MenuItem>
+              <InputLabel>{trans.common.area}</InputLabel>
+              <Select value={filterAreaId} label={trans.common.area} onChange={(e) => setFilterAreaId(e.target.value)} size="small">
+                <MenuItem value="">{trans.common.all}</MenuItem>
                 {areas.map((area) => (
                   <MenuItem key={area._id} value={area._id}>
                     {area.name}
@@ -236,145 +229,103 @@ const PackageManagement = () => {
               </Select>
             </FormControl>
 
-            <Button
-              variant="contained"
-              onClick={handleFilterChange}
-              sx={{ minWidth: 100 }}
-            >
-              Lọc
+            <Button variant="contained" onClick={handleFilterChange} sx={{ minWidth: 100 }}>
+              {trans.common.filter}
             </Button>
 
-            <Button
-              variant="outlined"
-              onClick={handleRefresh}
-              startIcon={<RefreshIcon />}
-            >
-              Làm mới
+            <Button variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />}>
+              {trans.common.refresh}
             </Button>
           </Box>
         </CardContent>
       </Card>
 
-      {/* Packages Table */}
-      <Card>
-        <CardContent sx={{ p: 0 }}>
-          <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    ID Package
+      <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>{trans.common.packageId}</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>{trans.common.location}</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>{trans.common.licenseCode}</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
+                {trans.common.medicineName}
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>{trans.common.quantity}</TableCell>
+              <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>{trans.common.actions}</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  <Typography>{trans.common.loading}</Typography>
+                </TableCell>
+              </TableRow>
+            ) : packages.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  <Typography>{trans.common.noData}</Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              packages.map((pkg) => (
+                <TableRow key={pkg.full_id} hover>
+                  <TableCell>
+                    <Chip label={pkg._id} size="small" color="primary" variant="outlined" />
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    Vị Trí
+                  <TableCell>
+                    <Typography variant="body2">{pkg.location}</Typography>
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    Mã License
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {pkg.license_code}
+                    </Typography>
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    Tên Thuốc
+                  <TableCell>
+                    <Typography variant="body2">{pkg.medicine_name}</Typography>
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    Số Lượng
+                  <TableCell>
+                    <Chip label={pkg.quantity} size="small" color="secondary" />
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', backgroundColor: 'primary.main', color: 'white' }}>
-                    Thao Tác
+                  <TableCell>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Tooltip title={trans.common.viewDetails}>
+                        <IconButton size="small" onClick={() => handleViewDetail(pkg)} color="primary">
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>
+                      {userRole === 'supervisor' && (
+                        <Tooltip title={trans.common.updateLocation}>
+                          <IconButton size="small" onClick={() => handleUpdateLocation(pkg)} color="secondary">
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
                   </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      <Typography>Đang tải...</Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : packages.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      <Typography>Không có dữ liệu</Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  packages.map((pkg) => (
-                    <TableRow key={pkg.full_id} hover>
-                      <TableCell>
-                        <Chip 
-                          label={pkg._id} 
-                          size="small" 
-                          color="primary" 
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {pkg.location}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {pkg.license_code}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {pkg.medicine_name}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={pkg.quantity} 
-                          size="small" 
-                          color="secondary"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Tooltip title="Xem chi tiết">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleViewDetail(pkg)}
-                              color="primary"
-                            >
-                              <VisibilityIcon />
-                            </IconButton>
-                          </Tooltip>
-                          {userRole === 'supervisor' && (
-                            <Tooltip title="Cập nhật vị trí">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleUpdateLocation(pkg)}
-                                color="secondary"
-                              >
-                                <EditIcon />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-          {/* Pagination */}
-          <TablePagination
-            component="div"
-            count={totalCount}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            rowsPerPageOptions={[5, 10, 25, 50]}
-            labelRowsPerPage="Số hàng mỗi trang:"
-            labelDisplayedRows={({ from, to, count }) =>
-              `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`
-            }
-          />
-        </CardContent>
-      </Card>
+      <TablePagination
+        component="div"
+        count={totalCount}
+        page={page}
+        onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        rowsPerPageOptions={[5, 10, 25, 50]}
+        labelRowsPerPage={trans.rowsPerPage}
+        labelDisplayedRows={({ from, to, count }) =>
+          trans.displayedRows
+            .replace('{from}', from)
+            .replace('{to}', to)
+            .replace('{count}', count !== -1 ? count : trans.moreThan.replace('{count}', to))
+        }
+      />
 
       {/* Detail Dialog */}
       {selectedPackage && (
@@ -404,4 +355,4 @@ const PackageManagement = () => {
   );
 };
 
-export default PackageManagement; 
+export default PackageManagement;

@@ -95,23 +95,16 @@ function SupervisorDashboard() {
     setLoading(true);
     try {
       // Fetch all data in parallel
-      const [
-        importResponse,
-        exportResponse,
-        contractsResponse,
-        medicinesResponse,
-        suppliersResponse,
-        retailersResponse,
-        usersResponse
-      ] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/import-orders`, { headers: getAuthHeaders() }),
-        axios.get(`${API_BASE_URL}/api/export-orders`, { headers: getAuthHeaders() }),
-        axios.get(`${API_BASE_URL}/api/contract`, { headers: getAuthHeaders() }),
-        axios.get(`${API_BASE_URL}/api/medicine/all/v1`, { headers: getAuthHeaders() }),
-        axios.get(`${API_BASE_URL}/api/supplier/all/v1`, { headers: getAuthHeaders() }),
-        axios.get(`${API_BASE_URL}/api/retailer/all/v1`, { headers: getAuthHeaders() }),
-        axios.get(`${API_BASE_URL}/api/accounts`, { headers: getAuthHeaders() })
-      ]);
+      const [importResponse, exportResponse, contractsResponse, medicinesResponse, suppliersResponse, retailersResponse, usersResponse] =
+        await Promise.all([
+          axios.get(`${API_BASE_URL}/api/import-orders`, { headers: getAuthHeaders() }),
+          axios.get(`${API_BASE_URL}/api/export-orders`, { headers: getAuthHeaders() }),
+          axios.get(`${API_BASE_URL}/api/contract`, { headers: getAuthHeaders() }),
+          axios.get(`${API_BASE_URL}/api/medicine/all/v1`, { headers: getAuthHeaders() }),
+          axios.get(`${API_BASE_URL}/api/supplier/all/v1`, { headers: getAuthHeaders() }),
+          axios.get(`${API_BASE_URL}/api/retailer/all/v1`, { headers: getAuthHeaders() }),
+          axios.get(`${API_BASE_URL}/api/accounts`, { headers: getAuthHeaders() })
+        ]);
 
       const importOrders = importResponse.data.data || [];
       const exportOrders = exportResponse.data.data || [];
@@ -134,58 +127,55 @@ function SupervisorDashboard() {
 
       // Calculate revenue and expenses
       const totalRevenue = exportOrders
-        .filter(order => order.status === 'completed')
+        .filter((order) => order.status === 'completed')
         .reduce((sum, order) => {
-          return sum + (order.details?.reduce((detailSum, detail) => 
-            detailSum + (detail.expected_quantity * detail.unit_price), 0) || 0);
+          return sum + (order.details?.reduce((detailSum, detail) => detailSum + detail.expected_quantity * detail.unit_price, 0) || 0);
         }, 0);
 
       const totalExpenses = importOrders
-        .filter(order => order.status === 'completed')
+        .filter((order) => order.status === 'completed')
         .reduce((sum, order) => {
-          return sum + (order.details?.reduce((detailSum, detail) => 
-            detailSum + (detail.quantity * detail.unit_price), 0) || 0);
+          return sum + (order.details?.reduce((detailSum, detail) => detailSum + detail.quantity * detail.unit_price, 0) || 0);
         }, 0);
 
       // Get recent orders (last 10)
-      const recentOrders = [...importOrders, ...exportOrders]
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        .slice(0, 10);
+      const recentOrders = [...importOrders, ...exportOrders].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10);
 
       // Get low stock medicines
       const lowStockMedicines = medicines
-        .filter(med => med.current_stock < (med.min_stock_threshold || 10))
+        .filter((med) => med.current_stock < (med.min_stock_threshold || 10))
         .sort((a, b) => a.current_stock - b.current_stock)
         .slice(0, 5);
 
       // Categorize users by role
       const categorizedUsers = {
-        representatives: users.filter(user => user.role === 'representative'),
-        representativeManagers: users.filter(user => user.role === 'representative_manager'),
-        warehouseStaff: users.filter(user => user.role === 'warehouse'),
-        warehouseManagers: users.filter(user => user.role === 'warehouse_manager'),
-        supervisors: users.filter(user => user.role === 'supervisor')
+        representatives: users.filter((user) => user.role === 'representative'),
+        representativeManagers: users.filter((user) => user.role === 'representative_manager'),
+        warehouseStaff: users.filter((user) => user.role === 'warehouse'),
+        warehouseManagers: users.filter((user) => user.role === 'warehouse_manager'),
+        supervisors: users.filter((user) => user.role === 'supervisor')
       };
 
       // Calculate role activity
       const roleActivity = {
         representatives: {
-          totalOrders: importOrders.filter(o => o.created_by?.role === 'representative').length + 
-                      exportOrders.filter(o => o.created_by?.role === 'representative').length,
-          activeUsers: categorizedUsers.representatives.filter(u => u.status === 'active').length
+          totalOrders:
+            importOrders.filter((o) => o.created_by?.role === 'representative').length +
+            exportOrders.filter((o) => o.created_by?.role === 'representative').length,
+          activeUsers: categorizedUsers.representatives.filter((u) => u.status === 'active').length
         },
         representativeManagers: {
-          totalApprovals: importOrders.filter(o => o.status === 'approved').length + 
-                         exportOrders.filter(o => o.status === 'approved').length,
-          activeUsers: categorizedUsers.representativeManagers.filter(u => u.status === 'active').length
+          totalApprovals:
+            importOrders.filter((o) => o.status === 'approved').length + exportOrders.filter((o) => o.status === 'approved').length,
+          activeUsers: categorizedUsers.representativeManagers.filter((u) => u.status === 'active').length
         },
         warehouseStaff: {
-          totalOperations: importOrders.filter(o => ['delivered', 'checked', 'arranged', 'completed'].includes(o.status)).length,
-          activeUsers: categorizedUsers.warehouseStaff.filter(u => u.status === 'active').length
+          totalOperations: importOrders.filter((o) => ['delivered', 'checked', 'arranged', 'completed'].includes(o.status)).length,
+          activeUsers: categorizedUsers.warehouseStaff.filter((u) => u.status === 'active').length
         },
         warehouseManagers: {
-          totalOperations: exportOrders.filter(o => ['delivered', 'checked', 'arranged', 'completed'].includes(o.status)).length,
-          activeUsers: categorizedUsers.warehouseManagers.filter(u => u.status === 'active').length
+          totalOperations: exportOrders.filter((o) => ['delivered', 'checked', 'arranged', 'completed'].includes(o.status)).length,
+          activeUsers: categorizedUsers.warehouseManagers.filter((u) => u.status === 'active').length
         }
       };
 
@@ -198,7 +188,7 @@ function SupervisorDashboard() {
         totalSuppliers: suppliers.length,
         totalRetailers: retailers.length,
         pendingApprovals: (importStatusCount.draft || 0) + (exportStatusCount.draft || 0),
-        lowStockItems: medicines.filter(med => med.current_stock < (med.min_stock_threshold || 10)).length,
+        lowStockItems: medicines.filter((med) => med.current_stock < (med.min_stock_threshold || 10)).length,
         totalRevenue,
         totalExpenses
       };
@@ -303,8 +293,6 @@ function SupervisorDashboard() {
     </Card>
   );
 
-
-
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
@@ -316,11 +304,14 @@ function SupervisorDashboard() {
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error" action={
-          <IconButton color="inherit" size="small" onClick={fetchDashboardData}>
-            <RefreshIcon />
-          </IconButton>
-        }>
+        <Alert
+          severity="error"
+          action={
+            <IconButton color="inherit" size="small" onClick={fetchDashboardData}>
+              <RefreshIcon />
+            </IconButton>
+          }
+        >
           {error}
         </Alert>
       </Box>
@@ -416,8 +407,8 @@ function SupervisorDashboard() {
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {dashboardData.overview.pendingApprovals > 0 && (
             <Grid item xs={12} md={6}>
-              <Alert 
-                severity="warning" 
+              <Alert
+                severity="warning"
                 icon={<WarningIcon />}
                 action={
                   <IconButton color="inherit" size="small">
@@ -428,16 +419,14 @@ function SupervisorDashboard() {
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                   {dashboardData.overview.pendingApprovals} {trans.dashboard.pendingApprovals.toLowerCase()}
                 </Typography>
-                <Typography variant="body2">
-                  {trans.messages.needApproval || 'Need to approve pending import/export orders'}
-                </Typography>
+                <Typography variant="body2">{trans.messages.needApproval || 'Need to approve pending import/export orders'}</Typography>
               </Alert>
             </Grid>
           )}
           {dashboardData.overview.lowStockItems > 0 && (
             <Grid item xs={12} md={6}>
-              <Alert 
-                severity="error" 
+              <Alert
+                severity="error"
                 icon={<ErrorIcon />}
                 action={
                   <IconButton color="inherit" size="small">
@@ -448,9 +437,7 @@ function SupervisorDashboard() {
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                   {dashboardData.overview.lowStockItems} {trans.dashboard.lowStockItems.toLowerCase()}
                 </Typography>
-                <Typography variant="body2">
-                  {trans.messages.needCheckLowStock || trans.alerts.needCheckLowStock}
-                </Typography>
+                <Typography variant="body2">{trans.messages.needCheckLowStock || trans.alerts.needCheckLowStock}</Typography>
               </Alert>
             </Grid>
           )}
@@ -464,7 +451,7 @@ function SupervisorDashboard() {
             {trans.dashboard.roleActivity} & Performance Data
           </Typography>
         </Grid>
-        
+
         {/* Representative Activity */}
         <Grid item xs={12} md={6}>
           <Card>
@@ -504,12 +491,16 @@ function SupervisorDashboard() {
                   </Typography>
                   <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
                     {dashboardData.recentOrders
-                      .filter(order => order.created_by?.role === 'representative')
+                      .filter((order) => order.created_by?.role === 'representative')
                       .slice(0, 5)
                       .map((order) => (
-                        <Box key={order._id} sx={{ display: 'flex', justifyContent: 'space-between', p: 1, borderBottom: '1px solid #eee' }}>
+                        <Box
+                          key={order._id}
+                          sx={{ display: 'flex', justifyContent: 'space-between', p: 1, borderBottom: '1px solid #eee' }}
+                        >
                           <Typography variant="body2">
-                            {order.contract_id?.partner_type === 'Supplier' ? trans.common.import : trans.common.export} - {order._id.slice(-8)}
+                            {order.contract_id?.partner_type === 'Supplier' ? trans.common.import : trans.common.export} -{' '}
+                            {order._id.slice(-8)}
                           </Typography>
                           <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
                         </Box>
@@ -560,13 +551,13 @@ function SupervisorDashboard() {
                   </Typography>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1 }}>
                     <Typography variant="body2">Draft {trans.dashboard.totalOrders}:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }} component="span">
                       {dashboardData.systemStatus.importOrders.draft + dashboardData.systemStatus.exportOrders.draft}
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1 }} component="span">
                     <Typography variant="body2">Approved {trans.dashboard.totalOrders}:</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }} component="span">
                       {dashboardData.systemStatus.importOrders.approved + dashboardData.systemStatus.exportOrders.approved}
                     </Typography>
                   </Box>
@@ -584,7 +575,7 @@ function SupervisorDashboard() {
                 <Avatar sx={{ bgcolor: 'info.main', mr: 2 }}>
                   <InventoryIcon />
                 </Avatar>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <Typography variant="h6" sx={{ fontWeight: 600 }} component="span">
                   {trans.dashboard.warehouseStaff} Activity
                 </Typography>
               </Box>
@@ -711,12 +702,7 @@ function SupervisorDashboard() {
                 {Object.entries(dashboardData.systemStatus.importOrders).map(([status, count]) => (
                   <Grid item xs={6} key={status}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Chip 
-                        label={status} 
-                        color={getStatusColor(status)} 
-                        size="small" 
-                        variant="outlined"
-                      />
+                      <Chip label={status} color={getStatusColor(status)} size="small" variant="outlined" />
                       <Typography variant="h6" sx={{ fontWeight: 600 }}>
                         {count}
                       </Typography>
@@ -737,12 +723,7 @@ function SupervisorDashboard() {
                 {Object.entries(dashboardData.systemStatus.exportOrders).map(([status, count]) => (
                   <Grid item xs={6} key={status}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Chip 
-                        label={status} 
-                        color={getStatusColor(status)} 
-                        size="small" 
-                        variant="outlined"
-                      />
+                      <Chip label={status} color={getStatusColor(status)} size="small" variant="outlined" />
                       <Typography variant="h6" sx={{ fontWeight: 600 }}>
                         {count}
                       </Typography>
@@ -772,53 +753,49 @@ function SupervisorDashboard() {
               </Box>
               <TableContainer>
                 <Table size="small">
-                                      <TableHead>
-                      <TableRow>
-                        <TableCell>Order ID</TableCell>
-                        <TableCell>Type</TableCell>
-                        <TableCell>Contract</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Created</TableCell>
-                        <TableCell>Details</TableCell>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Order ID</TableCell>
+                      <TableCell>Type</TableCell>
+                      <TableCell>Contract</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Created</TableCell>
+                      <TableCell>Details</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {dashboardData.recentOrders.map((order) => (
+                      <TableRow key={order._id} hover>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {order._id.slice(-8)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={order.contract_id?.partner_type === 'Supplier' ? trans.common.import : trans.common.export}
+                            color={order.contract_id?.partner_type === 'Supplier' ? 'primary' : 'secondary'}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Chip label={order.status} color={getStatusColor(order.status)} size="small" />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {new Date(order.created_at).toLocaleDateString()}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {order.details?.length || 0} items
+                          </Typography>
+                        </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {dashboardData.recentOrders.map((order) => (
-                        <TableRow key={order._id} hover>
-                          <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {order._id.slice(-8)}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={order.contract_id?.partner_type === 'Supplier' ? trans.common.import : trans.common.export} 
-                              color={order.contract_id?.partner_type === 'Supplier' ? 'primary' : 'secondary'} 
-                              size="small" 
-                              variant="outlined"
-                            />
-                          </TableCell>
-                          <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
-                          <TableCell>
-                            <Chip 
-                              label={order.status} 
-                              color={getStatusColor(order.status)} 
-                              size="small" 
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="text.secondary">
-                              {new Date(order.created_at).toLocaleDateString()}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="text.secondary">
-                              {order.details?.length || 0} items
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
+                    ))}
+                  </TableBody>
                 </Table>
               </TableContainer>
             </CardContent>
@@ -862,36 +839,35 @@ function SupervisorDashboard() {
               <Card>
                 <CardContent>
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'error.main' }}>
-                                      {trans.messages.warning} {trans.tabs.inventory}
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {dashboardData.lowStockMedicines.map((medicine) => (
-                    <Box key={medicine._id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {medicine.medicine_name}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {medicine.license_code}
-                        </Typography>
+                    {trans.messages.warning} {trans.tabs.inventory}
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {dashboardData.lowStockMedicines.map((medicine) => (
+                      <Box key={medicine._id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {medicine.medicine_name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {medicine.license_code}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'right' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>
+                            {medicine.current_stock || 0}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            / {medicine.min_stock_threshold || 10}
+                          </Typography>
+                        </Box>
                       </Box>
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>
-                          {medicine.current_stock || 0}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          / {medicine.min_stock_threshold || 10}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ))}
-                </Box>
+                    ))}
+                  </Box>
                 </CardContent>
               </Card>
             )}
           </Stack>
         </Grid>
-        
       </Grid>
     </Box>
   );
