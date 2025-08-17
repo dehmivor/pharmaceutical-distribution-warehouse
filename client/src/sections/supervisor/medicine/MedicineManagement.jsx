@@ -37,7 +37,8 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  Refresh
 } from '@mui/icons-material';
 import axios from 'axios';
 import MedicineDetailDialog from './MedicineDetailDialog'; // Import the detail dialog component
@@ -224,13 +225,30 @@ const MedicineManagement = () => {
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-          {trans.medicine.title}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {trans.medicine.description}
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
+            {trans.medicine.title}
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {trans.medicine.description}
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<Refresh />}
+          onClick={() => {
+            setFilters({
+              license_code: '',
+              category: '',
+              status: ''
+            });
+            fetchMedicines();
+          }}
+          disabled={loading}
+        >
+          {trans.common.refresh}
+        </Button>
       </Box>
 
       {/* Alerts */}
@@ -250,7 +268,7 @@ const MedicineManagement = () => {
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
             <FilterIcon sx={{ color: 'primary.main', fontSize: 24 }} />
-            <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
               {trans.medicine.filters.title}
             </Typography>
           </Box>
@@ -259,7 +277,8 @@ const MedicineManagement = () => {
               <TextField
                 fullWidth
                 label={trans.medicine.filters.licenseCode}
-                value={filters.license_code}
+                placeholder="Enter license code" // placeholder có rồi
+                value={filters.license_code ?? ''} // value mặc định là chuỗi rỗng
                 onChange={(e) => handleFilterChange('license_code', e.target.value)}
                 variant="outlined"
                 size="medium"
@@ -272,11 +291,11 @@ const MedicineManagement = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 300 }}>
+            <Grid item xs={12} sm={6} md={4}>
+              <FormControl fullWidth size="medium">
                 <InputLabel>{trans.medicine.filters.category}</InputLabel>
                 <Select
-                  value={filters.category}
+                  value={filters.category ?? ''} // giá trị mặc định ''
                   onChange={(e) => handleFilterChange('category', e.target.value)}
                   label={trans.medicine.filters.category}
                   renderValue={(selected) => (
@@ -293,9 +312,6 @@ const MedicineManagement = () => {
                       </span>
                     </Tooltip>
                   )}
-                  sx={{
-                    width: 300
-                  }}
                 >
                   <MenuItem value="">{trans.medicine.filters.all}</MenuItem>
                   {filterOptions?.category?.map((cate) => (
@@ -306,8 +322,8 @@ const MedicineManagement = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 300 }}>
+            <Grid item xs={12} sm={6} md={4}>
+              <FormControl fullWidth size="medium">
                 <InputLabel>{trans.medicine.filters.status}</InputLabel>
                 <Select
                   value={filters.status}
@@ -319,9 +335,6 @@ const MedicineManagement = () => {
                     if (selected === 'inactive') return trans.medicine.filters.inactive;
                     return selected;
                   }}
-                  sx={{
-                    width: 300
-                  }}
                 >
                   <MenuItem value="">{trans.medicine.filters.all}</MenuItem>
                   <MenuItem value="active">{trans.medicine.filters.active}</MenuItem>
@@ -329,8 +342,10 @@ const MedicineManagement = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={12} md={3} sx={{ display: 'flex', justifyContent: 'flex-end', ml: 'auto' }}>
+            <Grid item xs={12} sm={12} md={12} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
               <Button
+                fullWidth
+                size="small"
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => setOpenAddDialog(true)}
@@ -357,7 +372,7 @@ const MedicineManagement = () => {
       <Card sx={{ border: '1px solid #e0e0e0' }}>
         <Box
           sx={{
-            p: 3,
+            p: 2,
             borderBottom: '1px solid #e0e0e0',
             bgcolor: 'grey.50'
           }}
@@ -399,11 +414,11 @@ const MedicineManagement = () => {
                   </TableCell>
                   <TableCell>{medicine.unit_of_measure}</TableCell>
                   <TableCell>
-                    <Chip 
-                      label={medicine.status === 'active' ? trans.medicine.filters.active : trans.medicine.filters.inactive} 
-                      size="small" 
-                      color={medicine.status === 'active' ? 'success' : 'error'} 
-                      variant="outlined" 
+                    <Chip
+                      label={medicine.status === 'active' ? trans.medicine.filters.active : trans.medicine.filters.inactive}
+                      size="small"
+                      color={medicine.status === 'active' ? 'success' : 'error'}
+                      variant="outlined"
                     />
                   </TableCell>
                   <TableCell align="center">
@@ -545,7 +560,7 @@ const MedicineManagement = () => {
               {trans.medicine.deleteDialog.warning}
             </Typography>
           </Box>
-          
+
           {/* Điều kiện xóa */}
           <Box
             sx={{
