@@ -19,6 +19,7 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  Stack
 } from '@mui/material';
 import { Refresh as RefreshIcon } from '@mui/icons-material';
 import axios from 'axios';
@@ -277,18 +278,21 @@ const RepresentativeManagerMedicinePerformance = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
-      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', fontWeight: 600 }}>
-        Medicine performance
-      </Typography>
-      <Typography variant="body1" color="text.secondary" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
-        Display the performance of notable medicine in the warehouse
-      </Typography>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Medicine performance
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Display the performance of notable medicine in the warehouse
+          </Typography>
+        </Box>
+      </Box>
 
       <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
-            <RefreshIcon sx={{ color: 'primary.main', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
               Search
             </Typography>

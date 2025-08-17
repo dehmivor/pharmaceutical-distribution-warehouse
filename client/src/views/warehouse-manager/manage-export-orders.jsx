@@ -1,6 +1,6 @@
 'use client';
 
-import { Refresh as RefreshIcon, Search as SearchIcon, QrCodeScanner } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Search as SearchIcon, QrCodeScanner, Add as AddIcon } from '@mui/icons-material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import {
   Alert,
@@ -96,7 +96,7 @@ export default function ManageExportOrders() {
     open: false,
     title: '',
     content: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
     confirmText: 'Đồng ý',
     cancelText: 'Hủy',
     loading: false
@@ -147,8 +147,7 @@ export default function ManageExportOrders() {
         return;
       }
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${backendUrl}/api/auth/me`, {
+        const res = await fetch(`/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) {
@@ -173,7 +172,6 @@ export default function ManageExportOrders() {
     setLoading(true);
     setError(null);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const currentPage = p !== null ? p : page;
       const currentLimit = rpp !== null ? rpp : rowsPerPage;
       const currentDate = date !== null ? date : filterDate;
@@ -186,7 +184,7 @@ export default function ManageExportOrders() {
       if (currentDate) qp.append('createdAt', currentDate);
       if (currentStatus) qp.append('status', currentStatus);
       if (currentAssignedToMe && currentUserId) qp.append('warehouse_manager_id', currentUserId);
-      const url = `${backendUrl}/api/export-orders${qp.toString() ? `?${qp.toString()}` : ''}`;
+      const url = `/api/export-orders${qp.toString() ? `?${qp.toString()}` : ''}`;
       const resp = await axios.get(url, { headers: getAuthHeaders() });
       if (!resp.data.success) {
         throw new Error(resp.data.error || 'Failed to load export orders');
@@ -211,10 +209,9 @@ export default function ManageExportOrders() {
   const fetchAllMedicines = async () => {
     setLoadingMedicines(true);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const token = getAuthToken();
       if (!token) throw new Error('No auth token found');
-      const res = await fetch(`${backendUrl}/api/medicine/all/v1`, {
+      const res = await fetch(`/api/medicine/all/v1`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -228,10 +225,9 @@ export default function ManageExportOrders() {
   };
 
   const fetchAvailablePackages = async (medicineId) => {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
     const token = getAuthToken();
     if (!token) throw new Error('No auth token found');
-    const res = await fetch(`${backendUrl}/api/packages/${medicineId}/packages`, {
+    const res = await fetch(`/api/packages/${medicineId}/packages`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) {
@@ -344,9 +340,9 @@ export default function ManageExportOrders() {
       prev.map((detail) =>
         detail.medicine_id === medicineId
           ? {
-              ...detail,
-              selected_packages: detail.selected_packages.map((sp) => (sp.package_id === packageId ? { ...sp, quantity } : sp))
-            }
+            ...detail,
+            selected_packages: detail.selected_packages.map((sp) => (sp.package_id === packageId ? { ...sp, quantity } : sp))
+          }
           : detail
       )
     );
@@ -357,9 +353,9 @@ export default function ManageExportOrders() {
       prev.map((detail) =>
         detail.medicine_id === medicineId
           ? {
-              ...detail,
-              selected_packages: [...detail.selected_packages, { package_id: packageId, quantity: 0, created_by: currentUserId }]
-            }
+            ...detail,
+            selected_packages: [...detail.selected_packages, { package_id: packageId, quantity: 0, created_by: currentUserId }]
+          }
           : detail
       )
     );
@@ -371,9 +367,9 @@ export default function ManageExportOrders() {
       prev.map((detail) =>
         detail.medicine_id === medicineId
           ? {
-              ...detail,
-              selected_packages: detail.selected_packages.filter((sp) => sp.package_id !== packageId)
-            }
+            ...detail,
+            selected_packages: detail.selected_packages.filter((sp) => sp.package_id !== packageId)
+          }
           : detail
       )
     );
@@ -433,7 +429,6 @@ export default function ManageExportOrders() {
   const performUpdatePacking = async () => {
     setConfirmDialog((prev) => ({ ...prev, loading: true }));
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const token = getAuthToken();
       if (!token) {
         setMessageDialog({ open: true, title: 'Lỗi', content: 'Không có token xác thực. Vui lòng đăng nhập lại.' });
@@ -449,7 +444,7 @@ export default function ManageExportOrders() {
           created_by: sp.created_by
         }))
       }));
-      const res = await fetch(`${backendUrl}/api/export-orders/${selectedOrder._id}/update-packing`, {
+      const res = await fetch(`/api/export-orders/${selectedOrder._id}/update-packing`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -490,13 +485,12 @@ export default function ManageExportOrders() {
       onConfirm: async () => {
         setConfirmDialog((prev) => ({ ...prev, loading: true }));
         try {
-          const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
           const token = getAuthToken();
           if (!token) {
             setMessageDialog({ open: true, title: 'Lỗi', content: 'Không có token xác thực. Vui lòng đăng nhập lại.' });
             return;
           }
-          const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/complete`, {
+          const res = await fetch(`/api/export-orders/${orderId}/complete`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -578,13 +572,12 @@ export default function ManageExportOrders() {
       onConfirm: async () => {
         setConfirmDialog((prev) => ({ ...prev, loading: true }));
         try {
-          const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
           const token = getAuthToken();
           if (!token) {
             setMessageDialog({ open: true, title: 'Lỗi', content: 'Không có token xác thực. Vui lòng đăng nhập lại.' });
             return;
           }
-          const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/cancel`, {
+          const res = await fetch(`/api/export-orders/${orderId}/cancel`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -620,14 +613,13 @@ export default function ManageExportOrders() {
       onConfirm: async () => {
         setConfirmDialog((prev) => ({ ...prev, loading: true }));
         try {
-          const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
           const token = getAuthToken();
           if (!token) {
             setMessageDialog({ open: true, title: 'Lỗi', content: 'Không có token xác thực. Vui lòng đăng nhập lại.' });
             return;
           }
 
-          const res = await fetch(`${backendUrl}/api/export-orders/${orderId}/assign-warehouse-manager`, {
+          const res = await fetch(`/api/export-orders/${orderId}/assign-warehouse-manager`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -785,7 +777,6 @@ export default function ManageExportOrders() {
   const submitInternalOrder = async () => {
     try {
       setCreatingInternal(true);
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const token = getAuthToken();
       if (!token) throw new Error('Không có token xác thực');
 
@@ -802,7 +793,7 @@ export default function ManageExportOrders() {
           }))
       }));
 
-      const res = await fetch(`${backendUrl}/api/export-orders/internal`, {
+      const res = await fetch(`/api/export-orders/internal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ details })
@@ -837,14 +828,27 @@ export default function ManageExportOrders() {
         </Snackbar>
       )}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Export Orders Management</Typography>
-        {currentUserRole === USER_ROLES.WAREHOUSEMANAGER && (
-          <Button variant="contained" color="warning" onClick={openInternalDialog}>
-            Create Internal Export Order
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Export Orders Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Manage and inspect export orders, track their status, and perform inspections.
+          </Typography>
+        </Box>
+
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={openInternalDialog}
+            color="primary"
+          >Create Internal Export Order
           </Button>
-        )}
+
+        </Stack>
       </Box>
-      <Paper sx={{ p: 2, mb: 3 }}>
+      <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
             label="Export Date"
@@ -853,8 +857,9 @@ export default function ManageExportOrders() {
             onChange={(e) => setFilterDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
             size="small"
+            fullWidth
           />
-          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small" fullWidth>
             <MenuItem value="">All</MenuItem>
             {['draft', 'approved', 'returned', 'rejected', 'completed', 'cancelled'].map((s) => (
               <MenuItem key={s} value={s}>
@@ -862,7 +867,7 @@ export default function ManageExportOrders() {
               </MenuItem>
             ))}
           </TextField>
-          <TextField select label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} size="small">
+          <TextField select label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} size="small" fullWidth>
             <MenuItem value="all">All Types</MenuItem>
             <MenuItem value="internal">Internal</MenuItem>
             <MenuItem value="regular">Regular</MenuItem>
@@ -873,14 +878,15 @@ export default function ManageExportOrders() {
             }
             label="Assigned to Me"
           />
-          <Button variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick}>
+          <Button variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick} fullWidth>
             Search
           </Button>
-          <Button variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />}>
+          <Button variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />} fullWidth>
             Refresh
           </Button>
         </Stack>
-      </Paper>
+      </Box>
+
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
@@ -1093,16 +1099,16 @@ export default function ManageExportOrders() {
         <DialogActions sx={{ p: 3 }}>
           {(currentUserRole === USER_ROLES.WAREHOUSE ||
             (currentUserRole === USER_ROLES.WAREHOUSEMANAGER && selectedOrder?.warehouse_manager_id?._id === currentUserId)) && (
-            <Button
-              variant="outlined"
-              color="info"
-              onClick={() => {
-                handleOpenPackingDialog(selectedOrder);
-              }}
-            >
-              Chi Tiết Đóng gói {/* Changed button text */}
-            </Button>
-          )}
+              <Button
+                variant="outlined"
+                color="info"
+                onClick={() => {
+                  handleOpenPackingDialog(selectedOrder);
+                }}
+              >
+                Chi Tiết Đóng gói {/* Changed button text */}
+              </Button>
+            )}
           {currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
             selectedOrder?.warehouse_manager_id?._id === currentUserId &&
             selectedOrder?.status === 'approved' && (
