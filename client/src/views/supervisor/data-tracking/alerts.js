@@ -40,12 +40,15 @@ const Alerts = () => {
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
   // Ensure alerts is always an array
-  const safeAlerts = Array.isArray(alerts) ? alerts.filter(alert => alert && alert.id) : [];
-  
+  const safeAlerts = Array.isArray(alerts) ? alerts.filter((alert) => alert && alert.id) : [];
+
   console.log('Current alerts state:', alerts);
   console.log('Safe alerts:', safeAlerts);
   console.log('Safe alerts length:', safeAlerts.length);
-  console.log('Safe alerts keys:', safeAlerts.map(alert => alert.id));
+  console.log(
+    'Safe alerts keys:',
+    safeAlerts.map((alert) => alert.id)
+  );
 
   const severityMap = {
     [trans.alerts.lowInventory]: 'warning',
@@ -104,7 +107,7 @@ const Alerts = () => {
         }
 
         // Ensure dynamicAlerts is always an array and has unique IDs
-        const finalAlerts = Array.isArray(dynamicAlerts) ? dynamicAlerts.filter(alert => alert && alert.id) : [];
+        const finalAlerts = Array.isArray(dynamicAlerts) ? dynamicAlerts.filter((alert) => alert && alert.id) : [];
         console.log('Dynamic alerts before filtering:', dynamicAlerts);
         console.log('Final alerts after filtering:', finalAlerts);
         setAlerts(finalAlerts);
@@ -248,7 +251,7 @@ const Alerts = () => {
       console.warn('Alert without ID:', alert);
       return null;
     }
-    
+
     const isHandled = handledAlertIds.has(alert.id);
     return (
       <MuiAlert

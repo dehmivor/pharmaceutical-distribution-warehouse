@@ -173,10 +173,10 @@ export default {
     locationManagement: 'Quản lý Vị trí',
     manageAreas: 'Quản lý Khu vực',
     manageLocations: 'Quản lý Vị trí',
-    contractManagement: 'Quản lý Hợp đồng',
+    contractManagement: 'Quản lý đối tác',
     retailerManagement: 'Quản lý Nhà bán lẻ',
     supplierManagement: 'Quản lý Nhà cung cấp',
-    logManagement: 'Quản lý Nhật ký',
+    logManagement: 'Lịch sử thay đổi vị trí',
     dataReports: 'Dữ liệu & Báo cáo',
     dashboard: 'Bảng điều khiển',
     reports: 'Báo cáo',
@@ -375,10 +375,10 @@ export default {
     selectedFile: 'File đã chọn',
 
     // ✅ Thêm key cho export report
-      exportReportTitle: 'Báo cáo Đơn hàng Xuất',
-  exportReportDescription: 'Tổng hợp báo cáo các đơn hàng xuất trong hệ thống',
-  importReportTitle: 'Báo cáo Đơn hàng Nhập',
-  importReportDescription: 'Tổng hợp báo cáo các đơn hàng nhập với thông tin kho hàng',
+    exportReportTitle: 'Báo cáo Đơn hàng Xuất',
+    exportReportDescription: 'Tổng hợp báo cáo các đơn hàng xuất trong hệ thống',
+    importReportTitle: 'Báo cáo Đơn hàng Nhập',
+    importReportDescription: 'Tổng hợp báo cáo các đơn hàng nhập với thông tin kho hàng',
 
     // ✅ Thêm key cho status
     draft: 'Nháp',
