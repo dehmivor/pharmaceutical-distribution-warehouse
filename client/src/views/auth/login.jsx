@@ -26,7 +26,7 @@ export default function Login() {
 
         <Stack direction="row" justifyContent="start" alignItems="center" spacing={1} sx={{ mt: { xs: 2, sm: 3 } }}>
           <Typography variant="body2" color="text.secondary">
-            Cần giúp đỡ? |
+            Cần giúp đỡ?
           </Typography>
           <Link
             component={NextLink}
