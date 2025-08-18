@@ -10,7 +10,7 @@ export default {
     settings: 'Settings',
     language: 'Language',
     darkMode: 'Dark Mode',
-    rtlMode: 'RTL Mode'
+    rtlMode: 'Scan Mobile Mode'
   },
 
   // Tabs

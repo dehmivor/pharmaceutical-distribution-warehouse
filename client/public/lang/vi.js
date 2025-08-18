@@ -10,7 +10,7 @@ export default {
     settings: 'Cài đặt',
     language: 'Ngôn ngữ',
     darkMode: 'Chế độ quét',
-    rtlMode: 'Đơn vị tính'
+    rtlMode: 'Quét di động'
   },
 
   // Tabs
