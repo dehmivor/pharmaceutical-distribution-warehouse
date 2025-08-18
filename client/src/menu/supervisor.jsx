@@ -119,7 +119,7 @@ const supervisor = {
     },
     {
       id: 'log-management',
-      title: 'Log Management',
+      title: 'Log Location Change',
       type: 'item',
       url: '/sp-location-log',
       icon: 'IconTimelineEventText'

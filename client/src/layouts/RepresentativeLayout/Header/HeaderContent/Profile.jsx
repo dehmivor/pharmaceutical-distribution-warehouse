@@ -29,22 +29,42 @@ import MainCard from '@/components/MainCard';
 import Profile from '@/components/Profile';
 import { AvatarSize, ChipIconPosition } from '@/enum';
 import useConfig from '@/hooks/useConfig';
+import useTrans from '@/hooks/useTrans';
 
 // @assets
 import { IconChevronRight, IconLanguage, IconLogout, IconSettings, IconSunMoon, IconTextDirectionLtr } from '@tabler/icons-react';
 
 // Import hook useRole
 import { useRole } from '@/contexts/RoleContext';
+import { Typography } from '@mui/material';
 
 const languageList = [
   { key: ThemeI18n.EN, value: 'English' },
   { key: ThemeI18n.VN, value: 'Vietnam' }
 ];
+// Hàm trả màu theo role (caption)
+const getLevelColor = (role) => {
+  switch (role) {
+    case 'supervisor':
+      return 'error';
+    case 'representative':
+      return 'warning';
+    case 'representative_manager':
+      return 'primary';
+    case 'warehouse':
+      return 'info';
+    case 'warehouse_manager':
+      return 'primary';
+    default:
+      return 'default';
+  }
+};
 
 export default function ProfileSection() {
   const theme = useTheme();
   const { i18n, setI18n } = useConfig();
   const { user, userRole, isLoading, updateUserRole } = useRole();
+  const trans = useTrans();
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [innerAnchorEl, setInnerAnchorEl] = useState(null);
@@ -55,7 +75,7 @@ export default function ProfileSection() {
   const innerId = innerOpen ? 'profile-inner-popper' : undefined;
   const buttonStyle = { borderRadius: 2, p: 1 };
 
-  if (isLoading) return null; // hoặc hiện loading spinner
+  if (isLoading) return null;
 
   const handleActionClick = (event) => {
     setAnchorEl(anchorEl ? null : event.currentTarget);
@@ -87,11 +107,9 @@ export default function ProfileSection() {
       enqueueSnackbar(`Language changed to ${languageList.find((l) => l.key === key)?.value}`, { variant: 'success' });
     }
   };
-
   const profileData = {
-    avatar: { src: user?.avatar || '/assets/images/users/avatar-3.png', size: AvatarSize.XS },
-    title: user?.email || 'Email',
-    caption: userRole || 'User Role'
+    title: user?.email || 'User',
+    caption: userRole || 'User'
   };
 
   return (
@@ -101,7 +119,18 @@ export default function ProfileSection() {
           <Profile {...profileData} />
         </Box>
         <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
-          <Avatar {...profileData.avatar} alt={profileData.title} />
+          <Avatar
+            sx={{
+              width: 32,
+              height: 32,
+              bgcolor: theme.palette[getLevelColor(profileData.caption)]?.main || 'grey'
+            }}
+            alt={profileData.title}
+          >
+            <Typography variant="caption" sx={{ color: 'white', fontWeight: 'bold' }}>
+              {(profileData.title && profileData.title.charAt(0).toUpperCase()) || '?'}
+            </Typography>
+          </Avatar>
         </Box>
       </Box>
       <Popper
@@ -138,7 +167,7 @@ export default function ProfileSection() {
                       <ListItemIcon>
                         <IconSunMoon size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Chế độ quét" />
+                      <ListItemText primary={trans.header.darkMode || 'Dark Mode'} />
                     </ListItem>
                     <ListItem
                       secondaryAction={<Switch size="small" checked={false} onChange={() => enqueueSnackbar('Upgrade to pro for RTL')} />}
@@ -147,13 +176,13 @@ export default function ProfileSection() {
                       <ListItemIcon>
                         <IconTextDirectionLtr size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Đơn vị tính" />
+                      <ListItemText primary={trans.header.rtlMode || 'RTL Mode'} />
                     </ListItem>
                     <ListItemButton sx={buttonStyle} onClick={handleInnerActionClick}>
                       <ListItemIcon>
                         <IconLanguage size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Language" />
+                      <ListItemText primary={trans.header.language || 'Language'} />
                       <Chip
                         label={languageList.find((item) => item.key === i18n)?.value.slice(0, 3)}
                         variant="text"
@@ -207,7 +236,7 @@ export default function ProfileSection() {
                       <ListItemIcon>
                         <IconSettings size={16} />
                       </ListItemIcon>
-                      <ListItemText primary="Settings" />
+                      <ListItemText primary={trans.header.settings || 'Settings'} />
                     </ListItemButton>
                     <ListItem disablePadding>
                       <Button
@@ -218,7 +247,7 @@ export default function ProfileSection() {
                         endIcon={<IconLogout size={16} />}
                         onClick={logoutAccount}
                       >
-                        Logout
+                        {trans.header.logout || 'Logout'}
                       </Button>
                     </ListItem>
                   </List>

@@ -6,7 +6,7 @@ import { useMemo } from 'react';
 
 export default function useTrans() {
   const { i18n } = useConfig();
-  
+
   return useMemo(() => {
     try {
       // Fallback to English if i18n is not available
@@ -19,7 +19,7 @@ export default function useTrans() {
           }
           // Trả về undefined thay vì raw text để component có thể fallback
           return undefined;
-        },
+        }
       });
     } catch (error) {
       console.warn('useTrans hook error, falling back to English:', error);
@@ -31,7 +31,7 @@ export default function useTrans() {
           }
           // Trả về undefined thay vì raw text để component có thể fallback
           return undefined;
-        },
+        }
       });
     }
   }, [i18n]); // Chỉ tạo lại khi i18n thay đổi

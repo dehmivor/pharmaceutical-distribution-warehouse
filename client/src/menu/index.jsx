@@ -15,7 +15,7 @@ import representativeManager from './representative-manager';
 const menuItems = {
   items: [manage, uiElements, pages, other],
   prototype: [prototype],
-  supervisor: [supervisor, pages, other],
+  supervisor: [supervisor, pages],
   warehouse: [warehouse],
   warehouseManager: [warehouseManager],
   representative: [representative],
