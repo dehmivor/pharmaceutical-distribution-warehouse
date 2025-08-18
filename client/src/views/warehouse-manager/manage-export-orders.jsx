@@ -1358,7 +1358,9 @@ export default function ManageExportOrders() {
                     Đã phân bổ hủy: {totalPicked} / {line.destroy_total}
                     {totalPicked !== line.destroy_total && (
                       <Typography component="span" color="error" sx={{ ml: 1 }}>
-                        (Chưa đủ)
+                        {totalPicked < line.destroy_total
+                          ? `(Chưa đủ ${line.destroy_total - totalPicked})`
+                          : `(Thừa ${totalPicked - line.destroy_total})`}
                       </Typography>
                     )}
                   </Typography>
