@@ -247,7 +247,7 @@ export default function ExportOrderDetail() {
       });
       if (!resp.data.success) throw new Error(trans?.common?.failedToLoadExportOrder || 'Failed to load export order');
       setOrder(resp.data.data);
-      setPickingDone(resp.data.data.status !== (trans?.common?.approved || 'approved'));
+      setPickingDone(resp.data.data.status !== 'approved');
       setIsInternalOrder(resp.data.data.is_internal); // Set the new state
     } catch (err) {
       setError(err.message);
