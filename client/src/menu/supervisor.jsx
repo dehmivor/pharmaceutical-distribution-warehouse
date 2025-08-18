@@ -42,25 +42,11 @@ const supervisor = {
       icon: 'IconPill'
     },
     {
-      id: 'bill-management',
-      title: 'Bill Management',
-      type: 'collapse',
-      url: '/bill-management',
-      icon: 'IconReceipt',
-      children: [
-        {
-          id: 'pay-bills',
-          title: 'Pay Bills',
-          type: 'item',
-          url: '/sp-manage-bills'
-        },
-        {
-          id: 'sp-reports-bills',
-          title: 'Report Bills',
-          type: 'item',
-          url: '/sp-report'
-        }
-      ]
+      id: 'pay-bills',
+      title: 'Pay Bills',
+      type: 'item',
+      url: '/sp-manage-bills',
+      icon: 'IconReceipt'
     },
     {
       id: 'inventory-management',
@@ -133,7 +119,7 @@ const supervisor = {
     },
     {
       id: 'log-management',
-      title: 'Log Management',
+      title: 'Log Location Change',
       type: 'item',
       url: '/sp-location-log',
       icon: 'IconTimelineEventText'

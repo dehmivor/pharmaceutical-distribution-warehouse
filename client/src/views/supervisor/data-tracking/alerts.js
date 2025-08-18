@@ -37,14 +37,25 @@ const Alerts = () => {
   // Ref to control fetch interval cleanup
   const intervalRef = useRef(null);
 
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+  // Ensure alerts is always an array
+  const safeAlerts = Array.isArray(alerts) ? alerts.filter((alert) => alert && alert.id) : [];
+
+  console.log('Current alerts state:', alerts);
+  console.log('Safe alerts:', safeAlerts);
+  console.log('Safe alerts length:', safeAlerts.length);
+  console.log(
+    'Safe alerts keys:',
+    safeAlerts.map((alert) => alert.id)
+  );
 
   const severityMap = {
-    [trans.common.lowInventory]: 'warning',
-    [trans.common.expiredBatch]: 'error',
-    [trans.common.recall]: 'error',
-    [trans.common.newEntry]: 'info',
-    [trans.common.info]: 'info'
+    [trans.alerts.lowInventory]: 'warning',
+    [trans.alerts.expiredBatch]: 'error',
+    [trans.alerts.recall]: 'error',
+    [trans.alerts.newEntry]: 'info',
+    [trans.alerts.info]: 'info'
   };
 
   const fetchData = async () => {
@@ -54,46 +65,59 @@ const Alerts = () => {
 
       const res = await axios.post(`${backendUrl}/api/cron/check-expired-medicines`);
       if (res.data.success) {
+        console.log('Alerts API response:', res.data);
         setBatches(res.data.data);
 
         const dynamicAlerts = [];
 
-        res.data.data.sixMonths.forEach((batch) => {
-          if (batch.quantity <= 10) {
-            dynamicAlerts.push({
-              id: `lowinv-${batch._id}`,
-              type: trans.alerts.lowInventory,
-              message: trans.alerts.lowInventoryMessage
-                .replace('{name}', batch.medicine_id?.medicine_name || 'Unknown')
-                .replace('{quantity}', batch.quantity),
-              date: new Date().toISOString(),
-              handled: false
-            });
-          }
-        });
+        // Check for low inventory alerts (quantity <= 10)
+        if (res.data.data.sixMonths && Array.isArray(res.data.data.sixMonths)) {
+          res.data.data.sixMonths.forEach((batch) => {
+            if (batch && batch.quantity && batch.quantity <= 10) {
+              const alertId = `lowinv-${batch._id || batch.batch_code || Date.now()}`;
+              console.log('Creating low inventory alert with ID:', alertId);
+              dynamicAlerts.push({
+                id: alertId,
+                type: trans.alerts.lowInventory,
+                message: trans.alerts.lowInventoryMessage
+                  .replace('{name}', batch.medicine_id?.medicine_name || 'Unknown')
+                  .replace('{quantity}', batch.quantity),
+                date: new Date().toISOString(),
+                handled: false
+              });
+            }
+          });
+        }
 
-        const mockAlerts = [
-          {
-            id: '1',
-            type: trans.alerts.lowInventory,
-            message: 'Thuốc Paracetamol sắp hết tồn kho',
-            date: '2025-07-20T10:00:00Z',
-            handled: false
-          },
-          {
-            id: '2',
-            type: trans.alerts.expiredBatch,
-            message: 'Batch XY123 của thuốc Aspirin hết hạn trong 7 ngày',
-            date: '2025-07-22T08:30:00Z',
-            handled: false
-          }
-        ];
+        // Check for expired batches
+        if (res.data.data.expiredUnder6Months && Array.isArray(res.data.data.expiredUnder6Months)) {
+          res.data.data.expiredUnder6Months.forEach((batch) => {
+            if (batch && batch.quantity && batch.quantity > 0) {
+              const alertId = `expired-${batch._id || batch.batch_code || Date.now()}`;
+              console.log('Creating expired batch alert with ID:', alertId);
+              dynamicAlerts.push({
+                id: alertId,
+                type: trans.alerts.expiredBatch,
+                message: `Batch ${batch.batch_code} của thuốc ${batch.medicine_id?.medicine_name || 'Unknown'} hết hạn trong ${Math.ceil((new Date(batch.expiry_date) - new Date()) / (1000 * 60 * 60 * 24))} ngày`,
+                date: new Date().toISOString(),
+                handled: false
+              });
+            }
+          });
+        }
 
-        setAlerts([...mockAlerts, ...dynamicAlerts]);
+        // Ensure dynamicAlerts is always an array and has unique IDs
+        const finalAlerts = Array.isArray(dynamicAlerts) ? dynamicAlerts.filter((alert) => alert && alert.id) : [];
+        console.log('Dynamic alerts before filtering:', dynamicAlerts);
+        console.log('Final alerts after filtering:', finalAlerts);
+        setAlerts(finalAlerts);
+        console.log('Dynamic alerts created:', finalAlerts);
+        console.log('Final alerts array:', finalAlerts);
       } else {
         setError(trans.alerts.dataFetchError);
       }
     } catch (err) {
+      console.error('Error fetching alerts data:', err);
       setError(trans.alerts.apiError.replace('{message}', err.message));
     } finally {
       setLoading(false);
@@ -167,7 +191,7 @@ const Alerts = () => {
     return (
       <TableContainer component={Paper} sx={{ mb: 3 }}>
         <Typography variant="h6" sx={{ p: 2 }}>
-          Batch hết hạn {label === '<6' ? trans.alerts.expiredUnder6 : trans.alerts.expiredAfter.replace('{months}', label)}{' '}
+          Batch expired {label === '<6' ? trans.alerts.expiredUnder6 : trans.alerts.expiredAfter.replace('{months}', label)}{' '}
           {trans.alerts.months}:
         </Typography>
         <Table size="small" aria-label={`${label} tháng`}>
@@ -182,15 +206,21 @@ const Alerts = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {displayBatches.map((batch) => (
-              <TableRow key={batch._id}>
-                <TableCell>{batch.batch_code}</TableCell>
+            {displayBatches.map((batch, index) => (
+              <TableRow key={batch._id || `batch-${index}`}>
+                <TableCell>{batch.batch_code || 'N/A'}</TableCell>
                 <TableCell>{batch.medicine_id?.medicine_name || trans.common.unknown}</TableCell>
-                <TableCell>{new Date(batch.expiry_date).toLocaleDateString()}</TableCell>
-                <TableCell>{batch.quantity ?? 'N/A'}</TableCell>
+                <TableCell>{batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString() : 'N/A'}</TableCell>
+                <TableCell>{batch.quantity !== undefined ? batch.quantity : 'N/A'}</TableCell>
                 <TableCell>{batch.supplier || 'N/A'}</TableCell>
                 <TableCell align="center">
-                  <Button variant="contained" color="error" size="small" onClick={() => handleCreateDestroyTicket(batch)}>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    size="small"
+                    onClick={() => handleCreateDestroyTicket(batch)}
+                    disabled={!batch.batch_code}
+                  >
                     {trans.alerts.createDestroyTicket}
                   </Button>
                 </TableCell>
@@ -217,6 +247,11 @@ const Alerts = () => {
   };
 
   const renderAlertItem = (alert) => {
+    if (!alert || !alert.id) {
+      console.warn('Alert without ID:', alert);
+      return null;
+    }
+
     const isHandled = handledAlertIds.has(alert.id);
     return (
       <MuiAlert
@@ -231,7 +266,7 @@ const Alerts = () => {
         }
         sx={{ mb: 1, opacity: isHandled ? 0.6 : 1 }}
       >
-        {alert.message}
+        {alert.message || 'No message'}
       </MuiAlert>
     );
   };
@@ -248,7 +283,7 @@ const Alerts = () => {
       {loading && (
         <>
           {[...Array(3)].map((_, i) => (
-            <Skeleton variant="rectangular" height={40} sx={{ mb: 2 }} key={i} />
+            <Skeleton variant="rectangular" height={40} sx={{ mb: 2 }} key={`skeleton-${i}`} />
           ))}
         </>
       )}
@@ -294,8 +329,8 @@ const Alerts = () => {
             <Typography variant="h5" sx={{ mb: 2 }}>
               {trans.alerts.otherAlerts}
             </Typography>
-            {alerts.length === 0 && <Typography>{trans.alerts.noAlerts}</Typography>}
-            {alerts.map(renderAlertItem)}
+            {safeAlerts.length === 0 && <Typography>{trans.alerts.noAlerts}</Typography>}
+            {safeAlerts.map((alert) => renderAlertItem(alert))}
           </Box>
         </>
       )}

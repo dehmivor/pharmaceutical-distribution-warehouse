@@ -277,10 +277,6 @@ export default function ManageExportOrders() {
     setPage(newPage);
   }, []);
 
-  const handleChangeRowsPerPage = useCallback((e) => {
-    setRowsPerPage(Number.parseInt(e.target.value, 10));
-    setPage(0);
-  }, []);
 
   const handleSearchClick = useCallback(() => {
     setPage(0);
@@ -709,18 +705,6 @@ export default function ManageExportOrders() {
     );
   };
 
-  const handleScanPackage = (lineIndex, packageId) => {
-    // TODO: Implement barcode/QR scanner functionality
-    // For now, just add the package to the picked list
-    addPickPackage(lineIndex, packageId);
-
-    // Show message about scan functionality
-    setMessageDialog({
-      open: true,
-      title: 'Tính năng Scan Package',
-      content: 'Tính năng quét barcode/QR code sẽ được implement trong phiên bản tiếp theo. Hiện tại đã tự động chọn package này.'
-    });
-  };
 
   const handleScanPackageForLine = (lineIndex) => {
     // TODO: Implement barcode/QR scanner functionality
@@ -881,7 +865,7 @@ export default function ManageExportOrders() {
           <Button variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick} fullWidth>
             Search
           </Button>
-          <Button variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />} fullWidth>
+          <Button variant="outlined" onClick={handleReset} startIcon={<RefreshIcon />} fullWidth>
             Refresh
           </Button>
         </Stack>
@@ -940,7 +924,7 @@ export default function ManageExportOrders() {
           component="div"
           count={totalCount}
           page={page}
-          onPageChange={setPage}
+          onPageChange={handleChangePage}
           rowsPerPage={rowsPerPage}
           onRowsPerPageChange={(e) => setRowsPerPage(Number(e.target.value))}
           rowsPerPageOptions={[5, 10, 25, 50]}

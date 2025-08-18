@@ -50,25 +50,11 @@ export default function useMenu() {
             icon: 'IconPill'
           },
           {
-            id: 'bill-management',
-            title: trans.menu.billManagement || 'Bill Management',
-            type: 'collapse',
-            url: '/bill-management',
-            icon: 'IconReceipt',
-            children: [
-              {
-                id: 'pay-bills',
-                title: trans.menu.payBills || 'Pay Bills',
-                type: 'item',
-                url: '/sp-manage-bills'
-              },
-              {
-                id: 'sp-reports-bills',
-                title: trans.menu.reportBills || 'Report Bills',
-                type: 'item',
-                url: '/sp-report'
-              }
-            ]
+            id: 'pay-bills',
+            title: trans.menu.payBills || 'Pay Bills',
+            type: 'item',
+            url: '/sp-manage-bills',
+            icon: 'IconReceipt'
           },
           {
             id: 'inventory-management',
@@ -141,7 +127,7 @@ export default function useMenu() {
           },
           {
             id: 'log-management',
-            title: trans.menu.logManagement || 'Log Management',
+            title: trans.menu.logManagement || 'Log Location Change',
             type: 'item',
             url: '/sp-location-log',
             icon: 'IconTimelineEventText'
@@ -175,22 +161,22 @@ export default function useMenu() {
             icon: 'IconFileAnalytics',
             children: [
               {
-                id: 'report-summary',
-                title: trans.menu.weekly || 'Weekly',
+                id: 'report-bills',
+                title: trans.menu.bills || 'Bills',
                 type: 'item',
-                url: '/data&reports/reports/weekly'
+                url: '/data&reports/reports/bills'
               },
               {
-                id: 'report-detail',
-                title: trans.menu.monthly || 'Monthly',
+                id: 'report-imports',
+                title: trans.menu.imports || 'Imports',
                 type: 'item',
-                url: '/data&reports/reports/monthly'
+                url: '/data&reports/reports/imports'
               },
               {
-                id: 'report-custom',
-                title: trans.menu.yearly || 'Yearly',
+                id: 'report-exports',
+                title: trans.menu.exports || 'Exports',
                 type: 'item',
-                url: '/data&reports/reports/yearly'
+                url: '/data&reports/reports/exports'
               }
             ]
           },
@@ -220,57 +206,8 @@ export default function useMenu() {
     [trans]
   );
 
-  const otherMenu = useMemo(
-    () => [
-      {
-        id: 'group-other',
-        title: trans.menu.other || 'Other',
-        icon: 'IconDotsVertical',
-        type: 'group',
-        children: [
-          {
-            id: 'other-group',
-            title: trans.menu.others || 'Others',
-            type: 'collapse',
-            icon: 'IconHelp',
-            children: [
-              {
-                id: 'equipment',
-                title: trans.menu.equipmentManagement || 'Equipment Management',
-                type: 'item',
-                url: '/others/equipment'
-              },
-              {
-                id: 'support',
-                title: trans.menu.support || 'Support',
-                type: 'item',
-                url: '/others/support'
-              }
-            ]
-          },
-          {
-            id: 'updates-group',
-            title: trans.menu.updates || 'Updates',
-            type: 'collapse',
-            icon: 'IconRefresh',
-            children: [
-              {
-                id: 'changelog',
-                title: trans.menu.changelog || 'Changelog',
-                type: 'item',
-                url: '/others/updates'
-              }
-            ]
-          }
-        ]
-      }
-    ],
-    [trans]
-  );
-
   return {
     supervisor: supervisorMenu,
-    dataReports: dataReportsMenu,
-    other: otherMenu
+    dataReports: dataReportsMenu
   };
 }

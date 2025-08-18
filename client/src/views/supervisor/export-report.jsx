@@ -61,31 +61,49 @@ const getAuthHeaders = () => {
   };
 };
 
+import useConfig from '@/hooks/useConfig';
+import { ThemeI18n } from '@/config';
+
 const formatCurrency = (value) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
-  }).format(value);
+  const { i18n } = useConfig();
+  const locale = i18n === ThemeI18n.VN ? 'vi-VN' : 'en-US';
+
+  // For VND, display in thousands format
+  if (i18n === ThemeI18n.VN) {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value * 1000); // Multiply by 1000 since value is in thousands
+  } else {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'USD'
+    }).format(value);
+  }
 };
 
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('vi-VN');
+  const { i18n } = useConfig();
+  const locale = i18n === ThemeI18n.VN ? 'vi-VN' : 'en-US';
+  return new Date(date).toISOString().slice(0, 10);
 };
 
-export default function Report() {
+export default function ExportReport() {
   const trans = useTrans();
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [reportData, setReportData] = useState({
-    bills: [],
+    exportOrders: [],
     summary: {},
     filters: {}
   });
 
   // Pagination state
   const [page, setPage] = useState(0); // 0-based for TablePagination
-  const [rowsPerPage, setRowsPerPage] = useState(7);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const [totalCount, setTotalCount] = useState(0);
 
   const [filters, setFilters] = useState({
@@ -93,14 +111,15 @@ export default function Report() {
     endDate: new Date().toISOString().slice(0, 10), // Today
     period: 'monthly',
     status: 'all',
-    type: 'all',
-    partnerType: '',
+    retailerId: 'All Retailer',
     reportType: 'comprehensive'
   });
   const [uploadDialog, setUploadDialog] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [templates, setTemplates] = useState([]);
+  const [partnerTypes, setPartnerTypes] = useState([]);
+  const [retailers, setRetailers] = useState([]);
 
   // Fetch report data
   const fetchReportData = async () => {
@@ -109,41 +128,36 @@ export default function Report() {
       setError(null);
 
       const params = new URLSearchParams();
-      if (filters.startDate) params.append('startDate', new Date(filters.startDate).toISOString());
-      if (filters.endDate) params.append('endDate', new Date(filters.endDate).toISOString());
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.period) params.append('period', filters.period);
       if (filters.status && filters.status !== 'all') params.append('status', filters.status);
-      if (filters.type && filters.type !== 'all') params.append('type', filters.type);
-      if (filters.partnerType) params.append('partnerType', filters.partnerType);
+      if (filters.retailerId) params.append('retailerId', filters.retailerId);
 
       // Add pagination parameters
       params.append('page', (page + 1).toString()); // Convert to 1-based for API
       params.append('limit', rowsPerPage.toString());
 
       console.log('Frontend filters:', filters);
-      console.log('Date conversion:', {
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        startDateISO: new Date(filters.startDate).toISOString(),
-        endDateISO: new Date(filters.endDate).toISOString()
-      });
-      console.log('Fetching report with params:', params.toString());
-      console.log('Auth headers:', getAuthHeaders());
-      const response = await axios.get(`${API_BASE_URL}/api/reports/comprehensive?${params.toString()}`, { headers: getAuthHeaders() });
+      console.log('Fetching export report with params:', params.toString());
 
-      console.log('Report response:', response.data);
+      const response = await axios.get(`${API_BASE_URL}/api/reports/export-orders?${params.toString()}`, {
+        headers: getAuthHeaders()
+      });
+
+      console.log('Export report response:', response.data);
 
       if (response.data.success) {
         setReportData(response.data.data);
-        setTotalCount(response.data.data.pagination?.total || response.data.data.bills?.length || 0);
-        console.log('Report data set:', response.data.data);
-        console.log('Bills count:', response.data.data.bills?.length || 0);
+        setTotalCount(response.data.data.pagination?.total || response.data.data.exportOrders?.length || 0);
+        console.log('Export report data set:', response.data.data);
+        console.log('Export orders count:', response.data.data.exportOrders?.length || 0);
         console.log('Pagination info:', response.data.data.pagination);
       } else {
         setError(trans.reports.failedToLoad);
       }
     } catch (error) {
-      console.error('Error fetching report data:', error);
+      console.error('Error fetching export report data:', error);
       setError(error.response?.data?.error || trans.reports.failedToLoad);
     } finally {
       setLoading(false);
@@ -162,20 +176,43 @@ export default function Report() {
     }
   };
 
+  // Fetch partner types from database
+  const fetchPartnerTypes = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/reports/partner-types`, { headers: getAuthHeaders() });
+      if (response.data.success) {
+        setPartnerTypes(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching partner types:', error);
+    }
+  };
+
+  // Fetch retailers for partner type filter
+  const fetchRetailers = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/retailer/all/v1`, { headers: getAuthHeaders() });
+      if (response.data.success) {
+        setRetailers(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching retailers:', error);
+    }
+  };
+
   // Export to Excel
   const exportToExcel = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (filters.startDate) params.append('startDate', new Date(filters.startDate).toISOString());
-      if (filters.endDate) params.append('endDate', new Date(filters.endDate).toISOString());
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.period) params.append('period', filters.period);
       if (filters.status && filters.status !== 'all') params.append('status', filters.status);
-      if (filters.type && filters.type !== 'all') params.append('type', filters.type);
-      if (filters.partnerType) params.append('partnerType', filters.partnerType);
-      params.append('reportType', filters.reportType);
+      if (filters.retailerId) params.append('retailerId', filters.retailerId);
+      params.append('reportType', 'export-orders');
 
-      const response = await axios.get(`${API_BASE_URL}/api/reports/export?${params.toString()}`, {
+      const response = await axios.get(`${API_BASE_URL}/api/reports/export-orders/export?${params.toString()}`, {
         headers: getAuthHeaders(),
         responseType: 'blob'
       });
@@ -183,7 +220,7 @@ export default function Report() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `report_${filters.reportType}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.setAttribute('download', `export_orders_report_${new Date().toISOString().split('T')[0]}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -195,45 +232,17 @@ export default function Report() {
     }
   };
 
-  // Upload file
-  const handleFileUpload = async () => {
-    if (!uploadFile) return;
-
-    try {
-      setUploading(true);
-      const formData = new FormData();
-      formData.append('file', uploadFile);
-
-      const response = await axios.post(`${API_BASE_URL}/api/reports/upload`, formData, {
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      if (response.data.success) {
-        alert(trans.reports.fileUploadedSuccess);
-        setUploadDialog(false);
-        setUploadFile(null);
-        fetchReportData(); // refresh data after upload
-      }
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      setError('Failed to upload file');
-    } finally {
-      setUploading(false);
-    }
-  };
-
   // Initial data load
   useEffect(() => {
     fetchReportData();
     fetchTemplates();
+    fetchPartnerTypes();
+    fetchRetailers(); // Fetch retailers when component mounts
   }, []); // Only run on component mount
 
   // Pagination changes
   useEffect(() => {
-    if (page > 0 || rowsPerPage !== 10) {
+    if (page > 0 || rowsPerPage !== 5) {
       // Avoid duplicate initial load
       fetchReportData();
     }
@@ -246,7 +255,6 @@ export default function Report() {
   const handleFilterChange = (field, value) => {
     console.log('Filter change:', field, value);
     setFilters((prev) => ({ ...prev, [field]: value }));
-    // Note: Removed automatic page reset - now only happens on search
   };
 
   const handleSearch = () => {
@@ -261,8 +269,7 @@ export default function Report() {
       endDate: new Date().toISOString().slice(0, 10), // Today
       period: 'monthly',
       status: 'all',
-      type: 'all',
-      partnerType: '',
+      retailerId: '',
       reportType: 'comprehensive'
     });
     setPage(0); // Reset to first page
@@ -288,10 +295,12 @@ export default function Report() {
         return 'success';
       case 'pending':
         return 'warning';
-      case 'partial':
+      case 'processing':
         return 'info';
-      case 'overdue':
+      case 'cancelled':
         return 'error';
+      case 'approved':
+        return 'default';
       default:
         return 'default';
     }
@@ -299,12 +308,8 @@ export default function Report() {
 
   const getTypeColor = (type) => {
     switch (type) {
-      case 'IMPORT':
-        return 'info';
       case 'EXPORT':
         return 'primary';
-      case 'PAYMENT_VOUCHER':
-        return 'secondary';
       default:
         return 'default';
     }
@@ -315,10 +320,10 @@ export default function Report() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            {trans.reports.reportTitle}
+            {trans.reports.exportReportTitle}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            {trans.reports.reportDescription}
+            {trans.reports.exportReportDescription}
           </Typography>
         </Box>
       </Box>
@@ -361,12 +366,11 @@ export default function Report() {
                   labelId="period-label"
                   value={filters.period}
                   onChange={(e) => handleFilterChange('period', e.target.value)}
-                  label="Chu kỳ"
+                  label={trans.reports.period}
                 >
                   <MenuItem value="weekly">{trans.common.weekly}</MenuItem>
                   <MenuItem value="monthly">{trans.common.monthly}</MenuItem>
                   <MenuItem value="quarterly">{trans.common.quarterly}</MenuItem>
-                  {/* Nếu cần thêm 'yearly' có thể thêm ở đây */}
                 </Select>
               </FormControl>
             </Grid>
@@ -375,51 +379,63 @@ export default function Report() {
                 <InputLabel>{trans.reports.status}</InputLabel>
                 <Select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} label={trans.reports.status}>
                   <MenuItem value="all">{trans.reports.allStatus}</MenuItem>
-                  <MenuItem value="pending">
+                  <MenuItem value="draft">
                     <Typography noWrap sx={{ maxWidth: '120px' }}>
-                      {trans.reports.pending.length > 7 ? `${trans.reports.pending.substring(0, 7)}...` : trans.reports.pending}
+                      {trans.reports.draft.length > 7 ? `${trans.reports.draft.substring(0, 7)}...` : trans.reports.draft}
                     </Typography>
                   </MenuItem>
-                  <MenuItem value="partial">
-                    <Typography noWrap sx={{ maxWidth: '120px' }}>
-                      {trans.reports.partial.length > 7 ? `${trans.reports.partial.substring(0, 7)}...` : trans.reports.partial}
-                    </Typography>
+                  <MenuItem value="pending">
+                    <Typography>{trans.reports.pending}</Typography>
+                  </MenuItem>
+                  <MenuItem value="processing">
+                    <Typography>{trans.reports.processing}</Typography>
                   </MenuItem>
                   <MenuItem value="completed">
-                    <Typography noWrap sx={{ maxWidth: '120px' }}>
-                      {trans.reports.completed.length > 7 ? `${trans.reports.completed.substring(0, 7)}...` : trans.reports.completed}
-                    </Typography>
+                    <Typography>{trans.reports.completed}</Typography>
+                  </MenuItem>
+                  <MenuItem value="cancelled">
+                    <Typography>{trans.reports.cancelled}</Typography>
                   </MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>{trans.reports.type}</InputLabel>
-                <Select value={filters.type} onChange={(e) => handleFilterChange('type', e.target.value)} label={trans.reports.type}>
-                  <MenuItem value="all">{trans.reports.allTypes}</MenuItem>
-                  <MenuItem value="import">
-                    <Typography noWrap sx={{ maxWidth: '120px' }}>
-                      {trans.reports.import.length > 7 ? `${trans.reports.import.substring(0, 7)}...` : trans.reports.import}
-                    </Typography>
-                  </MenuItem>
-                  <MenuItem value="export">
-                    <Typography noWrap sx={{ maxWidth: '120px' }}>
-                      {trans.reports.export.length > 7 ? `${trans.reports.export.substring(0, 7)}...` : trans.reports.export}
-                    </Typography>
-                  </MenuItem>
+                <InputLabel>{trans.reports.retailer || 'Retailer'}</InputLabel>
+                <Select
+                  value={filters.retailerId}
+                  onChange={(e) => handleFilterChange('retailerId', e.target.value)}
+                  label={trans.reports.retailer || 'Retailer'}
+                  disabled={retailers.length === 0}
+                >
+                  <MenuItem value="All Retailer">{trans.reports.all}</MenuItem>
+                  {retailers.length === 0 ? (
+                    <MenuItem disabled>Loading...</MenuItem>
+                  ) : (
+                    retailers.map((retailer) => (
+                      <MenuItem key={retailer._id} value={retailer._id}>
+                        <Typography>{retailer.name}</Typography>
+                      </MenuItem>
+                    ))
+                  )}
                 </Select>
               </FormControl>
             </Grid>
-
             <Grid item xs={12} md={2}>
-              <Button size="small" variant="contained" startIcon={<DownloadIcon />} onClick={exportToExcel} disabled={loading} fullWidth>
-                {trans.common.downloadExcel}
+              <Button size="small" variant="outlined" startIcon={<DownloadIcon />} onClick={exportToExcel} disabled={loading} fullWidth>
+                {trans.reports.export}
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
-              <Button size="small" variant="outlined" startIcon={<UploadIcon />} onClick={() => setUploadDialog(true)} fullWidth>
-                {trans.common.uploadFile}
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<UploadIcon />}
+                onClick={() => setUploadDialog(true)}
+                disabled={loading}
+                fullWidth
+              >
+                {trans.reports.upload}
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
@@ -435,55 +451,46 @@ export default function Report() {
           </Grid>
         </CardContent>
       </Card>
-
       {loading && <LinearProgress variant="indeterminate" sx={{ mb: 2 }} />}
 
-      {/* Comprehensive Report Table */}
+      {/* Export Orders Report Table */}
       {activeTab === 0 && (
         <>
-          {reportData.bills && reportData.bills.length > 0 ? (
+          {reportData.exportOrders && reportData.exportOrders.length > 0 ? (
             <>
               <TableContainer component={Paper} sx={{ maxHeight: '60vh' }}>
                 <Table stickyHeader>
                   <TableHead sx={{ bgcolor: 'grey.50' }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.billCode}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.contractCode}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.partnerType}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderCode}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderType}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.contractCode}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.status}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderType}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }} align="right">
                         {trans.reports.totalValue}
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                        {trans.reports.amountPaid}
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                        {trans.reports.remainingAmount}
-                      </TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.createdBy}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.approvedBy}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.createdAt}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.updatedAt}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {reportData.bills?.map((bill) => (
-                      <TableRow key={bill.id} hover>
-                        <TableCell>{bill.billCode}</TableCell>
-                        <TableCell>{bill.contractCode}</TableCell>
+                    {reportData.exportOrders?.map((order) => (
+                      <TableRow key={order.id} hover>
+                        <TableCell>{order.orderCode}</TableCell>
+                        <TableCell>{order.contractCode}</TableCell>
                         <TableCell>
-                          <Chip label={bill.partnerType} size="small" color={bill.partnerType === 'Supplier' ? 'primary' : 'secondary'} />
-                        </TableCell>
-                        <TableCell>{bill.orderCode}</TableCell>
-                        <TableCell>
-                          <Chip label={bill.orderType} size="small" color={getTypeColor(bill.orderType)} />
+                          <Chip label={order.status} size="small" color={getStatusColor(order.status)} />
                         </TableCell>
                         <TableCell>
-                          <Chip label={bill.status} size="small" color={getStatusColor(bill.status)} />
+                          <Chip label={order.orderType} size="small" color={getTypeColor(order.orderType)} />
                         </TableCell>
-                        <TableCell align="right">{formatCurrency(bill.totalValue)}</TableCell>
-                        <TableCell align="right">{formatCurrency(bill.amountPaid)}</TableCell>
-                        <TableCell align="right">{formatCurrency(bill.remainingAmount)}</TableCell>
-                        <TableCell>{formatDate(bill.createdAt)}</TableCell>
+                        <TableCell align="right">{formatCurrency(order.totalValue)}</TableCell>
+                        <TableCell>{order.createdBy}</TableCell>
+                        <TableCell>{order.approvedBy || 'N/A'}</TableCell>
+                        <TableCell>{formatDate(order.createdAt)}</TableCell>
+                        <TableCell>{formatDate(order.updatedAt)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -498,7 +505,7 @@ export default function Report() {
                 onPageChange={handleChangePage}
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
-                rowsPerPageOptions={[5, 10, 25, 50]}
+                rowsPerPageOptions={[7]}
                 labelRowsPerPage={trans.reports.rowsPerPage}
                 labelDisplayedRows={({ from, to, count }) =>
                   `${from}-${to} ${trans.reports.of} ${count !== -1 ? count : trans.reports.moreThanTo}`
@@ -544,8 +551,8 @@ export default function Report() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setUploadDialog(false)}>{trans.common.cancel}</Button>
-          <Button onClick={handleFileUpload} variant="contained" disabled={!uploadFile || uploading}>
-            {uploading ? trans.common.uploading : trans.common.upload}
+          <Button onClick={() => {}} variant="contained" disabled={!uploadFile}>
+            {trans.reports.upload}
           </Button>
         </DialogActions>
       </Dialog>
