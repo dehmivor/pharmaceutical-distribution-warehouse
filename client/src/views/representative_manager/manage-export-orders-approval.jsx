@@ -76,6 +76,14 @@ function ManageExportOrdersApproval() {
     created_by: ''
   });
 
+  // Add applied filters state to separate current filters from applied ones
+  const [appliedFilters, setAppliedFilters] = useState({
+    search: '',
+    status: '',
+    contract_type: '',
+    created_by: ''
+  });
+
   // Filter options
   const [filterOptions, setFilterOptions] = useState({
     status: [],
@@ -85,7 +93,7 @@ function ManageExportOrdersApproval() {
 
   useEffect(() => {
     fetchOrders();
-  }, [page, rowsPerPage, filters]);
+  }, [page, rowsPerPage, appliedFilters]); // Use appliedFilters instead of filters
 
   // Handle filter change
   const handleFilterChange = (field, value) => {
@@ -93,7 +101,13 @@ function ManageExportOrdersApproval() {
       ...prev,
       [field]: value
     }));
-    setPage(0); // Reset to first page when filtering
+    // Remove auto page reset - only reset when applying filters
+  };
+
+  // Apply filters when search button is clicked
+  const applyFilters = () => {
+    setAppliedFilters(filters);
+    setPage(0); // Reset to first page when applying new filters
   };
 
   // Handle page change
@@ -109,13 +123,32 @@ function ManageExportOrdersApproval() {
 
   // Clear all filters
   const clearFilters = () => {
-    setFilters({
+    const emptyFilters = {
       search: '',
       status: '',
       contract_type: '',
       created_by: ''
-    });
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
     setPage(0);
+  };
+
+  // Refresh data - reset everything and fetch fresh data
+  const handleRefresh = () => {
+    // Reset to first page
+    setPage(0);
+    // Clear all filters
+    const emptyFilters = {
+      search: '',
+      status: '',
+      contract_type: '',
+      created_by: ''
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    // Fetch fresh data
+    fetchOrders();
   };
 
   const fetchOrders = async () => {
@@ -130,18 +163,17 @@ function ManageExportOrdersApproval() {
       if (response.data.success) {
         const allOrders = response.data.data || [];
         console.log('All export orders:', allOrders);
-
-        // Client-side filtering
+        
+        // Client-side filtering using appliedFilters instead of filters
         let filteredOrders = allOrders.filter((order) => {
-          const matchesSearch =
-            !filters.search ||
-            order._id?.toLowerCase().includes(filters.search.toLowerCase()) ||
-            order.contract_id?.contract_code?.toLowerCase().includes(filters.search.toLowerCase());
-
-          const matchesStatus = !filters.status || order.status === filters.status;
-          const matchesContractType = !filters.contract_type || order.contract_id?.contract_type === filters.contract_type;
-          const matchesCreatedBy = !filters.created_by || order.created_by?.email === filters.created_by;
-
+          const matchesSearch = !appliedFilters.search || 
+            order._id?.toLowerCase().includes(appliedFilters.search.toLowerCase()) ||
+            order.contract_id?.contract_code?.toLowerCase().includes(appliedFilters.search.toLowerCase());
+          
+          const matchesStatus = !appliedFilters.status || order.status === appliedFilters.status;
+          const matchesContractType = !appliedFilters.contract_type || order.contract_id?.contract_type === appliedFilters.contract_type;
+          const matchesCreatedBy = !appliedFilters.created_by || order.created_by?.email === appliedFilters.created_by;
+          
           return matchesSearch && matchesStatus && matchesContractType && matchesCreatedBy;
         });
 
@@ -326,12 +358,36 @@ function ManageExportOrdersApproval() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-              <Button variant="outlined" onClick={fetchOrders} disabled={loading} sx={{ px: 3, py: 1.2, borderRadius: 2 }}>
+            <Grid item xs={12} sm={6} md={2}>
+              <Button
+                variant="contained"
+                onClick={applyFilters}
+                fullWidth
+                sx={{ height: '56px' }}
+                startIcon={<SearchIcon />}
+              >
+                {trans.common.search || 'Search'}
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Button
+                variant="outlined"
+                onClick={handleRefresh}
+                disabled={loading}
+                fullWidth
+                sx={{ height: '56px' }}
+              >
                 {trans.representativeManagerExportOrdersApproval.filters.refresh}
               </Button>
-              <Button variant="outlined" onClick={clearFilters} sx={{ px: 3, py: 1.2, borderRadius: 2 }}>
-                {trans.representativeManagerExportOrdersApproval.filters.clearFilters}
+            </Grid>
+            <Grid item xs={12} sm={6} md={2}>
+              <Button
+                variant="outlined"
+                onClick={clearFilters}
+                fullWidth
+                sx={{ height: '56px' }}
+              >
+                {trans.common.clear || 'Clear'}
               </Button>
             </Grid>
           </Grid>

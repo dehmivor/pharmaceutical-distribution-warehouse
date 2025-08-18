@@ -35,10 +35,10 @@ const representative = {
       icon: 'IconFileExport'
     },
     {
-      id: 'rm-medicine-performance',
+      id: 'rp-medicine-performance',
       title: 'Medicine performance',
       type: 'item',
-      url: '/rp-medicine-performance',
+      url: '/rp-medicine-performance', 
       icon: 'IconChartHistogram'
     }
   ]
@@ -47,7 +47,7 @@ const representative = {
 // Function for internationalization (optional use)
 export const getRepresentativeMenu = (trans) => ({
   id: 'group-representative',
-  title: trans?.common?.representative || 'Representative',
+  title: trans?.userManagementTab?.representative || 'Representative',
   icon: 'IconBrandAsana',
   type: 'group',
   children: [
@@ -79,6 +79,13 @@ export const getRepresentativeMenu = (trans) => ({
       type: 'item',
       url: '/rp-export-orders',
       icon: 'IconFileExport'
+    },
+    {
+      id: 'rp-medicine-performance',
+      title: trans?.common?.medicinePerformance || 'Medicine Performance',
+      type: 'item',
+      url: '/rp-medicine-performance',
+      icon: 'IconChartHistogram'
     }
   ]
 });

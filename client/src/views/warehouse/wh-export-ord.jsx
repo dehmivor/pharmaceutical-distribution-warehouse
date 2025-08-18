@@ -54,7 +54,8 @@ export default function ManageExportOrders() {
   const [error, setError] = useState(null);
 
   const [filterDate, setFilterDate] = useState('');
-  const [filterStatus, setFilterStatus] = useState(trans.common.allStatus);
+  const [filterStatus, setFilterStatus] = useState(''); // Remove trans dependency from initial state
+  const [filterType, setFilterType] = useState('all'); // Add type filter
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOrder, setMenuOrder] = useState(null);
 
@@ -62,6 +63,13 @@ export default function ManageExportOrders() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
+
+  // Update filterStatus when trans is available
+  useEffect(() => {
+    if (trans?.common?.allStatus) {
+      setFilterStatus(trans.common.allStatus);
+    }
+  }, [trans?.common?.allStatus]);
 
   const handleMenuOpen = (e, order) => {
     setAnchorEl(e.currentTarget);
@@ -72,7 +80,7 @@ export default function ManageExportOrders() {
     setMenuOrder(null);
   };
 
-  const fetchOrders = async (p = null, rpp = null, date = null, status = trans.common.allStatus) => {
+  const fetchOrders = async (p = null, rpp = null, date = null, status = null, type = null) => {
     setLoading(true);
     setError(null);
 
@@ -80,31 +88,44 @@ export default function ManageExportOrders() {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const currentPage = p !== null ? p : page;
       const currentLimit = rpp !== null ? rpp : rowsPerPage;
-      const currentDate = date !== null ? date : filterDate;
-      const currentStatus = status !== null ? status : filterStatus;
-
-      // allow multiple status values if needed; here just one
-      const statusParams = currentStatus ? [currentStatus] : ['approved'];
+      
+      // Only apply filters if they are explicitly passed (from Search button)
+      const currentDate = date !== null ? date : null;
+      const currentStatus = status !== null ? status : null;
+      const currentType = type !== null ? type : null;
 
       const qp = new URLSearchParams();
       qp.append('page', (currentPage + 1).toString());
       qp.append('limit', currentLimit.toString());
-      if (currentDate) qp.append('createdAt', currentDate);
-      if (currentStatus && currentStatus !== trans.common.allStatus) {
+      
+      // Always exclude draft status by default
+      if (currentStatus && currentStatus !== (trans?.common?.allStatus || 'All Status')) {
         qp.append('status', currentStatus);
-      } else if (currentStatus === trans.common.allStatus) {
+      } else {
+        // Default: exclude draft, include all other statuses
         const allStatusesExceptDraft = ['approved', 'returned', 'rejected', 'completed', 'cancelled'];
         allStatusesExceptDraft.forEach((s) => qp.append('status', s));
       }
+      
+      // Only add date filter if it's provided
+      if (currentDate) qp.append('createdAt', currentDate);
 
       const url = `${backendUrl}/api/export-orders${qp.toString() ? `?${qp.toString()}` : ''}`;
       const resp = await axios.get(url, { headers: getAuthHeaders() });
 
       if (!resp.data.success) {
-        throw new Error(resp.data.error || trans.common.failedToLoadOrder);
+        throw new Error(resp.data.error || (trans?.common?.failedToLoadOrder || 'Failed to load order'));
       }
 
-      const data = resp.data.data || [];
+      let data = resp.data.data || [];
+      
+      // Only apply type filtering if type filter is explicitly provided
+      if (currentType === 'internal') {
+        data = data.filter((o) => !o.contract_id);
+      } else if (currentType === 'regular') {
+        data = data.filter((o) => !!o.contract_id);
+      }
+
       setOrders(data);
 
       // derive total count
@@ -121,7 +142,7 @@ export default function ManageExportOrders() {
 
   useEffect(() => {
     fetchOrders();
-  }, [page, rowsPerPage, filterDate, filterStatus]);
+  }, [page, rowsPerPage]); // Remove filterDate, filterStatus, filterType from dependencies
 
   const handleChangePage = (_, newPage) => {
     setPage(newPage);
@@ -134,17 +155,22 @@ export default function ManageExportOrders() {
 
   const handleSearchClick = () => {
     setPage(0);
-    fetchOrders(0, rowsPerPage, filterDate, filterStatus);
+    setLoading(true); // Add loading state
+    fetchOrders(0, rowsPerPage, filterDate, filterStatus, filterType);
   };
 
   const handleRefresh = () => {
-    fetchOrders(page, rowsPerPage, filterDate, filterStatus);
+    setLoading(true); // Add loading state
+    fetchOrders(page, rowsPerPage); // Don't pass any filters, just refresh current data
   };
 
   const handleReset = () => {
     setFilterDate('');
-    setFilterStatus(trans.common.allStatus);
+    setFilterStatus(trans?.common?.allStatus || 'All Status');
+    setFilterType('all');
     setPage(0);
+    setLoading(true); // Add loading state
+    fetchOrders(0, rowsPerPage, '', trans?.common?.allStatus || 'All Status', 'all');
   };
 
   if (loading) {
@@ -168,40 +194,51 @@ export default function ManageExportOrders() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            {trans.common.exportOrdersManagement}
+            {trans?.common?.exportOrdersManagement || 'Export Orders Management'}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            {trans.common.manageExportOrderTrackProgress}
+            {trans?.common?.manageExportOrderTrackProgress || 'Manage export order, track progress and view status'}
           </Typography>
         </Box>
         <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={loading}>
-          {trans.common.refresh}
+          {trans?.common?.refresh || 'Refresh'}
         </Button>
       </Box>
 
       <Paper sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
-            label={trans.common.exportDate}
+            label={trans?.common?.exportDate || 'Export Date'}
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
             InputLabelProps={{ shrink: true }}
             size="small"
           />
-          <TextField select label={trans.common.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
-            <MenuItem value={trans.common.allStatus}>{trans.common.allStatus}</MenuItem>
+          <TextField select label={trans?.common?.status || 'Status'} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+            <MenuItem value={trans?.common?.allStatus || 'All Status'}>{trans?.common?.allStatus || 'All Status'}</MenuItem>
             {['approved', 'rejected', 'cancelled'].map((s) => (
               <MenuItem key={s} value={s}>
                 {s}
               </MenuItem>
             ))}
           </TextField>
+          <TextField 
+            select 
+            label={trans?.common?.type || 'Type'} 
+            value={filterType} 
+            onChange={(e) => setFilterType(e.target.value)} 
+            size="small"
+          >
+            <MenuItem value="all">{trans?.common?.allTypes || 'All Types'}</MenuItem>
+            <MenuItem value="internal">{trans?.common?.internal || 'Internal'}</MenuItem>
+            <MenuItem value="regular">{trans?.common?.regular || 'Regular'}</MenuItem>
+          </TextField>
           <Button size="small" variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick}>
-            {trans.common.search}
+            {trans?.common?.search || 'Search'}
           </Button>
           <Button size="small" variant="outlined" onClick={handleReset}>
-            {trans.common.reset}
+            {trans?.common?.reset || 'Reset'}
           </Button>
         </Stack>
       </Paper>
@@ -210,20 +247,21 @@ export default function ManageExportOrders() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>{trans.common.exportDate}</TableCell>
-              <TableCell>{trans.common.contractCode}</TableCell>
-              <TableCell>{trans.common.partner}</TableCell>
-              <TableCell>{trans.common.managerEmail}</TableCell>
-              <TableCell>{trans.common.status}</TableCell>
-              <TableCell>{trans.common.actions}</TableCell>
+              <TableCell>{trans?.common?.exportDate || 'Export Date'}</TableCell>
+              <TableCell>{trans?.common?.type || 'Type'}</TableCell>
+              <TableCell>{trans?.common?.contractCode || 'Contract Code'}</TableCell>
+              <TableCell>{trans?.common?.partner || 'Partner'}</TableCell>
+              <TableCell>{trans?.common?.managerEmail || 'Manager Email'}</TableCell>
+              <TableCell>{trans?.common?.status || 'Status'}</TableCell>
+              <TableCell>{trans?.common?.actions || 'Actions'}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
-                    {trans.common.noExportOrdersFound}
+                    {trans?.common?.noExportOrdersFound || 'No export orders found'}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -231,6 +269,22 @@ export default function ManageExportOrders() {
               orders.map((o) => (
                 <TableRow key={o._id} hover>
                   <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {o.contract_id ? (
+                      <Chip 
+                        label={trans?.common?.regular || 'Regular'} 
+                        color="primary" 
+                        size="small" 
+                        variant="outlined" 
+                      />
+                    ) : (
+                      <Chip 
+                        label={trans?.common?.internal || 'Internal'} 
+                        color="warning" 
+                        size="small" 
+                      />
+                    )}
+                  </TableCell>
                   <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
                   <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
                   <TableCell>{o.warehouse_manager_id?.email || '—'}</TableCell>
@@ -272,7 +326,7 @@ export default function ManageExportOrders() {
             handleMenuClose();
           }}
         >
-          {trans.common.detail}
+          {trans?.common?.detail || 'Detail'}
         </MenuItem>
       </Menu>
     </Box>

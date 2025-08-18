@@ -52,6 +52,8 @@ const getAuthHeaders = () => {
   };
 };
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
 const userId = userData.userId;
 
@@ -94,7 +96,7 @@ function InternalImportOrderDetailWH() {
   const fetchPutAway = async () => {
     try {
       setLoadingPutAway(true);
-      const resp = await axios.get(`/api/packages/import-order/${orderId}`, {
+      const resp = await axios.get(`${API_BASE_URL}/api/packages/import-order/${orderId}`, {
         headers: getAuthHeaders()
       });
       const list = Array.isArray(resp.data.data) ? resp.data.data : [];
@@ -116,8 +118,10 @@ function InternalImportOrderDetailWH() {
         setLoading(true);
 
         // 1) Load the order
-        const { data: orderResp } = await axios.get(`/api/import-orders/${orderId}`, { headers: getAuthHeaders() });
-        if (!orderResp.data.success) {
+        console.log('Fetching internal import order:', orderId);
+        const { data: orderResp } = await axios.get(`${API_BASE_URL}/api/import-orders/${orderId}`, { headers: getAuthHeaders() });
+        console.log('Order response:', orderResp);
+        if (!orderResp.success) {
           throw new Error(trans.common.failedToLoadOrder);
         }
         setOrder(orderResp.data);
@@ -128,7 +132,7 @@ function InternalImportOrderDetailWH() {
         // 3) Fetch all areas
         const {
           data: { data: { areas: areaList = [] } = {} }
-        } = await axios.get('/api/areas', { headers: getAuthHeaders() });
+        } = await axios.get(`${API_BASE_URL}/api/areas`, { headers: getAuthHeaders() });
         setAreas(areaList);
 
         // 4) Enable/disable accordions based on status
@@ -143,7 +147,9 @@ function InternalImportOrderDetailWH() {
             setPutAwayDone(false);
         }
       } catch (err) {
-        setError(err.message);
+        console.error('Error loading internal import order:', err);
+        console.error('Error response:', err.response);
+        setError(err.response?.data?.error || err.message || trans.common.failedToLoadOrder);
       } finally {
         setLoading(false);
       }
@@ -153,7 +159,7 @@ function InternalImportOrderDetailWH() {
   const handleShowRelated = async (pkg) => {
     try {
       setRelatedError(null);
-      const { data } = await axios.get(`/api/packages/${pkg._id}/related-locations`, { headers: getAuthHeaders() });
+      const { data } = await axios.get(`${API_BASE_URL}/api/packages/${pkg._id}/related-locations`, { headers: getAuthHeaders() });
       setRelatedBatchLocs(data.data.sameBatchLocations);
       setRelatedMedLocs(data.data.sameMedicineLocations);
       setRelatedModalOpen(true);
@@ -176,7 +182,7 @@ function InternalImportOrderDetailWH() {
     try {
       const { location_id } = locForm;
       if (!location_id) throw new Error(trans.common.enterLocationId);
-      const r = await axios.get(`/api/locations/${location_id}`, { headers: getAuthHeaders() });
+      const r = await axios.get(`${API_BASE_URL}/api/locations/${location_id}`, { headers: getAuthHeaders() });
       const loc = r.data.data;
       setLocForm({
         location_id,
@@ -204,7 +210,7 @@ function InternalImportOrderDetailWH() {
       const import_order_id = order._id;
 
       await axios.patch(
-        `/api/packages/${currentPkg._id}/location`,
+        `${API_BASE_URL}/api/packages/${currentPkg._id}/location`,
         { location_id, ware_house_id, import_order_id },
         { headers: getAuthHeaders() }
       );
@@ -218,8 +224,8 @@ function InternalImportOrderDetailWH() {
   const handlePrintLabel = async (pkg) => {
     try {
       const pkgId = pkg._id;
-      const batchCode = pkg.batch_id.batch_code;
-      const expDate = pkg.batch_id.expiry_date?.slice(0, 10) || 'N/A';
+      const batchCode = pkg.batch_id?.batch_code || 'N/A';
+      const expDate = pkg.batch_id?.expiry_date?.slice(0, 10) || 'N/A';
       const orderIdStr = order._id;
       const supplierName = trans.common.internalOrder;
       const med = pkg.batch_id?.medicine_id;
@@ -338,11 +344,11 @@ function InternalImportOrderDetailWH() {
             <Typography>
               <strong>{trans.common.items}:</strong>
             </Typography>
-            {order.details.map((d) => (
-              <Typography key={d._id}>
-                • {d.medicine_id.medicine_name} ({d.medicine_id.license_code}): {d.quantity}
-              </Typography>
-            ))}
+                         {order.details.map((d) => (
+               <Typography key={d._id}>
+                 • {d.medicine_id?.medicine_name || trans.common.unknownMedicine} ({d.medicine_id?.license_code || trans.common.unknownLicense}): {d.quantity}
+               </Typography>
+             ))}
           </AccordionDetails>
         </Accordion>
 
@@ -386,7 +392,7 @@ function InternalImportOrderDetailWH() {
                           {unarranged.map((pkg) => (
                             <TableRow key={pkg._id} sx={pkg._id === highlightedPkgId ? { backgroundColor: 'rgba(255,255,0,0.3)' } : {}}>
                               <TableCell>
-                                {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
+                                {`${pkg.batch_id?.batch_code || 'N/A'} – ${pkg.batch_id?.medicine_id?.medicine_name || trans.common.unknownMedicine} (${pkg.batch_id?.medicine_id?.license_code || trans.common.unknownLicense})`}
                               </TableCell>
                               <TableCell>{pkg.quantity}</TableCell>
                               <TableCell>
@@ -430,12 +436,12 @@ function InternalImportOrderDetailWH() {
                           {arranged.map((pkg) => (
                             <TableRow key={pkg._id} sx={pkg._id === highlightedPkgId ? { backgroundColor: 'rgba(255,255,0,0.3)' } : {}}>
                               <TableCell>
-                                {`${pkg.batch_id.batch_code} – ${pkg.batch_id.medicine_id.medicine_name} (${pkg.batch_id.medicine_id.license_code})`}
+                                {`${pkg.batch_id?.batch_code || 'N/A'} – ${pkg.batch_id?.medicine_id?.medicine_name || trans.common.unknownMedicine} (${pkg.batch_id?.medicine_id?.license_code || trans.common.unknownLicense})`}
                               </TableCell>
                               <TableCell>{pkg.quantity}</TableCell>
                               <TableCell>
                                 {pkg.location_id
-                                  ? `${pkg.location_id.area_id?.name || '—'} • Bay ${pkg.location_id.bay}, Row ${pkg.location_id.row}, Level ${pkg.location_id.column}`
+                                  ? `${pkg.location_id?.area_id?.name || '—'} • Bay ${pkg.location_id?.bay || '—'}, Row ${pkg.location_id?.row || '—'}, Level ${pkg.location_id?.column || '—'}`
                                   : '—'}
                               </TableCell>
                               <TableCell>
@@ -490,31 +496,16 @@ function InternalImportOrderDetailWH() {
                     ))}
                 </Select>
               </FormControl>
-              <TextField
-                label={trans.common.bay}
-                value={locForm.bay}
-                onChange={(e) => setLocForm({ ...locForm, bay: e.target.value })}
-                fullWidth
-              />
-              <TextField
-                label={trans.common.row}
-                value={locForm.row}
-                onChange={(e) => setLocForm({ ...locForm, row: e.target.value })}
-                fullWidth
-              />
-              <TextField
-                label={trans.common.level}
-                value={locForm.level}
-                onChange={(e) => setLocForm({ ...locForm, level: e.target.value })}
-                fullWidth
-              />
+              <TextField label={trans.common.bay} value={locForm.bay} onChange={(e) => setLocForm({ ...locForm, bay: e.target.value })} fullWidth />
+              <TextField label={trans.common.row} value={locForm.row} onChange={(e) => setLocForm({ ...locForm, row: e.target.value })} fullWidth />
+              <TextField label={trans.common.column} value={locForm.level} onChange={(e) => setLocForm({ ...locForm, level: e.target.value })} fullWidth />
               {locError && <Alert severity="error">{locError}</Alert>}
             </Stack>
           </DialogContent>
           <DialogActions>
             <Button onClick={closePutAwayModal}>{trans.common.cancel}</Button>
             <Button onClick={handleSubmitPutAway} variant="contained">
-              {trans.common.submit}
+              {trans.submit}
             </Button>
           </DialogActions>
         </Dialog>
@@ -533,7 +524,7 @@ function InternalImportOrderDetailWH() {
             ) : (
               relatedBatchLocs.map((loc) => (
                 <Typography key={loc._id}>
-                  • {loc.area_id.name} — Bay {loc.bay}, Row {loc.row}, Level {loc.column}
+                  • {loc.area_id?.name || 'N/A'} — Bay {loc.bay || 'N/A'}, Row {loc.row || 'N/A'}, Level {loc.column || 'N/A'}
                 </Typography>
               ))
             )}
@@ -546,7 +537,7 @@ function InternalImportOrderDetailWH() {
             ) : (
               relatedMedLocs.map((loc) => (
                 <Typography key={loc._id}>
-                  • {loc.area_id.name} — Bay {loc.bay}, Row {loc.row}, Level {loc.column}
+                  • {loc.area_id?.name || 'N/A'} — Bay {loc.bay || 'N/A'}, Row {loc.row || 'N/A'}, Level {loc.column || 'N/A'}
                 </Typography>
               ))
             )}

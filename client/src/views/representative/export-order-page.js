@@ -92,6 +92,15 @@ function ExportOrderPage() {
     created_by: ''
   });
   const [userEmails, setUserEmails] = useState([]);
+  
+  // Add applied filters state to separate current filters from applied ones
+  const [appliedFilters, setAppliedFilters] = useState({
+    status: '',
+    contract_code: '',
+    contract_type: '',
+    date_filter: '',
+    created_by: ''
+  });
 
   // Định nghĩa lại hàm fetchOrders
   const fetchOrders = async () => {
@@ -238,7 +247,7 @@ function ExportOrderPage() {
 
   // Reset page when filters change
   useEffect(() => {
-    setPage(0);
+    // Remove this effect since we now control page reset manually
   }, [filters]);
 
   // Gọi fetchContractMedicines khi chọn contract
@@ -474,24 +483,32 @@ function ExportOrderPage() {
     }));
   };
 
+  // Apply filters when search button is clicked
+  const applyFilters = () => {
+    setAppliedFilters(filters);
+    setPage(0); // Reset to first page when applying new filters
+  };
+
   // Clear all filters
   const clearFilters = () => {
-    setFilters({
+    const emptyFilters = {
       status: '',
       contract_code: '',
       contract_type: '',
       date_filter: '',
       created_by: ''
-    });
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setPage(0);
   };
 
-  // Filter orders based on current filters
+  // Filter orders based on applied filters (not current filters)
   const filteredOrders = orders.filter((order) => {
-    if (filters.status && order.status !== filters.status) return false;
-    if (filters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(filters.contract_code.toLowerCase()))
-      return false;
-    if (filters.contract_type && order.contract_id?.contract_type !== filters.contract_type) return false;
-    if (filters.created_by && order.created_by?.email !== filters.created_by) return false;
+    if (appliedFilters.status && order.status !== appliedFilters.status) return false;
+    if (appliedFilters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(appliedFilters.contract_code.toLowerCase())) return false;
+    if (appliedFilters.contract_type && order.contract_id?.contract_type !== appliedFilters.contract_type) return false;
+    if (appliedFilters.created_by && order.created_by?.email !== appliedFilters.created_by) return false;
     return true;
   });
 
@@ -710,81 +727,103 @@ function ExportOrderPage() {
               {trans.common.searchFilter}
             </Typography>
           </Box>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={2}>
-              <TextField
-                fullWidth
-                label={trans.common.contractCode}
-                placeholder={trans.common.contractCodePlaceholder}
-                value={filters.contract_code || ''}
-                onChange={(e) => handleFilterChange('contract_code', e.target.value)}
-                InputProps={{
-                  startAdornment: <Box sx={{ mr: 1, color: 'text.secondary' }}>🔍</Box>
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth>
-                <InputLabel>{trans.common.contractType}</InputLabel>
-                <Select
-                  value={filters.contract_type}
-                  onChange={(e) => handleFilterChange('contract_type', e.target.value)}
-                  label={trans.common.contractType}
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={2}>
+                <TextField
+                  fullWidth
+                  label={trans.common.contractCode}
+                  placeholder={trans.common.contractCodePlaceholder}
+                  value={filters.contract_code || ''}
+                  onChange={(e) => handleFilterChange('contract_code', e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <Box sx={{ mr: 1, color: 'text.secondary' }}>
+                        🔍
+                      </Box>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={2}>
+                <FormControl fullWidth>
+                  <InputLabel>{trans.common.contractType}</InputLabel>
+                  <Select
+                    value={filters.contract_type}
+                    onChange={(e) => handleFilterChange('contract_type', e.target.value)}
+                    label={trans.common.contractType}
+                  >
+                    <MenuItem value="">{trans.common.allContractTypes}</MenuItem>
+                    <MenuItem value="economic">{trans.common.economicContract}</MenuItem>
+                    <MenuItem value="principal">{trans.common.principalContract}</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2}>
+                <FormControl fullWidth>
+                  <InputLabel>{trans.common.status}</InputLabel>
+                  <Select
+                    value={filters.status}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    label={trans.common.status}
+                  >
+                    <MenuItem value="">{trans.common.allStatuses}</MenuItem>
+                    <MenuItem value="draft">{trans.common.draft}</MenuItem>
+                    <MenuItem value="approved">{trans.common.approved}</MenuItem>
+                    <MenuItem value="rejected">{trans.common.rejected}</MenuItem>
+                    <MenuItem value="completed">{trans.common.completed}</MenuItem>
+                    <MenuItem value="returned">{trans.common.returned}</MenuItem>
+                    <MenuItem value="cancelled">{trans.common.cancelled}</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <FormControl fullWidth>
+                  <InputLabel>{trans.common.createdBy}</InputLabel>
+                  <Select
+                    value={filters.created_by}
+                    onChange={(e) => handleFilterChange('created_by', e.target.value)}
+                    label={trans.common.createdBy}
+                  >
+                    <MenuItem value="">{trans.common.allUsers}</MenuItem>
+                    {userEmails.length > 0 && (
+                      <MenuItem disabled>
+                        <Typography variant="caption" color="text.secondary">
+                          ─── Chọn email cụ thể ───
+                        </Typography>
+                      </MenuItem>
+                    )}
+                    {userEmails.map((email) => (
+                      <MenuItem key={email} value={email}>
+                        {email}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={2}>
+                <Button
+                  variant="contained"
+                  onClick={applyFilters}
+                  fullWidth
+                  sx={{ height: '56px' }}
+                  startIcon={<SearchIcon />}
                 >
-                  <MenuItem value="">{trans.common.allContractTypes}</MenuItem>
-                  <MenuItem value="economic">{trans.common.economicContract}</MenuItem>
-                  <MenuItem value="principal">{trans.common.principalContract}</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth>
-                <InputLabel>{trans.common.status}</InputLabel>
-                <Select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} label={trans.common.status}>
-                  <MenuItem value="">{trans.common.allStatuses}</MenuItem>
-                  <MenuItem value="draft">{trans.common.draft}</MenuItem>
-                  <MenuItem value="approved">{trans.common.approved}</MenuItem>
-                  <MenuItem value="rejected">{trans.common.rejected}</MenuItem>
-                  <MenuItem value="completed">{trans.common.completed}</MenuItem>
-                  <MenuItem value="returned">{trans.common.returned}</MenuItem>
-                  <MenuItem value="cancelled">{trans.common.cancelled}</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>{trans.common.createdBy}</InputLabel>
-                <Select
-                  value={filters.created_by}
-                  onChange={(e) => handleFilterChange('created_by', e.target.value)}
-                  label={trans.common.createdBy}
-                >
-                  <MenuItem value="">{trans.common.allUsers}</MenuItem>
-                  {userEmails.length > 0 && (
-                    <MenuItem disabled>
-                      <Typography variant="caption" color="text.secondary">
-                        ─── Chọn email cụ thể ───
-                      </Typography>
-                    </MenuItem>
-                  )}
-                  {userEmails.map((email) => (
-                    <MenuItem key={email} value={email}>
-                      {email}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: '100%' }}>
-                <Button variant="outlined" onClick={clearFilters} fullWidth>
-                  {trans.common.clearFilters}
+                  {trans.common.search || 'Search'}
                 </Button>
-              </Box>
+              </Grid>
+              <Grid item xs={12} sm={6} md={1}>
+                <Button
+                  variant="outlined"
+                  onClick={clearFilters}
+                  fullWidth
+                  sx={{ height: '56px' }}
+                >
+                  {trans.common.clear || 'Clear'}
+                </Button>
+              </Grid>
             </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
       <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 2, mb: 3 }}>
         <Table>
           <TableHead>
@@ -980,24 +1019,36 @@ function ExportOrderPage() {
                         <TextField
                           fullWidth
                           label={trans.common.quantity}
-                          type="number"
-                          value={detail.expected_quantity}
+                          type="text"
+                          value={detail.expected_quantity ? detail.expected_quantity.toLocaleString() : ''}
                           onChange={(e) => {
-                            const value = parseInt(e.target.value) || 0;
+                            // Remove all non-digit characters and convert to number
+                            const rawValue = e.target.value.replace(/[^\d]/g, '');
+                            const value = parseInt(rawValue) || 0;
                             // Prevent negative values
                             const validValue = Math.max(1, value);
                             handleDetailChange(index, 'expected_quantity', validValue);
                           }}
-                          InputProps={{ min: 1 }}
+                          onBlur={(e) => {
+                            // Format on blur if empty
+                            if (!e.target.value) {
+                              handleDetailChange(index, 'expected_quantity', 0);
+                            }
+                          }}
+                          InputProps={{ 
+                            min: 1,
+                            inputMode: 'numeric',
+                            pattern: '[0-9]*'
+                          }}
                           required
                           disabled={!detail.medicine_id || formData.contract_type === 'economic'}
                           helperText={(() => {
                             const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
                             if (contractItem) {
                               if (formData.contract_type === 'principal') {
-                                return `Min: ${contractItem.min_order_quantity || 1} (Có thể chỉnh sửa quantity)`;
+                                return `Min: ${(contractItem.min_order_quantity || 1).toLocaleString()} (Có thể chỉnh sửa quantity)`;
                               } else {
-                                return `Từ hợp đồng: ${contractItem.quantity || contractItem.min_order_quantity || 1} (Economic - Không thể sửa)`;
+                                return `Từ hợp đồng: ${(contractItem.quantity || contractItem.min_order_quantity || 1).toLocaleString()} (Economic - Không thể sửa)`;
                               }
                             }
                             return '';
@@ -1010,10 +1061,18 @@ function ExportOrderPage() {
                           fullWidth
                           label={trans.common.unitPrice}
                           type="text"
-                          value={detail.unit_price}
+                          value={detail.unit_price ? detail.unit_price.toLocaleString() : ''}
                           onChange={(e) => {
-                            const value = parseFloat(e.target.value) || 0;
+                            // Remove all non-digit and non-decimal characters and convert to number
+                            const rawValue = e.target.value.replace(/[^\d.,]/g, '');
+                            const value = parseFloat(rawValue) || 0;
                             handleDetailChange(index, 'unit_price', value);
+                          }}
+                          onBlur={(e) => {
+                            // Format on blur if empty
+                            if (!e.target.value) {
+                              handleDetailChange(index, 'unit_price', 0);
+                            }
                           }}
                           InputProps={{
                             inputMode: 'decimal',
@@ -1160,6 +1219,8 @@ function ExportOrderPage() {
                               <Typography variant="caption">Thiếu: {result.expected_quantity - result.available_quantity}</Typography>
                             </Alert>
                           )}
+                          
+                                                     
                         </Paper>
                       </Grid>
                     ))}
@@ -1191,6 +1252,7 @@ function ExportOrderPage() {
                         color="error"
                         variant="outlined"
                       />
+
                     </Box>
                   </Box>
                 )}
@@ -1397,9 +1459,20 @@ function ExportOrderPage() {
                   <Grid item xs={12} sm={3}>
                     <TextField
                       label={trans.common.quantity}
-                      type="number"
-                      value={detail.expected_quantity}
-                      onChange={(e) => handleDetailChange(index, 'expected_quantity', e.target.value)}
+                      type="text"
+                      value={detail.expected_quantity ? detail.expected_quantity.toLocaleString() : ''}
+                      onChange={(e) => {
+                        // Remove all non-digit characters and convert to number
+                        const rawValue = e.target.value.replace(/[^\d]/g, '');
+                        const value = parseInt(rawValue) || 0;
+                        handleDetailChange(index, 'expected_quantity', value);
+                      }}
+                      onBlur={(e) => {
+                        // Format on blur if empty
+                        if (!e.target.value) {
+                          handleDetailChange(index, 'expected_quantity', 0);
+                        }
+                      }}
                       fullWidth
                       required
                       disabled={formData.contract_type === 'economic'}
@@ -1408,6 +1481,10 @@ function ExportOrderPage() {
                           ? trans.common.economicContractAutoFilled
                           : trans.common.principalContractQuantityEditable
                       }
+                      InputProps={{
+                        inputMode: 'numeric',
+                        pattern: '[0-9]*'
+                      }}
                       sx={{
                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
                         '& .MuiInputBase-input.Mui-disabled': {
@@ -1420,9 +1497,20 @@ function ExportOrderPage() {
                   <Grid item xs={12} sm={3}>
                     <TextField
                       label={trans.common.unitPrice}
-                      type="number"
-                      value={detail.unit_price}
-                      onChange={(e) => handleDetailChange(index, 'unit_price', e.target.value)}
+                      type="text"
+                      value={detail.unit_price ? detail.unit_price.toLocaleString() : ''}
+                      onChange={(e) => {
+                        // Remove all non-digit and non-decimal characters and convert to number
+                        const rawValue = e.target.value.replace(/[^\d.,]/g, '');
+                        const value = parseFloat(rawValue) || 0;
+                        handleDetailChange(index, 'unit_price', value);
+                      }}
+                      onBlur={(e) => {
+                        // Format on blur if empty
+                        if (!e.target.value) {
+                          handleDetailChange(index, 'unit_price', 0);
+                        }
+                      }}
                       fullWidth
                       required
                       disabled={formData.contract_type === 'economic'}
@@ -1431,6 +1519,10 @@ function ExportOrderPage() {
                           ? trans.common.economicContractAutoFilled
                           : trans.common.principalContractQuantityEditable
                       }
+                      InputProps={{
+                        inputMode: 'decimal',
+                        pattern: '[0-9]*[.,]?[0-9]*'
+                      }}
                       sx={{
                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
                         '& .MuiInputBase-input.Mui-disabled': {
@@ -1470,18 +1562,11 @@ function ExportOrderPage() {
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                        <TableCell>
-                          <strong>Thuốc</strong>
-                        </TableCell>
-                        <TableCell align="right">
-                          <strong>Yêu cầu</strong>
-                        </TableCell>
-                        <TableCell align="right">
-                          <strong>Có sẵn</strong>
-                        </TableCell>
-                        <TableCell align="center">
-                          <strong>Trạng thái</strong>
-                        </TableCell>
+                        <TableCell><strong>Thuốc</strong></TableCell>
+                        <TableCell align="right"><strong>Yêu cầu</strong></TableCell>
+                        <TableCell align="right"><strong>Có sẵn</strong></TableCell>
+                        <TableCell align="center"><strong>Trạng thái</strong></TableCell>
+
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1504,6 +1589,7 @@ function ExportOrderPage() {
                               size="small"
                             />
                           </TableCell>
+
                         </TableRow>
                       ))}
                     </TableBody>

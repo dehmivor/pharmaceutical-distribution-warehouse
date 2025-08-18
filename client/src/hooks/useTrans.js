@@ -19,30 +19,36 @@ function createRecursiveProxy(target) {
 }
 
 export default function useTrans() {
-  try {
-    const { i18n } = useConfig();
-    const langTrans = i18n === ThemeI18n.VN ? vi : en;
+  const { i18n } = useConfig();
 
-    const proxyLang = createRecursiveProxy(langTrans);
-    const proxyEn = createRecursiveProxy(en);
+  return useMemo(() => {
+    try {
+      const trans = i18n === ThemeI18n.VN ? vi : en;
 
-    return new Proxy(
-      {},
-      {
-        get(_, prop) {
-          if (prop in langTrans) {
-            return proxyLang[prop];
+      return new Proxy(
+        {},
+        {
+          get(_, prop) {
+            if (prop in langTrans) {
+              return proxyLang[prop];
+            }
+            // Trả về undefined thay vì raw text để component có thể fallback
+            return undefined;
           }
-          if (prop in en) {
-            return proxyEn[prop];
-          }
-
-          return `{trans.${String(prop)}}`;
         }
-      }
-    );
-  } catch (error) {
-    console.warn('useTrans hook error, falling back to English:', error);
-    return createRecursiveProxy(en);
-  }
+      );
+    } catch (error) {
+      console.warn('useTrans hook error, falling back to English:', error);
+      // Fallback to English if there's any error
+      return new Proxy(en, {
+        get(target, prop) {
+          if (prop in target) {
+            return target[prop];
+          }
+          // Trả về undefined thay vì raw text để component có thể fallback
+          return undefined;
+        }
+      });
+    }
+  }, [i18n]); // Chỉ tạo lại khi i18n thay đổi
 }

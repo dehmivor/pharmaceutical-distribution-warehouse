@@ -49,7 +49,8 @@ function getTranslationKey(menuId) {
     'rp-dashboard': 'dashboard',
     'rp-manage-contracts': 'contractManagement',
     'rp-import-orders': 'manageImportOrders',
-    'rp-export-orders': 'manageExportOrders'
+    'rp-export-orders': 'manageExportOrders',
+    'rp-medicine-performance': 'medicinePerformance'
   };
   return translationMap[menuId] || menuId;
 }

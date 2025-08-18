@@ -35,18 +35,26 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useTheme } from '@mui/material/styles';
 import useTrans from '@/hooks/useTrans';
 
-const getAuthHeaders = () => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
-  return {
-    'Content-Type': trans.common.contentType,
-    ...(token && { Authorization: `${trans.common.bearer} ${token}` })
-  };
-};
-
 export default function ExportOrderDetail() {
   const theme = useTheme();
   const trans = useTrans();
   const { orderId } = useParams();
+
+  // Add missing API configuration
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  
+  const axiosInstance = axios.create({
+    baseURL: API_BASE_URL,
+    withCredentials: true
+  });
+
+  const getAuthHeaders = () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+    return {
+      'Content-Type': trans?.common?.contentType || 'application/json',
+      ...(token && { Authorization: `${trans?.common?.bearer || 'Bearer'} ${token}` })
+    };
+  };
 
   const [order, setOrder] = useState(null);
   const [outstanding, setOutstanding] = useState([]);
@@ -54,26 +62,27 @@ export default function ExportOrderDetail() {
   const [loadingOut, setLoadingOut] = useState(false);
   const [error, setError] = useState(null);
   const [pickingDone, setPickingDone] = useState(false);
+  const [isInternalOrder, setIsInternalOrder] = useState(false); // Add flag for internal orders
 
   // Modal state
   const [openModal, setOpenModal] = useState(false);
-  const [locInput, setLocInput] = useState(trans.common.emptyMessage);
+  const [locInput, setLocInput] = useState('');
   const [locPackages, setLocPackages] = useState([]);
   const [loadingLoc, setLoadingLoc] = useState(false);
 
   const [proceedOpen, setProceedOpen] = useState(false);
   const [currentPkg, setCurrentPkg] = useState(null);
   const [neededQty, setNeededQty] = useState(0);
-  const [verifyInput, setVerifyInput] = useState(trans.common.emptyMessage);
+  const [verifyInput, setVerifyInput] = useState('');
   const [pickAmount, setPickAmount] = useState(0);
   const [currentDetailId, setCurrentDetailId] = useState(null);
 
-  const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || trans.common.emptyObject) : {};
+  const userData = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
   const userId = userData.userId;
 
   // Scan Package modal state
   const [openPkgModal, setOpenPkgModal] = useState(false);
-  const [pkgInput, setPkgInput] = useState(trans.common.emptyMessage);
+  const [pkgInput, setPkgInput] = useState('');
 
   const [pkgDetail, setPkgDetail] = useState(null);
   const [loadingPkgDetail, setLoadingPkgDetail] = useState(false);
@@ -82,8 +91,8 @@ export default function ExportOrderDetail() {
 
   const [snackbar, setSnackbar] = useState({
     open: false,
-    message: trans.common.emptyMessage,
-    severity: trans.common.error
+    message: '',
+    severity: 'error'
   });
 
   // Handler to open the Proceed modal
@@ -91,7 +100,7 @@ export default function ExportOrderDetail() {
     setCurrentDetailId(detailId);
     setCurrentPkg(pkg.package_id); // only store the ID
     setNeededQty(needed);
-    setVerifyInput(trans.common.emptyMessage);
+    setVerifyInput('');
     setProceedOpen(true);
     handleCloseModal();
   };
@@ -99,21 +108,26 @@ export default function ExportOrderDetail() {
   const closeProceedModal = () => {
     setProceedOpen(false);
     setCurrentPkg(null);
-    setVerifyInput(trans.common.emptyMessage);
+    setVerifyInput('');
   };
 
   const handleProceedSubmit = async (e) => {
     e.preventDefault();
 
     if (!pkgDetail || verifyInput !== String(pkgDetail._id)) {
-      console.warn(trans.common.cannotSubmitInvalidPackage);
+      console.warn(trans?.common?.cannotSubmitInvalidPackage || 'Cannot submit invalid package');
+      setSnackbar({
+        open: true,
+        message: trans?.common?.cannotSubmitInvalidPackage || 'Cannot submit invalid package',
+        severity: 'warning'
+      });
       return;
     }
 
     try {
       const pkgId = pkgDetail._id;
 
-      await axios.post(
+      await axiosInstance.post(
         `/api/export-orders/${orderId}/details/${currentDetailId}/inspections`,
         {
           package_id: pkgId,
@@ -123,19 +137,29 @@ export default function ExportOrderDetail() {
         { headers: getAuthHeaders() }
       );
 
+      // Show success message
+      setSnackbar({
+        open: true,
+        message: trans?.common?.inspectionCreatedSuccessfully || 'Inspection created successfully',
+        severity: 'success'
+      });
+
       // Close modal & refresh outstanding list
       closeProceedModal();
       handleRefresh();
     } catch (err) {
       console.error('Error creating inspection:', err);
-      // Optionally show user feedback here:
-      // setSnackbar({ open: true, message: err.response?.data?.message || err.message, severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || err.message || 'Error creating inspection',
+        severity: 'error'
+      });
     }
   };
 
   // reset modal state
   const resetModal = () => {
-    setLocInput(trans.common.emptyMessage);
+    setLocInput('');
     setLocPackages([]);
   };
 
@@ -162,7 +186,7 @@ export default function ExportOrderDetail() {
 
   // Scan Package modal handlers
   const handleOpenPkgModal = () => {
-    setPkgInput(trans.common.emptyMessage);
+    setPkgInput('');
     setOpenPkgModal(true);
   };
   const handleClosePkgModal = () => setOpenPkgModal(false);
@@ -173,11 +197,11 @@ export default function ExportOrderDetail() {
 
     try {
       // 1) Fetch full package details
-      const resp = await axios.get(`/api/packages/${pkgInput}`, { headers: getAuthHeaders() });
+      const resp = await axiosInstance.get(`/api/packages/${pkgInput}`, { headers: getAuthHeaders() });
       const { success, data: pkgDetail } = resp.data;
       if (!success) {
         // server said "not a package"
-        throw new Error(trans.common.invalidPackage);
+        throw new Error(trans?.common?.invalidPackage || 'Invalid package');
       }
 
       // 2) Find the export-detail line by medicine_id
@@ -187,8 +211,8 @@ export default function ExportOrderDetail() {
         // no matching detail line
         setSnackbar({
           open: true,
-          message: trans.common.invalidPackageId,
-          severity: trans.common.error
+          message: trans?.common?.invalidPackageId || 'Invalid package ID',
+          severity: trans?.common?.error || 'error'
         });
         return;
       }
@@ -207,8 +231,8 @@ export default function ExportOrderDetail() {
       // either a network / 404, or the "invalid" we threw
       setSnackbar({
         open: true,
-        message: trans.common.invalidPackageId,
-        severity: trans.common.error
+        message: trans?.common?.invalidPackageId || 'Invalid package ID',
+        severity: trans?.common?.error || 'error'
       });
     } finally {
       // keep modal open so user can retry; only clear input if you like
@@ -218,12 +242,13 @@ export default function ExportOrderDetail() {
   const fetchOrderDetail = async () => {
     try {
       setLoadingOrder(true);
-      const resp = await axios.get(`/api/export-orders/${orderId}`, {
+      const resp = await axiosInstance.get(`/api/export-orders/${orderId}`, {
         headers: getAuthHeaders()
       });
-      if (!resp.data.success) throw new Error(trans.common.failedToLoadExportOrder);
+      if (!resp.data.success) throw new Error(trans?.common?.failedToLoadExportOrder || 'Failed to load export order');
       setOrder(resp.data.data);
-      setPickingDone(resp.data.data.status !== trans.common.approved);
+      setPickingDone(resp.data.data.status !== (trans?.common?.approved || 'approved'));
+      setIsInternalOrder(resp.data.data.is_internal); // Set the new state
     } catch (err) {
       setError(err.message);
     } finally {
@@ -241,9 +266,23 @@ export default function ExportOrderDetail() {
   const fetchOutstanding = async () => {
     try {
       setLoadingOut(true);
-      const resp = await axios.get(`/api/export-orders/${orderId}/packages-needed`, { headers: getAuthHeaders() });
+      const resp = await axiosInstance.get(`/api/export-orders/${orderId}/packages-needed`, { headers: getAuthHeaders() });
       if (!resp.data.success) throw new Error();
       setOutstanding(resp.data.data.outstanding);
+      
+      // For internal orders, automatically open proceed modal if there are outstanding packages
+      if (isInternalOrder && resp.data.data.outstanding && resp.data.data.outstanding.length > 0) {
+        const firstOutstanding = resp.data.data.outstanding[0];
+        if (firstOutstanding.packages && firstOutstanding.packages.length > 0) {
+          const firstPackage = firstOutstanding.packages[0];
+          // Auto-open proceed modal for internal orders
+          openProceedModal(
+            firstOutstanding.detail_id, 
+            firstPackage, 
+            firstOutstanding.needed_quantity
+          );
+        }
+      }
     } catch {
       // ignore
     } finally {
@@ -263,8 +302,8 @@ export default function ExportOrderDetail() {
         setLoadingPkgDetail(true);
 
         // fetch package
-        const { data: pkgResp } = await axios.get(`/api/packages/${currentPkg}`, { headers: getAuthHeaders() });
-        if (!pkgResp.success) throw new Error(trans.common.failedToLoadPackage);
+        const { data: pkgResp } = await axiosInstance.get(`/api/packages/${currentPkg}`, { headers: getAuthHeaders() });
+        if (!pkgResp.success) throw new Error(trans?.common?.failedToLoadPackage || 'Failed to load package');
         const pkg = pkgResp.data;
         setPkgDetail(pkg);
 
@@ -302,7 +341,7 @@ export default function ExportOrderDetail() {
   const handleLocSubmit = async () => {
     setLoadingLoc(true);
     try {
-      const resp = await axios.get(`/api/packages/location/${locInput}`, {
+      const resp = await axiosInstance.get(`/api/packages/location/${locInput}`, {
         headers: getAuthHeaders()
       });
       const payload = resp.data.data;
@@ -311,8 +350,8 @@ export default function ExportOrderDetail() {
       if (payload.success === false || (payload.success === true && Array.isArray(payload.packages) && payload.packages.length === 0)) {
         setSnackbar({
           open: true,
-          message: trans.common.invalidOrEmptyLocation,
-          severity: trans.common.error
+          message: trans?.common?.invalidOrEmptyLocation || 'Invalid or empty location',
+          severity: trans?.common?.error || 'error'
         });
         setLocPackages([]);
         return;
@@ -346,7 +385,7 @@ export default function ExportOrderDetail() {
   if (!order)
     return (
       <Alert severity="info" sx={{ m: 4 }}>
-        {trans.common.orderNotFound}
+        {trans?.common?.orderNotFound || 'Order not found'}
       </Alert>
     );
 
@@ -354,58 +393,69 @@ export default function ExportOrderDetail() {
   const getPickedQty = (detail) => detail.actual_item?.reduce((s, i) => s + i.quantity, 0) || 0;
 
   return (
-    <Box sx={{ background: theme.palette.background.default, minHeight: trans.common.fullHeight, py: 4 }}>
+    <Box sx={{ background: theme.palette.background.default, minHeight: trans?.common?.fullHeight || '100vh', py: 4 }}>
       <Container>
         <Typography variant="h4" gutterBottom>
-          {trans.common.exportOrder} #{order._id}
+          {trans?.common?.exportOrder || 'Export Order'} #{order._id}
+          {isInternalOrder && (
+            <Chip 
+              label={trans?.common?.internalOrder || 'Internal Order'} 
+              color="primary" 
+              size="small" 
+              sx={{ ml: 2 }}
+            />
+          )}
         </Typography>
         <Typography variant="body1" color="text.secondary" mb={3}>
-          {trans.common.packingAndCountingMedicines}
+          {isInternalOrder 
+            ? (trans?.common?.internalOrderDescription || 'Internal order - batches are pre-selected. You can directly scan packages to proceed.')
+            : (trans?.common?.packingAndCountingMedicines || 'Packing and Counting Medicines')
+          }
         </Typography>
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6">{trans.common.orderDetail}</Typography>
+            <Typography variant="h6">{trans?.common?.orderDetail || 'Order Detail'}</Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Grid container spacing={2} mb={2} alignItems="center">
               <Grid item xs={12} sm={3}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  {trans.common.status}:
+                  {trans?.common?.status || 'Status'}:
                 </Typography>
                 <Typography variant="body1" fontWeight="medium">
-                  {order.status || trans.common.na}
+                  {order.status || trans?.common?.na || 'N/A'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  {trans.common.contract}:
+                  {trans?.common?.contract || 'Contract'}:
                 </Typography>
                 <Typography variant="body1" fontWeight="medium">
-                  {order.contract_id?.contract_code || trans.common.na}
+                  {order.contract_id?.contract_code || trans?.common?.na || 'N/A'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  {trans.common.createdBy}
+                  {trans?.common?.createdBy || 'Created By'}
                 </Typography>
                 <Typography variant="body1" fontWeight="medium">
-                  {order.created_by?.email.slice(0, -10) || trans.common.na}
+                  {order.created_by?.email.slice(0, -10) || trans?.common?.na || 'N/A'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  {trans.common.warehouseManager}
+                  {trans?.common?.warehouseManager || 'Warehouse Manager'}
                 </Typography>
                 <Typography variant="body1" fontWeight="medium">
-                  {order.warehouse_manager_id?.email || trans.common.na}
+                  {order.warehouse_manager_id?.email || trans?.common?.na || 'N/A'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={3}>
                 <Typography variant="subtitle2" color="text.secondary">
-                  {trans.common.supplier}:
+                  {trans?.common?.supplier || 'Supplier'}:
                 </Typography>
                 <Typography variant="body1" fontWeight="medium">
-                  {order.contract_id?.partner_id?.name || trans.common.na}
+                  {order.contract_id?.partner_id?.name || trans?.common?.na || 'N/A'}
                 </Typography>
               </Grid>
             </Grid>
@@ -413,7 +463,7 @@ export default function ExportOrderDetail() {
             <Divider sx={{ mb: 2 }} />
 
             <Typography variant="subtitle1" mb={1} fontWeight="bold">
-              {trans.common.items}:
+              {trans?.common?.items || 'Items'}:
             </Typography>
             <Stack spacing={1} mb={2}>
               {order.details.map((d) => (
@@ -427,20 +477,31 @@ export default function ExportOrderDetail() {
 
         <Accordion disabled={pickingDone} defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>{trans.common.picking}</Typography>
+            <Typography>{trans?.common?.picking || 'Picking'}</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Stack direction="row" spacing={1} mb={2}>
-              <Button size="small" variant="outlined" onClick={handleOpenModal}>
-                {trans.common.scanLocation}
-              </Button>
-              <Button size="small" variant="outlined" onClick={handleOpenPkgModal}>
-                {trans.common.scanPackage}
-              </Button>
-              <IconButton size="small" onClick={handleRefresh}>
-                <RefreshIcon fontSize="small" />
-              </IconButton>
-            </Stack>
+            {isInternalOrder ? (
+              <Stack direction="row" spacing={1} mb={2}>
+                <Button size="small" variant="outlined" onClick={handleOpenPkgModal}>
+                  {trans?.common?.scanPackage || 'Scan Package'}
+                </Button>
+                <IconButton size="small" onClick={handleRefresh}>
+                  <RefreshIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+            ) : (
+              <Stack direction="row" spacing={1} mb={2}>
+                <Button size="small" variant="outlined" onClick={handleOpenModal}>
+                  {trans?.common?.scanLocation || 'Scan Location'}
+                </Button>
+                <Button size="small" variant="outlined" onClick={handleOpenPkgModal}>
+                  {trans?.common?.scanPackage || 'Scan Package'}
+                </Button>
+                <IconButton size="small" onClick={handleRefresh}>
+                  <RefreshIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+            )}
 
             {/* Medicine‐level */}
             {loadingOut ? (
@@ -461,49 +522,79 @@ export default function ExportOrderDetail() {
                       </Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                      {/* Batch‐level */}
-                      {out.packages.map((pkg) => (
-                        <Accordion key={pkg.package_id} sx={{ mb: 1 }}>
-                          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                            <Typography variant="subtitle2">
-                              {pkg.batch_id.batch_code} — {new Date(pkg.batch_id.expiry_date).toLocaleDateString()}
-                            </Typography>
-                          </AccordionSummary>
-                          <AccordionDetails>
-                            <Table size="small">
-                              <TableHead>
-                                <TableRow>
-                                  <TableCell>{trans.common.bay}</TableCell>
-                                  <TableCell>{trans.common.row}</TableCell>
-                                  <TableCell>{trans.common.column}</TableCell>
-                                  <TableCell>{trans.common.area}</TableCell>
-                                  <TableCell>{trans.common.takeQty}</TableCell>
-                                  <TableCell>{trans.common.action}</TableCell>
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                <TableRow>
-                                  <TableCell>{pkg.location.bay}</TableCell>
-                                  <TableCell>{pkg.location.row}</TableCell>
-                                  <TableCell>{pkg.location.column}</TableCell>
-                                  <TableCell>{pkg.location.area_name}</TableCell>
-                                  <TableCell>{pkg.take_quantity}</TableCell>
-                                  <TableCell>
-                                    <Button
-                                      key={pkg.package_id}
-                                      size="small"
-                                      variant="contained"
-                                      onClick={() => openProceedModal(detail._id, pkg, pkg.take_quantity)}
-                                    >
-                                      {trans.common.proceed}
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              </TableBody>
-                            </Table>
-                          </AccordionDetails>
-                        </Accordion>
-                      ))}
+                      {/* For internal orders, show simplified package view */}
+                      {isInternalOrder ? (
+                        <Box>
+                          <Typography variant="body2" color="text.secondary" mb={2}>
+                            {trans?.common?.internalOrderBatchInfo || 'Internal order - batches are pre-selected. Scan packages to proceed.'}
+                          </Typography>
+                          {out.packages.map((pkg) => (
+                            <Box key={pkg.package_id} sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 1, mb: 1 }}>
+                              <Typography variant="subtitle2" gutterBottom>
+                                {pkg.batch_id.batch_code} — {new Date(pkg.batch_id.expiry_date).toLocaleDateString()}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" gutterBottom>
+                                {trans?.common?.location || 'Location'}: {pkg.location.area_name} - Bay {pkg.location.bay}, Row {pkg.location.row}, Col {pkg.location.column}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" gutterBottom>
+                                {trans?.common?.takeQty || 'Take Qty'}: {pkg.take_quantity}
+                              </Typography>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                onClick={() => openProceedModal(detail._id, pkg, pkg.take_quantity)}
+                                sx={{ mt: 1 }}
+                              >
+                                {trans?.common?.proceed || 'Proceed'}
+                              </Button>
+                            </Box>
+                          ))}
+                        </Box>
+                      ) : (
+                        /* Original detailed view for external orders */
+                        out.packages.map((pkg) => (
+                          <Accordion key={pkg.package_id} sx={{ mb: 1 }}>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                              <Typography variant="subtitle2">
+                                {pkg.batch_id.batch_code} — {new Date(pkg.batch_id.expiry_date).toLocaleDateString()}
+                              </Typography>
+                            </AccordionSummary>
+                            <AccordionDetails>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>{trans?.common?.bay || 'Bay'}</TableCell>
+                                    <TableCell>{trans?.common?.row || 'Row'}</TableCell>
+                                    <TableCell>{trans?.common?.column || 'Column'}</TableCell>
+                                    <TableCell>{trans?.common?.area || 'Area'}</TableCell>
+                                    <TableCell>{trans?.common?.takeQty || 'Take Qty'}</TableCell>
+                                    <TableCell>{trans?.common?.action || 'Action'}</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  <TableRow>
+                                    <TableCell>{pkg.location.bay}</TableCell>
+                                    <TableCell>{pkg.location.row}</TableCell>
+                                    <TableCell>{pkg.location.column}</TableCell>
+                                    <TableCell>{pkg.location.area_name}</TableCell>
+                                    <TableCell>{pkg.take_quantity}</TableCell>
+                                    <TableCell>
+                                      <Button
+                                        key={pkg.package_id}
+                                        size="small"
+                                        variant="contained"
+                                        onClick={() => openProceedModal(detail._id, pkg, pkg.take_quantity)}
+                                      >
+                                        {trans?.common?.proceed || 'Proceed'}
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
+                            </AccordionDetails>
+                          </Accordion>
+                        ))
+                      )}
                     </AccordionDetails>
                   </Accordion>
                 );
@@ -515,7 +606,7 @@ export default function ExportOrderDetail() {
 
       {/* Scan Location Modal */}
       <Dialog open={openModal} onClose={() => handleCloseModal} fullWidth maxWidth="sm">
-        <DialogTitle>{trans.common.scanLocation}</DialogTitle>
+        <DialogTitle>{trans?.common?.scanLocation || 'Scan Location'}</DialogTitle>
 
         {/* Wrap the content in a form */}
         <Box
@@ -527,7 +618,7 @@ export default function ExportOrderDetail() {
         >
           <DialogContent>
             <TextField
-              label={trans.common.locationId}
+              label={trans?.common?.locationId || 'Location ID'}
               fullWidth
               value={locInput}
               onChange={(e) => setLocInput(e.target.value)}
@@ -545,9 +636,9 @@ export default function ExportOrderDetail() {
                 <Table size="small" sx={{ mt: 2 }}>
                   <TableHead>
                     <TableRow>
-                      <TableCell>{trans.common.medicine}</TableCell>
-                      <TableCell>{trans.common.qty}</TableCell>
-                      <TableCell>{trans.common.action}</TableCell>
+                      <TableCell>{trans?.common?.medicine || 'Medicine'}</TableCell>
+                      <TableCell>{trans?.common?.qty || 'Qty'}</TableCell>
+                      <TableCell>{trans?.common?.action || 'Action'}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -585,7 +676,7 @@ export default function ExportOrderDetail() {
                                   )
                                 }
                               >
-                                {trans.common.proceed}
+                                {trans?.common?.proceed || 'Proceed'}
                               </Button>
                             )}
                           </TableCell>
@@ -601,18 +692,18 @@ export default function ExportOrderDetail() {
           <DialogActions>
             {/* this will trigger the form's onSubmit */}
             <Button type="submit" disabled={!locInput || loadingLoc}>
-              {trans.common.submit}
+              {trans?.common?.submit || 'Submit'}
             </Button>
             {/* non-submit button */}
             <Button type="button" onClick={handleCloseModal}>
-              {trans.common.close}
+              {trans?.common?.close || 'Close'}
             </Button>
           </DialogActions>
         </Box>
       </Dialog>
 
       <Dialog open={proceedOpen} onClose={closeProceedModal} fullWidth maxWidth="xs">
-        <DialogTitle>{trans.common.verifyPackageAndPickAmount}</DialogTitle>
+        <DialogTitle>{trans?.common?.verifyPackageAndPickAmount || 'Verify Package and Pick Amount'}</DialogTitle>
         <Box component="form" onSubmit={handleProceedSubmit}>
           <DialogContent>
             {loadingPkgDetail ? (
@@ -624,22 +715,22 @@ export default function ExportOrderDetail() {
                 {/* Package Info */}
                 <Stack spacing={1} mb={2}>
                   <Typography>
-                    <strong>{trans.common.medicine}:</strong> {pkgDetail.batch_id.medicine_id.medicine_name}
+                    <strong>{trans?.common?.medicine || 'Medicine'}:</strong> {pkgDetail.batch_id.medicine_id.medicine_name}
                   </Typography>
                   <Typography>
-                    <strong>{trans.common.licenseCode}:</strong> {pkgDetail.batch_id.medicine_id.license_code}
+                    <strong>{trans?.common?.licenseCode || 'License Code'}:</strong> {pkgDetail.batch_id.medicine_id.license_code}
                   </Typography>
                   <Typography>
-                    <strong>{trans.common.batchCode}:</strong> {pkgDetail.batch_id.batch_code}
+                    <strong>{trans?.common?.batchCode || 'Batch Code'}:</strong> {pkgDetail.batch_id.batch_code}
                   </Typography>
                   <Typography>
-                    <strong>{trans.common.expiry}:</strong> {new Date(pkgDetail.batch_id.expiry_date).toLocaleDateString()}
+                    <strong>{trans?.common?.expiry || 'Expiry'}:</strong> {new Date(pkgDetail.batch_id.expiry_date).toLocaleDateString()}
                   </Typography>
                   <Typography>
-                    <strong>{trans.common.onHandQty}:</strong> {onHandQty}
+                    <strong>{trans?.common?.onHandQty || 'On Hand Qty'}:</strong> {onHandQty}
                   </Typography>
                   <Typography>
-                    <strong>{trans.common.recommended}:</strong> {recommendedQty}
+                    <strong>{trans?.common?.recommended || 'Recommended'}:</strong> {recommendedQty}
                   </Typography>
                 </Stack>
 
@@ -648,14 +739,14 @@ export default function ExportOrderDetail() {
                   {(() => {
                     let label, color;
                     if (!verifyInput) {
-                      label = trans.common.enterPackageId;
-                      color = trans.common.default;
+                      label = trans?.common?.enterPackageId || 'Enter Package ID';
+                      color = trans?.common?.default || 'default';
                     } else if (verifyInput === String(pkgDetail._id)) {
-                      label = trans.common.validPackageId;
-                      color = trans.common.success;
+                      label = trans?.common?.validPackageId || 'Valid Package ID';
+                      color = trans?.common?.success || 'success';
                     } else {
-                      label = trans.common.invalidPackageId;
-                      color = trans.common.error;
+                      label = trans?.common?.invalidPackageId || 'Invalid Package ID';
+                      color = trans?.common?.error || 'error';
                     }
                     return <Chip label={label} color={color} size="small" />;
                   })()}
@@ -663,10 +754,10 @@ export default function ExportOrderDetail() {
 
                 {/* Verification Input */}
                 <Typography variant="body2" gutterBottom>
-                  {trans.common.pleaseScanOrEnterPackageId}
+                  {trans?.common?.pleaseScanOrEnterPackageId || 'Please scan or enter the package ID'}
                 </Typography>
                 <TextField
-                  label={trans.common.packageId}
+                  label={trans?.common?.packageId || 'Package ID'}
                   fullWidth
                   margin="dense"
                   value={verifyInput}
@@ -677,10 +768,10 @@ export default function ExportOrderDetail() {
 
                 {/* Pick Quantity Input */}
                 <Typography variant="body2" sx={{ mt: 2 }}>
-                  {trans.common.enterAmountToPick} (max {Math.min(onHandQty, neededQty)}):
+                  {trans?.common?.enterAmountToPick || 'Enter amount to pick'} (max {Math.min(onHandQty, neededQty)}):
                 </Typography>
                 <TextField
-                  label={trans.common.pickQuantity}
+                  label={trans?.common?.pickQuantity || 'Pick Quantity'}
                   type="number"
                   fullWidth
                   margin="dense"
@@ -694,7 +785,7 @@ export default function ExportOrderDetail() {
                 />
               </>
             ) : (
-              <Alert severity="error">{trans.common.unableToLoadPackageDetails}</Alert>
+              <Alert severity="error">{trans?.common?.unableToLoadPackageDetails || 'Unable to load package details'}</Alert>
             )}
           </DialogContent>
           <DialogActions>
@@ -705,20 +796,20 @@ export default function ExportOrderDetail() {
                 verifyInput !== String(pkgDetail?._id) || pickAmount < 1 || pickAmount > Math.min(pkgDetail?.quantity || 0, neededQty)
               }
             >
-              {trans.common.submit}
+              {trans?.common?.submit || 'Submit'}
             </Button>
-            <Button onClick={closeProceedModal}>{trans.common.cancel}</Button>
+            <Button onClick={closeProceedModal}>{trans?.common?.cancel || 'Cancel'}</Button>
           </DialogActions>
         </Box>
       </Dialog>
 
       {/* Scan Package Modal */}
       <Dialog open={openPkgModal} onClose={handleClosePkgModal} fullWidth maxWidth="sm">
-        <DialogTitle>{trans.common.scanPackage}</DialogTitle>
+        <DialogTitle>{trans?.common?.scanPackage || 'Scan Package'}</DialogTitle>
         <Box component="form" onSubmit={handlePkgSubmit}>
           <DialogContent>
             <TextField
-              label={trans.common.packageId}
+              label={trans?.common?.packageId || 'Package ID'}
               fullWidth
               value={pkgInput}
               onChange={(e) => setPkgInput(e.target.value.trim())}
@@ -729,10 +820,10 @@ export default function ExportOrderDetail() {
           </DialogContent>
           <DialogActions>
             <Button type="submit" variant="contained" disabled={!pkgInput}>
-              {trans.common.submit}
+              {trans?.common?.submit || 'Submit'}
             </Button>
             <Button type="button" onClick={handleClosePkgModal}>
-              {trans.common.cancel}
+              {trans?.common?.cancel || 'Cancel'}
             </Button>
           </DialogActions>
         </Box>
@@ -742,12 +833,12 @@ export default function ExportOrderDetail() {
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
-        anchorOrigin={{ vertical: trans.common.bottom, horizontal: trans.common.center }}
+        anchorOrigin={{ vertical: trans?.common?.bottom || 'bottom', horizontal: trans?.common?.center || 'center' }}
       >
         <Alert
           onClose={() => setSnackbar((sn) => ({ ...sn, open: false }))}
           severity={snackbar.severity}
-          sx={{ width: trans.common.fullWidth }}
+          sx={{ width: trans?.common?.fullWidth || '100%' }}
         >
           {snackbar.message}
         </Alert>

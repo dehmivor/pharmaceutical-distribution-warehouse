@@ -183,10 +183,10 @@ const CheckOrders = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        {trans.common.listOfInventoryCheckOrders}
+        {trans?.checkOrders?.title || 'List of Inventory Check Orders'}
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
-        {trans.common.manageAndTrackInventoryCheckOrders}
+        {trans?.checkOrders?.description || 'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.'}
       </Typography>
 
       {error && (

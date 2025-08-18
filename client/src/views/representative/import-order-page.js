@@ -30,16 +30,10 @@ import {
   Card,
   CardContent
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Info as InfoIcon,
-  Refresh as RefreshIcon,
-  FilterList as FilterListIcon
-} from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Info as InfoIcon, Refresh as RefreshIcon, FilterList as FilterListIcon, Search as SearchIcon } from '@mui/icons-material';
 import axios from 'axios';
 import useTrans from '@/hooks/useTrans';
+import WarningIcon from '@mui/icons-material/Warning';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 const getAuthHeaders = () => {
@@ -67,6 +61,10 @@ function ImportOrderPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  // Delete confirmation dialog state
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState(null);
+
   // Filter state
   const [filters, setFilters] = useState({
     contract_code: '',
@@ -77,6 +75,15 @@ function ImportOrderPage() {
   });
   const [userEmails, setUserEmails] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
+  
+  // Add applied filters state to separate current filters from applied ones
+  const [appliedFilters, setAppliedFilters] = useState({
+    contract_code: '',
+    contract_type: '',
+    supplier: '',
+    date_filter: '',
+    created_by: ''
+  });
 
   // Form states
   const [formData, setFormData] = useState({
@@ -231,12 +238,15 @@ function ImportOrderPage() {
   }, [formData.contract_type, contractMedicines, selectedOrder]);
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this order?')) {
-      return;
-    }
+    setOrderToDelete(id);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!orderToDelete) return;
 
     try {
-      await axiosInstance.delete(`/import-orders/${id}`, {
+      await axiosInstance.delete(`/import-orders/${orderToDelete}`, {
         headers: getAuthHeaders()
       });
       setSuccess('Order deleted successfully');
@@ -245,6 +255,9 @@ function ImportOrderPage() {
       console.error('Error deleting order:', error);
       const errorMessage = error.response?.data?.error || error.message;
       setError(`Failed to delete order: ${errorMessage}`);
+    } finally {
+      setOpenDeleteDialog(false);
+      setOrderToDelete(null);
     }
   };
 
@@ -538,15 +551,24 @@ function ImportOrderPage() {
     }));
   };
 
+  // Apply filters when search button is clicked
+  const applyFilters = () => {
+    setAppliedFilters(filters);
+    setPage(0); // Reset to first page when applying new filters
+  };
+
   // Clear all filters
   const clearFilters = () => {
-    setFilters({
+    const emptyFilters = {
       contract_code: '',
       contract_type: '',
       supplier: '',
       date_filter: '',
       created_by: ''
-    });
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setPage(0);
   };
 
   // Filter contracts based on selected contract_type
@@ -555,13 +577,12 @@ function ImportOrderPage() {
     return contract.contract_type === formData.contract_type;
   });
 
-  // Filter orders based on current filters
+  // Filter orders based on applied filters (not current filters)
   const filteredOrders = orders.filter((order) => {
-    if (filters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(filters.contract_code.toLowerCase()))
-      return false;
-    if (filters.contract_type && order.contract_id?.contract_type !== filters.contract_type) return false;
-    if (filters.supplier && order.contract_id?.partner_id?.name !== filters.supplier) return false;
-    if (filters.created_by && order.created_by?.email !== filters.created_by) return false;
+    if (appliedFilters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(appliedFilters.contract_code.toLowerCase())) return false;
+    if (appliedFilters.contract_type && order.contract_id?.contract_type !== appliedFilters.contract_type) return false;
+    if (appliedFilters.supplier && order.contract_id?.partner_id?.name !== appliedFilters.supplier) return false;
+    if (appliedFilters.created_by && order.created_by?.email !== appliedFilters.created_by) return false;
     return true;
   });
 
@@ -662,12 +683,26 @@ function ImportOrderPage() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', height: '100%' }}>
-                <Button variant="outlined" onClick={clearFilters} fullWidth>
-                  {trans.common.clearFilters}
-                </Button>
-              </Box>
+            <Grid item xs={12} sm={6} md={2}>
+              <Button
+                variant="contained"
+                onClick={applyFilters}
+                fullWidth
+                sx={{ height: '56px' }}
+                startIcon={<SearchIcon />}
+              >
+                {trans.common.search || 'Search'}
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={6} md={1}>
+              <Button
+                variant="outlined"
+                onClick={clearFilters}
+                fullWidth
+                sx={{ height: '56px' }}
+              >
+                {trans.common.clear || 'Clear'}
+              </Button>
             </Grid>
           </Grid>
         </CardContent>
@@ -906,17 +941,26 @@ function ImportOrderPage() {
                         <TextField
                           fullWidth
                           label={trans.common.quantity}
-                          type="number"
-                          value={detail.quantity}
+                          type="text"
+                          value={detail.quantity ? detail.quantity.toLocaleString() : ''}
                           onChange={(e) => {
-                            const value = parseInt(e.target.value) || 0;
+                            // Remove all non-digit characters and convert to number
+                            const rawValue = e.target.value.replace(/[^\d]/g, '');
+                            const value = parseInt(rawValue) || 0;
                             // Prevent negative values
                             const validValue = Math.max(1, value);
                             handleDetailChange(index, 'quantity', validValue);
                           }}
-                          InputProps={{
+                          onBlur={(e) => {
+                            // Format on blur if empty
+                            if (!e.target.value) {
+                              handleDetailChange(index, 'quantity', 0);
+                            }
+                          }}
+                          InputProps={{ 
                             readOnly: formData.contract_type !== 'principal',
-                            min: 1
+                            inputMode: 'numeric',
+                            pattern: '[0-9]*'
                           }}
                           required
                           disabled={!detail.medicine_id || medicinesLoading}
@@ -924,7 +968,7 @@ function ImportOrderPage() {
                             const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
                             if (contractItem) {
                               if (formData.contract_type === 'principal') {
-                                return `Min: ${contractItem.min_order_quantity || 1} (${trans.common.quantityEditableNote})`;
+                                return `Min: ${(contractItem.min_order_quantity || 1).toLocaleString()} (${trans.common.quantityEditableNote})`;
                               } else {
                                 return `${trans.common.fromContractEconomicCannotEdit}`;
                               }
@@ -938,8 +982,8 @@ function ImportOrderPage() {
                         <TextField
                           fullWidth
                           label={trans.common.unitPrice}
-                          type="number"
-                          value={detail.unit_price}
+                          type="text"
+                          value={detail.unit_price ? detail.unit_price.toLocaleString() : ''}
                           InputProps={{ readOnly: true }}
                           required
                           disabled={!detail.medicine_id || medicinesLoading}
@@ -1077,6 +1121,139 @@ function ImportOrderPage() {
         <DialogActions sx={{ justifyContent: 'center', gap: 2, pb: 2 }}>
           <Button onClick={handleCloseDetails} variant="outlined" sx={{ minWidth: 120 }}>
             {trans.common.close}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog 
+        open={openDeleteDialog} 
+        onClose={() => setOpenDeleteDialog(false)} 
+        maxWidth="xs" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: '0 15px 40px rgba(0,0,0,0.12)',
+            border: '1px solid rgba(255,0,0,0.08)'
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          textAlign: 'center', 
+          fontWeight: 600, 
+          color: 'error.main',
+          fontSize: '1.25rem',
+          py: 2,
+          borderBottom: '1px solid rgba(255,0,0,0.08)',
+          background: 'linear-gradient(135deg, #fff5f5 0%, #fff 100%)'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+            <Box sx={{
+              width: 45,
+              height: 45,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 6px 20px rgba(255,107,107,0.25)',
+              mb: 1
+            }}>
+              <DeleteIcon sx={{ color: 'white', fontSize: 22 }} />
+            </Box>
+          </Box>
+          {trans.common.confirmDelete || 'Confirm Delete'}
+        </DialogTitle>
+        <DialogContent sx={{ py: 2.5, px: 3 }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="body1" sx={{ 
+              mb: 2, 
+              fontWeight: 500,
+              color: 'text.primary',
+              lineHeight: 1.4
+            }}>
+              {trans.common.deleteOrderConfirmation || 'Are you sure you want to delete this import order?'}
+            </Typography>
+            
+            <Box sx={{
+              background: 'linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%)',
+              borderRadius: 1.5,
+              p: 2,
+              border: '1px solid #ffb74d',
+              mb: 2
+            }}>
+              <Typography variant="body2" sx={{ 
+                color: '#e65100',
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 0.5,
+                fontSize: '0.875rem'
+              }}>
+                <WarningIcon sx={{ fontSize: 18 }} />
+                {trans.common.deleteOrderWarning || 'This action cannot be undone.'}
+              </Typography>
+            </Box>
+
+            <Typography variant="caption" color="text.secondary" sx={{ 
+              fontStyle: 'italic',
+              opacity: 0.7
+            }}>
+              {trans.common.deleteOrderNote || 'Please review before proceeding.'}
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ 
+          justifyContent: 'center', 
+          gap: 2, 
+          pb: 3, 
+          px: 3,
+          borderTop: '1px solid rgba(0,0,0,0.06)',
+          background: '#fafafa'
+        }}>
+          <Button 
+            onClick={() => setOpenDeleteDialog(false)} 
+            variant="outlined" 
+            sx={{ 
+              minWidth: 110,
+              height: 40,
+              borderRadius: 1.5,
+              borderColor: 'grey.400',
+              color: 'text.secondary',
+              fontWeight: 500,
+              textTransform: 'none',
+              fontSize: '0.875rem',
+              '&:hover': {
+                borderColor: 'grey.600',
+                background: 'rgba(0,0,0,0.04)'
+              }
+            }}
+          >
+            {trans.common.cancel || 'Cancel'}
+          </Button>
+          <Button 
+            onClick={handleConfirmDelete} 
+            variant="contained" 
+            sx={{ 
+              minWidth: 110,
+              height: 40,
+              borderRadius: 1.5,
+              background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%)',
+              fontWeight: 500,
+              textTransform: 'none',
+              fontSize: '0.875rem',
+              boxShadow: '0 6px 20px rgba(255,107,107,0.25)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #ff5252 0%, #d32f2f 100%)',
+                boxShadow: '0 8px 25px rgba(255,107,107,0.35)',
+                transform: 'translateY(-1px)'
+              },
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {trans.common.delete || 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
