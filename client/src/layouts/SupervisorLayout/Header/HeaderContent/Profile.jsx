@@ -159,24 +159,13 @@ export default function ProfileSection() {
                   <Divider sx={{ my: 1 }} />
                   <List disablePadding>
                     <ListItem
-                      secondaryAction={
-                        <Switch size="small" checked={false} onChange={() => enqueueSnackbar('Upgrade to pro for dark theme')} />
-                      }
-                      sx={{ py: 0.5, pl: 1, '& .MuiListItemSecondaryAction-root': { right: 8 } }}
-                    >
-                      <ListItemIcon>
-                        <IconSunMoon size={16} />
-                      </ListItemIcon>
-                      <ListItemText primary={trans.header.darkMode || 'Dark Mode'} />
-                    </ListItem>
-                    <ListItem
                       secondaryAction={<Switch size="small" checked={false} onChange={() => enqueueSnackbar('Upgrade to pro for RTL')} />}
                       sx={{ py: 1, pl: 1, '& .MuiListItemSecondaryAction-root': { right: 8 } }}
                     >
                       <ListItemIcon>
                         <IconTextDirectionLtr size={16} />
                       </ListItemIcon>
-                      <ListItemText primary={trans.header.rtlMode || 'RTL Mode'} />
+                      <ListItemText primary={trans.header.rtlMode || 'Scan Mobile Mode'} />
                     </ListItem>
                     <ListItemButton sx={buttonStyle} onClick={handleInnerActionClick}>
                       <ListItemIcon>

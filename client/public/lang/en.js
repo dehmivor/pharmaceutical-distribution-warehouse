@@ -10,7 +10,7 @@ export default {
     settings: 'Settings',
     language: 'Language',
     darkMode: 'Dark Mode',
-    rtlMode: 'RTL Mode'
+    rtlMode: 'Scan Mobile Mode'
   },
 
   // Tabs
@@ -172,10 +172,10 @@ export default {
     locationManagement: 'Location Management',
     manageAreas: 'Manage Areas',
     manageLocations: 'Manage Locations',
-    contractManagement: 'Contract Management',
+    contractManagement: 'Partner Management',
     retailerManagement: 'Retailer Management',
     supplierManagement: 'Supplier Management',
-    logManagement: 'Log Management',
+    logManagement: 'Log Location Change',
     dataReports: 'Data & Reports',
     dashboard: 'Dashboard',
     reports: 'Reports',
@@ -2203,7 +2203,8 @@ export default {
   na: 'N/A',
   // Inventory Check Orders
   listOfInventoryCheckOrders: 'List of Inventory Check Orders',
-  manageAndTrackInventoryCheckOrders: 'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.',
+  manageAndTrackInventoryCheckOrders:
+    'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.',
   errorLoadingInventoryCheckOrders: 'Error loading inventory check orders',
   search: 'Search',
   checkDate: 'Check Date',
