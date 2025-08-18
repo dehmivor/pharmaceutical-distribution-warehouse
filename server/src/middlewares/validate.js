@@ -418,18 +418,7 @@ const inventoryCheckOrderValidator = {
       .withMessage('Inventory check date is required')
       .isISO8601()
       .toDate()
-      .withMessage('Invalid inventory check date')
-      .custom((value) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Set to start of today
-        const checkDate = new Date(value);
-        checkDate.setHours(0, 0, 0, 0);
-        
-        if (checkDate <= today) {
-          throw new Error('Ngày kiểm kê phải sau ngày hôm nay');
-        }
-        return true;
-      }),
+      .withMessage('Invalid inventory check date'),
     check('notes')
       .optional()
       .isString()

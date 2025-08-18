@@ -416,7 +416,7 @@ export default function CheckOrderDetail() {
                             variant="contained"
                             size="small"
                             color={ins.status === 'checking' ? 'warning' : 'primary'}
-                            disabled={ins.status === 'checked' || (ins.status === 'checking' && ins.check_by != userId)}
+                            disabled={ins.status === 'checked' || (ins.status === 'checking' && ins.check_by != userId) || order.status != 'processing'}
                             onClick={() => handleProceed(ins)}
                           >
                             {ins.status === 'checking' && ins.check_by != userId ? trans.continue : trans.proceed}
