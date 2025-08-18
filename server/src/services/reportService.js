@@ -10,34 +10,32 @@ class ReportService {
   // Get comprehensive report data
   static async getComprehensiveReport(filters = {}) {
     try {
-      const {
-        startDate,
-        endDate,
-        period = 'monthly',
-        status,
-        type,
-        partnerType,
-        page = 1,
-        limit = 10,
-      } = filters;
+      const { startDate, endDate, period = 'monthly', status, type, partnerType } = filters;
 
-      console.log('Filters received:', filters);
+      const dateFilter = {};
+      if (startDate && endDate) {
+        dateFilter.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate),
+        };
+      }
 
-      const statusFilter = status && status !== 'all' ? { status: status.toUpperCase() } : {};
-      const typeFilter = type && type !== 'all' ? { type } : {};
+      const statusFilter = status ? { status } : {};
+      const typeFilter = type ? { type } : {};
+
+      // Filter partnerType requires checking in nested populated data, so handle later after fetching bills
 
       const combinedFilter = {
+        ...dateFilter,
         ...statusFilter,
         ...typeFilter,
       };
-
-      console.log('Combined filter:', JSON.stringify(combinedFilter, null, 2));
 
       // Find bills and populate nested references
       let bills = await Bill.find(combinedFilter)
         .populate({
           path: 'import_order_id',
-          select: 'order_code contract_id status updatedAt',
+          select: 'order_code contract_id',
           populate: {
             path: 'contract_id',
             select: 'contract_code partner_type partner_id',
@@ -45,52 +43,13 @@ class ReportService {
         })
         .populate({
           path: 'export_order_id',
-          select: 'order_code contract_id status updatedAt',
+          select: 'order_code contract_id',
           populate: {
             path: 'contract_id',
             select: 'contract_code partner_type partner_id',
           },
         })
         .sort({ createdAt: -1 });
-
-      console.log('Found bills:', bills.length);
-
-      // Debug: Check if bills have populated import_order_id
-      bills.forEach((bill, index) => {
-        console.log(`Bill ${index + 1} (${bill._id}):`);
-        console.log('  - createdAt:', bill.createdAt);
-        console.log('  - updatedAt:', bill.updatedAt);
-        console.log('  - import_order_id:', bill.import_order_id ? 'EXISTS' : 'NULL');
-        console.log('  - import_order_id.updatedAt:', bill.import_order_id?.updatedAt);
-        console.log('  - import_order_id.status:', bill.import_order_id?.status);
-        console.log('  - export_order_id:', bill.export_order_id ? 'EXISTS' : 'NULL');
-        console.log('  - export_order_id.updatedAt:', bill.export_order_id?.updatedAt);
-        console.log('  - export_order_id.status:', bill.export_order_id?.status);
-      });
-
-      // Apply date filtering based on Bill's createdAt/updatedAt
-      if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-
-        console.log('Date filter range:', { startDate, endDate, start, end });
-
-        bills = bills.filter((bill) => {
-          // Use Bill's createdAt for date filtering since it has timestamps now
-          const billDateToFilter = bill.createdAt;
-          console.log(`Bill ${bill._id}: createdAt =`, billDateToFilter);
-
-          const isInRange =
-            billDateToFilter && billDateToFilter >= start && billDateToFilter <= end;
-          console.log(
-            `Bill ${bill._id}: Date in range? ${isInRange} (${billDateToFilter} >= ${start} && ${billDateToFilter} <= ${end})`,
-          );
-
-          return isInRange;
-        });
-
-        console.log('Bills after date filtering:', bills.length);
-      }
 
       // Filter by partnerType if provided (since partnerType is nested)
       if (partnerType) {
@@ -101,17 +60,8 @@ class ReportService {
         });
       }
 
-      // Apply pagination
-      const totalBills = bills.length;
-      const skip = (page - 1) * limit;
-      const paginatedBills = bills.slice(skip, skip + limit);
-
-      console.log(
-        `Pagination: page=${page}, limit=${limit}, total=${totalBills}, showing=${paginatedBills.length}`,
-      );
-
       // Process bills
-      const processedBills = paginatedBills.map((bill) => {
+      const processedBills = bills.map((bill) => {
         const billValue = bill.details.reduce(
           (sum, detail) => sum + detail.quantity * detail.unit_price,
           0,
@@ -122,8 +72,6 @@ class ReportService {
         let partnerId = 'N/A';
         let orderCode = 'N/A';
         let orderType = 'N/A';
-        let billCreatedAt = bill.createdAt; // Use Bill's createdAt
-        let billUpdatedAt = bill.updatedAt; // Use Bill's updatedAt
 
         if (bill.import_order_id) {
           contractCode = bill.import_order_id.contract_id?.contract_code || 'N/A';
@@ -139,19 +87,9 @@ class ReportService {
           orderType = 'EXPORT';
         }
 
-        // Determine bill status based on amount paid
-        let billStatus = 'pending';
-        if (bill.amountPaid > 0) {
-          if (bill.amountPaid >= billValue) {
-            billStatus = 'completed';
-          } else {
-            billStatus = 'partial';
-          }
-        }
-
         return {
           id: bill._id.toString(),
-          billCode: bill.bill_code || `BILL_${bill._id.toString().slice(-8)}`,
+          billCode: bill.bill_code || 'N/A',
           voucherCode: bill.voucher_code || 'N/A',
           contractCode,
           partnerType: partnerTypeVal,
@@ -159,14 +97,14 @@ class ReportService {
           orderCode,
           orderType,
           billType: bill.type,
-          status: billStatus,
+          status: bill.status.toLowerCase(),
           totalValue: billValue,
           amountPaid: bill.amountPaid || 0,
           remainingAmount: billValue - (bill.amountPaid || 0),
           paymentDate: bill.payment_date || null,
           dueDate: bill.due_date || null,
-          createdAt: billCreatedAt,
-          updatedAt: billUpdatedAt,
+          createdAt: bill.createdAt,
+          updatedAt: bill.updatedAt,
           details: bill.details.map((detail) => ({
             medicineCode: detail.medicine_lisence_code,
             quantity: detail.quantity,
@@ -178,32 +116,22 @@ class ReportService {
 
       // Summary statistics
       const summary = {
-        totalBills: totalBills, // Use total count, not just current page
+        totalBills: processedBills.length,
         totalValue: processedBills.reduce((sum, bill) => sum + bill.totalValue, 0),
         totalPaid: processedBills.reduce((sum, bill) => sum + bill.amountPaid, 0),
         totalRemaining: processedBills.reduce((sum, bill) => sum + bill.remainingAmount, 0),
         overdueBills: processedBills.filter((bill) => bill.status === 'overdue').length,
         pendingBills: processedBills.filter((bill) => bill.status === 'pending').length,
         completedBills: processedBills.filter((bill) => bill.status === 'completed').length,
-        partialBills: processedBills.filter((bill) => bill.status === 'partial').length,
         importBills: processedBills.filter((bill) => bill.orderType === 'IMPORT').length,
         exportBills: processedBills.filter((bill) => bill.orderType === 'EXPORT').length,
       };
-
-      console.log('Processed bills:', processedBills.length);
-      console.log('Summary:', summary);
 
       return {
         success: true,
         data: {
           bills: processedBills,
           summary,
-          pagination: {
-            page,
-            limit,
-            total: totalBills,
-            totalPages: Math.ceil(totalBills / limit),
-          },
           filters: {
             startDate,
             endDate,
@@ -411,6 +339,327 @@ class ReportService {
     } catch (error) {
       console.error('Error generating medicine analysis report:', error);
       throw error;
+    }
+  }
+
+  // Get import orders report
+  static async getImportOrdersReport(filters = {}) {
+    try {
+      const {
+        startDate,
+        endDate,
+        period = 'monthly',
+        status,
+        supplierId,
+        page = 1,
+        limit = 10,
+      } = filters;
+
+      const dateFilter = {};
+      if (startDate && endDate) {
+        dateFilter.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate),
+        };
+      }
+
+      const statusFilter = status && status !== 'all' ? { status } : {};
+      const supplierFilter =
+        supplierId && supplierId !== 'All Supplier' ? { 'contract_id.partner_id': supplierId } : {};
+
+      const combinedFilter = {
+        ...dateFilter,
+        ...statusFilter,
+        ...supplierFilter,
+      };
+
+      const skip = (page - 1) * limit;
+
+      // Find import orders with populated references
+      const importOrders = await ImportOrder.find(combinedFilter)
+        .populate({
+          path: 'contract_id',
+          select: 'contract_code partner_id status',
+          populate: {
+            path: 'partner_id',
+            select: 'name',
+          },
+        })
+        .populate({
+          path: 'warehouse_manager_id',
+          select: 'full_name',
+        })
+        .populate({
+          path: 'created_by',
+          select: 'full_name',
+        })
+        .populate({
+          path: 'approval_by',
+          select: 'full_name',
+        })
+        .populate({
+          path: 'details.medicine_id',
+          select: 'medicine_name license_code unit_of_measure category status',
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+      // Get total count for pagination
+      const totalCount = await ImportOrder.countDocuments(combinedFilter);
+
+      // Process import orders data
+      const processedOrders = importOrders.map((order) => {
+        const contractCode = order.contract_id?.contract_code || 'N/A';
+        const contractStatus = order.contract_id?.status || 'N/A';
+        const supplierName = order.contract_id?.partner_id?.name || 'N/A';
+        const warehouseManager = order.warehouse_manager_id?.full_name || 'N/A';
+        const createdBy = order.created_by?.full_name || 'N/A';
+        const approvedBy = order.approval_by?.full_name || 'N/A';
+
+        // Calculate total value from medicine details
+        const totalValue = order.details.reduce((sum, detail) => {
+          const unitPrice = 1000; // Placeholder value since unit_price is not available
+          return sum + detail.quantity * unitPrice;
+        }, 0);
+
+        return {
+          id: order._id.toString(),
+          orderCode: `IMP_${order._id.toString().slice(-8)}`,
+          contractCode,
+          contractStatus,
+          supplierName,
+          warehouseManager,
+          status: order.status,
+          orderType: order.order_type || 'IMPORT',
+          totalValue: Math.round(totalValue / 1000), // Convert to thousands for VND display
+          createdBy,
+          approvedBy,
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+          // Medicine details for detailed view
+          medicineDetails: order.details.map((detail) => ({
+            medicineName: detail.medicine_id?.medicine_name || 'Unknown Medicine',
+            medicineCode: detail.medicine_id?.license_code || 'N/A',
+            quantity: detail.quantity,
+            unitPrice: 1000, // Placeholder value since unit_price is not available
+            totalPrice: detail.quantity * 1000,
+            category: detail.medicine_id?.category || 'N/A',
+            unitOfMeasure: detail.medicine_id?.unit_of_measure || 'N/A',
+            status: detail.medicine_id?.status || 'N/A',
+          })),
+        };
+      });
+
+      return {
+        success: true,
+        data: {
+          importOrders: processedOrders,
+          pagination: {
+            total: totalCount,
+            page,
+            limit,
+            totalPages: Math.ceil(totalCount / limit),
+          },
+        },
+      };
+    } catch (error) {
+      console.error('Error getting import orders report:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Export import orders report to Excel
+  static async exportImportOrdersReport(filters = {}) {
+    try {
+      const { startDate, endDate, period = 'monthly', status, supplierId } = filters;
+
+      const dateFilter = {};
+      if (startDate && endDate) {
+        dateFilter.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate),
+        };
+      }
+
+      const statusFilter = status && status !== 'all' ? { status } : {};
+      const supplierFilter =
+        supplierId && supplierId !== 'All Supplier' ? { 'contract_id.partner_id': supplierId } : {};
+
+      const combinedFilter = {
+        ...dateFilter,
+        ...statusFilter,
+        ...supplierFilter,
+      };
+
+      // Find all import orders for export (no pagination)
+      const importOrders = await ImportOrder.find(combinedFilter)
+        .populate({
+          path: 'contract_id',
+          select: 'contract_code partner_id status',
+          populate: {
+            path: 'partner_id',
+            select: 'name',
+          },
+        })
+        .populate({
+          path: 'warehouse_manager_id',
+          select: 'full_name',
+        })
+        .populate({
+          path: 'created_by',
+          select: 'full_name',
+        })
+        .populate({
+          path: 'approval_by',
+          select: 'full_name',
+        })
+        .populate({
+          path: 'details.medicine_id',
+          select: 'medicine_name license_code unit_of_measure category status',
+        })
+        .sort({ createdAt: -1 });
+
+      // Process export data
+      const exportData = importOrders.map((order) => {
+        const contractCode = order.contract_id?.contract_code || 'N/A';
+        const supplierName = order.contract_id?.partner_id?.name || 'N/A';
+        const warehouseManager = order.warehouse_manager_id?.full_name || 'N/A';
+        const createdBy = order.created_by?.full_name || 'N/A';
+        const approvedBy = order.approval_by?.full_name || 'N/A';
+
+        // Calculate total value
+        const totalValue = order.details.reduce((sum, detail) => {
+          const unitPrice = 1000; // Placeholder value
+          return sum + detail.quantity * unitPrice;
+        }, 0);
+
+        return {
+          'Order Code': `IMP_${order._id.toString().slice(-8)}`,
+          'Contract Code': contractCode,
+          'Supplier Name': supplierName,
+          'Warehouse Manager': warehouseManager,
+          Status: order.status,
+          'Order Type': order.order_type || 'IMPORT',
+          'Total Value (VND)': totalValue,
+          'Created By': createdBy,
+          'Approved By': approvedBy || 'N/A',
+          'Created At': order.createdAt.toISOString().split('T')[0],
+          'Updated At': order.updatedAt.toISOString().split('T')[0],
+        };
+      });
+
+      return {
+        success: true,
+        data: exportData,
+      };
+    } catch (error) {
+      console.error('Error exporting import orders report:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Get import report summary
+  static async getImportReportSummary(filters = {}) {
+    try {
+      const { startDate, endDate, period = 'monthly' } = filters;
+
+      const dateFilter = {};
+      if (startDate && endDate) {
+        dateFilter.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate),
+        };
+      }
+
+      // Get summary statistics
+      const totalOrders = await ImportOrder.countDocuments(dateFilter);
+      const completedOrders = await ImportOrder.countDocuments({
+        ...dateFilter,
+        status: 'completed',
+      });
+      const pendingOrders = await ImportOrder.countDocuments({ ...dateFilter, status: 'pending' });
+      const cancelledOrders = await ImportOrder.countDocuments({
+        ...dateFilter,
+        status: 'cancelled',
+      });
+
+      // Get total value
+      const ordersWithValue = await ImportOrder.find(dateFilter).populate('details.medicine_id');
+      const totalValue = ordersWithValue.reduce((sum, order) => {
+        const orderValue = order.details.reduce((detailSum, detail) => {
+          const unitPrice = 1000; // Placeholder value
+          return detailSum + detail.quantity * unitPrice;
+        }, 0);
+        return sum + orderValue;
+      }, 0);
+
+      return {
+        success: true,
+        data: {
+          totalOrders,
+          completedOrders,
+          pendingOrders,
+          cancelledOrders,
+          totalValue: Math.round(totalValue / 1000), // Convert to thousands
+          completionRate: totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0,
+        },
+      };
+    } catch (error) {
+      console.error('Error getting import report summary:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Get import report dashboard data
+  static async getImportReportDashboard(filters = {}) {
+    try {
+      const { startDate, endDate, period = 'monthly' } = filters;
+
+      const dateFilter = {};
+      if (startDate && endDate) {
+        dateFilter.createdAt = {
+          $gte: new Date(startDate),
+          $lte: new Date(endDate),
+        };
+      }
+
+      // Get both report data and summary
+      const [reportResult, summaryResult] = await Promise.all([
+        this.getImportOrdersReport({ ...filters, page: 1, limit: 10 }),
+        this.getImportReportSummary(filters),
+      ]);
+
+      if (reportResult.success && summaryResult.success) {
+        return {
+          success: true,
+          data: {
+            recentOrders: reportResult.data.importOrders,
+            summary: summaryResult.data,
+            filters,
+          },
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Failed to retrieve dashboard data',
+        };
+      }
+    } catch (error) {
+      console.error('Error getting import report dashboard:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
     }
   }
 }

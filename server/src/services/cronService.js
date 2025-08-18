@@ -1,21 +1,43 @@
 const cron = require('node-cron');
 const mongoose = require('mongoose');
-const { User, Batch } = require('../models');
+const { User, Batch, Package, Supplier } = require('../models');
 
 // Lấy batch hết hạn dưới 6 tháng kể từ refDate
 const getBatchesExpiredUnder6Months = async (refDate) => {
+  console.log('getBatchesExpiredUnder6Months called with refDate:', refDate);
   const endDate = new Date(refDate);
   endDate.setMonth(endDate.getMonth() + 6);
+  console.log('End date for under 6 months:', endDate);
 
   const batches = await Batch.find({
     expiry_date: { $gte: refDate, $lt: endDate },
-  }).populate('medicine_id');
+  })
+    .populate('medicine_id')
+    .populate('supplier_id');
 
-  return batches;
+  console.log('Found batches under 6 months:', batches.length);
+
+  // Get quantity information from packages
+  const batchesWithQuantity = await Promise.all(
+    batches.map(async (batch) => {
+      const packages = await Package.find({ batch_id: batch._id });
+      const totalQuantity = packages.reduce((sum, pkg) => sum + pkg.quantity, 0);
+
+      return {
+        ...batch.toObject(),
+        quantity: totalQuantity,
+        supplier: batch.supplier_id?.name || 'N/A',
+      };
+    }),
+  );
+
+  console.log('Batches with quantity processed:', batchesWithQuantity.length);
+  return batchesWithQuantity;
 };
 
 // Lấy batch hết hạn khoảng 6-7, 7-8, 8-9 tháng
 const getBatchesExpiringAtIntervals = async (refDate) => {
+  console.log('getBatchesExpiringAtIntervals called with refDate:', refDate);
   const addMonths = (date, months) => {
     const d = new Date(date);
     d.setMonth(d.getMonth() + months);
@@ -31,19 +53,65 @@ const getBatchesExpiringAtIntervals = async (refDate) => {
   const start8 = addMonths(refDate, 8);
   const end8 = addMonths(refDate, 9);
 
+  console.log('Date ranges:', { start6, end6, start7, end7, start8, end8 });
+
   const batches6 = await Batch.find({
     expiry_date: { $gte: start6, $lt: end6 },
-  }).populate('medicine_id');
+  })
+    .populate('medicine_id')
+    .populate('supplier_id');
 
   const batches7 = await Batch.find({
     expiry_date: { $gte: start7, $lt: end7 },
-  }).populate('medicine_id');
+  })
+    .populate('medicine_id')
+    .populate('supplier_id');
 
   const batches8 = await Batch.find({
     expiry_date: { $gte: start8, $lt: end8 },
-  }).populate('medicine_id');
+  })
+    .populate('medicine_id')
+    .populate('supplier_id');
 
-  return { batches6, batches7, batches8 };
+  console.log('Raw batches found:', {
+    batches6: batches6.length,
+    batches7: batches7.length,
+    batches8: batches8.length,
+  });
+
+  // Get quantity information for all batches
+  const getBatchesWithQuantity = async (batchList) => {
+    return Promise.all(
+      batchList.map(async (batch) => {
+        const packages = await Package.find({ batch_id: batch._id });
+        const totalQuantity = packages.reduce((sum, pkg) => sum + pkg.quantity, 0);
+
+        return {
+          ...batch.toObject(),
+          quantity: totalQuantity,
+          supplier: batch.supplier_id?.name || 'N/A',
+        };
+      }),
+    );
+  };
+
+  const [batches6WithQuantity, batches7WithQuantity, batches8WithQuantity] = await Promise.all([
+    getBatchesWithQuantity(batches6),
+    getBatchesWithQuantity(batches7),
+    getBatchesWithQuantity(batches8),
+  ]);
+
+  console.log('Batches with quantity processed:', {
+    sixMonths: batches6WithQuantity.length,
+    sevenMonths: batches7WithQuantity.length,
+    eightMonths: batches8WithQuantity.length,
+  });
+
+  return {
+    sixMonths: batches6WithQuantity,
+    sevenMonths: batches7WithQuantity,
+    eightMonths: batches8WithQuantity,
+  };
 };
 
 // Lấy batch hết hạn trong khoảng thời gian cụ thể

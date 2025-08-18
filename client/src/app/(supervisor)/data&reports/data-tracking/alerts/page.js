@@ -5,8 +5,8 @@ import dynamic from 'next/dynamic';
 
 const Alerts = dynamic(() => import('@/views/supervisor/data-tracking/alerts'));
 
-/***************************  IMPORT ORDERS MANAGEMENT  ***************************/
+/***************************  ALERTS & DATA TRACKING  ***************************/
 
-export default function ImportOrdersPage() {
+export default function AlertsPage() {
   return <Alerts />;
 }

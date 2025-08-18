@@ -61,31 +61,49 @@ const getAuthHeaders = () => {
   };
 };
 
+import useConfig from '@/hooks/useConfig';
+import { ThemeI18n } from '@/config';
+
 const formatCurrency = (value) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
-  }).format(value);
+  const { i18n } = useConfig();
+  const locale = i18n === ThemeI18n.VN ? 'vi-VN' : 'en-US';
+
+  // For VND, display in thousands format
+  if (i18n === ThemeI18n.VN) {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value * 1000); // Multiply by 1000 since value is in thousands
+  } else {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'USD'
+    }).format(value);
+  }
 };
 
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('vi-VN');
+  const { i18n } = useConfig();
+  const locale = i18n === ThemeI18n.VN ? 'vi-VN' : 'en-US';
+  return new Date(date).toISOString().slice(0, 10);
 };
 
-export default function Report() {
+export default function ImportReport() {
   const trans = useTrans();
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [reportData, setReportData] = useState({
-    bills: [],
+    importOrders: [],
     summary: {},
     filters: {}
   });
 
   // Pagination state
   const [page, setPage] = useState(0); // 0-based for TablePagination
-  const [rowsPerPage, setRowsPerPage] = useState(7);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const [totalCount, setTotalCount] = useState(0);
 
   const [filters, setFilters] = useState({
@@ -93,14 +111,15 @@ export default function Report() {
     endDate: new Date().toISOString().slice(0, 10), // Today
     period: 'monthly',
     status: 'all',
-    type: 'all',
-    partnerType: '',
+    supplierId: 'All Supplier',
     reportType: 'comprehensive'
   });
   const [uploadDialog, setUploadDialog] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [templates, setTemplates] = useState([]);
+  const [partnerTypes, setPartnerTypes] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
 
   // Fetch report data
   const fetchReportData = async () => {
@@ -109,41 +128,36 @@ export default function Report() {
       setError(null);
 
       const params = new URLSearchParams();
-      if (filters.startDate) params.append('startDate', new Date(filters.startDate).toISOString());
-      if (filters.endDate) params.append('endDate', new Date(filters.endDate).toISOString());
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.period) params.append('period', filters.period);
       if (filters.status && filters.status !== 'all') params.append('status', filters.status);
-      if (filters.type && filters.type !== 'all') params.append('type', filters.type);
-      if (filters.partnerType) params.append('partnerType', filters.partnerType);
+      if (filters.supplierId && filters.supplierId !== 'All Supplier') params.append('supplierId', filters.supplierId);
 
       // Add pagination parameters
       params.append('page', (page + 1).toString()); // Convert to 1-based for API
       params.append('limit', rowsPerPage.toString());
 
       console.log('Frontend filters:', filters);
-      console.log('Date conversion:', {
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        startDateISO: new Date(filters.startDate).toISOString(),
-        endDateISO: new Date(filters.endDate).toISOString()
-      });
-      console.log('Fetching report with params:', params.toString());
-      console.log('Auth headers:', getAuthHeaders());
-      const response = await axios.get(`${API_BASE_URL}/api/reports/comprehensive?${params.toString()}`, { headers: getAuthHeaders() });
+      console.log('Fetching import report with params:', params.toString());
 
-      console.log('Report response:', response.data);
+      const response = await axios.get(`${API_BASE_URL}/api/reports/import-orders?${params.toString()}`, {
+        headers: getAuthHeaders()
+      });
+
+      console.log('Import report response:', response.data);
 
       if (response.data.success) {
         setReportData(response.data.data);
-        setTotalCount(response.data.data.pagination?.total || response.data.data.bills?.length || 0);
-        console.log('Report data set:', response.data.data);
-        console.log('Bills count:', response.data.data.bills?.length || 0);
+        setTotalCount(response.data.data.pagination?.total || response.data.data.importOrders?.length || 0);
+        console.log('Import report data set:', response.data.data);
+        console.log('Import orders count:', response.data.data.importOrders?.length || 0);
         console.log('Pagination info:', response.data.data.pagination);
       } else {
         setError(trans.reports.failedToLoad);
       }
     } catch (error) {
-      console.error('Error fetching report data:', error);
+      console.error('Error fetching import report data:', error);
       setError(error.response?.data?.error || trans.reports.failedToLoad);
     } finally {
       setLoading(false);
@@ -162,20 +176,43 @@ export default function Report() {
     }
   };
 
+  // Fetch partner types from database
+  const fetchPartnerTypes = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/reports/partner-types`, { headers: getAuthHeaders() });
+      if (response.data.success) {
+        setPartnerTypes(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching partner types:', error);
+    }
+  };
+
+  // Fetch suppliers for supplier filter
+  const fetchSuppliers = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/supplier/all/v1`, { headers: getAuthHeaders() });
+      if (response.data.success) {
+        setSuppliers(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    }
+  };
+
   // Export to Excel
   const exportToExcel = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (filters.startDate) params.append('startDate', new Date(filters.startDate).toISOString());
-      if (filters.endDate) params.append('endDate', new Date(filters.endDate).toISOString());
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.period) params.append('period', filters.period);
       if (filters.status && filters.status !== 'all') params.append('status', filters.status);
-      if (filters.type && filters.type !== 'all') params.append('type', filters.type);
-      if (filters.partnerType) params.append('partnerType', filters.partnerType);
-      params.append('reportType', filters.reportType);
+      if (filters.supplierId && filters.supplierId !== 'All Supplier') params.append('supplierId', filters.supplierId);
+      params.append('reportType', 'import-orders');
 
-      const response = await axios.get(`${API_BASE_URL}/api/reports/export?${params.toString()}`, {
+      const response = await axios.get(`${API_BASE_URL}/api/reports/import-orders/export?${params.toString()}`, {
         headers: getAuthHeaders(),
         responseType: 'blob'
       });
@@ -183,7 +220,7 @@ export default function Report() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `report_${filters.reportType}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      link.setAttribute('download', `import_orders_report_${new Date().toISOString().split('T')[0]}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -195,45 +232,17 @@ export default function Report() {
     }
   };
 
-  // Upload file
-  const handleFileUpload = async () => {
-    if (!uploadFile) return;
-
-    try {
-      setUploading(true);
-      const formData = new FormData();
-      formData.append('file', uploadFile);
-
-      const response = await axios.post(`${API_BASE_URL}/api/reports/upload`, formData, {
-        headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      if (response.data.success) {
-        alert(trans.reports.fileUploadedSuccess);
-        setUploadDialog(false);
-        setUploadFile(null);
-        fetchReportData(); // refresh data after upload
-      }
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      setError('Failed to upload file');
-    } finally {
-      setUploading(false);
-    }
-  };
-
   // Initial data load
   useEffect(() => {
     fetchReportData();
     fetchTemplates();
+    fetchPartnerTypes();
+    fetchSuppliers(); // Fetch suppliers when component mounts
   }, []); // Only run on component mount
 
   // Pagination changes
   useEffect(() => {
-    if (page > 0 || rowsPerPage !== 10) {
+    if (page > 0 || rowsPerPage !== 5) {
       // Avoid duplicate initial load
       fetchReportData();
     }
@@ -246,7 +255,6 @@ export default function Report() {
   const handleFilterChange = (field, value) => {
     console.log('Filter change:', field, value);
     setFilters((prev) => ({ ...prev, [field]: value }));
-    // Note: Removed automatic page reset - now only happens on search
   };
 
   const handleSearch = () => {
@@ -261,8 +269,7 @@ export default function Report() {
       endDate: new Date().toISOString().slice(0, 10), // Today
       period: 'monthly',
       status: 'all',
-      type: 'all',
-      partnerType: '',
+      supplierId: 'All Supplier',
       reportType: 'comprehensive'
     });
     setPage(0); // Reset to first page
@@ -288,9 +295,21 @@ export default function Report() {
         return 'success';
       case 'pending':
         return 'warning';
-      case 'partial':
+      case 'processing':
         return 'info';
-      case 'overdue':
+      case 'cancelled':
+        return 'error';
+      case 'approved':
+        return 'default';
+      case 'draft':
+        return 'default';
+      case 'delivered':
+        return 'info';
+      case 'checked':
+        return 'warning';
+      case 'arranged':
+        return 'primary';
+      case 'rejected':
         return 'error';
       default:
         return 'default';
@@ -300,11 +319,7 @@ export default function Report() {
   const getTypeColor = (type) => {
     switch (type) {
       case 'IMPORT':
-        return 'info';
-      case 'EXPORT':
         return 'primary';
-      case 'PAYMENT_VOUCHER':
-        return 'secondary';
       default:
         return 'default';
     }
@@ -315,10 +330,10 @@ export default function Report() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            {trans.reports.reportTitle}
+            {trans.reports.importReportTitle}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            {trans.reports.reportDescription}
+            {trans.reports.importReportDescription}
           </Typography>
         </Box>
       </Box>
@@ -336,7 +351,7 @@ export default function Report() {
             {/* Filter inputs */}
             <Grid item xs={12} md={3}>
               <TextField
-                label={trans.reports.startDate}
+                label={trans.reports.startDate || 'Start Date'}
                 type="date"
                 value={filters.startDate}
                 onChange={(e) => handleFilterChange('startDate', e.target.value)}
@@ -346,7 +361,7 @@ export default function Report() {
             </Grid>
             <Grid item xs={12} md={3}>
               <TextField
-                label={trans.reports.endDate}
+                label={trans.reports.endDate || 'End Date'}
                 type="date"
                 value={filters.endDate}
                 onChange={(e) => handleFilterChange('endDate', e.target.value)}
@@ -356,134 +371,156 @@ export default function Report() {
             </Grid>
             <Grid item xs={12} md={2}>
               <FormControl fullWidth>
-                <InputLabel id="period-label">{trans.reports.period}</InputLabel>
+                <InputLabel id="period-label">{trans.reports.period || 'Period'}</InputLabel>
                 <Select
                   labelId="period-label"
                   value={filters.period}
                   onChange={(e) => handleFilterChange('period', e.target.value)}
-                  label="Chu kỳ"
+                  label={trans.reports.period || 'Period'}
                 >
-                  <MenuItem value="weekly">{trans.common.weekly}</MenuItem>
-                  <MenuItem value="monthly">{trans.common.monthly}</MenuItem>
-                  <MenuItem value="quarterly">{trans.common.quarterly}</MenuItem>
-                  {/* Nếu cần thêm 'yearly' có thể thêm ở đây */}
+                  <MenuItem value="weekly">{trans.common.weekly || 'Weekly'}</MenuItem>
+                  <MenuItem value="monthly">{trans.common.monthly || 'Monthly'}</MenuItem>
+                  <MenuItem value="quarterly">{trans.common.quarterly || 'Quarterly'}</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>{trans.reports.status}</InputLabel>
-                <Select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} label={trans.reports.status}>
-                  <MenuItem value="all">{trans.reports.allStatus}</MenuItem>
-                  <MenuItem value="pending">
+                <InputLabel>{trans.reports.status || 'Status'}</InputLabel>
+                <Select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  label={trans.reports.status || 'Status'}
+                >
+                  <MenuItem value="all">{trans.reports.allStatus || 'All Status'}</MenuItem>
+                  <MenuItem value="draft">
                     <Typography noWrap sx={{ maxWidth: '120px' }}>
-                      {trans.reports.pending.length > 7 ? `${trans.reports.pending.substring(0, 7)}...` : trans.reports.pending}
+                      {trans.reports.draft || 'Draft'}
                     </Typography>
                   </MenuItem>
-                  <MenuItem value="partial">
-                    <Typography noWrap sx={{ maxWidth: '120px' }}>
-                      {trans.reports.partial.length > 7 ? `${trans.reports.partial.substring(0, 7)}...` : trans.reports.partial}
-                    </Typography>
+                  <MenuItem value="pending">
+                    <Typography>{trans.reports.pending || 'Pending'}</Typography>
+                  </MenuItem>
+                  <MenuItem value="approved">
+                    <Typography>{trans.reports.approved || 'Approved'}</Typography>
+                  </MenuItem>
+                  <MenuItem value="delivered">
+                    <Typography>{trans.reports.delivered || 'Delivered'}</Typography>
+                  </MenuItem>
+                  <MenuItem value="checked">
+                    <Typography>{trans.reports.checked || 'Checked'}</Typography>
+                  </MenuItem>
+                  <MenuItem value="arranged">
+                    <Typography>{trans.reports.arranged || 'Arranged'}</Typography>
                   </MenuItem>
                   <MenuItem value="completed">
-                    <Typography noWrap sx={{ maxWidth: '120px' }}>
-                      {trans.reports.completed.length > 7 ? `${trans.reports.completed.substring(0, 7)}...` : trans.reports.completed}
-                    </Typography>
+                    <Typography>{trans.reports.completed || 'Completed'}</Typography>
+                  </MenuItem>
+                  <MenuItem value="cancelled">
+                    <Typography>{trans.reports.cancelled || 'Cancelled'}</Typography>
+                  </MenuItem>
+                  <MenuItem value="rejected">
+                    <Typography>{trans.reports.rejected || 'Rejected'}</Typography>
                   </MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} md={2}>
               <FormControl fullWidth size="small">
-                <InputLabel>{trans.reports.type}</InputLabel>
-                <Select value={filters.type} onChange={(e) => handleFilterChange('type', e.target.value)} label={trans.reports.type}>
-                  <MenuItem value="all">{trans.reports.allTypes}</MenuItem>
-                  <MenuItem value="import">
-                    <Typography noWrap sx={{ maxWidth: '120px' }}>
-                      {trans.reports.import.length > 7 ? `${trans.reports.import.substring(0, 7)}...` : trans.reports.import}
-                    </Typography>
-                  </MenuItem>
-                  <MenuItem value="export">
-                    <Typography noWrap sx={{ maxWidth: '120px' }}>
-                      {trans.reports.export.length > 7 ? `${trans.reports.export.substring(0, 7)}...` : trans.reports.export}
-                    </Typography>
-                  </MenuItem>
+                <InputLabel>{trans.reports.supplier || 'Supplier'}</InputLabel>
+                <Select
+                  value={filters.supplierId}
+                  onChange={(e) => handleFilterChange('supplierId', e.target.value)}
+                  label={trans.reports.supplier || 'Supplier'}
+                  disabled={suppliers.length === 0}
+                >
+                  <MenuItem value="All Supplier">{trans.reports.all || 'All'}</MenuItem>
+                  {suppliers.length === 0 ? (
+                    <MenuItem disabled>Loading...</MenuItem>
+                  ) : (
+                    suppliers.map((supplier) => (
+                      <MenuItem key={supplier._id} value={supplier._id}>
+                        <Typography>{supplier.name}</Typography>
+                      </MenuItem>
+                    ))
+                  )}
                 </Select>
               </FormControl>
             </Grid>
-
             <Grid item xs={12} md={2}>
-              <Button size="small" variant="contained" startIcon={<DownloadIcon />} onClick={exportToExcel} disabled={loading} fullWidth>
-                {trans.common.downloadExcel}
+              <Button size="small" variant="outlined" startIcon={<DownloadIcon />} onClick={exportToExcel} disabled={loading} fullWidth>
+                {trans.reports.export || 'Export'}
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
-              <Button size="small" variant="outlined" startIcon={<UploadIcon />} onClick={() => setUploadDialog(true)} fullWidth>
-                {trans.common.uploadFile}
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<UploadIcon />}
+                onClick={() => setUploadDialog(true)}
+                disabled={loading}
+                fullWidth
+              >
+                {trans.reports.upload || 'Upload'}
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
               <Button size="small" variant="outlined" startIcon={<RefreshIcon />} onClick={handleReset} disabled={loading} fullWidth>
-                {trans.common.reset}
+                {trans.common.reset || 'Reset'}
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
               <Button size="small" variant="contained" startIcon={<Search />} onClick={handleSearch} disabled={loading} fullWidth>
-                {trans.common.search}
+                {trans.common.search || 'Search'}
               </Button>
             </Grid>
           </Grid>
         </CardContent>
       </Card>
-
       {loading && <LinearProgress variant="indeterminate" sx={{ mb: 2 }} />}
 
-      {/* Comprehensive Report Table */}
+      {/* Import Orders Report Table */}
       {activeTab === 0 && (
         <>
-          {reportData.bills && reportData.bills.length > 0 ? (
+          {reportData.importOrders && reportData.importOrders.length > 0 ? (
             <>
               <TableContainer component={Paper} sx={{ maxHeight: '60vh' }}>
                 <Table stickyHeader>
                   <TableHead sx={{ bgcolor: 'grey.50' }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.billCode}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.contractCode}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.partnerType}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderCode}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderType}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.status}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderCode || 'Order Code'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.contractCode || 'Contract Code'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.supplierName || 'Supplier Name'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.warehouseManager || 'Warehouse Manager'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.status || 'Status'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderType || 'Order Type'}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                        {trans.reports.totalValue}
+                        {trans.reports.totalValue || 'Total Value'}
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                        {trans.reports.amountPaid}
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                        {trans.reports.remainingAmount}
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.createdAt}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.createdBy || 'Created By'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.approvedBy || 'Approved By'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.createdAt || 'Created At'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.updatedAt || 'Updated At'}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {reportData.bills?.map((bill) => (
-                      <TableRow key={bill.id} hover>
-                        <TableCell>{bill.billCode}</TableCell>
-                        <TableCell>{bill.contractCode}</TableCell>
+                    {reportData.importOrders?.map((order) => (
+                      <TableRow key={order.id} hover>
+                        <TableCell>{order.orderCode}</TableCell>
+                        <TableCell>{order.contractCode}</TableCell>
+                        <TableCell>{order.supplierName}</TableCell>
+                        <TableCell>{order.warehouseManager}</TableCell>
                         <TableCell>
-                          <Chip label={bill.partnerType} size="small" color={bill.partnerType === 'Supplier' ? 'primary' : 'secondary'} />
-                        </TableCell>
-                        <TableCell>{bill.orderCode}</TableCell>
-                        <TableCell>
-                          <Chip label={bill.orderType} size="small" color={getTypeColor(bill.orderType)} />
+                          <Chip label={order.status} size="small" color={getStatusColor(order.status)} />
                         </TableCell>
                         <TableCell>
-                          <Chip label={bill.status} size="small" color={getStatusColor(bill.status)} />
+                          <Chip label={order.orderType} size="small" color={getTypeColor(order.orderType)} />
                         </TableCell>
-                        <TableCell align="right">{formatCurrency(bill.totalValue)}</TableCell>
-                        <TableCell align="right">{formatCurrency(bill.amountPaid)}</TableCell>
-                        <TableCell align="right">{formatCurrency(bill.remainingAmount)}</TableCell>
-                        <TableCell>{formatDate(bill.createdAt)}</TableCell>
+                        <TableCell align="right">{formatCurrency(order.totalValue)}</TableCell>
+                        <TableCell>{order.createdBy}</TableCell>
+                        <TableCell>{order.approvedBy || 'N/A'}</TableCell>
+                        <TableCell>{formatDate(order.createdAt)}</TableCell>
+                        <TableCell>{formatDate(order.updatedAt)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -498,20 +535,20 @@ export default function Report() {
                 onPageChange={handleChangePage}
                 rowsPerPage={rowsPerPage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
-                rowsPerPageOptions={[5, 10, 25, 50]}
-                labelRowsPerPage={trans.reports.rowsPerPage}
+                rowsPerPageOptions={[7]}
+                labelRowsPerPage={trans.reports.rowsPerPage || 'Rows per page:'}
                 labelDisplayedRows={({ from, to, count }) =>
-                  `${from}-${to} ${trans.reports.of} ${count !== -1 ? count : trans.reports.moreThanTo}`
+                  `${from}-${to} ${trans.reports.of || 'of'} ${count !== -1 ? count : trans.reports.moreThanTo || 'more than'}`
                 }
               />
             </>
           ) : (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Typography variant="h6" color="text.secondary" gutterBottom>
-                {trans.reports.noDataToDisplay}
+                {trans.reports.noDataToDisplay || 'No data to display'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {trans.reports.tryChangingFiltersOrCheckingData}
+                {trans.reports.tryChangingFiltersOrCheckingData || 'Try changing filters or checking data availability'}
               </Typography>
             </Box>
           )}
@@ -520,7 +557,7 @@ export default function Report() {
 
       {/* Upload Dialog */}
       <Dialog open={uploadDialog} onClose={() => setUploadDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{trans.reports.uploadExcelFile}</DialogTitle>
+        <DialogTitle>{trans.reports.uploadExcelFile || 'Upload Excel File'}</DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
             <input
@@ -532,20 +569,20 @@ export default function Report() {
             />
             <label htmlFor="file-upload">
               <Button variant="outlined" component="span" startIcon={<FileUploadIcon />} fullWidth>
-                {trans.reports.selectExcelFile}
+                {trans.reports.selectExcelFile || 'Select Excel File'}
               </Button>
             </label>
             {uploadFile && (
               <Typography variant="body2" sx={{ mt: 1 }}>
-                {trans.reports.selectedFile}: {uploadFile.name}
+                {trans.reports.selectedFile || 'Selected file'}: {uploadFile.name}
               </Typography>
             )}
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setUploadDialog(false)}>{trans.common.cancel}</Button>
-          <Button onClick={handleFileUpload} variant="contained" disabled={!uploadFile || uploading}>
-            {uploading ? trans.common.uploading : trans.common.upload}
+          <Button onClick={() => setUploadDialog(false)}>{trans.common.cancel || 'Cancel'}</Button>
+          <Button onClick={() => {}} variant="contained" disabled={!uploadFile}>
+            {trans.reports.upload || 'Upload'}
           </Button>
         </DialogActions>
       </Dialog>

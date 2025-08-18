@@ -21,22 +21,22 @@ const pages = {
       icon: 'IconFileAnalytics',
       children: [
         {
-          id: 'report-summary',
-          title: 'Weekly',
+          id: 'report-bills',
+          title: 'Bills',
           type: 'item',
-          url: '/data&reports/reports/weekly'
+          url: '/data&reports/reports/bills'
         },
         {
-          id: 'report-detail',
-          title: 'Monthly',
+          id: 'report-imports',
+          title: 'Imports',
           type: 'item',
-          url: '/data&reports/reports/monthly'
+          url: '/data&reports/reports/imports'
         },
         {
-          id: 'report-custom',
-          title: 'Yearly',
+          id: 'report-exports',
+          title: 'Exports',
           type: 'item',
-          url: '/data&reports/reports/yearly'
+          url: '/data&reports/reports/exports'
         }
       ]
     },

@@ -180,9 +180,9 @@ export default {
     dataReports: 'Dữ liệu & Báo cáo',
     dashboard: 'Bảng điều khiển',
     reports: 'Báo cáo',
-    weekly: 'Hàng tuần',
-    monthly: 'Hàng tháng',
-    yearly: 'Hàng năm',
+    bills: 'Hóa đơn',
+    imports: 'Nhập',
+    exports: 'Xuất',
     dataTracking: 'Theo dõi Dữ liệu',
     trends: 'Xu hướng',
     alerts: 'Cảnh báo',
@@ -319,6 +319,15 @@ export default {
 
   // Reports
   reports: {
+    reportTitle: 'Báo cáo Hóa đơn',
+    reportDescription: 'Tổng hợp báo cáo các loại bill trong hệ thống',
+    allStatus: 'Tất cả Trạng thái',
+    allTypes: 'Tất cả Loại',
+    pending: 'Đang chờ',
+    partial: 'Một phần',
+    completed: 'Hoàn thành',
+    import: 'Nhập',
+    export: 'Xuất',
     title: 'Báo cáo',
     billsReport: 'Báo cáo Hóa đơn',
     summary: 'Tóm tắt',
@@ -363,7 +372,27 @@ export default {
     tryChangingFiltersOrCheckingData: 'Hãy thử thay đổi bộ lọc hoặc kiểm tra lại dữ liệu',
     uploadExcelFile: 'Upload File Excel',
     selectExcelFile: 'Chọn file Excel',
-    selectedFile: 'File đã chọn'
+    selectedFile: 'File đã chọn',
+
+    // ✅ Thêm key cho export report
+      exportReportTitle: 'Báo cáo Đơn hàng Xuất',
+  exportReportDescription: 'Tổng hợp báo cáo các đơn hàng xuất trong hệ thống',
+  importReportTitle: 'Báo cáo Đơn hàng Nhập',
+  importReportDescription: 'Tổng hợp báo cáo các đơn hàng nhập với thông tin kho hàng',
+
+    // ✅ Thêm key cho status
+    draft: 'Nháp',
+    processing: 'Đang xử lý',
+    cancelled: 'Đã hủy',
+    rejected: 'Bị từ chối',
+
+    // ✅ Thêm key cho partner
+    retailer: 'Nhà bán lẻ',
+
+    // ✅ Thêm key cho export orders
+    createdBy: 'Tạo bởi',
+    approvedBy: 'Phê duyệt bởi',
+    updatedAt: 'Cập nhật lúc'
   },
 
   // Supplier Management
