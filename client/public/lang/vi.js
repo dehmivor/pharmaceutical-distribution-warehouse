@@ -169,7 +169,7 @@ export default {
     reportBills: 'Báo cáo Hóa đơn',
     inventoryManagement: 'Quản lý Kho hàng',
     inventoryCheckOrders: 'Đơn kiểm kê Kho hàng',
-    managePackages: 'Quản lý Gói hàng',
+    managePackages: 'Quản lý Thùng hàng',
     locationManagement: 'Quản lý Vị trí',
     manageAreas: 'Quản lý Khu vực',
     manageLocations: 'Quản lý Vị trí',
@@ -180,9 +180,9 @@ export default {
     dataReports: 'Dữ liệu & Báo cáo',
     dashboard: 'Bảng điều khiển',
     reports: 'Báo cáo',
-    weekly: 'Hàng tuần',
-    monthly: 'Hàng tháng',
-    yearly: 'Hàng năm',
+    bills: 'Hóa đơn',
+    imports: 'Nhập',
+    exports: 'Xuất',
     dataTracking: 'Theo dõi Dữ liệu',
     trends: 'Xu hướng',
     alerts: 'Cảnh báo',
@@ -319,6 +319,15 @@ export default {
 
   // Reports
   reports: {
+    reportTitle: 'Báo cáo Hóa đơn',
+    reportDescription: 'Tổng hợp báo cáo các loại bill trong hệ thống',
+    allStatus: 'Tất cả Trạng thái',
+    allTypes: 'Tất cả Loại',
+    pending: 'Đang chờ',
+    partial: 'Một phần',
+    completed: 'Hoàn thành',
+    import: 'Nhập',
+    export: 'Xuất',
     title: 'Báo cáo',
     billsReport: 'Báo cáo Hóa đơn',
     summary: 'Tóm tắt',
@@ -363,7 +372,27 @@ export default {
     tryChangingFiltersOrCheckingData: 'Hãy thử thay đổi bộ lọc hoặc kiểm tra lại dữ liệu',
     uploadExcelFile: 'Upload File Excel',
     selectExcelFile: 'Chọn file Excel',
-    selectedFile: 'File đã chọn'
+    selectedFile: 'File đã chọn',
+
+    // ✅ Thêm key cho export report
+      exportReportTitle: 'Báo cáo Đơn hàng Xuất',
+  exportReportDescription: 'Tổng hợp báo cáo các đơn hàng xuất trong hệ thống',
+  importReportTitle: 'Báo cáo Đơn hàng Nhập',
+  importReportDescription: 'Tổng hợp báo cáo các đơn hàng nhập với thông tin kho hàng',
+
+    // ✅ Thêm key cho status
+    draft: 'Nháp',
+    processing: 'Đang xử lý',
+    cancelled: 'Đã hủy',
+    rejected: 'Bị từ chối',
+
+    // ✅ Thêm key cho partner
+    retailer: 'Nhà bán lẻ',
+
+    // ✅ Thêm key cho export orders
+    createdBy: 'Tạo bởi',
+    approvedBy: 'Phê duyệt bởi',
+    updatedAt: 'Cập nhật lúc'
   },
 
   // Supplier Management
@@ -806,7 +835,9 @@ export default {
   common: {
     addNew: 'Thêm mới',
     update: 'Cập nhật',
+    updatedDate: 'Ngày cập nhật',
     refresh: 'Làm mới',
+    clear: 'Xóa',
     loading: 'Đang tải...',
     inspectionDate: 'Ngày kiểm tra',
     inspectionId: 'Mã kiểm kê',
@@ -942,13 +973,13 @@ export default {
     noLocationsFoundForBatch: 'Không tìm thấy vị trí nào cho lô này.',
     noLocationsFoundForMedicine: 'Không tìm thấy vị trí nào cho thuốc này.',
     findPackage: 'Tìm Gói Hàng',
-    packageId: 'ID Gói Hàng',
+    packageId: 'ID Thùng Hàng',
     cannotPrintLabel: 'Không thể tạo nhãn mã vạch.',
     findPackageById: 'Tìm gói hàng theo ID',
     internalImportOrder: 'Đơn Hàng Nhập Nội Bộ',
     internalOrder: 'Đơn Hàng Nội Bộ',
     autoFill: 'Tự Động Điền',
-    findByPackageId: 'Tìm theo ID gói hàng',
+    findByPackageId: 'Tìm theo ID Thùng hàng',
     viewImportOrders: 'Xem Đơn Hàng Nhập',
     warehouseStaffViewOnly: 'Nhân viên kho chỉ có thể xem đơn hàng. Thay đổi trạng thái được quản lý bởi quản lý kho.',
     searchOrders: 'Tìm Kiếm Đơn Hàng',
@@ -1232,6 +1263,7 @@ export default {
     errorCreatingLocations: 'Có lỗi xảy ra khi tạo vị trí',
     successfullyCreatedLocations: 'Tạo thành công {count} vị trí',
     // Additional common keys
+    dashboard: 'Bảng điều khiển',
     weekly: 'Tuần',
     quarterly: 'Quý',
     partialPayment: 'Thanh toán một phần',
@@ -1278,7 +1310,7 @@ export default {
     exportOrdersList: 'Danh sách đơn hàng xuất',
     management: 'Quản lý',
     locationManagement: 'Quản lý vị trí',
-    packageManagement: 'Quản lý gói hàng',
+    packageManagement: 'Quản lý thùng hàng',
     selectSpecificEmail: 'Chọn email cụ thể',
     // Import Order Details
     orderInformation: 'Thông tin đơn hàng',
@@ -1495,9 +1527,9 @@ export default {
     totalMedicines: 'Tổng: {count} thuốc',
     sufficientMedicines: 'Đủ: {count} thuốc',
     insufficientMedicines: 'Thiếu: {count} thuốc',
-    required: 'Yêu cầu: {count}',
-    available: 'Có sẵn: {count}',
-    missing: 'Thiếu: {count}',
+    required: 'Yêu cầu',
+    available: 'Có sẵn',
+    missing: 'Thiếu',
     insufficientStockButton: '❌ Thiếu Tồn Kho',
     checkingStockButton: 'Đang Kiểm Tra Tồn Kho...',
     // Order details
@@ -2318,8 +2350,8 @@ export default {
   unknownMedicine: 'Thuốc Không Xác Định',
   youHaveSentRequireToWarehouseManager: 'Bạn đã gửi yêu cầu đến quản lý kho',
   errorPrintingLabel: 'Lỗi in nhãn',
-  cannotSubmitInvalidPackage: 'Không thể gửi: gói hàng không hợp lệ hoặc thiếu',
-  invalidPackage: 'Gói hàng không hợp lệ',
+  cannotSubmitInvalidPackage: 'Không thể gửi: thùng hàng không hợp lệ hoặc thiếu',
+  invalidPackage: 'Thùng hàng không hợp lệ',
   // Color keys for UI indicators
   grey: 'Xám',
   green: 'Xanh lá',
@@ -2340,17 +2372,17 @@ export default {
   contentType: 'application/json',
   bearer: 'Bearer',
   // Package Management
-  packageManagement: 'Quản Lý Package',
-  viewPackage: 'Xem Package',
-  packageListDescription: 'Quản lý danh sách các package và vị trí lưu trữ',
-  viewPackageDescription: 'Xem danh sách các package và vị trí lưu trữ',
+  packageManagement: 'Quản Lý Thùng Hàng',
+  viewPackage: 'Xem Thùng Hàng',
+  packageListDescription: 'Quản lý danh sách các thùng hàng và vị trí lưu trữ',
+  viewPackageDescription: 'Xem danh sách các thùng hàng và vị trí lưu trữ',
   searchFilterTitle: 'Bộ Lọc Tìm Kiếm',
   medicine: 'Thuốc',
   area: 'Khu vực',
   all: 'Tất cả',
   filter: 'Lọc',
   refresh: 'Làm mới',
-  packageId: 'ID Package',
+  packageId: 'ID Thùng Hàng',
   location: 'Vị Trí',
   licenseCode: 'Mã License',
   medicineName: 'Tên Thuốc',
@@ -2360,7 +2392,7 @@ export default {
   updateLocation: 'Cập nhật vị trí',
   loading: 'Đang tải...',
   noData: 'Không có dữ liệu',
-  errorLoadingPackages: 'Lỗi khi tải danh sách packages',
+  errorLoadingPackages: 'Lỗi khi tải danh sách các thùng hàng',
   locationUpdateSuccess: 'Cập nhật vị trí thành công',
   errorUpdatingLocation: 'Lỗi cập nhật vị trí',
   // Medicine display format
@@ -2525,7 +2557,7 @@ export default {
     failedToAssignWarehouseManager: 'Không thể phân công quản lý kho',
     missingMedicineId: 'Thiếu ID thuốc trong chi tiết đóng gói.',
     packageListMustBeArray: 'Danh sách gói hàng phải là mảng.',
-    missingPackageId: 'Thiếu ID gói hàng trong danh sách đã chọn.',
+    missingPackageId: 'Thiếu ID thùng hàng trong danh sách đã chọn.',
     quantityMustBeNonNegative: 'Số lượng phải là số không âm.',
     missingCreatedBy: 'Thiếu created_by.',
     errorLoadingPackages: 'Lỗi khi tải danh sách gói hàng.',

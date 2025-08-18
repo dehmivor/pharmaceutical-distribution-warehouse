@@ -72,7 +72,6 @@ export default {
     forgotPasswordDescription: "Enter your email address and we'll send you a link to reset your password.",
     needApproval: 'Need to approve pending import/export orders',
     needCheckLowStock: 'Need to check and replenish low stock medicines',
-
     emailRequired: 'Email is required',
     invalidEmailFormat: 'Invalid email format',
     roleRequired: 'Role is required',
@@ -137,7 +136,7 @@ export default {
     remainingQuantity: 'Remaining Quantity',
     supplier: 'Supplier',
     action: 'Action',
-    createDestroyTicket: 'Create Destroy Ticket',
+    createDestroyTicket: 'Create Disposal Order',
     noAlerts: 'No alerts.',
     otherAlerts: 'Other Alerts',
     rowsPerPage: 'Rows per page:',
@@ -180,9 +179,9 @@ export default {
     dataReports: 'Data & Reports',
     dashboard: 'Dashboard',
     reports: 'Reports',
-    weekly: 'Weekly',
-    monthly: 'Monthly',
-    yearly: 'Yearly',
+    bills: 'Bills',
+    imports: 'Imports',
+    exports: 'Exports',
     dataTracking: 'Data Tracking',
     trends: 'Trends',
     alerts: 'Alerts',
@@ -363,7 +362,38 @@ export default {
     tryChangingFiltersOrCheckingData: 'Try changing filters or check data again',
     uploadExcelFile: 'Upload Excel File',
     selectExcelFile: 'Select Excel File',
-    selectedFile: 'Selected file'
+    selectedFile: 'Selected file',
+
+    // ✅ Thêm key cho tiêu đề
+    reportTitle: 'Report Bill',
+    reportDescription: 'Comprehensive report of all bill types in the system',
+
+    // ✅ Thêm key cho export report
+    exportReportTitle: 'Export Orders Report',
+    exportReportDescription: 'Comprehensive report of all export orders in the system',
+    importReportTitle: 'Import Orders Report',
+    importReportDescription: 'Comprehensive report of all import orders with warehouse information',
+
+    // ✅ Thêm key cho status
+    allStatus: 'All Status',
+    pending: 'Pending',
+    partial: 'Partial',
+    completed: 'Completed',
+    draft: 'Draft',
+    processing: 'Processing',
+    cancelled: 'Cancelled',
+    rejected: 'Rejected',
+
+    // ✅ Thêm key cho type
+    allTypes: 'All Types',
+
+    // ✅ Thêm key cho partner
+    retailer: 'Retailer',
+
+    // ✅ Thêm key cho export orders
+    createdBy: 'Created By',
+    approvedBy: 'Approved By',
+    updatedAt: 'Updated At'
   },
 
   // Supplier Management
@@ -547,8 +577,8 @@ export default {
         manageAreas: 'Manage Areas',
         manageLocations: 'Manage Locations'
       },
-      contractManagement: {
-        title: 'Contract Management',
+      partnerManagement: {
+        title: 'Partner Management',
         description: 'Manage retailer and supplier contracts',
         retailerManagement: 'Retailer Management',
         supplierManagement: 'Supplier Management'
@@ -804,9 +834,13 @@ export default {
   // Common form labels and actions
   common: {
     addNew: 'Add New',
+    clear: 'Clear filters',
     update: 'Update',
+    updatedDate: 'Updated Date',
+    na: 'N/A',
     refresh: 'Refresh',
     loading: 'Loading...',
+    dashboard: 'Dashboard',
     managerEmail: 'Manager Email',
     inspectionDate: 'Inspection Date',
     inspectionId: 'Inspection ID',
@@ -1366,6 +1400,7 @@ export default {
     status: 'Status',
     createdBy: 'Created By',
     warehouseManager: 'Warehouse Manager',
+
     actions: 'Actions',
     loading: 'Loading...',
     noExportOrdersFound: 'No export orders found',
@@ -1439,9 +1474,9 @@ export default {
     totalMedicines: 'Total: {count} medicines',
     sufficientMedicines: 'Sufficient: {count} medicines',
     insufficientMedicines: 'Insufficient: {count} medicines',
-    required: 'Required: {count}',
-    available: 'Available: {count}',
-    missing: 'Missing: {count}',
+    required: 'Required',
+    available: 'Available',
+    missing: 'Missing',
     insufficientStockButton: '❌ Insufficient Stock',
     checkingStockButton: 'Checking Stock...',
     // Order details
@@ -2165,11 +2200,10 @@ export default {
   noLocationsFound: 'No locations found',
   rowsPerPage: 'Rows per page:',
   of: 'of',
-
+  na: 'N/A',
   // Inventory Check Orders
   listOfInventoryCheckOrders: 'List of Inventory Check Orders',
-  manageAndTrackInventoryCheckOrders:
-    'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.',
+  manageAndTrackInventoryCheckOrders: 'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.',
   errorLoadingInventoryCheckOrders: 'Error loading inventory check orders',
   search: 'Search',
   checkDate: 'Check Date',
