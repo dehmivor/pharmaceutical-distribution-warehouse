@@ -32,11 +32,12 @@ import useConfig from '@/hooks/useConfig';
 import useTrans from '@/hooks/useTrans';
 
 // @assets
-import { IconChevronRight, IconLanguage, IconLogout, IconSettings, IconSunMoon, IconTextDirectionLtr } from '@tabler/icons-react';
+import { IconChevronRight, IconLanguage, IconLogout, IconSettings, IconSunMoon, IconQrcode } from '@tabler/icons-react';
 
 // Import hook useRole
 import { useRole } from '@/contexts/RoleContext';
 import { Typography } from '@mui/material';
+import QRScanner from '@/components/QRScanner';
 
 const languageList = [
   { key: ThemeI18n.EN, value: 'English' },
@@ -68,6 +69,7 @@ export default function ProfileSection() {
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [innerAnchorEl, setInnerAnchorEl] = useState(null);
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
 
   const open = Boolean(anchorEl);
   const innerOpen = Boolean(innerAnchorEl);
@@ -105,6 +107,39 @@ export default function ProfileSection() {
     if (key !== i18n) {
       setI18n(key);
       enqueueSnackbar(`Language changed to ${languageList.find((l) => l.key === key)?.value}`, { variant: 'success' });
+    }
+  };
+
+  const handleQRScan = (data) => {
+    try {
+      // Hiển thị thông báo thành công
+      enqueueSnackbar(`QR Code scanned successfully!`, { variant: 'success' });
+
+      // Log dữ liệu để debug
+      console.log('QR Code data:', data);
+
+      // Xử lý dữ liệu QR code nhận được
+      // Bạn có thể thêm logic xử lý ở đây:
+      // - Gửi API để xác thực
+      // - Lưu vào state
+      // - Chuyển hướng đến trang khác
+      // - Hiển thị thông tin chi tiết
+
+      // Ví dụ: Hiển thị dữ liệu trong alert (có thể thay thế bằng modal hoặc component khác)
+      if (data && data.length > 0) {
+        // Có thể parse JSON nếu QR code chứa JSON data
+        try {
+          const parsedData = JSON.parse(data);
+          console.log('Parsed QR data:', parsedData);
+          // Xử lý dữ liệu đã parse
+        } catch (parseError) {
+          // Nếu không phải JSON, xử lý như string thông thường
+          console.log('QR data as string:', data);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing QR code data:', error);
+      enqueueSnackbar('Error processing QR code data', { variant: 'error' });
     }
   };
   const profileData = {
@@ -158,15 +193,18 @@ export default function ProfileSection() {
                   />
                   <Divider sx={{ my: 1 }} />
                   <List disablePadding>
-                    <ListItem
-                      secondaryAction={<Switch size="small" checked={false} onChange={() => enqueueSnackbar('Upgrade to pro for RTL')} />}
-                      sx={{ py: 1, pl: 1, '& .MuiListItemSecondaryAction-root': { right: 8 } }}
+                    <ListItemButton
+                      sx={buttonStyle}
+                      onClick={() => {
+                        setQrScannerOpen(true);
+                        setAnchorEl(null);
+                      }}
                     >
                       <ListItemIcon>
-                        <IconTextDirectionLtr size={16} />
+                        <IconQrcode size={16} />
                       </ListItemIcon>
-                      <ListItemText primary={trans.header.rtlMode || 'Scan Mobile Mode'} />
-                    </ListItem>
+                      <ListItemText primary="Scan Mobile Mode" />
+                    </ListItemButton>
                     <ListItemButton sx={buttonStyle} onClick={handleInnerActionClick}>
                       <ListItemIcon>
                         <IconLanguage size={16} />
@@ -246,6 +284,8 @@ export default function ProfileSection() {
           </Fade>
         )}
       </Popper>
+
+      <QRScanner open={qrScannerOpen} onClose={() => setQrScannerOpen(false)} onScan={handleQRScan} title="Scan QR Code - Mobile Mode" />
     </>
   );
 }

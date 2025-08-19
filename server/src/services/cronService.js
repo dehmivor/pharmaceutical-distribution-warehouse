@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const mongoose = require('mongoose');
-const { User, Batch, Package, Supplier } = require('../models');
+const { User, Batch, Package, Supplier, Contract, Bill } = require('../models');
 
 // Lấy batch hết hạn dưới 6 tháng kể từ refDate
 const getBatchesExpiredUnder6Months = async (refDate) => {
@@ -281,6 +281,330 @@ const getBatchesExpiringInYeardayRange = async (startYearday, endYearday) => {
   return batches;
 };
 
+// Lấy danh sách thuốc có tồn kho thấp so với ngưỡng tối thiểu từ model Medicine
+const getMedicinesBelowStockThreshold = async () => {
+  try {
+    console.log('Getting medicines below minimum stock threshold from Medicine model');
+
+    // Lấy tất cả các batch còn hạn sử dụng
+    const now = new Date();
+    console.log('Current time:', now);
+
+    const validBatches = await Batch.find({
+      expiry_date: { $gt: now }, // Chỉ lấy batch chưa hết hạn
+    })
+      .populate('medicine_id')
+      .populate('supplier_id');
+
+    console.log('Valid batches found:', validBatches.length);
+    console.log(
+      'Sample batch:',
+      validBatches[0]
+        ? {
+            batchId: validBatches[0]._id,
+            medicineName: validBatches[0].medicine_id?.medicine_name,
+            minStockThreshold: validBatches[0].medicine_id?.min_stock_threshold,
+            expiryDate: validBatches[0].expiry_date,
+          }
+        : 'No batches',
+    );
+
+    // Tính tổng số lượng tồn kho cho từng loại thuốc
+    const medicineStockMap = new Map();
+
+    for (const batch of validBatches) {
+      const medicineId = batch.medicine_id?._id?.toString();
+      if (!medicineId) continue;
+
+      // Lấy số lượng từ packages và thông tin vị trí
+      const packages = await Package.find({ batch_id: batch._id }).populate('location_id');
+      const batchQuantity = packages.reduce((sum, pkg) => sum + pkg.quantity, 0);
+
+      if (medicineStockMap.has(medicineId)) {
+        const existing = medicineStockMap.get(medicineId);
+        existing.totalQuantity += batchQuantity;
+        existing.batches.push({
+          batchId: batch._id,
+          batchCode: batch.batch_code,
+          quantity: batchQuantity,
+          expiryDate: batch.expiry_date,
+          supplier: batch.supplier_id?.name || 'N/A',
+          packages: packages.map((pkg) => ({
+            packageId: pkg._id,
+            quantity: pkg.quantity,
+            location: pkg.location_id?.name || 'Unknown',
+            area: pkg.location_id?.area_id?.name || 'Unknown',
+          })),
+        });
+      } else {
+        medicineStockMap.set(medicineId, {
+          medicineId: batch.medicine_id._id,
+          medicineName: batch.medicine_id.medicine_name,
+          medicineCode: batch.medicine_id.license_code,
+          category: batch.medicine_id.category,
+          unit: batch.medicine_id.unit_of_measure,
+          minimumStock: batch.medicine_id.min_stock_threshold || 0, // Lấy ngưỡng tối thiểu từ model Medicine
+          totalQuantity: batchQuantity,
+          batches: [
+            {
+              batchId: batch._id,
+              batchCode: batch.batch_code,
+              quantity: batchQuantity,
+              expiryDate: batch.expiry_date,
+              supplier: batch.supplier_id?.name || 'N/A',
+              packages: packages.map((pkg) => ({
+                packageId: pkg._id,
+                quantity: pkg.quantity,
+                location: pkg.location_id?.name || 'Unknown',
+                area: pkg.location_id?.area_id?.name || 'Unknown',
+              })),
+            },
+          ],
+        });
+      }
+    }
+
+    // Lọc ra những thuốc có tồn kho dưới ngưỡng tối thiểu
+    console.log('Medicine stock map entries:', medicineStockMap.size);
+    console.log('Sample medicine data:', Array.from(medicineStockMap.values())[0]);
+
+    const medicinesBelowThreshold = Array.from(medicineStockMap.values())
+      .filter((medicine) => {
+        const isBelow = medicine.totalQuantity < medicine.minimumStock;
+        console.log(
+          `Medicine ${medicine.medicineName}: totalQuantity=${medicine.totalQuantity}, minimumStock=${medicine.minimumStock}, isBelow=${isBelow}`,
+        );
+        return isBelow;
+      })
+      .sort((a, b) => a.minimumStock - a.totalQuantity - (b.minimumStock - b.totalQuantity)); // Sắp xếp theo mức độ thiếu hụt
+
+    console.log('Medicines below minimum stock threshold found:', medicinesBelowThreshold.length);
+    return medicinesBelowThreshold;
+  } catch (error) {
+    console.error('Error in getMedicinesBelowStockThreshold:', error);
+    throw error;
+  }
+};
+
+// Lấy thông tin hợp đồng cho thuốc
+const getMedicineContracts = async (medicineId) => {
+  try {
+    // Tìm tất cả hợp đồng có chứa thuốc này
+    const contracts = await Contract.find({
+      'medicines.medicine_id': medicineId,
+      status: { $in: ['active', 'pending'] }, // Chỉ lấy hợp đồng active hoặc pending
+    })
+      .populate('supplier_id')
+      .populate('retailer_id');
+
+    return contracts.map((contract) => ({
+      contractId: contract._id,
+      contractCode: contract.contract_code,
+      type: contract.contract_type, // import hoặc export
+      status: contract.status,
+      supplier: contract.supplier_id?.name || 'N/A',
+      retailer: contract.retailer_id?.name || 'N/A',
+      startDate: contract.start_date,
+      endDate: contract.end_date,
+      totalValue: contract.total_value,
+    }));
+  } catch (error) {
+    console.error('Error getting medicine contracts:', error);
+    return [];
+  }
+};
+
+const getBillsDueDate = async () => {
+  try {
+    console.log('Getting bills due date alerts');
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // Lấy hóa đơn trong khoảng 90 ngày tới (quá hạn + sắp hạn)
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + 90);
+
+    // Lấy hóa đơn theo schema thực tế của Bill model
+    const bills = await Bill.find({
+      status: { $in: ['pending', 'partial'] }, // Chỉ lấy hóa đơn chưa thanh toán hoặc thanh toán một phần
+    })
+      .populate('import_order_id')
+      .populate('export_order_id')
+      .sort({ createdAt: 1 }); // Sắp xếp theo ngày tạo tăng dần
+
+    // Phân loại hóa đơn theo mức độ ưu tiên
+    const overdueBills = []; // Quá hạn
+    const urgentBills = []; // Đến hạn trong 7 ngày
+    const warningBills = []; // Đến hạn trong 30 ngày
+    const upcomingBills = []; // Đến hạn trong 90 ngày
+
+    bills.forEach((bill) => {
+      // Tính toán ngày đến hạn dựa trên ngày tạo + 30 ngày (mặc định)
+      const createdDate = new Date(bill.createdAt);
+      const dueDate = new Date(createdDate);
+      dueDate.setDate(createdDate.getDate() + 30); // Giả sử hóa đơn đến hạn sau 30 ngày
+
+      const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+
+      // Tính số tiền còn nợ dựa trên details
+      const totalAmount = bill.details?.reduce((sum, detail) => sum + (detail.amount || 0), 0) || 0;
+      const remainingAmount = totalAmount - (bill.amountPaid || 0);
+
+      if (daysUntilDue < 0) {
+        // Quá hạn
+        overdueBills.push({
+          ...bill.toObject(),
+          bill_code: bill.voucher_code || `BILL-${bill._id.toString().slice(-6)}`,
+          bill_type: bill.type,
+          due_date: dueDate,
+          total_amount: totalAmount,
+          paid_amount: bill.amountPaid || 0,
+          daysOverdue: Math.abs(daysUntilDue),
+          remainingAmount,
+          priority: 'overdue',
+        });
+      } else if (daysUntilDue <= 7) {
+        // Đến hạn trong 7 ngày
+        urgentBills.push({
+          ...bill.toObject(),
+          bill_code: bill.voucher_code || `BILL-${bill._id.toString().slice(-6)}`,
+          bill_type: bill.type,
+          due_date: dueDate,
+          total_amount: totalAmount,
+          paid_amount: bill.amountPaid || 0,
+          daysUntilDue,
+          remainingAmount,
+          priority: 'urgent',
+        });
+      } else if (daysUntilDue <= 30) {
+        // Đến hạn trong 30 ngày
+        warningBills.push({
+          ...bill.toObject(),
+          bill_code: bill.voucher_code || `BILL-${bill._id.toString().slice(-6)}`,
+          bill_type: bill.type,
+          due_date: dueDate,
+          total_amount: totalAmount,
+          paid_amount: bill.amountPaid || 0,
+          daysUntilDue,
+          remainingAmount,
+          priority: 'warning',
+        });
+      } else {
+        // Đến hạn trong 90 ngày
+        upcomingBills.push({
+          ...bill.toObject(),
+          bill_code: bill.voucher_code || `BILL-${bill._id.toString().slice(-6)}`,
+          bill_type: bill.type,
+          due_date: dueDate,
+          total_amount: totalAmount,
+          paid_amount: bill.amountPaid || 0,
+          daysUntilDue,
+          remainingAmount,
+          priority: 'upcoming',
+        });
+      }
+    });
+
+    // Sắp xếp theo mức độ ưu tiên
+    overdueBills.sort((a, b) => b.daysOverdue - a.daysOverdue); // Quá hạn nhiều nhất lên đầu
+    urgentBills.sort((a, b) => a.daysUntilDue - b.daysUntilDue); // Đến hạn sớm nhất lên đầu
+    warningBills.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+    upcomingBills.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+
+    const result = {
+      overdueBills,
+      urgentBills,
+      warningBills,
+      upcomingBills,
+      summary: {
+        overdue: overdueBills.length,
+        urgent: urgentBills.length,
+        warning: warningBills.length,
+        upcoming: upcomingBills.length,
+        total: bills.length,
+      },
+    };
+
+    console.log('Bills due date summary:', result.summary);
+    return result;
+  } catch (error) {
+    console.error('Error in getBillsDueDate:', error);
+    throw error;
+  }
+};
+
+// Lấy danh sách thuốc có tồn kho thấp theo từng mức độ so với ngưỡng tối thiểu
+const getMedicinesByStockLevel = async () => {
+  try {
+    console.log('Getting medicines by stock level compared to minimum threshold');
+
+    const allMedicines = await getMedicinesBelowStockThreshold();
+
+    // Phân loại theo mức độ thiếu hụt so với ngưỡng tối thiểu
+    const criticalStock = allMedicines.filter((med) => {
+      const shortage = med.minimumStock - med.totalQuantity;
+      const shortagePercentage = (shortage / med.minimumStock) * 100;
+      return shortagePercentage >= 50; // Thiếu hụt ≥50% ngưỡng tối thiểu
+    });
+
+    const warningStock = allMedicines.filter((med) => {
+      const shortage = med.minimumStock - med.totalQuantity;
+      const shortagePercentage = (shortage / med.minimumStock) * 100;
+      return shortagePercentage >= 20 && shortagePercentage < 50; // Thiếu hụt 20-50%
+    });
+
+    const lowStock = allMedicines.filter((med) => {
+      const shortage = med.minimumStock - med.totalQuantity;
+      const shortagePercentage = (shortage / med.minimumStock) * 100;
+      return shortagePercentage > 0 && shortagePercentage < 20; // Thiếu hụt 0-20%
+    });
+
+    // Lấy thông tin hợp đồng cho tất cả thuốc
+    const medicinesWithContracts = await Promise.all(
+      allMedicines.map(async (medicine) => {
+        const contracts = await getMedicineContracts(medicine.medicineId);
+        return {
+          ...medicine,
+          contracts,
+        };
+      }),
+    );
+
+    console.log('Medicines by stock level summary:', {
+      critical: criticalStock.length,
+      warning: warningStock.length,
+      low: lowStock.length,
+      total: allMedicines.length,
+    });
+
+    return {
+      criticalStock: criticalStock.map((med) => ({
+        ...med,
+        contracts:
+          medicinesWithContracts.find((m) => m.medicineId.toString() === med.medicineId.toString())
+            ?.contracts || [],
+      })),
+      warningStock: warningStock.map((med) => ({
+        ...med,
+        contracts:
+          medicinesWithContracts.find((m) => m.medicineId.toString() === med.medicineId.toString())
+            ?.contracts || [],
+      })),
+      lowStock: lowStock.map((med) => ({
+        ...med,
+        contracts:
+          medicinesWithContracts.find((m) => m.medicineId.toString() === med.medicineId.toString())
+            ?.contracts || [],
+      })),
+      allMedicines: medicinesWithContracts,
+    };
+  } catch (error) {
+    console.error('Error in getMedicinesByStockLevel:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   getBatchesExpiredUnder6Months,
   getBatchesExpiringAtIntervals,
@@ -296,4 +620,7 @@ module.exports = {
   getBatchesExpiringInWeekdayRange,
   getBatchesExpiringInMonthdayRange,
   getBatchesExpiringInYeardayRange,
+  getMedicinesBelowStockThreshold,
+  getMedicinesByStockLevel,
+  getBillsDueDate,
 };
