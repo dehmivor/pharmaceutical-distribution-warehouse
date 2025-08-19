@@ -44,9 +44,9 @@ export default function Login() {
       <Stack sx={{ height: 1, alignItems: 'center', justifyContent: 'space-between', gap: 3 }}>
         <Box sx={{ width: 1, maxWidth: 458 }}>
           <Stack sx={{ gap: { xs: 1, sm: 1.5 }, textAlign: 'center', mb: { xs: 3, sm: 8 } }}>
-            <Typography variant="h1">Activate Account</Typography>
+            <Typography variant="h1">Kích Hoạt Tài Khoản</Typography>
             <Typography variant="body1" color="text.secondary">
-              Enter your OTP and new password to activate your account.
+              Nhập mã OTP và mật khẩu mới để kích hoạt tài khoản của bạn.
             </Typography>
           </Stack>
 
@@ -55,7 +55,7 @@ export default function Login() {
 
           <Stack direction="row" justifyContent="start" alignItems="center" spacing={1} sx={{ mt: { xs: 2, sm: 3 } }}>
             <Typography variant="body2" color="text.secondary">
-              Need help?
+              Cần giúp đỡ?
             </Typography>
             <Link
               component={NextLink}
@@ -64,7 +64,7 @@ export default function Login() {
               href="/auth/forgot-password"
               sx={{ '&:hover': { color: 'primary.dark' } }}
             >
-              Forgot password
+              Quên mật khẩu?
             </Link>
             <Typography variant="body2" color="text.secondary">
               |
@@ -76,7 +76,7 @@ export default function Login() {
               href="/contact-support"
               sx={{ '&:hover': { color: 'primary.dark' } }}
             >
-              Contact support
+              Liên hệ hỗ trợ
             </Link>
           </Stack>
         </Box>
