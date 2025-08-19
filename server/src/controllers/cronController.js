@@ -13,7 +13,7 @@ const checkExpiredMedicines = async (req, res) => {
     const batchesByInterval = await cronService.getBatchesExpiringAtIntervals(refDate);
     console.log('Batches by interval:', {
       sixMonths: batchesByInterval.sixMonths?.length || 0,
-      sevenMonths: batchesByInterval.sevenMonths?.length || 0,
+      sevenMonths: batchesByInterval.sixMonths?.length || 0,
       eightMonths: batchesByInterval.eightMonths?.length || 0,
     });
 
@@ -35,6 +35,49 @@ const checkExpiredMedicines = async (req, res) => {
   }
 };
 
+// Kiểm tra thuốc có tồn kho thấp so với ngưỡng tối thiểu
+const checkMedicinesBelowStock = async (req, res) => {
+  try {
+    console.log('checkMedicinesBelowStock called');
+
+    // Lấy thuốc theo từng mức độ tồn kho so với ngưỡng tối thiểu
+    const medicinesByLevel = await cronService.getMedicinesByStockLevel();
+
+    // Lấy tất cả thuốc dưới ngưỡng tối thiểu
+    const medicinesBelowThreshold = await cronService.getMedicinesBelowStockThreshold();
+
+    console.log('Medicines below minimum stock threshold:', {
+      critical: medicinesByLevel.criticalStock?.length || 0,
+      warning: medicinesByLevel.warningStock?.length || 0,
+      low: medicinesByLevel.lowStock?.length || 0,
+      total: medicinesBelowThreshold?.length || 0,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Đã kiểm tra thuốc có tồn kho thấp so với ngưỡng tối thiểu',
+      data: {
+        medicinesByLevel,
+        medicinesBelowThreshold,
+        summary: {
+          critical: medicinesByLevel.criticalStock?.length || 0,
+          warning: medicinesByLevel.warningStock?.length || 0,
+          low: medicinesByLevel.lowStock?.length || 0,
+          total: medicinesBelowThreshold?.length || 0,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Lỗi checkMedicinesBelowStock:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi kiểm tra thuốc có tồn kho thấp.',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   checkExpiredMedicines,
+  checkMedicinesBelowStock,
 };
