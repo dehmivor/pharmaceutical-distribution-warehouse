@@ -906,7 +906,9 @@ export default function ManageExportOrders() {
                   </TableCell>
                   <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
                   <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
-                  <TableCell>{o.created_by?.email || '—'}</TableCell>
+                  <TableCell>
+                    {o.contract_id ? (o.warehouse_manager_id?.email || '—') : (o.created_by?.email || '—')}
+                  </TableCell>
                   <TableCell>
                     <Chip label={getStatusBadge(o.status).props.label} color={getStatusBadge(o.status).props.color} size="small" />
                   </TableCell>
@@ -1342,7 +1344,9 @@ export default function ManageExportOrders() {
                     Đã phân bổ hủy: {totalPicked} / {line.destroy_total}
                     {totalPicked !== line.destroy_total && (
                       <Typography component="span" color="error" sx={{ ml: 1 }}>
-                        (Chưa đủ)
+                        {totalPicked < line.destroy_total
+                          ? `(Chưa đủ ${line.destroy_total - totalPicked})`
+                          : `(Thừa ${totalPicked - line.destroy_total})`}
                       </Typography>
                     )}
                   </Typography>
