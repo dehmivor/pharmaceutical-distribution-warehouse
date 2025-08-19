@@ -77,7 +77,33 @@ const checkMedicinesBelowStock = async (req, res) => {
   }
 };
 
+// Kiểm tra hóa đơn sắp đến hạn thanh toán
+const checkBillsDueDate = async (req, res) => {
+  try {
+    console.log('checkBillsDueDate called');
+
+    // Lấy danh sách hóa đơn sắp đến hạn
+    const billsDueDate = await cronService.getBillsDueDate();
+
+    console.log('Bills due date summary:', billsDueDate.summary);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Đã kiểm tra hóa đơn sắp đến hạn thanh toán',
+      data: billsDueDate,
+    });
+  } catch (error) {
+    console.error('Lỗi checkBillsDueDate:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi kiểm tra hóa đơn sắp đến hạn.',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   checkExpiredMedicines,
   checkMedicinesBelowStock,
+  checkBillsDueDate,
 };

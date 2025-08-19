@@ -39,6 +39,15 @@ const Alerts = () => {
     summary: { critical: 0, warning: 0, low: 0, total: 0 }
   });
 
+  // Bills due date state
+  const [billsDueDate, setBillsDueDate] = useState({
+    overdueBills: [],
+    urgentBills: [],
+    warningBills: [],
+    upcomingBills: [],
+    summary: { overdue: 0, urgent: 0, warning: 0, upcoming: 0, total: 0 }
+  });
+
   // Track handled alerts by id
   const [handledAlertIds, setHandledAlertIds] = useState(new Set());
 
@@ -139,6 +148,15 @@ const Alerts = () => {
       } else {
         console.error('Failed to fetch medicines below stock data');
       }
+
+      // Fetch bills due date data
+      const billsRes = await axios.post(`${backendUrl}/api/cron/check-bills-due-date`);
+      if (billsRes.data.success) {
+        console.log('Bills due date API response:', billsRes.data);
+        setBillsDueDate(billsRes.data.data);
+      } else {
+        console.error('Failed to fetch bills due date data');
+      }
     } catch (err) {
       console.error('Error fetching alerts data:', err);
       setError(trans.alerts.apiError.replace('{message}', err.message));
@@ -181,6 +199,11 @@ const Alerts = () => {
   const handleCreateImportOrder = (medicine) => {
     console.log('Tạo phiếu nhập kho cho thuốc:', medicine.medicineName, medicine.medicineCode);
     alert(`Create import order for medicine: ${medicine.medicineName} (${medicine.medicineCode})`);
+  };
+
+  const handlePayBill = (bill) => {
+    console.log('Thanh toán hóa đơn:', bill.bill_code, bill.total_amount);
+    alert(`Pay bill: ${bill.bill_code} - Amount: ${bill.remainingAmount}`);
   };
 
   // Pagination state and handlers for each batch table
@@ -350,7 +373,7 @@ const Alerts = () => {
                       {medicine.batches?.length || 0} Batch(es)
                     </Typography>
                     {medicine.batches?.slice(0, 2).map((batch, idx) => (
-                      <Box key={idx} sx={{ mt: 1, p: 1, bgcolor: 'grey.100', borderRadius: 1 }}>
+                      <Box key={idx} sx={{ mt: 1, p: 1 }}>
                         <Typography variant="caption" display="block">
                           <strong>Batch:</strong> {batch.batchCode}
                         </Typography>
@@ -410,11 +433,133 @@ const Alerts = () => {
 
                 {/* Action */}
                 <TableCell align="center">
-                  <Button variant="contained" color="primary" size="small" onClick={() => handleCreateImportOrder(medicine)} sx={{ mb: 1 }}>
+                  <Button variant="contained" color="primary" size="small" onClick={() => handleCreateImportOrder(medicine)} sx={{ mr: 1 }}>
                     Create Import Order
                   </Button>
                   <Button variant="outlined" color="secondary" size="small" onClick={() => window.open(`/sp-import-orders`, '_blank')}>
                     Go to Import
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  };
+
+  // Render bills due date table
+  const renderBillsTable = (billsList, title, color = 'warning') => {
+    if (!billsList || billsList.length === 0) {
+      return (
+        <Box sx={{ p: 2, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            No bills in this category
+          </Typography>
+        </Box>
+      );
+    }
+
+    return (
+      <TableContainer component={Paper} sx={{ mb: 2 }}>
+        <Typography variant="h6" sx={{ p: 2, color: color }}>
+          {title} ({billsList.length})
+        </Typography>
+        <Table size="small" aria-label={title}>
+          <TableHead>
+            <TableRow>
+              <TableCell>Bill Info</TableCell>
+              <TableCell>Due Date Status</TableCell>
+              <TableCell>Amount Details</TableCell>
+              <TableCell>Supplier & Contract</TableCell>
+              <TableCell>Action</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {billsList.map((bill, index) => (
+              <TableRow key={bill._id || `bill-${index}`}>
+                {/* Bill Info */}
+                <TableCell>
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      {bill.bill_code || 'N/A'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Type: {bill.bill_type || 'N/A'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Status: {bill.status || 'N/A'}
+                    </Typography>
+                  </Box>
+                </TableCell>
+
+                {/* Due Date Status */}
+                <TableCell>
+                  <Box>
+                    {bill.priority === 'overdue' ? (
+                      <Typography variant="h6" color="error.main" fontWeight="bold">
+                        {bill.daysOverdue} days overdue
+                      </Typography>
+                    ) : (
+                      <Typography variant="h6" color="warning.main" fontWeight="bold">
+                        {bill.daysUntilDue} days left
+                      </Typography>
+                    )}
+                    <Typography variant="body2" color="text.secondary">
+                      Due: {new Date(bill.due_date).toLocaleDateString()}
+                    </Typography>
+                    {bill.priority === 'overdue' && (
+                      <Typography variant="body2" color="error.main">
+                        ⚠️ Overdue!
+                      </Typography>
+                    )}
+                  </Box>
+                </TableCell>
+
+                {/* Amount Details */}
+                <TableCell>
+                  <Box>
+                    <Typography variant="body2" fontWeight="bold">
+                      Total: {bill.total_amount?.toLocaleString() || 0} VND
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Paid: {bill.paid_amount?.toLocaleString() || 0} VND
+                    </Typography>
+                    <Typography variant="body2" color="error.main" fontWeight="bold">
+                      Remaining: {bill.remainingAmount?.toLocaleString() || 0} VND
+                    </Typography>
+                  </Box>
+                </TableCell>
+
+                {/* Order & Contract Info */}
+                <TableCell>
+                  <Box>
+                    <Typography variant="body2" fontWeight="bold">
+                      {bill.import_order_id ? 'Import Order' : bill.export_order_id ? 'Export Order' : 'Payment Voucher'}
+                    </Typography>
+                    {bill.import_order_id && (
+                      <Typography variant="body2" color="text.secondary">
+                        Order: {bill.import_order_id.order_code || 'N/A'}
+                      </Typography>
+                    )}
+                    {bill.export_order_id && (
+                      <Typography variant="body2" color="text.secondary">
+                        Order: {bill.export_order_id.order_code || 'N/A'}
+                      </Typography>
+                    )}
+                    <Typography variant="caption" color="text.secondary">
+                      Created: {new Date(bill.createdAt).toLocaleDateString()}
+                    </Typography>
+                  </Box>
+                </TableCell>
+
+                {/* Action */}
+                <TableCell>
+                  <Button variant="contained" color="primary" size="small" onClick={() => handlePayBill(bill)} sx={{ mr: 1 }}>
+                    Pay Bill
+                  </Button>
+                  <Button variant="outlined" color="secondary" size="small" onClick={() => window.open(`/sp-manage-bills`, '_blank')}>
+                    Go to Bills
                   </Button>
                 </TableCell>
               </TableRow>
@@ -565,6 +710,62 @@ const Alerts = () => {
             <Typography variant="h5" sx={{ mb: 2 }}>
               Due Date Bill Alerts
             </Typography>
+
+            {/* Summary Cards */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+              <Paper sx={{ p: 2, flex: 1, textAlign: 'center' }}>
+                <Typography variant="h6">{billsDueDate.summary.overdue}</Typography>
+                <Typography variant="body2">Overdue Bills</Typography>
+                <Typography variant="caption">Need immediate payment</Typography>
+              </Paper>
+              <Paper sx={{ p: 2, flex: 1, textAlign: 'center' }}>
+                <Typography variant="h6">{billsDueDate.summary.urgent}</Typography>
+                <Typography variant="body2">Due in 7 days</Typography>
+                <Typography variant="caption">Need urgent attention</Typography>
+              </Paper>
+              <Paper sx={{ p: 2, flex: 1, textAlign: 'center' }}>
+                <Typography variant="h6">{billsDueDate.summary.warning}</Typography>
+                <Typography variant="body2">Due in 30 days</Typography>
+                <Typography variant="caption">Plan payment</Typography>
+              </Paper>
+              <Paper sx={{ p: 2, flex: 1, textAlign: 'center' }}>
+                <Typography variant="h6">{billsDueDate.summary.upcoming}</Typography>
+                <Typography variant="body2">Due in 90 days</Typography>
+                <Typography variant="caption">Monitor</Typography>
+              </Paper>
+            </Box>
+
+            {/* Overdue Bills Table */}
+            {billsDueDate.overdueBills.length > 0 && (
+              <Box sx={{ mb: 3 }}>
+                {renderBillsTable(billsDueDate.overdueBills, 'Overdue Bills - Immediate Action Required', 'error.main')}
+              </Box>
+            )}
+
+            {/* Urgent Bills Table */}
+            {billsDueDate.urgentBills.length > 0 && (
+              <Box sx={{ mb: 3 }}>{renderBillsTable(billsDueDate.urgentBills, 'Urgent Bills - Due Within 7 Days', 'warning.main')}</Box>
+            )}
+
+            {/* Warning Bills Table */}
+            {billsDueDate.warningBills.length > 0 && (
+              <Box sx={{ mb: 3 }}>{renderBillsTable(billsDueDate.warningBills, 'Warning Bills - Due Within 30 Days', 'info.main')}</Box>
+            )}
+
+            {/* Upcoming Bills Table */}
+            {billsDueDate.upcomingBills.length > 0 && (
+              <Box sx={{ mb: 3 }}>
+                {renderBillsTable(billsDueDate.upcomingBills, 'Upcoming Bills - Due Within 90 Days', 'success.main')}
+              </Box>
+            )}
+
+            {/* No Bills Message */}
+            {billsDueDate.summary.total === 0 && (
+              <Box sx={{ p: 3 }}>
+                <Typography variant="h6">No bills due for payment</Typography>
+                <Typography variant="body2">All bills are up to date</Typography>
+              </Box>
+            )}
           </Box>
         </>
       )}
