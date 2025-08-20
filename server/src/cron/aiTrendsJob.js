@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const AITrendsService = require('../services/aiTrendsService');
+const AiTrendsService = require('../services/aiTrendsService');
 const AITrendsDatabaseService = require('../services/aiTrendsDatabaseService');
 
 /**
@@ -17,23 +17,23 @@ function startAITrendsJob() {
 
       try {
         // Chạy dự đoán nhu cầu cho tất cả thuốc
-        const demandPredictions = await AITrendsService.predictAllMedicineDemand(6);
+        const demandPredictions = await AiTrendsService.predictAllMedicineDemand(6);
         console.log(
           `AI Trends Cron: Generated predictions for ${demandPredictions.totalMedicines} medicines`,
         );
 
         // Tạo gợi ý nhập thuốc
-        const importRecommendations = await AITrendsService.generateImportRecommendations();
+        const importRecommendations = await AiTrendsService.generateImportRecommendations();
         console.log(
           `AI Trends Cron: Generated ${importRecommendations.totalRecommendations} import recommendations`,
         );
 
         // Phát hiện bất thường
-        const anomalies = await AITrendsService.detectDemandAnomalies();
+        const anomalies = await AiTrendsService.detectDemandAnomalies();
         console.log(`AI Trends Cron: Detected ${anomalies.length} demand anomalies`);
 
         // Phân tích xu hướng thị trường
-        const marketTrends = await AITrendsService.analyzeMarketTrends();
+        const marketTrends = await AiTrendsService.analyzeMarketTrends();
         console.log(
           `AI Trends Cron: Analyzed market trends with ${marketTrends.whoAlerts.length + marketTrends.drugBankUpdates.length} alerts`,
         );
@@ -60,7 +60,7 @@ function startAITrendsJob() {
 
       try {
         // Chỉ chạy dự đoán cho thuốc có gợi ý nhập hàng ưu tiên cao
-        const importRecommendations = await AITrendsService.generateImportRecommendations();
+        const importRecommendations = await AiTrendsService.generateImportRecommendations();
         const highPriorityRecommendations = importRecommendations.recommendations.filter(
           (r) => r.priority === 'high',
         );
@@ -72,7 +72,7 @@ function startAITrendsJob() {
 
           for (const recommendation of highPriorityRecommendations) {
             try {
-              await AITrendsService.predictMedicineDemand(recommendation.medicineId, 3);
+              await AiTrendsService.predictMedicineDemand(recommendation.medicineId, 3);
             } catch (error) {
               console.warn(
                 `AI Trends Cron: Failed to predict for medicine ${recommendation.medicineId}:`,
@@ -100,7 +100,7 @@ function startAITrendsJob() {
       console.log('AI Trends Cron: Running monthly market analysis at 3 AM on 1st of month');
 
       try {
-        const marketTrends = await AITrendsService.analyzeMarketTrends();
+        const marketTrends = await AiTrendsService.analyzeMarketTrends();
         console.log(
           `AI Trends Cron: Monthly market analysis completed with ${marketTrends.whoAlerts.length + marketTrends.drugBankUpdates.length} alerts`,
         );
@@ -121,7 +121,7 @@ function startAITrendsJob() {
       console.log('AI Trends Cron: Running daily anomaly detection at 8 AM');
 
       try {
-        const anomalies = await AITrendsService.detectDemandAnomalies();
+        const anomalies = await AiTrendsService.detectDemandAnomalies();
 
         if (anomalies.length > 0) {
           console.log(
@@ -151,7 +151,9 @@ function startAITrendsJob() {
 
       try {
         const result = await AITrendsDatabaseService.cleanupExpiredPredictions();
-        console.log(`AI Trends Cron: Database cleanup completed, cleaned ${result.modifiedCount || 0} expired predictions`);
+        console.log(
+          `AI Trends Cron: Database cleanup completed, cleaned ${result.modifiedCount || 0} expired predictions`,
+        );
       } catch (error) {
         console.error('AI Trends Cron: Error running database cleanup:', error);
       }
@@ -170,11 +172,15 @@ function startAITrendsJob() {
 
       try {
         const stats = await AITrendsDatabaseService.getAIStatisticsFromDatabase();
-        console.log(`AI Trends Cron: Database health check completed, found ${stats.length} prediction types`);
-        
+        console.log(
+          `AI Trends Cron: Database health check completed, found ${stats.length} prediction types`,
+        );
+
         // Log statistics for monitoring
         for (const stat of stats) {
-          console.log(`AI Trends Cron: ${stat._id}: ${stat.count} predictions, avg confidence: ${(stat.avgConfidence || 0).toFixed(2)}`);
+          console.log(
+            `AI Trends Cron: ${stat._id}: ${stat.count} predictions, avg confidence: ${(stat.avgConfidence || 0).toFixed(2)}`,
+          );
         }
       } catch (error) {
         console.error('AI Trends Cron: Error running database health check:', error);
@@ -200,10 +206,10 @@ async function runAIAnalysisNow() {
 
     // Chạy tất cả AI analysis
     const [demandPredictions, importRecommendations, marketTrends, anomalies] = await Promise.all([
-      AITrendsService.predictAllMedicineDemand(6),
-      AITrendsService.generateImportRecommendations(),
-      AITrendsService.analyzeMarketTrends(),
-      AITrendsService.detectDemandAnomalies(),
+      AiTrendsService.predictAllMedicineDemand(6),
+      AiTrendsService.generateImportRecommendations(),
+      AiTrendsService.analyzeMarketTrends(),
+      AiTrendsService.detectDemandAnomalies(),
     ]);
 
     // Cleanup expired predictions

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const aiTrendsController = require('../controllers/aiTrendsController');
-const AITrendsService = require('../services/aiTrendsService'); // Added import for AITrendsService
+const AiTrendsService = require('../services/aiTrendsService'); // Added import for AiTrendsService
 
 /**
  * @route   GET /api/ai-trends/health
@@ -26,10 +26,10 @@ router.get('/test-public', async (req, res) => {
   try {
     // Test các service cơ bản
     const [statistics, recommendations, marketTrends, anomalies] = await Promise.all([
-      AITrendsService.getAIStatisticsFromDatabase(),
-      AITrendsService.generateImportRecommendations(),
-      AITrendsService.analyzeMarketTrends(),
-      AITrendsService.detectDemandAnomalies(),
+      AiTrendsService.getAIStatisticsFromDatabase(),
+      AiTrendsService.generateImportRecommendations(),
+      AiTrendsService.analyzeMarketTrends(),
+      AiTrendsService.detectDemandAnomalies(),
     ]);
 
     res.status(200).json({
@@ -87,6 +87,70 @@ router.get('/test-news', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'News test failed',
+      timestamp: new Date(),
+    });
+  }
+});
+
+/**
+ * @route   GET /api/ai-trends/test-news-source/:source
+ * @desc    Test endpoint để kiểm tra việc lấy tin tức từ nguồn cụ thể
+ * @access  Public (tạm thời để test)
+ */
+router.get('/test-news-source/:source', async (req, res) => {
+  try {
+    const NewsService = require('../services/newsService');
+    const { source } = req.params;
+
+    console.log(`AI Trends: Testing news fetching from source: ${source}`);
+
+    let news = [];
+    let sourceName = '';
+
+    switch (source) {
+      case 'moh':
+        news = await NewsService.getMOHNews();
+        sourceName = 'Bộ Y tế Việt Nam';
+        break;
+      case 'drug-admin':
+        news = await NewsService.getDrugAdminNews();
+        sourceName = 'Cục Quản lý Dược';
+        break;
+      case 'hospitals':
+        news = await NewsService.getHospitalRSSNews();
+        sourceName = 'Bệnh viện';
+        break;
+      case 'pharma':
+        news = await NewsService.getPharmaAssociationNews();
+        sourceName = 'Hiệp hội Dược phẩm';
+        break;
+      case 'media':
+        news = await NewsService.getHealthMediaNews();
+        sourceName = 'Truyền thông Y tế';
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid source. Use: moh, drug-admin, hospitals, pharma, media',
+        });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `News Test from ${sourceName}`,
+      data: {
+        source: sourceName,
+        totalNews: news.length,
+        news: news,
+        fetchStatus: 'success',
+        timestamp: new Date(),
+      },
+    });
+  } catch (error) {
+    console.error(`AI Trends Test News Source Error:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'News source test failed',
       timestamp: new Date(),
     });
   }
@@ -181,10 +245,10 @@ router.get('/dashboard', async (req, res) => {
   try {
     // Lấy dữ liệu tổng hợp cho dashboard
     const [statistics, recommendations, marketTrends, anomalies] = await Promise.all([
-      AITrendsService.getAIStatisticsFromDatabase(),
-      AITrendsService.generateImportRecommendations(),
-      AITrendsService.analyzeMarketTrends(),
-      AITrendsService.detectDemandAnomalies(),
+      AiTrendsService.getAIStatisticsFromDatabase(),
+      AiTrendsService.generateImportRecommendations(),
+      AiTrendsService.analyzeMarketTrends(),
+      AiTrendsService.detectDemandAnomalies(),
     ]);
 
     // Tạo response tổng hợp
@@ -217,8 +281,8 @@ router.get('/dashboard', async (req, res) => {
 router.get('/quick-insights', async (req, res) => {
   try {
     const [recommendations, anomalies] = await Promise.all([
-      AITrendsService.generateImportRecommendations(),
-      AITrendsService.detectDemandAnomalies(),
+      AiTrendsService.generateImportRecommendations(),
+      AiTrendsService.detectDemandAnomalies(),
     ]);
 
     const quickInsights = {

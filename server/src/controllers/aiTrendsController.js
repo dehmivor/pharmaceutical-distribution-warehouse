@@ -1,4 +1,4 @@
-const AITrendsService = require('../services/aiTrendsService');
+const AiTrendsService = require('../services/aiTrendsService');
 const AITrendsDatabaseService = require('../services/aiTrendsDatabaseService');
 
 /**
@@ -16,7 +16,7 @@ const getMedicineDemandPrediction = async (req, res) => {
       });
     }
 
-    const prediction = await AITrendsService.predictMedicineDemand(medicineId, parseInt(months));
+    const prediction = await AiTrendsService.predictMedicineDemand(medicineId, parseInt(months));
 
     res.status(200).json({
       success: true,
@@ -38,7 +38,7 @@ const getAllMedicineDemandPredictions = async (req, res) => {
   try {
     const { months = 6 } = req.query;
 
-    const predictions = await AITrendsService.predictAllMedicineDemand(parseInt(months));
+    const predictions = await AiTrendsService.predictAllMedicineDemand(parseInt(months));
 
     res.status(200).json({
       success: true,
@@ -58,7 +58,7 @@ const getAllMedicineDemandPredictions = async (req, res) => {
  */
 const getImportRecommendations = async (req, res) => {
   try {
-    const recommendations = await AITrendsService.generateImportRecommendations();
+    const recommendations = await AiTrendsService.generateImportRecommendations();
 
     res.status(200).json({
       success: true,
@@ -78,7 +78,7 @@ const getImportRecommendations = async (req, res) => {
  */
 const getMarketTrends = async (req, res) => {
   try {
-    const marketTrends = await AITrendsService.analyzeMarketTrends();
+    const marketTrends = await AiTrendsService.analyzeMarketTrends();
 
     res.status(200).json({
       success: true,
@@ -98,7 +98,7 @@ const getMarketTrends = async (req, res) => {
  */
 const getDemandAnomalies = async (req, res) => {
   try {
-    const anomalies = await AITrendsService.detectDemandAnomalies();
+    const anomalies = await AiTrendsService.detectDemandAnomalies();
 
     res.status(200).json({
       success: true,
@@ -118,7 +118,7 @@ const getDemandAnomalies = async (req, res) => {
  */
 const getAIReport = async (req, res) => {
   try {
-    const report = await AITrendsService.generateAIReport();
+    const report = await AiTrendsService.generateAIReport();
 
     res.status(200).json({
       success: true,
@@ -138,7 +138,7 @@ const getAIReport = async (req, res) => {
  */
 const getCurrentInventoryLevels = async (req, res) => {
   try {
-    const inventory = await AITrendsService.getCurrentInventoryLevels();
+    const inventory = await AiTrendsService.getCurrentInventoryLevels();
 
     res.status(200).json({
       success: true,
@@ -158,7 +158,7 @@ const getCurrentInventoryLevels = async (req, res) => {
  */
 const getActiveSupplierContracts = async (req, res) => {
   try {
-    const contracts = await AITrendsService.getActiveSupplierContracts();
+    const contracts = await AiTrendsService.getActiveSupplierContracts();
 
     res.status(200).json({
       success: true,
@@ -195,7 +195,7 @@ const getDemandPredictionsByPeriod = async (req, res) => {
         months = 6;
     }
 
-    const predictions = await AITrendsService.predictAllMedicineDemand(months);
+    const predictions = await AiTrendsService.predictAllMedicineDemand(months);
 
     res.status(200).json({
       success: true,
@@ -221,7 +221,7 @@ const getImportRecommendationsByPriority = async (req, res) => {
   try {
     const { priority } = req.query; // high, medium, low, all
 
-    const recommendations = await AITrendsService.generateImportRecommendations();
+    const recommendations = await AiTrendsService.generateImportRecommendations();
 
     let filteredRecommendations = recommendations.recommendations;
 
@@ -255,10 +255,10 @@ const getAIStatistics = async (req, res) => {
   try {
     const [demandPredictions, importRecommendations, marketTrends, demandAnomalies] =
       await Promise.all([
-        AITrendsService.predictAllMedicineDemand(6),
-        AITrendsService.generateImportRecommendations(),
-        AITrendsService.analyzeMarketTrends(),
-        AITrendsService.detectDemandAnomalies(),
+        AiTrendsService.predictAllMedicineDemand(6),
+        AiTrendsService.generateImportRecommendations(),
+        AiTrendsService.analyzeMarketTrends(),
+        AiTrendsService.detectDemandAnomalies(),
       ]);
 
     const statistics = {
