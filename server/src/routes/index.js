@@ -28,4 +28,5 @@ module.exports = {
   inventoryCheckInspectionRoutes: require('./inventoryCheckInspectionRoute'),
   logLocationChangeRoute: require('./logLocationChangeRoute'),
   reportRoutes: require('./reportRoute'),
+  aiTrendsRoutes: require('./aiTrendsRoute'),
 };

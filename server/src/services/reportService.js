@@ -10,7 +10,17 @@ class ReportService {
   // Get comprehensive report data
   static async getComprehensiveReport(filters = {}) {
     try {
-      const { startDate, endDate, period = 'monthly', status, type, partnerType } = filters;
+      console.log('🔍 getComprehensiveReport called with filters:', filters);
+      const {
+        startDate,
+        endDate,
+        period = 'monthly',
+        status,
+        type,
+        partnerType,
+        page = 1,
+        limit = 10,
+      } = filters;
 
       const dateFilter = {};
       if (startDate && endDate) {
@@ -32,6 +42,7 @@ class ReportService {
       };
 
       // Find bills and populate nested references
+      console.log('🔍 Finding bills with filter:', combinedFilter);
       let bills = await Bill.find(combinedFilter)
         .populate({
           path: 'import_order_id',
@@ -39,6 +50,10 @@ class ReportService {
           populate: {
             path: 'contract_id',
             select: 'contract_code partner_type partner_id',
+            populate: {
+              path: 'partner_id',
+              select: 'name',
+            },
           },
         })
         .populate({
@@ -47,9 +62,52 @@ class ReportService {
           populate: {
             path: 'contract_id',
             select: 'contract_code partner_type partner_id',
+            populate: {
+              path: 'partner_id',
+              select: 'name',
+            },
           },
         })
         .sort({ createdAt: -1 });
+
+      console.log('🔍 Found bills count:', bills.length);
+
+      // Check if no bills found
+      if (bills.length === 0) {
+        console.log('🔍 No bills found for the given filters');
+        return {
+          success: true,
+          data: {
+            bills: [],
+            summary: {
+              totalBills: 0,
+              totalValue: 0,
+              totalPaid: 0,
+              totalRemaining: 0,
+              overdueBills: 0,
+              pendingBills: 0,
+              completedBills: 0,
+              importBills: 0,
+              exportBills: 0,
+            },
+            pagination: {
+              page: parseInt(page),
+              limit: parseInt(limit),
+              total: 0,
+              totalPages: 0,
+            },
+            filters: {
+              startDate,
+              endDate,
+              period,
+              status,
+              type,
+              partnerType,
+            },
+            message: 'No bills found for the selected criteria',
+          },
+        };
+      }
 
       // Filter by partnerType if provided (since partnerType is nested)
       if (partnerType) {
@@ -61,43 +119,66 @@ class ReportService {
       }
 
       // Process bills
+      console.log('🔍 Processing bills...');
       const processedBills = bills.map((bill) => {
+        console.log('🔍 Processing bill:', bill._id, 'details:', bill.details);
+
+        // Check if details exists and is array
+        if (!bill.details || !Array.isArray(bill.details)) {
+          console.warn('⚠️ Bill has no details or details is not array:', bill._id);
+          return null;
+        }
+
         const billValue = bill.details.reduce(
-          (sum, detail) => sum + detail.quantity * detail.unit_price,
+          (sum, detail) => sum + (detail.quantity || 0) * (detail.unit_price || 0),
           0,
         );
 
         let contractCode = 'N/A';
         let partnerTypeVal = 'N/A';
-        let partnerId = 'N/A';
+        let partnerName = 'N/A';
         let orderCode = 'N/A';
         let orderType = 'N/A';
 
         if (bill.import_order_id) {
+          console.log('🔍 Import order populated:', {
+            order_code: bill.import_order_id.order_code,
+            contract_code: bill.import_order_id.contract_id?.contract_code,
+            partner_type: bill.import_order_id.contract_id?.partner_type,
+            partner_name: bill.import_order_id.contract_id?.partner_id?.name,
+          });
+
           contractCode = bill.import_order_id.contract_id?.contract_code || 'N/A';
-          partnerTypeVal = bill.import_order_id.contract_id?.partner_type || 'N/A';
-          partnerId = bill.import_order_id.contract_id?.partner_id || 'N/A';
+          partnerTypeVal = bill.import_order_id.contract_id?.partner_type || 'Supplier';
+          partnerName = bill.import_order_id.contract_id?.partner_id?.name || 'N/A';
           orderCode = bill.import_order_id.order_code || 'N/A';
           orderType = 'IMPORT';
         } else if (bill.export_order_id) {
+          console.log('🔍 Export order populated:', {
+            order_code: bill.export_order_id.order_code,
+            contract_code: bill.export_order_id.contract_id?.contract_code,
+            partner_type: bill.export_order_id.contract_id?.partner_type,
+            partner_name: bill.export_order_id.contract_id?.partner_id?.name,
+          });
+
           contractCode = bill.export_order_id.contract_id?.contract_code || 'N/A';
-          partnerTypeVal = bill.export_order_id.contract_id?.partner_type || 'N/A';
-          partnerId = bill.export_order_id.contract_id?.partner_id || 'N/A';
+          partnerTypeVal = bill.export_order_id.contract_id?.partner_type || 'Retailer';
+          partnerName = bill.export_order_id.contract_id?.partner_id?.name || 'N/A';
           orderCode = bill.export_order_id.order_code || 'N/A';
           orderType = 'EXPORT';
         }
 
         return {
           id: bill._id.toString(),
-          billCode: bill.bill_code || 'N/A',
+          billCode: bill.voucher_code || bill.bill_code || `BILL-${bill._id.toString().slice(-6)}`,
           voucherCode: bill.voucher_code || 'N/A',
           contractCode,
           partnerType: partnerTypeVal,
-          partnerId,
+          partnerName,
           orderCode,
           orderType,
-          billType: bill.type,
-          status: bill.status.toLowerCase(),
+          billType: bill.type || 'N/A',
+          status: bill.status?.toLowerCase() || 'unknown',
           totalValue: billValue,
           amountPaid: bill.amountPaid || 0,
           remainingAmount: billValue - (bill.amountPaid || 0),
@@ -106,32 +187,56 @@ class ReportService {
           createdAt: bill.createdAt,
           updatedAt: bill.updatedAt,
           details: bill.details.map((detail) => ({
-            medicineCode: detail.medicine_lisence_code,
-            quantity: detail.quantity,
-            unitPrice: detail.unit_price,
-            totalPrice: detail.quantity * detail.unit_price,
+            medicineCode: detail.medicine_lisence_code || detail.medicine_license_code || 'N/A',
+            quantity: detail.quantity || 0,
+            unitPrice: detail.unit_price || 0,
+            totalPrice: (detail.quantity || 0) * (detail.unit_price || 0),
           })),
         };
       });
 
+      // Filter out null bills and create summary
+      const validBills = processedBills.filter((bill) => bill !== null);
+      console.log('🔍 Valid bills count:', validBills.length);
+
       // Summary statistics
       const summary = {
-        totalBills: processedBills.length,
-        totalValue: processedBills.reduce((sum, bill) => sum + bill.totalValue, 0),
-        totalPaid: processedBills.reduce((sum, bill) => sum + bill.amountPaid, 0),
-        totalRemaining: processedBills.reduce((sum, bill) => sum + bill.remainingAmount, 0),
-        overdueBills: processedBills.filter((bill) => bill.status === 'overdue').length,
+        totalBills: validBills.length,
+        totalValue: validBills.reduce((sum, bill) => sum + bill.totalValue, 0),
+        totalPaid: validBills.reduce((sum, bill) => sum + bill.amountPaid, 0),
+        totalRemaining: validBills.reduce((sum, bill) => sum + bill.remainingAmount, 0),
+        overdueBills: validBills.filter((bill) => bill.status === 'overdue').length,
         pendingBills: processedBills.filter((bill) => bill.status === 'pending').length,
-        completedBills: processedBills.filter((bill) => bill.status === 'completed').length,
-        importBills: processedBills.filter((bill) => bill.orderType === 'IMPORT').length,
-        exportBills: processedBills.filter((bill) => bill.orderType === 'EXPORT').length,
+        completedBills: validBills.filter((bill) => bill.status === 'completed').length,
+        importBills: validBills.filter((bill) => bill.orderType === 'IMPORT').length,
+        exportBills: validBills.filter((bill) => bill.orderType === 'EXPORT').length,
       };
+
+      // Apply pagination
+      const skip = (page - 1) * limit;
+      const paginatedBills = validBills.slice(skip, skip + limit);
+      console.log(
+        '🔍 Pagination: page',
+        page,
+        'limit',
+        limit,
+        'skip',
+        skip,
+        'total',
+        validBills.length,
+      );
 
       return {
         success: true,
         data: {
-          bills: processedBills,
+          bills: paginatedBills, // Sử dụng paginatedBills thay vì processedBills
           summary,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: processedBills.length,
+            totalPages: Math.ceil(processedBills.length / limit),
+          },
           filters: {
             startDate,
             endDate,
