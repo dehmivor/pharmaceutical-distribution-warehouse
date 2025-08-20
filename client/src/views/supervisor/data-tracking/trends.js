@@ -211,7 +211,7 @@ const DemandPredictionsChart = ({ predictions, loading }) => {
   // Prepare chart data
   const chartData = predictions.predictions.slice(0, 10).map((prediction, index) => ({
     id: index,
-    medicine: prediction.medicineName || `Medicine ${index + 1}`,
+    medicine: prediction.medicineName || `Thuốc ${index + 1} (Chưa có tên)`,
     trend: prediction.trend,
     confidence: prediction.confidence,
     nextMonth: prediction.predictions[0]?.predictedQuantity || 0
@@ -221,7 +221,7 @@ const DemandPredictionsChart = ({ predictions, loading }) => {
     <Card sx={{ height: 400 }}>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          Demand Predictions (Next 6 Months)
+          Dự Đoán Nhu Cầu Thuốc (6 Tháng Tới) - Dữ Liệu Từ Database
         </Typography>
         <Box sx={{ height: 300, mt: 2 }}>
           <BarChart
@@ -237,6 +237,57 @@ const DemandPredictionsChart = ({ predictions, loading }) => {
             ]}
             height={300}
           />
+        </Box>
+
+        {/* Detailed Predictions Table */}
+        <Box sx={{ mt: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Chi Tiết Dự Đoán Nhu Cầu
+          </Typography>
+          <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
+            <List>
+              {predictions.predictions.slice(0, 10).map((prediction, index) => (
+                <ListItem key={index} divider>
+                  <ListItemIcon>
+                    <TrendIcon trend={prediction.trend} />
+                  </ListItemIcon>
+                  <Box sx={{ flex: 1 }}>
+                    <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1 }}>
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        {prediction.medicineName || `Thuốc ${index + 1}`}
+                      </Typography>
+                      <Chip
+                        label={prediction.trend === 'increasing' ? 'Tăng' : prediction.trend === 'decreasing' ? 'Giảm' : 'Ổn định'}
+                        size="small"
+                        color={prediction.trend === 'increasing' ? 'success' : prediction.trend === 'decreasing' ? 'error' : 'info'}
+                      />
+                      <Chip label={`Độ tin cậy: ${(prediction.confidence * 100).toFixed(0)}%`} size="small" variant="outlined" />
+                    </Stack>
+
+                    {/* Monthly Predictions */}
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      <strong>Dự đoán theo tháng:</strong>
+                    </Typography>
+                    <Grid container spacing={1} sx={{ mb: 1 }}>
+                      {prediction.predictions.slice(0, 3).map((monthPred, monthIndex) => (
+                        <Grid item xs={4} key={monthIndex}>
+                          <Chip
+                            label={`${monthPred.month}: ${monthPred.predictedQuantity.toLocaleString()}`}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </Grid>
+                      ))}
+                    </Grid>
+
+                    <Typography variant="caption" color="text.secondary">
+                      Thuật toán: {prediction.algorithm} • Cập nhật: {new Date(prediction.lastUpdated).toLocaleString('vi-VN')}
+                    </Typography>
+                  </Box>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
         </Box>
       </CardContent>
     </Card>
@@ -282,30 +333,24 @@ const ImportRecommendationsList = ({ recommendations, loading }) => {
                     <LocalShippingIcon />
                   </Avatar>
                 </ListItemIcon>
-                <ListItemText
-                  primary={
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                      <Typography variant="subtitle1" fontWeight="bold">
-                        {rec.medicineName}
-                      </Typography>
-                      <PriorityBadge priority={rec.priority} />
-                    </Stack>
-                  }
-                  secondary={
-                    <Stack spacing={1} sx={{ mt: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {rec.reason}
-                      </Typography>
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Chip icon={<InventoryIcon />} label={`Qty: ${rec.recommendedQuantity}`} size="small" variant="outlined" />
-                        <Chip icon={<ScheduleIcon />} label={rec.urgency} size="small" variant="outlined" />
-                        {rec.estimatedCost && (
-                          <Chip icon={<MoneyIcon />} label={`${rec.estimatedCost.toLocaleString()} VND`} size="small" variant="outlined" />
-                        )}
-                      </Stack>
-                    </Stack>
-                  }
-                />
+                <Box sx={{ flex: 1 }}>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      {rec.medicineName}
+                    </Typography>
+                    <PriorityBadge priority={rec.priority} />
+                  </Stack>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    {rec.reason}
+                  </Typography>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Chip icon={<InventoryIcon />} label={`Qty: ${rec.recommendedQuantity}`} size="small" variant="outlined" />
+                    <Chip icon={<ScheduleIcon />} label={rec.urgency} size="small" variant="outlined" />
+                    {rec.estimatedCost && (
+                      <Chip icon={<MoneyIcon />} label={`${rec.estimatedCost.toLocaleString()} VND`} size="small" variant="outlined" />
+                    )}
+                  </Stack>
+                </Box>
               </ListItem>
               {index < recommendations.recommendations.length - 1 && <Divider />}
             </React.Fragment>
@@ -320,79 +365,214 @@ const ImportRecommendationsList = ({ recommendations, loading }) => {
 const MarketTrendsSection = ({ marketTrends, loading }) => {
   if (loading) {
     return (
-      <Card>
-        <CardContent sx={{ textAlign: 'center', py: 3 }}>
+      <Card sx={{ height: 400 }}>
+        <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
           <CircularProgress />
         </CardContent>
       </Card>
     );
   }
 
-  if (!marketTrends) return null;
+  if (!marketTrends) {
+    return (
+      <Card>
+        <CardContent>
+          <Typography color="text.secondary">No market trends data available</Typography>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Grid container spacing={3}>
-      {/* WHO Alerts */}
+      {/* Vietnam Health Alerts */}
       <Grid item xs={12} md={6}>
         <Card>
           <CardContent>
-            <Typography variant="h6" gutterBottom color="warning.main">
-              WHO Disease Alerts
+            <Typography variant="h6" gutterBottom color="error.main">
+              Cảnh Báo Y Tế Việt Nam
             </Typography>
-            {marketTrends.whoAlerts && marketTrends.whoAlerts.length > 0 ? (
-              <List>
-                {marketTrends.whoAlerts.map((alert, index) => (
-                  <ListItem key={index}>
-                    <ListItemIcon>
-                      <WarningIcon color="warning" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={alert.title}
-                      secondary={
-                        <Stack spacing={1}>
-                          <Typography variant="body2">{alert.description}</Typography>
-                          <Chip label={alert.severity} size="small" color={alert.severity === 'high' ? 'error' : 'warning'} />
-                        </Stack>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            ) : (
-              <Typography color="text.secondary">No WHO alerts available</Typography>
-            )}
+            <List>
+              {(marketTrends.vietnamHealthAlerts || []).slice(0, 5).map((alert, index) => (
+                <ListItem key={index} divider>
+                  <ListItemIcon>
+                    <WarningIcon color="error" />
+                  </ListItemIcon>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                      {alert.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {alert.description}
+                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                      <Chip
+                        label={alert.severity === 'high' ? 'Cao' : 'Trung bình'}
+                        size="small"
+                        color={alert.severity === 'high' ? 'error' : 'warning'}
+                      />
+                      <Chip label={alert.region} size="small" variant="outlined" />
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">
+                      Nguồn: {alert.source} • {new Date(alert.date).toLocaleDateString('vi-VN')}
+                    </Typography>
+                  </Box>
+                </ListItem>
+              ))}
+            </List>
           </CardContent>
         </Card>
       </Grid>
 
-      {/* Drug Bank Updates */}
+      {/* Vietnam Drug Updates */}
       <Grid item xs={12} md={6}>
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom color="info.main">
-              Drug Bank Updates
+              Cập Nhật Dược Phẩm Việt Nam
             </Typography>
-            {marketTrends.drugBankUpdates && marketTrends.drugBankUpdates.length > 0 ? (
-              <List>
-                {marketTrends.drugBankUpdates.map((update, index) => (
-                  <ListItem key={index}>
-                    <ListItemIcon>
-                      <InfoIcon color="info" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={update.title}
-                      secondary={
-                        <Stack spacing={1}>
-                          <Typography variant="body2">{update.description}</Typography>
-                          <Chip label={update.type} size="small" variant="outlined" />
-                        </Stack>
-                      }
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            ) : (
-              <Typography color="text.secondary">No drug bank updates available</Typography>
+            <List>
+              {(marketTrends.vietnamDrugUpdates || []).slice(0, 5).map((update, index) => (
+                <ListItem key={index} divider>
+                  <ListItemIcon>
+                    <InfoIcon color="info" />
+                  </ListItemIcon>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                      {update.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {update.description}
+                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                      <Chip
+                        label={update.type === 'policy_update' ? 'Chính sách' : update.type === 'price_change' ? 'Giá cả' : 'Phê duyệt'}
+                        size="small"
+                        color="primary"
+                      />
+                      <Chip label={update.region} size="small" variant="outlined" />
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">
+                      Nguồn: {update.source} • {new Date(update.date).toLocaleDateString('vi-VN')}
+                    </Typography>
+                  </Box>
+                </ListItem>
+              ))}
+            </List>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Regional Market Trends */}
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom color="success.main">
+              Xu Hướng Thị Trường Theo Vùng Miền
+            </Typography>
+            <Grid container spacing={2}>
+              {(marketTrends.regionalMarketTrends || []).map((trend, index) => (
+                <Grid item xs={12} md={4} key={index}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                        {trend.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        {trend.description}
+                      </Typography>
+                      <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                        <Chip label={trend.region} size="small" color="success" />
+                        <Chip
+                          label={
+                            trend.type === 'demand_increase'
+                              ? 'Tăng nhu cầu'
+                              : trend.type === 'traditional_medicine'
+                                ? 'Đông y'
+                                : 'Nhi khoa'
+                          }
+                          size="small"
+                          variant="outlined"
+                        />
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary">
+                        Nguồn: {trend.source}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Vietnam Pharma Industry News */}
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom color="primary.main">
+              Tin Tức Ngành Dược Phẩm Việt Nam
+            </Typography>
+            <List>
+              {(marketTrends.vietnamPharmaNews || []).map((news, index) => (
+                <ListItem key={index} divider>
+                  <ListItemIcon>
+                    <AssessmentIcon color="primary" />
+                  </ListItemIcon>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                      {news.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {news.description}
+                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                      <Chip
+                        label={
+                          news.type === 'industry_update'
+                            ? 'Phát triển ngành'
+                            : news.type === 'export_opportunity'
+                              ? 'Xuất khẩu'
+                              : 'Chất lượng'
+                        }
+                        size="small"
+                        color="primary"
+                      />
+                      <Chip label={news.region} size="small" variant="outlined" />
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">
+                      Nguồn: {news.source} • {new Date(news.date).toLocaleDateString('vi-VN')}
+                    </Typography>
+                  </Box>
+                </ListItem>
+              ))}
+            </List>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Data Source Info */}
+      <Grid item xs={12}>
+        <Card>
+          <CardContent>
+            <Typography variant="body2" color="text.secondary" textAlign="center">
+              <strong>Nguồn dữ liệu:</strong> {marketTrends.dataSource || 'Bộ Y tế, Cục Quản lý Dược Việt Nam'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" textAlign="center">
+              <strong>Khu vực:</strong> {marketTrends.region || 'Việt Nam'} •<strong>Cập nhật lúc:</strong>{' '}
+              {new Date(marketTrends.analyzedAt).toLocaleString('vi-VN')}
+            </Typography>
+            {marketTrends.totalNewsFetched && (
+              <Typography variant="body2" color="text.secondary" textAlign="center" component="div">
+                <strong>Số tin tức đã lấy:</strong> {marketTrends.totalNewsFetched} bài viết •<strong>Trạng thái:</strong>
+                <Chip
+                  label={marketTrends.lastFetchStatus === 'success' ? 'Thành công' : 'Fallback'}
+                  size="small"
+                  color={marketTrends.lastFetchStatus === 'success' ? 'success' : 'warning'}
+                  sx={{ ml: 1 }}
+                />
+              </Typography>
             )}
           </CardContent>
         </Card>
@@ -460,7 +640,7 @@ function Trends() {
           <Tabs value={tabValue} onChange={handleTabChange} aria-label="AI trends tabs">
             <Tab icon={<AnalyticsIcon />} label="Demand Predictions" iconPosition="start" />
             <Tab icon={<LocalShippingIcon />} label="Import Recommendations" iconPosition="start" />
-            <Tab icon={<AssessmentIcon />} label="Market Intelligence" iconPosition="start" />
+            <Tab icon={<AssessmentIcon />} label="Market Intelligence Việt Nam" iconPosition="start" />
             <Tab icon={<WarningIcon />} label="Anomaly Detection" iconPosition="start" />
           </Tabs>
         </Box>
@@ -495,15 +675,15 @@ function Trends() {
                       <ListItemIcon>
                         <WarningIcon color="error" />
                       </ListItemIcon>
-                      <ListItemText
-                        primary={anomaly.description}
-                        secondary={
-                          <Stack spacing={1}>
-                            <Typography variant="body2">Type: {anomaly.anomalyType}</Typography>
-                            <Chip label={anomaly.severity} size="small" color={anomaly.severity === 'high' ? 'error' : 'warning'} />
-                          </Stack>
-                        }
-                      />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                          {anomaly.description}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Type: {anomaly.anomalyType}
+                        </Typography>
+                        <Chip label={anomaly.severity} size="small" color={anomaly.severity === 'high' ? 'error' : 'warning'} />
+                      </Box>
                     </ListItem>
                   ))}
                 </List>

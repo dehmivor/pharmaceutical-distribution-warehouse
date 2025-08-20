@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const aiTrendsController = require('../controllers/aiTrendsController');
-const AITrendsService = require('../services/AITrendsService'); // Added import for AITrendsService
+const AITrendsService = require('../services/aiTrendsService'); // Added import for AITrendsService
 
 /**
  * @route   GET /api/ai-trends/health
@@ -48,6 +48,46 @@ router.get('/test-public', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Test failed',
+    });
+  }
+});
+
+/**
+ * @route   GET /api/ai-trends/test-news
+ * @desc    Test endpoint để kiểm tra việc lấy tin tức thực tế
+ * @access  Public (tạm thời để test)
+ */
+router.get('/test-news', async (req, res) => {
+  try {
+    const NewsService = require('../services/newsService');
+
+    console.log('AI Trends: Testing real news fetching...');
+
+    const allNews = await NewsService.getAllNews();
+
+    res.status(200).json({
+      success: true,
+      message: 'Real News Test Endpoint',
+      data: {
+        totalNews: allNews.length,
+        newsBySource: {
+          moh: allNews.filter((n) => n.source.includes('Bộ Y tế')).length,
+          drugAdmin: allNews.filter((n) => n.source.includes('Cục Quản lý Dược')).length,
+          hospitals: allNews.filter((n) => n.source.includes('Bệnh viện')).length,
+          associations: allNews.filter((n) => n.source.includes('Hiệp hội')).length,
+          media: allNews.filter((n) => n.source.includes('Sức khỏe')).length,
+        },
+        sampleNews: allNews.slice(0, 3),
+        fetchStatus: 'success',
+        timestamp: new Date(),
+      },
+    });
+  } catch (error) {
+    console.error('AI Trends Test News Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'News test failed',
+      timestamp: new Date(),
     });
   }
 });
