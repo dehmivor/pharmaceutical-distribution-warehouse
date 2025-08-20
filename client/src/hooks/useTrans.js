@@ -12,27 +12,46 @@ export default function useTrans() {
       // Fallback to English if i18n is not available
       const trans = i18n === ThemeI18n.VN ? vi : en;
 
-      return new Proxy(trans, {
-        get(target, prop) {
-          if (prop in target) {
-            return target[prop];
+      // Return a function that can access nested properties
+      return (key) => {
+        if (!key) return '';
+        
+        // Handle nested keys like 'aiTrends.title'
+        const keys = key.split('.');
+        let value = trans;
+        
+        for (const k of keys) {
+          if (value && typeof value === 'object' && k in value) {
+            value = value[k];
+          } else {
+            return key; // Return the key if not found
           }
-          // Trả về undefined thay vì raw text để component có thể fallback
-          return undefined;
         }
-      });
+        
+        return value || key;
+      };
     } catch (error) {
       console.warn('useTrans hook error, falling back to English:', error);
       // Fallback to English if there's any error
-      return new Proxy(en, {
-        get(target, prop) {
-          if (prop in target) {
-            return target[prop];
+      const trans = en;
+      
+      return (key) => {
+        if (!key) return '';
+        
+        // Handle nested keys like 'aiTrends.title'
+        const keys = key.split('.');
+        let value = trans;
+        
+        for (const k of keys) {
+          if (value && typeof value === 'object' && k in value) {
+            value = value[k];
+          } else {
+            return key; // Return the key if not found
           }
-          // Trả về undefined thay vì raw text để component có thể fallback
-          return undefined;
         }
-      });
+        
+        return value || key;
+      };
     }
   }, [i18n]); // Chỉ tạo lại khi i18n thay đổi
 }

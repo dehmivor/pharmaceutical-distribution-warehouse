@@ -3079,7 +3079,60 @@ export default {
     // Recent Orders
     recentImportOrders: 'Đơn hàng Nhập Gần đây',
     recentExportOrders: 'Đơn hàng Xuất Gần đây'
-  }
+  },
 
-  // Dashboard
+  // AI Trends
+  aiTrends: {
+    title: 'Phân Tích Xu Hướng Thị Trường Bằng AI',
+    subtitle: 'Dự đoán nhu cầu thông minh và thông tin thị trường được hỗ trợ bởi AI',
+    demandPredictions: 'Dự Đoán Nhu Cầu',
+    marketIntelligence: 'Thông Tin Thị Trường Việt Nam',
+    loadingPredictions: 'Đang tải dự đoán nhu cầu...',
+    noPredictionData: 'Không có dữ liệu dự đoán nhu cầu',
+    demandChartTitle: 'Biểu Đồ Dự Đoán Nhu Cầu',
+    detailedTableTitle: 'Bảng Dự Đoán Chi Tiết',
+    medicineName: 'Tên thuốc',
+    trend: 'Xu hướng',
+    confidence: 'Độ tin cậy',
+    month1Prediction: 'Dự đoán tháng 1',
+    month2Prediction: 'Dự đoán tháng 2',
+    month3Prediction: 'Dự đoán tháng 3',
+    algorithm: 'Thuật toán',
+    lastUpdated: 'Cập nhật lần cuối',
+    increasing: 'Tăng',
+    decreasing: 'Giảm',
+    stable: 'Ổn định',
+    notAvailable: 'Không có',
+    // Market Intelligence
+    loadingMarketInfo: 'Đang tải thông tin thị trường...',
+    noMarketData: 'Không có dữ liệu thị trường',
+    dataSourceInfo: 'Thông tin nguồn dữ liệu:',
+    newsUpdated: 'tin tức đã cập nhật',
+    updateSuccess: 'Cập nhật thành công',
+    usingSampleData: 'Sử dụng dữ liệu mẫu',
+    // Health Alerts
+    healthAlerts: 'Cảnh Báo Y Tế Việt Nam',
+    currentSituation: 'Tình hình hiện tại:',
+    affectedMedicines: 'Thuốc bị ảnh hưởng:',
+    conclusion: 'Kết luận:',
+    source: 'Nguồn:',
+    viewDetailedNews: 'Xem tin tức chi tiết từ',
+    highSeverity: 'Mức độ cao',
+    mediumSeverity: 'Mức độ trung bình',
+    lowSeverity: 'Mức độ thấp',
+    // Drug Updates
+    drugUpdates: 'Cập Nhật Dược Phẩm Việt Nam',
+    drugCategory: 'Danh mục thuốc:',
+    newRegulation: 'Quy định mới',
+    industryUpdate: 'Cập nhật ngành',
+    approval: 'Phê duyệt',
+    // Market Trends
+    regionalMarketTrends: 'Xu Hướng Thị Trường Theo Vùng Miền',
+    demandIncrease: 'Tăng nhu cầu',
+    newTrend: 'Xu hướng mới',
+    // Pharma News
+    pharmaNews: 'Tin Tức Ngành Dược Phẩm Việt Nam',
+    exportOpportunity: 'Cơ hội xuất khẩu',
+    industryDevelopment: 'Phát triển ngành'
+  }
 };

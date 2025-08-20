@@ -56,6 +56,8 @@ const TrendIcon = ({ trend }) => {
 
 // Priority Badge Component
 const PriorityBadge = ({ priority }) => {
+  const trans = useTrans();
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'high':
@@ -72,13 +74,13 @@ const PriorityBadge = ({ priority }) => {
   const getPriorityLabel = (priority) => {
     switch (priority) {
       case 'high':
-        return 'Cao';
+        return trans.aiTrends.highSeverity;
       case 'medium':
-        return 'Trung bình';
+        return trans.aiTrends.mediumSeverity;
       case 'low':
-        return 'Thấp';
+        return trans.aiTrends.lowSeverity;
       default:
-        return 'Không xác định';
+        return trans.aiTrends.notAvailable;
     }
   };
 
@@ -86,127 +88,162 @@ const PriorityBadge = ({ priority }) => {
 };
 
 const DemandPredictionsChart = ({ predictions, loading }) => {
-  if (loading) {
-    return (
-      <Card sx={{ height: 450 }}>
-        <CardContent
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%'
-          }}
-        >
-          <CircularProgress />
-        </CardContent>
-      </Card>
-    );
-  }
+  const trans = useTrans();
 
-  if (!predictions || !predictions.predictions?.length) {
-    return (
-      <Card sx={{ height: 450 }}>
-        <CardContent
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%'
-          }}
-        >
-          <Typography color="text.secondary">No prediction data available</Typography>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const chartData = predictions.predictions.slice(0, 10).map((prediction, index) => ({
-    id: index,
-    medicine: prediction.medicineName || `Thuốc ${index + 1} (Chưa có tên)`,
-    nextMonth: prediction.predictions[0]?.predictedQuantity || 0
-  }));
-
-  return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom fontWeight="bold">
-          Dự Đoán Nhu Cầu Thuốc (6 Tháng Tới) - Dữ Liệu Từ Database
-        </Typography>
-        <Box sx={{ height: 320, mt: 3 }}>
-          <BarChart
-            dataset={chartData}
-            xAxis={[{ scaleType: 'band', dataKey: 'medicine' }]}
-            yAxis={[{ label: 'Predicted Quantity' }]}
-            series={[
-              {
-                dataKey: 'nextMonth',
-                label: 'Next Month Demand',
-                color: 'primary.main'
-              }
-            ]}
-            height={320}
-          />
-        </Box>
-
-        <Box sx={{ mt: 4, maxHeight: 370, overflowY: 'auto' }}>
-          <Typography variant="h6" gutterBottom fontWeight="bold">
-            Chi Tiết Dự Đoán Nhu Cầu
-          </Typography>
-          <List disablePadding>
-            {predictions.predictions.slice(0, 10).map((prediction, index) => (
-              <ListItem key={index} divider sx={{ py: 1.5 }}>
-                <ListItemIcon>
-                  <TrendIcon trend={prediction.trend} />
-                </ListItemIcon>
-                <Box sx={{ flex: 1 }}>
-                  <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 1 }}>
-                    <Typography variant="subtitle1" fontWeight="bold">
-                      {prediction.medicineName || `Thuốc ${index + 1}`}
-                    </Typography>
-                    <Chip
-                      label={prediction.trend === 'increasing' ? 'Tăng' : prediction.trend === 'decreasing' ? 'Giảm' : 'Ổn định'}
-                      size="small"
-                      color={prediction.trend === 'increasing' ? 'success' : prediction.trend === 'decreasing' ? 'error' : 'info'}
-                    />
-                    <Chip label={`Độ tin cậy: ${(prediction.confidence * 100).toFixed(0)}%`} size="small" variant="outlined" />
-                  </Stack>
-
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    <strong>Dự đoán theo tháng:</strong>
-                  </Typography>
-                  <Grid container spacing={1} sx={{ mb: 1 }}>
-                    {prediction.predictions.slice(0, 3).map((monthPred, monthIndex) => (
-                      <Grid item xs={4} key={monthIndex}>
-                        <Chip
-                          label={`${monthPred.month}: ${monthPred.predictedQuantity.toLocaleString()}`}
-                          size="small"
-                          variant="outlined"
-                          sx={{ width: '100%', textAlign: 'center' }}
-                        />
-                      </Grid>
-                    ))}
-                  </Grid>
-
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Thuật toán: {prediction.algorithm} • Cập nhật: {new Date(prediction.lastUpdated).toLocaleString('vi-VN')}
-                  </Typography>
-                </Box>
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-};
-
-const MarketTrendsSection = ({ marketTrends, loading }) => {
   if (loading) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
         <CircularProgress />
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-          Đang tải thông tin thị trường...
+          {trans.aiTrends.loadingPredictions}
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!predictions || predictions.length === 0) {
+    return (
+      <Typography color="text.secondary" textAlign="center" py={5}>
+        {trans.aiTrends.noPredictionData}
+      </Typography>
+    );
+  }
+
+  // Chuẩn bị dữ liệu cho biểu đồ
+  const chartData = predictions.map((prediction, index) => ({
+    id: index,
+    value: prediction.predictions?.[0] || 0,
+    label: prediction.medicineName || `${trans.aiTrends.medicineName} ${index + 1} (${trans.aiTrends.noNameAvailable})`,
+    trend: prediction.trend || 'stable'
+  }));
+
+  return (
+    <Box>
+      <Typography variant="h5" gutterBottom fontWeight="bold" color="primary.main">
+        {trans.aiTrends.demandChartTitle}
+      </Typography>
+
+      {/* Biểu đồ cột */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom fontWeight="bold">
+            {trans.aiTrends.demandChartTitle}
+          </Typography>
+          <Box sx={{ height: 400, width: '100%' }}>
+            <BarChart
+              dataset={chartData}
+              xAxis={[{ scaleType: 'band', dataKey: 'label' }]}
+              series={[
+                {
+                  dataKey: 'value',
+                  label: trans.aiTrends.demandPredictions,
+                  color: ({ value }) => {
+                    const item = chartData.find((d) => d.value === value);
+                    if (item?.trend === 'increasing') return '#4caf50';
+                    if (item?.trend === 'decreasing') return '#f44336';
+                    return '#2196f3';
+                  }
+                }
+              ]}
+              height={400}
+            />
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Bảng dự đoán chi tiết */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom fontWeight="bold">
+            {trans.aiTrends.detailedTableTitle}
+          </Typography>
+          <Box sx={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f5f5f5' }}>
+                  <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>{trans.aiTrends.medicineName}</th>
+                  <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #ddd' }}>{trans.aiTrends.trend}</th>
+                  <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #ddd' }}>{trans.aiTrends.confidence}</th>
+                  <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #ddd' }}>
+                    {trans.aiTrends.month1Prediction}
+                  </th>
+                  <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #ddd' }}>
+                    {trans.aiTrends.month2Prediction}
+                  </th>
+                  <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #ddd' }}>
+                    {trans.aiTrends.month3Prediction}
+                  </th>
+                  <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #ddd' }}>{trans.aiTrends.algorithm}</th>
+                  <th style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #ddd' }}>{trans.aiTrends.lastUpdated}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {predictions.map((prediction, index) => (
+                  <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: '12px', borderBottom: '1px solid #eee' }}>
+                      <Typography variant="body2" fontWeight="bold">
+                        {prediction.medicineName || `${trans.aiTrends.medicineName} ${index + 1} (${trans.aiTrends.noNameAvailable})`}
+                      </Typography>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #eee' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <TrendIcon trend={prediction.trend} />
+                        <Typography variant="body2" sx={{ ml: 1 }}>
+                          {prediction.trend === 'increasing'
+                            ? trans.aiTrends.increasing
+                            : prediction.trend === 'decreasing'
+                              ? trans.aiTrends.decreasing
+                              : trans.aiTrends.stable}
+                        </Typography>
+                      </Box>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #eee' }}>
+                      <Chip
+                        label={`${Math.round((prediction.confidence || 0) * 100)}%`}
+                        size="small"
+                        color={prediction.confidence > 0.7 ? 'success' : prediction.confidence > 0.5 ? 'warning' : 'error'}
+                        variant="outlined"
+                      />
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #eee' }}>
+                      <Typography variant="body2">{prediction.predictions?.[0]?.toLocaleString() || '0'}</Typography>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #eee' }}>
+                      <Typography variant="body2">{prediction.predictions?.[1]?.toLocaleString() || '0'}</Typography>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #eee' }}>
+                      <Typography variant="body2">{prediction.predictions?.[2]?.toLocaleString() || '0'}</Typography>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #eee' }}>
+                      <Chip label={prediction.algorithm || 'linear_regression'} size="small" color="primary" variant="outlined" />
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center', borderBottom: '1px solid #eee' }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {prediction.lastUpdated
+                          ? new Date(prediction.lastUpdated).toLocaleDateString(trans.locale || 'en-US')
+                          : trans.aiTrends.notAvailable}
+                      </Typography>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+};
+
+const MarketTrendsSection = ({ marketTrends, loading }) => {
+  const trans = useTrans();
+
+  if (loading) {
+    return (
+      <Box sx={{ textAlign: 'center', py: 4 }}>
+        <CircularProgress />
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+          {trans.aiTrends.loadingMarketInfo}
         </Typography>
       </Box>
     );
@@ -215,7 +252,7 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
   if (!marketTrends) {
     return (
       <Typography color="text.secondary" textAlign="center" py={5}>
-        Không có dữ liệu thị trường
+        {trans.aiTrends.noMarketData}
       </Typography>
     );
   }
@@ -226,18 +263,18 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
   return (
     <Box>
       <Typography variant="h5" gutterBottom fontWeight="bold" color="primary.main">
-        Market Intelligence Việt Nam
+        {trans.aiTrends.marketIntelligence}
       </Typography>
 
       {/* Data Source Info */}
       <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
         <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
           <Typography variant="body2" color="text.secondary">
-            <strong>Thông tin nguồn dữ liệu:</strong>
+            <strong>{trans.aiTrends.dataSourceInfo}</strong>
           </Typography>
-          <Chip label={`${totalNewsFetched || 0} tin tức đã cập nhật`} size="small" color="info" variant="outlined" />
+          <Chip label={`${totalNewsFetched || 0} ${trans.aiTrends.newsUpdated}`} size="small" color="info" variant="outlined" />
           <Chip
-            label={lastFetchStatus === 'success' ? 'Cập nhật thành công' : 'Sử dụng dữ liệu mẫu'}
+            label={lastFetchStatus === 'success' ? trans.aiTrends.updateSuccess : trans.aiTrends.usingSampleData}
             size="small"
             color={lastFetchStatus === 'success' ? 'success' : 'warning'}
             variant="outlined"
@@ -251,7 +288,7 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom fontWeight="bold" color="error.main">
-                Cảnh Báo Y Tế Việt Nam
+                {trans.aiTrends.healthAlerts}
               </Typography>
               <List disablePadding>
                 {(vietnamHealthAlerts || []).map((alert, index) => (
@@ -266,19 +303,19 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
 
                       {/* Mô tả tình hình */}
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                        <strong>Tình hình hiện tại:</strong> {alert.description}
+                        <strong>{trans.aiTrends.currentSituation}</strong> {alert.description}
                       </Typography>
 
                       {/* Danh mục thuốc bị ảnh hưởng */}
                       {alert.affectedMedicines && (
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                          <strong>Thuốc bị ảnh hưởng:</strong> {alert.affectedMedicines.join(', ')}
+                          <strong>{trans.aiTrends.affectedMedicines}</strong> {alert.affectedMedicines.join(', ')}
                         </Typography>
                       )}
 
                       {/* Kết luận và tác động */}
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontStyle: 'italic' }}>
-                        <strong>Kết luận:</strong> {alert.conclusion}
+                        <strong>{trans.aiTrends.conclusion}</strong> {alert.conclusion}
                       </Typography>
 
                       {/* Link bài báo */}
@@ -286,7 +323,7 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                         <Box sx={{ mb: 1.5 }}>
                           <Link href={alert.url} target="_blank" rel="noopener noreferrer" sx={{ textDecoration: 'none' }}>
                             <Button variant="outlined" size="small" startIcon={<OpenInNewIcon />} sx={{ textTransform: 'none' }}>
-                              Xem tin tức chi tiết từ {alert.source}
+                              {trans.aiTrends.viewDetailedNews} {alert.source}
                             </Button>
                           </Link>
                         </Box>
@@ -295,7 +332,11 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                       <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap">
                         <Chip
                           label={
-                            alert.severity === 'high' ? 'Mức độ cao' : alert.severity === 'medium' ? 'Mức độ trung bình' : 'Mức độ thấp'
+                            alert.severity === 'high'
+                              ? trans.aiTrends.highSeverity
+                              : alert.severity === 'medium'
+                                ? trans.aiTrends.mediumSeverity
+                                : trans.aiTrends.lowSeverity
                           }
                           size="small"
                           color={alert.severity === 'high' ? 'error' : alert.severity === 'medium' ? 'warning' : 'info'}
@@ -305,7 +346,7 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                       </Stack>
 
                       <Typography variant="caption" color="text.secondary" fontStyle="italic">
-                        Nguồn: {alert.source} • {new Date(alert.date).toLocaleDateString('vi-VN')}
+                        {trans.aiTrends.source} {alert.source} • {new Date(alert.date).toLocaleDateString(trans.locale || 'en-US')}
                       </Typography>
                     </Box>
                   </ListItem>
@@ -320,7 +361,7 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom fontWeight="bold" color="info.main">
-                Cập Nhật Dược Phẩm Việt Nam
+                {trans.aiTrends.drugUpdates}
               </Typography>
               <List disablePadding>
                 {(vietnamDrugUpdates || []).map((update, index) => (
@@ -335,19 +376,19 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
 
                       {/* Mô tả tình hình */}
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                        <strong>Tình hình hiện tại:</strong> {update.description}
+                        <strong>{trans.aiTrends.currentSituation}</strong> {update.description}
                       </Typography>
 
                       {/* Danh mục thuốc bị ảnh hưởng */}
                       {update.affectedCategory && (
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                          <strong>Danh mục thuốc:</strong> {update.affectedCategory}
+                          <strong>{trans.aiTrends.drugCategory}</strong> {update.affectedCategory}
                         </Typography>
                       )}
 
                       {/* Kết luận và tác động */}
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontStyle: 'italic' }}>
-                        <strong>Kết luận:</strong> {update.conclusion}
+                        <strong>{trans.aiTrends.conclusion}</strong> {update.conclusion}
                       </Typography>
 
                       {/* Link bài báo */}
@@ -355,7 +396,7 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                         <Box sx={{ mb: 1.5 }}>
                           <Link href={update.url} target="_blank" rel="noopener noreferrer" sx={{ textDecoration: 'none' }}>
                             <Button variant="outlined" size="small" startIcon={<OpenInNewIcon />} sx={{ textTransform: 'none' }}>
-                              Xem tin tức chi tiết từ {update.source}
+                              {trans.aiTrends.viewDetailedNews} {update.source}
                             </Button>
                           </Link>
                         </Box>
@@ -365,10 +406,10 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                         <Chip
                           label={
                             update.type === 'drug_regulation'
-                              ? 'Quy định mới'
+                              ? trans.aiTrends.newRegulation
                               : update.type === 'industry_update'
-                                ? 'Cập nhật ngành'
-                                : 'Phê duyệt'
+                                ? trans.aiTrends.industryUpdate
+                                : trans.aiTrends.approval
                           }
                           size="small"
                           color="primary"
@@ -378,7 +419,7 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                       </Stack>
 
                       <Typography variant="caption" color="text.secondary" fontStyle="italic">
-                        Nguồn: {update.source} • {new Date(update.date).toLocaleDateString('vi-VN')}
+                        {trans.aiTrends.source} {update.source} • {new Date(update.date).toLocaleDateString(trans.locale || 'en-US')}
                       </Typography>
                     </Box>
                   </ListItem>
@@ -393,7 +434,7 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom fontWeight="bold" color="success.main">
-                Xu Hướng Thị Trường Theo Vùng Miền
+                {trans.aiTrends.regionalMarketTrends}
               </Typography>
               <List disablePadding>
                 {(regionalMarketTrends || []).map((trend, index) => (
@@ -408,19 +449,19 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
 
                       {/* Mô tả tình hình */}
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                        <strong>Tình hình hiện tại:</strong> {trend.description}
+                        <strong>{trans.aiTrends.currentSituation}</strong> {trend.description}
                       </Typography>
 
                       {/* Danh mục thuốc bị ảnh hưởng */}
                       {trend.affectedCategory && (
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                          <strong>Danh mục thuốc:</strong> {trend.affectedCategory}
+                          <strong>{trans.aiTrends.drugCategory}</strong> {trend.affectedCategory}
                         </Typography>
                       )}
 
                       {/* Kết luận và cơ hội */}
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontStyle: 'italic' }}>
-                        <strong>Kết luận:</strong> {trend.conclusion}
+                        <strong>{trans.aiTrends.conclusion}</strong> {trend.conclusion}
                       </Typography>
 
                       {/* Link bài báo */}
@@ -428,7 +469,7 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                         <Box sx={{ mb: 1.5 }}>
                           <Link href={trend.url} target="_blank" rel="noopener noreferrer" sx={{ textDecoration: 'none' }}>
                             <Button variant="outlined" size="small" startIcon={<OpenInNewIcon />} sx={{ textTransform: 'none' }}>
-                              Xem tin tức chi tiết từ {trend.source}
+                              {trans.aiTrends.viewDetailedNews} {trend.source}
                             </Button>
                           </Link>
                         </Box>
@@ -436,12 +477,16 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
 
                       <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap">
                         <Chip label={trend.region} size="small" color="success" />
-                        <Chip label={trend.type === 'demand_increase' ? 'Tăng nhu cầu' : 'Xu hướng mới'} size="small" color="primary" />
+                        <Chip
+                          label={trend.type === 'demand_increase' ? trans.aiTrends.demandIncrease : trans.aiTrends.newTrend}
+                          size="small"
+                          color="primary"
+                        />
                         <Chip label={trend.category} size="small" variant="outlined" color="info" />
                       </Stack>
 
                       <Typography variant="caption" color="text.secondary" fontStyle="italic">
-                        Nguồn: {trend.source} • {new Date(trend.date).toLocaleDateString('vi-VN')}
+                        {trans.aiTrends.source} {trend.source} • {new Date(trend.date).toLocaleDateString(trans.locale || 'en-US')}
                       </Typography>
                     </Box>
                   </ListItem>
@@ -456,7 +501,7 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom fontWeight="bold" color="warning.main">
-                Tin Tức Ngành Dược Phẩm Việt Nam
+                {trans.aiTrends.pharmaNews}
               </Typography>
               <List disablePadding>
                 {(vietnamPharmaNews || []).map((news, index) => (
@@ -471,19 +516,19 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
 
                       {/* Mô tả tình hình */}
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                        <strong>Tình hình hiện tại:</strong> {news.description}
+                        <strong>{trans.aiTrends.currentSituation}</strong> {news.description}
                       </Typography>
 
                       {/* Danh mục thuốc bị ảnh hưởng */}
                       {news.affectedCategory && (
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                          <strong>Danh mục thuốc:</strong> {news.affectedCategory}
+                          <strong>{trans.aiTrends.drugCategory}</strong> {news.affectedCategory}
                         </Typography>
                       )}
 
                       {/* Kết luận và tác động */}
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontStyle: 'italic' }}>
-                        <strong>Kết luận:</strong> {news.conclusion}
+                        <strong>{trans.aiTrends.conclusion}</strong> {news.conclusion}
                       </Typography>
 
                       {/* Link bài báo */}
@@ -491,7 +536,7 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                         <Box sx={{ mb: 1.5 }}>
                           <Link href={news.url} target="_blank" rel="noopener noreferrer" sx={{ textDecoration: 'none' }}>
                             <Button variant="outlined" size="small" startIcon={<OpenInNewIcon />} sx={{ textTransform: 'none' }}>
-                              Xem tin tức chi tiết từ {news.source}
+                              {trans.aiTrends.viewDetailedNews} {news.source}
                             </Button>
                           </Link>
                         </Box>
@@ -501,10 +546,10 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                         <Chip
                           label={
                             news.type === 'industry_update'
-                              ? 'Cập nhật ngành'
+                              ? trans.aiTrends.industryUpdate
                               : news.type === 'export_opportunity'
-                                ? 'Cơ hội xuất khẩu'
-                                : 'Phát triển ngành'
+                                ? trans.aiTrends.exportOpportunity
+                                : trans.aiTrends.industryDevelopment
                           }
                           size="small"
                           color="primary"
@@ -514,7 +559,7 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                       </Stack>
 
                       <Typography variant="caption" color="text.secondary" fontStyle="italic">
-                        Nguồn: {news.source} • {new Date(news.date).toLocaleDateString('vi-VN')}
+                        {trans.aiTrends.source} {news.source} • {new Date(news.date).toLocaleDateString(trans.locale || 'en-US')}
                       </Typography>
                     </Box>
                   </ListItem>
@@ -548,19 +593,25 @@ function Trends() {
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4, flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" fontWeight="bold" gutterBottom>
-            AI-Powered Market Trends Analysis
+            {trans.aiTrends.title}
           </Typography>
-          <Typography variant="body1" color="text.secondary" maxWidth={480}>
-            Intelligent demand forecasting and market intelligence powered by AI
+          <Typography variant="body1" color="text.secondary">
+            {trans.aiTrends.subtitle}
           </Typography>
         </Box>
       </Stack>
 
+      {hasError && (
+        <Alert severity="error" sx={{ mb: 4, maxWidth: 800, mx: 'auto' }}>
+          {errorMessage}
+        </Alert>
+      )}
+
       <Card sx={{ maxWidth: '100%', mb: 4 }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={tabValue} onChange={handleTabChange} aria-label="AI trends tabs" variant="scrollable" scrollButtons="auto">
-            <Tab icon={<AnalyticsIcon />} label="Demand Predictions" iconPosition="start" />
-            <Tab icon={<AssessmentIcon />} label="Market Intelligence Việt Nam" iconPosition="start" />
+            <Tab icon={<AnalyticsIcon />} label={trans.aiTrends.demandPredictions} iconPosition="start" />
+            <Tab icon={<AssessmentIcon />} label={trans.aiTrends.marketIntelligence} iconPosition="start" />
           </Tabs>
         </Box>
 
