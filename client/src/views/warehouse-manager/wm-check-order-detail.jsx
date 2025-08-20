@@ -22,10 +22,12 @@ import {
   Button,
   Chip,
   IconButton
-} from '@mui/material'; // Added IconButton
+} from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import DeleteIcon from '@mui/icons-material/Delete'; // Added DeleteIcon
+import DeleteIcon from '@mui/icons-material/Delete';
+import ClearIcon from '@mui/icons-material/Clear';
+import CheckIcon from '@mui/icons-material/Check';
 import { useTheme } from '@mui/material/styles';
 import useTrans from '@/hooks/useTrans';
 
@@ -284,7 +286,7 @@ export default function CheckOrderDetail() {
     }
   };
 
-  // New function to handle deleting a check item
+  // Function to handle deleting a check item (for over_expected)
   const handleDeleteItem = async (inspectionId, packageId) => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -292,6 +294,10 @@ export default function CheckOrderDetail() {
         headers: getAuthHeaders()
       });
       if (response.data.success) {
+        // Reset inspection status to draft
+        await axios.patch(`${backendUrl}/api/inventory-check-inspections/${inspectionId}/status`, { status: 'draft' }, {
+          headers: getAuthHeaders()
+        });
         setSnackbar({ open: true, message: trans.checkOrderDetail.deleteItemSuccess, severity: 'success' });
         fetchInspections(); // Refresh inspections data
       } else {
@@ -304,6 +310,74 @@ export default function CheckOrderDetail() {
     } catch (err) {
       console.error(err);
       setSnackbar({ open: true, message: trans.checkOrderDetail.deleteItemErrorGeneral, severity: 'error' });
+    }
+  };
+
+  // Function to clear actual quantity to 0 (for valid), keep type valid
+  const handleClearActual = async (inspectionId, packageId, expectedQuantity) => {
+    const newActual = 0;
+    const newType = 'valid'; // Keep type as valid per correction
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.patch(`${backendUrl}/api/inventory-check-inspections/${inspectionId}/check-items`, {
+        package_id: packageId,
+        expected_quantity: expectedQuantity,
+        actual_quantity: newActual,
+        type: newType,
+      }, {
+        headers: getAuthHeaders()
+      });
+      if (response.data.success) {
+        // Reset inspection status to draft
+        await axios.patch(`${backendUrl}/api/inventory-check-inspections/${inspectionId}/status`, { status: 'draft' }, {
+          headers: getAuthHeaders()
+        });
+        setSnackbar({ open: true, message: trans.checkOrderDetail.clearActualSuccess || 'Actual quantity cleared successfully', severity: 'success' });
+        fetchInspections();
+      } else {
+        setSnackbar({
+          open: true,
+          message: response.data.message || trans.checkOrderDetail.clearActualError || 'Error clearing actual quantity',
+          severity: 'error'
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      setSnackbar({ open: true, message: trans.checkOrderDetail.clearActualErrorGeneral || 'Error clearing actual quantity', severity: 'error' });
+    }
+  };
+
+  // Function to reset status to valid (for under_expected)
+  const handleResetToValid = async (inspectionId, packageId, expectedQuantity) => {
+    const newActual = expectedQuantity;
+    const newType = 'valid';
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await axios.patch(`${backendUrl}/api/inventory-check-inspections/${inspectionId}/check-items`, {
+        package_id: packageId,
+        expected_quantity: expectedQuantity,
+        actual_quantity: newActual,
+        type: newType,
+      }, {
+        headers: getAuthHeaders()
+      });
+      if (response.data.success) {
+        // Reset inspection status to draft
+        await axios.patch(`${backendUrl}/api/inventory-check-inspections/${inspectionId}/status`, { status: 'draft' }, {
+          headers: getAuthHeaders()
+        });
+        setSnackbar({ open: true, message: trans.checkOrderDetail.resetToValidSuccess || 'Status reset to valid successfully', severity: 'success' });
+        fetchInspections();
+      } else {
+        setSnackbar({
+          open: true,
+          message: response.data.message || trans.checkOrderDetail.resetToValidError || 'Error resetting status to valid',
+          severity: 'error'
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      setSnackbar({ open: true, message: trans.checkOrderDetail.resetToValidErrorGeneral || 'Error resetting status to valid', severity: 'error' });
     }
   };
 
@@ -449,7 +523,7 @@ export default function CheckOrderDetail() {
                                 <TableCell>{trans.checkOrderDetail.expected}</TableCell>
                                 <TableCell>{trans.checkOrderDetail.actual}</TableCell>
                                 <TableCell>{trans.checkOrderDetail.status}</TableCell>
-                                <TableCell>{trans.checkOrderDetail.delete}</TableCell>
+                                <TableCell>{trans.checkOrderDetail.action || 'Action'}</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
@@ -463,6 +537,43 @@ export default function CheckOrderDetail() {
                                       ? trans.checkOrderDetail.underExpected
                                       : item.type.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()); // Format other statuses
                                 const chip = <Chip label={chipLabel} size="small" color={getStatusColor(item.type)} />;
+
+                                let actionButton = null;
+                                if (item.type === 'over_expected') {
+                                  actionButton = (
+                                    <IconButton
+                                      aria-label="delete"
+                                      size="small"
+                                      onClick={() => handleDeleteItem(ins._id, pkgId)}
+                                      disabled={isCancelledOrCompleted || !pkgId}
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  );
+                                } else if (item.type === 'valid') {
+                                  actionButton = (
+                                    <IconButton
+                                      aria-label="clear"
+                                      size="small"
+                                      onClick={() => handleClearActual(ins._id, pkgId, item.expected_quantity)}
+                                      disabled={isCancelledOrCompleted || !pkgId}
+                                    >
+                                      <ClearIcon fontSize="small" />
+                                    </IconButton>
+                                  );
+                                } else if (item.type === 'under_expected') {
+                                  actionButton = (
+                                    <IconButton
+                                      aria-label="reset"
+                                      size="small"
+                                      onClick={() => handleResetToValid(ins._id, pkgId, item.expected_quantity)}
+                                      disabled={isCancelledOrCompleted || !pkgId}
+                                    >
+                                      <ClearIcon fontSize="small" />
+                                    </IconButton>
+                                  );
+                                }
+
                                 return (
                                   <TableRow key={uniqueKey}>
                                     <TableCell>{pkgId?.slice(-4) || 'N/A'}</TableCell>
@@ -473,17 +584,7 @@ export default function CheckOrderDetail() {
                                     <TableCell>{item?.expected_quantity || 0}</TableCell>
                                     <TableCell>{item?.actual_quantity || 0}</TableCell>
                                     <TableCell>{chip}</TableCell>
-                                    <TableCell>
-                                      {/* Delete button */}
-                                      <IconButton
-                                        aria-label="delete"
-                                        size="small"
-                                        onClick={() => handleDeleteItem(ins._id, pkgId)}
-                                        disabled={isCancelledOrCompleted || !pkgId} // Disable if order is cancelled or completed or if no package ID
-                                      >
-                                        <DeleteIcon fontSize="small" />
-                                      </IconButton>
-                                    </TableCell>
+                                    <TableCell>{actionButton}</TableCell>
                                   </TableRow>
                                 );
                               })}
