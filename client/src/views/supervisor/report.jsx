@@ -85,7 +85,7 @@ export default function Report() {
 
   // Pagination state
   const [page, setPage] = useState(0); // 0-based for TablePagination
-  const [rowsPerPage, setRowsPerPage] = useState(7);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const [totalCount, setTotalCount] = useState(0);
 
   const [filters, setFilters] = useState({
@@ -508,7 +508,7 @@ export default function Report() {
           ) : (
             <Box sx={{ textAlign: 'center', py: 4 }}>
               <Typography variant="h6" color="text.secondary" gutterBottom>
-                {trans.reports.noDataToDisplay}
+                {reportData.message || trans.reports.noDataToDisplay}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {trans.reports.tryChangingFiltersOrCheckingData}

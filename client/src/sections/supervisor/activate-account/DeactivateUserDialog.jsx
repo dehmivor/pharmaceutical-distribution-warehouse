@@ -142,7 +142,7 @@ export default function DeactivateUserDialog({ open, onClose, user, onDeactivate
         <Box display="flex" alignItems="center" gap={1}>
           <SettingsIcon color="primary" />
           <Typography variant="h6" fontWeight={600}>
-            Change User Status
+            Deactivate User Account
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small" sx={{ color: 'text.secondary' }} disabled={loading}>
@@ -225,9 +225,6 @@ export default function DeactivateUserDialog({ open, onClose, user, onDeactivate
                 </MenuItem>
                 <MenuItem value="inactive">
                   <Chip label="Inactive" size="small" color="error" />
-                </MenuItem>
-                <MenuItem value="pending">
-                  <Chip label="Pending" size="small" color="warning" />
                 </MenuItem>
               </Select>
               {errors.status && (

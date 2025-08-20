@@ -45,15 +45,15 @@ const getNotifications = async (query = {}) => {
     filter = {
       $or: [
         { recipient_id: recipient_id }, // User notifications
-        { recipient_id: null, type: 'system_alert' }, // System notifications
+        { recipient_id: null }, // TẤT CẢ system notifications (không chỉ system_alert)
       ],
     };
   } else if (recipient_id) {
     // Trường hợp 2: Chỉ lấy user notifications
     filter.recipient_id = recipient_id;
   } else if (include_system === 'true') {
-    // Trường hợp 3: Chỉ lấy system notifications (khi không có recipient_id)
-    filter = { recipient_id: null, type: 'system_alert' };
+    // Trường hợp 3: Lấy TẤT CẢ system notifications (không chỉ system_alert)
+    filter = { recipient_id: null };
   }
 
   // Thêm các filter bổ sung
@@ -68,7 +68,6 @@ const getNotifications = async (query = {}) => {
 
   return notifications;
 };
-
 /**
  * Đánh dấu notification đã đọc
  * @param {String} notificationId

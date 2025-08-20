@@ -432,7 +432,7 @@ export default function Notification() {
 
                       <CardActions sx={{ p: 1 }}>
                         <Button fullWidth color="error" onClick={clearAllNotifications} disabled={loading}>
-                          Xóa tất cả
+                          Clear All Notifications
                         </Button>
                       </CardActions>
                     </Fragment>
