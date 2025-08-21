@@ -473,6 +473,14 @@ export default function ManageExportOrders() {
       setMessageDialog({ open: true, title: 'Lỗi', content: 'Đơn hàng phải được duyệt trước khi hoàn thành!' });
       return;
     }
+    let totalActual = 0;
+    for (const detail of order.details) {
+      totalActual += detail.actual_item.reduce((sum, item) => sum + item.quantity, 0);
+    }
+    if (totalActual <= 0) {
+      setMessageDialog({ open: true, title: 'Lỗi', content: 'Không thể hoàn thành đơn hàng vì tổng số lượng thực tế phải lớn hơn 0.' });
+      return;
+    }
     setConfirmDialog({
       open: true,
       title: 'Xác nhận hoàn thành',
@@ -1103,7 +1111,7 @@ export default function ManageExportOrders() {
                   Hoàn thành
                 </Button>
                 <Button variant="contained" color="error" onClick={() => handleCancelOrder(selectedOrder._id)}>
-                  Hủy
+                  Hủy đơn hàng
                 </Button>
               </>
             )}
