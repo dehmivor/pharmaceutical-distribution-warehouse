@@ -250,7 +250,17 @@ function ManageBills() {
   const calcRemainingAmount = (bill) => {
     const totalAmount = calcAmount(bill.details);
     const amountPaid = bill.amountPaid || 0;
-    return Math.max(0, totalAmount - amountPaid);
+    const remaining = Math.max(0, totalAmount - amountPaid);
+
+    console.log('Remaining amount calculation:', {
+      billId: bill._id,
+      totalAmount,
+      amountPaid,
+      remaining,
+      unit: 'VND'
+    });
+
+    return remaining;
   };
 
   // Thêm hàm tính tổng tiền đã thanh toán
@@ -261,6 +271,23 @@ function ManageBills() {
     // FIX: Loại bỏ logic convert sai - amountPaid trong DB đã là VND
     // Không cần chia cho 100 nữa
     return amountPaid;
+  };
+
+  // FIX: Thêm hàm validate payment amount
+  const validatePaymentAmount = (amount, bill) => {
+    if (!amount || amount <= 0) {
+      return { isValid: false, error: 'Số tiền thanh toán phải lớn hơn 0' };
+    }
+
+    const remainingAmount = calcRemainingAmount(bill);
+    if (amount > remainingAmount) {
+      return {
+        isValid: false,
+        error: `Số tiền thanh toán (${amount.toLocaleString()} VNĐ) không được vượt quá số tiền còn lại cần trả (${remainingAmount.toLocaleString()} VNĐ)`
+      };
+    }
+
+    return { isValid: true, error: null };
   };
 
   const formatDate = (dateString) => {
@@ -316,6 +343,13 @@ function ManageBills() {
       return;
     }
 
+    // FIX: Sử dụng validation function mới
+    const validation = validatePaymentAmount(amount, bill);
+    if (!validation.isValid) {
+      enqueueSnackbar(validation.error, { variant: 'error' });
+      return;
+    }
+
     // Kiểm tra loại hóa đơn
     if (bill.type === 'EXPORT') {
       enqueueSnackbar('Đơn xuất không thể thanh toán, chỉ có thể xem trạng thái thanh toán của khách hàng.', { variant: 'info' });
@@ -333,15 +367,12 @@ function ManageBills() {
       return;
     }
 
-    // Kiểm tra số tiền thanh toán không vượt quá số tiền còn lại cần trả
-    const remainingAmount = calcRemainingAmount(bill);
-    if (amount > remainingAmount) {
-      enqueueSnackbar(
-        `Số tiền thanh toán (${amount.toLocaleString()} VNĐ) không được vượt quá số tiền còn lại cần trả (${remainingAmount.toLocaleString()} VNĐ).`,
-        { variant: 'error' }
-      );
-      return;
-    }
+    console.log('Payment validation passed:', {
+      billId: bill._id,
+      amount,
+      remainingAmount: calcRemainingAmount(bill),
+      unit: 'VND'
+    });
 
     setLoadingPaymentId(bill._id);
     try {
@@ -353,7 +384,7 @@ function ManageBills() {
         `${backendUrl}/api/stripe/payments/${bill._id}`,
         {
           billId: bill._id,
-          amount: Math.round(amount),
+          amount: Math.round(amount), // FIX: Đảm bảo số tiền được làm tròn chính xác
           paymentType: bill.type.toLowerCase(),
           successUrl,
           cancelUrl
@@ -478,17 +509,10 @@ function ManageBills() {
     const maxAmount = calcRemainingAmount(bill);
     const numericValue = parseFormattedNumber(value);
 
-    // FIX: Validation chính xác hơn
-    if (numericValue > maxAmount) {
-      enqueueSnackbar(
-        `Số tiền thanh toán (${numericValue.toLocaleString()} VNĐ) không được vượt quá số tiền còn lại cần trả (${maxAmount.toLocaleString()} VNĐ).`,
-        { variant: 'error' }
-      );
-      return;
-    }
-
-    if (numericValue < 0) {
-      enqueueSnackbar('Số tiền thanh toán không được âm.', { variant: 'error' });
+    // FIX: Sử dụng validation function mới
+    const validation = validatePaymentAmount(numericValue, bill);
+    if (!validation.isValid) {
+      enqueueSnackbar(validation.error, { variant: 'error' });
       return;
     }
 
@@ -532,19 +556,17 @@ function ManageBills() {
       for (const id of billIds) {
         const bill = bills.find((b) => b._id === id);
         const billPaymentAmount = parseFormattedNumber(multiPaymentAmounts[id]) || 0;
-        const billRemainingAmount = calcRemainingAmount(bill);
 
-        if (billPaymentAmount > billRemainingAmount) {
-          enqueueSnackbar(
-            `Số tiền thanh toán cho hóa đơn ${bill.voucher_code || bill._id.slice(0, 6)} (${billPaymentAmount.toLocaleString()} VNĐ) vượt quá số tiền còn lại cần trả (${billRemainingAmount.toLocaleString()} VNĐ).`,
-            { variant: 'error' }
-          );
+        // FIX: Sử dụng validation function mới
+        const validation = validatePaymentAmount(billPaymentAmount, bill);
+        if (!validation.isValid) {
+          enqueueSnackbar(`Hóa đơn ${bill.voucher_code || bill._id.slice(0, 6)}: ${validation.error}`, { variant: 'error' });
           setLoadingPaymentId(null);
           return;
         }
 
         totalPaymentAmount += billPaymentAmount;
-        totalRemainingAmount += billRemainingAmount;
+        totalRemainingAmount += calcRemainingAmount(bill);
       }
 
       if (totalPaymentAmount <= 0) {

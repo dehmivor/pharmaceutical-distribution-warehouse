@@ -1,6 +1,6 @@
 const Stripe = require('stripe');
 const stripe = new Stripe(process.env.STRIPE_API_KEY, { apiVersion: '2022-11-15' });
-const { updateBillStatus } = require('./billService');
+const { updateBillStatus, updateBillAmountPaid } = require('./billService');
 const { BILL_STATUSES } = require('../utils/constants');
 const { Bill } = require('../models');
 const {
@@ -279,20 +279,34 @@ async function fixBillAmountPaid(billId) {
     const currentAmountPaid = bill.amountPaid || 0;
 
     console.log(`Fixing bill ${billId}:`, {
-      currentAmountPaid,
       totalAmount,
-      difference: currentAmountPaid - totalAmount,
-      isAbnormal: currentAmountPaid > totalAmount * 10,
+      currentAmountPaid,
+      difference: totalAmount - currentAmountPaid,
+      unit: 'VND',
     });
 
-    // Nếu amountPaid quá lớn (bất thường), reset về 0
-    if (currentAmountPaid > totalAmount * 10) {
-      console.log(`Resetting amountPaid from ${currentAmountPaid} to 0`);
-      await Bill.findByIdAndUpdate(billId, {
-        amountPaid: 0,
-        status: BILL_STATUSES.PENDING,
-      });
-      console.log(`Bill ${billId} amountPaid reset to 0`);
+    // Nếu amountPaid vượt quá totalAmount, reset về 0
+    if (currentAmountPaid > totalAmount) {
+      await updateBillAmountPaid(billId, 0, BILL_STATUSES.PENDING);
+      console.log(`Bill ${billId} amountPaid reset to 0 (was ${currentAmountPaid})`);
+      return true;
+    }
+
+    // Nếu amountPaid bằng totalAmount, update status thành COMPLETED
+    if (currentAmountPaid === totalAmount && bill.status !== BILL_STATUSES.COMPLETED) {
+      await updateBillAmountPaid(billId, currentAmountPaid, BILL_STATUSES.COMPLETED);
+      console.log(`Bill ${billId} status updated to COMPLETED`);
+      return true;
+    }
+
+    // Nếu amountPaid > 0 nhưng < totalAmount, update status thành PARTIAL
+    if (
+      currentAmountPaid > 0 &&
+      currentAmountPaid < totalAmount &&
+      bill.status !== BILL_STATUSES.PARTIAL
+    ) {
+      await updateBillAmountPaid(billId, currentAmountPaid, BILL_STATUSES.PARTIAL);
+      console.log(`Bill ${billId} status updated to PARTIAL`);
       return true;
     }
 
@@ -303,11 +317,57 @@ async function fixBillAmountPaid(billId) {
   }
 }
 
-// Export function này để có thể gọi từ bên ngoài
-module.exports = {
-  // ... existing exports
-  fixBillAmountPaid,
-};
+// FIX: Thêm function để validate payment amount chính xác
+async function validatePaymentAmount(billId, intendedAmount, actualAmount) {
+  try {
+    const bill = await Bill.findById(billId);
+    if (!bill) {
+      throw new Error(`Bill ${billId} not found`);
+    }
+
+    const totalAmount = await getBillTotalAmount(billId);
+    const currentAmountPaid = bill.amountPaid || 0;
+    const remainingAmount = totalAmount - currentAmountPaid;
+
+    console.log('Payment amount validation:', {
+      billId,
+      intendedAmount,
+      actualAmount,
+      totalAmount,
+      currentAmountPaid,
+      remainingAmount,
+      unit: 'VND',
+    });
+
+    // Kiểm tra số tiền thanh toán có hợp lệ không
+    if (intendedAmount <= 0) {
+      throw new Error(`Invalid intended amount: ${intendedAmount}`);
+    }
+
+    if (intendedAmount > remainingAmount) {
+      throw new Error(
+        `Intended amount ${intendedAmount} exceeds remaining amount ${remainingAmount}`,
+      );
+    }
+
+    // Kiểm tra số tiền thực tế nhận được có khớp với số tiền dự định không
+    const tolerance = 1; // Cho phép sai số 1 VND do rounding
+    const difference = Math.abs(actualAmount - intendedAmount);
+
+    if (difference > tolerance) {
+      console.warn(
+        `Payment amount mismatch: intended=${intendedAmount}, actual=${actualAmount}, difference=${difference}`,
+      );
+      // Trong trường hợp này, sử dụng số tiền thực tế nhận được
+      return actualAmount;
+    }
+
+    return intendedAmount;
+  } catch (error) {
+    console.error(`Error validating payment amount for bill ${billId}:`, error);
+    throw error;
+  }
+}
 
 // ==================
 // WEBHOOK HANDLERS - Tách riêng từng function
@@ -405,26 +465,27 @@ async function handleMultiBillPayment(billIds, totalAmountPaid) {
         continue;
       }
 
-      const newAmountPaid = currentAmountPaid + amountToApply;
+      // FIX: Validate amount trước khi apply
+      const validatedAmount = await validatePaymentAmount(billId, amountToApply, amountToApply);
+      const newAmountPaid = currentAmountPaid + validatedAmount;
       const newStatus =
         newAmountPaid >= totalAmount ? BILL_STATUSES.COMPLETED : BILL_STATUSES.PARTIAL;
 
       console.log(`Bill ${billId} amountPaid update:`, {
         currentAmountPaid,
         amountToApply,
+        validatedAmount,
         newAmountPaid,
         totalAmount,
         newStatus,
         unit: 'VND',
       });
 
-      await Bill.findByIdAndUpdate(billId, {
-        amountPaid: newAmountPaid,
-        status: newStatus,
-      });
+      // FIX: Sử dụng function mới để update amountPaid và status
+      await updateBillAmountPaid(billId, newAmountPaid, newStatus);
 
       console.log(`Bill ${billId} updated: amountPaid=${newAmountPaid}, status=${newStatus}`);
-      remainingAmount -= amountToApply;
+      remainingAmount -= validatedAmount;
       processedBills++;
 
       if (remainingAmount <= 0) {
@@ -459,21 +520,27 @@ async function handleSingleBillPayment(billId, amountPaid) {
 
     const totalAmount = await getBillTotalAmount(billId); // VND
     const currentAmountPaid = bill.amountPaid || 0; // VND
-    const newAmountPaid = currentAmountPaid + amountPaid; // VND
+
+    // FIX: Validate payment amount trước khi xử lý
+    const validatedAmount = await validatePaymentAmount(billId, amountPaid, amountPaid);
+    const newAmountPaid = currentAmountPaid + validatedAmount; // VND
 
     console.log('Detailed payment calculation:', {
       billId,
       totalAmount,
       currentAmountPaid,
-      amountPaid,
+      originalAmountPaid: amountPaid,
+      validatedAmount,
       newAmountPaid,
-      calculation: `${currentAmountPaid} + ${amountPaid} = ${newAmountPaid}`,
+      calculation: `${currentAmountPaid} + ${validatedAmount} = ${newAmountPaid}`,
       allValuesType: {
         totalAmount: typeof totalAmount,
         currentAmountPaid: typeof currentAmountPaid,
         amountPaid: typeof amountPaid,
+        validatedAmount: typeof validatedAmount,
         newAmountPaid: typeof newAmountPaid,
       },
+      unit: 'VND',
     });
 
     // So sánh cùng đơn vị VND
@@ -484,16 +551,15 @@ async function handleSingleBillPayment(billId, amountPaid) {
       totalAmount, // VND
       currentAmountPaid, // VND
       amountPaid, // VND (đã convert từ cents)
+      validatedAmount, // VND (đã validate)
       newAmountPaid, // VND
       newStatus,
       comparison: `${newAmountPaid} >= ${totalAmount} = ${newAmountPaid >= totalAmount}`,
       unit: 'VND',
     });
 
-    await Bill.findByIdAndUpdate(billId, {
-      amountPaid: newAmountPaid,
-      status: newStatus,
-    });
+    // FIX: Sử dụng function mới để update amountPaid và status
+    await updateBillAmountPaid(billId, newAmountPaid, newStatus);
 
     console.log(`Bill ${billId} updated: amountPaid=${newAmountPaid}, status=${newStatus}`);
   } catch (error) {
@@ -675,6 +741,8 @@ const processWebhookEvent = async (req, res) => {
   }
 };
 
+// ==================
+// MODULE EXPORTS - Di chuyển xuống cuối file
 module.exports = {
   // 1 hóa đơn 1 lần
   createCheckoutSession,
@@ -692,4 +760,5 @@ module.exports = {
   // Webhook xử lý
   processWebhookEvent,
   fixBillAmountPaid,
+  validatePaymentAmount,
 };
