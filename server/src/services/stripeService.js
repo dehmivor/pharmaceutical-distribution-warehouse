@@ -4,6 +4,7 @@ const { updateBillStatus, updateBillAmountPaid } = require('./billService');
 const { BILL_STATUSES } = require('../utils/constants');
 const { Bill } = require('../models');
 const {
+  // Chỉnh sửa 2 hàm convert tiền tệ với tỉ giá chính xác và làm tròn hợp lý
   convertVNDToUSDCents,
   convertUSDCentsToVND,
   validateMinimumPayment,
@@ -24,8 +25,8 @@ async function getBillTotalAmount(billId) {
 
   return total; // Trả về theo VND
 }
-// ==================
-// 1. Thanh toán 1 hóa đơn 1 lần (Checkout Session)
+
+// Tạo checkout session cho 1 hóa đơn
 async function createCheckoutSession({
   billId,
   amount,
@@ -38,7 +39,6 @@ async function createCheckoutSession({
     throw new Error('Missing billId or amount');
   }
 
-  // FIX: Sử dụng utility để convert chính xác
   if (!validateMinimumPayment(amount)) {
     throw new Error(
       `Số tiền thanh toán tối thiểu là ${getMinimumPaymentAmount().toLocaleString()} VNĐ`,
@@ -101,8 +101,7 @@ async function createPaymentExport(billId, amount, successUrl, cancelUrl) {
   });
 }
 
-// ==================
-// 2. Thanh toán nhiều hóa đơn 1 lần (Checkout Session gom tổng)
+// Tạo checkout session tổng cho nhiều hóa đơn
 async function createCheckoutSessionMulti({
   billIds,
   amount,
@@ -120,13 +119,11 @@ async function createCheckoutSessionMulti({
       throw new Error('Amount must be greater than zero');
     }
 
-    // Validate bills exist
     const bills = await Bill.find({ _id: { $in: billIds } });
     if (bills.length !== billIds.length) {
       throw new Error('Some bills not found');
     }
 
-    // FIX: Sử dụng utility để convert chính xác
     if (!validateMinimumPayment(amount)) {
       throw new Error(
         `Số tiền thanh toán tối thiểu là ${getMinimumPaymentAmount().toLocaleString()} VNĐ`,
@@ -182,6 +179,7 @@ async function createCheckoutSessionMulti({
     throw error;
   }
 }
+
 async function createPaymentImportMulti(billIds, amount, successUrl, cancelUrl) {
   return createCheckoutSessionMulti({
     billIds,
@@ -202,6 +200,7 @@ async function createPaymentExportMulti(billIds, amount, successUrl, cancelUrl) 
   });
 }
 
+// Thanh toán nhiều lần cho một hóa đơn (PaymentIntent)
 async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = 'usd' }) {
   try {
     const bill = await Bill.findById(billId);
@@ -212,7 +211,6 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
     const totalAmount = await getBillTotalAmount(billId);
     const currentAmountPaid = bill.amountPaid || 0;
 
-    // FIX: Kiểm tra nếu bill đã được thanh toán đủ
     if (currentAmountPaid >= totalAmount) {
       throw new Error(
         `Bill ${billId} is already fully paid. Total: ${totalAmount}, Paid: ${currentAmountPaid}`,
@@ -231,12 +229,10 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
       isFullyPaid: currentAmountPaid >= totalAmount,
     });
 
-    // FIX: Chỉ validate nếu remainingAmount > 0
     if (remainingAmount > 0 && amount > remainingAmount) {
       throw new Error(`Amount ${amount} exceeds remaining balance ${remainingAmount}`);
     }
 
-    // FIX: Sử dụng utility để convert chính xác
     if (!validateMinimumPayment(amount)) {
       throw new Error(
         `Số tiền thanh toán tối thiểu là ${getMinimumPaymentAmount().toLocaleString()} VNĐ`,
@@ -266,7 +262,6 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
   }
 }
 
-// Function để sửa data sai trong database
 async function fixBillAmountPaid(billId) {
   try {
     const bill = await Bill.findById(billId);
@@ -285,21 +280,18 @@ async function fixBillAmountPaid(billId) {
       unit: 'VND',
     });
 
-    // Nếu amountPaid vượt quá totalAmount, reset về 0
     if (currentAmountPaid > totalAmount) {
       await updateBillAmountPaid(billId, 0, BILL_STATUSES.PENDING);
       console.log(`Bill ${billId} amountPaid reset to 0 (was ${currentAmountPaid})`);
       return true;
     }
 
-    // Nếu amountPaid bằng totalAmount, update status thành COMPLETED
     if (currentAmountPaid === totalAmount && bill.status !== BILL_STATUSES.COMPLETED) {
       await updateBillAmountPaid(billId, currentAmountPaid, BILL_STATUSES.COMPLETED);
       console.log(`Bill ${billId} status updated to COMPLETED`);
       return true;
     }
 
-    // Nếu amountPaid > 0 nhưng < totalAmount, update status thành PARTIAL
     if (
       currentAmountPaid > 0 &&
       currentAmountPaid < totalAmount &&
@@ -317,7 +309,7 @@ async function fixBillAmountPaid(billId) {
   }
 }
 
-// FIX: Thêm function để validate payment amount chính xác
+// Validate số tiền thanh toán giữa intended và actual, tránh sai số do làm tròn
 async function validatePaymentAmount(billId, intendedAmount, actualAmount) {
   try {
     const bill = await Bill.findById(billId);
@@ -339,7 +331,6 @@ async function validatePaymentAmount(billId, intendedAmount, actualAmount) {
       unit: 'VND',
     });
 
-    // Kiểm tra số tiền thanh toán có hợp lệ không
     if (intendedAmount <= 0) {
       throw new Error(`Invalid intended amount: ${intendedAmount}`);
     }
@@ -350,15 +341,14 @@ async function validatePaymentAmount(billId, intendedAmount, actualAmount) {
       );
     }
 
-    // Kiểm tra số tiền thực tế nhận được có khớp với số tiền dự định không
-    const tolerance = 1; // Cho phép sai số 1 VND do rounding
+    const tolerance = 1; // Sai số cho phép 1 VND
     const difference = Math.abs(actualAmount - intendedAmount);
 
     if (difference > tolerance) {
       console.warn(
         `Payment amount mismatch: intended=${intendedAmount}, actual=${actualAmount}, difference=${difference}`,
       );
-      // Trong trường hợp này, sử dụng số tiền thực tế nhận được
+      // Sử dụng số tiền thực tế nhận được nếu sai lệch lớn
       return actualAmount;
     }
 
@@ -369,8 +359,7 @@ async function validatePaymentAmount(billId, intendedAmount, actualAmount) {
   }
 }
 
-// ==================
-// WEBHOOK HANDLERS - Tách riêng từng function
+// Xử lý webhook khi hoàn tất thanh toán session
 async function handleCheckoutSessionCompleted(session) {
   console.log('Processing checkout.session.completed event');
 
@@ -379,10 +368,8 @@ async function handleCheckoutSessionCompleted(session) {
     const billIds = billIdsStr ? billIdsStr.split(',') : [];
     const singleBillId = session?.metadata?.billId;
 
-    // FIX: Sử dụng utility để convert chính xác
     let amountPaid = 0;
     if (session.amount_total) {
-      // Convert từ cents USD sang VND
       amountPaid = convertUSDCentsToVND(session.amount_total);
     } else if (session.amount_subtotal) {
       amountPaid = convertUSDCentsToVND(session.amount_subtotal);
@@ -437,11 +424,9 @@ async function handleMultiBillPayment(billIds, totalAmountPaid) {
       const totalAmount = await getBillTotalAmount(billId);
       const currentAmountPaid = bill.amountPaid || 0;
 
-      // FIX: Kiểm tra và cập nhật status nếu bill đã hoàn thành
       if (currentAmountPaid >= totalAmount) {
         console.log(`Bill ${billId} already fully paid, updating status to COMPLETED`);
 
-        // Cập nhật status thành COMPLETED nếu chưa phải
         if (bill.status !== BILL_STATUSES.COMPLETED) {
           await Bill.findByIdAndUpdate(billId, {
             status: BILL_STATUSES.COMPLETED,
@@ -465,7 +450,6 @@ async function handleMultiBillPayment(billIds, totalAmountPaid) {
         continue;
       }
 
-      // FIX: Validate amount trước khi apply
       const validatedAmount = await validatePaymentAmount(billId, amountToApply, amountToApply);
       const newAmountPaid = currentAmountPaid + validatedAmount;
       const newStatus =
@@ -481,7 +465,6 @@ async function handleMultiBillPayment(billIds, totalAmountPaid) {
         unit: 'VND',
       });
 
-      // FIX: Sử dụng function mới để update amountPaid và status
       await updateBillAmountPaid(billId, newAmountPaid, newStatus);
 
       console.log(`Bill ${billId} updated: amountPaid=${newAmountPaid}, status=${newStatus}`);
@@ -518,12 +501,11 @@ async function handleSingleBillPayment(billId, amountPaid) {
       return;
     }
 
-    const totalAmount = await getBillTotalAmount(billId); // VND
-    const currentAmountPaid = bill.amountPaid || 0; // VND
+    const totalAmount = await getBillTotalAmount(billId);
+    const currentAmountPaid = bill.amountPaid || 0;
 
-    // FIX: Validate payment amount trước khi xử lý
     const validatedAmount = await validatePaymentAmount(billId, amountPaid, amountPaid);
-    const newAmountPaid = currentAmountPaid + validatedAmount; // VND
+    const newAmountPaid = currentAmountPaid + validatedAmount;
 
     console.log('Detailed payment calculation:', {
       billId,
@@ -543,22 +525,20 @@ async function handleSingleBillPayment(billId, amountPaid) {
       unit: 'VND',
     });
 
-    // So sánh cùng đơn vị VND
     const newStatus =
       newAmountPaid >= totalAmount ? BILL_STATUSES.COMPLETED : BILL_STATUSES.PARTIAL;
 
     console.log('Status update debug:', {
-      totalAmount, // VND
-      currentAmountPaid, // VND
-      amountPaid, // VND (đã convert từ cents)
-      validatedAmount, // VND (đã validate)
-      newAmountPaid, // VND
+      totalAmount,
+      currentAmountPaid,
+      amountPaid,
+      validatedAmount,
+      newAmountPaid,
       newStatus,
       comparison: `${newAmountPaid} >= ${totalAmount} = ${newAmountPaid >= totalAmount}`,
       unit: 'VND',
     });
 
-    // FIX: Sử dụng function mới để update amountPaid và status
     await updateBillAmountPaid(billId, newAmountPaid, newStatus);
 
     console.log(`Bill ${billId} updated: amountPaid=${newAmountPaid}, status=${newStatus}`);
@@ -572,7 +552,6 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
   try {
     const billId = paymentIntent.metadata?.billId;
 
-    // FIX: Sử dụng utility để convert chính xác
     const amountPaid = convertUSDCentsToVND(paymentIntent.amount || 0);
 
     console.log('PaymentIntent succeeded debug:', {
@@ -606,13 +585,11 @@ async function handlePaymentFailure(session, eventType) {
     const singleBillId = session?.metadata?.billId;
 
     if (billIds.length > 0) {
-      // Xử lý nhiều hóa đơn
       for (const billId of billIds) {
         await updateBillStatus(billId, BILL_STATUSES.CANCELLED);
         console.log(`Bill ${billId} CANCELED due to payment failure (multi)`);
       }
     } else if (singleBillId) {
-      // Xử lý một hóa đơn
       await updateBillStatus(singleBillId, BILL_STATUSES.CANCELLED);
       console.log(`Bill ${singleBillId} CANCELED due to payment failure (single)`);
     }
@@ -622,31 +599,25 @@ async function handlePaymentFailure(session, eventType) {
   }
 }
 
-// ==================
-// MAIN WEBHOOK PROCESSOR
 const processWebhookEvent = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
 
   try {
-    // Kiểm tra webhook secret
     if (!process.env.STRIPE_WEBHOOK_SECRET) {
       console.error('STRIPE_WEBHOOK_SECRET is not configured');
       return res.status(500).json({ error: 'Webhook secret not configured' });
     }
 
-    // Verify webhook signature
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
       console.log(`Received webhook event: ${event.type}`);
     } catch (signatureErr) {
       console.error('Webhook signature verification failed:', signatureErr.message);
 
-      // Trong development, có thể bypass signature verification để test
       if (process.env.NODE_ENV === 'development' && !sig) {
         console.log('Development mode: Bypassing signature verification for testing');
         try {
-          // Parse JSON body manually
           const body = req.body;
           if (typeof body === 'string') {
             event = JSON.parse(body);
@@ -670,7 +641,6 @@ const processWebhookEvent = async (req, res) => {
       }
     }
 
-    // Thêm logging chi tiết
     console.log('Webhook event details:', {
       eventId: event.id,
       eventType: event.type,
@@ -741,23 +711,14 @@ const processWebhookEvent = async (req, res) => {
   }
 };
 
-// ==================
-// MODULE EXPORTS - Di chuyển xuống cuối file
 module.exports = {
-  // 1 hóa đơn 1 lần
   createCheckoutSession,
   createPaymentImport,
   createPaymentExport,
-
-  // Nhiều hóa đơn 1 lần
   createCheckoutSessionMulti,
   createPaymentImportMulti,
   createPaymentExportMulti,
-
-  // 1 hóa đơn nhiều lần
   createOrUpdatePaymentIntentForBill,
-
-  // Webhook xử lý
   processWebhookEvent,
   fixBillAmountPaid,
   validatePaymentAmount,
