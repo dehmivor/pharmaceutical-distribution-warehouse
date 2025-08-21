@@ -1,4 +1,5 @@
 'use client';
+
 import { ArrowDownward as ArrowDownwardIcon, ArrowUpward as ArrowUpwardIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
 import SearchIcon from '@mui/icons-material/Search';
 import {
@@ -54,9 +55,8 @@ const CheckOrders = () => {
   const { enqueueSnackbar } = useSnackbar();
 
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
@@ -79,6 +79,10 @@ const CheckOrders = () => {
   };
 
   const fetchOrders = async (customPage = null, customSortDirection = null) => {
+    if (!localStorage.getItem('auth-token')) {
+      setError('Bạn chưa đăng nhập hoặc token hết hạn.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -98,11 +102,14 @@ const CheckOrders = () => {
         params.append('startDate', startIso);
         params.append('endDate', endIso);
       }
-      if (searchTerm.trim() !== '') params.append('searchBy', 'created_by');
-      if (searchTerm.trim() !== '') params.append('search', searchTerm.trim());
-      // Sắp xếp theo ngày cập nhật (updatedAt)
-      if (currentSortDirection) params.append('sortBy', 'updatedAt');
-      if (currentSortDirection) params.append('sortDirection', currentSortDirection);
+      if (searchTerm.trim() !== '') {
+        params.append('searchBy', 'created_by');
+        params.append('search', searchTerm.trim());
+      }
+      if (currentSortDirection) {
+        params.append('sortBy', 'updatedAt');
+        params.append('sortDirection', currentSortDirection);
+      }
 
       const res = await axiosInstance.get(`/api/inventory-check-orders?${params.toString()}`, {
         headers: getAuthHeaders()
@@ -123,11 +130,9 @@ const CheckOrders = () => {
   };
 
   useEffect(() => {
-    // Chỉ load dữ liệu ban đầu khi component mount, không tự động load khi thay đổi filter
-    if (page === 0 && rowsPerPage === 10 && !filterStatus && !filterDate && !searchTerm && sortDirection === 'asc') {
-      fetchOrders(0, 'asc');
-    }
-  }, []); // Chỉ chạy 1 lần khi component mount
+    // Load lần đầu
+    fetchOrders(0, 'asc');
+  }, []);
 
   const handleFilterChange = (field, value) => {
     switch (field) {
@@ -137,7 +142,7 @@ const CheckOrders = () => {
       case 'date':
         setFilterDate(value);
         break;
-      case 'search':
+      case 'search by created by':
         setSearchTerm(value);
         break;
       case 'sortDirection':
@@ -147,12 +152,11 @@ const CheckOrders = () => {
         break;
     }
     setPage(0);
-    // Không tự động fetch khi thay đổi filter, chỉ khi bấm search
+    // Không auto fetch, chờ người dùng nhấn Search
   };
 
   const handleSearchClick = () => {
-    // Áp dụng tất cả filter hiện tại và fetch dữ liệu
-    setPage(0); // Reset về trang đầu tiên
+    setPage(0);
     fetchOrders(0);
   };
 
@@ -162,13 +166,11 @@ const CheckOrders = () => {
     setFilterDate('');
     setSortDirection('asc');
     setPage(0);
-    // Reset về default và load lại dữ liệu
     fetchOrders(0, 'asc');
   };
 
   const handlePageChange = (event, newPage) => {
     setPage(newPage);
-    // Khi thay đổi page, fetch với page mới và giữ nguyên các filter hiện tại
     fetchOrders(newPage);
   };
 
@@ -176,7 +178,6 @@ const CheckOrders = () => {
     const newRpp = parseInt(event.target.value, 10);
     setRowsPerPage(newRpp);
     setPage(0);
-    // Khi thay đổi rows per page, fetch với page = 0 và giữ nguyên các filter hiện tại
     fetchOrders(0);
   };
 
@@ -211,11 +212,6 @@ const CheckOrders = () => {
       {error && (
         <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
           {error}
-        </Alert>
-      )}
-      {success && (
-        <Alert severity="success" onClose={() => setSuccess('')} sx={{ mb: 2 }}>
-          {success}
         </Alert>
       )}
 
@@ -269,7 +265,6 @@ const CheckOrders = () => {
             onClick={() => {
               const newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
               setSortDirection(newDirection);
-              // Sắp xếp theo updatedAt sẽ được áp dụng ngay lập tức với page = 0
               fetchOrders(0, newDirection);
             }}
           >
@@ -303,13 +298,13 @@ const CheckOrders = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                <TableCell colSpan={9} align="center" sx={{ py: 5 }}>
                   <CircularProgress />
                 </TableCell>
               </TableRow>
             ) : orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                <TableCell colSpan={9} align="center" sx={{ py: 5 }}>
                   {trans?.checkOrders?.noCheckOrders || 'No check orders found'}
                 </TableCell>
               </TableRow>
@@ -319,7 +314,7 @@ const CheckOrders = () => {
                   <TableCell>{order._id.slice(-6)}</TableCell>
                   <TableCell>{formatDate(order.inventory_check_date)}</TableCell>
                   <TableCell>{order.warehouse_manager_id?.email.split('@')[0] || 'N/A'}</TableCell>
-                  <TableCell>{order.created_by?.email.split('@')[0] || 'N/A'}</TableCell>
+                  <TableCell>{order.created_by?.email.split('@') || 'N/A'}</TableCell>
                   <TableCell>
                     <Chip label={order.status} size="small" color={getStatusColor(order.status)} variant="filled" />
                   </TableCell>
@@ -369,9 +364,7 @@ const CheckOrders = () => {
           <MenuItem
             onClick={async () => {
               try {
-                // Kiểm tra xem có phiếu nào đang processing không
-                const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-                const checkRes = await axios.get(`${backendUrl}/api/inventory-check-orders?status=processing&limit=1`, {
+                const checkRes = await axiosInstance.get(`/api/inventory-check-orders?status=processing&limit=1`, {
                   headers: getAuthHeaders()
                 });
 
@@ -380,22 +373,16 @@ const CheckOrders = () => {
                   checkRes.data.data.inventoryCheckOrders &&
                   checkRes.data.data.inventoryCheckOrders.length > 0
                 ) {
-                  // Có phiếu đang processing, hiển thị thông báo
-                  enqueueSnackbar('Đang có đợt kiểm kê khác đang xử lý', {
-                    variant: 'info'
-                  });
+                  enqueueSnackbar('Đang có đợt kiểm kê khác đang xử lý', { variant: 'info' });
                   handleMenuClose();
                   return;
                 }
 
-                // Không có phiếu nào đang processing, cho phép chuyển trang
                 router.push(`/wm-inventory/create-inspections/${menuOrder?._id}`);
                 handleMenuClose();
               } catch (error) {
                 console.error('Lỗi khi kiểm tra trạng thái:', error);
-                enqueueSnackbar('Lỗi khi kiểm tra trạng thái phiếu kiểm kê. Vui lòng thử lại.', {
-                  variant: 'error'
-                });
+                enqueueSnackbar('Lỗi khi kiểm tra trạng thái phiếu kiểm kê. Vui lòng thử lại.', { variant: 'error' });
                 handleMenuClose();
               }
             }}

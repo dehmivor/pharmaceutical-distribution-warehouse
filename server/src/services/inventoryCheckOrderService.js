@@ -210,6 +210,45 @@ const inventoryCheckOrderService = {
       };
     }
   },
+
+  // Create inspections for inventory check order
+  async createInspections(orderId) {
+    try {
+      // Get the inventory check order
+      const order = await InventoryCheckOrder.findById(orderId);
+      if (!order) {
+        return {
+          success: false,
+          message: 'Không tìm thấy phiếu kiểm kê',
+        };
+      }
+
+      // Check if order status is pending
+      if (order.status !== INVENTORY_CHECK_ORDER_STATUSES.PENDING) {
+        return {
+          success: false,
+          message: 'Chỉ có thể tạo phiếu kiểm kê con khi trạng thái là pending',
+        };
+      }
+
+      // TODO: Implement logic to create inspection slips based on order items and locations
+      // For now, return a placeholder response
+      return {
+        success: true,
+        data: {
+          createdCount: 0,
+          message: 'Chức năng tạo phiếu kiểm kê con đang được phát triển'
+        },
+        message: 'Chức năng tạo phiếu kiểm kê con đang được phát triển'
+      };
+    } catch (error) {
+      console.error('Create inspections service error:', error);
+      return {
+        success: false,
+        message: 'Lỗi server khi tạo phiếu kiểm kê con',
+      };
+    }
+  },
 };
 
 module.exports = inventoryCheckOrderService;

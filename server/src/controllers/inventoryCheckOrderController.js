@@ -154,9 +154,38 @@ const updateInventoryCheckOrder = asyncHandler(async (req, res) => {
   });
 });
 
+// Create inspections for inventory check order
+const createInspections = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Check if user is warehouse manager
+  if (req.user.role !== USER_ROLES.WAREHOUSEMANAGER) {
+    return res.status(403).json({
+      success: false,
+      message: 'Chỉ warehouse manager mới có quyền tạo phiếu kiểm kê con',
+    });
+  }
+
+  const result = await inventoryCheckOrderService.createInspections(id);
+
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: result.message,
+    });
+  }
+
+  res.status(201).json({
+    success: true,
+    data: result.data,
+    message: result.message,
+  });
+});
+
 module.exports = {
   getAllInventoryCheckOrders,
   createInventoryCheckOrder,
   getInventoryCheckOrderById,
   updateInventoryCheckOrder,
+  createInspections,
 };
