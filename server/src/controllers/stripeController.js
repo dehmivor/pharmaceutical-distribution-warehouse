@@ -24,10 +24,11 @@ async function getBillsTotalAmount(billIds) {
         detailsCount: bill.details?.length || 0,
         totalBill,
         sumAll,
+        unit: 'VND',
       });
     });
 
-    console.log('Total amount calculated:', sumAll);
+    console.log('Total amount calculated:', sumAll, 'VND');
     return sumAll;
   } catch (error) {
     console.error('Error in getBillsTotalAmount:', error);

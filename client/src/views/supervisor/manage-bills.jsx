@@ -258,11 +258,8 @@ function ManageBills() {
     // Đảm bảo amountPaid luôn là VND
     const amountPaid = bill.amountPaid || 0;
 
-    // Nếu amountPaid quá lớn (có thể là cents), convert về VND
-    if (amountPaid > 1000) {
-      return amountPaid / 100;
-    }
-
+    // FIX: Loại bỏ logic convert sai - amountPaid trong DB đã là VND
+    // Không cần chia cho 100 nữa
     return amountPaid;
   };
 
@@ -451,11 +448,21 @@ function ManageBills() {
       return;
     }
 
+    // FIX: Khởi tạo số tiền thanh toán cho từng hóa đơn
     const amounts = {};
     selectedBills.forEach((id) => {
       const bill = bills.find((b) => b._id === id);
-      amounts[id] = formatNumber(calcRemainingAmount(bill));
+      const remainingAmount = calcRemainingAmount(bill);
+      // Khởi tạo với số tiền còn lại cần trả (có thể thanh toán toàn bộ hoặc một phần)
+      amounts[id] = formatNumber(remainingAmount);
     });
+
+    console.log('Initializing multi-payment amounts:', {
+      selectedBills,
+      amounts,
+      unit: 'VND'
+    });
+
     setMultiPaymentAmounts(amounts);
     setOpenMultiPaymentDialog(true);
   };
@@ -471,11 +478,17 @@ function ManageBills() {
     const maxAmount = calcRemainingAmount(bill);
     const numericValue = parseFormattedNumber(value);
 
+    // FIX: Validation chính xác hơn
     if (numericValue > maxAmount) {
       enqueueSnackbar(
         `Số tiền thanh toán (${numericValue.toLocaleString()} VNĐ) không được vượt quá số tiền còn lại cần trả (${maxAmount.toLocaleString()} VNĐ).`,
         { variant: 'error' }
       );
+      return;
+    }
+
+    if (numericValue < 0) {
+      enqueueSnackbar('Số tiền thanh toán không được âm.', { variant: 'error' });
       return;
     }
 
@@ -512,33 +525,45 @@ function ManageBills() {
         return;
       }
 
-      let amount = 0;
-      let totalAmount = 0;
+      let totalPaymentAmount = 0;
+      let totalRemainingAmount = 0;
 
-      // Kiểm tra số tiền thanh toán của từng hóa đơn
+      // FIX: Tính toán chính xác tổng tiền thanh toán và tổng tiền còn lại
       for (const id of billIds) {
         const bill = bills.find((b) => b._id === id);
-        const billAmount = parseFormattedNumber(multiPaymentAmounts[id]) || 0;
-        const billTotal = calcRemainingAmount(bill);
+        const billPaymentAmount = parseFormattedNumber(multiPaymentAmounts[id]) || 0;
+        const billRemainingAmount = calcRemainingAmount(bill);
 
-        if (billAmount > billTotal) {
+        if (billPaymentAmount > billRemainingAmount) {
           enqueueSnackbar(
-            `Số tiền thanh toán cho hóa đơn ${bill.voucher_code || bill._id.slice(0, 6)} (${billAmount.toLocaleString()} VNĐ) vượt quá số tiền còn lại cần trả (${billTotal.toLocaleString()} VNĐ).`,
+            `Số tiền thanh toán cho hóa đơn ${bill.voucher_code || bill._id.slice(0, 6)} (${billPaymentAmount.toLocaleString()} VNĐ) vượt quá số tiền còn lại cần trả (${billRemainingAmount.toLocaleString()} VNĐ).`,
             { variant: 'error' }
           );
           setLoadingPaymentId(null);
           return;
         }
 
-        amount += billAmount;
-        totalAmount += billTotal;
+        totalPaymentAmount += billPaymentAmount;
+        totalRemainingAmount += billRemainingAmount;
       }
 
-      if (amount <= 0) {
+      if (totalPaymentAmount <= 0) {
         enqueueSnackbar('Tổng số tiền thanh toán không hợp lệ.', { variant: 'error' });
         setLoadingPaymentId(null);
         return;
       }
+
+      console.log('Multi-payment validation:', {
+        billIds,
+        totalPaymentAmount,
+        totalRemainingAmount,
+        unit: 'VND',
+        individualAmounts: billIds.map((id) => ({
+          billId: id,
+          paymentAmount: parseFormattedNumber(multiPaymentAmounts[id]) || 0,
+          remainingAmount: calcRemainingAmount(bills.find((b) => b._id === id))
+        }))
+      });
 
       const firstBill = bills.find((b) => b._id === billIds[0]);
       const paymentType = firstBill?.type?.toLowerCase() || 'import';
@@ -546,7 +571,7 @@ function ManageBills() {
         `${backendUrl}/api/stripe/payments/multi`,
         {
           billIds,
-          amount,
+          amount: totalPaymentAmount, // FIX: Gửi tổng tiền thanh toán chính xác
           paymentType: 'import',
           successUrl,
           cancelUrl
@@ -669,9 +694,19 @@ function ManageBills() {
 
   // Calculate total amount for multi-payment
   const calculateMultiPaymentTotal = () => {
-    return Object.values(multiPaymentAmounts).reduce((total, amount) => {
-      return total + parseFormattedNumber(amount);
+    const total = Object.values(multiPaymentAmounts).reduce((sum, amount) => {
+      const numericAmount = parseFormattedNumber(amount) || 0;
+      return sum + numericAmount;
     }, 0);
+
+    console.log('Multi-payment total calculation:', {
+      amounts: multiPaymentAmounts,
+      parsedAmounts: Object.values(multiPaymentAmounts).map((amount) => parseFormattedNumber(amount) || 0),
+      total,
+      unit: 'VND'
+    });
+
+    return total;
   };
 
   if (loading) {

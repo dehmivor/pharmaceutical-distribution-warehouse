@@ -3,6 +3,12 @@ const stripe = new Stripe(process.env.STRIPE_API_KEY, { apiVersion: '2022-11-15'
 const { updateBillStatus } = require('./billService');
 const { BILL_STATUSES } = require('../utils/constants');
 const { Bill } = require('../models');
+const {
+  convertVNDToUSDCents,
+  convertUSDCentsToVND,
+  validateMinimumPayment,
+  getMinimumPaymentAmount,
+} = require('../utils/currencyConverter');
 const frontendUrl = process.env.CLIENT_URL || 'http://localhost:3000';
 
 async function getBillTotalAmount(billId) {
@@ -32,15 +38,14 @@ async function createCheckoutSession({
     throw new Error('Missing billId or amount');
   }
 
-  // Stripe yêu cầu unit_amount phải là cents (USD)
-  // VND to USD conversion (1 USD = ~25,000 VND) - tỷ giá thực tế
-  const amountInUSD = amount / 25000;
-  const amountInCents = Math.round(amountInUSD * 100);
-
-  // Stripe minimum amount is 50 cents
-  if (amountInCents < 50) {
-    throw new Error(`Số tiền thanh toán tối thiểu là ${((50 * 25000) / 100).toLocaleString()} VNĐ`);
+  // FIX: Sử dụng utility để convert chính xác
+  if (!validateMinimumPayment(amount)) {
+    throw new Error(
+      `Số tiền thanh toán tối thiểu là ${getMinimumPaymentAmount().toLocaleString()} VNĐ`,
+    );
   }
+
+  const amountInCents = convertVNDToUSDCents(amount);
 
   console.log('createCheckoutSession debug:', {
     billId,
@@ -121,19 +126,14 @@ async function createCheckoutSessionMulti({
       throw new Error('Some bills not found');
     }
 
-    const billsStr = billIds.join(', ');
-
-    // Stripe yêu cầu unit_amount phải là cents (USD)
-    // VND to USD conversion (1 USD = ~25,000 VND) - tỷ giá thực tế
-    const amountInUSD = amount / 25000;
-    const amountInCents = Math.round(amountInUSD * 100);
-
-    // Stripe minimum amount is 50 cents
-    if (amountInCents < 50) {
+    // FIX: Sử dụng utility để convert chính xác
+    if (!validateMinimumPayment(amount)) {
       throw new Error(
-        `Số tiền thanh toán tối thiểu là ${((50 * 25000) / 100).toLocaleString()} VNĐ`,
+        `Số tiền thanh toán tối thiểu là ${getMinimumPaymentAmount().toLocaleString()} VNĐ`,
       );
     }
+
+    const amountInCents = convertVNDToUSDCents(amount);
 
     console.log('createCheckoutSessionMulti debug:', {
       billIds,
@@ -152,7 +152,10 @@ async function createCheckoutSessionMulti({
           price_data: {
             currency: 'usd',
             product_data: {
-              name: `Thanh toán công nợ (${paymentType === 'import' ? 'Nhập' : 'Xuất'}) - Các phiếu: ${billsStr}`,
+              name:
+                paymentType === 'import'
+                  ? `Thanh toán nhiều hóa đơn nhập - ${billIds.length} phiếu`
+                  : `Thanh toán nhiều hóa đơn xuất - ${billIds.length} phiếu`,
             },
             unit_amount: amountInCents,
           },
@@ -233,17 +236,14 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
       throw new Error(`Amount ${amount} exceeds remaining balance ${remainingAmount}`);
     }
 
-    // Stripe yêu cầu amount phải là cents (USD)
-    // VND to USD conversion (1 USD = ~25,000 VND) - tỷ giá thực tế
-    const amountInUSD = amount / 25000;
-    const amountInCents = Math.round(amountInUSD * 100);
-
-    // Stripe minimum amount is 50 cents
-    if (amountInCents < 50) {
+    // FIX: Sử dụng utility để convert chính xác
+    if (!validateMinimumPayment(amount)) {
       throw new Error(
-        `Số tiền thanh toán tối thiểu là ${((50 * 25000) / 100).toLocaleString()} VNĐ`,
+        `Số tiền thanh toán tối thiểu là ${getMinimumPaymentAmount().toLocaleString()} VNĐ`,
       );
     }
+
+    const amountInCents = convertVNDToUSDCents(amount);
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
@@ -319,25 +319,13 @@ async function handleCheckoutSessionCompleted(session) {
     const billIds = billIdsStr ? billIdsStr.split(',') : [];
     const singleBillId = session?.metadata?.billId;
 
-    // Sửa: Xử lý amount đúng cách
+    // FIX: Sử dụng utility để convert chính xác
     let amountPaid = 0;
     if (session.amount_total) {
-      // Convert từ cents USD sang VND (cents -> USD -> VND)
-      const amountInUSD = session.amount_total / 100;
-      amountPaid = amountInUSD * 25000;
-      console.log('Checkout Session amount conversion:', {
-        rawCents: session.amount_total,
-        amountUSD: amountInUSD,
-        amountVND: amountPaid,
-      });
+      // Convert từ cents USD sang VND
+      amountPaid = convertUSDCentsToVND(session.amount_total);
     } else if (session.amount_subtotal) {
-      const amountInUSD = session.amount_subtotal / 100;
-      amountPaid = amountInUSD * 25000;
-      console.log('Checkout Session amount conversion:', {
-        rawCents: session.amount_subtotal,
-        amountUSD: amountInUSD,
-        amountVND: amountPaid,
-      });
+      amountPaid = convertUSDCentsToVND(session.amount_subtotal);
     }
 
     console.log('Amount conversion debug:', {
@@ -518,9 +506,8 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
   try {
     const billId = paymentIntent.metadata?.billId;
 
-    // FIX: Convert từ cents USD sang VND để nhất quán với handleCheckoutSessionCompleted
-    const amountInUSD = (paymentIntent.amount || 0) / 100;
-    const amountPaid = amountInUSD * 25000;
+    // FIX: Sử dụng utility để convert chính xác
+    const amountPaid = convertUSDCentsToVND(paymentIntent.amount || 0);
 
     console.log('PaymentIntent succeeded debug:', {
       billId,
