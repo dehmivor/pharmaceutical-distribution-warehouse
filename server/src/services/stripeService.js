@@ -37,6 +37,11 @@ async function createCheckoutSession({
   const amountInUSD = amount / 25000;
   const amountInCents = Math.round(amountInUSD * 100);
 
+  // Stripe minimum amount is 50 cents
+  if (amountInCents < 50) {
+    throw new Error(`Số tiền thanh toán tối thiểu là ${((50 * 25000) / 100).toLocaleString()} VNĐ`);
+  }
+
   console.log('createCheckoutSession debug:', {
     billId,
     amountVND: amount,
@@ -119,9 +124,16 @@ async function createCheckoutSessionMulti({
     const billsStr = billIds.join(', ');
 
     // Stripe yêu cầu unit_amount phải là cents (USD)
-    // VND to USD conversion (1 USD = ~24,000 VND)
-    const amountInUSD = amount / 24000;
+    // VND to USD conversion (1 USD = ~25,000 VND) - tỷ giá thực tế
+    const amountInUSD = amount / 25000;
     const amountInCents = Math.round(amountInUSD * 100);
+
+    // Stripe minimum amount is 50 cents
+    if (amountInCents < 50) {
+      throw new Error(
+        `Số tiền thanh toán tối thiểu là ${((50 * 25000) / 100).toLocaleString()} VNĐ`,
+      );
+    }
 
     console.log('createCheckoutSessionMulti debug:', {
       billIds,
@@ -222,9 +234,16 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
     }
 
     // Stripe yêu cầu amount phải là cents (USD)
-    // VND to USD conversion (1 USD = ~24,000 VND)
-    const amountInUSD = amount / 24000;
+    // VND to USD conversion (1 USD = ~25,000 VND) - tỷ giá thực tế
+    const amountInUSD = amount / 25000;
     const amountInCents = Math.round(amountInUSD * 100);
+
+    // Stripe minimum amount is 50 cents
+    if (amountInCents < 50) {
+      throw new Error(
+        `Số tiền thanh toán tối thiểu là ${((50 * 25000) / 100).toLocaleString()} VNĐ`,
+      );
+    }
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
@@ -305,10 +324,20 @@ async function handleCheckoutSessionCompleted(session) {
     if (session.amount_total) {
       // Convert từ cents USD sang VND (cents -> USD -> VND)
       const amountInUSD = session.amount_total / 100;
-      amountPaid = amountInUSD * 24000;
+      amountPaid = amountInUSD * 25000;
+      console.log('Checkout Session amount conversion:', {
+        rawCents: session.amount_total,
+        amountUSD: amountInUSD,
+        amountVND: amountPaid,
+      });
     } else if (session.amount_subtotal) {
       const amountInUSD = session.amount_subtotal / 100;
-      amountPaid = amountInUSD * 24000;
+      amountPaid = amountInUSD * 25000;
+      console.log('Checkout Session amount conversion:', {
+        rawCents: session.amount_subtotal,
+        amountUSD: amountInUSD,
+        amountVND: amountPaid,
+      });
     }
 
     console.log('Amount conversion debug:', {
@@ -429,7 +458,9 @@ async function handleMultiBillPayment(billIds, totalAmountPaid) {
 }
 
 async function handleSingleBillPayment(billId, amountPaid) {
-  console.log(`Processing single bill payment for ${billId}, amount: ${amountPaid}`);
+  console.log(
+    `Processing single bill payment for ${billId}, amount: ${amountPaid}, type: ${typeof amountPaid}`,
+  );
 
   try {
     const bill = await Bill.findById(billId);
@@ -441,6 +472,21 @@ async function handleSingleBillPayment(billId, amountPaid) {
     const totalAmount = await getBillTotalAmount(billId); // VND
     const currentAmountPaid = bill.amountPaid || 0; // VND
     const newAmountPaid = currentAmountPaid + amountPaid; // VND
+
+    console.log('Detailed payment calculation:', {
+      billId,
+      totalAmount,
+      currentAmountPaid,
+      amountPaid,
+      newAmountPaid,
+      calculation: `${currentAmountPaid} + ${amountPaid} = ${newAmountPaid}`,
+      allValuesType: {
+        totalAmount: typeof totalAmount,
+        currentAmountPaid: typeof currentAmountPaid,
+        amountPaid: typeof amountPaid,
+        newAmountPaid: typeof newAmountPaid,
+      },
+    });
 
     // So sánh cùng đơn vị VND
     const newStatus =
@@ -474,7 +520,7 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
 
     // FIX: Convert từ cents USD sang VND để nhất quán với handleCheckoutSessionCompleted
     const amountInUSD = (paymentIntent.amount || 0) / 100;
-    const amountPaid = amountInUSD * 24000;
+    const amountPaid = amountInUSD * 25000;
 
     console.log('PaymentIntent succeeded debug:', {
       billId,

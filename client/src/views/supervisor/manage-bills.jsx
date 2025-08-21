@@ -53,7 +53,7 @@ const getAuthHeaders = () => {
 // Parse formatted number back to number
 const parseFormattedNumber = (str) => {
   if (!str) return 0;
-  return parseFloat(str.toString().replace(/,/g, ''));
+  return parseFloat(str.toString().replace(/[,\s]/g, ''));
 };
 
 function StripePartialPayment({ clientSecret, onSuccess, onCancel }) {
@@ -125,7 +125,7 @@ function ManageBills() {
   const [selectedBills, setSelectedBills] = useState([]);
   const [openDetail, setOpenDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
-  const [partialAmount, setPartialAmount] = useState('');
+  const [partialAmount, setPartialAmount] = useState(0);
   const [loadingPaymentId, setLoadingPaymentId] = useState(null);
   const [openMultiPaymentDialog, setOpenMultiPaymentDialog] = useState(false);
   const [multiPaymentAmounts, setMultiPaymentAmounts] = useState({});
@@ -299,7 +299,7 @@ function ManageBills() {
   const handleOpenDetail = (data) => {
     setDetailData(data);
     const totalAmount = calcAmount(data.details);
-    setPartialAmount(formatNumber(totalAmount));
+    setPartialAmount(totalAmount); // Set số thực, không phải chuỗi
     setOpenDetail(true);
   };
 
@@ -312,7 +312,8 @@ function ManageBills() {
   };
 
   const handlePartialPayment = async (bill) => {
-    const amount = parseFormattedNumber(partialAmount);
+    console.log('Debug partialAmount:', partialAmount, typeof partialAmount);
+    const amount = partialAmount; // partialAmount giờ là số thực
     if (!amount || amount <= 0) {
       enqueueSnackbar('Vui lòng nhập số tiền thanh toán hợp lệ.', { variant: 'error' });
       return;
@@ -855,9 +856,6 @@ function ManageBills() {
                       <Typography variant="body2" color="text.secondary">
                         Tổng: {formatNumber(calcAmount(bill.details))} VNĐ
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Đã trả: {formatNumber(calcAmountPaid(bill))} VNĐ
-                      </Typography>
                       <Typography variant="body2" color="primary" fontWeight="bold">
                         Còn lại: {formatNumber(calcRemainingAmount(bill))} VNĐ
                       </Typography>
@@ -1029,17 +1027,18 @@ function ManageBills() {
                     <TextField
                       label="Số tiền thanh toán (VNĐ)"
                       fullWidth
-                      value={partialAmount}
+                      value={formatNumber(partialAmount)}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9,]/g, '');
+                        const value = e.target.value.replace(/[^0-9,\s]/g, '');
                         const numericValue = parseFormattedNumber(value);
+                        console.log('Input value:', e.target.value, 'Parsed:', numericValue);
                         const maxAmount = calcRemainingAmount(detailData);
-                        if (numericValue <= maxAmount) {
-                          setPartialAmount(formatNumber(numericValue));
+                        if (numericValue <= maxAmount && numericValue > 0) {
+                          setPartialAmount(numericValue); // Lưu số thực, không phải chuỗi
                         }
                       }}
                       sx={{ mt: 2 }}
-                      helperText={`Số tiền: ${parseFormattedNumber(partialAmount).toLocaleString()} VNĐ - Bạn có thể thanh toán toàn bộ hoặc một phần số tiền còn lại (${calcRemainingAmount(detailData).toLocaleString()} VNĐ).`}
+                      helperText={`Số tiền: ${partialAmount} VNĐ - Bạn có thể thanh toán toàn bộ hoặc một phần số tiền còn lại (${formatNumber(calcRemainingAmount(detailData))} VNĐ).`}
                     />
                   </>
                 )}
@@ -1055,7 +1054,7 @@ function ManageBills() {
             <Button
               onClick={() => handlePartialPayment(detailData)}
               variant="contained"
-              disabled={loadingPaymentId !== null || !partialAmount || parseFormattedNumber(partialAmount) <= 0}
+              disabled={loadingPaymentId !== null || !partialAmount || partialAmount <= 0}
             >
               {loadingPaymentId === detailData?._id ? trans.common.processing : trans.common.payment}
             </Button>
@@ -1098,14 +1097,14 @@ function ManageBills() {
                       label="Số tiền thanh toán (VNĐ)"
                       value={multiPaymentAmounts[billId] || ''}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9,]/g, '');
+                        const value = e.target.value.replace(/[^0-9,\s]/g, '');
                         const numericValue = parseFormattedNumber(value);
                         if (numericValue <= maxAmount) {
                           handleMultiPaymentAmountChange(billId, formatNumber(numericValue));
                         }
                       }}
                       fullWidth
-                      helperText={`Số tiền: ${parseFormattedNumber(multiPaymentAmounts[billId] || '0').toLocaleString()} VNĐ / Số tiền còn lại: ${maxAmount.toLocaleString()} VNĐ`}
+                      helperText={`Số tiền: ${formatNumber(parseFormattedNumber(multiPaymentAmounts[billId] || '0'))} VNĐ / Số tiền còn lại: ${formatNumber(maxAmount)} VNĐ`}
                     />
                   </Box>
                 );
