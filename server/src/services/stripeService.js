@@ -3,6 +3,12 @@ const stripe = new Stripe(process.env.STRIPE_API_KEY, { apiVersion: '2022-11-15'
 const { updateBillStatus } = require('./billService');
 const { BILL_STATUSES } = require('../utils/constants');
 const { Bill } = require('../models');
+const {
+  convertVNDToUSDCents,
+  convertUSDCentsToVND,
+  validateMinimumPayment,
+  getMinimumPaymentAmount,
+} = require('../utils/currencyConverter');
 const frontendUrl = process.env.CLIENT_URL || 'http://localhost:3000';
 
 async function getBillTotalAmount(billId) {
@@ -23,7 +29,7 @@ async function getBillTotalAmount(billId) {
 async function createCheckoutSession({
   billId,
   amount,
-  currency = 'vnd',
+  currency = 'usd',
   successUrl,
   cancelUrl,
   paymentType, // 'import' | 'export'
@@ -32,16 +38,33 @@ async function createCheckoutSession({
     throw new Error('Missing billId or amount');
   }
 
+  // FIX: Sử dụng utility để convert chính xác
+  if (!validateMinimumPayment(amount)) {
+    throw new Error(
+      `Số tiền thanh toán tối thiểu là ${getMinimumPaymentAmount().toLocaleString()} VNĐ`,
+    );
+  }
+
+  const amountInCents = convertVNDToUSDCents(amount);
+
+  console.log('createCheckoutSession debug:', {
+    billId,
+    amountVND: amount,
+    amountCents: amountInCents,
+    currency,
+    paymentType,
+  });
+
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
     line_items: [
       {
         price_data: {
-          currency,
+          currency: 'usd',
           product_data: {
             name: `Thanh toán công nợ (${paymentType === 'import' ? 'Nhập' : 'Xuất'}) - Phiếu ${billId}`,
           },
-          unit_amount: amount,
+          unit_amount: amountInCents,
         },
         quantity: 1,
       },
@@ -83,7 +106,7 @@ async function createPaymentExport(billId, amount, successUrl, cancelUrl) {
 async function createCheckoutSessionMulti({
   billIds,
   amount,
-  currency = 'vnd',
+  currency = 'usd',
   successUrl,
   cancelUrl,
   paymentType,
@@ -103,12 +126,20 @@ async function createCheckoutSessionMulti({
       throw new Error('Some bills not found');
     }
 
-    const billsStr = billIds.join(', ');
+    // FIX: Sử dụng utility để convert chính xác
+    if (!validateMinimumPayment(amount)) {
+      throw new Error(
+        `Số tiền thanh toán tối thiểu là ${getMinimumPaymentAmount().toLocaleString()} VNĐ`,
+      );
+    }
+
+    const amountInCents = convertVNDToUSDCents(amount);
 
     console.log('createCheckoutSessionMulti debug:', {
       billIds,
       billIdsStr: billIds.join(','),
-      amount,
+      amountVND: amount,
+      amountCents: amountInCents,
       currency,
       paymentType,
       billsFound: bills.length,
@@ -119,11 +150,14 @@ async function createCheckoutSessionMulti({
       line_items: [
         {
           price_data: {
-            currency: 'vnd',
+            currency: 'usd',
             product_data: {
-              name: `Thanh toán công nợ (${paymentType === 'import' ? 'Nhập' : 'Xuất'}) - Các phiếu: ${billsStr}`,
+              name:
+                paymentType === 'import'
+                  ? `Thanh toán nhiều hóa đơn nhập - ${billIds.length} phiếu`
+                  : `Thanh toán nhiều hóa đơn xuất - ${billIds.length} phiếu`,
             },
-            unit_amount: amount,
+            unit_amount: amountInCents,
           },
           quantity: 1,
         },
@@ -168,7 +202,7 @@ async function createPaymentExportMulti(billIds, amount, successUrl, cancelUrl) 
   });
 }
 
-async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = 'vnd' }) {
+async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = 'usd' }) {
   try {
     const bill = await Bill.findById(billId);
     if (!bill) {
@@ -202,8 +236,17 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
       throw new Error(`Amount ${amount} exceeds remaining balance ${remainingAmount}`);
     }
 
+    // FIX: Sử dụng utility để convert chính xác
+    if (!validateMinimumPayment(amount)) {
+      throw new Error(
+        `Số tiền thanh toán tối thiểu là ${getMinimumPaymentAmount().toLocaleString()} VNĐ`,
+      );
+    }
+
+    const amountInCents = convertVNDToUSDCents(amount);
+
     const paymentIntent = await stripe.paymentIntents.create({
-      amount,
+      amount: amountInCents,
       currency,
       metadata: { billId },
       payment_method_types: ['card'],
@@ -211,7 +254,8 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
 
     console.log('PaymentIntent created successfully:', {
       billId,
-      amount,
+      amountVND: amount,
+      amountCents: amountInCents,
       paymentIntentId: paymentIntent.id,
     });
 
@@ -275,12 +319,13 @@ async function handleCheckoutSessionCompleted(session) {
     const billIds = billIdsStr ? billIdsStr.split(',') : [];
     const singleBillId = session?.metadata?.billId;
 
-    // Sửa: Xử lý amount đúng cách
+    // FIX: Sử dụng utility để convert chính xác
     let amountPaid = 0;
     if (session.amount_total) {
-      amountPaid = session.amount_total / 100; // Convert từ cents sang VND
+      // Convert từ cents USD sang VND
+      amountPaid = convertUSDCentsToVND(session.amount_total);
     } else if (session.amount_subtotal) {
-      amountPaid = session.amount_subtotal / 100;
+      amountPaid = convertUSDCentsToVND(session.amount_subtotal);
     }
 
     console.log('Amount conversion debug:', {
@@ -364,6 +409,15 @@ async function handleMultiBillPayment(billIds, totalAmountPaid) {
       const newStatus =
         newAmountPaid >= totalAmount ? BILL_STATUSES.COMPLETED : BILL_STATUSES.PARTIAL;
 
+      console.log(`Bill ${billId} amountPaid update:`, {
+        currentAmountPaid,
+        amountToApply,
+        newAmountPaid,
+        totalAmount,
+        newStatus,
+        unit: 'VND',
+      });
+
       await Bill.findByIdAndUpdate(billId, {
         amountPaid: newAmountPaid,
         status: newStatus,
@@ -392,7 +446,9 @@ async function handleMultiBillPayment(billIds, totalAmountPaid) {
 }
 
 async function handleSingleBillPayment(billId, amountPaid) {
-  console.log(`Processing single bill payment for ${billId}, amount: ${amountPaid}`);
+  console.log(
+    `Processing single bill payment for ${billId}, amount: ${amountPaid}, type: ${typeof amountPaid}`,
+  );
 
   try {
     const bill = await Bill.findById(billId);
@@ -405,6 +461,21 @@ async function handleSingleBillPayment(billId, amountPaid) {
     const currentAmountPaid = bill.amountPaid || 0; // VND
     const newAmountPaid = currentAmountPaid + amountPaid; // VND
 
+    console.log('Detailed payment calculation:', {
+      billId,
+      totalAmount,
+      currentAmountPaid,
+      amountPaid,
+      newAmountPaid,
+      calculation: `${currentAmountPaid} + ${amountPaid} = ${newAmountPaid}`,
+      allValuesType: {
+        totalAmount: typeof totalAmount,
+        currentAmountPaid: typeof currentAmountPaid,
+        amountPaid: typeof amountPaid,
+        newAmountPaid: typeof newAmountPaid,
+      },
+    });
+
     // So sánh cùng đơn vị VND
     const newStatus =
       newAmountPaid >= totalAmount ? BILL_STATUSES.COMPLETED : BILL_STATUSES.PARTIAL;
@@ -416,7 +487,9 @@ async function handleSingleBillPayment(billId, amountPaid) {
       newAmountPaid, // VND
       newStatus,
       comparison: `${newAmountPaid} >= ${totalAmount} = ${newAmountPaid >= totalAmount}`,
+      unit: 'VND',
     });
+
     await Bill.findByIdAndUpdate(billId, {
       amountPaid: newAmountPaid,
       status: newStatus,
@@ -433,8 +506,8 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
   try {
     const billId = paymentIntent.metadata?.billId;
 
-    // FIX: Sử dụng amount thay vì amount_received
-    const amountPaid = paymentIntent.amount || 0;
+    // FIX: Sử dụng utility để convert chính xác
+    const amountPaid = convertUSDCentsToVND(paymentIntent.amount || 0);
 
     console.log('PaymentIntent succeeded debug:', {
       billId,
@@ -442,6 +515,7 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
       amount_received: paymentIntent.amount_received,
       amount_capturable: paymentIntent.amount_capturable,
       amountPaid,
+      amountPaidUnit: 'VND',
       metadata: paymentIntent.metadata,
     });
 

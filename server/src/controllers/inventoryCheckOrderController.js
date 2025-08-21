@@ -16,7 +16,11 @@ const getAllInventoryCheckOrders = asyncHandler(async (req, res) => {
     status,
     startDate,
     endDate,
-    warehouse_manager_id
+    warehouse_manager_id,
+    sortBy,
+    sortDirection,
+    search,
+    searchBy,
   } = req.query;
 
   const filters = {
@@ -26,6 +30,10 @@ const getAllInventoryCheckOrders = asyncHandler(async (req, res) => {
     startDate,
     endDate,
     warehouse_manager_id,
+    sortBy,
+    sortDirection,
+    search,
+    searchBy,
   };
 
   const result = await inventoryCheckOrderService.getAllInventoryCheckOrders(filters);
@@ -69,7 +77,8 @@ const createInventoryCheckOrder = asyncHandler(async (req, res) => {
     created_by: req.user.userId, // Add created_by field
   };
 
-  const result = await inventoryCheckOrderService.createInventoryCheckOrder(inventoryCheckOrderData);
+  const result =
+    await inventoryCheckOrderService.createInventoryCheckOrder(inventoryCheckOrderData);
 
   if (!result.success) {
     return res.status(400).json({
@@ -145,11 +154,38 @@ const updateInventoryCheckOrder = asyncHandler(async (req, res) => {
   });
 });
 
+// Create inspections for inventory check order
+const createInspections = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
+  // Check if user is warehouse manager
+  if (req.user.role !== USER_ROLES.WAREHOUSEMANAGER) {
+    return res.status(403).json({
+      success: false,
+      message: 'Chỉ warehouse manager mới có quyền tạo phiếu kiểm kê con',
+    });
+  }
+
+  const result = await inventoryCheckOrderService.createInspections(id);
+
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: result.message,
+    });
+  }
+
+  res.status(201).json({
+    success: true,
+    data: result.data,
+    message: result.message,
+  });
+});
 
 module.exports = {
   getAllInventoryCheckOrders,
   createInventoryCheckOrder,
   getInventoryCheckOrderById,
   updateInventoryCheckOrder,
-}; 
+  createInspections,
+};

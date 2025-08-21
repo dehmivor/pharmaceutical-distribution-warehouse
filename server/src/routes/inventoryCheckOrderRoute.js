@@ -36,4 +36,19 @@ router.put(
   inventoryCheckOrderController.updateInventoryCheckOrder
 );
 
+// Patch inventory check order (for status updates)
+router.patch(
+  '/:id',
+  authenticate,
+  inventoryCheckOrderValidator.validateUpdateInventoryCheckOrder,
+  inventoryCheckOrderController.updateInventoryCheckOrder
+);
+
+// Create inspections for inventory check order
+router.post(
+  '/:id/inspections',
+  authenticate,
+  inventoryCheckOrderController.createInspections
+);
+
 module.exports = router; 

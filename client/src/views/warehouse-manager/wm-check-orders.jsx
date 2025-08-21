@@ -1,4 +1,5 @@
 'use client';
+
 import { ArrowDownward as ArrowDownwardIcon, ArrowUpward as ArrowUpwardIcon, MoreVert as MoreVertIcon } from '@mui/icons-material';
 import SearchIcon from '@mui/icons-material/Search';
 import {
@@ -28,6 +29,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import useTrans from '@/hooks/useTrans';
+import { useSnackbar } from 'notistack';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -50,11 +52,11 @@ const statusOptions = ['pending', 'processing', 'completed', 'cancelled'];
 const CheckOrders = () => {
   const router = useRouter();
   const trans = useTrans();
+  const { enqueueSnackbar } = useSnackbar();
 
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
@@ -76,12 +78,19 @@ const CheckOrders = () => {
     setMenuOrder(null);
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (customPage = null, customSortDirection = null) => {
+    if (!localStorage.getItem('auth-token')) {
+      setError('Bạn chưa đăng nhập hoặc token hết hạn.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
       const params = new URLSearchParams();
-      params.append('page', String(page + 1));
+      const currentPage = customPage !== null ? customPage : page;
+      const currentSortDirection = customSortDirection !== null ? customSortDirection : sortDirection;
+
+      params.append('page', String(currentPage + 1));
       params.append('limit', String(rowsPerPage));
 
       if (filterStatus) params.append('status', filterStatus);
@@ -93,8 +102,14 @@ const CheckOrders = () => {
         params.append('startDate', startIso);
         params.append('endDate', endIso);
       }
-      if (searchTerm.trim() !== '') params.append('search', searchTerm.trim());
-      if (sortDirection) params.append('sortDirection', sortDirection);
+      if (searchTerm.trim() !== '') {
+        params.append('searchBy', 'created_by');
+        params.append('search', searchTerm.trim());
+      }
+      if (currentSortDirection) {
+        params.append('sortBy', 'updatedAt');
+        params.append('sortDirection', currentSortDirection);
+      }
 
       const res = await axiosInstance.get(`/api/inventory-check-orders?${params.toString()}`, {
         headers: getAuthHeaders()
@@ -115,8 +130,9 @@ const CheckOrders = () => {
   };
 
   useEffect(() => {
-    fetchOrders();
-  }, [page, rowsPerPage, filterStatus, filterDate, sortDirection]);
+    // Load lần đầu
+    fetchOrders(0, 'asc');
+  }, []);
 
   const handleFilterChange = (field, value) => {
     switch (field) {
@@ -126,7 +142,7 @@ const CheckOrders = () => {
       case 'date':
         setFilterDate(value);
         break;
-      case 'search':
+      case 'search by created by':
         setSearchTerm(value);
         break;
       case 'sortDirection':
@@ -136,11 +152,12 @@ const CheckOrders = () => {
         break;
     }
     setPage(0);
+    // Không auto fetch, chờ người dùng nhấn Search
   };
 
   const handleSearchClick = () => {
-    // Vì đã lọc theo từng biến và fetch tự động load effect, chỉ cần fetchOrders nếu muốn gọi lại ngay
-    fetchOrders();
+    setPage(0);
+    fetchOrders(0);
   };
 
   const handleReset = () => {
@@ -149,15 +166,19 @@ const CheckOrders = () => {
     setFilterDate('');
     setSortDirection('asc');
     setPage(0);
+    fetchOrders(0, 'asc');
   };
 
   const handlePageChange = (event, newPage) => {
     setPage(newPage);
+    fetchOrders(newPage);
   };
 
   const handleRowsPerPageChange = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+    const newRpp = parseInt(event.target.value, 10);
+    setRowsPerPage(newRpp);
     setPage(0);
+    fetchOrders(0);
   };
 
   const formatDate = (d) => (d ? new Date(d).toLocaleDateString('vi-VN') : '');
@@ -184,7 +205,8 @@ const CheckOrders = () => {
         {trans?.checkOrders?.title || 'List of Inventory Check Orders'}
       </Typography>
       <Typography variant="body1" color="text.secondary" mb={3}>
-        {trans?.checkOrders?.description || 'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.'}
+        {trans?.checkOrders?.description ||
+          'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.'}
       </Typography>
 
       {error && (
@@ -192,22 +214,17 @@ const CheckOrders = () => {
           {error}
         </Alert>
       )}
-      {success && (
-        <Alert severity="success" onClose={() => setSuccess('')} sx={{ mb: 2 }}>
-          {success}
-        </Alert>
-      )}
 
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-                        <TextField
-                fullWidth
-                variant="outlined"
-                size="small"
-                label={trans?.checkOrders?.search || 'Search'}
-                placeholder={trans?.checkOrders?.searchPlaceholder || 'Search'}
+          <TextField
+            fullWidth
+            variant="outlined"
+            size="small"
+            label={trans?.checkOrders?.search || 'Search by created by'}
+            placeholder={trans?.checkOrders?.searchPlaceholder || 'Search by Created By'}
             value={searchTerm}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
+            onChange={(e) => handleFilterChange('search by created by', e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -245,9 +262,13 @@ const CheckOrders = () => {
             variant="outlined"
             size="small"
             startIcon={sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
-            onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+            onClick={() => {
+              const newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+              setSortDirection(newDirection);
+              fetchOrders(0, newDirection);
+            }}
           >
-            {sortDirection === 'asc' ? (trans?.checkOrders?.ascending || 'Ascending') : (trans?.checkOrders?.descending || 'Descending')}
+            {sortDirection === 'asc' ? trans?.checkOrders?.ascending || 'Ascending' : trans?.checkOrders?.descending || 'Descending'}
           </Button>
 
           <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
@@ -263,27 +284,27 @@ const CheckOrders = () => {
         <Table>
           <TableHead>
             <TableRow sx={{ bgcolor: 'grey.100', fontWeight: 'bold' }}>
-                          <TableCell>{trans?.checkOrders?.id || 'ID'}</TableCell>
-            <TableCell>{trans?.checkOrders?.inventoryDate || 'Inventory Date'}</TableCell>
-            <TableCell>{trans?.checkOrders?.warehouseManager || 'Warehouse Manager'}</TableCell>
-            <TableCell>{trans?.checkOrders?.createdBy || 'Created By'}</TableCell>
-            <TableCell>{trans?.checkOrders?.status || 'Status'}</TableCell>
-            <TableCell>{trans?.checkOrders?.notes || 'Notes'}</TableCell>
-            <TableCell>{trans?.checkOrders?.createdAt || 'Created At'}</TableCell>
-            <TableCell>{trans?.checkOrders?.updatedAt || 'Updated At'}</TableCell>
-            <TableCell align="center">{trans?.checkOrders?.actions || 'Actions'}</TableCell>
+              <TableCell>{trans?.checkOrders?.id || 'ID'}</TableCell>
+              <TableCell>{trans?.checkOrders?.inventoryDate || 'Inventory Date'}</TableCell>
+              <TableCell>{trans?.checkOrders?.warehouseManager || 'Warehouse Manager'}</TableCell>
+              <TableCell>{trans?.checkOrders?.createdBy || 'Created By'}</TableCell>
+              <TableCell>{trans?.checkOrders?.status || 'Status'}</TableCell>
+              <TableCell>{trans?.checkOrders?.notes || 'Notes'}</TableCell>
+              <TableCell>{trans?.checkOrders?.createdAt || 'Created At'}</TableCell>
+              <TableCell>{trans?.checkOrders?.updatedAt || 'Updated At'}</TableCell>
+              <TableCell align="center">{trans?.checkOrders?.actions || 'Actions'}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                <TableCell colSpan={9} align="center" sx={{ py: 5 }}>
                   <CircularProgress />
                 </TableCell>
               </TableRow>
             ) : orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 5 }}>
+                <TableCell colSpan={9} align="center" sx={{ py: 5 }}>
                   {trans?.checkOrders?.noCheckOrders || 'No check orders found'}
                 </TableCell>
               </TableRow>
@@ -293,7 +314,7 @@ const CheckOrders = () => {
                   <TableCell>{order._id.slice(-6)}</TableCell>
                   <TableCell>{formatDate(order.inventory_check_date)}</TableCell>
                   <TableCell>{order.warehouse_manager_id?.email.split('@')[0] || 'N/A'}</TableCell>
-                  <TableCell>{order.created_by?.email.split('@')[0] || 'N/A'}</TableCell>
+                  <TableCell>{order.created_by?.email.split('@') || 'N/A'}</TableCell>
                   <TableCell>
                     <Chip label={order.status} size="small" color={getStatusColor(order.status)} variant="filled" />
                   </TableCell>
@@ -339,14 +360,39 @@ const CheckOrders = () => {
         >
           {trans?.checkOrders?.viewDetail || 'View Detail'}
         </MenuItem>
-        <MenuItem
-          onClick={() => {
-            router.push(`/wm-inventory/create-inspections/${menuOrder?._id}`);
-            handleMenuClose();
-          }}
-        >
-          {trans?.checkOrders?.startCheckingInventory || 'Start Checking Inventory'}
-        </MenuItem>
+        {menuOrder?.status === 'pending' && (
+          <MenuItem
+            onClick={async () => {
+              try {
+                const checkRes = await axiosInstance.get(`/api/inventory-check-orders?status=processing&limit=1`, {
+                  headers: getAuthHeaders()
+                });
+
+                if (
+                  checkRes.data.success &&
+                  checkRes.data.data.inventoryCheckOrders &&
+                  checkRes.data.data.inventoryCheckOrders.length > 0
+                ) {
+                  enqueueSnackbar('Đang có đợt kiểm kê khác đang xử lý', { variant: 'info' });
+                  handleMenuClose();
+                  return;
+                }
+
+                router.push(`/wm-inventory/create-inspections/${menuOrder?._id}`);
+                handleMenuClose();
+              } catch (error) {
+                console.error('Lỗi khi kiểm tra trạng thái:', error);
+                enqueueSnackbar('Lỗi khi kiểm tra trạng thái phiếu kiểm kê. Vui lòng thử lại.', { variant: 'error' });
+                handleMenuClose();
+              }
+            }}
+          >
+            {trans?.checkOrders?.startCheckingInventory || 'Start Checking Inventory'}
+          </MenuItem>
+        )}
+        {menuOrder?.status === 'completed' && <MenuItem disabled>{trans?.checkOrders?.alreadyCompleted || 'Already Completed'}</MenuItem>}
+        {menuOrder?.status === 'processing' && <MenuItem disabled>{trans?.checkOrders?.inProgress || 'In Progress'}</MenuItem>}
+        {menuOrder?.status === 'cancelled' && <MenuItem disabled>{trans?.checkOrders?.cancelled || 'Cancelled'}</MenuItem>}
       </Menu>
     </Box>
   );
