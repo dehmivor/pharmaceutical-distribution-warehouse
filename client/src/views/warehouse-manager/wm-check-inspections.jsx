@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DetailsIcon from '@mui/icons-material/Details';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Search as SearchIcon, ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
@@ -315,11 +316,95 @@ function CheckInspections() {
     }
   }, [checkOrderId, checkBy]);
 
+  // useEffect kiểm tra ngay khi component mount để xử lý trường hợp truy cập trực tiếp
+  useEffect(() => {
+    const checkProcessingOrders = async () => {
+      if (!checkOrderId) return;
+
+      try {
+        const checkRes = await axios.get(`${backendUrl}/api/inventory-check-orders?status=processing&limit=1`, {
+          headers: getAuthHeaders()
+        });
+
+        if (checkRes.data.success && checkRes.data.data.inventoryCheckOrders && checkRes.data.data.inventoryCheckOrders.length > 0) {
+          const processingOrder = checkRes.data.data.inventoryCheckOrders[0];
+
+          // Nếu phiếu hiện tại không phải là phiếu đang processing, hiển thị cảnh báo
+          if (processingOrder._id !== checkOrderId) {
+            enqueueSnackbar('Đang có đợt kiểm kê khác đang xử lý !', {
+              variant: 'info'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Lỗi khi kiểm tra phiếu processing:', error);
+        enqueueSnackbar('Lỗi khi kiểm tra trạng thái phiếu kiểm kê khác.', {
+          variant: 'error'
+        });
+      }
+    };
+
+    checkProcessingOrders();
+  }, [checkOrderId]);
+
   // useEffect tạo phiếu và cập nhật trạng thái khi orderData thay đổi
   useEffect(() => {
     const createInspectionsAndUpdateStatus = async () => {
       if (!checkOrderId || !checkBy || !orderData) return;
-      if (orderData.status?.toLowerCase() === 'processing') return;
+
+      // Kiểm tra trạng thái trước khi cho phép bắt đầu kiểm kê
+      const currentStatus = orderData.status?.toLowerCase();
+
+      // Chỉ cho phép bắt đầu kiểm kê khi trạng thái là 'pending'
+      if (currentStatus === 'completed') {
+        enqueueSnackbar('Đơn đã kiểm kê hoàn tất, không thể bắt đầu kiểm kê mới.', {
+          variant: 'warning'
+        });
+        return;
+      }
+
+      if (currentStatus === 'cancelled') {
+        enqueueSnackbar('Đơn kiểm kê đã bị hủy, không thể bắt đầu kiểm kê.', {
+          variant: 'warning'
+        });
+        return;
+      }
+
+      if (currentStatus === 'processing') {
+        enqueueSnackbar('Đơn kiểm kê đang trong quá trình xử lý.', {
+          variant: 'info'
+        });
+        return;
+      }
+
+      // Chỉ tiếp tục khi trạng thái là 'pending'
+      if (currentStatus !== 'pending') {
+        enqueueSnackbar('Trạng thái đơn kiểm kê không hợp lệ để bắt đầu kiểm kê.', {
+          variant: 'warning'
+        });
+        return;
+      }
+
+      // Kiểm tra xem có phiếu nào khác đang processing không
+      try {
+        const checkRes = await axios.get(`${backendUrl}/api/inventory-check-orders?status=processing&limit=1`, {
+          headers: getAuthHeaders()
+        });
+
+        if (checkRes.data.success && checkRes.data.data.inventoryCheckOrders && checkRes.data.data.inventoryCheckOrders.length > 0) {
+          // Có phiếu khác đang processing, hiển thị thông báo và không cho phép bắt đầu
+          enqueueSnackbar('Đang có đợt kiểm kê khác đang xử lý. Chỉ có thể có 1 phiếu kiểm kê processing tại 1 thời điểm.', {
+            variant: 'warning'
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Lỗi khi kiểm tra phiếu processing khác:', error);
+        enqueueSnackbar('Lỗi khi kiểm tra trạng thái phiếu kiểm kê khác.', {
+          variant: 'error'
+        });
+        return;
+      }
 
       setLoading(true);
       try {
@@ -428,219 +513,222 @@ function CheckInspections() {
       </Box>
 
       {orderData && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-            {trans.checkInspections.checkOrderInfo}: <strong>{orderData._id}</strong>
-          </Typography>
-          <Typography variant="body2">
-            {trans.checkInspections.warehouseManager}: {orderData.warehouse_manager_id.email} | {trans.checkInspections.createdBy}:{' '}
-            {orderData.created_by?.email || '-'} | {trans.checkInspections.checkDate}:{' '}
-            {orderData.inventory_check_date ? new Date(orderData.inventory_check_date).toLocaleDateString('vi-VN') : '-'} |{' '}
-            {trans.checkInspections.status}:{' '}
-            {orderData.status === 'pending'
-              ? trans.checkInspections.notStarted
-              : orderData.status === 'processing'
-                ? trans.checkInspections.inProgress
-                : orderData.status === 'completed'
-                  ? trans.checkInspections.completed
-                  : orderData.status}
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            {trans.checkInspections.notes}: {orderData.notes || '-'}
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1, fontSize: '0.875rem' }}>
-            {trans.checkInspections.createdAt}: {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString('vi-VN') : '-'} |{' '}
-            {trans.checkInspections.updatedAt}: {orderData.updatedAt ? new Date(orderData.updatedAt).toLocaleString('vi-VN') : '-'}
-          </Typography>
-        </Alert>
+        <>
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+              {trans.checkInspections.checkOrderInfo}: <strong>{orderData._id}</strong>
+            </Typography>
+            <Typography variant="body2">
+              {trans.checkInspections.warehouseManager}: {orderData.warehouse_manager_id.email} | {trans.checkInspections.createdBy}:{' '}
+              {orderData.created_by?.email || '-'} | {trans.checkInspections.checkDate}:{' '}
+              {orderData.inventory_check_date ? new Date(orderData.inventory_check_date).toLocaleDateString('vi-VN') : '-'} |{' '}
+              {trans.checkInspections.status}:{' '}
+              {orderData.status === 'pending'
+                ? trans.checkInspections.notStarted
+                : orderData.status === 'processing'
+                  ? trans.checkInspections.inProgress
+                  : orderData.status === 'completed'
+                    ? trans.checkInspections.completed
+                    : orderData.status}
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              {trans.checkInspections.notes}: {orderData.notes || '-'}
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1, fontSize: '0.875rem' }}>
+              {trans.checkInspections.createdAt}: {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString('vi-VN') : '-'} |{' '}
+              {trans.checkInspections.updatedAt}: {orderData.updatedAt ? new Date(orderData.updatedAt).toLocaleString('vi-VN') : '-'}
+            </Typography>
+          </Alert>
+
+          {/* Hiển thị cảnh báo khi trạng thái không phù hợp để bắt đầu kiểm kê */}
+          {orderData.status === 'completed' && (
+            <Alert severity="warning" sx={{ mb: 3 }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                ⚠️ Không thể bắt đầu kiểm kê
+              </Typography>
+              <Typography variant="body2">
+                Đơn kiểm kê này đã hoàn tất. Bạn chỉ có thể xem chi tiết và không thể bắt đầu kiểm kê mới.
+              </Typography>
+            </Alert>
+          )}
+
+          {orderData.status === 'cancelled' && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                ❌ Đơn kiểm kê đã bị hủy
+              </Typography>
+              <Typography variant="body2">Đơn kiểm kê này đã bị hủy và không thể bắt đầu kiểm kê.</Typography>
+            </Alert>
+          )}
+
+          {orderData.status === 'processing' && (
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                🔄 Đang trong quá trình kiểm kê
+              </Typography>
+              <Typography variant="body2">Đơn kiểm kê này đang được xử lý. Bạn có thể tiếp tục kiểm kê hoặc xem tiến độ.</Typography>
+            </Alert>
+          )}
+        </>
       )}
 
-      {/* Các bộ lọc và UI search */}
-      <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-          {/* Tìm kiếm */}
-          <TextField
-            fullWidth
-            variant="outlined"
-            size="small"
-            label={trans.checkInspections.search}
-            placeholder={trans.checkInspections.searchPlaceholder}
-            value={searchTerm}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="action" />
-                </InputAdornment>
-              )
-            }}
-          />
+      {/* Các bộ lọc và UI search - chỉ hiển thị khi có thể bắt đầu kiểm kê */}
+      {orderData && orderData.status === 'pending' && (
+        <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+            {/* Tìm kiếm */}
+            <TextField
+              fullWidth
+              variant="outlined"
+              size="small"
+              label={trans.checkInspections.search}
+              placeholder={trans.checkInspections.searchPlaceholder}
+              value={searchTerm}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                )
+              }}
+            />
 
-          {/* Lọc vị trí kho */}
-          <TextField
-            fullWidth
-            select
-            label={trans.checkInspections.warehouseLocation}
-            value={filterLocation}
-            onChange={(e) => handleFilterChange('location', e.target.value)}
-            size="small"
-          >
-            <MenuItem value="">{trans.checkInspections.allLocations}</MenuItem>
-            {locationsList.map((loc) => (
-              <MenuItem key={loc._id} value={loc._id}>
-                {loc.area_id?.name || trans.checkInspections.unidentified} - {trans.checkInspections.bay}: {loc.bay},{' '}
-                {trans.checkInspections.row}: {loc.row}, {trans.checkInspections.column}: {loc.column}
-              </MenuItem>
-            ))}
-          </TextField>
+            {/* Lọc vị trí kho */}
+            <TextField
+              fullWidth
+              select
+              label={trans.checkInspections.warehouseLocation}
+              value={filterLocation}
+              onChange={(e) => handleFilterChange('location', e.target.value)}
+              size="small"
+            >
+              <MenuItem value="">{trans.checkInspections.allLocations}</MenuItem>
+              {locationsList.map((loc) => (
+                <MenuItem key={loc._id} value={loc._id}>
+                  {loc.area_id?.name || trans.checkInspections.unidentified} - {trans.checkInspections.bay}: {loc.bay},{' '}
+                  {trans.checkInspections.row}: {loc.row}, {trans.checkInspections.column}: {loc.column}
+                </MenuItem>
+              ))}
+            </TextField>
 
-          {/* Lọc thời điểm cập nhật */}
-          <TextField
-            fullWidth
-            label={trans.checkInspections.updateTime}
-            type="date"
-            value={filterDate}
-            onChange={(e) => handleFilterChange('date', e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            size="small"
-          />
+            {/* Lọc thời điểm cập nhật */}
+            <TextField
+              fullWidth
+              label={trans.checkInspections.updateTime}
+              type="date"
+              value={filterDate}
+              onChange={(e) => handleFilterChange('date', e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              size="small"
+            />
 
-          {/* Lọc trạng thái */}
-          <TextField
-            fullWidth
-            select
-            label={trans.checkInspections.status}
-            value={filterStatus}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-            size="small"
-          >
-            <MenuItem value="">{trans.checkInspections.all}</MenuItem>
-            {statusOptions.map((s) => (
-              <MenuItem key={s} value={s}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}
-              </MenuItem>
-            ))}
-          </TextField>
+            {/* Lọc trạng thái */}
+            <TextField
+              fullWidth
+              select
+              label={trans.checkInspections.status}
+              value={filterStatus}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+              size="small"
+            >
+              <MenuItem value="">{trans.checkInspections.all}</MenuItem>
+              {statusOptions.map((s) => (
+                <MenuItem key={s} value={s}>
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </MenuItem>
+              ))}
+            </TextField>
 
-          {/* Nút đổi chiều sort */}
-          <Button
-            fullWidth
-            variant="outlined"
-            size="small"
-            startIcon={sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
-            onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-          >
-            {sortDirection === 'asc' ? trans.checkInspections.ascending : trans.checkInspections.descending}
-          </Button>
+            {/* Nút đổi chiều sort */}
+            <Button
+              fullWidth
+              variant="outlined"
+              size="small"
+              startIcon={sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
+              onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+            >
+              {sortDirection === 'asc' ? trans.checkInspections.ascending : trans.checkInspections.descending}
+            </Button>
 
-          {/* Nút tìm kiếm */}
-          <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
-            {trans.checkInspections.search}
-          </Button>
+            {/* Nút tìm kiếm */}
+            <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
+              {trans.checkInspections.search}
+            </Button>
 
-          {/* Nút reset bộ lọc */}
-          <Button fullWidth size="small" variant="outlined" onClick={handleReset}>
-            {trans.checkInspections.refresh}
-          </Button>
-        </Stack>
-      </Box>
+            {/* Nút reset bộ lọc */}
+            <Button fullWidth size="small" variant="outlined" onClick={handleReset}>
+              {trans.checkInspections.refresh}
+            </Button>
+          </Stack>
+        </Box>
+      )}
 
-      {/* Hiển thị nhóm phiếu "chưa kiểm" */}
-      <Box>
-        {loading ? (
-          <>
-            <Skeleton variant="rectangular" height={60} sx={{ mb: 2 }} />
-            <Skeleton variant="rectangular" height={150} sx={{ mb: 2 }} />
-          </>
-        ) : (
-          <>
-            <Accordion defaultExpanded sx={{ mb: 3 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="h6">
-                  {trans.checkInspections.uncheckedItems} ({uncheckedInspections.length} {trans.checkInspections.inspections})
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                {uncheckedInspections.length === 0 ? (
-                  <Typography>{trans.checkInspections.noUncheckedInspections}</Typography>
-                ) : (
-                  <Stack spacing={2}>
-                    {uncheckedInspections.map((inspection) => (
-                      <Paper
-                        key={inspection._ids.join('-') /* nối nhiều id phiếu con trong location */}
-                        variant="outlined"
-                        sx={{ p: 2, bgcolor: 'background.paper', position: 'relative' }}
-                        elevation={0}
-                      >
-                        <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-                          {trans.checkInspections.location}: {getLocationLabel(inspection.location)} - {trans.checkInspections.status}:{' '}
-                          {inspection.status === 'draft'
-                            ? trans.checkInspections.draft
-                            : inspection.status === 'checking'
-                              ? trans.checkInspections.checking
-                              : inspection.status === 'checked'
-                                ? trans.checkInspections.checked
-                                : inspection.status}
-                        </Typography>
+      {/* Hiển thị thông báo khi không thể bắt đầu kiểm kê */}
+      {orderData && orderData.status === 'completed' && (
+        <Box component={Paper} sx={{ p: 3, mb: 3 }} elevation={1}>
+          <Typography variant="h6" color="text.secondary" align="center" gutterBottom>
+            📋 Đơn kiểm kê đã hoàn tất
+          </Typography>
+          <Typography variant="body2" color="text.secondary" align="center">
+            Bạn có thể xem chi tiết các inspections đã hoàn thành hoặc quay lại danh sách để tạo đơn kiểm kê mới.
+          </Typography>
+        </Box>
+      )}
 
-                        <Table size="small" aria-label="check-list-items">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell>{trans.checkInspections.medicineName}</TableCell>
-                              <TableCell>{trans.checkInspections.licenseCode}</TableCell>
-                              <TableCell align="right">{trans.checkInspections.expectedQuantity}</TableCell>
-                              <TableCell align="right">{trans.checkInspections.actualQuantity}</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {(inspection.check_list || [])
-                              .filter((item) => item.actual_quantity === 0)
-                              .map((checkItem, idx) => {
-                                const medicine = checkItem.package_id?.batch_id?.medicine_id;
-                                return (
-                                  <TableRow key={idx}>
-                                    <TableCell>{medicine?.medicine_name || 'Không xác định'}</TableCell>
-                                    <TableCell>{medicine?.license_code || '-'}</TableCell>
-                                    <TableCell align="right">{checkItem.expected_quantity}</TableCell>
-                                    <TableCell align="right">{checkItem.actual_quantity}</TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                          </TableBody>
-                        </Table>
+      {orderData && orderData.status === 'cancelled' && (
+        <Box component={Paper} sx={{ p: 3, mb: 3 }} elevation={1}>
+          <Typography variant="h6" color="text.secondary" align="center" gutterBottom>
+            🚫 Đơn kiểm kê đã bị hủy
+          </Typography>
+          <Typography variant="body2" color="text.secondary" align="center">
+            Đơn kiểm kê này đã bị hủy và không thể thực hiện thêm thao tác nào.
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+            <Button variant="outlined" onClick={() => router.push('/wm-inventory')} startIcon={<ArrowBackIcon />}>
+              Quay lại danh sách
+            </Button>
+          </Box>
+        </Box>
+      )}
 
-                        <Typography variant="body2" sx={{ mt: 1 }}>
-                          {trans.checkInspections.notes}: {inspection.notes || '-'}
-                        </Typography>
-                      </Paper>
-                    ))}
-                  </Stack>
-                )}
-              </AccordionDetails>
-            </Accordion>
-
-            {/* Hiển thị nhóm phiếu "đã kiểm" */}
-            <Accordion defaultExpanded>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="h6">
-                  {trans.checkInspections.checkedItems} ({checkedInspections.length} {trans.checkInspections.inspections})
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                {checkedInspections.length === 0 ? (
-                  <Typography>{trans.checkInspections.noCheckedInspections}</Typography>
-                ) : (
-                  <>
+      {/* Hiển thị bảng inspections - chỉ hiển thị khi có thể bắt đầu kiểm kê hoặc đang trong quá trình */}
+      {(orderData?.status === 'pending' || orderData?.status === 'processing') && (
+        <Box>
+          {loading ? (
+            <>
+              <Skeleton variant="rectangular" height={60} sx={{ mb: 2 }} />
+              <Skeleton variant="rectangular" height={150} sx={{ mb: 2 }} />
+            </>
+          ) : (
+            <>
+              <Accordion defaultExpanded sx={{ mb: 3 }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="h6">
+                    {trans.checkInspections.uncheckedItems} ({uncheckedInspections.length} {trans.checkInspections.inspections})
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  {uncheckedInspections.length === 0 ? (
+                    <Typography>{trans.checkInspections.noUncheckedInspections}</Typography>
+                  ) : (
                     <Stack spacing={2}>
-                      {checkedInspections.map((inspection) => (
+                      {uncheckedInspections.map((inspection) => (
                         <Paper
-                          key={inspection._ids.join('-')}
+                          key={inspection._ids.join('-') /* nối nhiều id phiếu con trong location */}
                           variant="outlined"
                           sx={{ p: 2, bgcolor: 'background.paper', position: 'relative' }}
                           elevation={0}
                         >
                           <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-                            Vị trí: {getLocationLabel(inspection.location)} - Trạng thái: {inspection.status}
+                            {trans.checkInspections.location}: {getLocationLabel(inspection.location)} - {trans.checkInspections.status}:{' '}
+                            {inspection.status === 'draft'
+                              ? trans.checkInspections.draft
+                              : inspection.status === 'checking'
+                                ? trans.checkInspections.checking
+                                : inspection.status === 'checked'
+                                  ? trans.checkInspections.checked
+                                  : inspection.status}
                           </Typography>
 
                           <Table size="small" aria-label="check-list-items">
@@ -654,7 +742,7 @@ function CheckInspections() {
                             </TableHead>
                             <TableBody>
                               {(inspection.check_list || [])
-                                .filter((item) => item.actual_quantity > 0)
+                                .filter((item) => item.actual_quantity === 0)
                                 .map((checkItem, idx) => {
                                   const medicine = checkItem.package_id?.batch_id?.medicine_id;
                                   return (
@@ -675,26 +763,104 @@ function CheckInspections() {
                         </Paper>
                       ))}
                     </Stack>
+                  )}
+                </AccordionDetails>
+              </Accordion>
 
-                    <TablePagination
-                      component="div"
-                      count={totalCount}
-                      page={page}
-                      onPageChange={handleChangePage}
-                      rowsPerPage={rowsPerPage}
-                      onRowsPerPageChange={handleChangeRowsPerPage}
-                      rowsPerPageOptions={[5, 10, 25, 50]}
-                      labelRowsPerPage={trans.checkInspections.rowsPerPage}
-                      labelDisplayedRows={({ from, to, count }) => `${from}-${to} trong ${count !== -1 ? count : `hơn ${to}`}`}
-                      sx={{ mt: 2 }}
-                    />
-                  </>
-                )}
-              </AccordionDetails>
-            </Accordion>
-          </>
-        )}
-      </Box>
+              {/* Hiển thị nhóm phiếu "đã kiểm" */}
+              <Accordion defaultExpanded>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="h6">
+                    {trans.checkInspections.checkedItems} ({checkedInspections.length} {trans.checkInspections.inspections})
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  {checkedInspections.length === 0 ? (
+                    <Typography>{trans.checkInspections.noCheckedInspections}</Typography>
+                  ) : (
+                    <>
+                      <Stack spacing={2}>
+                        {checkedInspections.map((inspection) => (
+                          <Paper
+                            key={inspection._ids.join('-')}
+                            variant="outlined"
+                            sx={{ p: 2, bgcolor: 'background.paper', position: 'relative' }}
+                            elevation={0}
+                          >
+                            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+                              Vị trí: {getLocationLabel(inspection.location)} - Trạng thái: {inspection.status}
+                            </Typography>
+
+                            <Table size="small" aria-label="check-list-items">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>{trans.checkInspections.medicineName}</TableCell>
+                                  <TableCell>{trans.checkInspections.licenseCode}</TableCell>
+                                  <TableCell align="right">{trans.checkInspections.expectedQuantity}</TableCell>
+                                  <TableCell align="right">{trans.checkInspections.actualQuantity}</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {(inspection.check_list || [])
+                                  .filter((item) => item.actual_quantity > 0)
+                                  .map((checkItem, idx) => {
+                                    const medicine = checkItem.package_id?.batch_id?.medicine_id;
+                                    return (
+                                      <TableRow key={idx}>
+                                        <TableCell>{medicine?.medicine_name || 'Không xác định'}</TableCell>
+                                        <TableCell>{medicine?.license_code || '-'}</TableCell>
+                                        <TableCell align="right">{checkItem.expected_quantity}</TableCell>
+                                        <TableCell align="right">{checkItem.actual_quantity}</TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                              </TableBody>
+                            </Table>
+
+                            <Typography variant="body2" sx={{ mt: 1 }}>
+                              {trans.checkInspections.notes}: {inspection.notes || '-'}
+                            </Typography>
+                          </Paper>
+                        ))}
+                      </Stack>
+
+                      <TablePagination
+                        component="div"
+                        count={totalCount}
+                        page={page}
+                        onPageChange={handleChangePage}
+                        rowsPerPage={rowsPerPage}
+                        onRowsPerPageChange={handleChangeRowsPerPage}
+                        rowsPerPageOptions={[5, 10, 25, 50]}
+                        labelRowsPerPage={trans.checkInspections.rowsPerPage}
+                        labelDisplayedRows={({ from, to, count }) => `${from}-${to} trong ${count !== -1 ? count : `hơn ${to}`}`}
+                        sx={{ mt: 2 }}
+                      />
+                    </>
+                  )}
+                </AccordionDetails>
+              </Accordion>
+            </>
+          )}
+        </Box>
+      )}
+
+      {/* Hiển thị thông báo khi đơn đã hoàn tất hoặc bị hủy */}
+      {orderData && orderData.status === 'completed' && (
+        <Box component={Paper} sx={{ p: 3, mb: 3 }} elevation={1}>
+          <Typography variant="h6" color="text.secondary" align="center" gutterBottom>
+            📊 Kết quả kiểm kê đã hoàn tất
+          </Typography>
+          <Typography variant="body2" color="text.secondary" align="center">
+            Đơn kiểm kê này đã hoàn thành. Bạn có thể xem báo cáo chi tiết hoặc tạo đơn kiểm kê mới.
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+            <Button variant="outlined" onClick={() => router.push('/wm-inventory')} startIcon={<ArrowBackIcon />}>
+              Quay lại danh sách
+            </Button>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 }

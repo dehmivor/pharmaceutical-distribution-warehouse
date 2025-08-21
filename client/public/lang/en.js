@@ -2697,7 +2697,7 @@ export default {
 
   // Check Inspections
   checkInspections: {
-    title: 'List of Check Inspections for One Batch',
+    title: 'List of Check Inspections for One Check Order',
     description: 'Manage and track check inspections for warehouse-wide inventory check',
     search: 'Search',
     searchPlaceholder: 'Search',
