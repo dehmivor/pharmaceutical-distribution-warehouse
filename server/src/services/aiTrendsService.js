@@ -7,6 +7,7 @@ const Contract = require('../models/Contract');
 const Bill = require('../models/Bill');
 const AITrendsDatabaseService = require('./aiTrendsDatabaseService');
 const NewsService = require('./newsService');
+const OpenAIService = require('./openaiService');
 const moment = require('moment');
 const regression = require('regression');
 const ss = require('simple-statistics');
@@ -759,6 +760,574 @@ class AiTrendsService {
     } catch (error) {
       console.error('AI: Error getting statistics from database:', error);
       return [];
+    }
+  }
+
+  // ==================== OPENAI INTEGRATION METHODS ====================
+
+  /**
+   * Phân tích xu hướng thị trường với OpenAI
+   */
+  static async analyzeMarketTrendsWithAI() {
+    try {
+      console.log('AI: Analyzing market trends with OpenAI');
+
+      const openaiService = new OpenAIService();
+
+      if (!openaiService.isAvailable()) {
+        console.log('AI: OpenAI not available, falling back to traditional method');
+        return await this.analyzeMarketTrends();
+      }
+
+      // Lấy dữ liệu thị trường
+      const marketData = await this.getMarketDataForAI();
+
+      // Gọi OpenAI để phân tích
+      const aiAnalysis = await openaiService.analyzeMarketTrendsWithAI(marketData);
+
+      return {
+        analysis: aiAnalysis,
+        timestamp: new Date(),
+        source: 'OpenAI GPT-3.5',
+        confidence: 'high',
+        traditionalAnalysis: await this.analyzeMarketTrends(), // Fallback data
+      };
+    } catch (error) {
+      console.error('AI: OpenAI analysis failed, using traditional method:', error);
+      // Fallback về phương pháp truyền thống
+      return await this.analyzeMarketTrends();
+    }
+  }
+
+  /**
+   * Tạo gợi ý nhập thuốc với OpenAI
+   */
+  static async generateImportRecommendationsWithAI() {
+    try {
+      console.log('AI: Generating import recommendations with OpenAI');
+
+      const openaiService = new OpenAIService();
+
+      if (!openaiService.isAvailable()) {
+        console.log('AI: OpenAI not available, falling back to traditional method');
+        return await this.generateImportRecommendations();
+      }
+
+      // Lấy dữ liệu kho và bán hàng
+      const inventoryData = await this.getInventoryDataForAI();
+      const salesData = await this.getSalesDataForAI();
+
+      // Gọi OpenAI để tạo gợi ý
+      const aiRecommendations = await openaiService.generateImportRecommendationsWithAI(
+        inventoryData,
+        salesData,
+      );
+
+      return {
+        recommendations: aiRecommendations,
+        timestamp: new Date(),
+        source: 'OpenAI GPT-3.5',
+        confidence: 'high',
+        traditionalRecommendations: await this.generateImportRecommendations(), // Fallback data
+      };
+    } catch (error) {
+      console.error('AI: OpenAI recommendations failed, using traditional method:', error);
+      // Fallback về phương pháp truyền thống
+      return await this.generateImportRecommendations();
+    }
+  }
+
+  /**
+   * Dự đoán nhu cầu với OpenAI
+   */
+  static async predictMedicineDemandWithAI(medicineId, months = 6, userId = null) {
+    try {
+      console.log(`AI: Predicting demand for medicine ${medicineId} with OpenAI`);
+
+      const openaiService = new OpenAIService();
+
+      if (!openaiService.isAvailable()) {
+        console.log('AI: OpenAI not available, falling back to traditional method');
+        return await this.predictMedicineDemand(medicineId, months, userId);
+      }
+
+      // Lấy thông tin thuốc và lịch sử
+      const medicine = await Medicine.findById(medicineId);
+      if (!medicine) {
+        throw new Error(`Medicine ${medicineId} not found`);
+      }
+
+      const historicalData = await this.getHistoricalDataForAI(medicineId);
+
+      // Gọi OpenAI để dự đoán
+      const aiPrediction = await openaiService.predictDemandWithAI(medicine, historicalData);
+
+      // Kết hợp với dự đoán truyền thống
+      const traditionalPrediction = await this.predictMedicineDemand(medicineId, months, userId);
+
+      return {
+        ...traditionalPrediction,
+        aiInsights: aiPrediction,
+        source: 'OpenAI + Traditional',
+        confidence: 'enhanced',
+      };
+    } catch (error) {
+      console.error('AI: OpenAI prediction failed, using traditional method:', error);
+      return await this.predictMedicineDemand(medicineId, months, userId);
+    }
+  }
+
+  /**
+   * Phân tích bất thường với OpenAI
+   */
+  static async analyzeAnomaliesWithAI() {
+    try {
+      console.log('AI: Analyzing anomalies with OpenAI');
+
+      const openaiService = new OpenAIService();
+
+      if (!openaiService.isAvailable()) {
+        console.log('AI: OpenAI not available, falling back to traditional method');
+        return await this.detectDemandAnomalies();
+      }
+
+      // Lấy dữ liệu bất thường
+      const anomalyData = await this.getAnomalyDataForAI();
+
+      // Gọi OpenAI để phân tích
+      const aiAnalysis = await openaiService.analyzeAnomaliesWithAI(anomalyData);
+
+      return {
+        anomalies: await this.detectDemandAnomalies(),
+        aiAnalysis: aiAnalysis,
+        timestamp: new Date(),
+        source: 'OpenAI GPT-3.5',
+        confidence: 'high',
+      };
+    } catch (error) {
+      console.error('AI: OpenAI anomaly analysis failed, using traditional method:', error);
+      return await this.detectDemandAnomalies();
+    }
+  }
+
+  /**
+   * Lấy dữ liệu thị trường cho AI
+   */
+  static async getMarketDataForAI() {
+    try {
+      // Lấy dữ liệu cơ bản
+      const exportData = await ExportOrder.find({}).limit(100);
+      const importData = await ImportOrder.find({}).limit(100);
+      const totalRevenue = await Bill.aggregate([
+        { $group: { _id: null, total: { $sum: '$total_amount' } } },
+      ]);
+      const medicineCount = await Medicine.countDocuments();
+
+      // Lấy thuốc tiêu thụ mạnh
+      const topSellingMedicines = await ExportOrder.aggregate([
+        { $unwind: '$details' },
+        {
+          $group: {
+            _id: '$details.medicine_id',
+            totalSold: { $sum: '$details.expected_quantity' },
+          },
+        },
+        { $sort: { totalSold: -1 } },
+        { $limit: 5 },
+        { $lookup: { from: 'medicines', localField: '_id', foreignField: '_id', as: 'medicine' } },
+        { $unwind: '$medicine' },
+        { $project: { name: '$medicine.medicine_name', totalSold: 1 } },
+      ]);
+
+      // Lấy xu hướng theo mùa
+      const currentMonth = new Date().getMonth();
+      const seasonalDiseases = this.getSeasonalDiseases(currentMonth);
+      const commonDiseases = this.getCommonDiseases();
+
+      // Dự đoán nhu cầu quý tới
+      const expectedDemand = await this.predictNextQuarterDemand();
+      const priorityMedicines = await this.getPriorityMedicines();
+
+      // Lấy xu hướng thuốc
+      const medicineTrends = await this.getMedicineTrends();
+
+      return {
+        exportData: exportData.length,
+        importData: importData.length,
+        totalRevenue: totalRevenue[0]?.total || 0,
+        medicineCount,
+        topSellingMedicines: topSellingMedicines
+          .map((m) => `${m.name} (${m.totalSold})`)
+          .join(', '),
+        seasonalDiseases,
+        commonDiseases,
+        expectedDemand,
+        priorityMedicines,
+        medicineTrends,
+      };
+    } catch (error) {
+      console.error('AI: Error getting market data for AI:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Lấy bệnh theo mùa
+   */
+  static getSeasonalDiseases(month) {
+    const seasonalMap = {
+      0: 'Cảm cúm, Viêm phổi (mùa đông)',
+      1: 'Cảm cúm, Viêm phổi (mùa đông)',
+      2: 'Dị ứng, Hen suyễn (mùa xuân)',
+      3: 'Dị ứng, Hen suyễn (mùa xuân)',
+      4: 'Tiêu chảy, Sốt xuất huyết (mùa hè)',
+      5: 'Tiêu chảy, Sốt xuất huyết (mùa hè)',
+      6: 'Tiêu chảy, Sốt xuất huyết (mùa hè)',
+      7: 'Tiêu chảy, Sốt xuất huyết (mùa hè)',
+      8: 'Sốt xuất huyết, Viêm não (mùa thu)',
+      9: 'Cảm cúm, Viêm phổi (mùa thu)',
+      10: 'Cảm cúm, Viêm phổi (mùa đông)',
+      11: 'Cảm cúm, Viêm phổi (mùa đông)',
+    };
+    return seasonalMap[month] || 'Không xác định';
+  }
+
+  /**
+   * Lấy bệnh phổ biến
+   */
+  static getCommonDiseases() {
+    return 'Cảm cúm, Tiêu chảy, Sốt xuất huyết, Viêm phổi, Hen suyễn, Tăng huyết áp, Tiểu đường';
+  }
+
+  /**
+   * Dự đoán nhu cầu quý tới
+   */
+  static async predictNextQuarterDemand() {
+    try {
+      const predictions = await this.predictAllMedicineDemand(3);
+      const totalDemand = predictions.predictions.reduce((sum, pred) => {
+        return sum + pred.predictions.reduce((pSum, p) => pSum + p.predictedQuantity, 0);
+      }, 0);
+
+      return `${totalDemand.toLocaleString()} đơn vị`;
+    } catch (error) {
+      return 'Không xác định';
+    }
+  }
+
+  /**
+   * Lấy thuốc ưu tiên
+   */
+  static async getPriorityMedicines() {
+    try {
+      const recommendations = await this.generateImportRecommendations();
+      const highPriority = recommendations.recommendations
+        .filter((r) => r.priority === 'high')
+        .slice(0, 3)
+        .map((r) => r.medicineName);
+
+      return highPriority.join(', ') || 'Không có';
+    } catch (error) {
+      return 'Không xác định';
+    }
+  }
+
+  /**
+   * Lấy xu hướng thuốc
+   */
+  static async getMedicineTrends() {
+    try {
+      const predictions = await this.predictAllMedicineDemand(3);
+      const trends = predictions.predictions.map((p) => p.trend);
+      const increasing = trends.filter((r) => r === 'increasing').length;
+      const decreasing = trends.filter((r) => r === 'decreasing').length;
+      const stable = trends.filter((r) => r === 'stable').length;
+
+      return `Tăng: ${increasing}, Giảm: ${decreasing}, Ổn định: ${stable}`;
+    } catch (error) {
+      return 'Không xác định';
+    }
+  }
+
+  /**
+   * Lấy dữ liệu kho cho AI
+   */
+  static async getInventoryDataForAI() {
+    try {
+      const totalMedicines = await Medicine.countDocuments();
+      const lowStockMedicines = await Medicine.countDocuments({ current_stock: { $lt: 100 } });
+
+      // Lấy thuốc ưu tiên cao
+      const highPriorityMedicines = await Medicine.find({
+        current_stock: { $lt: 50 },
+        status: 'active',
+      })
+        .limit(5)
+        .select('medicine_name current_stock');
+
+      // Lấy thuốc ưu tiên trung bình
+      const mediumPriorityMedicines = await Medicine.find({
+        current_stock: { $gte: 50, $lt: 200 },
+        status: 'active',
+      })
+        .limit(5)
+        .select('medicine_name current_stock');
+
+      // Lấy thuốc dự phòng
+      const backupMedicines = await Medicine.find({
+        current_stock: { $gte: 200, $lt: 500 },
+        status: 'active',
+      })
+        .limit(3)
+        .select('medicine_name current_stock');
+
+      // Tính mức độ ưu tiên
+      const priorityLevel =
+        lowStockMedicines > 20 ? 'Cao' : lowStockMedicines > 10 ? 'Trung bình' : 'Thấp';
+
+      return {
+        totalMedicines,
+        lowStockMedicines,
+        highPriorityMedicines: highPriorityMedicines
+          .map((m) => `${m.medicine_name} (${m.current_stock})`)
+          .join(', '),
+        mediumPriorityMedicines: mediumPriorityMedicines
+          .map((m) => `${m.medicine_name} (${m.current_stock})`)
+          .join(', '),
+        backupMedicines: backupMedicines
+          .map((m) => `${m.medicine_name} (${m.current_stock})`)
+          .join(', '),
+        priorityLevel,
+      };
+    } catch (error) {
+      console.error('AI: Error getting inventory data for AI:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Lấy dữ liệu bán hàng cho AI
+   */
+  static async getSalesDataForAI() {
+    try {
+      // Lấy thuốc bán chạy
+      const topSellingMedicines = await ExportOrder.aggregate([
+        { $unwind: '$details' },
+        {
+          $group: {
+            _id: '$details.medicine_id',
+            totalSold: { $sum: '$details.expected_quantity' },
+          },
+        },
+        { $sort: { totalSold: -1 } },
+        { $limit: 5 },
+        { $lookup: { from: 'medicines', localField: '_id', foreignField: '_id', as: 'medicine' } },
+        { $unwind: '$medicine' },
+        { $project: { name: '$medicine.medicine_name', totalSold: 1 } }
+      ]);
+
+      // Lấy xu hướng tiêu thụ
+      const consumptionTrend = await this.getConsumptionTrend();
+
+      return {
+        topSellingMedicines: topSellingMedicines.length,
+        topMedicines: topSellingMedicines.map(m => `${m.name} (${m.totalSold})`).join(', '),
+        consumptionTrend
+      };
+    } catch (error) {
+      console.error('AI: Error getting sales data for AI:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Lấy xu hướng tiêu thụ
+   */
+  static async getConsumptionTrend() {
+    try {
+      const startDate = moment().subtract(3, 'months').toDate();
+      const endDate = new Date();
+      
+      const monthlySales = await ExportOrder.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate, $lte: endDate }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' }
+            },
+            totalQuantity: { $sum: '$total_quantity' }
+          }
+        },
+        {
+          $sort: { '_id.year': 1, '_id.month': 1 }
+        }
+      ]);
+
+      if (monthlySales.length < 2) return 'Không xác định';
+
+      const firstMonth = monthlySales[0].totalQuantity;
+      const lastMonth = monthlySales[monthlySales.length - 1].totalQuantity;
+      const change = ((lastMonth - firstMonth) / firstMonth) * 100;
+
+      if (change > 10) return 'Tăng mạnh';
+      if (change > 5) return 'Tăng nhẹ';
+      if (change < -10) return 'Giảm mạnh';
+      if (change < -5) return 'Giảm nhẹ';
+      return 'Ổn định';
+    } catch (error) {
+      return 'Không xác định';
+    }
+  }
+
+  /**
+   * Lấy dữ liệu lịch sử cho AI
+   */
+  static async getHistoricalDataForAI(medicineId) {
+    try {
+      const startDate = moment().subtract(6, 'months').toDate();
+
+      // Lấy dữ liệu bán hàng theo tháng
+      const monthlySales = await ExportOrder.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate },
+            'details.medicine_id': medicineId,
+          },
+        },
+        {
+          $unwind: '$details',
+        },
+        {
+          $match: {
+            'details.medicine_id': medicineId,
+          },
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' },
+            },
+            totalSold: { $sum: '$details.expected_quantity' },
+          },
+        },
+        {
+          $sort: { '_id.year': 1, '_id.month': 1 },
+        },
+      ]);
+
+      // Tính toán xu hướng
+      const salesData = monthlySales.map((item) => item.totalSold);
+      const trend = this.calculateTrend(salesData);
+
+      // Tính độ biến động
+      const volatility = this.calculateVolatility(salesData);
+
+      // Dự đoán nhu cầu dựa trên xu hướng
+      const expectedDemand = this.predictDemandFromTrend(salesData, trend);
+
+      return {
+        recentSales: salesData.slice(-3).reduce((sum, val) => sum + val, 0),
+        trend: trend,
+        volatility: volatility,
+        expectedDemand: expectedDemand,
+        monthlyData: monthlySales,
+      };
+    } catch (error) {
+      console.error('AI: Error getting historical data for AI:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Tính toán xu hướng từ dữ liệu bán hàng
+   */
+  static calculateTrend(salesData) {
+    if (salesData.length < 2) return 'stable';
+
+    const firstHalf = salesData.slice(0, Math.floor(salesData.length / 2));
+    const secondHalf = salesData.slice(Math.floor(salesData.length / 2));
+
+    const firstAvg = firstHalf.reduce((sum, val) => sum + val, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, val) => sum + val, 0) / secondHalf.length;
+
+    const change = ((secondAvg - firstAvg) / firstAvg) * 100;
+
+    if (change > 10) return 'increasing';
+    if (change < -10) return 'decreasing';
+    return 'stable';
+  }
+
+  /**
+   * Tính độ biến động
+   */
+  static calculateVolatility(salesData) {
+    if (salesData.length < 2) return 'Trung bình';
+
+    const mean = salesData.reduce((sum, val) => sum + val, 0) / salesData.length;
+    const variance =
+      salesData.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / salesData.length;
+    const stdDev = Math.sqrt(variance);
+    const coefficient = (stdDev / mean) * 100;
+
+    if (coefficient > 30) return 'Cao';
+    if (coefficient > 15) return 'Trung bình';
+    return 'Thấp';
+  }
+
+  /**
+   * Dự đoán nhu cầu dựa trên xu hướng
+   */
+  static predictDemandFromTrend(salesData, trend) {
+    if (salesData.length === 0) return 'Không xác định';
+
+    const recentAvg =
+      salesData.slice(-3).reduce((sum, val) => sum + val, 0) / Math.min(3, salesData.length);
+
+    switch (trend) {
+      case 'increasing':
+        return `${Math.round(recentAvg * 1.2).toLocaleString()} đơn vị (tăng 20%)`;
+      case 'decreasing':
+        return `${Math.round(recentAvg * 0.8).toLocaleString()} đơn vị (giảm 20%)`;
+      default:
+        return `${Math.round(recentAvg).toLocaleString()} đơn vị (ổn định)`;
+    }
+  }
+
+  /**
+   * Lấy dữ liệu bất thường cho AI
+   */
+  static async getAnomalyDataForAI() {
+    try {
+      const anomalies = await this.detectDemandAnomalies();
+
+      // Lấy xu hướng thị trường
+      const marketTrends = await this.getMedicineTrends();
+
+      // Lấy thông tin mùa hiện tại
+      const currentMonth = new Date().getMonth();
+      const seasonalDiseases = this.getSeasonalDiseases(currentMonth);
+
+      return {
+        count: anomalies.length,
+        types: [...new Set(anomalies.map((a) => a.anomalyType || a.type))],
+        severity: anomalies.length > 5 ? 'high' : anomalies.length > 2 ? 'medium' : 'low',
+        marketTrend: marketTrends,
+        seasonalDiseases,
+        affectedMedicines: anomalies.slice(0, 5).map((a) => a.medicineName || 'Không xác định'),
+        totalImpact: anomalies.reduce(
+          (sum, a) => sum + (a.severity === 'high' ? 3 : a.severity === 'medium' ? 2 : 1),
+          0,
+        ),
+      };
+    } catch (error) {
+      console.error('AI: Error getting anomaly data for AI:', error);
+      return {};
     }
   }
 }

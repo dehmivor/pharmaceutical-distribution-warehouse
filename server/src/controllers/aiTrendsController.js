@@ -276,15 +276,9 @@ const getAIStatistics = async (req, res) => {
 
       // Thống kê theo độ ưu tiên
       priorities: {
-        high: importRecommendations.recommendations.filter(
-          (r) => r.priority === 'high',
-        ).length,
-        medium: importRecommendations.recommendations.filter(
-          (r) => r.priority === 'medium',
-        ).length,
-        low: importRecommendations.recommendations.filter(
-          (r) => r.priority === 'low',
-        ).length,
+        high: importRecommendations.recommendations.filter((r) => r.priority === 'high').length,
+        medium: importRecommendations.recommendations.filter((r) => r.priority === 'medium').length,
+        low: importRecommendations.recommendations.filter((r) => r.priority === 'low').length,
       },
 
       // Thống kê theo độ tin cậy
@@ -324,7 +318,7 @@ const getPredictionsFromDatabase = async (req, res) => {
     const predictions = await AITrendsDatabaseService.getPredictionsFromDatabase(
       medicineId,
       predictionType,
-      parseInt(limit)
+      parseInt(limit),
     );
 
     res.status(200).json({
@@ -349,7 +343,7 @@ const getPredictionsByTypeAndTime = async (req, res) => {
 
     const predictions = await AITrendsDatabaseService.getPredictionsByTypeAndTime(
       predictionType,
-      parseInt(days)
+      parseInt(days),
     );
 
     res.status(200).json({
@@ -373,7 +367,7 @@ const getHighConfidencePredictions = async (req, res) => {
     const { confidenceThreshold = 0.8 } = req.query;
 
     const predictions = await AITrendsDatabaseService.getHighConfidencePredictions(
-      parseFloat(confidenceThreshold)
+      parseFloat(confidenceThreshold),
     );
 
     res.status(200).json({
@@ -459,6 +453,141 @@ const cleanupExpiredPredictions = async (req, res) => {
   }
 };
 
+// ==================== OPENAI INTEGRATION CONTROLLERS ====================
+
+/**
+ * Lấy phân tích xu hướng thị trường với OpenAI
+ */
+const getAIPoweredMarketTrends = async (req, res) => {
+  try {
+    console.log('Controller: Getting AI-powered market trends');
+
+    const marketTrends = await AiTrendsService.analyzeMarketTrendsWithAI();
+
+    res.status(200).json({
+      success: true,
+      data: marketTrends,
+      message: 'AI-powered market trends retrieved successfully',
+    });
+  } catch (error) {
+    console.error('AI Trends Controller Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get AI-powered market trends',
+    });
+  }
+};
+
+/**
+ * Lấy gợi ý nhập thuốc với OpenAI
+ */
+const getAIPoweredImportRecommendations = async (req, res) => {
+  try {
+    console.log('Controller: Getting AI-powered import recommendations');
+
+    const recommendations = await AiTrendsService.generateImportRecommendationsWithAI();
+
+    res.status(200).json({
+      success: true,
+      data: recommendations,
+      message: 'AI-powered import recommendations retrieved successfully',
+    });
+  } catch (error) {
+    console.error('AI Trends Controller Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get AI-powered import recommendations',
+    });
+  }
+};
+
+/**
+ * Dự đoán nhu cầu thuốc với OpenAI
+ */
+const getAIPoweredMedicineDemandPrediction = async (req, res) => {
+  try {
+    const { medicineId } = req.params;
+    const { months = 6 } = req.query;
+
+    if (!medicineId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Medicine ID is required',
+      });
+    }
+
+    console.log(`Controller: Getting AI-powered demand prediction for medicine ${medicineId}`);
+
+    const prediction = await AiTrendsService.predictMedicineDemandWithAI(
+      medicineId,
+      parseInt(months),
+    );
+
+    res.status(200).json({
+      success: true,
+      data: prediction,
+      message: 'AI-powered medicine demand prediction retrieved successfully',
+    });
+  } catch (error) {
+    console.error('AI Trends Controller Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get AI-powered medicine demand prediction',
+    });
+  }
+};
+
+/**
+ * Phân tích bất thường với OpenAI
+ */
+const getAIPoweredAnomalies = async (req, res) => {
+  try {
+    console.log('Controller: Getting AI-powered anomalies analysis');
+
+    const anomalies = await AiTrendsService.analyzeAnomaliesWithAI();
+
+    res.status(200).json({
+      success: true,
+      data: anomalies,
+      message: 'AI-powered anomalies analysis retrieved successfully',
+    });
+  } catch (error) {
+    console.error('AI Trends Controller Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get AI-powered anomalies analysis',
+    });
+  }
+};
+
+/**
+ * Kiểm tra trạng thái OpenAI
+ */
+const getOpenAIStatus = async (req, res) => {
+  try {
+    const OpenAIService = require('../services/openaiService');
+    const openaiService = new OpenAIService();
+
+    const status = {
+      available: openaiService.isAvailable(),
+      configured: !!process.env.OPENAI_API_KEY,
+      timestamp: new Date(),
+    };
+
+    res.status(200).json({
+      success: true,
+      data: status,
+      message: 'OpenAI status retrieved successfully',
+    });
+  } catch (error) {
+    console.error('AI Trends Controller Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get OpenAI status',
+    });
+  }
+};
+
 module.exports = {
   getMedicineDemandPrediction,
   getAllMedicineDemandPredictions,
@@ -471,7 +600,7 @@ module.exports = {
   getDemandPredictionsByPeriod,
   getImportRecommendationsByPriority,
   getAIStatistics,
-  
+
   // New database methods
   getPredictionsFromDatabase,
   getPredictionsByTypeAndTime,
@@ -479,4 +608,11 @@ module.exports = {
   getPredictionsByTrend,
   getAIStatisticsFromDatabase,
   cleanupExpiredPredictions,
+
+  // OpenAI integration methods
+  getAIPoweredMarketTrends,
+  getAIPoweredImportRecommendations,
+  getAIPoweredMedicineDemandPrediction,
+  getAIPoweredAnomalies,
+  getOpenAIStatus,
 };

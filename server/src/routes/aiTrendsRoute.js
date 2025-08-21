@@ -359,4 +359,44 @@ router.get('/database/statistics', aiTrendsController.getAIStatisticsFromDatabas
  */
 router.post('/database/cleanup', aiTrendsController.cleanupExpiredPredictions);
 
+// ===== OPENAI INTEGRATION ROUTES =====
+
+/**
+ * @route   GET /api/ai-trends/openai/status
+ * @desc    Kiểm tra trạng thái OpenAI
+ * @access  Private (Supervisor only)
+ */
+router.get('/openai/status', aiTrendsController.getOpenAIStatus);
+
+/**
+ * @route   GET /api/ai-trends/openai/market-trends
+ * @desc    Lấy phân tích xu hướng thị trường với OpenAI
+ * @access  Private (Supervisor only)
+ */
+router.get('/openai/market-trends', aiTrendsController.getAIPoweredMarketTrends);
+
+/**
+ * @route   GET /api/ai-trends/openai/import-recommendations
+ * @desc    Lấy gợi ý nhập thuốc với OpenAI
+ * @access  Private (Supervisor only)
+ */
+router.get('/openai/import-recommendations', aiTrendsController.getAIPoweredImportRecommendations);
+
+/**
+ * @route   GET /api/ai-trends/openai/demand-prediction/:medicineId
+ * @desc    Dự đoán nhu cầu thuốc với OpenAI
+ * @access  Private (Supervisor only)
+ */
+router.get(
+  '/openai/demand-prediction/:medicineId',
+  aiTrendsController.getAIPoweredMedicineDemandPrediction,
+);
+
+/**
+ * @route   GET /api/ai-trends/openai/anomalies
+ * @desc    Phân tích bất thường với OpenAI
+ * @access  Private (Supervisor only)
+ */
+router.get('/openai/anomalies', aiTrendsController.getAIPoweredAnomalies);
+
 module.exports = router;
