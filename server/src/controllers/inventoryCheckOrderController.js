@@ -16,7 +16,11 @@ const getAllInventoryCheckOrders = asyncHandler(async (req, res) => {
     status,
     startDate,
     endDate,
-    warehouse_manager_id
+    warehouse_manager_id,
+    sortBy,
+    sortDirection,
+    search,
+    searchBy,
   } = req.query;
 
   const filters = {
@@ -26,6 +30,10 @@ const getAllInventoryCheckOrders = asyncHandler(async (req, res) => {
     startDate,
     endDate,
     warehouse_manager_id,
+    sortBy,
+    sortDirection,
+    search,
+    searchBy,
   };
 
   const result = await inventoryCheckOrderService.getAllInventoryCheckOrders(filters);
@@ -69,7 +77,8 @@ const createInventoryCheckOrder = asyncHandler(async (req, res) => {
     created_by: req.user.userId, // Add created_by field
   };
 
-  const result = await inventoryCheckOrderService.createInventoryCheckOrder(inventoryCheckOrderData);
+  const result =
+    await inventoryCheckOrderService.createInventoryCheckOrder(inventoryCheckOrderData);
 
   if (!result.success) {
     return res.status(400).json({
@@ -145,11 +154,9 @@ const updateInventoryCheckOrder = asyncHandler(async (req, res) => {
   });
 });
 
-
-
 module.exports = {
   getAllInventoryCheckOrders,
   createInventoryCheckOrder,
   getInventoryCheckOrderById,
   updateInventoryCheckOrder,
-}; 
+};

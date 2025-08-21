@@ -2668,7 +2668,7 @@ export default {
     title: 'List of Inventory Check Orders',
     description: 'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.',
     search: 'Search',
-    searchPlaceholder: 'Search',
+    searchPlaceholder: 'Search by created by',
     inventoryDate: 'Inventory Date',
     status: 'Status',
     all: 'All',

@@ -2704,7 +2704,7 @@ export default {
     title: 'Danh sách phiếu kiểm kê kho',
     description: 'Quản lý và theo dõi phiếu kiểm kê kho. Bạn có thể lọc, tìm kiếm và xem chi tiết của từng phiếu kiểm kê.',
     search: 'Tìm kiếm',
-    searchPlaceholder: 'Tìm kiếm',
+    searchPlaceholder: 'Tìm kiếm theo người tạo',
     inventoryDate: 'Ngày kiểm kê',
     status: 'Trạng thái',
     all: 'Tất cả',

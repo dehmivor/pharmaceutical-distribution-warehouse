@@ -78,12 +78,15 @@ const CheckOrders = () => {
     setMenuOrder(null);
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (customPage = null, customSortDirection = null) => {
     setLoading(true);
     setError('');
     try {
       const params = new URLSearchParams();
-      params.append('page', String(page + 1));
+      const currentPage = customPage !== null ? customPage : page;
+      const currentSortDirection = customSortDirection !== null ? customSortDirection : sortDirection;
+
+      params.append('page', String(currentPage + 1));
       params.append('limit', String(rowsPerPage));
 
       if (filterStatus) params.append('status', filterStatus);
@@ -95,8 +98,11 @@ const CheckOrders = () => {
         params.append('startDate', startIso);
         params.append('endDate', endIso);
       }
+      if (searchTerm.trim() !== '') params.append('searchBy', 'created_by');
       if (searchTerm.trim() !== '') params.append('search', searchTerm.trim());
-      if (sortDirection) params.append('sortDirection', sortDirection);
+      // Sắp xếp theo ngày cập nhật (updatedAt)
+      if (currentSortDirection) params.append('sortBy', 'updatedAt');
+      if (currentSortDirection) params.append('sortDirection', currentSortDirection);
 
       const res = await axiosInstance.get(`/api/inventory-check-orders?${params.toString()}`, {
         headers: getAuthHeaders()
@@ -117,8 +123,11 @@ const CheckOrders = () => {
   };
 
   useEffect(() => {
-    fetchOrders();
-  }, [page, rowsPerPage, filterStatus, filterDate, sortDirection]);
+    // Chỉ load dữ liệu ban đầu khi component mount, không tự động load khi thay đổi filter
+    if (page === 0 && rowsPerPage === 10 && !filterStatus && !filterDate && !searchTerm && sortDirection === 'asc') {
+      fetchOrders(0, 'asc');
+    }
+  }, []); // Chỉ chạy 1 lần khi component mount
 
   const handleFilterChange = (field, value) => {
     switch (field) {
@@ -138,11 +147,13 @@ const CheckOrders = () => {
         break;
     }
     setPage(0);
+    // Không tự động fetch khi thay đổi filter, chỉ khi bấm search
   };
 
   const handleSearchClick = () => {
-    // Vì đã lọc theo từng biến và fetch tự động load effect, chỉ cần fetchOrders nếu muốn gọi lại ngay
-    fetchOrders();
+    // Áp dụng tất cả filter hiện tại và fetch dữ liệu
+    setPage(0); // Reset về trang đầu tiên
+    fetchOrders(0);
   };
 
   const handleReset = () => {
@@ -151,15 +162,22 @@ const CheckOrders = () => {
     setFilterDate('');
     setSortDirection('asc');
     setPage(0);
+    // Reset về default và load lại dữ liệu
+    fetchOrders(0, 'asc');
   };
 
   const handlePageChange = (event, newPage) => {
     setPage(newPage);
+    // Khi thay đổi page, fetch với page mới và giữ nguyên các filter hiện tại
+    fetchOrders(newPage);
   };
 
   const handleRowsPerPageChange = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+    const newRpp = parseInt(event.target.value, 10);
+    setRowsPerPage(newRpp);
     setPage(0);
+    // Khi thay đổi rows per page, fetch với page = 0 và giữ nguyên các filter hiện tại
+    fetchOrders(0);
   };
 
   const formatDate = (d) => (d ? new Date(d).toLocaleDateString('vi-VN') : '');
@@ -207,10 +225,10 @@ const CheckOrders = () => {
             fullWidth
             variant="outlined"
             size="small"
-            label={trans?.checkOrders?.search || 'Search'}
-            placeholder={trans?.checkOrders?.searchPlaceholder || 'Search'}
+            label={trans?.checkOrders?.search || 'Search by created by'}
+            placeholder={trans?.checkOrders?.searchPlaceholder || 'Search by Created By'}
             value={searchTerm}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
+            onChange={(e) => handleFilterChange('search by created by', e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -248,7 +266,12 @@ const CheckOrders = () => {
             variant="outlined"
             size="small"
             startIcon={sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
-            onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+            onClick={() => {
+              const newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+              setSortDirection(newDirection);
+              // Sắp xếp theo updatedAt sẽ được áp dụng ngay lập tức với page = 0
+              fetchOrders(0, newDirection);
+            }}
           >
             {sortDirection === 'asc' ? trans?.checkOrders?.ascending || 'Ascending' : trans?.checkOrders?.descending || 'Descending'}
           </Button>
