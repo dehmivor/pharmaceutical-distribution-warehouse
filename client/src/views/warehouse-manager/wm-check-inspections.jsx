@@ -217,7 +217,7 @@ function CheckInspections() {
       }
 
       // 2. Nếu trạng thái chưa processing, update status
-      if (order.status?.toLowerCase() !== 'processing') {
+      if (order.status?.toLowerCase() !== 'processing' && order.status?.toLowerCase() === 'pending') {
         const updateRes = await axios.patch(
           `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
           { status: 'processing' },

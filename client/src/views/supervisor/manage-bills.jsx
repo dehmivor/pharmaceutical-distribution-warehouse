@@ -36,6 +36,11 @@ import { enqueueSnackbar } from 'notistack';
 
 // Initialize Stripe with your publishable key
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+const formatNumber = (num) => {
+  if (!num && num !== 0) return '0';
+  // Làm tròn và định dạng thêm dấu phẩy thousands separator
+  return Math.round(num).toLocaleString('vi-VN');
+};
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('auth-token');
@@ -43,12 +48,6 @@ const getAuthHeaders = () => {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` })
   };
-};
-
-// Format number with thousands separator
-const formatNumber = (num) => {
-  if (!num) return '0';
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
 // Parse formatted number back to number
@@ -247,6 +246,26 @@ function ManageBills() {
     return details.reduce((sum, d) => sum + d.quantity * d.unit_price, 0);
   };
 
+  // Thêm hàm tính số tiền còn lại cần thanh toán
+  const calcRemainingAmount = (bill) => {
+    const totalAmount = calcAmount(bill.details);
+    const amountPaid = bill.amountPaid || 0;
+    return Math.max(0, totalAmount - amountPaid);
+  };
+
+  // Thêm hàm tính tổng tiền đã thanh toán
+  const calcAmountPaid = (bill) => {
+    // Đảm bảo amountPaid luôn là VND
+    const amountPaid = bill.amountPaid || 0;
+
+    // Nếu amountPaid quá lớn (có thể là cents), convert về VND
+    if (amountPaid > 1000) {
+      return amountPaid / 100;
+    }
+
+    return amountPaid;
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const d = new Date(dateString);
@@ -316,11 +335,11 @@ function ManageBills() {
       return;
     }
 
-    // Kiểm tra số tiền thanh toán không vượt quá số tiền cần trả
-    const totalAmount = calcAmount(bill.details);
-    if (amount > totalAmount) {
+    // Kiểm tra số tiền thanh toán không vượt quá số tiền còn lại cần trả
+    const remainingAmount = calcRemainingAmount(bill);
+    if (amount > remainingAmount) {
       enqueueSnackbar(
-        `Số tiền thanh toán (${amount.toLocaleString()} VNĐ) không được vượt quá tổng tiền hóa đơn (${totalAmount.toLocaleString()} VNĐ).`,
+        `Số tiền thanh toán (${amount.toLocaleString()} VNĐ) không được vượt quá số tiền còn lại cần trả (${remainingAmount.toLocaleString()} VNĐ).`,
         { variant: 'error' }
       );
       return;
@@ -434,7 +453,7 @@ function ManageBills() {
     const amounts = {};
     selectedBills.forEach((id) => {
       const bill = bills.find((b) => b._id === id);
-      amounts[id] = formatNumber(calcAmount(bill.details));
+      amounts[id] = formatNumber(calcRemainingAmount(bill));
     });
     setMultiPaymentAmounts(amounts);
     setOpenMultiPaymentDialog(true);
@@ -448,12 +467,12 @@ function ManageBills() {
 
   const handleMultiPaymentAmountChange = (billId, value) => {
     const bill = bills.find((b) => b._id === billId);
-    const maxAmount = calcAmount(bill.details);
+    const maxAmount = calcRemainingAmount(bill);
     const numericValue = parseFormattedNumber(value);
 
     if (numericValue > maxAmount) {
       enqueueSnackbar(
-        `Số tiền thanh toán (${numericValue.toLocaleString()} VNĐ) không được vượt quá tổng tiền hóa đơn (${maxAmount.toLocaleString()} VNĐ).`,
+        `Số tiền thanh toán (${numericValue.toLocaleString()} VNĐ) không được vượt quá số tiền còn lại cần trả (${maxAmount.toLocaleString()} VNĐ).`,
         { variant: 'error' }
       );
       return;
@@ -499,11 +518,11 @@ function ManageBills() {
       for (const id of billIds) {
         const bill = bills.find((b) => b._id === id);
         const billAmount = parseFormattedNumber(multiPaymentAmounts[id]) || 0;
-        const billTotal = calcAmount(bill.details);
+        const billTotal = calcRemainingAmount(bill);
 
         if (billAmount > billTotal) {
           enqueueSnackbar(
-            `Số tiền thanh toán cho hóa đơn ${bill.voucher_code || bill._id.slice(0, 6)} (${billAmount.toLocaleString()} VNĐ) vượt quá tổng tiền hóa đơn (${billTotal.toLocaleString()} VNĐ).`,
+            `Số tiền thanh toán cho hóa đơn ${bill.voucher_code || bill._id.slice(0, 6)} (${billAmount.toLocaleString()} VNĐ) vượt quá số tiền còn lại cần trả (${billTotal.toLocaleString()} VNĐ).`,
             { variant: 'error' }
           );
           setLoadingPaymentId(null);
@@ -831,7 +850,19 @@ function ManageBills() {
                   >
                     {getMedicineDetailsString(bill)}
                   </TableCell>
-                  <TableCell align="right">{calcAmount(bill.details).toLocaleString()}</TableCell>
+                  <TableCell align="right">
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Tổng: {formatNumber(calcAmount(bill.details))} VNĐ
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Đã trả: {formatNumber(calcAmountPaid(bill))} VNĐ
+                      </Typography>
+                      <Typography variant="body2" color="primary" fontWeight="bold">
+                        Còn lại: {formatNumber(calcRemainingAmount(bill))} VNĐ
+                      </Typography>
+                    </Box>
+                  </TableCell>
                   <TableCell>
                     {bill.type === 'EXPORT' ? (
                       // Đối với đơn xuất, chỉ hiển thị button Detail để xem trạng thái thanh toán
@@ -988,6 +1019,12 @@ function ManageBills() {
                     <Typography>
                       <strong>Tổng tiền:</strong> {calcAmount(detailData.details).toLocaleString()} VNĐ
                     </Typography>
+                    <Typography>
+                      <strong>Đã thanh toán:</strong> {calcAmountPaid(detailData).toLocaleString()} VNĐ
+                    </Typography>
+                    <Typography color="primary" fontWeight="bold">
+                      <strong>Số tiền còn lại:</strong> {calcRemainingAmount(detailData).toLocaleString()} VNĐ
+                    </Typography>
 
                     <TextField
                       label="Số tiền thanh toán (VNĐ)"
@@ -996,13 +1033,13 @@ function ManageBills() {
                       onChange={(e) => {
                         const value = e.target.value.replace(/[^0-9,]/g, '');
                         const numericValue = parseFormattedNumber(value);
-                        const maxAmount = calcAmount(detailData.details);
+                        const maxAmount = calcRemainingAmount(detailData);
                         if (numericValue <= maxAmount) {
                           setPartialAmount(formatNumber(numericValue));
                         }
                       }}
                       sx={{ mt: 2 }}
-                      helperText={`Số tiền: ${parseFormattedNumber(partialAmount).toLocaleString()} VNĐ - Bạn có thể thanh toán toàn bộ hoặc một phần hóa đơn này.`}
+                      helperText={`Số tiền: ${parseFormattedNumber(partialAmount).toLocaleString()} VNĐ - Bạn có thể thanh toán toàn bộ hoặc một phần số tiền còn lại (${calcRemainingAmount(detailData).toLocaleString()} VNĐ).`}
                     />
                   </>
                 )}
@@ -1053,7 +1090,7 @@ function ManageBills() {
             <>
               {selectedBills.map((billId) => {
                 const bill = bills.find((b) => b._id === billId);
-                const maxAmount = calcAmount(bill.details);
+                const maxAmount = calcRemainingAmount(bill);
                 return (
                   <Box key={billId} sx={{ mb: 2 }}>
                     <Typography mb={1} variant="subtitle1">{`Mã hóa đơn: ${bill.voucher_code || bill._id}`}</Typography>
@@ -1068,7 +1105,7 @@ function ManageBills() {
                         }
                       }}
                       fullWidth
-                      helperText={`Số tiền: ${parseFormattedNumber(multiPaymentAmounts[billId] || '0').toLocaleString()} VNĐ / Tổng tiền: ${maxAmount.toLocaleString()} VNĐ`}
+                      helperText={`Số tiền: ${parseFormattedNumber(multiPaymentAmounts[billId] || '0').toLocaleString()} VNĐ / Số tiền còn lại: ${maxAmount.toLocaleString()} VNĐ`}
                     />
                   </Box>
                 );
