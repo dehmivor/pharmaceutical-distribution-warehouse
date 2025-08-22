@@ -30,23 +30,22 @@ const createMultipleInspections = async (listInspectionData) => {
       throw error;
     }
 
-    // Lấy toàn bộ các medicine_id đã có inspection trong importOrder này
-    const existingInspections = await ImportInspection.find({ import_order_id: importOrderId });
-    const existingMedicineIds = existingInspections.map((ins) => ins.medicine_id.toString());
-
-    // Lọc những inspection data trong listInspectionData thuộc importOrder này
+    // FIX: Kiểm tra logic nghiệp vụ - chỉ ngăn chặn tạo inspection trùng lặp
+    // trong cùng một lần gọi API, không ngăn chặn tạo mới sau khi xóa
     const newInspections = listInspectionData.filter(
       (d) => d.import_order_id.toString() === importOrderId,
     );
 
-    // Xác định những thuốc đã có inspect trong danh sách mới
-    const duplicateMedicines = newInspections.filter((d) =>
-      existingMedicineIds.includes(d.medicine_id.toString()),
+    // Kiểm tra duplicate trong danh sách mới (trong cùng một request)
+    const medicineIdsInRequest = newInspections.map((d) => d.medicine_id.toString());
+    const duplicateInRequest = medicineIdsInRequest.filter(
+      (id, index) => medicineIdsInRequest.indexOf(id) !== index,
     );
 
-    if (duplicateMedicines.length > 0) {
-      const medicineListStr = duplicateMedicines.map((d) => d.medicine_id.toString()).join(', ');
-      const error = new Error(`Inspections already exist for medicine(s): ${medicineListStr}`);
+    if (duplicateInRequest.length > 0) {
+      const uniqueDuplicates = [...new Set(duplicateInRequest)];
+      const medicineListStr = uniqueDuplicates.join(', ');
+      const error = new Error(`Duplicate medicine(s) in request: ${medicineListStr}`);
       error.statusCode = 400;
       throw error;
     }
@@ -66,6 +65,37 @@ const createMultipleInspections = async (listInspectionData) => {
 
   // Optional: lấy chi tiết từng phiếu sau khi tạo
   return inspections;
+};
+
+// FIX: Thêm function tạo inspection đơn lẻ (không qua validation duplicate)
+const createSingleInspection = async (inspectionData) => {
+  // Kiểm tra dữ liệu đầu vào
+  if (!inspectionData.import_order_id || !inspectionData.medicine_id) {
+    const error = new Error('Import order ID and Medicine ID are required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Kiểm tra import order tồn tại
+  const importOrder = await ImportOrder.findById(inspectionData.import_order_id);
+  if (!importOrder) {
+    const error = new Error(`Import order ${inspectionData.import_order_id} not found`);
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // Kiểm tra rejected không vượt actual
+  if (inspectionData.rejected_quantity > inspectionData.actual_quantity) {
+    const error = new Error('Rejected quantity cannot exceed actual quantity');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Tạo inspection mới
+  const inspection = new ImportInspection(inspectionData);
+  await inspection.save();
+
+  return inspection;
 };
 
 // Lấy danh sách phiếu kiểm tra với phân trang
@@ -248,4 +278,5 @@ module.exports = {
   getAvailableQuantityForImport,
   getInspectionsForApprove,
   getInspectionByImportOrderId,
+  createSingleInspection,
 };
