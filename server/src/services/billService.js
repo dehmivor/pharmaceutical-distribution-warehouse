@@ -189,10 +189,30 @@ const updateBillStatus = async (billId, status) => {
   }
 };
 
+// Add function to update bill amount paid
+const updateBillAmountPaid = async (billId, amountPaid, status) => {
+  try {
+    const updateData = { amountPaid };
+    if (status) {
+      updateData.status = status;
+    }
+
+    const bill = await Bill.findByIdAndUpdate(billId, updateData, { new: true });
+    console.log(
+      `Bill ${billId} amountPaid updated to: ${amountPaid} VND, status: ${status || 'unchanged'}`,
+    );
+    return bill;
+  } catch (error) {
+    console.error(`Error updating bill ${billId} amountPaid:`, error);
+    throw error;
+  }
+};
+
 module.exports = {
   getAllBills,
   getBillById,
   createBill,
   deleteBill,
   updateBillStatus,
+  updateBillAmountPaid,
 };

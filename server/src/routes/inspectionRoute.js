@@ -5,6 +5,9 @@ const authorize = require('../middlewares/authorize');
 
 router.post('/', authorize(['warehouse']), importInspectionController.createMultipleInspections);
 
+// FIX: Thêm route để tạo inspection đơn lẻ (không qua validation duplicate)
+router.post('/single', authorize(['warehouse']), importInspectionController.createSingleInspection);
+
 router.get('/', importInspectionController.getInspections);
 
 router.get('/inspection-for-approve', importInspectionController.getInspectionForApprove);

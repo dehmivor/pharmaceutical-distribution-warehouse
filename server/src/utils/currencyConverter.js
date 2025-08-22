@@ -17,6 +17,7 @@ const convertVNDToUSDCents = (amountVND) => {
     throw new Error('Invalid VND amount');
   }
 
+  // FIX: Đảm bảo precision cao hơn trong conversion
   const amountUSD = amountVND / VND_TO_USD_RATE;
   const amountCents = Math.round(amountUSD * 100);
 
@@ -26,6 +27,7 @@ const convertVNDToUSDCents = (amountVND) => {
     amountCents,
     conversionRate: VND_TO_USD_RATE,
     unit: 'VND → USD Cents',
+    precision: 'Rounded to nearest cent',
   });
 
   return amountCents;
@@ -41,8 +43,9 @@ const convertUSDCentsToVND = (amountCents) => {
     throw new Error('Invalid USD cents amount');
   }
 
+  // FIX: Đảm bảo conversion chính xác từ cents về VND
   const amountUSD = amountCents / 100;
-  const amountVND = amountUSD * USD_TO_VND_RATE;
+  const amountVND = Math.round(amountUSD * USD_TO_VND_RATE);
 
   console.log('USD Cents to VND conversion:', {
     amountCents,
@@ -50,6 +53,8 @@ const convertUSDCentsToVND = (amountCents) => {
     amountVND,
     conversionRate: USD_TO_VND_RATE,
     unit: 'USD Cents → VND',
+    precision: 'Rounded to nearest VND',
+    reverseCheck: `Reverse: ${amountVND} VND / ${USD_TO_VND_RATE} * 100 = ${Math.round((amountVND / USD_TO_VND_RATE) * 100)} cents`,
   });
 
   return amountVND;
