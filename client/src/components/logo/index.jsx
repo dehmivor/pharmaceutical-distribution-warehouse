@@ -1,30 +1,54 @@
 'use client';
 import PropTypes from 'prop-types';
 
-// @next
-import NextLink from 'next/link';
-
 // @mui
 import { useTheme } from '@mui/material/styles';
 import ButtonBase from '@mui/material/ButtonBase';
+import { useRouter } from 'next/navigation';
+import { useRole } from '@/contexts/RoleContext';
 
 // @project
 import LogoMain from './LogoMain';
 import LogoIcon from './LogoIcon';
-import { APP_DEFAULT_PATH } from '@/config';
 import { generateFocusStyle } from '@/utils/generateFocusStyle';
 
 /***************************  MAIN - LOGO  ***************************/
 
 export default function LogoSection({ isIcon, sx, to }) {
   const theme = useTheme();
+  const router = useRouter();
+  const { userRole } = useRole();
+
+  // Map role to home URL
+  const getHomeUrl = () => {
+    const roleHomeMap = {
+      supervisor: '/data&reports/dashboard',
+      representative: '/rp-dashboard',
+      warehouse: '/wh-dashboard-import',
+      warehouse_manager: '/wm-dashboard',
+      representative_manager: '/rm-dashboard'
+    };
+    return roleHomeMap[userRole] || '/';
+  };
+
+  const handleLogoClick = () => {
+    const homeUrl = to || getHomeUrl();
+    router.push(homeUrl);
+  };
 
   return (
-    <NextLink href={!to ? APP_DEFAULT_PATH : to} passHref>
-      <ButtonBase disableRipple sx={{ ...sx, '&:focus-visible': generateFocusStyle(theme.palette.primary.main) }} aria-label="logo">
-        {isIcon ? <LogoIcon /> : <LogoMain />}
-      </ButtonBase>
-    </NextLink>
+    <ButtonBase
+      disableRipple
+      sx={{
+        ...sx,
+        '&:focus-visible': generateFocusStyle(theme.palette.primary.main),
+        cursor: 'pointer'
+      }}
+      aria-label="logo"
+      onClick={handleLogoClick}
+    >
+      {isIcon ? <LogoIcon /> : <LogoMain />}
+    </ButtonBase>
   );
 }
 

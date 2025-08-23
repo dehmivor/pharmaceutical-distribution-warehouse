@@ -24,11 +24,11 @@ export default function Home() {
 
           // Map role to home URL
           const roleHomeMap = {
-            supervisor: '/sp-home',
-            representative: '/rp-home',
-            warehouse: '/wh-home',
-            warehouse_manager: '/wm-home',
-            representative_manager: '/rm-home'
+            supervisor: '/sp-dashboard',
+            representative: '/rp-dashboard',
+            warehouse: '/wh-dashboard',
+            warehouse_manager: '/wm-dashboard',
+            representative_manager: '/rm-dashboard'
           };
 
           const homeUrl = roleHomeMap[role] || APP_DEFAULT_PATH;

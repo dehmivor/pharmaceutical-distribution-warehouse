@@ -4,6 +4,8 @@
 import { useTheme } from '@mui/material/styles';
 import CardMedia from '@mui/material/CardMedia';
 import Box from '@mui/material/Box';
+import { useRouter } from 'next/navigation';
+import { useRole } from '@/contexts/RoleContext';
 
 // @project
 import branding from '@/branding.json';
@@ -12,7 +14,26 @@ import branding from '@/branding.json';
 
 export default function LogoIcon() {
   const theme = useTheme();
+  const router = useRouter();
+  const { userRole } = useRole();
   const logoIconPath = branding.logo.logoIcon;
+
+  // Map role to home URL
+  const getHomeUrl = () => {
+    const roleHomeMap = {
+      supervisor: '/data&reports/dashboard',
+      representative: '/rp-dashboard',
+      warehouse: '/wh-dashboard-import',
+      warehouse_manager: '/wm-dashboard',
+      representative_manager: '/rm-dashboard'
+    };
+    return roleHomeMap[userRole] || '/';
+  };
+
+  const handleLogoClick = () => {
+    const homeUrl = getHomeUrl();
+    router.push(homeUrl);
+  };
 
   return (
     <Box
@@ -25,8 +46,13 @@ export default function LogoIcon() {
         WebkitTapHighlightColor: 'transparent',
         '& svg': {
           display: 'block'
+        },
+        '&:hover': {
+          opacity: 0.8,
+          transition: 'opacity 0.2s ease-in-out'
         }
       }}
+      onClick={handleLogoClick}
     >
       {logoIconPath ? (
         <CardMedia src={logoIconPath} component="img" alt="logo" sx={{ height: 1 }} />
