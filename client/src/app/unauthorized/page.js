@@ -7,7 +7,7 @@ import Error500Page from '@/components/Error500';
 
 const data = {
   primaryBtn: { children: 'Back to Login Page', onClick: () => (window.location.href = '/auth/login') },
-  heading: 'Please try again later or feel free to contact us if the problem persists.'
+  heading: "You don't have permission to access this page."
 };
 
 /***************************  ERROR - INTERNAL SERVER ERROR  ***************************/
