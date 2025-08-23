@@ -75,7 +75,7 @@ function ImportOrderPage() {
   });
   const [userEmails, setUserEmails] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
-  
+
   // Add applied filters state to separate current filters from applied ones
   const [appliedFilters, setAppliedFilters] = useState({
     contract_code: '',
@@ -400,26 +400,7 @@ function ImportOrderPage() {
 
       const contractItem = contractMedicines.find((med) => med.medicine_id._id === detail.medicine_id);
 
-      if (formData.contract_type === 'economic') {
-        // Với economic contract, giữ nguyên validation cũ
-        // Validate: số lượng nhập phải >= min_order_quantity từ hợp đồng
-        if (contractItem && detail.quantity < contractItem.min_order_quantity) {
-          setError(
-            `Số lượng nhập cho thuốc "${contractItem.medicine_id.medicine_name}" phải tối thiểu là ${contractItem.min_order_quantity}`
-          );
-          setFormLoading(false);
-          return;
-        }
-        // Validate: số lượng nhập không vượt quá max_quantity hoặc 1000
-        const maxQ = contractItem?.max_quantity || 1000;
-        if (detail.quantity > maxQ) {
-          setError(
-            trans.common.quantityMaxForMedicine.replace('{medicine}', contractItem?.medicine_id?.medicine_name || '').replace('{max}', maxQ)
-          );
-          setFormLoading(false);
-          return;
-        }
-      } else if (formData.contract_type === 'principal') {
+      if (formData.contract_type === 'principal') {
         // Với principal contract, chỉ validate cơ bản
         // Validate: số lượng nhập phải >= 1
         if (detail.quantity < 1) {
@@ -629,12 +610,32 @@ function ImportOrderPage() {
               />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 180 }}>
                 <InputLabel>{trans.common.contractType}</InputLabel>
                 <Select
                   value={filters.contract_type}
                   onChange={(e) => handleFilterChange('contract_type', e.target.value)}
                   label={trans.common.contractType}
+                  renderValue={(selected) => (
+                    <span
+                      style={{
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {selected === 'economic'
+                        ? trans.common.economicContract
+                        : selected === 'principal'
+                          ? trans.common.principalContract
+                          : selected || trans.common.allContractTypes}
+                    </span>
+                  )}
+                  sx={{
+                    width: '100%',
+                    maxWidth: 180
+                  }}
                 >
                   <MenuItem value="">{trans.common.allContractTypes}</MenuItem>
                   <MenuItem value="economic">{trans.common.economicContract}</MenuItem>
@@ -643,12 +644,28 @@ function ImportOrderPage() {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 180 }}>
                 <InputLabel>{trans.common.supplier}</InputLabel>
                 <Select
                   value={filters.supplier}
                   onChange={(e) => handleFilterChange('supplier', e.target.value)}
                   label={trans.common.supplier}
+                  renderValue={(selected) => (
+                    <span
+                      style={{
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {selected || trans.common.allSuppliers}
+                    </span>
+                  )}
+                  sx={{
+                    width: '100%',
+                    maxWidth: 180
+                  }}
                 >
                   <MenuItem value="">{trans.common.allSuppliers}</MenuItem>
                   {suppliers.map((supplier) => (
@@ -660,12 +677,28 @@ function ImportOrderPage() {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 250 }}>
                 <InputLabel>{trans.common.createdBy}</InputLabel>
                 <Select
                   value={filters.created_by}
                   onChange={(e) => handleFilterChange('created_by', e.target.value)}
                   label={trans.common.createdBy}
+                  renderValue={(selected) => (
+                    <span
+                      style={{
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {selected || trans.common.allUsers}
+                    </span>
+                  )}
+                  sx={{
+                    width: '100%',
+                    maxWidth: 250
+                  }}
                 >
                   <MenuItem value="">{trans.common.allUsers}</MenuItem>
                   {userEmails.length > 0 && (
@@ -712,6 +745,7 @@ function ImportOrderPage() {
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell sx={{ minWidth: 100 }}>Order ID</TableCell>
               <TableCell sx={{ minWidth: 120 }}>{trans.common.contractCode}</TableCell>
               <TableCell sx={{ minWidth: 100 }}>{trans.common.contractType}</TableCell>
               <TableCell sx={{ minWidth: 150 }}>{trans.common.supplier}</TableCell>
@@ -727,6 +761,11 @@ function ImportOrderPage() {
           <TableBody>
             {paginatedOrders.map((order) => (
               <TableRow key={order._id} hover>
+                                 <TableCell>
+                   <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'text.primary' }}>
+                     #{order._id.slice(-6).toUpperCase()}
+                   </Typography>
+                 </TableCell>
                 <TableCell>{order.contract_id?.contract_code || trans.common.na}</TableCell>
                 <TableCell>
                   <Chip
@@ -817,6 +856,26 @@ function ImportOrderPage() {
                     label={trans.common.contractType}
                     required
                     disabled={!!selectedOrder}
+                    renderValue={(selected) => (
+                      <span
+                        style={{
+                          display: 'block',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {selected === 'economic'
+                          ? trans.common.economicContract
+                          : selected === 'principal'
+                            ? trans.common.principalContract
+                            : trans.common.selectContractType}
+                      </span>
+                    )}
+                    sx={{
+                      width: '100%',
+                      minWidth: 200
+                    }}
                   >
                     <MenuItem value="">{trans.common.selectContractType}</MenuItem>
                     <MenuItem value="economic">{trans.common.economicContract}</MenuItem>
@@ -834,6 +893,29 @@ function ImportOrderPage() {
                     label={trans.common.contract}
                     required
                     disabled={!formData.contract_type || !!selectedOrder}
+                    renderValue={(selected) => {
+                      if (!selected) return trans.common.selectContract;
+                      const selectedContract = contracts.find(c => c._id === selected);
+                      const displayText = selectedContract 
+                        ? `${selectedContract.contract_code} - ${selectedContract.partner_id?.name || 'N/A'}`
+                        : trans.common.selectContract;
+                      return (
+                        <span
+                          style={{
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {displayText}
+                        </span>
+                      );
+                    }}
+                    sx={{
+                      width: '100%',
+                      minWidth: 250
+                    }}
                   >
                     <MenuItem value="">{trans.common.selectContract}</MenuItem>
                     {filteredContracts.map((contract) => (
@@ -913,7 +995,30 @@ function ImportOrderPage() {
                             label={trans.common.medicine}
                             required
                             disabled={!formData.contract_id || medicinesLoading || formData.contract_type === 'economic'}
-                            sx={{ minWidth: 200, maxWidth: 240 }}
+                            renderValue={(selected) => {
+                              if (!selected) return trans.common.selectMedicine || 'Select Medicine';
+                              const selectedMedicine = contractMedicines.find(med => med.medicine_id._id === selected);
+                              const displayText = selectedMedicine 
+                                ? `${selectedMedicine.medicine_id.medicine_name} - ${selectedMedicine.medicine_id.license_code}`
+                                : trans.common.selectMedicine || 'Select Medicine';
+                              return (
+                                <span
+                                  style={{
+                                    display: 'block',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {displayText}
+                                </span>
+                              );
+                            }}
+                            sx={{ 
+                              width: '100%',
+                              minWidth: 200, 
+                              maxWidth: 240 
+                            }}
                           >
                             <MenuItem value="">{trans.common.selectMedicine || 'Select Medicine'}</MenuItem>
                             {medicinesLoading ? (
@@ -957,7 +1062,7 @@ function ImportOrderPage() {
                               handleDetailChange(index, 'quantity', 0);
                             }
                           }}
-                          InputProps={{ 
+                          InputProps={{
                             readOnly: formData.contract_type !== 'principal',
                             inputMode: 'numeric',
                             pattern: '[0-9]*'
@@ -1126,10 +1231,10 @@ function ImportOrderPage() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog 
-        open={openDeleteDialog} 
-        onClose={() => setOpenDeleteDialog(false)} 
-        maxWidth="xs" 
+      <Dialog
+        open={openDeleteDialog}
+        onClose={() => setOpenDeleteDialog(false)}
+        maxWidth="xs"
         fullWidth
         PaperProps={{
           sx: {
@@ -1139,9 +1244,9 @@ function ImportOrderPage() {
           }
         }}
       >
-        <DialogTitle sx={{ 
-          textAlign: 'center', 
-          fontWeight: 600, 
+        <DialogTitle sx={{
+          textAlign: 'center',
+          fontWeight: 600,
           color: 'error.main',
           fontSize: '1.25rem',
           py: 2,
@@ -1167,15 +1272,15 @@ function ImportOrderPage() {
         </DialogTitle>
         <DialogContent sx={{ py: 2.5, px: 3 }}>
           <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="body1" sx={{ 
-              mb: 2, 
+            <Typography variant="body1" sx={{
+              mb: 2,
               fontWeight: 500,
               color: 'text.primary',
               lineHeight: 1.4
             }}>
               {trans.common.deleteOrderConfirmation || 'Are you sure you want to delete this import order?'}
             </Typography>
-            
+
             <Box sx={{
               background: 'linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%)',
               borderRadius: 1.5,
@@ -1183,7 +1288,7 @@ function ImportOrderPage() {
               border: '1px solid #ffb74d',
               mb: 2
             }}>
-              <Typography variant="body2" sx={{ 
+              <Typography variant="body2" sx={{
                 color: '#e65100',
                 fontWeight: 500,
                 display: 'flex',
@@ -1197,7 +1302,7 @@ function ImportOrderPage() {
               </Typography>
             </Box>
 
-            <Typography variant="caption" color="text.secondary" sx={{ 
+            <Typography variant="caption" color="text.secondary" sx={{
               fontStyle: 'italic',
               opacity: 0.7
             }}>
@@ -1205,18 +1310,18 @@ function ImportOrderPage() {
             </Typography>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ 
-          justifyContent: 'center', 
-          gap: 2, 
-          pb: 3, 
+        <DialogActions sx={{
+          justifyContent: 'center',
+          gap: 2,
+          pb: 3,
           px: 3,
           borderTop: '1px solid rgba(0,0,0,0.06)',
           background: '#fafafa'
         }}>
-          <Button 
-            onClick={() => setOpenDeleteDialog(false)} 
-            variant="outlined" 
-            sx={{ 
+          <Button
+            onClick={() => setOpenDeleteDialog(false)}
+            variant="outlined"
+            sx={{
               minWidth: 110,
               height: 40,
               borderRadius: 1.5,
@@ -1233,10 +1338,10 @@ function ImportOrderPage() {
           >
             {trans.common.cancel || 'Cancel'}
           </Button>
-          <Button 
-            onClick={handleConfirmDelete} 
-            variant="contained" 
-            sx={{ 
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            sx={{
               minWidth: 110,
               height: 40,
               borderRadius: 1.5,

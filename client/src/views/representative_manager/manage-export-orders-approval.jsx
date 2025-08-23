@@ -284,8 +284,8 @@ function ManageExportOrdersApproval() {
               {trans.representativeManagerExportOrdersApproval.filters.title}
             </Typography>
           </Box>
-          <Grid container spacing={3} alignItems="center">
-            <Grid item xs={12} sm={6} md={3}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
                 label={trans.representativeManagerExportOrdersApproval.filters.search}
@@ -303,13 +303,28 @@ function ManageExportOrdersApproval() {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="medium">
+            <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 160 }}>
                 <InputLabel>{trans.representativeManagerExportOrdersApproval.filters.status}</InputLabel>
                 <Select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                   label={trans.representativeManagerExportOrdersApproval.filters.status}
+                  renderValue={(selected) => (
+                    <span
+                      style={{
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {selected || trans.representativeManagerExportOrdersApproval.filters.allStatus}
+                    </span>
+                  )}
+                  sx={{
+                    width: 160
+                  }}
                 >
                   <MenuItem value="">{trans.representativeManagerExportOrdersApproval.filters.allStatus}</MenuItem>
                   {filterOptions?.status?.map((status) => (
@@ -320,13 +335,32 @@ function ManageExportOrdersApproval() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="medium">
+            <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 160 }}>
                 <InputLabel>{trans.representativeManagerExportOrdersApproval.filters.contractType}</InputLabel>
                 <Select
                   value={filters.contract_type}
                   onChange={(e) => handleFilterChange('contract_type', e.target.value)}
                   label={trans.representativeManagerExportOrdersApproval.filters.contractType}
+                  renderValue={(selected) => (
+                    <span
+                      style={{
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {selected === 'economic'
+                        ? trans.representativeManagerExportOrdersApproval.filters.economic
+                        : selected === 'principal'
+                          ? trans.representativeManagerExportOrdersApproval.filters.principal
+                          : selected || trans.representativeManagerExportOrdersApproval.filters.allContractTypes}
+                    </span>
+                  )}
+                  sx={{
+                    width: 160
+                  }}
                 >
                   <MenuItem value="">{trans.representativeManagerExportOrdersApproval.filters.allContractTypes}</MenuItem>
                   {filterOptions?.contract_type?.map((type) => (
@@ -341,13 +375,28 @@ function ManageExportOrdersApproval() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="medium">
+            <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 200 }}>
                 <InputLabel>{trans.representativeManagerExportOrdersApproval.filters.createdBy}</InputLabel>
                 <Select
                   value={filters.created_by}
                   onChange={(e) => handleFilterChange('created_by', e.target.value)}
                   label={trans.representativeManagerExportOrdersApproval.filters.createdBy}
+                  renderValue={(selected) => (
+                    <span
+                      style={{
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {selected || trans.representativeManagerExportOrdersApproval.filters.allUsers}
+                    </span>
+                  )}
+                  sx={{
+                    width: 200
+                  }}
                 >
                   <MenuItem value="">{trans.representativeManagerExportOrdersApproval.filters.allUsers}</MenuItem>
                   {filterOptions?.created_by?.map((user) => (
@@ -358,7 +407,7 @@ function ManageExportOrdersApproval() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={1}>
               <Button
                 variant="contained"
                 onClick={applyFilters}
@@ -369,7 +418,7 @@ function ManageExportOrdersApproval() {
                 {trans.common.search || 'Search'}
               </Button>
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={1}>
               <Button
                 variant="outlined"
                 onClick={handleRefresh}
@@ -380,7 +429,7 @@ function ManageExportOrdersApproval() {
                 {trans.representativeManagerExportOrdersApproval.filters.refresh}
               </Button>
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={1}>
               <Button
                 variant="outlined"
                 onClick={clearFilters}
@@ -414,6 +463,7 @@ function ManageExportOrdersApproval() {
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.50' }}>
+                <TableCell sx={{ fontWeight: 600, minWidth: 100 }}>Order ID</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerExportOrdersApproval.table.contract}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerExportOrdersApproval.table.createdBy}</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>{trans.representativeManagerExportOrdersApproval.table.status}</TableCell>
@@ -425,6 +475,11 @@ function ManageExportOrdersApproval() {
             <TableBody>
               {orders.map((order) => (
                 <TableRow key={order._id} hover sx={{ transition: 'background 0.2s', '&:hover': { backgroundColor: '#f0f4fa' } }}>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'text.primary' }}>
+                      #{order._id?.slice(-6)?.toUpperCase()}
+                    </Typography>
+                  </TableCell>
                   <TableCell>{order.contract_id?.contract_code || 'N/A'}</TableCell>
                   <TableCell>{order.created_by?.email || 'N/A'}</TableCell>
                   <TableCell>
@@ -463,7 +518,7 @@ function ManageExportOrdersApproval() {
               ))}
               {orders.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">
+                  <TableCell colSpan={5} align="center">
                     <Typography color="text.secondary">
                       {loading
                         ? trans.representativeManagerExportOrdersApproval.table.loadingOrders

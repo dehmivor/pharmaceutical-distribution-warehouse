@@ -455,8 +455,8 @@ const RepresentativeManagerImportOrders = () => {
               {trans.representativeManagerImportOrders.filters.title}
             </Typography>
           </Box>
-          <Grid container spacing={3} alignItems="center">
-            <Grid item xs={12} sm={6} md={3}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
                 label={trans.representativeManagerImportOrders.filters.search}
@@ -474,13 +474,28 @@ const RepresentativeManagerImportOrders = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="medium">
+            <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 160 }}>
                 <InputLabel>{trans.representativeManagerImportOrders.filters.status}</InputLabel>
                 <Select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                   label={trans.representativeManagerImportOrders.filters.status}
+                  renderValue={(selected) => (
+                    <span
+                      style={{
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {selected || trans.representativeManagerImportOrders.filters.allStatus}
+                    </span>
+                  )}
+                  sx={{
+                    width: 160
+                  }}
                 >
                   <MenuItem value="">{trans.representativeManagerImportOrders.filters.allStatus}</MenuItem>
                   {filterOptions?.status?.map((status) => (
@@ -491,13 +506,32 @@ const RepresentativeManagerImportOrders = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="medium">
+            <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 160 }}>
                 <InputLabel>{trans.representativeManagerImportOrders.filters.contractType}</InputLabel>
                 <Select
                   value={filters.contract_type}
                   onChange={(e) => handleFilterChange('contract_type', e.target.value)}
                   label={trans.representativeManagerImportOrders.filters.contractType}
+                  renderValue={(selected) => (
+                    <span
+                      style={{
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {selected === 'economic'
+                        ? trans.representativeManagerImportOrders.filters.economic
+                        : selected === 'principal'
+                          ? trans.representativeManagerImportOrders.filters.principal
+                          : selected || trans.representativeManagerImportOrders.filters.allContractTypes}
+                    </span>
+                  )}
+                  sx={{
+                    width: 160
+                  }}
                 >
                   <MenuItem value="">{trans.representativeManagerImportOrders.filters.allContractTypes}</MenuItem>
                   {filterOptions?.contract_type?.map((type) => (
@@ -512,13 +546,28 @@ const RepresentativeManagerImportOrders = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="medium">
+            <Grid item xs={12} sm={6} md={2}>
+              <FormControl fullWidth size="medium" sx={{ maxWidth: 200 }}>
                 <InputLabel>{trans.representativeManagerImportOrders.filters.createdBy}</InputLabel>
                 <Select
                   value={filters.created_by}
                   onChange={(e) => handleFilterChange('created_by', e.target.value)}
                   label={trans.representativeManagerImportOrders.filters.createdBy}
+                  renderValue={(selected) => (
+                    <span
+                      style={{
+                        display: 'block',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {selected || trans.representativeManagerImportOrders.filters.allUsers}
+                    </span>
+                  )}
+                  sx={{
+                    width: 200
+                  }}
                 >
                   <MenuItem value="">{trans.representativeManagerImportOrders.filters.allUsers}</MenuItem>
                   {filterOptions?.created_by?.map((user) => (
@@ -529,7 +578,7 @@ const RepresentativeManagerImportOrders = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={1}>
               <Button
                 variant="contained"
                 onClick={applyFilters}
@@ -540,7 +589,7 @@ const RepresentativeManagerImportOrders = () => {
                 {trans.common.search || 'Search'}
               </Button>
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={1}>
               <Button
                 variant="outlined"
                 startIcon={<RefreshIcon />}
@@ -552,7 +601,7 @@ const RepresentativeManagerImportOrders = () => {
                 {trans.representativeManagerImportOrders.filters.refresh}
               </Button>
             </Grid>
-            <Grid item xs={12} sm={6} md={2}>
+            <Grid item xs={12} sm={6} md={1}>
               <Button
                 variant="outlined"
                 onClick={clearFilters}
@@ -624,7 +673,11 @@ const RepresentativeManagerImportOrders = () => {
                   console.log(order._id, order.status, user.role, canEditOrder(order));
                   return (
                     <TableRow key={order._id} hover>
-                      <TableCell>{order._id}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'text.primary' }}>
+                          #{order._id?.slice(-6)?.toUpperCase()}
+                        </Typography>
+                      </TableCell>
                       <TableCell>{order.contract_id?.partner_id?.name || trans.common.na}</TableCell>
                       <TableCell>
                         <Chip label={order.status?.toUpperCase()} color={getStatusColor(order.status)} size="small" />
