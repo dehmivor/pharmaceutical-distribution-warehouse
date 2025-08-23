@@ -130,17 +130,6 @@ export default function CreateInspectionWithExistImportOrderId() {
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h4">{trans.common.createInspectionReceiptFromOrder}</Typography>
-        <Box display="flex" gap={2}>
-          <Button variant="contained" className="p-4" onClick={() => router.push('/wh-create-inspections/without-import-ord')}>
-            {trans.common.suspectedMedicine}
-          </Button>
-          <Button
-            variant="outlined"
-            onClick={() => enqueueSnackbar(trans.common.youHaveSentRequireToWarehouseManager, { variant: 'info' })}
-          >
-            {trans.common.askWarehouseManagerToCreateInspect}
-          </Button>
-        </Box>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         {trans.common.createInspectionFromSelectedOrder}

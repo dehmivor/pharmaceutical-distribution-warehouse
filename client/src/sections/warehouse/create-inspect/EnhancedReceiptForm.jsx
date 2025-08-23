@@ -504,8 +504,8 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                     <TableCell>{trans.common.productCode}</TableCell>
                     <TableCell>{trans.common.productName}</TableCell>
                     <TableCell>{trans.common.expectedQuantity}</TableCell>
-                    <TableCell>{trans.common.rejectedQuantity}</TableCell>
                     <TableCell>{trans.common.actualQuantity}</TableCell>
+                    <TableCell>{trans.common.rejectedQuantity}</TableCell>
                     <TableCell>{trans.common.status}</TableCell>
                     <TableCell>{trans.common.notes}</TableCell>
                     <TableCell>{trans.common.actions}</TableCell>
@@ -515,20 +515,14 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                   {uncheckedItems.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <TextField
-                          size="small"
-                          value={item.productCode}
-                          onChange={(e) => updateReceiptItem(item.id, 'productCode', e.target.value)}
-                          sx={{ minWidth: 100 }}
-                        />
+                        <Typography variant="body2" sx={{ minWidth: 100 }}>
+                          {item.productCode}
+                        </Typography>
                       </TableCell>
                       <TableCell>
-                        <TextField
-                          size="small"
-                          value={item.productName}
-                          onChange={(e) => updateReceiptItem(item.id, 'productName', e.target.value)}
-                          sx={{ minWidth: 150 }}
-                        />
+                        <Typography variant="body2" sx={{ minWidth: 100 }}>
+                          {item.productName}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Box display="flex" alignItems="center" gap={1}>
@@ -540,37 +534,9 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                             sx={{ width: 80 }}
                             disabled
                           />
-                          <FormControl size="small" sx={{ minWidth: 60 }}>
-                            <Select disabled value={item.expectedUnit}>
-                              {Object.keys(UNIT_CONVERSIONS).map((unit) => (
-                                <MenuItem key={unit} value={unit}>
-                                  {unit}
-                                </MenuItem>
-                              ))}
-                              <MenuItem value="viên">viên</MenuItem>
-                            </Select>
-                          </FormControl>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={item.rejectedQuantity || 0}
-                            onChange={(e) => updateReceiptItem(item.id, 'rejectedQuantity', e.target.value)}
-                            sx={{ width: 80 }}
-                          />
-                          <FormControl size="small" sx={{ minWidth: 60 }}>
-                            <Select disabled value={item.expectedUnit}>
-                              {Object.keys(UNIT_CONVERSIONS).map((unit) => (
-                                <MenuItem key={unit} value={unit}>
-                                  {unit}
-                                </MenuItem>
-                              ))}
-                              <MenuItem value="viên">viên</MenuItem>
-                            </Select>
-                          </FormControl>
+                          <Box sx={{ minWidth: 60, pl: 1 }}>
+                            <Typography variant="body2">{item.expectedUnit}</Typography>
+                          </Box>
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -582,16 +548,23 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                             onChange={(e) => updateReceiptItem(item.id, 'actualQuantity', e.target.value)}
                             sx={{ width: 80 }}
                           />
-                          <FormControl size="small" sx={{ minWidth: 60 }}>
-                            <Select disabled value={item.actualUnit}>
-                              {Object.keys(UNIT_CONVERSIONS).map((unit) => (
-                                <MenuItem key={unit} value={unit}>
-                                  {unit}
-                                </MenuItem>
-                              ))}
-                              <MenuItem value="viên">viên</MenuItem>
-                            </Select>
-                          </FormControl>
+                          <Box sx={{ minWidth: 60, pl: 1 }}>
+                            <Typography variant="body2">{item.expectedUnit}</Typography>
+                          </Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={item.rejectedQuantity || 0}
+                            onChange={(e) => updateReceiptItem(item.id, 'rejectedQuantity', e.target.value)}
+                            sx={{ width: 80 }}
+                          />
+                          <Box sx={{ minWidth: 60, pl: 1 }}>
+                            <Typography variant="body2">{item.expectedUnit}</Typography>
+                          </Box>
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -602,7 +575,7 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                           size="small"
                           value={item.notes}
                           onChange={(e) => updateReceiptItem(item.id, 'notes', e.target.value)}
-                          sx={{ width: 150 }}
+                          sx={{ width: 100 }}
                         />
                       </TableCell>
                       <TableCell>
