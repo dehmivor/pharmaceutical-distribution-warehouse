@@ -23,6 +23,9 @@ router.get('/medicine-analysis', reportController.getMedicineAnalysisReport);
 // Export report to Excel
 router.get('/export', reportController.exportReportToExcel);
 
+// Test Excel export (for debugging)
+router.get('/test-export', reportController.testExcelExport);
+
 // Upload Excel file
 router.post('/upload', reportController.upload.single('file'), reportController.uploadExcelFile);
 
