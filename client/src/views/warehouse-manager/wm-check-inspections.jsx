@@ -362,7 +362,7 @@ function CheckInspections() {
           <Typography variant="h4" gutterBottom>
             {trans.checkInspections.title}
           </Typography>
-          <Typography variant="body1" color="text.secondary" mb={3}>
+          <Typography variant="body1" color="text.secondary">
             {trans.checkInspections.description}
           </Typography>
         </Box>
