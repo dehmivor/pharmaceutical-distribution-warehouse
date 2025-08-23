@@ -1,10 +1,7 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import axios from 'axios';
-import { enqueueSnackbar } from 'notistack';
 import useInspection from '@/hooks/useInspection';
+import useTrans from '@/hooks/useTrans';
 import {
   Box,
   Button,
@@ -12,12 +9,8 @@ import {
   CardContent,
   Chip,
   CircularProgress,
-  FormControl,
   Grid,
-  IconButton,
-  MenuItem,
   Paper,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -27,9 +20,11 @@ import {
   TextField,
   Typography
 } from '@mui/material';
+import axios from 'axios';
+import { useParams, useRouter } from 'next/navigation';
+import { enqueueSnackbar } from 'notistack';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ReceiptStatistics from '../dashboard-import/ReceiptStatistics';
-import { Delete as DeleteIcon } from '@mui/icons-material';
-import useTrans from '@/hooks/useTrans';
 
 const UNIT_CONVERSIONS = {
   kg: { g: 1000, tấn: 0.001 },
@@ -374,17 +369,26 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
       enqueueSnackbar(trans.common.pleaseAddAtLeastOneProduct, { variant: 'warning' });
       return;
     }
+
     if (!orderData?._id) {
       enqueueSnackbar(trans.common.noValidOrderData, { variant: 'error' });
       return;
     }
-    if (receiptItems.actual_quantity === 0) {
-      enqueueSnackbar(trans.common.actualQuantityCannotBeZero, { variant: 'warning' });
+
+    // LỌC: Chỉ lấy những items có actual_quantity > 0 để tạo inspection
+    const validItems = receiptItems.filter((item) => parseFloat(item.actualQuantity) > 0);
+
+    // Kiểm tra có ít nhất 1 item hợp lệ
+    if (validItems.length === 0) {
+      enqueueSnackbar('Vui lòng nhập số lượng thực nhập cho ít nhất một sản phẩm', { variant: 'warning' });
+      return;
     }
+
     setIsCreating(true);
 
     try {
-      const inspectionsPayload = receiptItems.map((item) => ({
+      // TẠO inspection chỉ cho những items có actual_quantity > 0
+      const inspectionsPayload = validItems.map((item) => ({
         import_order_id: orderData._id,
         medicine_id: item.medicineId,
         actual_quantity: parseFloat(item.actualQuantity),
@@ -392,6 +396,24 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
         note: item.notes || receiptData.notes || '',
         created_by: getCurrentUserId()
       }));
+
+      console.log(
+        '✅ Tạo inspection cho items:',
+        validItems.map((item) => ({
+          productName: item.productName,
+          actualQuantity: item.actualQuantity
+        }))
+      );
+      console.log(
+        '❌ Bỏ qua items:',
+        receiptItems
+          .filter((item) => parseFloat(item.actualQuantity) === 0)
+          .map((item) => ({
+            productName: item.productName,
+            actualQuantity: item.actualQuantity
+          }))
+      );
+
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const res = await axios.post(
         `${backendUrl}/api/inspections`,
@@ -403,15 +425,17 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
         }
       );
 
-      enqueueSnackbar(res.data.message, { variant: 'success' });
+      enqueueSnackbar(`Tạo thành công ${validItems.length} phiếu kiểm nhập`, { variant: 'success' });
       if (onReceiptCreate) onReceiptCreate(res.data);
-      setReceiptData((prev) => ({ ...prev, notes: '' }));
+
+      // Reload trang sau khi tạo thành công
+      window.location.reload();
     } catch (error) {
       enqueueSnackbar(trans.common.cannotCreateInspectionReceipt, { variant: 'error' });
     } finally {
       setIsCreating(false);
     }
-  }, [receiptItems, orderData, receiptData.notes, onReceiptCreate, router, trans]);
+  }, [receiptItems, orderData, receiptData.notes, onReceiptCreate, trans]);
 
   // Loading and error states
   if (loadingOrder) {
@@ -452,12 +476,15 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
           </Typography>
           <form onSubmit={(e) => e.preventDefault()}>
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={12}>
                 <TextField
                   fullWidth
-                  label={trans.common.receiptNumber}
-                  value={receiptData.receiptId}
-                  onChange={(e) => setReceiptData((prev) => ({ ...prev, receiptId: e.target.value }))}
+                  label="Created by"
+                  value={orderData?.created_by?.name || orderData?.created_by?.email.split('@')[0] || 'Chưa có thông tin'}
+                  InputProps={{
+                    readOnly: true,
+                    disabled: true
+                  }}
                   required
                 />
               </Grid>
@@ -467,16 +494,35 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                   label={trans.common.importDate}
                   type="date"
                   value={receiptData.date}
-                  onChange={(e) => setReceiptData((prev) => ({ ...prev, date: e.target.value }))}
+                  InputProps={{
+                    readOnly: true,
+                    disabled: true
+                  }}
                   InputLabelProps={{ shrink: true }}
                   required
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth label={trans.common.orderCode} value={receiptData.orderId} InputProps={{ readOnly: true }} />
+                <TextField
+                  fullWidth
+                  InputProps={{
+                    readOnly: true,
+                    disabled: true
+                  }}
+                  label={trans.common.orderCode}
+                  value={receiptData.orderId}
+                />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth label={trans.common.supplier} value={receiptData.supplier} InputProps={{ readOnly: true }} />
+                <TextField
+                  fullWidth
+                  InputProps={{
+                    readOnly: true,
+                    disabled: true
+                  }}
+                  label={trans.common.supplier}
+                  value={receiptData.supplier}
+                />
               </Grid>
             </Grid>
           </form>
@@ -504,31 +550,24 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                     <TableCell>{trans.common.productCode}</TableCell>
                     <TableCell>{trans.common.productName}</TableCell>
                     <TableCell>{trans.common.expectedQuantity}</TableCell>
-                    <TableCell>{trans.common.rejectedQuantity}</TableCell>
                     <TableCell>{trans.common.actualQuantity}</TableCell>
+                    <TableCell>{trans.common.rejectedQuantity}</TableCell>
                     <TableCell>{trans.common.status}</TableCell>
                     <TableCell>{trans.common.notes}</TableCell>
-                    <TableCell>{trans.common.actions}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {uncheckedItems.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <TextField
-                          size="small"
-                          value={item.productCode}
-                          onChange={(e) => updateReceiptItem(item.id, 'productCode', e.target.value)}
-                          sx={{ minWidth: 100 }}
-                        />
+                        <Typography variant="body2" sx={{ minWidth: 100 }}>
+                          {item.productCode}
+                        </Typography>
                       </TableCell>
                       <TableCell>
-                        <TextField
-                          size="small"
-                          value={item.productName}
-                          onChange={(e) => updateReceiptItem(item.id, 'productName', e.target.value)}
-                          sx={{ minWidth: 150 }}
-                        />
+                        <Typography variant="body2" sx={{ minWidth: 100 }}>
+                          {item.productName}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Box display="flex" alignItems="center" gap={1}>
@@ -540,37 +579,9 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                             sx={{ width: 80 }}
                             disabled
                           />
-                          <FormControl size="small" sx={{ minWidth: 60 }}>
-                            <Select disabled value={item.expectedUnit}>
-                              {Object.keys(UNIT_CONVERSIONS).map((unit) => (
-                                <MenuItem key={unit} value={unit}>
-                                  {unit}
-                                </MenuItem>
-                              ))}
-                              <MenuItem value="viên">viên</MenuItem>
-                            </Select>
-                          </FormControl>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={item.rejectedQuantity || 0}
-                            onChange={(e) => updateReceiptItem(item.id, 'rejectedQuantity', e.target.value)}
-                            sx={{ width: 80 }}
-                          />
-                          <FormControl size="small" sx={{ minWidth: 60 }}>
-                            <Select disabled value={item.expectedUnit}>
-                              {Object.keys(UNIT_CONVERSIONS).map((unit) => (
-                                <MenuItem key={unit} value={unit}>
-                                  {unit}
-                                </MenuItem>
-                              ))}
-                              <MenuItem value="viên">viên</MenuItem>
-                            </Select>
-                          </FormControl>
+                          <Box sx={{ minWidth: 60, pl: 1 }}>
+                            <Typography variant="body2">{item.expectedUnit}</Typography>
+                          </Box>
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -582,16 +593,23 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                             onChange={(e) => updateReceiptItem(item.id, 'actualQuantity', e.target.value)}
                             sx={{ width: 80 }}
                           />
-                          <FormControl size="small" sx={{ minWidth: 60 }}>
-                            <Select disabled value={item.actualUnit}>
-                              {Object.keys(UNIT_CONVERSIONS).map((unit) => (
-                                <MenuItem key={unit} value={unit}>
-                                  {unit}
-                                </MenuItem>
-                              ))}
-                              <MenuItem value="viên">viên</MenuItem>
-                            </Select>
-                          </FormControl>
+                          <Box sx={{ minWidth: 60, pl: 1 }}>
+                            <Typography variant="body2">{item.expectedUnit}</Typography>
+                          </Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={item.rejectedQuantity || 0}
+                            onChange={(e) => updateReceiptItem(item.id, 'rejectedQuantity', e.target.value)}
+                            sx={{ width: 80 }}
+                          />
+                          <Box sx={{ minWidth: 60, pl: 1 }}>
+                            <Typography variant="body2">{item.expectedUnit}</Typography>
+                          </Box>
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -602,13 +620,8 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                           size="small"
                           value={item.notes}
                           onChange={(e) => updateReceiptItem(item.id, 'notes', e.target.value)}
-                          sx={{ width: 150 }}
+                          sx={{ width: 100 }}
                         />
-                      </TableCell>
-                      <TableCell>
-                        <IconButton size="small" color="error" onClick={() => removeItem(item.id)}>
-                          <DeleteIcon />
-                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -637,7 +650,13 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
           color="primary"
           size="large"
           onClick={handleCreateReceipt}
-          disabled={uncheckedItems?.length === 0 || isCreating || loadingOrder}
+          disabled={
+            uncheckedItems?.length === 0 ||
+            isCreating ||
+            loadingOrder ||
+            // ENABLE khi có ít nhất 1 item có actual quantity > 0
+            !receiptItems.some((item) => parseFloat(item.actualQuantity) > 0)
+          }
           startIcon={isCreating ? <CircularProgress size={20} /> : null}
           sx={{ minWidth: 200 }}
         >

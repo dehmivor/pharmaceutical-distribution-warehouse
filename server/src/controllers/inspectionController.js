@@ -121,12 +121,23 @@ const updateInspection = async (req, res) => {
 const deleteInspection = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Sử dụng service thay vì gọi trực tiếp model
     await importInspectionService.deleteInspection(id);
 
     return res.status(204).send();
   } catch (error) {
-    return res.status(error.statusCode || 500).json({
-      message: error.message,
+    console.error('Error deleting inspection:', error);
+
+    // Xử lý lỗi cụ thể
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        message: error.message,
+      });
+    }
+
+    return res.status(500).json({
+      message: 'Internal server error',
     });
   }
 };
