@@ -190,16 +190,17 @@ const updateInspection = async (id, updateData) => {
   return await getInspectionById(id);
 };
 
-// Xóa phiếu kiểm tra
 const deleteInspection = async (id) => {
-  const inspection = await ImportInspection.findById(id);
+  const inspection = await ImportInspection.findById(id).populate('import_order_id');
+
   if (!inspection) {
     const error = new Error('Import inspection not found');
     error.statusCode = 404;
     throw error;
   }
-
   await ImportInspection.findByIdAndDelete(id);
+
+  return { message: 'Inspection deleted successfully' };
 };
 
 // Thống kê kiểm tra theo import order

@@ -374,17 +374,26 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
       enqueueSnackbar(trans.common.pleaseAddAtLeastOneProduct, { variant: 'warning' });
       return;
     }
+
     if (!orderData?._id) {
       enqueueSnackbar(trans.common.noValidOrderData, { variant: 'error' });
       return;
     }
-    if (receiptItems.actual_quantity === 0) {
-      enqueueSnackbar(trans.common.actualQuantityCannotBeZero, { variant: 'warning' });
+
+    // LỌC: Chỉ lấy những items có actual_quantity > 0 để tạo inspection
+    const validItems = receiptItems.filter((item) => parseFloat(item.actualQuantity) > 0);
+
+    // Kiểm tra có ít nhất 1 item hợp lệ
+    if (validItems.length === 0) {
+      enqueueSnackbar('Vui lòng nhập số lượng thực nhập cho ít nhất một sản phẩm', { variant: 'warning' });
+      return;
     }
+
     setIsCreating(true);
 
     try {
-      const inspectionsPayload = receiptItems.map((item) => ({
+      // TẠO inspection chỉ cho những items có actual_quantity > 0
+      const inspectionsPayload = validItems.map((item) => ({
         import_order_id: orderData._id,
         medicine_id: item.medicineId,
         actual_quantity: parseFloat(item.actualQuantity),
@@ -392,6 +401,24 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
         note: item.notes || receiptData.notes || '',
         created_by: getCurrentUserId()
       }));
+
+      console.log(
+        '✅ Tạo inspection cho items:',
+        validItems.map((item) => ({
+          productName: item.productName,
+          actualQuantity: item.actualQuantity
+        }))
+      );
+      console.log(
+        '❌ Bỏ qua items:',
+        receiptItems
+          .filter((item) => parseFloat(item.actualQuantity) === 0)
+          .map((item) => ({
+            productName: item.productName,
+            actualQuantity: item.actualQuantity
+          }))
+      );
+
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const res = await axios.post(
         `${backendUrl}/api/inspections`,
@@ -403,15 +430,17 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
         }
       );
 
-      enqueueSnackbar(res.data.message, { variant: 'success' });
+      enqueueSnackbar(`Tạo thành công ${validItems.length} phiếu kiểm nhập`, { variant: 'success' });
       if (onReceiptCreate) onReceiptCreate(res.data);
-      setReceiptData((prev) => ({ ...prev, notes: '' }));
+
+      // Reload trang sau khi tạo thành công
+      window.location.reload();
     } catch (error) {
       enqueueSnackbar(trans.common.cannotCreateInspectionReceipt, { variant: 'error' });
     } finally {
       setIsCreating(false);
     }
-  }, [receiptItems, orderData, receiptData.notes, onReceiptCreate, router, trans]);
+  }, [receiptItems, orderData, receiptData.notes, onReceiptCreate, trans]);
 
   // Loading and error states
   if (loadingOrder) {
@@ -508,7 +537,6 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                     <TableCell>{trans.common.rejectedQuantity}</TableCell>
                     <TableCell>{trans.common.status}</TableCell>
                     <TableCell>{trans.common.notes}</TableCell>
-                    <TableCell>{trans.common.actions}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -578,11 +606,6 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                           sx={{ width: 100 }}
                         />
                       </TableCell>
-                      <TableCell>
-                        <IconButton size="small" color="error" onClick={() => removeItem(item.id)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -610,7 +633,13 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
           color="primary"
           size="large"
           onClick={handleCreateReceipt}
-          disabled={uncheckedItems?.length === 0 || isCreating || loadingOrder}
+          disabled={
+            uncheckedItems?.length === 0 ||
+            isCreating ||
+            loadingOrder ||
+            // ENABLE khi có ít nhất 1 item có actual quantity > 0
+            !receiptItems.some((item) => parseFloat(item.actualQuantity) > 0)
+          }
           startIcon={isCreating ? <CircularProgress size={20} /> : null}
           sx={{ minWidth: 200 }}
         >

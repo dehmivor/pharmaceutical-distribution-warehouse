@@ -1359,8 +1359,8 @@ export default {
     noValidOrderData: 'No valid order data.',
     actualQuantityCannotBeZero: 'Actual quantity cannot be zero',
     cannotCreateInspectionReceipt: 'Cannot create inspection receipt',
-    creatingReceipt: 'Creating receipt...',
-    createWarehouseReceipt: 'Create Warehouse Receipt',
+    creatingReceipt: 'Creating import inspection...',
+    createWarehouseReceipt: 'Create Import Inspection',
     // Additional keys
     products: 'products',
     errorLoadingOrder: 'Error loading order',

@@ -411,3 +411,4 @@ Hệ thống này giúp doanh nghiệp dược phẩm:
 - **Giảm thiểu rủi ro** từ biến động thị trường
 - **Tăng cường hiệu quả** trong quyết định kinh doanh
 - **Duy trì lợi thế cạnh tranh** từ AI-powered insights
+

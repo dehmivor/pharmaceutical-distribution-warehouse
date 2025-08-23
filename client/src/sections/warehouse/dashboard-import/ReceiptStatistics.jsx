@@ -53,53 +53,25 @@ function ReceiptStatistics({ inspections = [], setInspections }) {
 
   const handleDeleteInspection = async (id) => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const token = localStorage.getItem('auth-token');
-      const currentUserId = token.userId;
-
-      // Gọi API lấy inspection theo id
-      const response = await axios.get(`${backendUrl}/api/inspections/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (response.status !== 200) {
-        enqueueSnackbar('Không tìm thấy phiếu kiểm nhập', { variant: 'error' });
-        return;
-      }
-
-      const inspection = response.data;
-      if (!inspection.created_by) {
-        enqueueSnackbar('Phiếu kiểm nhập không có thông tin người tạo', { variant: 'error' });
-        return;
-      }
-
-      if (inspection.created_by !== currentUserId) {
-        enqueueSnackbar('Bạn không thể xóa phiếu kiểm nhập ko do bạn tạo', { variant: 'warning' });
-        return;
-      }
-
-      // Nếu đúng user tạo, thực hiện xóa
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
       const deleteResponse = await axios.delete(`${backendUrl}/api/inspections/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (deleteResponse.status === 200 || deleteResponse.data.success) {
+      if (deleteResponse.status === 204) {
         enqueueSnackbar('Xóa phiếu kiểm nhập thành công', { variant: 'success' });
-        setInspections((prev) => prev.filter((inspection) => inspection._id !== id));
-      } else {
-        enqueueSnackbar('Xóa phiếu kiểm nhập thất bại', { variant: 'error' });
+
+        // ✅ CẬP NHẬT STATE THAY VÌ RELOAD
+        if (setInspections) {
+          setInspections((prevInspections) => prevInspections.filter((inspection) => inspection._id !== id));
+        }
       }
     } catch (error) {
-      console.error('Error deleting inspection:', error);
-      enqueueSnackbar('Xóa phiếu kiểm nhập thất bại', { variant: 'error' });
+      const errorMessage = error.response?.data?.message || 'Xóa phiếu kiểm nhập thất bại';
+      enqueueSnackbar(errorMessage, { variant: 'error' });
     }
   };
-
-  // Xử lý từng inspection để lấy thông tin mặt hàng, số lượng dự kiến, đơn giá...
   const processedItems = inspections.map((inspection) => {
     // Tìm detail tương ứng trong details của import_order_id
     const detail = inspection.import_order_id?.details.find((d) => d.medicine_id === inspection.medicine_id._id) || {};
