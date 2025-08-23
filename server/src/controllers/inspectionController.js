@@ -158,8 +158,28 @@ const getInspectionByImportOrderId = async (req, res) => {
   }
 };
 
+// FIX: Thêm function tạo inspection đơn lẻ
+const createSingleInspection = async (req, res) => {
+  try {
+    const inspectionData = req.body;
+    const inspection = await importInspectionService.createSingleInspection(inspectionData);
+
+    return res.status(201).json({
+      success: true,
+      data: inspection,
+      message: 'Inspection created successfully',
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createMultipleInspections,
+  createSingleInspection, // FIX: Export function mới
   getInspections,
   getInspectionById,
   updateInspection,

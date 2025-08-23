@@ -2668,7 +2668,7 @@ export default {
     title: 'List of Inventory Check Orders',
     description: 'Manage and track inventory check orders. You can filter, search, and view details of each inventory slip.',
     search: 'Search',
-    searchPlaceholder: 'Search',
+    searchPlaceholder: 'Search by created by',
     inventoryDate: 'Inventory Date',
     status: 'Status',
     all: 'All',
@@ -2697,7 +2697,7 @@ export default {
 
   // Check Inspections
   checkInspections: {
-    title: 'List of Check Inspections for One Batch',
+    title: 'List of Check Inspections for One Check Order',
     description: 'Manage and track check inspections for warehouse-wide inventory check',
     search: 'Search',
     searchPlaceholder: 'Search',
@@ -3042,5 +3042,60 @@ export default {
     usersWithStatus: 'Users with status',
     // No Users Message
     noUsersInSection: 'No users in sectionName section'
+  },
+
+  // AI Trends
+  aiTrends: {
+    title: 'AI-Powered Market Trends Analysis',
+    subtitle: 'Intelligent demand forecasting and market intelligence powered by AI',
+    demandPredictions: 'Demand Predictions',
+    marketIntelligence: 'Market Intelligence Việt Nam',
+    loadingPredictions: 'Loading demand predictions...',
+    noPredictionData: 'No prediction data available',
+    demandChartTitle: 'Demand Prediction Chart',
+    detailedTableTitle: 'Detailed Predictions Table',
+    medicineName: 'Medicine Name',
+    trend: 'Trend',
+    confidence: 'Confidence',
+    month1Prediction: 'Month 1 Prediction',
+    month2Prediction: 'Month 2 Prediction',
+    month3Prediction: 'Month 3 Prediction',
+    algorithm: 'Algorithm',
+    lastUpdated: 'Last Updated',
+    increasing: 'Increasing',
+    decreasing: 'Decreasing',
+    stable: 'Stable',
+    notAvailable: 'Not Available',
+    // Market Intelligence
+    loadingMarketInfo: 'Loading market information...',
+    noMarketData: 'No market data available',
+    dataSourceInfo: 'Data Source Information:',
+    newsUpdated: 'news updated',
+    updateSuccess: 'Update successful',
+    usingSampleData: 'Using sample data',
+    // Health Alerts
+    healthAlerts: 'Vietnam Health Alerts',
+    currentSituation: 'Current situation:',
+    affectedMedicines: 'Affected medicines:',
+    conclusion: 'Conclusion:',
+    source: 'Source:',
+    viewDetailedNews: 'View detailed news from',
+    highSeverity: 'High level',
+    mediumSeverity: 'Medium level',
+    lowSeverity: 'Low level',
+    // Drug Updates
+    drugUpdates: 'Vietnam Drug Updates',
+    drugCategory: 'Drug category:',
+    newRegulation: 'New regulation',
+    industryUpdate: 'Industry update',
+    approval: 'Approval',
+    // Market Trends
+    regionalMarketTrends: 'Regional Market Trends',
+    demandIncrease: 'Demand increase',
+    newTrend: 'New trend',
+    // Pharma News
+    pharmaNews: 'Vietnam Pharmaceutical Industry News',
+    exportOpportunity: 'Export opportunity',
+    industryDevelopment: 'Industry development'
   }
 };

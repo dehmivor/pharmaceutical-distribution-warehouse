@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -64,34 +64,40 @@ const getAuthHeaders = () => {
 import useConfig from '@/hooks/useConfig';
 import { ThemeI18n } from '@/config';
 
-const formatCurrency = (value) => {
-  const { i18n } = useConfig();
-  const locale = i18n === ThemeI18n.VN ? 'vi-VN' : 'en-US';
-
-  // For VND, display in thousands format
-  if (i18n === ThemeI18n.VN) {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: 'VND',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value * 1000); // Multiply by 1000 since value is in thousands
-  } else {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: 'USD'
-    }).format(value);
-  }
-};
-
-const formatDate = (date) => {
-  const { i18n } = useConfig();
-  const locale = i18n === ThemeI18n.VN ? 'vi-VN' : 'en-US';
-  return new Date(date).toISOString().slice(0, 10);
-};
-
 export default function ImportReport() {
   const trans = useTrans();
+  const { i18n } = useConfig();
+
+  // Move formatCurrency inside component and use useMemo
+  const formatCurrency = useMemo(() => {
+    return (value) => {
+      const locale = i18n === ThemeI18n.VN ? 'vi-VN' : 'en-US';
+
+      // For VND, display in thousands format
+      if (i18n === ThemeI18n.VN) {
+        return new Intl.NumberFormat(locale, {
+          style: 'currency',
+          currency: 'VND',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        }).format(value * 1000); // Multiply by 1000 since value is in thousands
+      } else {
+        return new Intl.NumberFormat(locale, {
+          style: 'currency',
+          currency: 'USD'
+        }).format(value);
+      }
+    };
+  }, [i18n]);
+
+  // Move formatDate inside component and use useMemo
+  const formatDate = useMemo(() => {
+    return (date) => {
+      const locale = i18n === ThemeI18n.VN ? 'vi-VN' : 'en-US';
+      return new Date(date).toISOString().slice(0, 10);
+    };
+  }, [i18n]);
+
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

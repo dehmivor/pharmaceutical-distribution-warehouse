@@ -12,6 +12,10 @@ const inventoryCheckOrderService = {
     startDate,
     endDate,
     warehouse_manager_id,
+    sortBy,
+    sortDirection,
+    search,
+    searchBy,
   }) {
     try {
       const query = {};
@@ -26,16 +30,21 @@ const inventoryCheckOrderService = {
         query.warehouse_manager_id = warehouse_manager_id;
       }
 
+      // Search by created_by
+      if (search && searchBy === 'created_by') {
+        query['created_by'] = { $regex: search, $options: 'i' };
+      }
+
       // Filter by date range
       if (startDate || endDate) {
         query.inventory_check_date = {};
-        
+
         if (startDate) {
           const start = new Date(startDate);
           start.setHours(0, 0, 0, 0);
           query.inventory_check_date.$gte = start;
         }
-        
+
         if (endDate) {
           const end = new Date(endDate);
           end.setHours(23, 59, 59, 999);
@@ -50,7 +59,11 @@ const inventoryCheckOrderService = {
         InventoryCheckOrder.find(query)
           .populate('warehouse_manager_id', 'name email role')
           .populate('created_by', 'name email role')
-          .sort({ inventory_check_date: -1 })
+          .sort(
+            sortBy && sortDirection
+              ? { [sortBy]: sortDirection === 'asc' ? 1 : -1 }
+              : { inventory_check_date: -1 },
+          )
           .skip(skip)
           .limit(limit)
           .lean(),
@@ -83,8 +96,10 @@ const inventoryCheckOrderService = {
     try {
       const newInventoryCheckOrder = new InventoryCheckOrder(inventoryCheckOrderData);
       const savedInventoryCheckOrder = await newInventoryCheckOrder.save();
-      
-      const populatedInventoryCheckOrder = await InventoryCheckOrder.findById(savedInventoryCheckOrder._id)
+
+      const populatedInventoryCheckOrder = await InventoryCheckOrder.findById(
+        savedInventoryCheckOrder._id,
+      )
         .populate('warehouse_manager_id', 'email role')
         .populate('created_by', 'email role');
 
@@ -95,9 +110,9 @@ const inventoryCheckOrderService = {
       };
     } catch (error) {
       console.error('Create inventory check order service error:', error);
-      
+
       if (error.name === 'ValidationError') {
-        const validationErrors = Object.values(error.errors).map(err => err.message);
+        const validationErrors = Object.values(error.errors).map((err) => err.message);
         return {
           success: false,
           message: 'Dữ liệu không hợp lệ',
@@ -144,7 +159,7 @@ const inventoryCheckOrderService = {
     try {
       // First, get the current inventory check order to check its status
       const currentOrder = await InventoryCheckOrder.findById(id);
-      
+
       if (!currentOrder) {
         return {
           success: false,
@@ -154,8 +169,10 @@ const inventoryCheckOrderService = {
 
       // If trying to update status to cancelled, check if current status allows it
       if (updateData.status === INVENTORY_CHECK_ORDER_STATUSES.CANCELLED) {
-        if (currentOrder.status !== INVENTORY_CHECK_ORDER_STATUSES.PENDING && 
-            currentOrder.status !== INVENTORY_CHECK_ORDER_STATUSES.PROCESSING) {
+        if (
+          currentOrder.status !== INVENTORY_CHECK_ORDER_STATUSES.PENDING &&
+          currentOrder.status !== INVENTORY_CHECK_ORDER_STATUSES.PROCESSING
+        ) {
           return {
             success: false,
             message: 'Chỉ có thể hủy phiếu kiểm kê khi trạng thái là pending hoặc processing',
@@ -163,11 +180,10 @@ const inventoryCheckOrderService = {
         }
       }
 
-      const inventoryCheckOrder = await InventoryCheckOrder.findByIdAndUpdate(
-        id,
-        updateData,
-        { new: true, runValidators: true }
-      )
+      const inventoryCheckOrder = await InventoryCheckOrder.findByIdAndUpdate(id, updateData, {
+        new: true,
+        runValidators: true,
+      })
         .populate('warehouse_manager_id', 'email role')
         .populate('created_by', 'email role');
 
@@ -178,9 +194,9 @@ const inventoryCheckOrderService = {
       };
     } catch (error) {
       console.error('Update inventory check order service error:', error);
-      
+
       if (error.name === 'ValidationError') {
-        const validationErrors = Object.values(error.errors).map(err => err.message);
+        const validationErrors = Object.values(error.errors).map((err) => err.message);
         return {
           success: false,
           message: 'Dữ liệu không hợp lệ',
@@ -194,6 +210,45 @@ const inventoryCheckOrderService = {
       };
     }
   },
+
+  // Create inspections for inventory check order
+  async createInspections(orderId) {
+    try {
+      // Get the inventory check order
+      const order = await InventoryCheckOrder.findById(orderId);
+      if (!order) {
+        return {
+          success: false,
+          message: 'Không tìm thấy phiếu kiểm kê',
+        };
+      }
+
+      // Check if order status is pending
+      if (order.status !== INVENTORY_CHECK_ORDER_STATUSES.PENDING) {
+        return {
+          success: false,
+          message: 'Chỉ có thể tạo phiếu kiểm kê con khi trạng thái là pending',
+        };
+      }
+
+      // TODO: Implement logic to create inspection slips based on order items and locations
+      // For now, return a placeholder response
+      return {
+        success: true,
+        data: {
+          createdCount: 0,
+          message: 'Chức năng tạo phiếu kiểm kê con đang được phát triển'
+        },
+        message: 'Chức năng tạo phiếu kiểm kê con đang được phát triển'
+      };
+    } catch (error) {
+      console.error('Create inspections service error:', error);
+      return {
+        success: false,
+        message: 'Lỗi server khi tạo phiếu kiểm kê con',
+      };
+    }
+  },
 };
 
-module.exports = inventoryCheckOrderService; 
+module.exports = inventoryCheckOrderService;

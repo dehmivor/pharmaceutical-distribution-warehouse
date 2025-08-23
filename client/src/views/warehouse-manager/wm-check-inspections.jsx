@@ -23,7 +23,6 @@ import {
   Alert
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import DetailsIcon from '@mui/icons-material/Details';
 import { Search as SearchIcon, ArrowUpward as ArrowUpwardIcon, ArrowDownward as ArrowDownwardIcon } from '@mui/icons-material';
 import axios from 'axios';
 import { useParams } from 'next/navigation';
@@ -38,14 +37,12 @@ function CheckInspections() {
   const router = useRouter();
   const trans = useTrans();
 
-  // States filter, sort, search
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [sortDirection, setSortDirection] = useState('asc');
 
-  // Other states
   const [loading, setLoading] = useState(true);
   const [checkBy, setCheckBy] = useState(null);
   const [orderData, setOrderData] = useState(null);
@@ -70,7 +67,7 @@ function CheckInspections() {
     };
   };
 
-  // Load current user info from localStorage once
+  // Lấy user kiểm kê
   useEffect(() => {
     const userString = localStorage.getItem('user');
     if (userString) {
@@ -84,7 +81,7 @@ function CheckInspections() {
     }
   }, []);
 
-  // Load locations list once
+  // Load danh sách vị trí kho 1 lần
   useEffect(() => {
     axios
       .get(`${backendUrl}/api/locations`, { headers: getAuthHeaders() })
@@ -95,272 +92,170 @@ function CheckInspections() {
       });
   }, []);
 
-  const groupInspectionsByLocation = (inspections) => {
-    const map = new Map();
-
-    inspections.forEach((insp) => {
-      const loc = insp.location_id;
-      if (!loc) return;
-
-      // Tạo key định danh duy nhất cho location (dựa theo khu vực, bay, row, column)
-      const key = `${loc.area_id?.name || 'Không xác định'}|${loc.bay}|${loc.row}|${loc.column}`;
-
-      if (!map.has(key)) {
-        map.set(key, {
-          location: loc,
-          status: insp.status,
-          notes: insp.notes,
-          check_list: [...(insp.check_list || [])],
-          _ids: [insp._id] // lưu array id phiếu con
-        });
+  // Hàm fetch đơn kiểm kê chi tiết
+  const fetchOrderDetail = async () => {
+    if (!checkOrderId) return null;
+    try {
+      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
+        headers: getAuthHeaders()
+      });
+      if (res.data?.success && res.data.data) {
+        setOrderData(res.data.data.checkorder);
+        if (Array.isArray(res.data.data.checkorder.items)) {
+          const items = res.data.data.checkorder.items.map((item) => ({
+            id: item.medicine_id._id,
+            name: item.medicine_id.medicine_name,
+            stock: item.stock
+          }));
+          setInventoryItems(items);
+        }
+        return res.data.data.checkorder;
       } else {
-        const existing = map.get(key);
-
-        // Map phụ để lọc thuốc trùng theo package_id._id hoặc _id của check_list item
-        const itemMap = new Map();
-
-        // Thêm các thuốc hiện có
-        existing.check_list.forEach((item) => {
-          const itemKey = item.package_id?._id || item._id;
-          if (itemKey) {
-            itemMap.set(itemKey, item);
-          }
-        });
-
-        // Thêm thuốc mới nếu chưa có
-        (insp.check_list || []).forEach((item) => {
-          const itemKey = item.package_id?._id || item._id;
-          if (itemKey && !itemMap.has(itemKey)) {
-            itemMap.set(itemKey, item);
-          }
-        });
-
-        // Cập nhật check_list là mảng thuốc không trùng
-        existing.check_list = Array.from(itemMap.values());
-
-        // Có thể cập nhật status, notes nếu muốn (ví dụ lấy status cao nhất, notes nối)
-        existing._ids.push(insp._id);
+        enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
+        return null;
       }
-    });
-
-    return Array.from(map.values());
+    } catch (error) {
+      console.error('Failed to load check order:', error);
+      enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
+      return null;
+    }
   };
 
-  const groupedInspections = groupInspectionsByLocation(inspections);
-
-  const uncheckedInspections = groupedInspections.filter(
-    (insp) => !insp.check_list || insp.check_list.length === 0 || insp.check_list.every((item) => item.actual_quantity === 0)
-  );
-
-  const checkedInspections = groupedInspections.filter(
-    (insp) => insp.check_list && insp.check_list.some((item) => item.actual_quantity > 0)
-  );
-
-  // Các hàm fetch dữ liệu + cập nhật trạng thái
-  const fetchInspections = (pageParam = page, rowsPerPageParam = rowsPerPage) => {
+  // Hàm fetch phiếu kiểm kê chi tiết
+  const fetchInspections = async (pageParam = page, rowsPerPageParam = rowsPerPage) => {
     if (!checkOrderId) return;
     setLoading(true);
-
     const params = {
       page: pageParam + 1,
       limit: rowsPerPageParam
     };
-
     if (searchTerm.trim()) params.search = searchTerm.trim();
     if (filterLocation) params.location = filterLocation;
     if (filterDate) params.date = filterDate;
     if (filterStatus) params.status = filterStatus;
     if (sortDirection) params.sort = sortDirection;
 
-    axios
-      .get(`${backendUrl}/api/inventory/inspection-from-order/${checkOrderId}`, {
+    try {
+      const res = await axios.get(`${backendUrl}/api/inventory/inspection-from-order/${checkOrderId}`, {
         headers: getAuthHeaders(),
         params
-      })
-      .then(async (res) => {
-        const inspectionsData = res.data?.data || [];
-        const total = res.data?.totalCount ?? inspectionsData.length;
-        setTotalCount(total);
+      });
+      const inspectionsData = res.data?.data || [];
+      const total = res.data?.totalCount ?? inspectionsData.length;
+      setTotalCount(total);
 
-        if (Array.isArray(inspectionsData)) {
-          const processedInspections = inspectionsData.map((inspection) => ({
-            _id: inspection._id,
-            inventory_check_order_id: inspection.inventory_check_order_id?._id || inspection.inventory_check_order_id,
-            status: inspection.status,
-            location_id: inspection.location_id,
-            notes: inspection.notes,
-            check_by: inspection.check_by,
-            date: inspection.createdAt || inspection.updatedAt || null,
-            check_list: inspection.check_list || []
-          }));
-          setInspections(processedInspections);
+      if (Array.isArray(inspectionsData)) {
+        const processedInspections = inspectionsData.map((inspection) => ({
+          _id: inspection._id,
+          inventory_check_order_id: inspection.inventory_check_order_id?._id || inspection.inventory_check_order_id,
+          status: inspection.status,
+          location_id: inspection.location_id,
+          notes: inspection.notes,
+          check_by: inspection.check_by,
+          date: inspection.createdAt || inspection.updatedAt || null,
+          check_list: inspection.check_list || []
+        }));
+        setInspections(processedInspections);
 
-          // Fetch user data for check_by
-          const uniqueUserIds = [...new Set(processedInspections.map((i) => i.check_by?._id || i.check_by).filter(Boolean))];
+        const uniqueUserIds = [...new Set(processedInspections.map((i) => i.check_by?._id || i.check_by).filter(Boolean))];
+        if (uniqueUserIds.length > 0) {
+          try {
+            const userRes = await axios.get(`${backendUrl}/api/users`, {
+              params: { ids: uniqueUserIds.join(',') },
+              headers: getAuthHeaders()
+            });
 
-          if (uniqueUserIds.length > 0) {
-            try {
-              const userRes = await axios.get(`${backendUrl}/api/users`, {
-                params: { ids: uniqueUserIds.join(',') },
-                headers: getAuthHeaders()
-              });
-
-              let usersArray = [];
-              if (Array.isArray(userRes.data)) {
-                usersArray = userRes.data;
-              } else if (userRes.data && Array.isArray(userRes.data.data)) {
-                usersArray = userRes.data.data;
-              }
-
-              const userMapNew = {};
-              usersArray.forEach((user) => {
-                userMapNew[user._id] = user;
-              });
-
-              setUsersMap(userMapNew);
-            } catch (error) {
-              console.error('Failed to fetch users info', error);
-              setUsersMap({});
+            let usersArray = [];
+            if (Array.isArray(userRes.data)) {
+              usersArray = userRes.data;
+            } else if (userRes.data && Array.isArray(userRes.data.data)) {
+              usersArray = userRes.data.data;
             }
-          } else {
+
+            const userMapNew = {};
+            usersArray.forEach((user) => {
+              userMapNew[user._id] = user;
+            });
+            setUsersMap(userMapNew);
+          } catch (error) {
+            console.error('Failed to fetch users info', error);
             setUsersMap({});
           }
         } else {
-          setInspections([]);
           setUsersMap({});
-          enqueueSnackbar('Dữ liệu phiếu kiểm kê không đúng định dạng.', { variant: 'error' });
         }
-      })
-      .catch((error) => {
-        console.error('Error fetching inspections', error);
-        enqueueSnackbar('Không thể tải dữ liệu phiếu kiểm kê.', { variant: 'error' });
+      } else {
         setInspections([]);
         setUsersMap({});
-        setTotalCount(0);
-      })
-      .finally(() => setLoading(false));
-  };
-
-  const fetchOrderForDisplay = async () => {
-    if (!checkOrderId) return;
-    setLoading(true);
-    try {
-      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
-        headers: getAuthHeaders()
-      });
-      if (res.data?.success && res.data.data) {
-        const order = res.data.data.checkorder;
-        setOrderData(order);
-
-        if (Array.isArray(order.items)) {
-          const items = order.items.map((item) => ({
-            id: item.medicine_id._id,
-            name: item.medicine_id.medicine_name,
-            stock: item.stock
-          }));
-          setInventoryItems(items);
-        }
-
-        fetchInspections(0, rowsPerPage);
-      } else {
-        enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
+        enqueueSnackbar('Dữ liệu phiếu kiểm kê không đúng định dạng.', { variant: 'error' });
       }
     } catch (error) {
-      console.error('Failed to load check order:', error);
-      enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
+      if (error.response?.status === 404) {
+        enqueueSnackbar('Không tìm thấy dữ liệu kiểm kê cho đơn này.', { variant: 'warning' });
+      } else {
+        enqueueSnackbar('Không thể tải dữ liệu phiếu kiểm kê.', { variant: 'error' });
+      }
+      setInspections([]);
+      setUsersMap({});
+      setTotalCount(0);
+      console.error('Error fetching inspections', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchOrderAndDecide = async () => {
-    if (!checkOrderId) return;
+  // Hàm xử lý tuần tự fetch đổi trạng thái lên 'processing', tạo phiếu, rồi lấy lại detail
+  const processCheckOrderAndCreateInspections = async () => {
+    if (!checkOrderId || !checkBy) return;
     setLoading(true);
     try {
-      const res = await axios.get(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {
-        headers: getAuthHeaders()
-      });
-      if (res.data?.success && res.data.data) {
-        const order = res.data.data.checkorder;
-        setOrderData(order);
-
-        if (order.status?.toLowerCase() === 'processing') {
-          enqueueSnackbar('Toàn kho đang trong trạng thái khóa, không thể tạo phiếu mới', { variant: 'info' });
-        }
-
-        if (Array.isArray(order.items)) {
-          const items = order.items.map((item) => ({
-            id: item.medicine_id._id,
-            name: item.medicine_id.medicine_name,
-            stock: item.stock
-          }));
-          setInventoryItems(items);
-        }
-        fetchInspections(0, rowsPerPage);
-      } else {
-        enqueueSnackbar('Không lấy được dữ liệu đơn kiểm kê.', { variant: 'error' });
+      // 1. Fetch detail đơn kiểm kê
+      const order = await fetchOrderDetail();
+      if (!order) {
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error('Failed to load check order:', error);
-      enqueueSnackbar('Lỗi tải đơn kiểm kê.', { variant: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // useEffect gọi khi có checkOrderId và checkBy
-  useEffect(() => {
-    if (checkOrderId && checkBy) {
-      fetchOrderAndDecide();
-    }
-  }, [checkOrderId, checkBy]);
-
-  // useEffect tạo phiếu và cập nhật trạng thái khi orderData thay đổi
-  useEffect(() => {
-    const createInspectionsAndUpdateStatus = async () => {
-      if (!checkOrderId || !checkBy || !orderData) return;
-      if (orderData.status?.toLowerCase() === 'processing') return;
-
-      setLoading(true);
-      try {
+      // 2. Nếu trạng thái chưa processing, update status
+      if (order.status?.toLowerCase() !== 'processing' && order.status?.toLowerCase() === 'pending') {
         const updateRes = await axios.patch(
           `${backendUrl}/api/inventory/check-order/${checkOrderId}`,
           { status: 'processing' },
           { headers: getAuthHeaders() }
         );
 
-        if (updateRes.data?.success && updateRes.data.updated === true) {
-          enqueueSnackbar(updateRes.data.message || 'Cập nhật trạng thái đơn kiểm kê thành công.', {
-            variant: 'success'
-          });
-
-          const createRes = await axios.post(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {}, { headers: getAuthHeaders() });
-
-          enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
-            variant: createRes.data?.success ? 'success' : 'info'
-          });
-
-          // Load lại dữ liệu sau cập nhật
-          await fetchOrderForDisplay();
-          fetchInspections(0, rowsPerPage);
-        } else if (updateRes.data?.updated === false) {
-          enqueueSnackbar(updateRes.data.message || 'Đang có đợt kiểm kê khác, trạng thái giữ nguyên.', {
-            variant: 'info'
-          });
+        if (!updateRes.data?.success || !updateRes.data.updated) {
+          enqueueSnackbar(updateRes.data?.message || 'Không thể cập nhật trạng thái đơn kiểm kê.', { variant: 'error' });
+          setLoading(false);
+          return;
         }
-      } catch (error) {
-        const errorMsg = error.response?.data?.message || 'Tạo phiếu hoặc cập nhật trạng thái thất bại.';
-        console.error('Lỗi khi tạo phiếu hoặc cập nhật trạng thái:', error);
-        enqueueSnackbar(errorMsg, { variant: 'error' });
-      } finally {
-        setLoading(false);
       }
-    };
 
-    createInspectionsAndUpdateStatus();
-  }, [checkOrderId, checkBy, orderData]);
+      // 3. Tạo phiếu kiểm kê chi tiết
+      const createRes = await axios.post(`${backendUrl}/api/inventory/check-order/${checkOrderId}`, {}, { headers: getAuthHeaders() });
 
-  // UI events:
+      enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
+        variant: createRes.data?.success ? 'success' : 'info'
+      });
+
+      // 4. Fetch lại danh sách phiếu kiểm kê chi tiết
+      await fetchInspections(0, rowsPerPage);
+    } catch (error) {
+      enqueueSnackbar(error.response?.data?.message || 'Lỗi xử lý phiếu kiểm kê.', { variant: 'error' });
+      console.error('Lỗi xử lý phiếu kiểm kê:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Tự động chạy khi có checkOrderId và checkBy (userId)
+  useEffect(() => {
+    if (checkOrderId && checkBy) {
+      processCheckOrderAndCreateInspections();
+    }
+  }, [checkOrderId, checkBy]);
+
+  // Các hàm UI
   const handleFilterChange = (field, value) => {
     switch (field) {
       case 'search':
@@ -407,12 +302,58 @@ function CheckInspections() {
     fetchInspections(0, newRpp);
   };
 
-  // Hiển thị location label helper
   const getLocationLabel = (location) => {
     if (!location) return '';
     const areaName = location.area_id?.name || 'Không xác định';
     return `Khu vực: ${areaName}, Bay: ${location.bay}, Row: ${location.row}, Column: ${location.column}`;
   };
+
+  // Hàm nhóm phiếu kiểm kê theo location (giữ nguyên logic)
+  const groupInspectionsByLocation = (inspections) => {
+    const map = new Map();
+    inspections.forEach((insp) => {
+      const loc = insp.location_id;
+      if (!loc) return;
+      const key = `${loc.area_id?.name || 'Không xác định'}|${loc.bay}|${loc.row}|${loc.column}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          location: loc,
+          status: insp.status,
+          notes: insp.notes,
+          check_list: [...(insp.check_list || [])],
+          _ids: [insp._id]
+        });
+      } else {
+        const existing = map.get(key);
+        const itemMap = new Map();
+        existing.check_list.forEach((item) => {
+          const itemKey = item.package_id?._id || item._id;
+          if (itemKey) {
+            itemMap.set(itemKey, item);
+          }
+        });
+        (insp.check_list || []).forEach((item) => {
+          const itemKey = item.package_id?._id || item._id;
+          if (itemKey && !itemMap.has(itemKey)) {
+            itemMap.set(itemKey, item);
+          }
+        });
+        existing.check_list = Array.from(itemMap.values());
+        existing._ids.push(insp._id);
+      }
+    });
+    return Array.from(map.values());
+  };
+
+  const groupedInspections = groupInspectionsByLocation(inspections);
+
+  const uncheckedInspections = groupedInspections.filter(
+    (insp) => !insp.check_list || insp.check_list.length === 0 || insp.check_list.every((item) => item.actual_quantity === 0)
+  );
+
+  const checkedInspections = groupedInspections.filter(
+    (insp) => insp.check_list && insp.check_list.some((item) => item.actual_quantity > 0)
+  );
 
   return (
     <Box sx={{ padding: 4 }}>
@@ -455,10 +396,8 @@ function CheckInspections() {
         </Alert>
       )}
 
-      {/* Các bộ lọc và UI search */}
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-          {/* Tìm kiếm */}
           <TextField
             fullWidth
             variant="outlined"
@@ -476,7 +415,6 @@ function CheckInspections() {
             }}
           />
 
-          {/* Lọc vị trí kho */}
           <TextField
             fullWidth
             select
@@ -494,7 +432,6 @@ function CheckInspections() {
             ))}
           </TextField>
 
-          {/* Lọc thời điểm cập nhật */}
           <TextField
             fullWidth
             label={trans.checkInspections.updateTime}
@@ -505,7 +442,6 @@ function CheckInspections() {
             size="small"
           />
 
-          {/* Lọc trạng thái */}
           <TextField
             fullWidth
             select
@@ -522,30 +458,29 @@ function CheckInspections() {
             ))}
           </TextField>
 
-          {/* Nút đổi chiều sort */}
           <Button
             fullWidth
             variant="outlined"
             size="small"
             startIcon={sortDirection === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
-            onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+            onClick={() => {
+              setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+              fetchInspections(0, rowsPerPage);
+            }}
           >
             {sortDirection === 'asc' ? trans.checkInspections.ascending : trans.checkInspections.descending}
           </Button>
 
-          {/* Nút tìm kiếm */}
           <Button fullWidth size="small" variant="contained" onClick={handleSearchClick} startIcon={<SearchIcon />}>
             {trans.checkInspections.search}
           </Button>
 
-          {/* Nút reset bộ lọc */}
           <Button fullWidth size="small" variant="outlined" onClick={handleReset}>
             {trans.checkInspections.refresh}
           </Button>
         </Stack>
       </Box>
 
-      {/* Hiển thị nhóm phiếu "chưa kiểm" */}
       <Box>
         {loading ? (
           <>
@@ -567,7 +502,7 @@ function CheckInspections() {
                   <Stack spacing={2}>
                     {uncheckedInspections.map((inspection) => (
                       <Paper
-                        key={inspection._ids.join('-') /* nối nhiều id phiếu con trong location */}
+                        key={inspection._ids.join('-')}
                         variant="outlined"
                         sx={{ p: 2, bgcolor: 'background.paper', position: 'relative' }}
                         elevation={0}
@@ -619,7 +554,6 @@ function CheckInspections() {
               </AccordionDetails>
             </Accordion>
 
-            {/* Hiển thị nhóm phiếu "đã kiểm" */}
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="h6">
