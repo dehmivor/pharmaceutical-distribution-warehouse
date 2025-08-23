@@ -945,7 +945,7 @@ export default {
     suspectedMedicine: 'Suspected Medicine',
     askWarehouseManagerToCreateInspect: 'Ask for Warehouse Manager to create inspect',
     createInspectionFromSelectedOrder: 'Create inspection receipt from selected order',
-    creatingReceiptForOrder: 'Creating receipt for order',
+    creatingReceiptForOrder: 'Creating receipt for contract',
     supplier: 'Supplier',
     numberOfProducts: 'Number of products',
     totalAmount: 'Total Amount',

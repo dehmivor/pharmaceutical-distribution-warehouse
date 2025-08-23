@@ -1,10 +1,7 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import axios from 'axios';
-import { enqueueSnackbar } from 'notistack';
 import useInspection from '@/hooks/useInspection';
+import useTrans from '@/hooks/useTrans';
 import {
   Box,
   Button,
@@ -12,12 +9,8 @@ import {
   CardContent,
   Chip,
   CircularProgress,
-  FormControl,
   Grid,
-  IconButton,
-  MenuItem,
   Paper,
-  Select,
   Table,
   TableBody,
   TableCell,
@@ -27,9 +20,11 @@ import {
   TextField,
   Typography
 } from '@mui/material';
+import axios from 'axios';
+import { useParams, useRouter } from 'next/navigation';
+import { enqueueSnackbar } from 'notistack';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ReceiptStatistics from '../dashboard-import/ReceiptStatistics';
-import { Delete as DeleteIcon } from '@mui/icons-material';
-import useTrans from '@/hooks/useTrans';
 
 const UNIT_CONVERSIONS = {
   kg: { g: 1000, tấn: 0.001 },
@@ -481,12 +476,15 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
           </Typography>
           <form onSubmit={(e) => e.preventDefault()}>
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} sm={12}>
                 <TextField
                   fullWidth
-                  label={trans.common.receiptNumber}
-                  value={receiptData.receiptId}
-                  onChange={(e) => setReceiptData((prev) => ({ ...prev, receiptId: e.target.value }))}
+                  label="Created by"
+                  value={orderData?.created_by?.name || orderData?.created_by?.email.split('@')[0] || 'Chưa có thông tin'}
+                  InputProps={{
+                    readOnly: true,
+                    disabled: true
+                  }}
                   required
                 />
               </Grid>
@@ -496,16 +494,35 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
                   label={trans.common.importDate}
                   type="date"
                   value={receiptData.date}
-                  onChange={(e) => setReceiptData((prev) => ({ ...prev, date: e.target.value }))}
+                  InputProps={{
+                    readOnly: true,
+                    disabled: true
+                  }}
                   InputLabelProps={{ shrink: true }}
                   required
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth label={trans.common.orderCode} value={receiptData.orderId} InputProps={{ readOnly: true }} />
+                <TextField
+                  fullWidth
+                  InputProps={{
+                    readOnly: true,
+                    disabled: true
+                  }}
+                  label={trans.common.orderCode}
+                  value={receiptData.orderId}
+                />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField fullWidth label={trans.common.supplier} value={receiptData.supplier} InputProps={{ readOnly: true }} />
+                <TextField
+                  fullWidth
+                  InputProps={{
+                    readOnly: true,
+                    disabled: true
+                  }}
+                  label={trans.common.supplier}
+                  value={receiptData.supplier}
+                />
               </Grid>
             </Grid>
           </form>
