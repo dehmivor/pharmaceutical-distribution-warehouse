@@ -381,6 +381,373 @@ const sendActivationNotificationToSupervisor = async (
   }
 };
 
+// ===== REMINDER EMAIL FUNCTIONS =====
+
+// ✨ Gửi email nhắc hạn hóa đơn đến hạn (chỉ khi còn 3 ngày)
+const sendBillDueReminderEmail = async (email, bills) => {
+  try {
+    const transporter = createTransporter();
+
+    const totalAmount = bills.reduce((sum, bill) => sum + (bill.remainingAmount || 0), 0);
+    const overdueCount = bills.filter((bill) => bill.priority === 'overdue').length;
+    const urgentCount = bills.filter((bill) => bill.priority === 'urgent').length;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: `⚠️ Nhắc hạn: ${bills.length} hóa đơn cần thanh toán`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; background: linear-gradient(135deg, #ff6b6b, #ee5a52); padding: 30px; border-radius: 10px; color: white; margin-bottom: 30px;">
+            <h1 style="margin: 0;">⚠️ Nhắc Hạn Thanh Toán</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">Có ${bills.length} hóa đơn cần xử lý</p>
+          </div>
+          
+          <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #856404; margin-top: 0;">📊 Tổng Quan</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+              <div style="text-align: center; padding: 15px; background: #dc3545; color: white; border-radius: 8px;">
+                <h4 style="margin: 0; font-size: 24px;">${overdueCount}</h4>
+                <p style="margin: 5px 0 0 0;">Quá hạn</p>
+              </div>
+              <div style="text-align: center; padding: 15px; background: #fd7e14; color: white; border-radius: 8px;">
+                <h4 style="margin: 0; font-size: 24px;">${urgentCount}</h4>
+                <p style="margin: 5px 0 0 0;">Cần thanh toán gấp</p>
+              </div>
+            </div>
+            <p style="margin: 15px 0 0 0; color: #856404;"><strong>Tổng số tiền cần thanh toán:</strong> ${(totalAmount / 1000).toLocaleString()} nghìn VND</p>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #333; margin-top: 0;">📋 Chi Tiết Hóa Đơn</h3>
+            ${bills
+              .map(
+                (bill) => `
+              <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin: 10px 0; background: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <strong style="color: #333;">${bill.bill_code || 'N/A'}</strong>
+                  <span style="padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; 
+                    background: ${bill.priority === 'overdue' ? '#dc3545' : bill.priority === 'urgent' ? '#fd7e14' : '#ffc107'}; 
+                    color: white;">
+                    ${bill.priority === 'overdue' ? 'Quá hạn' : bill.priority === 'urgent' ? 'Cần gấp' : 'Cảnh báo'}
+                  </span>
+                </div>
+                <p style="margin: 5px 0; color: #666;"><strong>Loại:</strong> ${bill.bill_type || 'N/A'}</p>
+                <p style="margin: 5px 0; color: #666;"><strong>Số tiền:</strong> ${((bill.remainingAmount || 0) / 1000).toLocaleString()} nghìn VND</p>
+                <p style="margin: 5px 0; color: #666;"><strong>Đến hạn:</strong> ${bill.due_date ? new Date(bill.due_date).toLocaleDateString('vi-VN') : 'N/A'}</p>
+                ${bill.priority === 'overdue' ? `<p style="margin: 5px 0; color: #dc3545; font-weight: bold;">Quá hạn: ${bill.daysOverdue || 0} ngày</p>` : ''}
+                ${bill.priority === 'urgent' ? `<p style="margin: 5px 0; color: #fd7e14; font-weight: bold;">Còn: ${bill.daysUntilDue || 0} ngày</p>` : ''}
+              </div>
+            `,
+              )
+              .join('')}
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.CLIENT_URL}/supervisor/data-tracking/alerts" 
+               style="background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold;">
+              🔗 Xem Chi Tiết
+            </a>
+          </div>
+          
+          <div style="border-left: 4px solid #dc3545; padding: 15px; background-color: #f8d7da; border-radius: 0 8px 8px 0; margin: 20px 0;">
+            <h4 style="color: #721c24; margin-top: 0;">⚠️ Hành Động Cần Thiết</h4>
+            <ul style="color: #721c24; line-height: 1.6;">
+              <li>Kiểm tra và xử lý các hóa đơn quá hạn trước</li>
+              <li>Liên hệ với đối tác để thanh toán</li>
+              <li>Cập nhật trạng thái thanh toán trong hệ thống</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #999; font-size: 12px; margin: 0;">
+              Email này được gửi tự động từ hệ thống quản lý kho dược phẩm<br>
+              Cần hỗ trợ? Liên hệ: <a href="mailto:${process.env.SUPPORT_EMAIL || process.env.EMAIL_USER}" style="color: #007bff;">${process.env.SUPPORT_EMAIL || process.env.EMAIL_USER}</a>
+            </p>
+          </div>
+        </div>
+      `,
+      text: `
+        ⚠️ NHẮC HẠN THANH TOÁN
+        
+        Có ${bills.length} hóa đơn cần xử lý:
+        - Quá hạn: ${overdueCount} hóa đơn
+        - Cần thanh toán gấp: ${urgentCount} hóa đơn
+        - Tổng số tiền: ${(totalAmount / 1000).toLocaleString()} nghìn VND
+        
+        Chi tiết hóa đơn:
+        ${bills
+          .map(
+            (bill) => `
+          ${bill.bill_code || 'N/A'} - ${bill.bill_type || 'N/A'}
+          Số tiền: ${((bill.remainingAmount || 0) / 1000).toLocaleString()} nghìn VND
+          Đến hạn: ${bill.due_date ? new Date(bill.due_date).toLocaleDateString('vi-VN') : 'N/A'}
+          ${bill.priority === 'overdue' ? `Quá hạn: ${bill.daysOverdue || 0} ngày` : ''}
+          ${bill.priority === 'urgent' ? `Còn: ${bill.daysUntilDue || 0} ngày` : ''}
+        `,
+          )
+          .join('\n')}
+        
+        Truy cập hệ thống để xem chi tiết: ${process.env.CLIENT_URL}/supervisor/data-tracking/alerts
+        
+        Cần hỗ trợ? Liên hệ: ${process.env.SUPPORT_EMAIL || process.env.EMAIL_USER}
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Bill due reminder email sent successfully to:', email);
+    console.log(
+      `📊 Sent reminder for ${bills.length} bills, total amount: ${(totalAmount / 1000).toLocaleString()}k VND`,
+    );
+  } catch (error) {
+    console.error('❌ Error sending bill due reminder email:', error);
+    throw new Error('Failed to send bill due reminder email');
+  }
+};
+
+// ✨ Gửi email nhắc hạn thuốc dưới mức tồn kho
+const sendStockReminderEmail = async (email, medicines) => {
+  try {
+    const transporter = createTransporter();
+
+    const totalMedicines = medicines.length;
+    const criticalCount = medicines.filter((med) => med.priority === 'critical').length;
+    const warningCount = medicines.filter((med) => med.priority === 'warning').length;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: `🚨 Cảnh báo: ${totalMedicines} thuốc dưới mức tồn kho`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; background: linear-gradient(135deg, #dc3545, #c82333); padding: 30px; border-radius: 10px; color: white; margin-bottom: 30px;">
+            <h1 style="margin: 0;">🚨 Cảnh Báo Tồn Kho</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">${totalMedicines} thuốc dưới mức tồn kho tối thiểu</p>
+          </div>
+          
+          <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #721c24; margin-top: 0;">📊 Tình Trạng Tồn Kho</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+              <div style="text-align: center; padding: 15px; background: #dc3545; color: white; border-radius: 8px;">
+                <h4 style="margin: 0; font-size: 24px;">${criticalCount}</h4>
+                <p style="margin: 5px 0 0 0;">Nghiêm trọng</p>
+              </div>
+              <div style="text-align: center; padding: 15px; background: #fd7e14; color: white; border-radius: 8px;">
+                <h4 style="margin: 0; font-size: 24px;">${warningCount}</h4>
+                <p style="margin: 5px 0 0 0;">Cảnh báo</p>
+              </div>
+              <div style="text-align: center; padding: 15px; background: #ffc107; color: white; border-radius: 8px;">
+                <h4 style="margin: 0; font-size: 24px;">${totalMedicines - criticalCount - warningCount}</h4>
+                <p style="margin: 5px 0 0 0;">Thấp</p>
+              </div>
+            </div>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #333; margin-top: 0;">📋 Danh Sách Thuốc Cần Nhập</h3>
+            ${medicines
+              .map(
+                (medicine) => `
+              <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin: 10px 0; background: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <strong style="color: #333;">${medicine.medicine_name || medicine.name || 'N/A'}</strong>
+                  <span style="padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; 
+                    background: ${medicine.priority === 'critical' ? '#dc3545' : medicine.priority === 'warning' ? '#fd7e14' : '#ffc107'}; 
+                    color: white;">
+                    ${medicine.priority === 'critical' ? 'Nghiêm trọng' : medicine.priority === 'warning' ? 'Cảnh báo' : 'Thấp'}
+                  </span>
+                </div>
+                <p style="margin: 5px 0; color: #666;"><strong>Mã thuốc:</strong> ${medicine.medicine_code || medicine.license_code || 'N/A'}</p>
+                <p style="margin: 5px 0; color: #666;"><strong>Tồn kho hiện tại:</strong> ${medicine.totalQuantity || 0} ${medicine.unit || 'đơn vị'}</p>
+                <p style="margin: 5px 0; color: #666;"><strong>Mức tối thiểu:</strong> ${medicine.minimumStock || 0} ${medicine.unit || 'đơn vị'}</p>
+                <p style="margin: 5px 0; color: #666;"><strong>Thiếu hụt:</strong> ${(medicine.minimumStock || 0) - (medicine.totalQuantity || 0)} ${medicine.unit || 'đơn vị'}</p>
+                ${
+                  medicine.contracts && medicine.contracts.length > 0
+                    ? `
+                  <p style="margin: 5px 0; color: #666;"><strong>Hợp đồng:</strong> ${medicine.contracts.map((c) => c.contractCode).join(', ')}</p>
+                `
+                    : ''
+                }
+              </div>
+            `,
+              )
+              .join('')}
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.CLIENT_URL}/supervisor/data-tracking/alerts" 
+               style="background: linear-gradient(135deg, #dc3545, #c82333); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold;">
+              🔗 Xem Chi Tiết
+            </a>
+          </div>
+          
+          <div style="border-left: 4px solid #dc3545; padding: 15px; background-color: #f8d7da; border-radius: 0 8px 8px 0; margin: 20px 0;">
+            <h4 style="color: #721c24; margin-top: 0;">🚨 Hành Động Cần Thiết</h4>
+            <ul style="color: #721c24; line-height: 1.6;">
+              <li>Kiểm tra các thuốc có mức độ nghiêm trọng trước</li>
+              <li>Tạo đơn nhập hàng cho các thuốc thiếu hụt</li>
+              <li>Liên hệ với nhà cung cấp để đặt hàng</li>
+              <li>Cập nhật kế hoạch nhập hàng</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #999; font-size: 12px; margin: 0;">
+              Email này được gửi tự động từ hệ thống quản lý kho dược phẩm<br>
+              Cần hỗ trợ? Liên hệ: <a href="mailto:${process.env.SUPPORT_EMAIL || process.env.EMAIL_USER}" style="color: #007bff;">${process.env.SUPPORT_EMAIL || process.env.EMAIL_USER}</a>
+            </p>
+          </div>
+        </div>
+      `,
+      text: `
+        🚨 CẢNH BÁO TỒN KHO
+        
+        Có ${totalMedicines} thuốc dưới mức tồn kho tối thiểu:
+        - Nghiêm trọng: ${criticalCount} thuốc
+        - Cảnh báo: ${warningCount} thuốc
+        - Thấp: ${totalMedicines - criticalCount - warningCount} thuốc
+        
+        Danh sách thuốc cần nhập:
+        ${medicines
+          .map(
+            (medicine) => `
+          ${medicine.medicine_name || medicine.name || 'N/A'} - ${medicine.medicine_code || medicine.license_code || 'N/A'}
+          Tồn kho: ${medicine.totalQuantity || 0} ${medicine.unit || 'đơn vị'}
+          Mức tối thiểu: ${medicine.minimumStock || 0} ${medicine.unit || 'đơn vị'}
+          Thiếu hụt: ${(medicine.minimumStock || 0) - (medicine.totalQuantity || 0)} ${medicine.unit || 'đơn vị'}
+        `,
+          )
+          .join('\n')}
+        
+        Truy cập hệ thống để xem chi tiết: ${process.env.CLIENT_URL}/supervisor/data-tracking/alerts
+        
+        Cần hỗ trợ? Liên hệ: ${process.env.SUPPORT_EMAIL || process.env.EMAIL_USER}
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Stock reminder email sent successfully to:', email);
+    console.log(`📊 Sent reminder for ${totalMedicines} medicines with low stock`);
+  } catch (error) {
+    console.error('❌ Error sending stock reminder email:', error);
+    throw new Error('Failed to send stock reminder email');
+  }
+};
+
+// ✨ Gửi email nhắc hạn thuốc hết hạn
+const sendExpiryReminderEmail = async (email, batches) => {
+  try {
+    const transporter = createTransporter();
+
+    const totalBatches = batches.length;
+    const totalQuantity = batches.reduce((sum, batch) => sum + (batch.quantity || 0), 0);
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: `⏰ Cảnh báo: ${totalBatches} lô thuốc sắp hết hạn`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; background: linear-gradient(135deg, #fd7e14, #e55a00); padding: 30px; border-radius: 10px; color: white; margin-bottom: 30px;">
+            <h1 style="margin: 0;">⏰ Cảnh Báo Hết Hạn</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">${totalBatches} lô thuốc sắp hết hạn trong 6 tháng tới</p>
+          </div>
+          
+          <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #856404; margin-top: 0;">📊 Tổng Quan</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+              <div style="text-align: center; padding: 15px; background: #fd7e14; color: white; border-radius: 8px;">
+                <h4 style="margin: 0; font-size: 24px;">${totalBatches}</h4>
+                <p style="margin: 5px 0 0 0;">Lô thuốc</p>
+              </div>
+              <div style="text-align: center; padding: 15px; background: #fd7e14; color: white; border-radius: 8px;">
+                <h4 style="margin: 0; font-size: 24px;">${totalQuantity}</h4>
+                <p style="margin: 5px 0 0 0;">Tổng số lượng</p>
+              </div>
+            </div>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #333; margin-top: 0;">📋 Danh Sách Lô Thuốc Sắp Hết Hạn</h3>
+            ${batches
+              .map(
+                (batch) => `
+              <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin: 10px 0; background: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <strong style="color: #333;">${batch.medicine_id?.medicine_name || batch.medicine_id?.name || 'N/A'}</strong>
+                  <span style="padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; background: #fd7e14; color: white;">
+                    Sắp hết hạn
+                  </span>
+                </div>
+                <p style="margin: 5px 0; color: #666;"><strong>Mã lô:</strong> ${batch.batch_code || 'N/A'}</p>
+                <p style="margin: 5px 0; color: #666;"><strong>Số lượng:</strong> ${batch.quantity || 0} ${batch.medicine_id?.unit_of_measure || 'đơn vị'}</p>
+                <p style="margin: 5px 0; color: #666;"><strong>Ngày hết hạn:</strong> ${batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString('vi-VN') : 'N/A'}</p>
+                <p style="margin: 5px 0; color: #666;"><strong>Nhà cung cấp:</strong> ${batch.supplier || 'N/A'}</p>
+                <p style="margin: 5px 0; color: #666;"><strong>Ngày sản xuất:</strong> ${batch.manufacturing_date ? new Date(batch.manufacturing_date).toLocaleDateString('vi-VN') : 'N/A'}</p>
+              </div>
+            `,
+              )
+              .join('')}
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.CLIENT_URL}/supervisor/data-tracking/alerts" 
+               style="background: linear-gradient(135deg, #fd7e14, #e55a00); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold;">
+              🔗 Xem Chi Tiết
+            </a>
+          </div>
+          
+          <div style="border-left: 4px solid #fd7e14; padding: 15px; background-color: #fff3cd; border-radius: 0 8px 8px 0; margin: 20px 0;">
+            <h4 style="color: #856404; margin-top: 0;">⏰ Hành Động Cần Thiết</h4>
+            <ul style="color: #856404; line-height: 1.6;">
+              <li>Kiểm tra và lập kế hoạch tiêu thụ các lô sắp hết hạn</li>
+              <li>Ưu tiên bán các lô có ngày hết hạn gần nhất</li>
+              <li>Liên hệ với đối tác để tiêu thụ nhanh</li>
+              <li>Cập nhật kế hoạch nhập hàng mới</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #999; font-size: 12px; margin: 0;">
+              Email này được gửi tự động từ hệ thống quản lý kho dược phẩm<br>
+              Cần hỗ trợ? Liên hệ: <a href="mailto:${process.env.SUPPORT_EMAIL || process.env.EMAIL_USER}" style="color: #007bff;">${process.env.SUPPORT_EMAIL || process.env.EMAIL_USER}</a>
+            </p>
+          </div>
+        </div>
+      `,
+      text: `
+        ⏰ CẢNH BÁO HẾT HẠN
+        
+        Có ${totalBatches} lô thuốc sắp hết hạn trong 6 tháng tới:
+        - Tổng số lượng: ${totalQuantity} đơn vị
+        
+        Danh sách lô thuốc:
+        ${batches
+          .map(
+            (batch) => `
+          ${batch.medicine_id?.medicine_name || batch.medicine_id?.name || 'N/A'} - ${batch.batch_code || 'N/A'}
+          Số lượng: ${batch.quantity || 0} ${batch.medicine_id?.unit_of_measure || 'đơn vị'}
+          Ngày hết hạn: ${batch.expiry_date ? new Date(batch.expiry_date).toLocaleDateString('vi-VN') : 'N/A'}
+          Nhà cung cấp: ${batch.supplier || 'N/A'}
+        `,
+          )
+          .join('\n')}
+        
+        Truy cập hệ thống để xem chi tiết: ${process.env.CLIENT_URL}/supervisor/data-tracking/alerts
+        
+        Cần hỗ trợ? Liên hệ: ${process.env.SUPPORT_EMAIL || process.env.EMAIL_USER}
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('✅ Expiry reminder email sent successfully to:', email);
+    console.log(`📊 Sent reminder for ${totalBatches} batches expiring soon`);
+  } catch (error) {
+    console.error('❌ Error sending expiry reminder email:', error);
+    throw new Error('Failed to send expiry reminder email');
+  }
+};
+
 module.exports = {
   sendOTPEmail,
   sendResetPasswordEmail,
@@ -388,4 +755,8 @@ module.exports = {
   sendActivationEmail,
   sendAccountActivatedNotification,
   sendActivationNotificationToSupervisor,
+  // Reminder email functions
+  sendBillDueReminderEmail,
+  sendStockReminderEmail,
+  sendExpiryReminderEmail,
 };

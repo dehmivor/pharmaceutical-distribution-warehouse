@@ -50,6 +50,8 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import useTrans from '@/hooks/useTrans';
+import useConfig from '@/hooks/useConfig';
+import { ThemeI18n } from '@/config';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -61,37 +63,35 @@ const getAuthHeaders = () => {
   };
 };
 
-import useConfig from '@/hooks/useConfig';
-import { ThemeI18n } from '@/config';
-
-const formatCurrency = (value) => {
-  const { i18n } = useConfig();
-  const locale = i18n === ThemeI18n.VN ? 'vi-VN' : 'en-US';
-
-  // For VND, display in thousands format
-  if (i18n === ThemeI18n.VN) {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: 'VND',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value * 1000); // Multiply by 1000 since value is in thousands
-  } else {
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: 'USD'
-    }).format(value);
-  }
-};
-
-const formatDate = (date) => {
-  const { i18n } = useConfig();
-  const locale = i18n === ThemeI18n.VN ? 'vi-VN' : 'en-US';
-  return new Date(date).toISOString().slice(0, 10);
-};
-
 export default function ExportReport() {
   const trans = useTrans();
+  const { i18n } = useConfig();
+
+  // Move formatCurrency and formatDate functions inside the component
+  const formatCurrency = (value) => {
+    const locale = i18n === ThemeI18n.VN ? 'vi-VN' : 'en-US';
+
+    // For VND, display in thousands format
+    if (i18n === ThemeI18n.VN) {
+      return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: 'VND',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(value * 1000); // Multiply by 1000 since value is in thousands
+    } else {
+      return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: 'USD'
+      }).format(value);
+    }
+  };
+
+  const formatDate = (date) => {
+    const locale = i18n === ThemeI18n.VN ? 'vi-VN' : 'en-US';
+    return new Date(date).toISOString().slice(0, 10);
+  };
+
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -204,6 +204,8 @@ export default function ExportReport() {
   const exportToExcel = async () => {
     try {
       setLoading(true);
+      setError(null);
+
       const params = new URLSearchParams();
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
@@ -212,21 +214,94 @@ export default function ExportReport() {
       if (filters.retailerId) params.append('retailerId', filters.retailerId);
       params.append('reportType', 'export-orders');
 
+      console.log('Exporting export orders with params:', params.toString());
+
       const response = await axios.get(`${API_BASE_URL}/api/reports/export-orders/export?${params.toString()}`, {
         headers: getAuthHeaders(),
-        responseType: 'blob'
+        responseType: 'blob',
+        timeout: 30000 // 30 second timeout
       });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      console.log('Export response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        dataType: typeof response.data,
+        dataSize: response.data?.size,
+        isBlob: response.data instanceof Blob
+      });
+
+      // Validate response
+      if (!response.data || response.data.size === 0) {
+        throw new Error('Empty response received from server');
+      }
+
+      // Check if response is already a blob
+      if (!(response.data instanceof Blob)) {
+        throw new Error('Invalid response format - expected blob');
+      }
+
+      // Create download link
+      const url = window.URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `export_orders_report_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      // Generate filename
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `export_orders_report_${timestamp}.xlsx`;
+      link.setAttribute('download', filename);
+
+      console.log('Creating download link:', { url, filename });
+
+      // Add link to DOM, click it, and remove it
       document.body.appendChild(link);
       link.click();
-      link.remove();
+
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
+      console.log('Export completed successfully');
     } catch (error) {
       console.error('Error exporting to Excel:', error);
-      setError(trans.reports.failedToExport);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        request: error.request,
+        config: error.config
+      });
+
+      // Handle different types of errors
+      let errorMessage = trans.reports.failedToExport;
+
+      if (error.response) {
+        // Server responded with error
+        console.error('Server error response:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data
+        });
+
+        if (error.response.status === 404) {
+          errorMessage = 'No data available for export with current filters';
+        } else if (error.response.status === 500) {
+          errorMessage = 'Server error during export';
+        } else if (error.response.data && error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else if (error.request) {
+        // Network error
+        console.error('Network error:', error.request);
+        errorMessage = 'Network error - please check your connection';
+      } else if (error.message) {
+        // Other error
+        console.error('Other error:', error.message);
+        errorMessage = error.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

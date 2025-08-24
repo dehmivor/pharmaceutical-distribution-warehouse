@@ -1,5 +1,7 @@
 // services/notificationService.js
 const { Notification } = require('../models');
+const { User } = require('../models');
+const { USER_ROLES } = require('../utils/constants');
 const { io } = require('../server'); // import instance io socket từ server.js
 
 /**
@@ -93,10 +95,138 @@ const markAllAsRead = async (recipientId) => {
   );
 };
 
+/**
+ * Tạo notification cho tất cả warehouse managers
+ * @param {Object} data - Dữ liệu notification
+ * @returns Array of notifications created
+ */
+const createNotificationForAllWarehouseManagers = async (data) => {
+  try {
+    // Tìm tất cả warehouse managers
+    const warehouseManagers = await User.find({
+      role: USER_ROLES.WAREHOUSEMANAGER,
+      status: 'active',
+    }).select('_id');
+
+    if (warehouseManagers.length === 0) {
+      console.log('Không có warehouse managers nào');
+      return [];
+    }
+
+    const notifications = [];
+
+    // Tạo notification cho từng warehouse manager
+    for (const manager of warehouseManagers) {
+      const notificationData = {
+        ...data,
+        recipient_id: manager._id,
+        sender_id: data.sender_id || null,
+      };
+
+      const newNoti = await Notification.create(notificationData);
+      notifications.push(newNoti);
+
+      // Emit realtime notification
+      if (io) {
+        io.to(manager._id.toString()).emit('newNotification', newNoti);
+      }
+    }
+
+    console.log(`Đã tạo ${notifications.length} thông báo cho warehouse managers`);
+    return notifications;
+  } catch (error) {
+    console.error('Lỗi khi tạo thông báo cho warehouse managers:', error);
+    throw error;
+  }
+};
+
+const createNotificationForAllWarehouse = async (data) => {
+  try {
+    // Tìm tất cả warehouse managers
+    const warehouseManagers = await User.find({
+      role: USER_ROLES.WAREHOUSE,
+      status: 'active',
+    }).select('_id');
+
+    if (warehouseManagers.length === 0) {
+      console.log('Không có warehouse nào');
+      return [];
+    }
+
+    const notifications = [];
+
+    // Tạo notification cho từng warehouse manager
+    for (const manager of warehouseManagers) {
+      const notificationData = {
+        ...data,
+        recipient_id: manager._id,
+        sender_id: data.sender_id || null,
+      };
+
+      const newNoti = await Notification.create(notificationData);
+      notifications.push(newNoti);
+
+      // Emit realtime notification
+      if (io) {
+        io.to(manager._id.toString()).emit('newNotification', newNoti);
+      }
+    }
+
+    console.log(`Đã tạo ${notifications.length} thông báo cho warehouse`);
+    return notifications;
+  } catch (error) {
+    console.error('Lỗi khi tạo thông báo cho warehouse:', error);
+    throw error;
+  }
+};
+
+const createNotificationForAllSupervisors = async (data) => {
+  try {
+    // Tìm tất cả supervisors
+    const supervisors = await User.find({
+      role: USER_ROLES.SUPERVISOR,
+      status: 'active',
+    }).select('_id');
+
+    if (supervisors.length === 0) {
+      console.log('Không có supervisors nào');
+      return [];
+    }
+
+    const notifications = [];
+
+    // Tạo notification cho từng supervisor
+    for (const supervisor of supervisors) {
+      const notificationData = {
+        ...data,
+        recipient_id: supervisor._id,
+        sender_id: data.sender_id || null,
+      };
+
+      const newNoti = await Notification.create(notificationData);
+      notifications.push(newNoti);
+
+      // Emit realtime notification
+      if (io) {
+        io.to(supervisor._id.toString()).emit('newNotification', newNoti);
+      }
+    }
+
+    console.log(`Đã tạo ${notifications.length} thông báo cho supervisors`);
+    return notifications;
+  } catch (error) {
+    console.error('Lỗi khi tạo thông báo cho supervisors:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   createNotification,
   deleteNotification,
   getNotifications,
   markAsRead,
   markAllAsRead,
+  createNotificationForAllWarehouseManagers,
+  createNotificationForAllWarehouse,
+  createNotificationForAllSupervisors,
 };

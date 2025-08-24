@@ -17,6 +17,7 @@ import Drawer from './Drawer';
 import Header from './Header';
 
 import { DRAWER_WIDTH } from '@/config';
+import { RoleGuard } from '@/views/components/RoleGuard';
 
 /***************************  WAREHOUSE MANAGER LAYOUT  ***************************/
 
@@ -33,29 +34,31 @@ export default function WarehouseManagerLayout({ children }) {
   if (menuMasterLoading) return <Loader />;
 
   return (
-    <Stack direction="row" width={1}>
-      <Header />
-      <Drawer />
-      <Box component="main" sx={{ width: `calc(100% - ${DRAWER_WIDTH}px)`, flexGrow: 1, p: { xs: 2, sm: 3 } }}>
-        <Toolbar sx={{ minHeight: { xs: 54, sm: 46, md: 76 } }} />
-        <Box
-          sx={{
-            py: 0.4,
-            px: 1.5,
-            mx: { xs: -2, sm: -3 },
-            display: { xs: 'block', md: 'none' },
-            borderBottom: 1,
-            borderColor: 'divider',
-            mb: 2
-          }}
-        >
-          <Breadcrumbs />
+    <RoleGuard allowedRoles={['warehouse_manager']}>
+      <Stack direction="row" width={1}>
+        <Header />
+        <Drawer />
+        <Box component="main" sx={{ width: `calc(100% - ${DRAWER_WIDTH}px)`, flexGrow: 1, p: { xs: 2, sm: 3 } }}>
+          <Toolbar sx={{ minHeight: { xs: 54, sm: 46, md: 76 } }} />
+          <Box
+            sx={{
+              py: 0.4,
+              px: 1.5,
+              mx: { xs: -2, sm: -3 },
+              display: { xs: 'block', md: 'none' },
+              borderBottom: 1,
+              borderColor: 'divider',
+              mb: 2
+            }}
+          >
+            <Breadcrumbs />
+          </Box>
+          <Container maxWidth="lg" sx={{ px: { xs: 0, sm: 2 } }}>
+            {children}
+          </Container>
         </Box>
-        <Container maxWidth="lg" sx={{ px: { xs: 0, sm: 2 } }}>
-          {children}
-        </Container>
-      </Box>
-    </Stack>
+      </Stack>
+    </RoleGuard>
   );
 }
 

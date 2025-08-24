@@ -166,6 +166,8 @@ export default function Report() {
   const exportToExcel = async () => {
     try {
       setLoading(true);
+      setError(null);
+
       const params = new URLSearchParams();
       if (filters.startDate) params.append('startDate', new Date(filters.startDate).toISOString());
       if (filters.endDate) params.append('endDate', new Date(filters.endDate).toISOString());
@@ -175,21 +177,96 @@ export default function Report() {
       if (filters.partnerType) params.append('partnerType', filters.partnerType);
       params.append('reportType', filters.reportType);
 
+      console.log('Exporting with params:', params.toString());
+      console.log('API URL:', `${API_BASE_URL}/api/reports/export?${params.toString()}`);
+      console.log('Auth headers:', getAuthHeaders());
+
       const response = await axios.get(`${API_BASE_URL}/api/reports/export?${params.toString()}`, {
         headers: getAuthHeaders(),
-        responseType: 'blob'
+        responseType: 'blob',
+        timeout: 30000 // 30 second timeout
       });
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      console.log('Export response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        dataType: typeof response.data,
+        dataSize: response.data?.size,
+        isBlob: response.data instanceof Blob
+      });
+
+      // Validate response
+      if (!response.data || response.data.size === 0) {
+        throw new Error('Empty response received from server');
+      }
+
+      // Check if response is actually a blob
+      if (!(response.data instanceof Blob)) {
+        throw new Error('Invalid response format - expected blob');
+      }
+
+      // Create download link
+      const url = window.URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `report_${filters.reportType}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      // Generate filename
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `report_${filters.reportType}_${timestamp}.xlsx`;
+      link.setAttribute('download', filename);
+
+      console.log('Creating download link:', { url, filename });
+
+      // Add link to DOM, click it, and remove it
       document.body.appendChild(link);
       link.click();
-      link.remove();
+
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
+      console.log('Export completed successfully');
     } catch (error) {
       console.error('Error exporting to Excel:', error);
-      setError(trans.reports.failedToExport);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        request: error.request,
+        config: error.config
+      });
+
+      // Handle different types of errors
+      let errorMessage = trans.reports.failedToExport;
+
+      if (error.response) {
+        // Server responded with error
+        console.error('Server error response:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data
+        });
+
+        if (error.response.status === 404) {
+          errorMessage = 'No data available for export with current filters';
+        } else if (error.response.status === 500) {
+          errorMessage = 'Server error during export';
+        } else if (error.response.data && error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else if (error.request) {
+        // Network error
+        console.error('Network error:', error.request);
+        errorMessage = 'Network error - please check your connection';
+      } else if (error.message) {
+        // Other error
+        console.error('Other error:', error.message);
+        errorMessage = error.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

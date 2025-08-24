@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 
 // @project
 
-const Report = dynamic(() => import('@/views/supervisor/report'));
+const Report = dynamic(() => import('@/views/supervisor/bill-report'));
 
 /***************************  AUTH - LOGIN  ***************************/
 

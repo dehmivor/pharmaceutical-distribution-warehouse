@@ -2,13 +2,14 @@ const ExportOrder = require('../models/ExportOrder');
 const batchService = require('../services/batchService');
 const User = require('../models/User');
 const Package = require('../models/Package'); // Assuming you have a Package model defined
-const packageService = require('../services/packageService')
+const packageService = require('../services/packageService');
 const LogLocationChange = require('../models/LogLocationChange');
 const { EXPORT_ORDER_STATUSES, USER_ROLES } = require('../utils/constants');
 const exportOrderService = require('../services/exportOrderService');
+const notificationService = require('../services/notificationService');
 const mongoose = require('mongoose');
-const InventoryCheckInspection = require("../models/InventoryCheckInspection")
-const Location = require("../models/Location")
+const InventoryCheckInspection = require('../models/InventoryCheckInspection');
+const Location = require('../models/Location');
 
 // Helper function for population to ensure consistent data structure
 const populateOptions = [
@@ -146,56 +147,60 @@ const updatePackingDetails = async (req, res, next) => {
 };
 
 const completeExportOrder = async (req, res) => {
-  const { id } = req.params
-  const user = req.user // Giả sử user được gắn vào req bởi middleware xác thực
+  const { id } = req.params;
+  const user = req.user; // Giả sử user được gắn vào req bởi middleware xác thực
   try {
     // Tìm đơn xuất kho
-    const exportOrder = await ExportOrder.findById(id).populate(populateOptions)
+    const exportOrder = await ExportOrder.findById(id).populate(populateOptions);
     if (!exportOrder) {
-      return res.status(404).json({ success: false, message: "Không tìm thấy đơn xuất kho" })
+      return res.status(404).json({ success: false, message: 'Không tìm thấy đơn xuất kho' });
     }
     // Kiểm tra trạng thái đơn
     if (exportOrder.status !== EXPORT_ORDER_STATUSES.APPROVED) {
       return res.status(400).json({
         success: false,
-        message: "Đơn xuất kho phải ở trạng thái đã phê duyệt để hoàn thành",
-      })
+        message: 'Đơn xuất kho phải ở trạng thái đã phê duyệt để hoàn thành',
+      });
     }
     // Kiểm tra quyền người dùng
-    if (user.role !== "warehouse_manager") {
-      return res.status(403).json({ success: false, message: "Chỉ quản lý kho mới có thể hoàn thành đơn xuất kho" })
+    if (user.role !== 'warehouse_manager') {
+      return res
+        .status(403)
+        .json({ success: false, message: 'Chỉ quản lý kho mới có thể hoàn thành đơn xuất kho' });
     }
     // Bắt đầu transaction để đảm bảo tính nguyên tử
-    const session = await mongoose.startSession()
-    session.startTransaction()
+    const session = await mongoose.startSession();
+    session.startTransaction();
     try {
       // Lặp qua từng chi tiết trong đơn xuất kho
       for (const detail of exportOrder.details) {
         for (const item of detail.actual_item) {
-          const packageId = item.package_id._id
-          const quantityToRemove = item.quantity
-          const warehouseUserId = item.created_by._id || item.created_by // Lấy từ created_by trong exportInspectionSchema
+          const packageId = item.package_id._id;
+          const quantityToRemove = item.quantity;
+          const warehouseUserId = item.created_by._id || item.created_by; // Lấy từ created_by trong exportInspectionSchema
 
           // Tìm package
-          const pkg = await Package.findById(packageId).session(session)
+          const pkg = await Package.findById(packageId).session(session);
           if (!pkg) {
-            throw new Error(`Không tìm thấy package ${packageId}`)
+            throw new Error(`Không tìm thấy package ${packageId}`);
           }
 
           // Kiểm tra số lượng đủ để giảm
           if (pkg.quantity < quantityToRemove) {
-            throw new Error(`Số lượng trong package ${packageId} không đủ cho thuốc ${detail.medicine_id}`)
+            throw new Error(
+              `Số lượng trong package ${packageId} không đủ cho thuốc ${detail.medicine_id}`,
+            );
           }
 
           // Giảm số lượng trong package
-          pkg.quantity -= quantityToRemove
+          pkg.quantity -= quantityToRemove;
 
           // Nếu số lượng về 0, xóa package
           if (pkg.quantity === 0) {
-            await Package.findByIdAndDelete(packageId).session(session)
-            console.log(`Deleted package ${packageId} - quantity reached 0`)
+            await Package.findByIdAndDelete(packageId).session(session);
+            console.log(`Deleted package ${packageId} - quantity reached 0`);
           } else {
-            await pkg.save({ session })
+            await pkg.save({ session });
           }
 
           // Ghi log thay đổi vị trí với ware_house_id từ created_by
@@ -203,7 +208,7 @@ const completeExportOrder = async (req, res) => {
             [
               {
                 location_id: pkg.location_id,
-                type: "remove",
+                type: 'remove',
                 batch_id: pkg.batch_id,
                 quantity: quantityToRemove,
                 export_order_id: exportOrder._id,
@@ -211,31 +216,57 @@ const completeExportOrder = async (req, res) => {
               },
             ],
             { session },
-          )
+          );
         }
       }
       // Cập nhật trạng thái đơn xuất kho
-      exportOrder.status = EXPORT_ORDER_STATUSES.COMPLETED
-      await exportOrder.save({ session })
+      exportOrder.status = EXPORT_ORDER_STATUSES.COMPLETED;
+      await exportOrder.save({ session });
       // Commit transaction
-      await session.commitTransaction()
-      session.endSession()
+      await session.commitTransaction();
+      session.endSession();
+
+      try {
+        await notificationService.createNotificationForAllSupervisors({
+          title: 'Đơn hàng xuất kho hoàn thành',
+          message: `Đơn hàng xuất kho #${id.slice(-6)} đã được warehouse manager hoàn thành thành công.`,
+          type: 'export',
+          priority: 'medium',
+          sender_id: user._id,
+          action_url: `/sp-manage-bills`,
+          metadata: {
+            orderId: id,
+            statusChangedTo: 'completed',
+            orderType: 'export',
+            action: 'order_completed',
+            warehouseManagerId: user._id,
+          },
+        });
+
+        console.log(`Đã tạo notification cho supervisor về đơn hàng xuất kho #${id} hoàn thành`);
+      } catch (notificationError) {
+        console.error('Lỗi khi tạo notification:', notificationError);
+        // Không throw error vì notification không ảnh hưởng đến việc hoàn thành đơn hàng
+      }
+
       return res.json({
         success: true,
-        message: "Đơn xuất kho đã hoàn thành thành công",
+        message: 'Đơn xuất kho đã hoàn thành thành công',
         data: exportOrder,
-      })
+      });
     } catch (error) {
       // Hủy transaction nếu có lỗi
-      await session.abortTransaction()
-      session.endSession()
-      throw error
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
     }
   } catch (error) {
-    console.error("Lỗi khi hoàn thành đơn xuất kho:", error)
-    return res.status(500).json({ success: false, message: error.message || "Lỗi server khi hoàn thành đơn xuất kho" })
+    console.error('Lỗi khi hoàn thành đơn xuất kho:', error);
+    return res
+      .status(500)
+      .json({ success: false, message: error.message || 'Lỗi server khi hoàn thành đơn xuất kho' });
   }
-}
+};
 
 const cancelExportOrder = async (req, res, next) => {
   try {
@@ -288,7 +319,6 @@ const getExportOrderDetail = async (req, res) => {
   }
 };
 
-
 const createExportOrder = async (req, res) => {
   try {
     const userId = req.user && req.user.userId;
@@ -313,7 +343,10 @@ const createInternalExportOrder = async (req, res) => {
 
     // Optional guard: only WM
     if (req.user.role !== USER_ROLES.WAREHOUSEMANAGER) {
-      return res.status(403).json({ success: false, error: 'Only warehouse manager can create internal export orders' });
+      return res.status(403).json({
+        success: false,
+        error: 'Only warehouse manager can create internal export orders',
+      });
     }
 
     const order = await exportOrderService.createInternalExportOrder(req.body, userId);
@@ -552,8 +585,6 @@ const rejectExportOrder = async (req, res, next) => {
   }
 };
 
-
-
 /**
  * Kiểm tra tồn kho cho export order
  * @param {Object} req - Request object
@@ -567,7 +598,7 @@ const checkStockForExportOrder = async (req, res) => {
     if (!Array.isArray(details) || details.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Details array is required and must not be empty'
+        message: 'Details array is required and must not be empty',
       });
     }
 
@@ -576,7 +607,7 @@ const checkStockForExportOrder = async (req, res) => {
       if (!detail.medicine_id || !detail.expected_quantity) {
         return res.status(400).json({
           success: false,
-          message: 'Each detail must have medicine_id and expected_quantity'
+          message: 'Each detail must have medicine_id and expected_quantity',
         });
       }
     }
@@ -587,7 +618,7 @@ const checkStockForExportOrder = async (req, res) => {
     if (!result.success) {
       return res.status(500).json({
         success: false,
-        message: result.message
+        message: result.message,
       });
     }
 
@@ -597,7 +628,7 @@ const checkStockForExportOrder = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -611,7 +642,7 @@ const assignWarehouseManager = async (req, res, next) => {
     if (req.user.role !== 'warehouse_manager') {
       return res.status(403).json({
         success: false,
-        error: 'Only representative managers can assign warehouse managers'
+        error: 'Only representative managers can assign warehouse managers',
       });
     }
 
@@ -619,23 +650,23 @@ const assignWarehouseManager = async (req, res, next) => {
     if (!warehouse_manager_id) {
       return res.status(400).json({
         success: false,
-        error: 'warehouse_manager_id is required'
+        error: 'warehouse_manager_id is required',
       });
     }
 
     const assignedOrder = await exportOrderService.assignWarehouseManager(id, warehouse_manager_id);
-    
+
     res.status(200).json({
       success: true,
       data: assignedOrder,
-      message: 'Warehouse manager assigned successfully'
+      message: 'Warehouse manager assigned successfully',
     });
   } catch (error) {
     next(error);
   }
 };
 
-const exportedTotalsLast6MonthsTop5= async(req, res) => {
+const exportedTotalsLast6MonthsTop5 = async (req, res) => {
   try {
     const result = await exportOrderService.getExportedTotalsLast6Months();
     return res.json({ success: true, ...result });
@@ -643,8 +674,7 @@ const exportedTotalsLast6MonthsTop5= async(req, res) => {
     console.error('exportedTotalsLast6Months error', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
-}
-
+};
 
 module.exports = {
   getAllExportOrders,
@@ -661,8 +691,8 @@ module.exports = {
   addExportInspection,
   approveExportOrder,
   rejectExportOrder, // Thêm function mới
-  checkStockForExportOrder, 
-  assignWarehouseManager, 
+  checkStockForExportOrder,
+  assignWarehouseManager,
   createInternalExportOrder,
-  exportedTotalsLast6MonthsTop5
-}
+  exportedTotalsLast6MonthsTop5,
+};
