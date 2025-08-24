@@ -355,6 +355,11 @@ const updateOrderStatus = async (req, res) => {
             notificationMessage = `Đơn hàng nhập kho #${id.slice(20)} của bạn đã bị từ chối.`;
             priority = 'high';
             break;
+          case 'arranged':
+            notificationTitle = 'Đơn hàng đã được sắp xếp';
+            notificationMessage = `Đơn hàng nhập kho #${id.slice(20)} đã được sắp xếp và sẵn sàng để cất hàng.`;
+            priority = 'high';
+            break;
           case 'delivered':
             notificationTitle = 'Đơn hàng đã đến';
             notificationMessage = `Đơn hàng nhập kho #${id.slice(20)} đã đến nơi.`;
@@ -394,6 +399,38 @@ const updateOrderStatus = async (req, res) => {
           console.log(
             `✅ Đã tạo notification cho representative ${updatedOrder.created_by} về việc thay đổi status đơn hàng #${id} sang ${status}`,
           );
+        }
+
+        // Tạo notification cho warehouse users khi status chuyển sang 'arranged'
+        if (status === 'arranged') {
+          try {
+            await notificationService.createNotificationForAllWarehouse({
+              title: 'Đơn hàng sẵn sàng để cất hàng',
+              message: `Đơn nhập kho #${id.slice(20)} đã được tạo lô.`,
+              type: 'inventory',
+              priority: 'high',
+              action_url: `/wh-import-orders/${id}`,
+              metadata: {
+                order_id: id,
+                order_status: status,
+                order_type: 'import',
+                status_change_date: new Date(),
+                changed_by: userId,
+                contract_code: updatedOrder.contract_id?.contract_code || 'N/A',
+                supplier_name: updatedOrder.contract_id?.partner_id?.name || 'N/A',
+              },
+            });
+
+            console.log(
+              `✅ Đã tạo notification cho warehouse users về việc đơn hàng #${id} sẵn sàng để cất hàng`,
+            );
+          } catch (warehouseNotificationError) {
+            // Log lỗi notification nhưng không ảnh hưởng đến việc update status
+            console.error(
+              'Lỗi khi tạo notification cho warehouse users:',
+              warehouseNotificationError,
+            );
+          }
         }
       } catch (notificationError) {
         // Log lỗi notification nhưng không ảnh hưởng đến việc update status

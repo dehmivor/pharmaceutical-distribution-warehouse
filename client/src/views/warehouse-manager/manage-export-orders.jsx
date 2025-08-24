@@ -478,7 +478,7 @@ export default function ManageExportOrders() {
       totalActual += detail.actual_item.reduce((sum, item) => sum + item.quantity, 0);
     }
     if (totalActual <= 0) {
-      setMessageDialog({ open: true, title: 'Lỗi', content: 'Không thể hoàn thành đơn hàng vì tổng số lượng thực tế phải lớn hơn 0.' });
+      enqueueSnackbar('Không thể hoàn thành đơn hàng vì tổng số lượng thực tế phải lớn hơn 0.', { variant: 'error' });
       return;
     }
     setConfirmDialog({
@@ -491,7 +491,6 @@ export default function ManageExportOrders() {
         try {
           const token = getAuthToken();
           if (!token) {
-            setMessageDialog({ open: true, title: 'Lỗi', content: 'Không có token xác thực. Vui lòng đăng nhập lại.' });
             return;
           }
           const res = await fetch(`/api/export-orders/${orderId}/complete`, {
@@ -507,7 +506,7 @@ export default function ManageExportOrders() {
           }
           const updatedOrder = await res.json();
           setOrders((prev) => prev.map((order) => (order._id === orderId ? updatedOrder.data : order)));
-          setMessageDialog({ open: true, title: 'Thành công', content: 'Đơn hàng đã hoàn thành!' });
+          enqueueSnackbar('Đơn hàng đã hoàn thành!', { variant: 'success' });
           await fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe);
 
           if (!updatedOrder.data.contract_id) {
@@ -545,11 +544,11 @@ export default function ManageExportOrders() {
             if (createBillRes.data.success) {
               console.log('Bill mới đã được tạo:', createBillRes.data.data);
             } else {
-              setMessageDialog({ open: true, title: 'Lỗi', content: 'Lỗi khi tạo bill: ' + createBillRes.data.message });
+              enqueueSnackbar(`Lỗi khi tạo bill:  createBillRes.data.message`, { variant: 'error' });
             }
           } catch (billErr) {
             console.error('Lỗi khi gọi API tạo bill:', billErr);
-            setMessageDialog({ open: true, title: 'Lỗi', content: 'Lỗi khi tạo bill mới' });
+            enqueueSnackbar('Lỗi khi tạo bill mới', { variant: 'error' });
           }
         } catch (error) {
           setMessageDialog({

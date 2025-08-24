@@ -130,6 +130,11 @@ export default function CreateInspectionWithExistImportOrderId() {
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h4">{trans.common.createInspectionReceiptFromOrder}</Typography>
+        <Box display="flex" gap={2}>
+          <Button variant="contained" className="p-4" onClick={() => router.push(`/wh-import-orders/${importOrderId}`)}>
+            Start Allocation
+          </Button>
+        </Box>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         {trans.common.createInspectionFromSelectedOrder}
