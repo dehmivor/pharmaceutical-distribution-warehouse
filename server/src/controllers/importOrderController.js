@@ -1,5 +1,5 @@
 const importOrderService = require('../services/importOrderService');
-const { IMPORT_ORDER_STATUSES } = require('../utils/constants');
+const notificationService = require('../services/notificationService');
 const mongoose = require('mongoose');
 
 // Create new import order
@@ -60,10 +60,7 @@ const createInternalImportOrder = async (req, res) => {
 
     // Truyền user context vào service
     const userContext = { role: req.user.role, id: req.user.userId, _id: req.user.userId };
-    const newOrder = await importOrderService.createInternalImportOrder(
-      orderDetails,
-      userContext,
-    );
+    const newOrder = await importOrderService.createInternalImportOrder(orderDetails, userContext);
 
     res.status(201).json({
       success: true,
@@ -90,7 +87,6 @@ const getImportOrders = async (req, res) => {
       warehouse_manager_id,
     } = req.query;
 
-
     const params = {
       status,
       createdAt: createdAt || undefined,
@@ -103,7 +99,7 @@ const getImportOrders = async (req, res) => {
       params,
       parseInt(page, 10),
       parseInt(limit, 10),
-      req.user?.role // Truyền user role để filter đơn nội bộ
+      req.user?.role, // Truyền user role để filter đơn nội bộ
     );
 
     res.status(200).json({
@@ -306,7 +302,7 @@ const updateOrderStatus = async (req, res) => {
 
       // Kiểm tra xem order có được gán cho warehouse manager này không
       const order = await importOrderService.getImportOrderById(id);
-      
+
       // For internal orders (no contract_id), allow the creator to update
       if (!order.contract_id) {
         // Internal order - check if current user is the creator
@@ -324,11 +320,6 @@ const updateOrderStatus = async (req, res) => {
           order.warehouse_manager_id && order.warehouse_manager_id.email
             ? order.warehouse_manager_id.email
             : null;
-        console.log('DEBUG so sánh quyền bằng email:', {
-          orderId: id,
-          warehouse_manager_email: managerEmail,
-          reqUserEmail: req.user.email,
-        });
         if (!managerEmail || !req.user.email || managerEmail !== req.user.email) {
           return res.status(403).json({
             success: false,
@@ -344,6 +335,32 @@ const updateOrderStatus = async (req, res) => {
       approvalBy,
       bypassValidation,
     );
+
+    if (status === 'delivered') {
+      try {
+        await notificationService.createNotificationForAllWarehouse({
+          title: 'Đơn hàng đã đến',
+          message: `Đơn hàng #${id.slice(20)} đã đến, hãy bắt đầu kiểm nhập`,
+          type: 'import',
+          priority: 'high',
+          sender_id: req.user._id,
+          action_url: `/wh-create-inspections/with-import-ord/${id}`,
+          metadata: {
+            orderId: id,
+            statusChangedTo: 'delivered',
+            orderType: 'import',
+            warehouseId: updatedOrder.warehouse_id || null,
+          },
+        });
+
+        console.log(
+          `Đã tạo notification cho warehouse managers khi đơn hàng #${id} chuyển sang delivered`,
+        );
+      } catch (notificationError) {
+        // Log lỗi notification nhưng không ảnh hưởng đến việc update status
+        console.error('Lỗi khi tạo notification:', notificationError);
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -371,7 +388,7 @@ const getImportOrdersByWarehouseManager = async (req, res) => {
       query,
       parseInt(page),
       parseInt(limit),
-      req.user?.role // Truyền user role để filter đơn nội bộ
+      req.user?.role, // Truyền user role để filter đơn nội bộ
     );
 
     res.status(200).json({
@@ -443,19 +460,19 @@ const assignWarehouseManager = async (req, res) => {
     const { id } = req.params;
     const { warehouse_manager_id } = req.body;
     const currentUserId = req.user.userId; // ID của warehouse manager hiện tại
-    
+
     if (!warehouse_manager_id) {
       return res.status(400).json({ success: false, error: 'warehouse_manager_id is required' });
     }
-    
+
     // Kiểm tra warehouse manager chỉ có thể assign cho chính mình
     if (warehouse_manager_id !== currentUserId) {
-      return res.status(403).json({ 
-        success: false, 
-        error: 'Warehouse manager can only assign orders to themselves' 
+      return res.status(403).json({
+        success: false,
+        error: 'Warehouse manager can only assign orders to themselves',
       });
     }
-    
+
     const updatedOrder = await importOrderService.assignWarehouseManager(id, warehouse_manager_id);
     res.status(200).json({ success: true, data: updatedOrder });
   } catch (error) {

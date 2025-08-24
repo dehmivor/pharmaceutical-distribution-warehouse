@@ -140,6 +140,46 @@ const createNotificationForAllWarehouseManagers = async (data) => {
   }
 };
 
+const createNotificationForAllWarehouse = async (data) => {
+  try {
+    // Tìm tất cả warehouse managers
+    const warehouseManagers = await User.find({
+      role: USER_ROLES.WAREHOUSE,
+      status: 'active',
+    }).select('_id');
+
+    if (warehouseManagers.length === 0) {
+      console.log('Không có warehouse nào');
+      return [];
+    }
+
+    const notifications = [];
+
+    // Tạo notification cho từng warehouse manager
+    for (const manager of warehouseManagers) {
+      const notificationData = {
+        ...data,
+        recipient_id: manager._id,
+        sender_id: data.sender_id || null,
+      };
+
+      const newNoti = await Notification.create(notificationData);
+      notifications.push(newNoti);
+
+      // Emit realtime notification
+      if (io) {
+        io.to(manager._id.toString()).emit('newNotification', newNoti);
+      }
+    }
+
+    console.log(`Đã tạo ${notifications.length} thông báo cho warehouse`);
+    return notifications;
+  } catch (error) {
+    console.error('Lỗi khi tạo thông báo cho warehouse:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   createNotification,
   deleteNotification,
@@ -147,4 +187,5 @@ module.exports = {
   markAsRead,
   markAllAsRead,
   createNotificationForAllWarehouseManagers,
+  createNotificationForAllWarehouse,
 };
