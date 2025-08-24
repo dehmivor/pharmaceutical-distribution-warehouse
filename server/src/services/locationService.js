@@ -55,6 +55,44 @@ class LocationService {
     }
   }
 
+  async getLocationById(id) {
+    try {
+      const location = await Location.findById(id).populate('area_id', 'name');
+      if (!location) {
+        return { success: false, message: 'Không tìm thấy vị trí' };
+      }
+
+      return {
+        success: true,
+        data: location,
+      };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  async getLocationByCoordinates(areaId, bay, row, column) {
+    try {
+      const location = await Location.findOne({
+        area_id: areaId,
+        bay: bay,
+        row: row,
+        column: column,
+      }).populate('area_id', 'name');
+
+      if (!location) {
+        return { success: false, message: 'Không tìm thấy vị trí với tọa độ đã cho' };
+      }
+
+      return {
+        success: true,
+        data: location,
+      };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
   async getLocationInfo(id) {
     try {
       const location = await Location.findById(id).populate('area_id', 'name');
