@@ -260,7 +260,7 @@ const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-
+    const userId = req.user && req.user._id;
     // Check if user is supervisor and bypass validation
     const bypassValidation = req.user && req.user.role === 'supervisor';
     const approvalBy = req.user ? req.user._id : null;
@@ -336,29 +336,68 @@ const updateOrderStatus = async (req, res) => {
       bypassValidation,
     );
 
-    if (status === 'delivered') {
+    const currentOrder = await importOrderService.getImportOrderById(id);
+    if (!currentOrder) {
+      return res.status(404).json({ success: false, error: 'Import order not found' });
+    }
+    if (currentOrder.created_by) {
       try {
-        await notificationService.createNotificationForAllWarehouse({
-          title: 'Đơn hàng đã đến',
-          message: `Đơn hàng #${id.slice(20)} đã đến, hãy bắt đầu kiểm nhập`,
-          type: 'import',
-          priority: 'high',
-          sender_id: req.user._id,
-          action_url: `/wh-create-inspections/with-import-ord/${id}`,
-          metadata: {
-            orderId: id,
-            statusChangedTo: 'delivered',
-            orderType: 'import',
-            warehouseId: updatedOrder.warehouse_id || null,
-          },
-        });
+        let notificationTitle, notificationMessage, priority;
 
-        console.log(
-          `Đã tạo notification cho warehouse managers khi đơn hàng #${id} chuyển sang delivered`,
-        );
+        switch (status) {
+          case 'approved':
+            notificationTitle = 'Đơn hàng nhập kho được duyệt';
+            notificationMessage = `Đơn hàng nhập kho #${id.slice(20)} của bạn đã được duyệt.`;
+            priority = 'medium';
+            break;
+          case 'rejected':
+            notificationTitle = 'Đơn hàng nhập kho bị từ chối';
+            notificationMessage = `Đơn hàng nhập kho #${id.slice(20)} của bạn đã bị từ chối.`;
+            priority = 'high';
+            break;
+          case 'delivered':
+            notificationTitle = 'Đơn hàng đã đến';
+            notificationMessage = `Đơn hàng nhập kho #${id.slice(20)} đã đến nơi.`;
+            priority = 'medium';
+            break;
+          case 'completed':
+            notificationTitle = 'Đơn hàng nhập kho hoàn thành';
+            notificationMessage = `Đơn hàng nhập kho #${id.slice(20)} của bạn đã hoàn thành.`;
+            priority = 'low';
+            break;
+          default:
+            // Không tạo notification cho các status khác
+            break;
+        }
+
+        // Tạo notification nếu có title và message
+        if (notificationTitle && notificationMessage) {
+          await notificationService.createNotification({
+            recipient_id: updatedOrder.created_by, // ID của representative đã tạo đơn hàng
+            title: notificationTitle,
+            message: notificationMessage,
+            type: 'import',
+            priority: priority,
+            action_url: `/rp-import-orders`,
+            metadata: {
+              order_id: id,
+              order_status: status,
+              order_type: 'import',
+              previous_status: updatedOrder.status,
+              contract_code: updatedOrder.contract_id?.contract_code || 'N/A',
+              supplier_name: updatedOrder.contract_id?.partner_id?.name || 'N/A',
+              status_change_date: new Date(),
+              changed_by: userId,
+            },
+          });
+
+          console.log(
+            `✅ Đã tạo notification cho representative ${updatedOrder.created_by} về việc thay đổi status đơn hàng #${id} sang ${status}`,
+          );
+        }
       } catch (notificationError) {
         // Log lỗi notification nhưng không ảnh hưởng đến việc update status
-        console.error('Lỗi khi tạo notification:', notificationError);
+        console.error('Lỗi khi tạo notification cho representative:', notificationError);
       }
     }
 

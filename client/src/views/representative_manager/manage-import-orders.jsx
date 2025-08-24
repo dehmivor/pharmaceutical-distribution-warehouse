@@ -47,6 +47,7 @@ import { useRole } from '@/contexts/RoleContext';
 import useTrans from '@/hooks/useTrans';
 
 import { sendError } from 'next/dist/server/api-utils';
+import { enqueueSnackbar } from 'notistack';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
@@ -100,7 +101,7 @@ const RepresentativeManagerImportOrders = () => {
   const [selectedOrderForDetails, setSelectedOrderForDetails] = useState(null);
   const [contractMedicines, setContractMedicines] = useState([]);
   const [loadingMedicines, setLoadingMedicines] = useState(false);
-  
+
   // Store original data for filtering
   const [allOrdersData, setAllOrdersData] = useState([]);
 
@@ -123,13 +124,13 @@ const RepresentativeManagerImportOrders = () => {
       if (response.data.success) {
         const allOrders = response.data.data || [];
         console.log('All import orders:', allOrders);
-        
+
         // Store original data for filtering
         setAllOrdersData(allOrders);
-        
+
         // Apply current filters to the new data
         applyFiltersToData(allOrders);
-        
+
         // Generate filter options from data
         const statusOptions = [...new Set(allOrders.map((order) => order.status))];
         const contractTypeOptions = [...new Set(allOrders.map((order) => order.contract_id?.contract_type).filter(Boolean))];
@@ -238,7 +239,7 @@ const RepresentativeManagerImportOrders = () => {
       );
 
       if (response.data.success) {
-        setSuccess(`${trans.representativeManagerImportOrders.messages.statusUpdateSuccess} ${newStatus}`);
+        enqueueSnackbar(`${trans.representativeManagerImportOrders.messages.statusUpdateSuccess} ${newStatus}`, { variant: 'success' });
         setStatusDialog(false);
         setSelectedOrder(null);
         fetchOrders(); // Refresh the list
@@ -259,7 +260,7 @@ const RepresentativeManagerImportOrders = () => {
         errorMsg = error.message;
       }
 
-      setError(errorMsg);
+      enqueueSnackbar(errorMsg, { variant: 'error' });
     } finally {
       setUpdatingStatus(false);
     }
@@ -366,15 +367,16 @@ const RepresentativeManagerImportOrders = () => {
   const applyFiltersToData = (dataToFilter = allOrdersData) => {
     // Client-side filtering using appliedFilters
     let filteredOrders = dataToFilter.filter((order) => {
-      const matchesSearch = !appliedFilters.search || 
+      const matchesSearch =
+        !appliedFilters.search ||
         order._id?.toLowerCase().includes(appliedFilters.search.toLowerCase()) ||
         order.contract_id?.partner_id?.name?.toLowerCase().includes(appliedFilters.search.toLowerCase()) ||
         order.contract_id?.contract_code?.toLowerCase().includes(appliedFilters.search.toLowerCase());
-      
+
       const matchesStatus = !appliedFilters.status || order.status === appliedFilters.status;
       const matchesContractType = !appliedFilters.contract_type || order.contract_id?.contract_type === appliedFilters.contract_type;
       const matchesCreatedBy = !appliedFilters.created_by || order.created_by?.email === appliedFilters.created_by;
-      
+
       return matchesSearch && matchesStatus && matchesContractType && matchesCreatedBy;
     });
 
@@ -382,7 +384,7 @@ const RepresentativeManagerImportOrders = () => {
     const startIndex = page * rowsPerPage;
     const endIndex = startIndex + rowsPerPage;
     const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
-    
+
     setOrders(paginatedOrders);
     setTotalCount(filteredOrders.length);
     console.log('Filtered orders:', filteredOrders);
@@ -439,10 +441,10 @@ const RepresentativeManagerImportOrders = () => {
 
   return (
     <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
-      <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', fontWeight: 600 }}>
+      <Typography variant="h4" gutterBottom>
         {trans.representativeManagerImportOrders.title}
       </Typography>
-      <Typography variant="body1" color="text.secondary" gutterBottom sx={{ textAlign: 'center', mb: 3 }}>
+      <Typography variant="body1" color="text.secondary" gutterBottom sx={{ mb: 3 }}>
         {trans.representativeManagerImportOrders.description}
       </Typography>
 
@@ -459,11 +461,11 @@ const RepresentativeManagerImportOrders = () => {
             <Grid item xs={12} sm={6} md={2}>
               <TextField
                 fullWidth
+                size="small"
                 label={trans.representativeManagerImportOrders.filters.search}
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
                 variant="outlined"
-                size="medium"
                 placeholder={trans.representativeManagerImportOrders.filters.searchPlaceholder}
                 InputProps={{
                   startAdornment: (
@@ -475,10 +477,11 @@ const RepresentativeManagerImportOrders = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 160 }}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.representativeManagerImportOrders.filters.status}</InputLabel>
                 <Select
                   value={filters.status}
+                  sx={{ width: 150 }}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
                   label={trans.representativeManagerImportOrders.filters.status}
                   renderValue={(selected) => (
@@ -493,9 +496,6 @@ const RepresentativeManagerImportOrders = () => {
                       {selected || trans.representativeManagerImportOrders.filters.allStatus}
                     </span>
                   )}
-                  sx={{
-                    width: 160
-                  }}
                 >
                   <MenuItem value="">{trans.representativeManagerImportOrders.filters.allStatus}</MenuItem>
                   {filterOptions?.status?.map((status) => (
@@ -507,7 +507,7 @@ const RepresentativeManagerImportOrders = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 160 }}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.representativeManagerImportOrders.filters.contractType}</InputLabel>
                 <Select
                   value={filters.contract_type}
@@ -547,7 +547,7 @@ const RepresentativeManagerImportOrders = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 200 }}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.representativeManagerImportOrders.filters.createdBy}</InputLabel>
                 <Select
                   value={filters.created_by}
@@ -579,35 +579,17 @@ const RepresentativeManagerImportOrders = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={1}>
-              <Button
-                variant="contained"
-                onClick={applyFilters}
-                fullWidth
-                sx={{ height: '56px' }}
-                startIcon={<SearchIcon />}
-              >
+              <Button variant="contained" onClick={applyFilters} fullWidth size="small" startIcon={<SearchIcon />}>
                 {trans.common.search || 'Search'}
               </Button>
             </Grid>
             <Grid item xs={12} sm={6} md={1}>
-              <Button
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={fetchOrders}
-                disabled={loading}
-                fullWidth
-                sx={{ height: '56px' }}
-              >
+              <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchOrders} disabled={loading} fullWidth size="small">
                 {trans.representativeManagerImportOrders.filters.refresh}
               </Button>
             </Grid>
             <Grid item xs={12} sm={6} md={1}>
-              <Button
-                variant="outlined"
-                onClick={clearFilters}
-                fullWidth
-                sx={{ height: '56px' }}
-              >
+              <Button variant="outlined" onClick={clearFilters} fullWidth size="small">
                 {trans.common.clear || 'Clear'}
               </Button>
             </Grid>
@@ -722,6 +704,7 @@ const RepresentativeManagerImportOrders = () => {
                           )}
                           {isOrderLocked(order) && (
                             <Chip
+                              sx={{ mt: 1 }}
                               label={trans.representativeManagerImportOrders.table.locked}
                               color="error"
                               size="small"
