@@ -2789,6 +2789,7 @@ export default {
     contract: 'Contract',
     supplier: 'Supplier',
     arrived: 'Arrived',
+    printReceipt : 'Print receipt',
     items: 'Items',
     inspection: 'Inspection',
     packages: 'Packages',

@@ -556,6 +556,28 @@ const assignWarehouseManager = async (req, res) => {
   }
 };
 
+
+const docx = async (req, res) => {
+  const { id } = req.params
+  try {
+    const buffer = await importOrderService.createTranscriptionDocBuffer(id);
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="phieu_nhap_kho_transcription.docx"'
+    );
+
+    res.send(buffer);
+  } catch (err) {
+    console.error("Error in downloadTranscriptionDocx:", err);
+    res.status(500).send("Internal server error");
+  }
+};
+
 module.exports = {
   createImportOrder,
   createInternalImportOrder,
@@ -572,4 +594,5 @@ module.exports = {
   getImportOrdersByContract,
   getValidStatusTransitions,
   assignWarehouseManager,
+  docx,
 };
