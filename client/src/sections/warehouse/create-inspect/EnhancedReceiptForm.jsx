@@ -285,11 +285,6 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
             const currentRejectedQty = field === 'rejectedQuantity' ? newValue : parseFloat(item.rejectedQuantity) || 0;
             const expectedQty = parseFloat(item.expectedQuantity) || 0;
 
-            if (currentActualQty + currentRejectedQty > expectedQty) {
-              enqueueSnackbar(trans.common.totalQuantityExceedsExpected, { variant: 'error' });
-              return item;
-            }
-
             updatedItem.actualQuantity = currentActualQty;
             updatedItem.rejectedQuantity = currentRejectedQty;
 
