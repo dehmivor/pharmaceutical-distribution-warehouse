@@ -9,18 +9,18 @@ const User = require('../models/User');
 
 /**
  * Cron job để gửi email nhắc hạn thông minh
- * Chạy mỗi giờ để kiểm tra và gửi email khi cần thiết
+ * Chạy mỗi 24 giờ để kiểm tra và gửi email khi cần thiết
  */
 function startReminderEmailJob() {
   console.log('📧 Reminder Email Cron Job: Starting...');
 
-  // Chạy mỗi giờ để kiểm tra reminders
+  // Chạy mỗi 24 giờ vào 1:00 chiều để kiểm tra reminders
   cron.schedule(
-    '0 * * * *',
+    '0 13 * * *',
     async () => {
       try {
         console.log(
-          '📧 Reminder Email Cron: Running hourly check at',
+          '📧 Reminder Email Cron: Running daily check at 1:00 PM',
           new Date().toLocaleString('vi-VN'),
         );
 
@@ -41,48 +41,12 @@ function startReminderEmailJob() {
           supervisorEmails,
         );
 
-        // 1. Kiểm tra bills - chỉ gửi khi còn 3 ngày hoặc quá hạn
-        await processBillReminders(supervisorEmails);
-
-        // 2. Kiểm tra thuốc dưới mức tồn kho - gửi ngay lập tức
-        await processStockReminders(supervisorEmails);
-
-        // 3. Kiểm tra thuốc hết hạn - gửi ngay lập tức
-        await processExpiryReminders(supervisorEmails);
-
-        console.log('📧 Reminder Email Cron: Hourly check completed successfully');
-      } catch (error) {
-        console.error('❌ Error in reminder email cron:', error);
-      }
-    },
-    {
-      scheduled: true,
-      timezone: 'Asia/Ho_Chi_Minh',
-    },
-  );
-
-  // Chạy kiểm tra đặc biệt vào 8:00 sáng hàng ngày
-  cron.schedule(
-    '0 8 * * *',
-    async () => {
-      try {
-        console.log('📧 Reminder Email Cron: Running daily morning check at 8:00 AM');
-
-        const supervisors = await User.find({
-          role: 'supervisor',
-          status: 'active',
-        }).select('email full_name');
-
-        if (supervisors.length === 0) return;
-
-        const supervisorEmails = supervisors.map((s) => s.email);
-
         // Gửi tất cả reminders vào buổi sáng
         await processAllReminders(supervisorEmails);
 
-        console.log('📧 Reminder Email Cron: Daily morning check completed');
+        console.log('📧 Reminder Email Cron: Daily check completed successfully');
       } catch (error) {
-        console.error('❌ Error in daily morning reminder check:', error);
+        console.error('❌ Error in daily reminder check:', error);
       }
     },
     {
@@ -91,7 +55,9 @@ function startReminderEmailJob() {
     },
   );
 
-  console.log('📧 Reminder Email Cron Job: Started successfully');
+  console.log(
+    '📧 Reminder Email Cron Job: Started successfully - Running once every 24 hours at 1:00 PM',
+  );
 }
 
 /**
