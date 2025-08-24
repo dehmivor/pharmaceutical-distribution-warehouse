@@ -18,6 +18,7 @@ import {
   TablePagination
 } from '@mui/material';
 import useTrans from '@/hooks/useTrans';
+import { enqueueSnackbar } from 'notistack';
 
 const Alerts = () => {
   const trans = useTrans();
@@ -191,14 +192,77 @@ const Alerts = () => {
     setHandledAlertIds((prev) => new Set(prev).add(alertId));
   };
 
-  const handleCreateDestroyTicket = (batch) => {
-    console.log('Tạo phiếu hủy cho batch:', batch._id, batch.batch_code);
-    alert(trans.alerts.createDestroyTicketMessage.replace('{code}', batch.batch_code));
+  const handleCreateDestroyTicket = async (batch) => {
+    try {
+      const notificationData = {
+        target_warehouse_managers: true, // Special flag to target all warehouse managers
+        sender_id: null,
+        title: 'Yêu cầu hủy thuốc',
+        message: `Thuốc ${batch.medicine_id?.medicine_name || 'N/A'} (Batch: ${batch.batch_code}) cần được hủy do hết hạn`,
+        type: 'system_alert',
+        priority: 'high',
+        status: 'unread',
+        action_url: `/wm-export-orders || 'N/A')}`,
+        metadata: {
+          batchId: batch._id,
+          batchCode: batch.batch_code,
+          medicineName: batch.medicine_id?.medicine_name || 'N/A',
+          action: 'create_destroy_ticket'
+        }
+      };
+
+      const response = await axios.post(`${backendUrl}/api/notifications`, notificationData);
+
+      if (response.data.success) {
+        console.log('Thông báo đã được tạo thành công');
+        // Show success message
+        enqueueSnackbar(`Đã gửi thông báo hủy thuốc lô: ${batch.batch_code}`, { variant: 'success' });
+      } else {
+        console.error('Lỗi khi tạo thông báo:', response.data.error);
+        enqueueSnackbar('Có lỗi khi tạo thông báo. Vui lòng thử lại.', { variant: 'error' });
+      }
+    } catch (error) {
+      console.error('Lỗi khi tạo thông báo:', error);
+      enqueueSnackbar('Có lỗi khi tạo thông báo. Vui lòng thử lại.', { variant: 'error' });
+    }
   };
 
-  const handleCreateImportOrder = (medicine) => {
-    console.log('Tạo phiếu nhập kho cho thuốc:', medicine.medicineName, medicine.medicineCode);
-    alert(`Create import order for medicine: ${medicine.medicineName} (${medicine.medicineCode})`);
+  const handleCreateImportOrder = async (medicine) => {
+    try {
+      console.log('Tạo thông báo nhập kho cho thuốc:', medicine.medicineName, medicine.medicineCode);
+
+      // Create notification for all warehouse managers
+      const notificationData = {
+        target_warehouse_managers: true, // Special flag to target all warehouse managers
+        sender_id: null,
+        title: 'Yêu cầu nhập kho',
+        message: `Thuốc ${medicine.medicineName || 'N/A'} (Code: ${medicine.medicineCode}) cần được nhập kho do thiếu hàng`,
+        type: 'system_alert',
+        priority: 'medium',
+        status: 'unread',
+        action_url: `/wm-import-orders?action=create_order&medicineId=${medicine.medicineId}&medicineCode=${medicine.medicineCode}&medicineName=${encodeURIComponent(medicine.medicineName || 'N/A')}`,
+        metadata: {
+          medicineId: medicine.medicineId,
+          medicineCode: medicine.medicineCode,
+          medicineName: medicine.medicineName || 'N/A',
+          action: 'create_import_order'
+        }
+      };
+
+      const response = await axios.post(`${backendUrl}/api/notifications`, notificationData);
+
+      if (response.data.success) {
+        console.log('Thông báo đã được tạo thành công');
+        // Show success message
+        enqueueSnackbar(`Đã gửi thông báo nhập kho cho warehouse managers: ${medicine.medicineName}`, { variant: 'success' });
+      } else {
+        console.error('Lỗi khi tạo thông báo:', response.data.error);
+        enqueueSnackbar('Có lỗi khi tạo thông báo. Vui lòng thử lại.', { variant: 'error' });
+      }
+    } catch (error) {
+      console.error('Lỗi khi tạo thông báo:', error);
+      enqueueSnackbar('Có lỗi khi tạo thông báo. Vui lòng thử lại.', { variant: 'error' });
+    }
   };
 
   const handlePayBill = (bill) => {
@@ -272,7 +336,7 @@ const Alerts = () => {
                     onClick={() => handleCreateDestroyTicket(batch)}
                     disabled={!batch.batch_code}
                   >
-                    {trans.alerts.createDestroyTicket}
+                    Gửi thông báo hủy
                   </Button>
                 </TableCell>
               </TableRow>
@@ -434,7 +498,7 @@ const Alerts = () => {
                 {/* Action */}
                 <TableCell align="center">
                   <Button variant="contained" color="primary" size="small" onClick={() => handleCreateImportOrder(medicine)} sx={{ mr: 1 }}>
-                    Create Import Order
+                    Gửi thông báo nhập kho
                   </Button>
                   <Button variant="outlined" color="secondary" size="small" onClick={() => window.open(`/sp-import-orders`, '_blank')}>
                     Go to Import
@@ -555,9 +619,6 @@ const Alerts = () => {
 
                 {/* Action */}
                 <TableCell>
-                  <Button variant="contained" color="primary" size="small" onClick={() => handlePayBill(bill)} sx={{ mr: 1 }}>
-                    Pay Bill
-                  </Button>
                   <Button variant="outlined" color="secondary" size="small" onClick={() => window.open(`/sp-manage-bills`, '_blank')}>
                     Go to Bills
                   </Button>
