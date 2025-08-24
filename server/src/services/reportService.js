@@ -137,7 +137,7 @@ class ReportService {
       console.log('🔍 Query filters:', query);
 
       // Fetch bills with populated data
-      const bills = await Bill.find(query)
+      let bills = await Bill.find(query)
         .populate({
           path: 'import_order_id',
           populate: [
@@ -225,7 +225,7 @@ class ReportService {
       const processedBills = await Promise.all(
         bills.map(async (bill) => {
           try {
-            console.log('�� Processing bill:', bill._id, 'details:', bill.details);
+            console.log('🔍 Processing bill:', bill._id, 'details:', bill.details);
 
             // Validate bill structure
             if (!bill || !bill._id) {
@@ -268,6 +268,7 @@ class ReportService {
             // Calculate bill value with safe math operations
             const billValue = bill.details.reduce((sum, detail) => {
               try {
+                if (!detail || typeof detail !== 'object') return sum;
                 const quantity = parseFloat(detail.quantity) || 0;
                 const unitPrice = parseFloat(detail.unit_price) || 0;
                 return sum + quantity * unitPrice;
@@ -339,6 +340,10 @@ class ReportService {
             const processedDetails = await Promise.all(
               bill.details.map(async (detail) => {
                 try {
+                  if (!detail || typeof detail !== 'object') {
+                    return null;
+                  }
+
                   // Try to get medicine information from database
                   const medicineInfo = await this.getMedicineInfo(detail.medicine_lisence_code);
 
@@ -1298,6 +1303,358 @@ class ReportService {
       }
     } catch (error) {
       console.error('Error getting import report dashboard:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // ===== EXPORT ORDERS REPORT FUNCTIONS =====
+
+  // Get export orders report data
+  static async getExportOrdersReport(filters = {}) {
+    try {
+      const { startDate, endDate, period = 'monthly', status, partnerType, page, limit } = filters;
+
+      console.log('Export report filters received:', filters);
+
+      const statusFilter = status && status !== 'all' ? { status: status.toUpperCase() } : {};
+      const partnerTypeFilter = partnerType ? { partner_type: partnerType.toLowerCase() } : {};
+
+      console.log('Status filter:', statusFilter);
+      console.log('Partner type filter:', partnerTypeFilter);
+
+      // Find export orders and populate nested references
+      let exportOrders = await ExportOrder.find(statusFilter)
+        .populate({
+          path: 'contract_id',
+          select: 'contract_code partner_type partner_id',
+          match: partnerTypeFilter,
+        })
+        .populate({
+          path: 'created_by',
+          select: 'username email full_name',
+        })
+        .populate({
+          path: 'approval_by',
+          select: 'username email full_name',
+        })
+        .populate({
+          path: 'warehouse_manager_id',
+          select: 'username email full_name',
+        })
+        .sort({ createdAt: -1 });
+
+      console.log('Found export orders:', exportOrders.length);
+
+      // Filter by date range if provided
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        console.log('Date filter range:', { startDate, endDate, start, end });
+
+        exportOrders = exportOrders.filter((order) => {
+          const orderDate = order.createdAt;
+          console.log(`Export order ${order._id}: createdAt =`, orderDate);
+
+          const isInRange = orderDate && orderDate >= start && orderDate <= end;
+          console.log(
+            `Export order ${order._id}: Date in range? ${isInRange} (${orderDate} >= ${start} && ${orderDate} <= ${end})`,
+          );
+
+          return isInRange;
+        });
+
+        console.log('Export orders after date filtering:', exportOrders.length);
+      }
+
+      // Filter by partner type if provided
+      if (partnerType) {
+        exportOrders = exportOrders.filter((order) => {
+          return (
+            order.contract_id &&
+            order.contract_id.partner_type.toLowerCase() === partnerType.toLowerCase()
+          );
+        });
+        console.log('Export orders after partner type filtering:', exportOrders.length);
+      }
+
+      // Apply pagination
+      const totalOrders = exportOrders.length;
+      const skip = (page - 1) * limit;
+      const paginatedOrders = exportOrders.slice(skip, skip + limit);
+
+      console.log(
+        `Pagination: page=${page}, limit=${limit}, total=${totalOrders}, showing=${paginatedOrders.length}`,
+      );
+
+      // Process export orders
+      const processedOrders = paginatedOrders.map((order) => {
+        // Calculate total value from details (convert to thousands VND)
+        const totalValue =
+          order.details.reduce(
+            (sum, detail) => sum + (detail.quantity || 0) * (detail.unit_price || 0),
+            0,
+          ) / 1000; // Convert to thousands VND
+
+        return {
+          id: order._id.toString(),
+          orderCode: order.order_code || `EXP_${order._id.toString().slice(-8)}`,
+          contractCode: order.contract_id?.contract_code || 'N/A',
+          partnerType: order.contract_id?.partner_type || 'N/A',
+          partnerId: order.contract_id?.partner_id || 'N/A',
+          status: order.status,
+          orderType: order.order_type || 'EXPORT',
+          totalValue: Math.round(totalValue),
+          amountPaid: order.amount_paid ? Math.round(order.amount_paid / 1000) : 0,
+          remainingAmount: order.remaining_amount ? Math.round(order.remaining_amount / 1000) : 0,
+          paymentDate: order.payment_date || null,
+          dueDate: order.due_date || null,
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+          createdBy: order.created_by?.full_name || order.created_by?.username || 'N/A',
+          approvedBy: order.approval_by?.full_name || order.approval_by?.username || 'N/A',
+          warehouseManager:
+            order.warehouse_manager_id?.full_name || order.warehouse_manager_id?.username || 'N/A',
+          medicineCount: order.details?.length || 0,
+          totalQuantity:
+            order.details?.reduce((sum, detail) => sum + (detail.quantity || 0), 0) || 0,
+          averageUnitPrice:
+            order.details?.length > 0
+              ? Math.round(
+                  order.details.reduce((sum, detail) => sum + (detail.unit_price || 0), 0) /
+                    order.details.length /
+                    1000,
+                )
+              : 0,
+          details:
+            order.details?.map((detail) => ({
+              medicineCode: detail.medicine_id?.medicine_code || 'N/A',
+              medicineName: detail.medicine_id?.name || detail.medicine_id?.medicine_name || 'N/A',
+              quantity: detail.quantity || 0,
+              unitPrice: Math.round((detail.unit_price || 0) / 1000), // Convert to thousands
+              totalPrice: Math.round(((detail.quantity || 0) * (detail.unit_price || 0)) / 1000), // Convert to thousands
+            })) || [],
+        };
+      });
+
+      console.log('Processed export orders:', processedOrders.length);
+
+      return {
+        success: true,
+        data: {
+          exportOrders: processedOrders,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: totalOrders,
+            pages: Math.ceil(totalOrders / limit),
+          },
+          filters: {
+            startDate,
+            endDate,
+            period,
+            status,
+            partnerType,
+          },
+        },
+      };
+    } catch (error) {
+      console.error('Error in getExportOrdersReport:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Get export orders report by period
+  static async getExportOrdersReportByPeriod(period, startDate, endDate) {
+    try {
+      const filters = { startDate, endDate, period };
+      const reportData = await this.getExportOrdersReport(filters);
+
+      if (!reportData.success) {
+        return reportData;
+      }
+
+      // Group by period
+      const groupedData = {};
+      const exportOrders = reportData.data.exportOrders;
+
+      exportOrders.forEach((order) => {
+        const orderDate = new Date(order.createdAt);
+        let periodKey;
+
+        switch (period) {
+          case 'weekly':
+            const weekStart = new Date(orderDate);
+            weekStart.setDate(orderDate.getDate() - orderDate.getDay());
+            periodKey = weekStart.toISOString().split('T')[0];
+            break;
+          case 'monthly':
+            periodKey = orderDate.toISOString().slice(0, 7); // YYYY-MM
+            break;
+          case 'quarterly':
+            const quarter = Math.floor(orderDate.getMonth() / 3) + 1;
+            periodKey = `${orderDate.getFullYear()}-Q${quarter}`;
+            break;
+          default:
+            periodKey = orderDate.toISOString().slice(0, 7);
+        }
+
+        if (!groupedData[periodKey]) {
+          groupedData[periodKey] = {
+            period: periodKey,
+            totalOrders: 0,
+            totalValue: 0,
+            totalQuantity: 0,
+            orders: [],
+          };
+        }
+
+        groupedData[periodKey].totalOrders += 1;
+        groupedData[periodKey].totalValue += order.totalValue;
+        groupedData[periodKey].totalQuantity += order.totalQuantity;
+        groupedData[periodKey].orders.push(order);
+      });
+
+      return {
+        success: true,
+        data: Object.values(groupedData),
+        summary: {
+          totalPeriods: Object.keys(groupedData).length,
+          totalOrders: exportOrders.length,
+          totalValue: exportOrders.reduce((sum, order) => sum + order.totalValue, 0),
+          totalQuantity: exportOrders.reduce((sum, order) => sum + order.totalQuantity, 0),
+        },
+      };
+    } catch (error) {
+      console.error('Error in getExportOrdersReportByPeriod:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Get export orders partner analysis report
+  static async getExportOrdersPartnerAnalysis(startDate, endDate) {
+    try {
+      const filters = { startDate, endDate };
+      const reportData = await this.getExportOrdersReport(filters);
+
+      if (!reportData.success) {
+        return reportData;
+      }
+
+      const exportOrders = reportData.data.exportOrders;
+      const partnerAnalysis = {};
+
+      exportOrders.forEach((order) => {
+        const partnerId = order.partnerId;
+        const partnerName = order.partnerType;
+
+        if (!partnerAnalysis[partnerId]) {
+          partnerAnalysis[partnerId] = {
+            partnerId,
+            partnerName,
+            totalOrders: 0,
+            totalValue: 0,
+            totalQuantity: 0,
+            orders: [],
+          };
+        }
+
+        const totalValue = order.details.reduce(
+          (sum, detail) => sum + (detail.quantity || 0) * (detail.unit_price || 0),
+          0,
+        );
+
+        partnerAnalysis[partnerId].totalOrders += 1;
+        partnerAnalysis[partnerId].totalValue += totalValue;
+        partnerAnalysis[partnerId].totalQuantity += order.details.reduce(
+          (sum, detail) => sum + (detail.quantity || 0),
+          0,
+        );
+        partnerAnalysis[partnerId].orders.push(order);
+      });
+
+      return {
+        success: true,
+        data: {
+          startDate,
+          endDate,
+          partnerAnalysis: Object.values(partnerAnalysis),
+          summary: {
+            totalPartners: Object.keys(partnerAnalysis).length,
+            totalOrders: exportOrders.length,
+            totalValue: exportOrders.reduce((sum, order) => {
+              return (
+                sum +
+                order.details.reduce(
+                  (detailSum, detail) =>
+                    detailSum + (detail.quantity || 0) * (detail.unit_price || 0),
+                  0,
+                )
+              );
+            }, 0),
+          },
+        },
+      };
+    } catch (error) {
+      console.error('Error in getExportOrdersPartnerAnalysis:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Export export orders report to Excel
+  static async exportExportOrdersToExcel(filters = {}) {
+    try {
+      const reportData = await this.getExportOrdersReport(filters);
+
+      if (!reportData.success) {
+        throw new Error(reportData.error);
+      }
+
+      // This would typically use a library like xlsx to create Excel file
+      // For now, return the data structure
+      return {
+        success: true,
+        data: reportData.data,
+        filename: `export_orders_report_${new Date().toISOString().split('T')[0]}.xlsx`,
+      };
+    } catch (error) {
+      console.error('Error exporting export orders to Excel:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // Get partner types from database for filtering
+  static async getPartnerTypes() {
+    try {
+      // Get unique partner types from contracts
+      const partnerTypes = await Contract.distinct('partner_type');
+
+      // Filter out null/undefined values and sort alphabetically
+      const validPartnerTypes = partnerTypes.filter((type) => type && type.trim() !== '').sort();
+
+      console.log('Found partner types:', validPartnerTypes);
+
+      return {
+        success: true,
+        data: validPartnerTypes,
+      };
+    } catch (error) {
+      console.error('Error getting partner types:', error);
       return {
         success: false,
         error: error.message,

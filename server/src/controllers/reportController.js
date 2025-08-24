@@ -87,12 +87,16 @@ const getReportByPeriod = async (req, res) => {
 
     const reportData = await ReportService.getReportByPeriod(period, startDate, endDate);
 
-    res.status(200).json(reportData);
+    if (reportData.success) {
+      res.status(200).json(reportData);
+    } else {
+      res.status(400).json(reportData);
+    }
   } catch (error) {
-    console.error('Error getting period report:', error);
+    console.error('Error getting report by period:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to generate period report',
+      error: 'Failed to generate report by period',
       details: error.message,
     });
   }
@@ -151,6 +155,10 @@ const getMedicineAnalysisReport = async (req, res) => {
 // Export report to Excel
 const exportReportToExcel = async (req, res) => {
   try {
+    console.log('🚀 Export function started');
+    console.log('📊 Request headers:', req.headers);
+    console.log('📊 Request query:', req.query);
+
     const {
       startDate,
       endDate,
@@ -175,10 +183,19 @@ const exportReportToExcel = async (req, res) => {
     let reportTitle = 'Report';
 
     try {
+      console.log('🔍 Starting report generation...');
+
       switch (reportType) {
         case 'comprehensive':
+          console.log('🔍 Generating comprehensive report...');
           const filters = { startDate, endDate, period, status, type, partnerType };
           const comprehensiveReport = await ReportService.getComprehensiveReport(filters);
+
+          console.log('🔍 Comprehensive report result:', {
+            success: comprehensiveReport.success,
+            dataLength: comprehensiveReport.data?.bills?.length || 0,
+            error: comprehensiveReport.error,
+          });
 
           if (!comprehensiveReport.success) {
             console.error('❌ Comprehensive report failed:', comprehensiveReport.error);
@@ -194,6 +211,7 @@ const exportReportToExcel = async (req, res) => {
           break;
 
         case 'period':
+          console.log('🔍 Generating period report...');
           const periodReport = await ReportService.getReportByPeriod(period, startDate, endDate);
 
           if (!periodReport.success) {
@@ -210,6 +228,7 @@ const exportReportToExcel = async (req, res) => {
           break;
 
         case 'partner':
+          console.log('🔍 Generating partner report...');
           const partnerReport = await ReportService.getPartnerAnalysisReport(startDate, endDate);
 
           if (!partnerReport.success) {
@@ -226,6 +245,7 @@ const exportReportToExcel = async (req, res) => {
           break;
 
         case 'medicine':
+          console.log('🔍 Generating medicine report...');
           const medicineReport = await ReportService.getMedicineAnalysisReport(startDate, endDate);
 
           if (!medicineReport.success) {
@@ -249,6 +269,14 @@ const exportReportToExcel = async (req, res) => {
           });
       }
 
+      console.log('🔍 Report data retrieved:', {
+        reportType,
+        reportTitle,
+        dataLength: reportData?.length || 0,
+        dataType: typeof reportData,
+        isArray: Array.isArray(reportData),
+      });
+
       // Validate report data
       if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
         console.warn('⚠️ No data available for export');
@@ -259,12 +287,17 @@ const exportReportToExcel = async (req, res) => {
         });
       }
 
-      console.log(`📊 Exporting ${reportData.length} records for ${reportType} report`);
+      console.log('🔍 Starting data cleaning...');
 
-      // Clean and validate data for Excel export
+      // Clean and prepare data for Excel export
       const cleanData = reportData
         .map((item, index) => {
           try {
+            if (!item || typeof item !== 'object') {
+              console.warn(`⚠️ Invalid item at index ${index}:`, item);
+              return null;
+            }
+
             const cleanItem = {};
 
             // Process each field safely
@@ -284,21 +317,15 @@ const exportReportToExcel = async (req, res) => {
                 if (Array.isArray(value)) {
                   if (value.length === 0) {
                     value = 'No items';
-                  } else if (value.some((v) => v && typeof v === 'object' && v.error)) {
-                    // Filter out error items from arrays
-                    const cleanArray = value.filter(
-                      (v) => !(v && typeof v === 'object' && v.error),
-                    );
-                    value = cleanArray.length > 0 ? `${cleanArray.length} items` : 'No items';
                   } else {
                     value = `${value.length} items`;
                   }
                 } else {
-                  // For objects, check if they contain error fields
-                  if (value.error) {
-                    value = 'N/A'; // Replace error objects with N/A
-                  } else {
+                  // For objects, convert to string representation
+                  try {
                     value = JSON.stringify(value);
+                  } catch (stringifyError) {
+                    value = 'N/A';
                   }
                 }
               } else if (typeof value === 'number') {
@@ -349,144 +376,13 @@ const exportReportToExcel = async (req, res) => {
         })
         .filter((item) => item !== null); // Remove any null items
 
-      // Additional data validation and cleaning
-      const finalCleanData = cleanData.map((item, index) => {
-        try {
-          // Ensure all required fields are present and clean
-          const finalItem = {
-            id: item.id || `Item ${index + 1}`,
-            billCode: item.billCode || 'N/A',
-            voucherCode: item.voucherCode || 'N/A',
-            contractCode: item.contractCode || 'N/A',
-            partnerType: item.partnerType || 'N/A',
-            partnerName: item.partnerName || 'N/A',
-            orderCode: item.orderCode || 'N/A',
-            orderType: item.orderType || 'N/A',
-            billType: item.billType || 'N/A',
-            status: item.status || 'N/A',
-            totalValue: typeof item.totalValue === 'number' ? item.totalValue : 0,
-            amountPaid: typeof item.amountPaid === 'number' ? item.amountPaid : 0,
-            remainingAmount: typeof item.remainingAmount === 'number' ? item.remainingAmount : 0,
-            paymentDate: item.paymentDate || '',
-            dueDate: item.dueDate || '',
-            createdAt: item.createdAt || '',
-            updatedAt: item.updatedAt || '',
-            // Medicine summary fields
-            medicineCount: typeof item.medicineCount === 'number' ? item.medicineCount : 0,
-            totalQuantity: typeof item.totalQuantity === 'number' ? item.totalQuantity : 0,
-            averageUnitPrice: typeof item.averageUnitPrice === 'number' ? item.averageUnitPrice : 0,
-            // Details summary
-            details: item.details ? `${item.details.length} items` : 'No items',
-          };
-
-          // Validate numeric fields
-          if (isNaN(finalItem.totalValue)) finalItem.totalValue = 0;
-          if (isNaN(finalItem.amountPaid)) finalItem.amountPaid = 0;
-          if (isNaN(finalItem.remainingAmount)) finalItem.remainingAmount = 0;
-          if (isNaN(finalItem.medicineCount)) finalItem.medicineCount = 0;
-          if (isNaN(finalItem.totalQuantity)) finalItem.totalQuantity = 0;
-          if (isNaN(finalItem.averageUnitPrice)) finalItem.averageUnitPrice = 0;
-
-          // Ensure status is clean
-          if (finalItem.status && typeof finalItem.status === 'string') {
-            const cleanStatus = finalItem.status.toLowerCase().trim();
-            if (cleanStatus.includes('error') || cleanStatus === 'unknown') {
-              finalItem.status = 'N/A';
-            }
-          }
-
-          // Clean partner and company names
-          if (finalItem.partnerName && typeof finalItem.partnerName === 'string') {
-            if (finalItem.partnerName.toLowerCase().includes('error')) {
-              finalItem.partnerName = 'N/A';
-            }
-          }
-
-          // Format dates properly
-          if (finalItem.paymentDate) {
-            try {
-              const paymentDate = new Date(finalItem.paymentDate);
-              if (!isNaN(paymentDate.getTime())) {
-                finalItem.paymentDate = paymentDate.toISOString().split('T')[0];
-              } else {
-                finalItem.paymentDate = '';
-              }
-            } catch (dateError) {
-              finalItem.paymentDate = '';
-            }
-          }
-
-          if (finalItem.dueDate) {
-            try {
-              const dueDate = new Date(finalItem.dueDate);
-              if (!isNaN(dueDate.getTime())) {
-                finalItem.dueDate = dueDate.toISOString().split('T')[0];
-              } else {
-                finalItem.dueDate = '';
-              }
-            } catch (dateError) {
-              finalItem.dueDate = '';
-            }
-          }
-
-          if (finalItem.createdAt) {
-            try {
-              const createdAt = new Date(finalItem.createdAt);
-              if (!isNaN(createdAt.getTime())) {
-                finalItem.createdAt = createdAt.toISOString().split('T')[0];
-              } else {
-                finalItem.createdAt = '';
-              }
-            } catch (dateError) {
-              finalItem.createdAt = '';
-            }
-          }
-
-          if (finalItem.updatedAt) {
-            try {
-              const updatedAt = new Date(finalItem.updatedAt);
-              if (!isNaN(updatedAt.getTime())) {
-                finalItem.updatedAt = updatedAt.toISOString().split('T')[0];
-              } else {
-                finalItem.updatedAt = '';
-              }
-            } catch (dateError) {
-              finalItem.updatedAt = '';
-            }
-          }
-
-          return finalItem;
-        } catch (finalError) {
-          console.warn(`⚠️ Error in final cleaning for item ${index}:`, finalError);
-          // Return a completely clean fallback item
-          return {
-            id: `Item ${index + 1}`,
-            billCode: 'N/A',
-            voucherCode: 'N/A',
-            contractCode: 'N/A',
-            partnerType: 'N/A',
-            partnerName: 'N/A',
-            orderCode: 'N/A',
-            orderType: 'N/A',
-            billType: 'N/A',
-            status: 'N/A',
-            totalValue: 0,
-            amountPaid: 0,
-            remainingAmount: 0,
-            paymentDate: '',
-            dueDate: '',
-            createdAt: '',
-            updatedAt: '',
-            medicineCount: 0,
-            totalQuantity: 0,
-            averageUnitPrice: 0,
-            details: 'No items',
-          };
-        }
+      console.log('🔍 Data cleaning completed:', {
+        originalLength: reportData.length,
+        cleanLength: cleanData.length,
       });
 
       // Final validation - ensure we have clean data
-      if (finalCleanData.length === 0) {
+      if (cleanData.length === 0) {
         console.warn('⚠️ No clean data available after processing');
         return res.status(404).json({
           success: false,
@@ -495,19 +391,19 @@ const exportReportToExcel = async (req, res) => {
         });
       }
 
-      console.log(`📊 Exporting ${finalCleanData.length} clean records for ${reportType} report`);
+      console.log('🔍 Starting Excel generation...');
 
       // Create workbook and worksheet with clean data
       try {
         const workbook = xlsx.utils.book_new();
 
         // Ensure we have valid data for Excel
-        if (!finalCleanData || finalCleanData.length === 0) {
+        if (!cleanData || cleanData.length === 0) {
           throw new Error('No valid data to export');
         }
 
-        // Convert data to Excel format
-        const excelData = finalCleanData.map((item) => {
+        // Convert data to Excel format - ensure all values are strings or numbers
+        const excelData = cleanData.map((item) => {
           const cleanItem = {};
           Object.keys(item).forEach((key) => {
             let value = item[key];
@@ -519,7 +415,11 @@ const exportReportToExcel = async (req, res) => {
 
             // Convert objects to strings
             if (typeof value === 'object' && !Array.isArray(value)) {
-              value = JSON.stringify(value);
+              try {
+                value = JSON.stringify(value);
+              } catch (stringifyError) {
+                value = 'N/A';
+              }
             }
 
             // Convert arrays to string representation
@@ -532,12 +432,17 @@ const exportReportToExcel = async (req, res) => {
               value = 0;
             }
 
-            cleanItem[key] = value;
+            // Convert all values to strings for Excel compatibility
+            cleanItem[key] = String(value);
           });
           return cleanItem;
         });
 
-        console.log('📊 Excel data prepared:', excelData.length, 'rows');
+        console.log('🔍 Excel data prepared:', {
+          rows: excelData.length,
+          columns: excelData.length > 0 ? Object.keys(excelData[0]).length : 0,
+          sampleRow: excelData.length > 0 ? excelData[0] : null,
+        });
 
         const worksheet = xlsx.utils.json_to_sheet(excelData);
 
@@ -595,7 +500,7 @@ const exportReportToExcel = async (req, res) => {
         res.setHeader('Content-Length', buffer.length);
 
         console.log(
-          `✅ Successfully exported ${reportType} report with ${finalCleanData.length} records, file size: ${buffer.length} bytes`,
+          `✅ Successfully exported ${reportType} report with ${cleanData.length} records, file size: ${buffer.length} bytes`,
         );
 
         // Send buffer
@@ -617,7 +522,7 @@ const exportReportToExcel = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('❌ Error exporting report to Excel:', error);
+    console.error('❌ General error during export:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to export report to Excel',
@@ -709,12 +614,11 @@ const getReportTemplates = async (req, res) => {
       },
       {
         id: 'partner',
-        name: 'Báo cáo theo đối tác',
-        description: 'Phân tích công nợ theo từng đối tác',
+        name: 'Báo cáo phân tích đối tác',
+        description: 'Báo cáo thống kê theo đối tác',
         fields: [
-          'contractCode',
           'partnerType',
-          'partnerId',
+          'partnerName',
           'totalBills',
           'totalValue',
           'totalPaid',
@@ -723,9 +627,9 @@ const getReportTemplates = async (req, res) => {
       },
       {
         id: 'medicine',
-        name: 'Báo cáo theo thuốc',
-        description: 'Phân tích theo từng loại thuốc',
-        fields: ['medicineCode', 'totalQuantity', 'totalValue', 'averagePrice', 'billCount'],
+        name: 'Báo cáo phân tích thuốc',
+        description: 'Báo cáo thống kê theo thuốc',
+        fields: ['medicineCode', 'medicineName', 'totalQuantity', 'totalValue', 'averagePrice'],
       },
     ];
 
@@ -743,20 +647,29 @@ const getReportTemplates = async (req, res) => {
   }
 };
 
-// ===== IMPORT ORDERS REPORT METHODS =====
-
 // Get import orders report
 const getImportOrdersReport = async (req, res) => {
   try {
-    const {
-      startDate,
-      endDate,
-      period = 'monthly',
-      status,
-      supplierId,
-      page = 1,
-      limit = 10,
-    } = req.query;
+    const { startDate, endDate, period = 'monthly', status, supplierId, page, limit } = req.query;
+
+    // Validate required parameters
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'Start date and end date are required',
+      });
+    }
+
+    // Validate date format
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid date format. Please use ISO date format (YYYY-MM-DD)',
+      });
+    }
 
     const filters = {
       startDate,
@@ -764,31 +677,25 @@ const getImportOrdersReport = async (req, res) => {
       period,
       status,
       supplierId,
-      page: parseInt(page),
-      limit: parseInt(limit),
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 10,
     };
 
-    console.log('Import report filters:', filters);
+    console.log('Import orders report filters:', filters);
 
-    const result = await ReportService.getImportOrdersReport(filters);
+    const reportData = await ReportService.getImportOrdersReport(filters);
 
-    if (result.success) {
-      res.json({
-        success: true,
-        message: 'Import orders report retrieved successfully',
-        data: result.data,
-      });
+    if (reportData.success) {
+      res.status(200).json(reportData);
     } else {
-      res.status(400).json({
-        success: false,
-        error: result.error,
-      });
+      res.status(400).json(reportData);
     }
   } catch (error) {
-    console.error('Error in getImportOrdersReport controller:', error);
+    console.error('Error getting import orders report:', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error while fetching import orders report',
+      error: 'Failed to generate import orders report',
+      details: error.message,
     });
   }
 };
@@ -913,24 +820,385 @@ const getImportReportDashboard = async (req, res) => {
     console.error('Error in getImportReportDashboard controller:', error);
     res.status(500).json({
       success: false,
-      error: 'Internal server error while fetching import report dashboard',
+      error: 'Internal server error while fetching import report dashboard data',
+    });
+  }
+};
+
+// ===== EXPORT ORDERS REPORT FUNCTIONS =====
+
+// Get export orders report
+const getExportOrdersReport = async (req, res) => {
+  try {
+    const { startDate, endDate, period = 'monthly', status, partnerType, page, limit } = req.query;
+
+    // Validate required parameters
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'Start date and end date are required',
+      });
+    }
+
+    // Validate date format
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid date format. Please use ISO date format (YYYY-MM-DD)',
+      });
+    }
+
+    const filters = {
+      startDate,
+      endDate,
+      period,
+      status,
+      partnerType,
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 10,
+    };
+
+    console.log('Export orders report filters:', filters);
+
+    const reportData = await ReportService.getExportOrdersReport(filters);
+
+    if (reportData.success) {
+      res.status(200).json(reportData);
+    } else {
+      res.status(400).json(reportData);
+    }
+  } catch (error) {
+    console.error('Error getting export orders report:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate export orders report',
+      details: error.message,
+    });
+  }
+};
+
+// Get export orders report by period
+const getExportOrdersReportByPeriod = async (req, res) => {
+  try {
+    const { period = 'monthly', startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'Start date and end date are required',
+      });
+    }
+
+    const reportData = await ReportService.getExportOrdersReportByPeriod(
+      period,
+      startDate,
+      endDate,
+    );
+
+    if (reportData.success) {
+      res.status(200).json(reportData);
+    } else {
+      res.status(400).json(reportData);
+    }
+  } catch (error) {
+    console.error('Error getting export orders period report:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate export orders period report',
+      details: error.message,
+    });
+  }
+};
+
+// Get export orders partner analysis report
+const getExportOrdersPartnerAnalysis = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'Start date and end date are required',
+      });
+    }
+
+    const reportData = await ReportService.getExportOrdersPartnerAnalysis(startDate, endDate);
+
+    if (reportData.success) {
+      res.status(200).json(reportData);
+    } else {
+      res.status(400).json(reportData);
+    }
+  } catch (error) {
+    console.error('Error getting export orders partner analysis:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate export orders partner analysis',
+      details: error.message,
+    });
+  }
+};
+
+// Export export orders report to Excel
+const exportExportOrdersToExcel = async (req, res) => {
+  try {
+    console.log('🚀 Export export orders function started');
+    console.log('📊 Request headers:', req.headers);
+    console.log('📊 Request query:', req.query);
+
+    const { startDate, endDate, period = 'monthly', status, partnerType } = req.query;
+
+    const filters = {
+      startDate,
+      endDate,
+      period,
+      status,
+      partnerType,
+      page: 1, // For export, we want all data, so start from page 1
+      limit: 10000, // Set a high limit to get all data for export
+    };
+
+    console.log('Export export orders to Excel filters:', filters);
+
+    const exportResult = await ReportService.exportExportOrdersToExcel(filters);
+
+    if (!exportResult.success) {
+      return res.status(400).json(exportResult);
+    }
+
+    const reportData = exportResult.data;
+
+    if (
+      !reportData ||
+      !reportData.exportOrders ||
+      !Array.isArray(reportData.exportOrders) ||
+      reportData.exportOrders.length === 0
+    ) {
+      return res.status(404).json({
+        success: false,
+        error: 'No data available for export',
+        message: 'Please check your filters and try again',
+      });
+    }
+
+    console.log('🔍 Starting Excel generation for export orders...');
+
+    // Create workbook and worksheet
+    const workbook = xlsx.utils.book_new();
+
+    // Clean and prepare data for Excel
+    const cleanData = reportData.exportOrders
+      .map((item, index) => {
+        try {
+          if (!item || typeof item !== 'object') {
+            return null;
+          }
+
+          const cleanItem = {};
+          Object.keys(item).forEach((key) => {
+            let value = item[key];
+
+            // Skip error fields and internal fields
+            if (key === 'error' || key === '_id' || key === '__v') {
+              return;
+            }
+
+            // Handle different data types
+            if (value === null || value === undefined) {
+              value = '';
+            } else if (typeof value === 'object') {
+              if (Array.isArray(value)) {
+                value = value.length > 0 ? `${value.length} items` : 'No items';
+              } else {
+                try {
+                  value = JSON.stringify(value);
+                } catch (stringifyError) {
+                  value = 'N/A';
+                }
+              }
+            } else if (typeof value === 'number') {
+              value = isNaN(value) ? 0 : value;
+            } else if (typeof value === 'string') {
+              value = value.toString().trim();
+              if (value.toLowerCase().includes('error')) {
+                value = 'N/A';
+              }
+            } else if (value instanceof Date) {
+              value = value.toISOString().split('T')[0];
+            }
+
+            cleanItem[key] = value;
+          });
+
+          return cleanItem;
+        } catch (itemError) {
+          console.warn(`⚠️ Error cleaning item ${index}:`, itemError);
+          return null;
+        }
+      })
+      .filter((item) => item !== null);
+
+    if (cleanData.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No clean data available for export',
+        message: 'All data contained errors and was filtered out',
+      });
+    }
+
+    // Convert data to Excel format
+    const excelData = cleanData.map((item) => {
+      const cleanItem = {};
+      Object.keys(item).forEach((key) => {
+        let value = item[key];
+
+        if (value === null || value === undefined) {
+          value = '';
+        }
+
+        if (typeof value === 'object' && !Array.isArray(value)) {
+          try {
+            value = JSON.stringify(value);
+          } catch (stringifyError) {
+            value = 'N/A';
+          }
+        }
+
+        if (Array.isArray(value)) {
+          value = value.length > 0 ? `${value.length} items` : 'No items';
+        }
+
+        if (typeof value === 'number' && isNaN(value)) {
+          value = 0;
+        }
+
+        cleanItem[key] = String(value);
+      });
+      return cleanItem;
+    });
+
+    console.log('🔍 Excel data prepared:', {
+      rows: excelData.length,
+      columns: excelData.length > 0 ? Object.keys(excelData[0]).length : 0,
+    });
+
+    const worksheet = xlsx.utils.json_to_sheet(excelData);
+
+    // Auto-size columns
+    const columnWidths = {};
+    excelData.forEach((row) => {
+      Object.keys(row).forEach((key) => {
+        const value = String(row[key] || '');
+        const currentWidth = columnWidths[key] || 0;
+        columnWidths[key] = Math.max(currentWidth, value.length, key.length);
+      });
+    });
+
+    worksheet['!cols'] = Object.keys(columnWidths).map((key) => ({
+      wch: Math.min(Math.max(columnWidths[key], 10), 50),
+    }));
+
+    // Add worksheet to workbook
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Export Orders Report');
+
+    // Generate filename
+    let filename = 'export_orders_report';
+    if (startDate && endDate) {
+      try {
+        const startDateStr = new Date(startDate).toISOString().split('T')[0];
+        const endDateStr = new Date(endDate).toISOString().split('T')[0];
+        filename = `export_orders_report_${startDateStr}_to_${endDateStr}`;
+      } catch (dateError) {
+        filename = `export_orders_report_${new Date().toISOString().split('T')[0]}`;
+      }
+    } else {
+      filename = `export_orders_report_${new Date().toISOString().split('T')[0]}`;
+    }
+    filename += '.xlsx';
+
+    console.log('📊 Generating Excel file:', filename);
+
+    // Set response headers
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // Write to buffer
+    const buffer = xlsx.write(workbook, {
+      type: 'buffer',
+      bookType: 'xlsx',
+      compression: true,
+    });
+
+    // Set content length
+    res.setHeader('Content-Length', buffer.length);
+
+    console.log(
+      `✅ Successfully exported export orders report with ${cleanData.length} records, file size: ${buffer.length} bytes`,
+    );
+
+    // Send buffer
+    res.send(buffer);
+  } catch (error) {
+    console.error('❌ Error exporting export orders to Excel:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to export export orders report to Excel',
+      details: error.message,
+    });
+  }
+};
+
+// Get partner types for filtering
+const getPartnerTypes = async (req, res) => {
+  try {
+    const partnerTypes = await ReportService.getPartnerTypes();
+
+    if (partnerTypes.success) {
+      res.status(200).json(partnerTypes);
+    } else {
+      res.status(400).json(partnerTypes);
+    }
+  } catch (error) {
+    console.error('Error getting partner types:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get partner types',
+      details: error.message,
     });
   }
 };
 
 module.exports = {
+  // Bills report functions
   getComprehensiveReport,
   getReportByPeriod,
   getPartnerAnalysisReport,
   getMedicineAnalysisReport,
   exportReportToExcel,
-  testExcelExport,
-  uploadExcelFile,
-  getReportTemplates,
-  upload,
-  // Import report methods
+
+  // Export orders report functions
+  getExportOrdersReport,
+  getExportOrdersReportByPeriod,
+  getExportOrdersPartnerAnalysis,
+  exportExportOrdersToExcel,
+  getPartnerTypes,
+
+  // Import orders report functions
   getImportOrdersReport,
   exportImportOrdersReport,
   getImportReportSummary,
   getImportReportDashboard,
+
+  // File upload functions
+  upload,
+  uploadExcelFile,
+
+  // Template functions
+  getReportTemplates,
 };

@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const reportController = require('../controllers/reportController');
-const exportReportController = require('../controllers/exportReportController');
 const authenticate = require('../middlewares/authenticate');
 
 // Apply authentication middleware to all report routes
@@ -23,9 +22,6 @@ router.get('/medicine-analysis', reportController.getMedicineAnalysisReport);
 // Export report to Excel
 router.get('/export', reportController.exportReportToExcel);
 
-// Test Excel export (for debugging)
-router.get('/test-export', reportController.testExcelExport);
-
 // Upload Excel file
 router.post('/upload', reportController.upload.single('file'), reportController.uploadExcelFile);
 
@@ -34,22 +30,19 @@ router.get('/templates', reportController.getReportTemplates);
 
 // ===== EXPORT ORDERS REPORT ROUTES =====
 // Get export orders report
-router.get('/export-orders', exportReportController.getExportOrdersReport);
+router.get('/export-orders', reportController.getExportOrdersReport);
 
 // Get export orders report by period (weekly, monthly, quarterly)
-router.get('/export-orders/period', exportReportController.getExportOrdersReportByPeriod);
+router.get('/export-orders/period', reportController.getExportOrdersReportByPeriod);
 
 // Get export orders partner analysis report
-router.get(
-  '/export-orders/partner-analysis',
-  exportReportController.getExportOrdersPartnerAnalysis,
-);
+router.get('/export-orders/partner-analysis', reportController.getExportOrdersPartnerAnalysis);
 
 // Export export orders report to Excel
-router.get('/export-orders/export', exportReportController.exportExportOrdersToExcel);
+router.get('/export-orders/export', reportController.exportExportOrdersToExcel);
 
 // Get partner types for filtering
-router.get('/partner-types', exportReportController.getPartnerTypes);
+router.get('/partner-types', reportController.getPartnerTypes);
 
 // ===== IMPORT ORDERS REPORT ROUTES =====
 // Get import orders report

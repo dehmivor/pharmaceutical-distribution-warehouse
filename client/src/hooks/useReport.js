@@ -174,6 +174,8 @@ const useReport = () => {
   const exportToExcel = async (reportType = 'comprehensive', customFilters = {}) => {
     try {
       setLoading(true);
+      setError(null);
+
       const currentFilters = { ...filters, ...customFilters };
 
       const params = new URLSearchParams();
@@ -185,22 +187,68 @@ const useReport = () => {
       if (currentFilters.partnerType) params.append('partnerType', currentFilters.partnerType);
       params.append('reportType', reportType);
 
+      console.log('Exporting with params:', params.toString());
+
       const response = await axios.get(`${API_BASE_URL}/api/reports/export?${params.toString()}`, {
         headers: getAuthHeaders(),
         responseType: 'blob'
       });
 
+      // Validate response
+      if (!response.data || response.data.size === 0) {
+        throw new Error('Empty response received from server');
+      }
+
+      // Check if response is actually a blob
+      if (!(response.data instanceof Blob)) {
+        throw new Error('Invalid response format - expected blob');
+      }
+
       // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `report_${reportType}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      // Generate filename
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `report_${reportType}_${timestamp}.xlsx`;
+      link.setAttribute('download', filename);
+
+      // Add link to DOM, click it, and remove it
       document.body.appendChild(link);
       link.click();
-      link.remove();
+
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
+      console.log('Export completed successfully');
     } catch (error) {
       console.error('Error exporting to Excel:', error);
-      setError('Failed to export report');
+
+      // Handle different types of errors
+      let errorMessage = 'Failed to export report';
+
+      if (error.response) {
+        // Server responded with error
+        if (error.response.status === 404) {
+          errorMessage = 'No data available for export with current filters';
+        } else if (error.response.status === 500) {
+          errorMessage = 'Server error during export';
+        } else if (error.response.data && error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else if (error.request) {
+        // Network error
+        errorMessage = 'Network error - please check your connection';
+      } else if (error.message) {
+        // Other error
+        errorMessage = error.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
