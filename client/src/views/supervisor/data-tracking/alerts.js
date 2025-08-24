@@ -202,7 +202,7 @@ const Alerts = () => {
         type: 'system_alert',
         priority: 'high',
         status: 'unread',
-        action_url: `/wm-export-orders || 'N/A')}`,
+        action_url: `/wm-export-orders?action=create_disposal&batchId=${batch._id}&batchCode=${batch.batch_code}&medicineName=${encodeURIComponent(batch.medicine_id?.medicine_name || 'N/A')}`,
         metadata: {
           batchId: batch._id,
           batchCode: batch.batch_code,
