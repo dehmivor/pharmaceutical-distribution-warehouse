@@ -1,4 +1,5 @@
 const ImportInspection = require('../models/ImportInspection');
+const inspectionService = require('../services/inspectionService')
 
 // Lấy danh sách các thùng theo batch_id
 exports.getByBatch = async (req, res) => {
@@ -45,19 +46,14 @@ exports.getInspectionByImportOrder = async (req, res) => {
   try {
     const { importOrderId } = req.params;
 
-    const inspections = await ImportInspection.find({ import_order_id: importOrderId })
-      .populate({
-        path: 'medicine_id',
-        select: '-min_stock_threshold -max_stock_threshold',
-      })
-      .sort({ _id: -1 });
+    const inspections = await inspectionService.getInspectionByImportOrderId(importOrderId);
 
     res.status(200).json({ inspections });
   } catch (error) {
-    console.error('Lỗi khi truy xuất dữ liệu kiểm tra:', error);
+    console.error("Lỗi khi truy xuất dữ liệu kiểm tra:", error);
     res.status(500).json({
       success: false,
-      message: 'Lỗi hệ thống khi lấy dữ liệu kiểm tra',
+      message: "Lỗi hệ thống khi lấy dữ liệu kiểm tra",
       error: error.message,
     });
   }

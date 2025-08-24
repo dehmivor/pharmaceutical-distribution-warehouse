@@ -643,7 +643,29 @@ const exportedTotalsLast6MonthsTop5= async(req, res) => {
     console.error('exportedTotalsLast6Months error', err);
     return res.status(500).json({ success: false, error: 'Internal server error' });
   }
-}
+};
+
+
+const docx = async (req, res) => {
+  const { id } = req.params
+  try {
+    const buffer = await exportOrderService.createTranscriptionDocBuffer(id);
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="phieu_nhap_kho_transcription.docx"'
+    );
+
+    res.send(buffer);
+  } catch (err) {
+    console.error("Error in downloadTranscriptionDocx:", err);
+    res.status(500).send("Internal server error");
+  }
+};
 
 
 module.exports = {
@@ -664,5 +686,6 @@ module.exports = {
   checkStockForExportOrder, 
   assignWarehouseManager, 
   createInternalExportOrder,
-  exportedTotalsLast6MonthsTop5
+  exportedTotalsLast6MonthsTop5,
+  docx
 }

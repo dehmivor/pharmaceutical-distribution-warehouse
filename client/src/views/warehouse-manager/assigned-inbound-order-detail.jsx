@@ -6,36 +6,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Box,
-  Button,
-  Container,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-  Typography,
-  CircularProgress,
-  Alert,
-  IconButton,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableContainer,
-  TableCell,
-  Tooltip,
-  Paper,
-  Grid
+  Accordion, AccordionSummary, AccordionDetails, Box, Button, Container, Divider, Dialog,
+  DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, MenuItem, Select,
+  Stack, TextField, Typography, CircularProgress, Alert, IconButton, Table, TableHead, TableBody,
+  TableRow, TableContainer, TableCell, Tooltip, Paper, Grid
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -94,6 +68,7 @@ function ImportOrderDetail() {
   const today = new Date().toISOString().split('T')[0];
 
   const [assignLoading, setAssignLoading] = useState(false);
+  const [downloadReceiptLoading, setdownloadReceiptLoading] = useState(false);
   const [inspectionLoading, setInspectionLoading] = useState(false);
   const [packageLoading, setPackageLoading] = useState(false);
   const [finalizeLoading, setFinalizeLoading] = useState(false);
@@ -443,7 +418,7 @@ function ImportOrderDetail() {
       // Remove it directly from the inspections array
       setInspections((prev) => prev.filter((insp) => insp._id !== inspectionId));
       fetchInspection();
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const onFinishClickInspection = async () => {
@@ -532,6 +507,56 @@ function ImportOrderDetail() {
       setError(trans.assignedInboundOrderDetail.errorPrintingLabel);
     }
   };
+
+
+
+  const handleDownloadReceipt = async () => {
+    try {
+      setdownloadReceiptLoading(true)
+      const response = await axios.get(`/api/import-orders/receipt/${orderId}`, {
+        headers: getAuthHeaders(),
+        responseType: "blob", // <- important: get binary blob
+      });
+
+      // Try to extract filename from Content-Disposition
+      const contentDisposition = response.headers["content-disposition"] || "";
+      let filename = "receipt.docx"; // fallback
+
+      // support filename*=UTF-8''encoded-name, filename="name", filename=name
+      const filenameRegex = /filename\*=UTF-8''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i;
+      const matches = filenameRegex.exec(contentDisposition);
+      if (matches) {
+        filename = decodeURIComponent(matches[1] || matches[2] || matches[3]).trim();
+      }
+
+      // create a blob and trigger download
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"] || "application/octet-stream",
+      });
+
+      // IE / Edge (msSaveOrOpenBlob)
+      if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+        window.navigator.msSaveOrOpenBlob(blob, filename);
+        return;
+      }
+
+      // Other browsers
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      // release memory
+      window.URL.revokeObjectURL(url);
+      setdownloadReceiptLoading(false)
+    } catch (err) {
+      console.error("Error downloading receipt:", err);
+      setError(trans.assignedInboundOrderDetail.errorAssigningOrder);
+    }
+  };
+
 
   const handleSelfAssign = async () => {
     try {
@@ -807,6 +832,17 @@ function ImportOrderDetail() {
                   loading={assignLoading}
                 >
                   {trans.assignedInboundOrderDetail.arrived}
+                </Button>
+
+                <Button
+                  variant="contained"
+                  disabled={order.status !== 'checked' && order.status !== 'arranged' && order.status !== 'completed'}
+                  onClick={handleDownloadReceipt}
+                  size="large"
+                  loading={downloadReceiptLoading}
+                  style={{'marginLeft' : '5px'}}
+                >
+                  {trans.assignedInboundOrderDetail.printReceipt}
                 </Button>
               </Grid>
             </Grid>

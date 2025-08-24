@@ -55,6 +55,12 @@ router.get(
   importOrderController.getImportOrdersByContract,
 );
 
+router.get(
+  '/receipt/:id',
+  authorize(['warehouse_manager', 'supervisor']),
+  importOrderController.docx,
+);
+
 // Get import order by ID - chỉ supervisor, representative, representative_manager và warehouse_manager
 router.get(
   '/:id',
@@ -123,5 +129,7 @@ router.patch(
   authorize('warehouse_manager'),
   importOrderController.assignWarehouseManager,
 );
+
+
 
 module.exports = router;

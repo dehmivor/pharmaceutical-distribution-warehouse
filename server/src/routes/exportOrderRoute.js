@@ -43,6 +43,13 @@ router
     exportOrderController.createInternalExportOrder,
   );
 
+
+router.get(
+  '/receipt/:id',
+  authorize(['warehouse_manager', 'supervisor']),
+  exportOrderController.docx,
+);
+
 // Phân công nhân viên cho đơn hàng xuất kho - chỉ warehouse_manager
 router
   .route('/:id/assign-staff')

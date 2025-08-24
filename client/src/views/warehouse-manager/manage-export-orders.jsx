@@ -92,6 +92,9 @@ export default function ManageExportOrders() {
   const [currentUserRole, setCurrentUserRole] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [isRoleLoading, setIsRoleLoading] = useState(true);
+
+  const [downloadReceiptLoading, setdownloadReceiptLoading] = useState(false);
+
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
     title: '',
@@ -731,6 +734,55 @@ export default function ManageExportOrders() {
     });
   };
 
+
+  const handleDownloadReceipt = async (order_id) => {
+    try {
+      setdownloadReceiptLoading(true)
+      const response = await axios.get(`/api/export-orders/receipt/${order_id}`, {
+        headers: getAuthHeaders(),
+        responseType: "blob", // <- important: get binary blob
+      });
+
+      // Try to extract filename from Content-Disposition
+      const contentDisposition = response.headers["content-disposition"] || "";
+      let filename = "receipt.docx"; // fallback
+
+      // support filename*=UTF-8''encoded-name, filename="name", filename=name
+      const filenameRegex = /filename\*=UTF-8''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i;
+      const matches = filenameRegex.exec(contentDisposition);
+      if (matches) {
+        filename = decodeURIComponent(matches[1] || matches[2] || matches[3]).trim();
+      }
+
+      // create a blob and trigger download
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"] || "application/octet-stream",
+      });
+
+      // IE / Edge (msSaveOrOpenBlob)
+      if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+        window.navigator.msSaveOrOpenBlob(blob, filename);
+        return;
+      }
+
+      // Other browsers
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      // release memory
+      window.URL.revokeObjectURL(url);
+      setdownloadReceiptLoading(false)
+    } catch (err) {
+      console.error("Error downloading receipt:", err);
+      setError(trans.assignedInboundOrderDetail.errorAssigningOrder);
+    }
+  };
+
+
   const changeDestroyQty = (lineIndex, packageId, value) => {
     const qty = Math.max(0, Number.parseInt(value) || 0);
     setInternalLines((prev) =>
@@ -964,6 +1016,16 @@ export default function ManageExportOrders() {
               }}
             >
               Assign order to myself
+            </MenuItem>
+          )}
+
+          {menuOrder?.status === 'completed' && (
+            <MenuItem
+              onClick={() => {
+                handleDownloadReceipt(menuOrder._id);
+              }}
+            >
+              Print receipt
             </MenuItem>
           )}
       </Menu>
