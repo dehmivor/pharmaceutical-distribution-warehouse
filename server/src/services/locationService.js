@@ -1,5 +1,6 @@
 const Location = require('../models/Location');
 const Package = require('../models/Package');
+const notificationService = require('./notificationService');
 const Area = require('../models/Area');
 
 class LocationService {
@@ -23,10 +24,10 @@ class LocationService {
       const locations = await Location.find(query)
         .populate('area_id', 'name')
         .sort({
-          'area_id.name': 1,  // Theo tên khu vực
+          'area_id.name': 1, // Theo tên khu vực
           bay: 1,
           row: 1,
-          column: 1
+          column: 1,
         })
         .skip(skip)
         .limit(limit);
@@ -54,6 +55,44 @@ class LocationService {
     }
   }
 
+  async getLocationById(id) {
+    try {
+      const location = await Location.findById(id).populate('area_id', 'name');
+      if (!location) {
+        return { success: false, message: 'Không tìm thấy vị trí' };
+      }
+
+      return {
+        success: true,
+        data: location,
+      };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
+  async getLocationByCoordinates(areaId, bay, row, column) {
+    try {
+      const location = await Location.findOne({
+        area_id: areaId,
+        bay: bay,
+        row: row,
+        column: column,
+      }).populate('area_id', 'name');
+
+      if (!location) {
+        return { success: false, message: 'Không tìm thấy vị trí với tọa độ đã cho' };
+      }
+
+      return {
+        success: true,
+        data: location,
+      };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+
   async getLocationInfo(id) {
     try {
       const location = await Location.findById(id).populate('area_id', 'name');
@@ -62,22 +101,21 @@ class LocationService {
       }
 
       // Get packages in this location with batch and medicine info
-      const packages = await Package.find({ location_id: id })
-        .populate({
-          path: 'batch_id',
-          populate: {
-            path: 'medicine_id',
-            select: 'name license_code'
-          }
-        });
+      const packages = await Package.find({ location_id: id }).populate({
+        path: 'batch_id',
+        populate: {
+          path: 'medicine_id',
+          select: 'name license_code',
+        },
+      });
 
       // Prepare package data
-      const packageData = packages.map(pkg => ({
+      const packageData = packages.map((pkg) => ({
         package_id: pkg._id,
         batch_code: pkg.batch_id.batch_code,
         medicine_license_code: pkg.batch_id.medicine_id.license_code,
         medicine_name: pkg.batch_id.medicine_id.name,
-        quantity: pkg.quantity
+        quantity: pkg.quantity,
       }));
 
       // Group by medicine for medicine view
@@ -90,7 +128,7 @@ class LocationService {
           acc[key] = {
             medicine_license_code: medicineLicenseCode,
             medicine_name: medicineName,
-            total_quantity: 0
+            total_quantity: 0,
           };
         }
 
@@ -104,8 +142,8 @@ class LocationService {
           location,
           packages: packageData,
           medicine_summary: Object.values(medicineSummary),
-          total_packages: packages.length
-        }
+          total_packages: packages.length,
+        },
       };
     } catch (error) {
       return { success: false, message: error.message };
@@ -117,7 +155,7 @@ class LocationService {
       const location = await Location.findByIdAndUpdate(
         id,
         { available },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       ).populate('area_id', 'name');
 
       if (!location) {
@@ -127,7 +165,7 @@ class LocationService {
       return {
         success: true,
         data: location,
-        message: `Cập nhật trạng thái vị trí thành công`
+        message: `Cập nhật trạng thái vị trí thành công`,
       };
     } catch (error) {
       return { success: false, message: error.message };
@@ -139,6 +177,32 @@ class LocationService {
       const location = new Location(locationData);
       await location.save();
       const populatedLocation = await Location.findById(location._id).populate('area_id', 'name');
+
+      // Tạo notification cho tất cả warehouse users
+      try {
+        await notificationService.createNotificationForAllWarehouse({
+          title: '1 Vị trí mới được mở',
+          message: `${populatedLocation.area_id.name} - Bay ${populatedLocation.bay}, Row ${populatedLocation.row}, Col ${populatedLocation.column}`,
+          type: 'inventory',
+          priority: 'medium',
+          action_url: '/wh-location',
+          metadata: {
+            location_id: location._id,
+            area_name: populatedLocation.area_id.name,
+            bay: populatedLocation.bay,
+            row: populatedLocation.row,
+            column: populatedLocation.column,
+          },
+        });
+
+        console.log(
+          `✅ Đã tạo notification cho warehouse users về vị trí mới: ${populatedLocation.area_id.name} - Bay ${populatedLocation.bay}, Row ${populatedLocation.row}, Col ${populatedLocation.column}`,
+        );
+      } catch (notificationError) {
+        // Log lỗi notification nhưng không ảnh hưởng đến việc tạo location
+        console.error('❌ Lỗi khi tạo notification cho warehouse users:', notificationError);
+      }
+
       return { success: true, data: populatedLocation, message: 'Tạo vị trí thành công' };
     } catch (error) {
       if (error.code === 11000) {
@@ -147,69 +211,6 @@ class LocationService {
       return { success: false, message: error.message };
     }
   }
-
-  async deleteLocation(id) {
-    try {
-      // Check if there are any packages in this location
-      const packagesCount = await Package.countDocuments({ location_id: id });
-      if (packagesCount > 0) {
-        return {
-          success: false,
-          message: `Không thể xóa vị trí. Có ${packagesCount} package đang được lưu trữ tại vị trí này.`
-        };
-      }
-
-      const location = await Location.findByIdAndDelete(id);
-      if (!location) {
-        return { success: false, message: 'Không tìm thấy vị trí' };
-      }
-
-      return { success: true, message: 'Xóa vị trí thành công' };
-    } catch (error) {
-      return { success: false, message: error.message };
-    }
-  }
-
-
-  async getLocationByCoordinates(areaId, bay, row, column) {
-    if (!areaId || !bay || !row || !column) {
-      throw new Error('areaId, bay, row, and column are all required');
-    }
-
-    return await Location.findOne({
-      area_id: areaId,
-      bay: bay.trim(),
-      row: row.trim(),
-      column: column.trim(),
-    })
-      .populate({
-        path: 'area_id',
-        select: 'name storage_conditions description'
-      })
-      .lean();
-  }
-
-async  getLocationById(locationId) {
-  if (!locationId) {
-    const err = new Error('locationId is required');
-    err.statusCode = 400;
-    throw err;
-  }
-
-  // Mongoose will throw a CastError if the format is invalid
-  const location = await Location.findById(locationId)
-    .populate('area_id')
-    .lean();
-
-  if (!location) {
-    const err = new Error(`No location found with id ${locationId}`);
-    err.statusCode = 404;
-    throw err;
-  }
-
-  return location;
 }
 
-}
-
-module.exports = new LocationService(); 
+module.exports = new LocationService();

@@ -42,7 +42,7 @@ export default function ExportOrderDetail() {
 
   // Add missing API configuration
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-  
+
   const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
     withCredentials: true
@@ -269,18 +269,14 @@ export default function ExportOrderDetail() {
       const resp = await axiosInstance.get(`/api/export-orders/${orderId}/packages-needed`, { headers: getAuthHeaders() });
       if (!resp.data.success) throw new Error();
       setOutstanding(resp.data.data.outstanding);
-      
+
       // For internal orders, automatically open proceed modal if there are outstanding packages
       if (isInternalOrder && resp.data.data.outstanding && resp.data.data.outstanding.length > 0) {
         const firstOutstanding = resp.data.data.outstanding[0];
         if (firstOutstanding.packages && firstOutstanding.packages.length > 0) {
           const firstPackage = firstOutstanding.packages[0];
           // Auto-open proceed modal for internal orders
-          openProceedModal(
-            firstOutstanding.detail_id, 
-            firstPackage, 
-            firstOutstanding.needed_quantity
-          );
+          openProceedModal(firstOutstanding.detail_id, firstPackage, firstOutstanding.needed_quantity);
         }
       }
     } catch {
@@ -397,20 +393,13 @@ export default function ExportOrderDetail() {
       <Container>
         <Typography variant="h4" gutterBottom>
           {trans?.common?.exportOrder || 'Export Order'} #{order._id}
-          {isInternalOrder && (
-            <Chip 
-              label={trans?.common?.internalOrder || 'Internal Order'} 
-              color="primary" 
-              size="small" 
-              sx={{ ml: 2 }}
-            />
-          )}
+          {isInternalOrder && <Chip label={trans?.common?.internalOrder || 'Internal Order'} color="primary" size="small" sx={{ ml: 2 }} />}
         </Typography>
         <Typography variant="body1" color="text.secondary" mb={3}>
-          {isInternalOrder 
-            ? (trans?.common?.internalOrderDescription || 'Internal order - batches are pre-selected. You can directly scan packages to proceed.')
-            : (trans?.common?.packingAndCountingMedicines || 'Packing and Counting Medicines')
-          }
+          {isInternalOrder
+            ? trans?.common?.internalOrderDescription ||
+              'Internal order - batches are pre-selected. You can directly scan packages to proceed.'
+            : trans?.common?.packingAndCountingMedicines || 'Packing and Counting Medicines'}
         </Typography>
         <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -526,7 +515,8 @@ export default function ExportOrderDetail() {
                       {isInternalOrder ? (
                         <Box>
                           <Typography variant="body2" color="text.secondary" mb={2}>
-                            {trans?.common?.internalOrderBatchInfo || 'Internal order - batches are pre-selected. Scan packages to proceed.'}
+                            {trans?.common?.internalOrderBatchInfo ||
+                              'Internal order - batches are pre-selected. Scan packages to proceed.'}
                           </Typography>
                           {out.packages.map((pkg) => (
                             <Box key={pkg.package_id} sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 1, mb: 1 }}>
@@ -534,7 +524,8 @@ export default function ExportOrderDetail() {
                                 {pkg.batch_id.batch_code} — {new Date(pkg.batch_id.expiry_date).toLocaleDateString()}
                               </Typography>
                               <Typography variant="body2" color="text.secondary" gutterBottom>
-                                {trans?.common?.location || 'Location'}: {pkg.location.area_name} - Bay {pkg.location.bay}, Row {pkg.location.row}, Col {pkg.location.column}
+                                {trans?.common?.location || 'Location'}: {pkg.location.area_name} - Bay {pkg.location.bay}, Row{' '}
+                                {pkg.location.row}, Col {pkg.location.column}
                               </Typography>
                               <Typography variant="body2" color="text.secondary" gutterBottom>
                                 {trans?.common?.takeQty || 'Take Qty'}: {pkg.take_quantity}

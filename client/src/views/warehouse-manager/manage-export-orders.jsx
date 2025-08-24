@@ -42,6 +42,7 @@ import axios from 'axios';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ModalConfirm from '../../views/general/ModalConfirm';
+import { enqueueSnackbar } from 'notistack';
 
 const USER_ROLES = {
   WAREHOUSEMANAGER: 'warehouse_manager',
@@ -99,7 +100,7 @@ export default function ManageExportOrders() {
     open: false,
     title: '',
     content: '',
-    onConfirm: () => { },
+    onConfirm: () => {},
     confirmText: 'Đồng ý',
     cancelText: 'Hủy',
     loading: false
@@ -280,7 +281,6 @@ export default function ManageExportOrders() {
     setPage(newPage);
   }, []);
 
-
   const handleSearchClick = useCallback(() => {
     setPage(0);
     fetchOrders(0, rowsPerPage, filterDate, filterStatus, filterAssignedToMe, filterType);
@@ -339,9 +339,9 @@ export default function ManageExportOrders() {
       prev.map((detail) =>
         detail.medicine_id === medicineId
           ? {
-            ...detail,
-            selected_packages: detail.selected_packages.map((sp) => (sp.package_id === packageId ? { ...sp, quantity } : sp))
-          }
+              ...detail,
+              selected_packages: detail.selected_packages.map((sp) => (sp.package_id === packageId ? { ...sp, quantity } : sp))
+            }
           : detail
       )
     );
@@ -352,9 +352,9 @@ export default function ManageExportOrders() {
       prev.map((detail) =>
         detail.medicine_id === medicineId
           ? {
-            ...detail,
-            selected_packages: [...detail.selected_packages, { package_id: packageId, quantity: 0, created_by: currentUserId }]
-          }
+              ...detail,
+              selected_packages: [...detail.selected_packages, { package_id: packageId, quantity: 0, created_by: currentUserId }]
+            }
           : detail
       )
     );
@@ -366,9 +366,9 @@ export default function ManageExportOrders() {
       prev.map((detail) =>
         detail.medicine_id === medicineId
           ? {
-            ...detail,
-            selected_packages: detail.selected_packages.filter((sp) => sp.package_id !== packageId)
-          }
+              ...detail,
+              selected_packages: detail.selected_packages.filter((sp) => sp.package_id !== packageId)
+            }
           : detail
       )
     );
@@ -481,7 +481,7 @@ export default function ManageExportOrders() {
       totalActual += detail.actual_item.reduce((sum, item) => sum + item.quantity, 0);
     }
     if (totalActual <= 0) {
-      setMessageDialog({ open: true, title: 'Lỗi', content: 'Không thể hoàn thành đơn hàng vì tổng số lượng thực tế phải lớn hơn 0.' });
+      enqueueSnackbar('Không thể hoàn thành đơn hàng vì tổng số lượng thực tế phải lớn hơn 0.', { variant: 'error' });
       return;
     }
     setConfirmDialog({
@@ -494,7 +494,6 @@ export default function ManageExportOrders() {
         try {
           const token = getAuthToken();
           if (!token) {
-            setMessageDialog({ open: true, title: 'Lỗi', content: 'Không có token xác thực. Vui lòng đăng nhập lại.' });
             return;
           }
           const res = await fetch(`/api/export-orders/${orderId}/complete`, {
@@ -510,7 +509,7 @@ export default function ManageExportOrders() {
           }
           const updatedOrder = await res.json();
           setOrders((prev) => prev.map((order) => (order._id === orderId ? updatedOrder.data : order)));
-          setMessageDialog({ open: true, title: 'Thành công', content: 'Đơn hàng đã hoàn thành!' });
+          enqueueSnackbar('Đơn hàng đã hoàn thành!', { variant: 'success' });
           await fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe);
 
           if (!updatedOrder.data.contract_id) {
@@ -548,11 +547,11 @@ export default function ManageExportOrders() {
             if (createBillRes.data.success) {
               console.log('Bill mới đã được tạo:', createBillRes.data.data);
             } else {
-              setMessageDialog({ open: true, title: 'Lỗi', content: 'Lỗi khi tạo bill: ' + createBillRes.data.message });
+              enqueueSnackbar(`Lỗi khi tạo bill:  createBillRes.data.message`, { variant: 'error' });
             }
           } catch (billErr) {
             console.error('Lỗi khi gọi API tạo bill:', billErr);
-            setMessageDialog({ open: true, title: 'Lỗi', content: 'Lỗi khi tạo bill mới' });
+            enqueueSnackbar('Lỗi khi tạo bill mới', { variant: 'error' });
           }
         } catch (error) {
           setMessageDialog({
@@ -642,7 +641,7 @@ export default function ManageExportOrders() {
 
           const updatedOrder = await res.json();
           setOrders((prev) => prev.map((order) => (order._id === orderId ? updatedOrder.data : order)));
-          setMessageDialog({ open: true, title: 'Thành công', content: 'Đơn hàng đã được phân công cho bạn!' });
+          enqueueSnackbar('Đơn hàng đã được phân công cho bạn!', { variant: 'success' });
         } catch (error) {
           setMessageDialog({
             open: true,
@@ -715,7 +714,6 @@ export default function ManageExportOrders() {
       prev.map((l, i) => (i === lineIndex ? { ...l, picked: l.picked.filter((p) => p.package_id !== packageId) } : l))
     );
   };
-
 
   const handleScanPackageForLine = (lineIndex) => {
     // TODO: Implement barcode/QR scanner functionality
@@ -882,14 +880,9 @@ export default function ManageExportOrders() {
         </Box>
 
         <Stack direction="row" spacing={2}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={openInternalDialog}
-            color="primary"
-          >Create Internal Export Order
+          <Button variant="contained" startIcon={<AddIcon />} onClick={openInternalDialog} color="primary">
+            Create Internal Export Order
           </Button>
-
         </Stack>
       </Box>
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
@@ -966,9 +959,7 @@ export default function ManageExportOrders() {
                   </TableCell>
                   <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>
                   <TableCell>{o.contract_id?.partner_id?.name || '—'}</TableCell>
-                  <TableCell>
-                    {o.contract_id ? (o.warehouse_manager_id?.email || '—') : (o.created_by?.email || '—')}
-                  </TableCell>
+                  <TableCell>{o.contract_id ? o.warehouse_manager_id?.email || '—' : o.created_by?.email || '—'}</TableCell>
                   <TableCell>
                     <Chip label={getStatusBadge(o.status).props.label} color={getStatusBadge(o.status).props.color} size="small" />
                   </TableCell>
@@ -1155,16 +1146,16 @@ export default function ManageExportOrders() {
         <DialogActions sx={{ p: 3 }}>
           {(currentUserRole === USER_ROLES.WAREHOUSE ||
             (currentUserRole === USER_ROLES.WAREHOUSEMANAGER && selectedOrder?.warehouse_manager_id?._id === currentUserId)) && (
-              <Button
-                variant="outlined"
-                color="info"
-                onClick={() => {
-                  handleOpenPackingDialog(selectedOrder);
-                }}
-              >
-                Chi Tiết Đóng gói {/* Changed button text */}
-              </Button>
-            )}
+            <Button
+              variant="outlined"
+              color="info"
+              onClick={() => {
+                handleOpenPackingDialog(selectedOrder);
+              }}
+            >
+              Chi Tiết Đóng gói {/* Changed button text */}
+            </Button>
+          )}
           {currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
             selectedOrder?.warehouse_manager_id?._id === currentUserId &&
             selectedOrder?.status === 'approved' && (

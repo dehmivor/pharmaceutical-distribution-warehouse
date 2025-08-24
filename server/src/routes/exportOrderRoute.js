@@ -6,16 +6,11 @@ const router = express.Router();
 
 router.use(authenticate); // Tất cả các route đều yêu cầu xác thực
 
-// Kiểm tra tồn kho cho export order - chỉ representative
-router
-  .route('/check-stock')
-  .post(
-    authorize(['representative']),
-    exportOrderController.checkStockForExportOrder,
-  );
-
-
-router.get('/exportedTotalsLast6MonthsTop5', authorize(['representative', 'representative_manager']), exportOrderController.exportedTotalsLast6MonthsTop5);
+router.get(
+  '/exportedTotalsLast6MonthsTop5',
+  authorize(['representative', 'representative_manager']),
+  exportOrderController.exportedTotalsLast6MonthsTop5,
+);
 
 // Tạo mới export order - chỉ representative và representative_manager
 router
@@ -38,10 +33,7 @@ router
 // Tạo đơn xuất nội bộ - chỉ warehouse_manager
 router
   .route('/internal')
-  .post(
-    authorize(['warehouse_manager']),
-    exportOrderController.createInternalExportOrder,
-  );
+  .post(authorize(['warehouse_manager']), exportOrderController.createInternalExportOrder);
 
 
 router.get(
@@ -98,6 +90,10 @@ router.get(
 );
 
 router.get('/:orderId/packages-needed', exportOrderController.getPackagesNeededForExport);
+
+router
+  .route('/check-stock')
+  .post(authorize(['representative']), exportOrderController.checkStockForExportOrder);
 
 router.post('/:orderId/details/:detailId/inspections', exportOrderController.addExportInspection);
 

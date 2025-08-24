@@ -609,19 +609,6 @@ function CheckInspections() {
                         </Paper>
                       ))}
                     </Stack>
-
-                    <TablePagination
-                      component="div"
-                      count={totalCount}
-                      page={page}
-                      onPageChange={handleChangePage}
-                      rowsPerPage={rowsPerPage}
-                      onRowsPerPageChange={handleChangeRowsPerPage}
-                      rowsPerPageOptions={[5, 10, 25, 50]}
-                      labelRowsPerPage={trans.checkInspections.rowsPerPage}
-                      labelDisplayedRows={({ from, to, count }) => `${from}-${to} trong ${count !== -1 ? count : `hơn ${to}`}`}
-                      sx={{ mt: 2 }}
-                    />
                   </>
                 )}
               </AccordionDetails>

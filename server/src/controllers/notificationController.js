@@ -7,11 +7,33 @@ const notificationService = require('../services/notificationService');
  */
 const createNotification = async (req, res) => {
   try {
-    const notification = await notificationService.createNotification(req.body);
-    res.status(201).json(notification);
+    const { target_warehouse_managers, ...notificationData } = req.body;
+
+    let notification;
+
+    // Nếu yêu cầu gửi cho tất cả warehouse managers
+    if (target_warehouse_managers === true) {
+      notification =
+        await notificationService.createNotificationForAllWarehouseManagers(notificationData);
+      res.status(201).json({
+        success: true,
+        message: `Đã tạo ${notification.length} thông báo cho warehouse managers`,
+        data: notification,
+      });
+    } else {
+      // Tạo notification bình thường
+      notification = await notificationService.createNotification(req.body);
+      res.status(201).json({
+        success: true,
+        data: notification,
+      });
+    }
   } catch (error) {
     console.error('Create notification error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 };
 

@@ -833,53 +833,6 @@ function Trends() {
             {trans.aiTrends.subtitle}
           </Typography>
         </Box>
-
-        {/* Debug buttons */}
-        <Stack direction="row" spacing={2}>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => {
-              openSnackbar({
-                open: true,
-                message: '🔍 Testing API endpoints...',
-                alert: { color: 'info', variant: 'filled' }
-              });
-              // Test public endpoint
-              fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/ai-trends/test-public`)
-                .then((res) => res.json())
-                .then((data) => {
-                  openSnackbar({
-                    open: true,
-                    message: '✅ Test Public Response: ' + JSON.stringify(data),
-                    alert: { color: 'success', variant: 'filled' }
-                  });
-                })
-                .catch((err) => {
-                  openSnackbar({
-                    open: true,
-                    message: '❌ Test Public Error: ' + err.message,
-                    alert: { color: 'error', variant: 'filled' }
-                  });
-                });
-            }}
-          >
-            Test API
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => {
-              openSnackbar({
-                open: true,
-                message: `🔍 Predictions: ${predictions?.predictions?.length || 0} items, Loading: ${predictionsLoading}, Error: ${predictionsError || 'None'}`,
-                alert: { color: 'info', variant: 'filled' }
-              });
-            }}
-          >
-            Debug State
-          </Button>
-        </Stack>
       </Stack>
 
       {hasError && (

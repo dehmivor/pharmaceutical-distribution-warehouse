@@ -576,7 +576,9 @@ function ImportOrderDetail() {
   const handleArrival = async () => {
     try {
       setAssignLoading(true);
-      await handleSelfAssign();
+      if (!order.warehouse_manager_id) {
+        await handleSelfAssign();
+      }
       await axios.patch(
         `/api/import-orders/${orderId}/status`,
         { status: 'delivered' },
