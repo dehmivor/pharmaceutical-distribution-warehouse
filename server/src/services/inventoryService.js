@@ -131,7 +131,6 @@ const updateCheckOrderStatus = async (checkOrderId, status, io) => {
     const oldStatus = existingOrder.status;
     existingOrder.status = status;
     const updatedCheckOrder = await existingOrder.save();
-    const io = req.app.locals.io;
 
     if (oldStatus !== 'processing' && status.toLowerCase() === 'processing') {
       const newNotification = await notificationService.createNotification(

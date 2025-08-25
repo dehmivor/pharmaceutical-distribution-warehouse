@@ -50,7 +50,10 @@ function CheckInspections() {
   const [inspections, setInspections] = useState([]);
   const [locationsList, setLocationsList] = useState([]);
   const [usersMap, setUsersMap] = useState({});
-  const [page, setPage] = useState(0);
+
+  // Pagination states for each accordion
+  const [uncheckedPage, setUncheckedPage] = useState(0);
+  const [checkedPage, setCheckedPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [totalCount, setTotalCount] = useState(0);
 
@@ -122,7 +125,7 @@ function CheckInspections() {
   };
 
   // Hàm fetch phiếu kiểm kê chi tiết
-  const fetchInspections = async (pageParam = page, rowsPerPageParam = rowsPerPage) => {
+  const fetchInspections = async (pageParam = 0, rowsPerPageParam = rowsPerPage) => {
     if (!checkOrderId) return;
     setLoading(true);
     const params = {
@@ -276,7 +279,8 @@ function CheckInspections() {
   };
 
   const handleSearchClick = () => {
-    setPage(0);
+    setUncheckedPage(0);
+    setCheckedPage(0);
     fetchInspections(0, rowsPerPage);
   };
 
@@ -286,19 +290,25 @@ function CheckInspections() {
     setFilterDate('');
     setFilterStatus('');
     setSortDirection('asc');
-    setPage(0);
+    setUncheckedPage(0);
+    setCheckedPage(0);
     fetchInspections(0, rowsPerPage);
   };
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+  const handleChangePage = (event, newPage, type) => {
+    if (type === 'unchecked') {
+      setUncheckedPage(newPage);
+    } else {
+      setCheckedPage(newPage);
+    }
     fetchInspections(newPage, rowsPerPage);
   };
 
   const handleChangeRowsPerPage = (event) => {
     const newRpp = parseInt(event.target.value, 10);
     setRowsPerPage(newRpp);
-    setPage(0);
+    setUncheckedPage(0);
+    setCheckedPage(0);
     fetchInspections(0, newRpp);
   };
 
@@ -354,6 +364,16 @@ function CheckInspections() {
   const checkedInspections = groupedInspections.filter(
     (insp) => insp.check_list && insp.check_list.some((item) => item.actual_quantity > 0)
   );
+
+  // Pagination for unchecked inspections
+  const uncheckedStartIndex = uncheckedPage * rowsPerPage;
+  const uncheckedEndIndex = uncheckedStartIndex + rowsPerPage;
+  const paginatedUncheckedInspections = uncheckedInspections.slice(uncheckedStartIndex, uncheckedEndIndex);
+
+  // Pagination for checked inspections
+  const checkedStartIndex = checkedPage * rowsPerPage;
+  const checkedEndIndex = checkedStartIndex + rowsPerPage;
+  const paginatedCheckedInspections = checkedInspections.slice(checkedStartIndex, checkedEndIndex);
 
   return (
     <Box sx={{ padding: 4 }}>
@@ -493,63 +513,89 @@ function CheckInspections() {
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="h6">
                   {trans.checkInspections.uncheckedItems} ({uncheckedInspections.length} {trans.checkInspections.inspections})
+                  {uncheckedInspections.length > rowsPerPage && (
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                      - Trang {uncheckedPage + 1} của {Math.ceil(uncheckedInspections.length / rowsPerPage)}
+                    </Typography>
+                  )}
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
                 {uncheckedInspections.length === 0 ? (
                   <Typography>{trans.checkInspections.noUncheckedInspections}</Typography>
                 ) : (
-                  <Stack spacing={2}>
-                    {uncheckedInspections.map((inspection) => (
-                      <Paper
-                        key={inspection._ids.join('-')}
-                        variant="outlined"
-                        sx={{ p: 2, bgcolor: 'background.paper', position: 'relative' }}
-                        elevation={0}
-                      >
-                        <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-                          {trans.checkInspections.location}: {getLocationLabel(inspection.location)} - {trans.checkInspections.status}:{' '}
-                          {inspection.status === 'draft'
-                            ? trans.checkInspections.draft
-                            : inspection.status === 'checking'
-                              ? trans.checkInspections.checking
-                              : inspection.status === 'checked'
-                                ? trans.checkInspections.checked
-                                : inspection.status}
-                        </Typography>
+                  <>
+                    <Stack spacing={2}>
+                      {paginatedUncheckedInspections.map((inspection) => (
+                        <Paper
+                          key={inspection._ids.join('-')}
+                          variant="outlined"
+                          sx={{ p: 2, bgcolor: 'background.paper', position: 'relative' }}
+                          elevation={0}
+                        >
+                          <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
+                            {trans.checkInspections.location}: {getLocationLabel(inspection.location)} - {trans.checkInspections.status}:{' '}
+                            {inspection.status === 'draft'
+                              ? trans.checkInspections.draft
+                              : inspection.status === 'checking'
+                                ? trans.checkInspections.checking
+                                : inspection.status === 'checked'
+                                  ? trans.checkInspections.checked
+                                  : inspection.status}
+                          </Typography>
 
-                        <Table size="small" aria-label="check-list-items">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell>{trans.checkInspections.medicineName}</TableCell>
-                              <TableCell>{trans.checkInspections.licenseCode}</TableCell>
-                              <TableCell align="right">{trans.checkInspections.expectedQuantity}</TableCell>
-                              <TableCell align="right">{trans.checkInspections.actualQuantity}</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {(inspection.check_list || [])
-                              .filter((item) => item.actual_quantity === 0)
-                              .map((checkItem, idx) => {
-                                const medicine = checkItem.package_id?.batch_id?.medicine_id;
-                                return (
-                                  <TableRow key={idx}>
-                                    <TableCell>{medicine?.medicine_name || 'Không xác định'}</TableCell>
-                                    <TableCell>{medicine?.license_code || '-'}</TableCell>
-                                    <TableCell align="right">{checkItem.expected_quantity}</TableCell>
-                                    <TableCell align="right">{checkItem.actual_quantity}</TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                          </TableBody>
-                        </Table>
+                          <Table size="small" aria-label="check-list-items">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>{trans.checkInspections.medicineName}</TableCell>
+                                <TableCell>{trans.checkInspections.licenseCode}</TableCell>
+                                <TableCell align="right">{trans.checkInspections.expectedQuantity}</TableCell>
+                                <TableCell align="right">{trans.checkInspections.actualQuantity}</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {(inspection.check_list || [])
+                                .filter((item) => item.actual_quantity === 0)
+                                .map((checkItem, idx) => {
+                                  const medicine = checkItem.package_id?.batch_id?.medicine_id;
+                                  return (
+                                    <TableRow key={idx}>
+                                      <TableCell>{medicine?.medicine_name || 'Không xác định'}</TableCell>
+                                      <TableCell>{medicine?.license_code || '-'}</TableCell>
+                                      <TableCell align="right">{checkItem.expected_quantity}</TableCell>
+                                      <TableCell align="right">{checkItem.actual_quantity}</TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                            </TableBody>
+                          </Table>
 
-                        <Typography variant="body2" sx={{ mt: 1 }}>
-                          {trans.checkInspections.notes}: {inspection.notes || '-'}
-                        </Typography>
-                      </Paper>
-                    ))}
-                  </Stack>
+                          <Typography variant="body2" sx={{ mt: 1 }}>
+                            {trans.checkInspections.notes}: {inspection.notes || '-'}
+                          </Typography>
+                        </Paper>
+                      ))}
+                    </Stack>
+
+                    {/* Pagination for unchecked inspections */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                      <TablePagination
+                        component="div"
+                        count={uncheckedInspections.length}
+                        page={uncheckedPage}
+                        onPageChange={(event, newPage) => setUncheckedPage(newPage)}
+                        rowsPerPage={rowsPerPage}
+                        onRowsPerPageChange={(event, newRowsPerPage) => {
+                          setRowsPerPage(newRowsPerPage);
+                          setUncheckedPage(0);
+                          setCheckedPage(0);
+                        }}
+                        rowsPerPageOptions={[5, 10, 25, 50]}
+                        labelRowsPerPage="Số phiếu mỗi trang:"
+                        labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`}
+                      />
+                    </div>
+                  </>
                 )}
               </AccordionDetails>
             </Accordion>
@@ -558,6 +604,11 @@ function CheckInspections() {
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Typography variant="h6">
                   {trans.checkInspections.checkedItems} ({checkedInspections.length} {trans.checkInspections.inspections})
+                  {checkedInspections.length > rowsPerPage && (
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+                      - Trang {checkedPage + 1} của {Math.ceil(checkedInspections.length / rowsPerPage)}
+                    </Typography>
+                  )}
                 </Typography>
               </AccordionSummary>
               <AccordionDetails>
@@ -566,7 +617,7 @@ function CheckInspections() {
                 ) : (
                   <>
                     <Stack spacing={2}>
-                      {checkedInspections.map((inspection) => (
+                      {paginatedCheckedInspections.map((inspection) => (
                         <Paper
                           key={inspection._ids.join('-')}
                           variant="outlined"
@@ -609,6 +660,25 @@ function CheckInspections() {
                         </Paper>
                       ))}
                     </Stack>
+
+                    {/* Pagination for checked inspections */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+                      <TablePagination
+                        component="div"
+                        count={checkedInspections.length}
+                        page={checkedPage}
+                        onPageChange={(event, newPage) => setCheckedPage(newPage)}
+                        rowsPerPage={rowsPerPage}
+                        onRowsPerPageChange={(event, newRowsPerPage) => {
+                          setRowsPerPage(newRowsPerPage);
+                          setUncheckedPage(0);
+                          setCheckedPage(0);
+                        }}
+                        rowsPerPageOptions={[5, 10, 25, 50]}
+                        labelRowsPerPage="Số phiếu mỗi trang:"
+                        labelDisplayedRows={({ from, to, count }) => `${from}-${to} của ${count !== -1 ? count : `hơn ${to}`}`}
+                      />
+                    </div>
                   </>
                 )}
               </AccordionDetails>
