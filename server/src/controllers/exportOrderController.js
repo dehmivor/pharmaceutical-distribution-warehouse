@@ -226,22 +226,27 @@ const completeExportOrder = async (req, res) => {
       await session.commitTransaction();
       session.endSession();
 
+      const io = req.app.locals.io;
+
       try {
-        await notificationService.createNotificationForAllSupervisors({
-          title: 'Đơn hàng xuất kho hoàn thành',
-          message: `Đơn hàng xuất kho #${id.slice(-6)} đã được warehouse manager hoàn thành thành công.`,
-          type: 'export',
-          priority: 'medium',
-          sender_id: user._id,
-          action_url: `/sp-manage-bills`,
-          metadata: {
-            orderId: id,
-            statusChangedTo: 'completed',
-            orderType: 'export',
-            action: 'order_completed',
-            warehouseManagerId: user._id,
+        await notificationService.createNotificationForAllSupervisors(
+          {
+            title: 'Đơn hàng xuất kho hoàn thành',
+            message: `Đơn hàng xuất kho #${id.slice(-6)} đã được warehouse manager hoàn thành thành công.`,
+            type: 'export',
+            priority: 'medium',
+            sender_id: user._id,
+            action_url: `/sp-manage-bills`,
+            metadata: {
+              orderId: id,
+              statusChangedTo: 'completed',
+              orderType: 'export',
+              action: 'order_completed',
+              warehouseManagerId: user._id,
+            },
           },
-        });
+          io,
+        );
 
         console.log(`Đã tạo notification cho supervisor về đơn hàng xuất kho #${id} hoàn thành`);
       } catch (notificationError) {
