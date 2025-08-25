@@ -1,3 +1,4 @@
+'use client';
 // app/contexts/RoleContext.js
 import { createContext, useContext, useState, useEffect } from 'react';
 

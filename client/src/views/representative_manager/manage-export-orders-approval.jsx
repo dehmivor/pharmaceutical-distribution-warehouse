@@ -163,17 +163,18 @@ function ManageExportOrdersApproval() {
       if (response.data.success) {
         const allOrders = response.data.data || [];
         console.log('All export orders:', allOrders);
-        
+
         // Client-side filtering using appliedFilters instead of filters
         let filteredOrders = allOrders.filter((order) => {
-          const matchesSearch = !appliedFilters.search || 
+          const matchesSearch =
+            !appliedFilters.search ||
             order._id?.toLowerCase().includes(appliedFilters.search.toLowerCase()) ||
             order.contract_id?.contract_code?.toLowerCase().includes(appliedFilters.search.toLowerCase());
-          
+
           const matchesStatus = !appliedFilters.status || order.status === appliedFilters.status;
           const matchesContractType = !appliedFilters.contract_type || order.contract_id?.contract_type === appliedFilters.contract_type;
           const matchesCreatedBy = !appliedFilters.created_by || order.created_by?.email === appliedFilters.created_by;
-          
+
           return matchesSearch && matchesStatus && matchesContractType && matchesCreatedBy;
         });
 
@@ -304,7 +305,7 @@ function ManageExportOrdersApproval() {
               />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 160 }}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.representativeManagerExportOrdersApproval.filters.status}</InputLabel>
                 <Select
                   value={filters.status}
@@ -336,7 +337,7 @@ function ManageExportOrdersApproval() {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 160 }}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.representativeManagerExportOrdersApproval.filters.contractType}</InputLabel>
                 <Select
                   value={filters.contract_type}
@@ -376,7 +377,7 @@ function ManageExportOrdersApproval() {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 200 }}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.representativeManagerExportOrdersApproval.filters.createdBy}</InputLabel>
                 <Select
                   value={filters.created_by}
@@ -395,7 +396,7 @@ function ManageExportOrdersApproval() {
                     </span>
                   )}
                   sx={{
-                    width: 200
+                    width: 160
                   }}
                 >
                   <MenuItem value="">{trans.representativeManagerExportOrdersApproval.filters.allUsers}</MenuItem>
@@ -408,34 +409,17 @@ function ManageExportOrdersApproval() {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={1}>
-              <Button
-                variant="contained"
-                onClick={applyFilters}
-                fullWidth
-                sx={{ height: '56px' }}
-                startIcon={<SearchIcon />}
-              >
+              <Button variant="contained" onClick={applyFilters} fullWidth size="small" startIcon={<SearchIcon />}>
                 {trans.common.search || 'Search'}
               </Button>
             </Grid>
             <Grid item xs={12} sm={6} md={1}>
-              <Button
-                variant="outlined"
-                onClick={handleRefresh}
-                disabled={loading}
-                fullWidth
-                sx={{ height: '56px' }}
-              >
+              <Button variant="outlined" onClick={handleRefresh} disabled={loading} fullWidth size="small">
                 {trans.representativeManagerExportOrdersApproval.filters.refresh}
               </Button>
             </Grid>
             <Grid item xs={12} sm={6} md={1}>
-              <Button
-                variant="outlined"
-                onClick={clearFilters}
-                fullWidth
-                sx={{ height: '56px' }}
-              >
+              <Button variant="outlined" onClick={clearFilters} fullWidth size="small">
                 {trans.common.clear || 'Clear'}
               </Button>
             </Grid>

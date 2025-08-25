@@ -322,6 +322,7 @@ const LocationManagement = () => {
                 onChange={(e) => setFilterAreaId(e.target.value)}
                 label={trans.common.area}
                 size="small"
+                fullWidth
                 renderValue={(value) => {
                   if (!value) return trans.common.all;
                   const area = areas.find((a) => a._id === value);
@@ -344,6 +345,7 @@ const LocationManagement = () => {
                 onChange={(e) => setFilterAvailable(e.target.value)}
                 label={trans.common.status}
                 size="small"
+                fullWidth
                 renderValue={(value) => {
                   if (value === '') return trans.common.all;
                   if (value === 'true') return trans.common.available;

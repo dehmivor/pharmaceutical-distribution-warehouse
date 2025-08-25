@@ -734,18 +734,17 @@ export default function ManageExportOrders() {
     });
   };
 
-
   const handleDownloadReceipt = async (order_id) => {
     try {
-      setdownloadReceiptLoading(true)
+      setdownloadReceiptLoading(true);
       const response = await axios.get(`/api/export-orders/receipt/${order_id}`, {
         headers: getAuthHeaders(),
-        responseType: "blob", // <- important: get binary blob
+        responseType: 'blob' // <- important: get binary blob
       });
 
       // Try to extract filename from Content-Disposition
-      const contentDisposition = response.headers["content-disposition"] || "";
-      let filename = "receipt.docx"; // fallback
+      const contentDisposition = response.headers['content-disposition'] || '';
+      let filename = 'receipt.docx'; // fallback
 
       // support filename*=UTF-8''encoded-name, filename="name", filename=name
       const filenameRegex = /filename\*=UTF-8''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i;
@@ -756,7 +755,7 @@ export default function ManageExportOrders() {
 
       // create a blob and trigger download
       const blob = new Blob([response.data], {
-        type: response.headers["content-type"] || "application/octet-stream",
+        type: response.headers['content-type'] || 'application/octet-stream'
       });
 
       // IE / Edge (msSaveOrOpenBlob)
@@ -767,21 +766,20 @@ export default function ManageExportOrders() {
 
       // Other browsers
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = url;
-      link.setAttribute("download", filename);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
       // release memory
       window.URL.revokeObjectURL(url);
-      setdownloadReceiptLoading(false)
+      setdownloadReceiptLoading(false);
     } catch (err) {
-      console.error("Error downloading receipt:", err);
+      console.error('Error downloading receipt:', err);
       setError(trans.assignedInboundOrderDetail.errorAssigningOrder);
     }
   };
-
 
   const changeDestroyQty = (lineIndex, packageId, value) => {
     const qty = Math.max(0, Number.parseInt(value) || 0);
@@ -1012,15 +1010,15 @@ export default function ManageExportOrders() {
             </MenuItem>
           )}
 
-          {menuOrder?.status === 'completed' && (
-            <MenuItem
-              onClick={() => {
-                handleDownloadReceipt(menuOrder._id);
-              }}
-            >
-              Print receipt
-            </MenuItem>
-          )}
+        {menuOrder?.status === 'completed' && (
+          <MenuItem
+            onClick={() => {
+              handleDownloadReceipt(menuOrder._id);
+            }}
+          >
+            Print receipt
+          </MenuItem>
+        )}
       </Menu>
 
       <Dialog open={viewDetailsDialogOpen} onClose={handleCloseViewDetailsDialog} maxWidth="md" fullWidth>

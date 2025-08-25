@@ -21,7 +21,7 @@ import {
   TableCell,
   Stack
 } from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Search } from '@mui/icons-material';
 import axios from 'axios';
 
 // explicit imports (more compatible across versions)
@@ -32,7 +32,7 @@ const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
   return {
     'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
+    ...(token && { Authorization: `Bearer ${token}` })
   };
 };
 
@@ -56,7 +56,6 @@ const RepresentativeManagerMedicinePerformance = () => {
   const [topExported, setTopExported] = useState([]);
   const [topLoading, setTopLoading] = useState(false);
 
-
   // --- Distinct batches (minimal) ---
   const [batches, setBatches] = useState([]);
   const [bLoading, setBLoading] = useState(false);
@@ -65,7 +64,6 @@ const RepresentativeManagerMedicinePerformance = () => {
 
   const [aiResponse, setaiResponse] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
-
 
   const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString() : '—');
   const monthsUntil = (iso) => {
@@ -88,7 +86,7 @@ const RepresentativeManagerMedicinePerformance = () => {
         license_code: r.medicine_id?.license_code || '—',
         batch_code: r.batch_code || '—',
         production_date: r.production_date || null,
-        expiry_date: r.expiry_date || null,
+        expiry_date: r.expiry_date || null
       }));
       setBatches(rows);
     } catch (e) {
@@ -98,7 +96,9 @@ const RepresentativeManagerMedicinePerformance = () => {
     }
   }, []);
 
-  useEffect(() => { fetchDistinctBatches(); }, [fetchDistinctBatches]);
+  useEffect(() => {
+    fetchDistinctBatches();
+  }, [fetchDistinctBatches]);
 
   const filteredBatches = React.useMemo(() => {
     const m = parseFloat(monthsFilter);
@@ -130,7 +130,6 @@ const RepresentativeManagerMedicinePerformance = () => {
     }
     return out;
   };
-
 
   // fetch top exported on mount so the table shows automatically
   useEffect(() => {
@@ -165,7 +164,6 @@ const RepresentativeManagerMedicinePerformance = () => {
     };
   }, []);
 
-
   const handleSubmit = useCallback(
     async (e) => {
       e?.preventDefault();
@@ -190,7 +188,7 @@ const RepresentativeManagerMedicinePerformance = () => {
         const [flowResp, historyResp, aiResp] = await Promise.all([
           axios.get(flowUrl, { headers: getAuthHeaders() }).catch((err) => ({ error: err })),
           axios.get(historyUrl, { headers: getAuthHeaders() }).catch((err) => ({ error: err })),
-          axios.get(aiUrl, { headers: getAuthHeaders(), responseType: 'text' }).catch((err) => ({ error: err })),
+          axios.get(aiUrl, { headers: getAuthHeaders(), responseType: 'text' }).catch((err) => ({ error: err }))
         ]);
 
         // process flowResp
@@ -220,12 +218,12 @@ const RepresentativeManagerMedicinePerformance = () => {
         // process historyResp
         if (!historyResp || historyResp.error) {
           console.warn('history request failed', historyResp?.error || historyResp);
-          setError((prev) => prev ? prev + ' Also failed to fetch history.' : 'Failed to fetch history data (line chart).');
+          setError((prev) => (prev ? prev + ' Also failed to fetch history.' : 'Failed to fetch history data (line chart).'));
         } else {
           const data = historyResp.data;
           if (!data || !data.success) {
             console.warn('history response invalid', data);
-            setError((prev) => prev ? prev + ' History response invalid.' : 'Invalid history response.');
+            setError((prev) => (prev ? prev + ' History response invalid.' : 'Invalid history response.'));
           } else {
             const hMonths = Array.isArray(data.data.months) ? data.data.months.map((m) => String(m)) : [];
             const quantities = data.data?.quantity || [];
@@ -241,7 +239,7 @@ const RepresentativeManagerMedicinePerformance = () => {
           console.warn('ai request failed', aiResp?.error || aiResp);
           // non-fatal, just show a message in the AI card
           setaiResponse('');
-          setError((prev) => prev ? prev + ' AI summary failed.' : 'Failed to fetch AI summary.');
+          setError((prev) => (prev ? prev + ' AI summary failed.' : 'Failed to fetch AI summary.'));
         } else {
           // server returns raw text/plain; axios with responseType 'text' gives string in data
           const text = aiResp.data;
@@ -250,13 +248,12 @@ const RepresentativeManagerMedicinePerformance = () => {
           setaiResponse(s);
         }
         setAiLoading(false);
-
       } catch (err) {
         console.error('fetch error:', err);
         setError(err?.response?.data?.error || err.message || 'Failed to fetch data');
       }
     },
-    [licenseCode],
+    [licenseCode]
   );
 
   // Build series for BarChart
@@ -272,7 +269,7 @@ const RepresentativeManagerMedicinePerformance = () => {
       { label: 'Import — Contracted', data: impContractedSafe, stack: 'import' },
       { label: 'Import — Uncontracted', data: impUn, stack: 'import' },
       { label: 'Export — Contracted', data: expContractedSafe, stack: 'export' },
-      { label: 'Export — Uncontracted', data: expUn, stack: 'export' },
+      { label: 'Export — Uncontracted', data: expUn, stack: 'export' }
     ];
   };
 
@@ -320,6 +317,7 @@ const RepresentativeManagerMedicinePerformance = () => {
             <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} md={6}>
                 <TextField
+                  size="small"
                   label="Medicine license code"
                   value={licenseCode}
                   onChange={(e) => setLicenseCode(e.target.value)}
@@ -328,16 +326,25 @@ const RepresentativeManagerMedicinePerformance = () => {
               </Grid>
 
               <Grid item xs={12} md={6} sx={{ display: 'flex', gap: 1 }}>
-                <Button variant="contained" onClick={handleSubmit} disabled={loading} sx={{ px: 3 }}>
+                <Button
+                  sx={{ ml: 1 }}
+                  variant="contained"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  size="small"
+                  fullWidth
+                  startIcon={<Search />}
+                >
                   {loading ? <CircularProgress size={20} /> : 'Submit'}
                 </Button>
                 <Button
+                  size="small"
+                  fullWidth
                   variant="outlined"
                   onClick={() => {
                     setLicenseCode('');
                     resetData();
                   }}
-                  sx={{ px: 3 }}
                 >
                   Clear
                 </Button>
@@ -345,9 +352,8 @@ const RepresentativeManagerMedicinePerformance = () => {
                 <FormControlLabel
                   control={<Switch checked={showUncontracted} onChange={(e) => setShowUncontracted(e.target.checked)} color="primary" />}
                   label="Show Uncontracted"
-                  sx={{ ml: 2 }}
+                  sx={{ ml: 1 }}
                 />
-
               </Grid>
             </Grid>
           </Box>
@@ -381,12 +387,7 @@ const RepresentativeManagerMedicinePerformance = () => {
                   </Typography>
                 </Paper>
               ) : (
-                <BarChart
-                  key={months.join('-')}
-                  series={buildBarSeries()}
-                  xAxis={[{ data: months }]}
-                  height={420}
-                />
+                <BarChart key={months.join('-')} series={buildBarSeries()} xAxis={[{ data: months }]} height={420} />
               )}
             </CardContent>
           </Card>
@@ -417,12 +418,7 @@ const RepresentativeManagerMedicinePerformance = () => {
                   </Typography>
                 </Paper>
               ) : (
-                <BarChart
-                  key={months.join('-')}
-                  series={buildLineSeries()}
-                  xAxis={[{ data: historyMonths }]}
-                  height={420}
-                />
+                <BarChart key={months.join('-')} series={buildLineSeries()} xAxis={[{ data: historyMonths }]} height={420} />
               )}
             </CardContent>
           </Card>
@@ -512,10 +508,17 @@ const RepresentativeManagerMedicinePerformance = () => {
 
         <Box sx={{ mt: 2 }}>
           <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
-            <Box sx={{
-              p: 2, borderBottom: '1px solid #e0e0e0', bgcolor: 'grey.50',
-              display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'space-between'
-            }}>
+            <Box
+              sx={{
+                p: 2,
+                borderBottom: '1px solid #e0e0e0',
+                bgcolor: 'grey.50',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                justifyContent: 'space-between'
+              }}
+            >
               <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
                 Almost expire
               </Typography>
@@ -531,12 +534,7 @@ const RepresentativeManagerMedicinePerformance = () => {
                   sx={{ width: 220 }}
                   inputProps={{ min: 0 }}
                 />
-                <Button
-                  variant="outlined"
-                  startIcon={<RefreshIcon />}
-                  onClick={fetchDistinctBatches}
-                  disabled={bLoading}
-                >
+                <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchDistinctBatches} disabled={bLoading}>
                   Refresh
                 </Button>
               </Box>
@@ -591,7 +589,6 @@ const RepresentativeManagerMedicinePerformance = () => {
             </CardContent>
           </Card>
         </Box>
-
       </Box>
 
       <Snackbar open={!!error} onClose={() => setError('')} autoHideDuration={6000} message={error} />
