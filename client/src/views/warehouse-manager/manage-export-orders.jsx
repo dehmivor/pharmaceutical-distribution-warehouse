@@ -40,6 +40,7 @@ import {
 import { Delete } from '@mui/icons-material';
 import axios from 'axios';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import useTrans from '@/hooks/useTrans';
 import { useRouter } from 'next/navigation';
 import ModalConfirm from '../../views/general/ModalConfirm';
 import { enqueueSnackbar } from 'notistack';
@@ -72,6 +73,7 @@ const getStatusBadge = (status) => {
 
 export default function ManageExportOrders() {
   const router = useRouter();
+  const trans = useTrans();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -872,23 +874,23 @@ export default function ManageExportOrders() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Export Orders Management
+            {trans.manageExportOrders.title}
           </Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Manage and inspect export orders, track their status, and perform inspections.
+            {trans.manageExportOrders.description}
           </Typography>
         </Box>
 
         <Stack direction="row" spacing={2}>
           <Button variant="contained" startIcon={<AddIcon />} onClick={openInternalDialog} color="primary">
-            Create Internal Export Order
+            {trans.manageExportOrders.createInternalExportOrder}
           </Button>
         </Stack>
       </Box>
       <Box component={Paper} sx={{ p: 2, mb: 3 }} elevation={1}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
           <TextField
-            label="Export Date"
+            label={trans.manageExportOrders.exportDate}
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
@@ -896,30 +898,30 @@ export default function ManageExportOrders() {
             size="small"
             fullWidth
           />
-          <TextField select label="Status" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small" fullWidth>
-            <MenuItem value="">All</MenuItem>
+          <TextField select label={trans.manageExportOrders.status} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small" fullWidth>
+            <MenuItem value="">{trans.manageExportOrders.all}</MenuItem>
             {['draft', 'approved', 'returned', 'rejected', 'completed', 'cancelled'].map((s) => (
               <MenuItem key={s} value={s}>
                 {s.charAt(0).toUpperCase() + s.slice(1)}
               </MenuItem>
             ))}
           </TextField>
-          <TextField select label="Type" value={filterType} onChange={(e) => setFilterType(e.target.value)} size="small" fullWidth>
-            <MenuItem value="all">All Types</MenuItem>
-            <MenuItem value="internal">Internal</MenuItem>
-            <MenuItem value="regular">Regular</MenuItem>
+          <TextField select label={trans.manageExportOrders.type} value={filterType} onChange={(e) => setFilterType(e.target.value)} size="small" fullWidth>
+            <MenuItem value="all">{trans.manageExportOrders.allTypes}</MenuItem>
+            <MenuItem value="internal">{trans.manageExportOrders.internal}</MenuItem>
+            <MenuItem value="regular">{trans.manageExportOrders.regular}</MenuItem>
           </TextField>
           <FormControlLabel
             control={
               <Checkbox checked={filterAssignedToMe} onChange={(e) => setFilterAssignedToMe(e.target.checked)} disabled={!currentUserId} />
             }
-            label="Assigned to Me"
+            label={trans.manageExportOrders.assignedToMe}
           />
           <Button variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick} fullWidth>
-            Search
+            {trans.manageExportOrders.search}
           </Button>
           <Button variant="outlined" onClick={handleReset} startIcon={<RefreshIcon />} fullWidth>
-            Refresh
+            {trans.manageExportOrders.refresh}
           </Button>
         </Stack>
       </Box>
@@ -928,13 +930,13 @@ export default function ManageExportOrders() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Export Date</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Contract Code</TableCell>
-              <TableCell>Partner</TableCell>
-              <TableCell>Manager Email</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
+              <TableCell>{trans.manageExportOrders.exportDateCol}</TableCell>
+              <TableCell>{trans.manageExportOrders.typeCol}</TableCell>
+              <TableCell>{trans.manageExportOrders.contractCode}</TableCell>
+              <TableCell>{trans.manageExportOrders.partner}</TableCell>
+              <TableCell>{trans.manageExportOrders.managerEmail}</TableCell>
+              <TableCell>{trans.manageExportOrders.statusCol}</TableCell>
+              <TableCell>{trans.manageExportOrders.actions}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -942,7 +944,7 @@ export default function ManageExportOrders() {
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
-                    No export orders found.
+                    {trans.manageExportOrders.noExportOrdersFound}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -995,7 +997,7 @@ export default function ManageExportOrders() {
             handleOpenViewDetailsDialog(menuOrder);
           }}
         >
-          Detail
+          {trans.manageExportOrders.detail}
         </MenuItem>
         {currentUserRole === USER_ROLES.WAREHOUSEMANAGER &&
           !!menuOrder?.contract_id &&
@@ -1006,7 +1008,7 @@ export default function ManageExportOrders() {
                 handleAssignToMyself(menuOrder._id);
               }}
             >
-              Assign order to myself
+              {trans.manageExportOrders.assignOrderToMyself}
             </MenuItem>
           )}
 

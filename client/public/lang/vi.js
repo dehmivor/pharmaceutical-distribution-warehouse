@@ -2445,7 +2445,9 @@ export default {
   // Manage Export Orders
   manageExportOrders: {
     title: 'Quản lý đơn hàng xuất kho',
+    description: 'Quản lý và kiểm tra đơn hàng xuất kho, theo dõi trạng thái và thực hiện kiểm tra.',
     createInternalExportOrder: 'Tạo đơn hàng xuất nội bộ',
+    createInternalExportOrderDescription: 'Tạo đơn hàng xuất nội bộ cho hàng trả lại hoặc điều chỉnh tồn kho',
     exportDate: 'Ngày xuất kho',
     status: 'Trạng thái',
     type: 'Loại',

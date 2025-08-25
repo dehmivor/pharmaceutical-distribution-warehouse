@@ -593,7 +593,7 @@ function ImportOrderPage() {
             {trans.common.manageImportOrders}
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Start managing your import orders efficiently.
+            {trans.common.manageImportOrdersDescription}
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
