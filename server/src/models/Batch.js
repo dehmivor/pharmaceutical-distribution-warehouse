@@ -11,7 +11,6 @@ const batchSchema = new mongoose.Schema(
     batch_code: {
       type: String,
       required: [true, 'Batch code is required'],
-      unique: true,
       trim: true,
     },
     production_date: {
