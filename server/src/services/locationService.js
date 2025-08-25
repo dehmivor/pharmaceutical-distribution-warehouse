@@ -172,35 +172,40 @@ class LocationService {
     }
   }
 
-  async createLocation(locationData) {
+  async createLocation(locationData, io) {
     try {
       const location = new Location(locationData);
       await location.save();
       const populatedLocation = await Location.findById(location._id).populate('area_id', 'name');
 
       // Tạo notification cho tất cả warehouse users
-      try {
-        await notificationService.createNotificationForAllWarehouse({
-          title: '1 Vị trí mới được mở',
-          message: `${populatedLocation.area_id.name} - Bay ${populatedLocation.bay}, Row ${populatedLocation.row}, Col ${populatedLocation.column}`,
-          type: 'inventory',
-          priority: 'medium',
-          action_url: '/wh-location',
-          metadata: {
-            location_id: location._id,
-            area_name: populatedLocation.area_id.name,
-            bay: populatedLocation.bay,
-            row: populatedLocation.row,
-            column: populatedLocation.column,
-          },
-        });
+      if (io) {
+        try {
+          await notificationService.createNotificationForAllWarehouse(
+            {
+              title: '1 Vị trí mới được mở',
+              message: `${populatedLocation.area_id.name} - Bay ${populatedLocation.bay}, Row ${populatedLocation.row}, Col ${populatedLocation.column}`,
+              type: 'inventory',
+              priority: 'medium',
+              action_url: '/wh-location',
+              metadata: {
+                location_id: location._id,
+                area_name: populatedLocation.area_id.name,
+                bay: populatedLocation.bay,
+                row: populatedLocation.row,
+                column: populatedLocation.column,
+              },
+            },
+            io,
+          );
 
-        console.log(
-          `✅ Đã tạo notification cho warehouse users về vị trí mới: ${populatedLocation.area_id.name} - Bay ${populatedLocation.bay}, Row ${populatedLocation.row}, Col ${populatedLocation.column}`,
-        );
-      } catch (notificationError) {
-        // Log lỗi notification nhưng không ảnh hưởng đến việc tạo location
-        console.error('❌ Lỗi khi tạo notification cho warehouse users:', notificationError);
+          console.log(
+            `✅ Đã tạo notification cho warehouse users về vị trí mới: ${populatedLocation.area_id.name} - Bay ${populatedLocation.bay}, Row ${populatedLocation.row}, Col ${populatedLocation.column}`,
+          );
+        } catch (notificationError) {
+          // Log lỗi notification nhưng không ảnh hưởng đến việc tạo location
+          console.error('❌ Lỗi khi tạo notification cho warehouse users:', notificationError);
+        }
       }
 
       return { success: true, data: populatedLocation, message: 'Tạo vị trí thành công' };

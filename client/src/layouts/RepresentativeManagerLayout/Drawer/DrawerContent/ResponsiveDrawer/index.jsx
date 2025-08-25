@@ -45,8 +45,8 @@ export default function ResponsiveDrawer() {
 function getTranslationKey(menuId) {
   const translationMap = {
     dashboard: 'representativeManagerDashboard',
-    'manage-import-orders-approval': 'importOrdersApproval',
-    'manage-export-orders-approval': 'exportOrdersApproval',
+    'rm-import-orders-approval': 'importOrdersApproval',
+    'rm-export-orders-approval': 'exportOrdersApproval',
     'rm-manage-contracts': 'manageContracts',
     'rm-medicine-performance': 'medicinePerformance'
   };

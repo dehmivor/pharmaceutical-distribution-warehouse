@@ -244,7 +244,8 @@ const createLocation = asyncHandler(async (req, res) => {
     });
   }
 
-  const result = await locationService.createLocation(req.body);
+  const io = req.app.locals.io;
+  const result = await locationService.createLocation(req.body, io);
 
   if (!result.success) {
     return res.status(400).json(result);

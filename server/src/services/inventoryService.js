@@ -133,19 +133,22 @@ const updateCheckOrderStatus = async (checkOrderId, status, io) => {
     const updatedCheckOrder = await existingOrder.save();
 
     if (oldStatus !== 'processing' && status.toLowerCase() === 'processing') {
-      const newNotification = await notificationService.createNotification({
-        recipient_id: null,
-        sender_id: null,
-        title: 'Kho đang thực hiện kiểm kê toàn kho',
-        message: `Đơn kiểm kê #${checkOrderId.slice(20)} đã bắt đầu lúc ${new Date().toLocaleString()}`,
-        type: 'system_alert',
-        priority: 'high',
-        status: 'unread',
-        metadata: {
-          checkOrderId: checkOrderId,
-          statusChangedTo: 'processing',
+      const newNotification = await notificationService.createNotification(
+        {
+          recipient_id: null,
+          sender_id: null,
+          title: 'Kho đang thực hiện kiểm kê toàn kho',
+          message: `Đơn kiểm kê #${checkOrderId.slice(20)} đã bắt đầu lúc ${new Date().toLocaleString()}`,
+          type: 'system_alert',
+          priority: 'high',
+          status: 'unread',
+          metadata: {
+            checkOrderId: checkOrderId,
+            statusChangedTo: 'processing',
+          },
         },
-      });
+        io,
+      );
 
       if (newNotification && io) {
         console.log('Emitting newNotification to system room');

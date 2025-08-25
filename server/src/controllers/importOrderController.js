@@ -1,6 +1,7 @@
 const importOrderService = require('../services/importOrderService');
 const notificationService = require('../services/notificationService');
 const mongoose = require('mongoose');
+const { io } = require('../server');
 
 // Create new import order
 const createImportOrder = async (req, res) => {
@@ -259,6 +260,7 @@ const deleteImportOrder = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
+    const io = req.app.locals.io;
     const { status } = req.body;
     const userId = req.user && req.user._id;
     // Check if user is supervisor and bypass validation
@@ -377,49 +379,84 @@ const updateOrderStatus = async (req, res) => {
 
         // Tạo notification nếu có title và message
         if (notificationTitle && notificationMessage) {
-          await notificationService.createNotification({
-            recipient_id: updatedOrder.created_by, // ID của representative đã tạo đơn hàng
-            title: notificationTitle,
-            message: notificationMessage,
-            type: 'import',
-            priority: priority,
-            action_url: `/rp-import-orders`,
-            metadata: {
-              order_id: id,
-              order_status: status,
-              order_type: 'import',
-              previous_status: updatedOrder.status,
-              contract_code: updatedOrder.contract_id?.contract_code || 'N/A',
-              supplier_name: updatedOrder.contract_id?.partner_id?.name || 'N/A',
-              status_change_date: new Date(),
-              changed_by: userId,
+          await notificationService.createNotification(
+            {
+              recipient_id: updatedOrder.created_by, // ID của representative đã tạo đơn hàng
+              title: notificationTitle,
+              message: notificationMessage,
+              type: 'import',
+              priority: priority,
+              action_url: `/rp-import-orders`,
+              metadata: {
+                order_id: id,
+                order_status: status,
+                order_type: 'import',
+                previous_status: updatedOrder.status,
+                contract_code: updatedOrder.contract_id?.contract_code || 'N/A',
+                supplier_name: updatedOrder.contract_id?.partner_id?.name || 'N/A',
+                status_change_date: new Date(),
+                changed_by: userId,
+              },
             },
-          });
+            io,
+          );
 
           console.log(
             `✅ Đã tạo notification cho representative ${updatedOrder.created_by} về việc thay đổi status đơn hàng #${id} sang ${status}`,
           );
         }
 
+        if (status === 'delivered') {
+          try {
+            await notificationService.createNotificationForAllWarehouse(
+              {
+                title: 'Hãy bắt đầu kiểm nhập',
+                message: `Đơn nhập kho #${id.slice(20)} đã đến nơi.`,
+                type: 'inventory',
+                priority: 'high',
+                action_url: `/wh-import-orders/${id}`,
+                metadata: {
+                  order_id: id,
+                  order_status: status,
+                  order_type: 'import',
+                  status_change_date: new Date(),
+                  changed_by: userId,
+                  contract_code: updatedOrder.contract_id?.contract_code || 'N/A',
+                  supplier_name: updatedOrder.contract_id?.partner_id?.name || 'N/A',
+                },
+              },
+              io,
+            );
+          } catch (warehouseNotificationError) {
+            // Log lỗi notification nhưng không ảnh hưởng đến việc update status
+            console.error(
+              'Lỗi khi tạo notification cho warehouse users:',
+              warehouseNotificationError,
+            );
+          }
+        }
         // Tạo notification cho warehouse users khi status chuyển sang 'arranged'
         if (status === 'arranged') {
           try {
-            await notificationService.createNotificationForAllWarehouse({
-              title: 'Đơn hàng sẵn sàng để cất hàng',
-              message: `Đơn nhập kho #${id.slice(20)} đã được tạo lô.`,
-              type: 'inventory',
-              priority: 'high',
-              action_url: `/wh-import-orders/${id}`,
-              metadata: {
-                order_id: id,
-                order_status: status,
-                order_type: 'import',
-                status_change_date: new Date(),
-                changed_by: userId,
-                contract_code: updatedOrder.contract_id?.contract_code || 'N/A',
-                supplier_name: updatedOrder.contract_id?.partner_id?.name || 'N/A',
+            await notificationService.createNotificationForAllWarehouse(
+              {
+                title: 'Đơn hàng sẵn sàng để cất hàng',
+                message: `Đơn nhập kho #${id.slice(20)} đã được tạo lô.`,
+                type: 'inventory',
+                priority: 'high',
+                action_url: `/wh-import-orders/${id}`,
+                metadata: {
+                  order_id: id,
+                  order_status: status,
+                  order_type: 'import',
+                  status_change_date: new Date(),
+                  changed_by: userId,
+                  contract_code: updatedOrder.contract_id?.contract_code || 'N/A',
+                  supplier_name: updatedOrder.contract_id?.partner_id?.name || 'N/A',
+                },
               },
-            });
+              io,
+            );
 
             console.log(
               `✅ Đã tạo notification cho warehouse users về việc đơn hàng #${id} sẵn sàng để cất hàng`,

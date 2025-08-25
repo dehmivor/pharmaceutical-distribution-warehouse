@@ -11,18 +11,21 @@ const createNotification = async (req, res) => {
 
     let notification;
 
+    const io = req.app.locals.io;
     // Nếu yêu cầu gửi cho tất cả warehouse managers
     if (target_warehouse_managers === true) {
-      notification =
-        await notificationService.createNotificationForAllWarehouseManagers(notificationData);
+      notification = await notificationService.createNotificationForAllWarehouseManagers(
+        notificationData,
+        io,
+      );
       res.status(201).json({
         success: true,
         message: `Đã tạo ${notification.length} thông báo cho warehouse managers`,
         data: notification,
       });
     } else {
-      // Tạo notification bình thường
-      notification = await notificationService.createNotification(req.body);
+      // Tạo notification bình thường - THÊM io parameter
+      notification = await notificationService.createNotification(notificationData, io);
       res.status(201).json({
         success: true,
         data: notification,
@@ -44,7 +47,8 @@ const createNotification = async (req, res) => {
 const deleteNotification = async (req, res) => {
   try {
     const notificationId = req.params.id;
-    const deleted = await notificationService.deleteNotification(notificationId);
+    const io = req.app.locals.io;
+    const deleted = await notificationService.deleteNotification(notificationId, io);
     if (!deleted) return res.status(404).json({ error: 'Notification not found' });
 
     res.status(200).json({ message: 'Deleted successfully', id: notificationId });
