@@ -46,7 +46,12 @@ exports.getInspectionByImportOrder = async (req, res) => {
   try {
     const { importOrderId } = req.params;
 
-    const inspections = await inspectionService.getInspectionByImportOrderId(importOrderId);
+    const inspections = await ImportInspection.find({ import_order_id: importOrderId })
+      .populate({
+        path: 'medicine_id',
+        select: '-min_stock_threshold -max_stock_threshold',
+      })
+      .sort({ _id: -1 });
 
     res.status(200).json({ inspections });
   } catch (error) {
