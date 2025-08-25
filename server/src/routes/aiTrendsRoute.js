@@ -3,6 +3,12 @@ const router = express.Router();
 const aiTrendsController = require('../controllers/aiTrendsController');
 const AiTrendsService = require('../services/aiTrendsService'); // Added import for AiTrendsService
 
+const authenticate = require('../middlewares/authenticate');
+const authorize = require('../middlewares/authorize');
+
+router.use(authenticate);
+
+
 /**
  * @route   GET /api/ai-trends/health
  * @desc    Health check cho AI Trends service
@@ -398,5 +404,14 @@ router.get(
  * @access  Private (Supervisor only)
  */
 router.get('/openai/anomalies', aiTrendsController.getAIPoweredAnomalies);
+
+router.get(
+  '/ai-medicine-performance/:licenseCode',
+  authorize([
+    'representative',
+    'representative_manager',
+  ]),
+  aiTrendsController.getQuickResponse,
+);
 
 module.exports = router;
