@@ -512,7 +512,7 @@ export default function ManageExportOrders() {
           const updatedOrder = await res.json();
           setOrders((prev) => prev.map((order) => (order._id === orderId ? updatedOrder.data : order)));
           enqueueSnackbar('Đơn hàng đã hoàn thành!', { variant: 'success' });
-          await fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe);
+          await fetchOrders(page, rowsPerPage, filterDate, filterStatus, filterAssignedToMe, filterType);
 
           if (!updatedOrder.data.contract_id) {
             console.log('Không có contract_id, không tạo bill');
@@ -539,7 +539,7 @@ export default function ManageExportOrders() {
 
           try {
             // gọi API tạo Bill
-            const createBillRes = await axios.post(`${backendUrl}/api/bills`, billPayload, {
+            const createBillRes = await axios.post(`/api/bills`, billPayload, {
               headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -777,7 +777,7 @@ export default function ManageExportOrders() {
       setdownloadReceiptLoading(false);
     } catch (err) {
       console.error('Error downloading receipt:', err);
-      setError(trans.assignedInboundOrderDetail.errorAssigningOrder);
+      setError('Lỗi khi tải biên lai');
     }
   };
 
@@ -915,10 +915,10 @@ export default function ManageExportOrders() {
             }
             label={trans.manageExportOrders.assignedToMe}
           />
-          <Button variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick} fullWidth>
+          <Button size="small" variant="contained" startIcon={<SearchIcon />} onClick={handleSearchClick} fullWidth>
             {trans.manageExportOrders.search}
           </Button>
-          <Button variant="outlined" onClick={handleReset} startIcon={<RefreshIcon />} fullWidth>
+          <Button size="small" variant="outlined" onClick={handleReset} startIcon={<RefreshIcon />} fullWidth>
             {trans.manageExportOrders.refresh}
           </Button>
         </Stack>
