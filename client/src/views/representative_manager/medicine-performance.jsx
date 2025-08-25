@@ -63,6 +63,10 @@ const RepresentativeManagerMedicinePerformance = () => {
   const [bError, setBError] = useState('');
   const [monthsFilter, setMonthsFilter] = useState(''); // empty = no filter
 
+  const [aiResponse, setaiResponse] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+
+
   const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString() : '—');
   const monthsUntil = (iso) => {
     if (!iso) return null;
@@ -171,30 +175,33 @@ const RepresentativeManagerMedicinePerformance = () => {
       }
       setLoading(true);
       setError('');
+      setaiResponse('');
+      setAiLoading(true);
       resetData();
 
       try {
         const code = encodeURIComponent(licenseCode);
 
-        // call both endpoints in parallel
+        // call endpoints in parallel (flow, history, AI)
         const flowUrl = `/api/medicine/${code}/inventory-flow-last-12-months`;
         const historyUrl = `/api/log-location-changes/${code}/getHistoryLast6Months`;
+        const aiUrl = `/api/ai-trends/ai-medicine-performance/${code}`;
 
-        const [flowResp, historyResp] = await Promise.all([
+        const [flowResp, historyResp, aiResp] = await Promise.all([
           axios.get(flowUrl, { headers: getAuthHeaders() }).catch((err) => ({ error: err })),
           axios.get(historyUrl, { headers: getAuthHeaders() }).catch((err) => ({ error: err })),
+          axios.get(aiUrl, { headers: getAuthHeaders(), responseType: 'text' }).catch((err) => ({ error: err })),
         ]);
 
         // process flowResp
         if (!flowResp || flowResp.error) {
-          // only treat missing flow as non-fatal if we still can show history; but show message
           console.warn('flow request failed', flowResp?.error || flowResp);
-          setError('Failed to fetch inventory flow (bar chart).');
+          setError((prev) => (prev ? prev + ' Inventory flow failed.' : 'Failed to fetch inventory flow (bar chart).'));
         } else {
           const data = flowResp.data;
           if (!data || !data.success) {
             console.warn('flow response invalid', data);
-            setError('Invalid inventory flow response.');
+            setError((prev) => (prev ? prev + ' Inventory flow invalid.' : 'Invalid inventory flow response.'));
           } else {
             const respMonths = Array.isArray(data.meta?.months) ? data.meta.months.map((m) => String(m)) : [];
             const imp = data.data?.import || {};
@@ -213,7 +220,6 @@ const RepresentativeManagerMedicinePerformance = () => {
         // process historyResp
         if (!historyResp || historyResp.error) {
           console.warn('history request failed', historyResp?.error || historyResp);
-          // not fatal; show message if nothing else
           setError((prev) => prev ? prev + ' Also failed to fetch history.' : 'Failed to fetch history data (line chart).');
         } else {
           const data = historyResp.data;
@@ -227,15 +233,27 @@ const RepresentativeManagerMedicinePerformance = () => {
             setHistoryMonths(hMonths);
             setHistoryQuantity(safeNumericArray(quantities, len));
           }
-
         }
+        setLoading(false);
 
-        // if both failed, keep error set (already set above)
+        // process aiResp (raw text)
+        if (!aiResp || aiResp.error) {
+          console.warn('ai request failed', aiResp?.error || aiResp);
+          // non-fatal, just show a message in the AI card
+          setaiResponse('');
+          setError((prev) => prev ? prev + ' AI summary failed.' : 'Failed to fetch AI summary.');
+        } else {
+          // server returns raw text/plain; axios with responseType 'text' gives string in data
+          const text = aiResp.data;
+          // normalize to string
+          const s = typeof text === 'string' ? text : JSON.stringify(text, null, 2);
+          setaiResponse(s);
+        }
+        setAiLoading(false);
+
       } catch (err) {
         console.error('fetch error:', err);
         setError(err?.response?.data?.error || err.message || 'Failed to fetch data');
-      } finally {
-        setLoading(false);
       }
     },
     [licenseCode],
@@ -329,6 +347,7 @@ const RepresentativeManagerMedicinePerformance = () => {
                   label="Show Uncontracted"
                   sx={{ ml: 2 }}
                 />
+
               </Grid>
             </Grid>
           </Box>
@@ -409,6 +428,41 @@ const RepresentativeManagerMedicinePerformance = () => {
           </Card>
         </Grid>
       </Grid>
+
+      <Box sx={{ mt: 2 }}>
+        <Card sx={{ border: '1px solid #e0e0e0' }}>
+          <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0', bgcolor: 'grey.50' }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+              AI summary
+            </Typography>
+          </Box>
+          <CardContent>
+            {aiLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                <CircularProgress />
+              </Box>
+            ) : months.length === 0 ? (
+              <Paper sx={{ p: 4, textAlign: 'center' }}>
+                <Typography variant="body1" color="text.secondary">
+                  Enter a medicine license code.
+                </Typography>
+              </Paper>
+            ) : !aiResponse ? (
+              <Paper sx={{ p: 4, textAlign: 'center' }}>
+                <Typography variant="body1" color="text.secondary">
+                  No AI summary yet.
+                </Typography>
+              </Paper>
+            ) : (
+              <Paper sx={{ p: 2, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                <Typography component="pre" sx={{ whiteSpace: 'pre-wrap', margin: 0 }}>
+                  {aiResponse}
+                </Typography>
+              </Paper>
+            )}
+          </CardContent>
+        </Card>
+      </Box>
 
       {/* Top exported table (full width below charts) */}
       <Box sx={{ mt: 2 }}>
