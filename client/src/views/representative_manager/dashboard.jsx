@@ -326,27 +326,6 @@ export default function RepresentativeManagerDashboard() {
           />
         </Grid>
       </Grid>
-
-      {/* Quick Actions */}
-      <Paper sx={{ p: 3, mt: 4 }}>
-        <Typography variant="h6" gutterBottom>
-          Quick Actions
-        </Typography>
-        <Stack direction="row" spacing={2} flexWrap="wrap">
-          <Button variant="contained" startIcon={<IconFileImport />} href="/manage-import-orders-approval">
-            Review Import Orders
-          </Button>
-          <Button variant="outlined" startIcon={<IconReceipt />} href="/rm-create-bills">
-            Create Bills
-          </Button>
-          <Button variant="outlined" startIcon={<IconBusiness />} href="/rm-manage-contracts">
-            Manage Contracts
-          </Button>
-          <Button variant="outlined" startIcon={<IconInventory />} href="/statistics">
-            View Statistics
-          </Button>
-        </Stack>
-      </Paper>
     </Box>
   );
 }

@@ -1,5 +1,5 @@
 const ImportInspection = require('../models/ImportInspection');
-const inspectionService = require('../services/inspectionService')
+const inspectionService = require('../services/inspectionService');
 
 // Lấy danh sách các thùng theo batch_id
 exports.getByBatch = async (req, res) => {
@@ -53,12 +53,29 @@ exports.getInspectionByImportOrder = async (req, res) => {
       })
       .sort({ _id: -1 });
 
-    res.status(200).json({ inspections });
+    res.status(200).json({
+      success: true,
+      inspections: inspections || [],
+      message:
+        inspections && inspections.length > 0
+          ? `Tìm thấy ${inspections.length} phiếu kiểm tra`
+          : 'Chưa có phiếu kiểm tra nào cho đơn hàng này',
+    });
   } catch (error) {
-    console.error("Lỗi khi truy xuất dữ liệu kiểm tra:", error);
+    console.error('Lỗi khi truy xuất dữ liệu kiểm tra:', error);
+
+    // Xử lý lỗi theo status code
+    if (error.statusCode === 404) {
+      return res.status(404).json({
+        success: false,
+        message: error.message,
+        inspections: [],
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: "Lỗi hệ thống khi lấy dữ liệu kiểm tra",
+      message: 'Lỗi hệ thống khi lấy dữ liệu kiểm tra',
       error: error.message,
     });
   }

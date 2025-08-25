@@ -12,48 +12,25 @@ const warehouseManager = {
       icon: 'IconDashboard'
     },
     {
-      id: 'order-management',
-      title: 'Order Management',
-      type: 'collapse',
-      icon: 'IconFileImport',
-      children: [
-        {
-          id: 'manage-import-orders',
-          title: 'Import Orders Management',
-          type: 'item',
-          url: '/wm-import-orders',
-          icon: 'IconFileImport'
-        },
-        {
-          id: 'manage-export-orders',
-          title: 'Export Orders Management',
-          type: 'item',
-          url: '/wm-export-orders',
-          icon: 'IconFileExport'
-        }
-      ]
+      id: 'manage-import-orders',
+      title: 'Import Orders Management',
+      type: 'item',
+      url: '/wm-import-orders',
+      icon: 'IconFileImport'
     },
     {
-      id: 'inventory-management',
-      title: 'Inventory Management',
-      type: 'collapse',
+      id: 'manage-export-orders',
+      title: 'Export Orders Management',
+      type: 'item',
+      url: '/wm-export-orders',
+      icon: 'IconFileExport'
+    },
+    {
+      id: 'view-inventory-check-orders',
+      title: 'Check Orders Management',
+      type: 'item',
       icon: 'IconBrandMinecraft',
-      children: [
-        {
-          id: 'view-inventory-check-orders',
-          title: 'Check Orders Management',
-          type: 'item',
-          url: '/wm-inventory',
-          icon: 'IconList'
-        },
-        {
-          id: 'wm-manage-inventory',
-          title: 'Inventory Dashboard',
-          type: 'item',
-          url: '/wm-manage-inventory',
-          icon: 'IconHome2'
-        }
-      ]
+      url: '/wm-inventory'
     }
   ]
 };

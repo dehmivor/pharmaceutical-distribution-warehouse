@@ -6,10 +6,36 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import {
-  Accordion, AccordionSummary, AccordionDetails, Box, Button, Container, Divider, Dialog,
-  DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, MenuItem, Select,
-  Stack, TextField, Typography, CircularProgress, Alert, IconButton, Table, TableHead, TableBody,
-  TableRow, TableContainer, TableCell, Tooltip, Paper, Grid
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Box,
+  Button,
+  Container,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Typography,
+  CircularProgress,
+  Alert,
+  IconButton,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableContainer,
+  TableCell,
+  Tooltip,
+  Paper,
+  Grid
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -94,8 +120,20 @@ const today = new Date().toLocaleDateString('en-CA');
         const { data: inspResp } = await axios.get(`/api/import-inspections/import-orders/${orderId}/inspections`, {
           headers: getAuthHeaders()
         });
-        const insps = inspResp.inspections || [];
-        setInspections(insps);
+
+        if (inspResp.success) {
+          const insps = inspResp.inspections || [];
+          setInspections(insps);
+
+          // Log thông tin inspections
+          console.log(`📋 Loaded ${insps.length} inspections for order ${orderId}`);
+          if (insps.length === 0) {
+            console.log('ℹ️ No inspections found - this is normal for new orders');
+          }
+        } else {
+          console.warn('⚠️ Failed to load inspections:', inspResp.message);
+          setInspections([]);
+        }
 
         // 4) Fetch any existing “put away” packages
         await fetchPutAway();
@@ -175,11 +213,19 @@ const today = new Date().toLocaleDateString('en-CA');
       const { data: inspResp } = await axios.get(`/api/import-inspections/import-orders/${orderId}/inspections`, {
         headers: getAuthHeaders()
       });
-      const insps = inspResp.inspections || [];
-      setInspections(insps);
-      prefillPackages(insps);
+
+      if (inspResp.success) {
+        const insps = inspResp.inspections || [];
+        setInspections(insps);
+        prefillPackages(insps);
+      } else {
+        console.warn('⚠️ Failed to load inspections:', inspResp.message);
+        setInspections([]);
+        setPutAway([]);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('❌ Error fetching inspections:', err);
+      setInspections([]);
       setPutAway([]);
     }
   };
@@ -456,7 +502,7 @@ const today = new Date().toLocaleDateString('en-CA');
       // Remove it directly from the inspections array
       setInspections((prev) => prev.filter((insp) => insp._id !== inspectionId));
       fetchInspection();
-    } catch (error) { }
+    } catch (error) {}
   };
 
   const onFinishClickInspection = async () => {
@@ -546,19 +592,17 @@ const today = new Date().toLocaleDateString('en-CA');
     }
   };
 
-
-
   const handleDownloadReceipt = async () => {
     try {
-      setdownloadReceiptLoading(true)
+      setdownloadReceiptLoading(true);
       const response = await axios.get(`/api/import-orders/receipt/${orderId}`, {
         headers: getAuthHeaders(),
-        responseType: "blob", // <- important: get binary blob
+        responseType: 'blob' // <- important: get binary blob
       });
 
       // Try to extract filename from Content-Disposition
-      const contentDisposition = response.headers["content-disposition"] || "";
-      let filename = "receipt.docx"; // fallback
+      const contentDisposition = response.headers['content-disposition'] || '';
+      let filename = 'receipt.docx'; // fallback
 
       // support filename*=UTF-8''encoded-name, filename="name", filename=name
       const filenameRegex = /filename\*=UTF-8''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i;
@@ -569,7 +613,7 @@ const today = new Date().toLocaleDateString('en-CA');
 
       // create a blob and trigger download
       const blob = new Blob([response.data], {
-        type: response.headers["content-type"] || "application/octet-stream",
+        type: response.headers['content-type'] || 'application/octet-stream'
       });
 
       // IE / Edge (msSaveOrOpenBlob)
@@ -580,15 +624,15 @@ const today = new Date().toLocaleDateString('en-CA');
 
       // Other browsers
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const link = document.createElement('a');
       link.href = url;
-      link.setAttribute("download", filename);
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
       // release memory
       window.URL.revokeObjectURL(url);
-      setdownloadReceiptLoading(false)
+      setdownloadReceiptLoading(false);
     } catch (err) {
       console.error("Error downloading receipt:", err);
       enqueueSnackbar(trans.assignedInboundOrderDetail.errorAssigningOrder, { variant: 'error' });
