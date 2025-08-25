@@ -15,14 +15,14 @@ const representativeManager = {
       id: 'manage-import-orders-approval',
       title: 'Import Orders Approval',
       type: 'item',
-      url: '/manage-import-orders-approval',
+      url: '/rm-import-orders-approval',
       icon: 'IconFileImport'
     },
     {
-      id: 'manage-export-orders-approval',
+      id: 'rm-export-orders-approval',
       title: 'Export Orders Approval',
       type: 'item',
-      url: '/manage-export-orders-approval',
+      url: '/rm-export-orders-approval',
       icon: 'IconFileExport'
     },
     {
@@ -64,10 +64,10 @@ export const getRepresentativeManagerMenu = (trans) => ({
       icon: 'IconFileImport'
     },
     {
-      id: 'manage-export-orders-approval',
+      id: 'rm-export-orders-approval',
       title: trans?.common?.exportOrdersApproval || 'Export Orders Approval',
       type: 'item',
-      url: '/manage-export-orders-approval',
+      url: '/rm-export-orders-approval',
       icon: 'IconFileExport'
     },
     {

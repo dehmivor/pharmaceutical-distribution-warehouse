@@ -2,16 +2,17 @@
 const { Notification } = require('../models');
 const { User } = require('../models');
 const { USER_ROLES } = require('../utils/constants');
-const { io } = require('../server'); // import instance io socket từ server.js
 
 /**
  * Tạo notification mới, lưu DB và phát realtime cho user nhận
  * @param {Object} data - Dữ liệu notification
+ * @param {Object} io - Socket.IO instance (optional)
  * @returns Notification vừa tạo
  */
-const createNotification = async (data) => {
+const createNotification = async (data, io = null) => {
   const newNoti = await Notification.create(data);
 
+  // Emit realtime notification nếu có io
   if (io && newNoti.recipient_id) {
     io.to(newNoti.recipient_id.toString()).emit('newNotification', newNoti);
   }
@@ -22,8 +23,9 @@ const createNotification = async (data) => {
 /**
  * Xóa notification theo id, emit sự kiện realtime để frontend cập nhật
  * @param {String} notificationId
+ * @param {Object} io - Socket.IO instance (optional)
  */
-const deleteNotification = async (notificationId) => {
+const deleteNotification = async (notificationId, io = null) => {
   const deleted = await Notification.findByIdAndDelete(notificationId);
 
   if (deleted && deleted.recipient_id && io) {
@@ -98,9 +100,10 @@ const markAllAsRead = async (recipientId) => {
 /**
  * Tạo notification cho tất cả warehouse managers
  * @param {Object} data - Dữ liệu notification
+ * @param {Object} io - Socket.IO instance (optional)
  * @returns Array of notifications created
  */
-const createNotificationForAllWarehouseManagers = async (data) => {
+const createNotificationForAllWarehouseManagers = async (data, io = null) => {
   try {
     // Tìm tất cả warehouse managers
     const warehouseManagers = await User.find({
@@ -140,7 +143,7 @@ const createNotificationForAllWarehouseManagers = async (data) => {
   }
 };
 
-const createNotificationForAllWarehouse = async (data) => {
+const createNotificationForAllWarehouse = async (data, io = null) => {
   try {
     // Tìm tất cả warehouse managers
     const warehouseManagers = await User.find({
@@ -180,7 +183,7 @@ const createNotificationForAllWarehouse = async (data) => {
   }
 };
 
-const createNotificationForAllSupervisors = async (data) => {
+const createNotificationForAllSupervisors = async (data, io = null) => {
   try {
     // Tìm tất cả supervisors
     const supervisors = await User.find({
