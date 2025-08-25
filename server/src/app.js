@@ -130,7 +130,7 @@ app.use('/api/dashboard', route.dashboardRoutes);
 app.use('/api/reports', authenticate, route.reportRoutes);
 
 // AI Trends Routes - Supervisor only
-app.use('/api/ai-trends', authenticate, authorize('supervisor'), route.aiTrendsRoutes);
+app.use('/api/ai-trends', authenticate, route.aiTrendsRoutes);
 
 // Search routes - protected với authentication
 app.use('/api/search', route.searchRoutes);
