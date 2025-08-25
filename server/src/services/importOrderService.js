@@ -1,7 +1,21 @@
 const ImportOrder = require('../models/ImportOrder');
 const { IMPORT_ORDER_STATUSES, USER_ROLES } = require('../utils/constants');
 const { User, SupplierContract, Supplier } = require('../models');
+const getInspectionByImportOrderId = require("./inspectionService").getInspectionByImportOrderId;
 const mongoose = require('mongoose');
+const {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  AlignmentType,
+  VerticalAlign,
+  BorderStyle,
+} = require("docx");
 
 // Create new import order
 const createImportOrder = async (orderData, orderDetails, userContext = null) => {
@@ -470,12 +484,12 @@ const getImportOrdersByWarehouseManager = async (
 const getImportOrdersByContract = async (contractId, userRole = null) => {
   try {
     const query = { contract_id: contractId };
-    
+
     // Filter internal orders for Representative and Representative Manager
     if (userRole === 'representative' || userRole === 'representative_manager') {
       query.contract_id = { $ne: null }; // Chỉ hiển thị đơn có contract (không hiển thị đơn nội bộ)
     }
-    
+
     const orders = await ImportOrder.find(query)
       .populate({ path: 'contract_id', populate: { path: 'partner_id', select: 'name' } })
       .populate('warehouse_manager_id', 'name email role')
@@ -611,6 +625,354 @@ function getManagerId(warehouse_manager_id) {
   return null;
 }
 
+
+async function createTranscriptionDocBuffer(importOrderId) {
+  // fetch data
+  const order = await getImportOrderById(importOrderId);
+  const inspections = await getInspectionByImportOrderId(importOrderId);
+
+  // helper formatters
+  const currency = (value) =>
+    value == null || value === 0 ? "" : new Intl.NumberFormat("vi-VN").format(value);
+  const num = (v) => (v == null ? 0 : Number(v));
+
+  // build maps from order details and inspections
+  const orderDetailsMap = new Map();
+  (order.details || []).forEach((d) => {
+    const med = d.medicine_id || {};
+    const id = String(med._id);
+    orderDetailsMap.set(id, {
+      id,
+      name: med.medicine_name || "",
+      license: med.license_code || "",
+      unit: med.unit_of_measure || "",
+      required: num(d.quantity || d.qty || 0),
+      unit_price: num(d.unit_price || 0),
+    });
+  });
+
+  // aggregate inspections by medicine id (sum of actual - rejected)
+  const inspMap = new Map();
+  (inspections || []).forEach((ins) => {
+    const med = ins.medicine_id || {};
+    const id = med._id ? String(med._id) : String(ins.medicine_id || "");
+    const net = num(ins.actual_quantity) - num(ins.rejected_quantity);
+    const prev = inspMap.get(id) || { actual: 0, name: med.medicine_name || "", unit: med.unit_of_measure || "" };
+    prev.actual += net;
+    // keep name/unit if missing from order
+    if (!prev.name && med.medicine_name) prev.name = med.medicine_name;
+    if (!prev.unit && med.unit_of_measure) prev.unit = med.unit_of_measure;
+    inspMap.set(id, prev);
+  });
+
+  // order rows: keep order.details order first, then any inspection-only meds
+  const orderedIds = [
+    ...(order.details || []).map((d) => String((d.medicine_id && d.medicine_id._id) || d.medicine_id)),
+    ...[...inspMap.keys()].filter((id) => !orderDetailsMap.has(id)),
+  ];
+
+  // dedupe while preserving order
+  const seen = new Set();
+  const finalIds = [];
+  for (const id of orderedIds) {
+    if (!seen.has(id) && id) {
+      finalIds.push(id);
+      seen.add(id);
+    }
+  }
+
+  // create table helpers (H = header, C = cell)
+  const H = (text, opts = {}) =>
+    new TableCell({
+      width: opts.width,
+      rowSpan: opts.rowSpan,
+      columnSpan: opts.columnSpan,
+      verticalAlign: VerticalAlign.CENTER,
+      margins: { top: 120, bottom: 120, left: 120, right: 120 }, // padding
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text, bold: true })],
+        }),
+      ],
+    });
+
+  const C = (text, opts = {}) =>
+    new TableCell({
+      width: opts.width,
+      verticalAlign: VerticalAlign.CENTER,
+      margins: { top: 80, bottom: 80, left: 120, right: 120 },
+      children: [
+        new Paragraph({
+          alignment: opts.center ? AlignmentType.CENTER : AlignmentType.LEFT,
+          children: [new TextRun(String(text ?? ""))],
+        }),
+      ],
+    });
+
+  // build body rows from merged data
+  let stt = 1;
+  let grandTotal = 0;
+  const bodyRows = finalIds.map((id) => {
+    const od = orderDetailsMap.get(id);
+    const insp = inspMap.get(id);
+
+    const name = (od && od.name) || (insp && insp.name) || "";
+    const license = (od && od.license) || "";
+    const unit = (od && od.unit) || (insp && insp.unit) || "";
+    const required = (od && od.required) || 0; // "Yêu cầu" from order.details
+    const actual = (insp && insp.actual) || 0; // "Thực nhập" aggregated from inspections
+    const unitPrice = (od && od.unit_price) || 0;
+    const amount = unitPrice * actual;
+
+    grandTotal += amount;
+
+    return new TableRow({
+      children: [
+        C(String(stt++), { center: true }), // STT
+        C(name),
+        C(license, { center: true }), // Mã số
+        C(unit, { center: true }), // ĐVT
+        C(required === 0 ? "" : String(required), { center: true }), // Yêu cầu
+        C(actual === 0 ? "" : String(actual), { center: true }), // Thực nhập
+        C(unitPrice === 0 ? "" : currency(unitPrice), { center: true }), // Đơn giá
+        C(amount === 0 ? "" : currency(amount), { center: true }), // Thành tiền
+      ],
+    });
+  });
+
+  // build the table with dynamic bodyRows
+  const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 8, color: "000000" },
+      bottom: { style: BorderStyle.SINGLE, size: 8, color: "000000" },
+      left: { style: BorderStyle.SINGLE, size: 8, color: "000000" },
+      right: { style: BorderStyle.SINGLE, size: 8, color: "000000" },
+      insideH: { style: BorderStyle.SINGLE, size: 6, color: "000000" },
+      insideV: { style: BorderStyle.SINGLE, size: 6, color: "000000" },
+    },
+
+    rows: [
+      // header row 1
+      new TableRow({
+        tableHeader: true,
+        children: [
+          H("STT", { width: { size: 6, type: WidthType.PERCENTAGE }, rowSpan: 2 }),
+          H(
+            "Tên, nhãn hiệu, quy cách, phẩm chất vật tư, dụng cụ sản phẩm, hàng hóa",
+            { width: { size: 38, type: WidthType.PERCENTAGE }, rowSpan: 2 }
+          ),
+          H("Mã số", { width: { size: 7, type: WidthType.PERCENTAGE }, rowSpan: 2 }),
+          H("Đơn vị tính", { width: { size: 7, type: WidthType.PERCENTAGE }, rowSpan: 2 }),
+          H("Số lượng", { columnSpan: 2 }),
+          H("Đơn giá", { width: { size: 10, type: WidthType.PERCENTAGE }, rowSpan: 2 }),
+          H("Thành tiền", { width: { size: 12, type: WidthType.PERCENTAGE }, rowSpan: 2 }),
+        ],
+      }),
+      // header row 2
+      new TableRow({
+        tableHeader: true,
+        children: [
+          H("Yêu cầu", { width: { size: 6, type: WidthType.PERCENTAGE } }),
+          H("Thực nhập", { width: { size: 6, type: WidthType.PERCENTAGE } }),
+        ],
+      }),
+      // A/B/C... row removed in this build (you can add if still needed)
+      // bodyRows...
+      ...bodyRows,
+      // total row
+      new TableRow({
+        children: [
+          new TableCell({
+            columnSpan: 7,
+            verticalAlign: VerticalAlign.CENTER,
+            margins: { top: 100, bottom: 100, left: 120, right: 120 },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [new TextRun({ text: "Cộng", bold: true })],
+              }),
+            ],
+          }),
+          C(grandTotal === 0 ? "" : currency(grandTotal)),
+        ],
+      }),
+    ],
+  });
+
+  // header table (2 columns) - no borders
+  const headerTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      insideH: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      insideV: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+    },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 50, type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.CENTER,
+            borders: {
+              top: { style: BorderStyle.NONE, color: "FFFFFF" },
+              bottom: { style: BorderStyle.NONE, color: "FFFFFF" },
+              left: { style: BorderStyle.NONE, color: "FFFFFF" },
+              right: { style: BorderStyle.NONE, color: "FFFFFF" },
+            },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.LEFT,
+                children: [
+                  new TextRun({
+                    text: "CÔNG TY CỔ PHẦN",
+                    bold: true,
+                    size: 28,
+                  }),
+                ],
+              }),
+            ],
+          }),
+          new TableCell({
+            width: { size: 50, type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.CENTER,
+            borders: {
+              top: { style: BorderStyle.NONE, color: "FFFFFF" },
+              bottom: { style: BorderStyle.NONE, color: "FFFFFF" },
+              left: { style: BorderStyle.NONE, color: "FFFFFF" },
+              right: { style: BorderStyle.NONE, color: "FFFFFF" },
+            },
+            children: [
+              // right side: Mẫu số + italic notes
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [
+                  new TextRun({
+                    text: "Mẫu số: 01 - VT",
+                    bold: true,
+                    size: 20,
+                  }),
+                ],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [
+                  new TextRun({
+                    text: "(Ban hành theo Thông tư số 133/2016/TT-BTC",
+                    italics: true,
+                    size: 18,
+                  }),
+                ],
+              }),
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [
+                  new TextRun({
+                    text: "Ngày 26/08/2016 của Bộ Tài chính)",
+                    italics: true,
+                    size: 18,
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
+
+  // signature table (borderless) - reuse earlier sigCell-like structure
+  const sigCell = (title) =>
+    new TableCell({
+      width: { size: 25, type: WidthType.PERCENTAGE }, // 4 equal parts
+      verticalAlign: VerticalAlign.CENTER,
+      borders: {
+        top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+        bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+        left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+        right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      },
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: title, bold: true })],
+        }),
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text: "(Ký, họ tên)", italics: true })],
+        }),
+      ],
+    });
+
+  const sigTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      insideH: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      insideV: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+    },
+    rows: [
+      new TableRow({
+        children: [sigCell("Người lập biểu"), sigCell("Người giao hàng"), sigCell("Thủ kho"), sigCell("Kế toán trưởng")],
+      }),
+    ],
+  });
+
+  // fill metadata
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const year = now.getFullYear();
+
+  const partnerName = (order.contract_id && order.contract_id.partner_id && order.contract_id.partner_id.name) || "";
+  const orderIdString = String(order._id || "");
+
+  // build final document
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: [
+          headerTable,
+          new Paragraph({
+            children: [new TextRun({ text: "PHIẾU NHẬP KHO", bold: true, size: 32 })],
+            alignment: AlignmentType.CENTER,
+          }),
+          new Paragraph({
+            children: [new TextRun(`Ngày ${day} tháng ${month} năm ${year}`)],
+            alignment: AlignmentType.CENTER,
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: `Số: ${orderIdString}` })],
+            alignment: AlignmentType.CENTER,
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: `- Họ và tên người giao: ${partnerName}` })],
+          }),
+          new Paragraph({ children: [new TextRun("- Theo số hóa đơn số:  ")] }),
+          new Paragraph({ children: [new TextRun("- Nhập tại kho: ")] }),
+          new Paragraph({ children: [new TextRun("- Địa điểm:")] , spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Bảng chi tiết hàng hóa:", bold: true })], spacing: { after: 120 } }),
+          table,
+          new Paragraph({ children: [new TextRun(`- Tổng số tiền (Viết bằng chữ):  `)], spacing: { before: 200, after: 200 } }),
+          new Paragraph({ children: [new TextRun("- Số chứng từ gốc kèm theo: ")], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({text: "Ngày ..... tháng ..... năm ..... ", italics: true})], spacing: { after: 120 }, alignment: AlignmentType.END }),
+          sigTable,
+        ],
+      },
+    ],
+  });
+
+  return Packer.toBuffer(doc);
+}
+
 module.exports = {
   createImportOrder,
   createInternalImportOrder,
@@ -628,4 +990,5 @@ module.exports = {
   getValidStatusTransitions,
   getAllStatusTransitions,
   assignWarehouseManager,
+  createTranscriptionDocBuffer,
 };

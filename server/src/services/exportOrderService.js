@@ -2,6 +2,19 @@ const ExportOrder = require('../models/ExportOrder');
 const { EXPORT_ORDER_STATUSES } = require('../utils/constants');
 const mongoose = require('mongoose');
 const contractService = require('./contractService');
+const {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+  AlignmentType,
+  VerticalAlign,
+  BorderStyle,
+} = require("docx");
 
 // Định nghĩa populateOptions thống nhất
 const populateOptions = [
@@ -16,8 +29,8 @@ const populateOptions = [
   { path: 'created_by', select: 'name email role' },
   { path: 'approval_by', select: 'name email role' },
   { path: 'details.medicine_id', select: 'medicine_name license_code unit_of_measure' }, // Thêm unit_of_measure
-  { 
-    path: 'details.actual_item.package_id', 
+  {
+    path: 'details.actual_item.package_id',
     select: 'package_code quantity',
     populate: [
       { path: 'batch_id', select: 'batch_code expiry_date' },
@@ -42,7 +55,7 @@ async function createExportOrder(data, userId) {
     if (!rest.contract_id) {
       throw new Error('Contract ID is required to auto-generate export order details');
     }
-    
+
     // Kiểm tra contract phải là Retailer contract
     const Contract = require('../models/Contract');
     const contract = await Contract.findById(rest.contract_id);
@@ -52,7 +65,7 @@ async function createExportOrder(data, userId) {
     if (contract.partner_type !== 'Retailer') {
       throw new Error('Export orders can only be created for retailer contracts');
     }
-    
+
     const contractState = await contractService.getCurrentContractState(rest.contract_id);
     finalDetails = (contractState.current_items || []).map((item) => ({
       medicine_id: item.medicine_id._id || item.medicine_id,
@@ -67,7 +80,7 @@ async function createExportOrder(data, userId) {
     status: EXPORT_ORDER_STATUSES.DRAFT,
     created_by: userId,
   });
-  
+
   const savedOrder = await order.save();
 
   return await ExportOrder.findById(savedOrder._id).populate(populateOptions);
@@ -276,33 +289,33 @@ async function deleteExportOrder(orderId, user) {
 async function updateExportOrder(orderId, updateData, user) {
   const order = await ExportOrder.findById(orderId);
   if (!order) throw new Error('Export order not found');
-  
+
   // Representative chỉ có thể sửa draft hoặc rejected orders
   if (!['draft', 'rejected'].includes(order.status)) {
     throw new Error('Can only update draft or rejected export orders');
   }
-  
+
   // Representative chỉ có thể sửa orders của mình
   if (user.role !== 'representative' || order.created_by.toString() !== user.userId) {
     throw new Error('You can only update your own export orders');
   }
-  
+
   // Set currentUser context cho validation middleware
   order.currentUser = user;
-  
+
   // Nếu đang sửa rejected order, tự động chuyển về draft
   if (order.status === 'rejected') {
     order.status = EXPORT_ORDER_STATUSES.DRAFT;
     order.approval_by = undefined;
   }
-  
+
   let details = updateData.details;
   if (!Array.isArray(details) || details.length === 0) {
     if (!updateData.contract_id && !order.contract_id) {
       throw new Error('Contract ID is required to auto-generate export order details');
     }
     const contractId = updateData.contract_id || order.contract_id;
-    
+
     // Kiểm tra contract phải là Retailer contract
     const Contract = require('../models/Contract');
     const contract = await Contract.findById(contractId);
@@ -312,7 +325,7 @@ async function updateExportOrder(orderId, updateData, user) {
     if (contract.partner_type !== 'Retailer') {
       throw new Error('Export orders can only be created for retailer contracts');
     }
-    
+
     const contractState = await contractService.getCurrentContractState(contractId);
     details = (contractState.current_items || []).map((item) => ({
       medicine_id: item.medicine_id._id || item.medicine_id,
@@ -320,7 +333,7 @@ async function updateExportOrder(orderId, updateData, user) {
       unit_price: item.unit_price || 0,
     }));
   }
-  
+
   if (updateData.contract_id) {
     // Kiểm tra contract mới cũng phải là Retailer contract
     const Contract = require('../models/Contract');
@@ -333,7 +346,7 @@ async function updateExportOrder(orderId, updateData, user) {
     }
     order.contract_id = updateData.contract_id;
   }
-  
+
   order.details = details;
   await order.save();
   return await ExportOrder.findById(orderId).populate(populateOptions);
@@ -432,14 +445,14 @@ async function checkStockAvailability(details) {
       const currentDate = new Date();
       const oneYearFromNow = new Date();
       oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-      
-      const validBatches = await Batch.find({ 
+
+      const validBatches = await Batch.find({
         medicine_id,
-        expiry_date: { 
+        expiry_date: {
           $gt: oneYearFromNow // Chỉ lấy batch còn hạn trên 1 năm
         }
       }).lean();
-      
+
       if (validBatches.length === 0) {
         stockCheckResults.push({
           medicine_id,
@@ -455,10 +468,10 @@ async function checkStockAvailability(details) {
 
       const validBatchIds = validBatches.map(batch => batch._id);
 
-             // Tính tổng số lượng có sẵn từ các package của batch còn hạn trên 1 năm
-       const packages = await Package.find({ 
-         batch_id: { $in: validBatchIds }
-       }).lean();
+      // Tính tổng số lượng có sẵn từ các package của batch còn hạn trên 1 năm
+      const packages = await Package.find({
+        batch_id: { $in: validBatchIds }
+      }).lean();
 
       const availableQuantity = packages.reduce((sum, pkg) => sum + (pkg.quantity || 0), 0);
 
@@ -594,7 +607,241 @@ async function getExportedTotalsLast6Months() {
     },
     data: results,
   };
+};
+
+async function createTranscriptionDocBuffer(exportOrderId) {
+  // fetch order
+  const order = await getExportOrderDetail(exportOrderId);
+
+  // helpers
+  const num = (v) => (v == null ? 0 : Number(v));
+  const currency = (v) => (v == null || v === 0 ? "" : new Intl.NumberFormat("vi-VN").format(v));
+
+  // build row data from order.details
+  // Each detail:
+  // expected_quantity -> Yêu cầu
+  // actual_item -> array of { quantity } -> Thực nhập = sum(quantity)
+  const rowsData = (order.details || []).map((d) => {
+    const med = d.medicine_id || {};
+    const expected = num(d.expected_quantity || d.quantity || 0);
+    const actual = Array.isArray(d.actual_item) && d.actual_item.length > 0
+      ? d.actual_item.reduce((s, it) => s + num(it.quantity), 0)
+      : 0;
+    const unitPrice = num(d.unit_price || 0);
+    const amount = unitPrice * actual;
+    return {
+      id: med._id ? String(med._id) : "",
+      name: med.medicine_name || "",
+      license: med.license_code || "",
+      unit: med.unit_of_measure || "",
+      expected,
+      actual,
+      unitPrice,
+      amount,
+    };
+  });
+
+  // table cell helpers
+  const H = (text, opts = {}) =>
+    new TableCell({
+      width: opts.width,
+      rowSpan: opts.rowSpan,
+      columnSpan: opts.columnSpan,
+      verticalAlign: VerticalAlign.CENTER,
+      margins: { top: 120, bottom: 120, left: 120, right: 120 },
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [new TextRun({ text, bold: true })],
+        }),
+      ],
+    });
+
+  const C = (text, opts = {}) =>
+    new TableCell({
+      width: opts.width,
+      verticalAlign: VerticalAlign.CENTER,
+      margins: { top: 80, bottom: 80, left: 120, right: 120 },
+      children: [
+        new Paragraph({
+          alignment: opts.center ? AlignmentType.CENTER : AlignmentType.LEFT,
+          children: [new TextRun(String(text ?? ""))],
+        }),
+      ],
+    });
+
+  // build body rows and compute total
+  let stt = 1;
+  let grandTotal = 0;
+  const bodyRows = rowsData.map((r) => {
+    grandTotal += r.amount;
+    return new TableRow({
+      children: [
+        C(String(stt++), { center: true }), // STT
+        C(r.name),
+        C(r.license, { center: true }), // Mã số
+        C(r.unit, { center: true }), // ĐVT
+        C(r.expected === 0 ? "" : String(r.expected), { center: true }), // Yêu cầu
+        C(r.actual === 0 ? "" : String(r.actual), { center: true }), // Thực nhập
+        C(r.unitPrice === 0 ? "" : currency(r.unitPrice), { center: true }), // Đơn giá
+        C(r.amount === 0 ? "" : currency(r.amount), { center: true }), // Thành tiền
+      ],
+    });
+  });
+
+  // main table (headers + body + total)
+  const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 8, color: "000000" },
+      bottom: { style: BorderStyle.SINGLE, size: 8, color: "000000" },
+      left: { style: BorderStyle.SINGLE, size: 8, color: "000000" },
+      right: { style: BorderStyle.SINGLE, size: 8, color: "000000" },
+      insideH: { style: BorderStyle.SINGLE, size: 6, color: "000000" },
+      insideV: { style: BorderStyle.SINGLE, size: 6, color: "000000" },
+    },
+    rows: [
+      // header row 1
+      new TableRow({
+        tableHeader: true,
+        children: [
+          H("STT", { width: { size: 6, type: WidthType.PERCENTAGE }, rowSpan: 2 }),
+          H(
+            "Tên, nhãn hiệu, quy cách, phẩm chất vật tư, dụng cụ sản phẩm, hàng hóa",
+            { width: { size: 38, type: WidthType.PERCENTAGE }, rowSpan: 2 }
+          ),
+          H("Mã số", { width: { size: 7, type: WidthType.PERCENTAGE }, rowSpan: 2 }),
+          H("Đơn vị tính", { width: { size: 7, type: WidthType.PERCENTAGE }, rowSpan: 2 }),
+          H("Số lượng", { columnSpan: 2 }),
+          H("Đơn giá", { width: { size: 10, type: WidthType.PERCENTAGE }, rowSpan: 2 }),
+          H("Thành tiền", { width: { size: 12, type: WidthType.PERCENTAGE }, rowSpan: 2 }),
+        ],
+      }),
+      // header row 2
+      new TableRow({
+        tableHeader: true,
+        children: [H("Yêu cầu", { width: { size: 6, type: WidthType.PERCENTAGE } }), H("Thực xuất", { width: { size: 6, type: WidthType.PERCENTAGE } })],
+      }),
+      // optional A/B/C row omitted (keep clean)
+      // body
+      ...bodyRows,
+      // total row
+      new TableRow({
+        children: [
+          new TableCell({
+            columnSpan: 7,
+            verticalAlign: VerticalAlign.CENTER,
+            margins: { top: 100, bottom: 100, left: 120, right: 120 },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [new TextRun({ text: "Cộng", bold: true })],
+              }),
+            ],
+          }),
+          C(grandTotal === 0 ? "" : currency(grandTotal)),
+        ],
+      }),
+    ],
+  });
+
+  // header table (two columns, borderless)
+  const headerTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: { style: BorderStyle.NONE, color: "FFFFFF" },
+      bottom: { style: BorderStyle.NONE, color: "FFFFFF" },
+      left: { style: BorderStyle.NONE, color: "FFFFFF" },
+      right: { style: BorderStyle.NONE, color: "FFFFFF" },
+      insideH: { style: BorderStyle.NONE, color: "FFFFFF" },
+      insideV: { style: BorderStyle.NONE, color: "FFFFFF" },
+    },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 50, type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.CENTER,
+            borders: { top: { style: BorderStyle.NONE, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, color: "FFFFFF" }, left: { style: BorderStyle.NONE, color: "FFFFFF" }, right: { style: BorderStyle.NONE, color: "FFFFFF" } },
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.LEFT,
+                children: [new TextRun({ text: "CÔNG TY CỔ PHẦN", bold: true, size: 28 })],
+              }),
+            ],
+          }),
+          new TableCell({
+            width: { size: 50, type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.CENTER,
+            borders: { top: { style: BorderStyle.NONE, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, color: "FFFFFF" }, left: { style: BorderStyle.NONE, color: "FFFFFF" }, right: { style: BorderStyle.NONE, color: "FFFFFF" } },
+            children: [
+              new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "Mẫu số: 02 - VT", bold: true, size: 20 })] }),
+              new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "(Ban hành theo Thông tư số 200/2014/TT-BTC", italics: true, size: 18 })] }),
+              new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "Ngày 22/12/2016 của Bộ Tài chính)", italics: true, size: 18 })] }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  });
+
+  // signature table (borderless)
+  const sigCell = (title) =>
+    new TableCell({
+      width: { size: 25, type: WidthType.PERCENTAGE },
+      verticalAlign: VerticalAlign.CENTER,
+      borders: { top: { style: BorderStyle.NONE, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, color: "FFFFFF" }, left: { style: BorderStyle.NONE, color: "FFFFFF" }, right: { style: BorderStyle.NONE, color: "FFFFFF" } },
+      children: [
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: title, bold: true })] }),
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "(Ký, họ tên)", italics: true })] }),
+      ],
+    });
+
+  const sigTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: { top: { style: BorderStyle.NONE, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, color: "FFFFFF" }, left: { style: BorderStyle.NONE, color: "FFFFFF" }, right: { style: BorderStyle.NONE, color: "FFFFFF" }, insideH: { style: BorderStyle.NONE, color: "FFFFFF" }, insideV: { style: BorderStyle.NONE, color: "FFFFFF" } },
+    rows: [new TableRow({ children: [sigCell("Người lập phiếu"), sigCell("Thủ kho"), sigCell("Người nhận hàng"), sigCell("Thủ trưởng") ] })],
+  });
+
+  // metadata
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const year = now.getFullYear();
+
+  const partnerName = (order.contract_id && order.contract_id.partner_id && order.contract_id.partner_id.name) || "";
+  const orderIdString = String(order._id || "");
+
+  // build document
+  const doc = new Document({
+    sections: [
+      {
+        properties: {},
+        children: [
+          headerTable,
+          new Paragraph({ children: [new TextRun({ text: "PHIẾU XUẤT KHO", bold: true, size: 32 })], alignment: AlignmentType.CENTER }),
+          new Paragraph({ children: [new TextRun(`Ngày ${day} tháng ${month} năm ${year}`)], alignment: AlignmentType.CENTER }),
+          new Paragraph({ children: [new TextRun({ text: `Số: ${orderIdString}` })], alignment: AlignmentType.CENTER }),
+          new Paragraph({ children: [new TextRun({ text: `- Họ và tên người nhận hàng: ${partnerName}` })] }),
+          new Paragraph({ children: [new TextRun({ text: `- Địa chỉ (bộ phận): ${order.contract_id && order.contract_id.partner_id ? "" : "" }` })] }),
+          new Paragraph({ children: [new TextRun({ text: `- Lý do xuất kho: Bán Hàng` })] }),
+          new Paragraph({ children: [new TextRun({ text: `- Xuất tại kho(ngăn lô):` })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "Bảng chi tiết hàng hóa:", bold: true })], spacing: { after: 120 } }),
+          table,
+          new Paragraph({ children: [new TextRun({ text: `- Tổng số tiền (Viết bằng chữ): ` })], spacing: { before: 200, after: 200 } }),
+          new Paragraph({ children: [new TextRun({ text: "- Số chứng từ gốc kèm theo: " })], spacing: { after: 200 } }),
+          new Paragraph({ children: [new TextRun({text: "Ngày ..... tháng ..... năm ..... ", italics: true})], spacing: { after: 120 }, alignment: AlignmentType.END }),
+          sigTable,
+        ],
+      },
+    ],
+  });
+
+  return Packer.toBuffer(doc);
 }
+
+
+
 
 module.exports = {
   createExportOrder,
@@ -610,5 +857,6 @@ module.exports = {
   checkStockAvailability,
   assignWarehouseManager, // Thêm function mới
   createInternalExportOrder, // Thêm function mới
-  getExportedTotalsLast6Months
+  getExportedTotalsLast6Months,
+  createTranscriptionDocBuffer
 };

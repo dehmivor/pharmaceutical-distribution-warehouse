@@ -2825,6 +2825,7 @@ export default {
     contract: 'Hợp đồng',
     supplier: 'Nhà cung cấp',
     arrived: 'Đã đến',
+    printReceipt : 'Print receipt',
     items: 'Mặt hàng',
     inspection: 'Kiểm nhập',
     packages: 'Gói hàng',
