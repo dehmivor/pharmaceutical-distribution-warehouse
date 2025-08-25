@@ -1,5 +1,9 @@
+
 const AiTrendsService = require('../services/aiTrendsService');
 const AITrendsDatabaseService = require('../services/aiTrendsDatabaseService');
+const GoogleGeminiService = require('../services/googleGeminiSerice');
+
+
 
 /**
  * Lấy dự đoán nhu cầu cho một thuốc cụ thể
@@ -588,6 +592,28 @@ const getOpenAIStatus = async (req, res) => {
   }
 };
 
+const getQuickResponse = async (req, res) => {
+  try {
+    const licenseCode = req.params.licenseCode.trim();
+    if (!licenseCode) {
+      return res.status(400).type("text").send("licenseCode is required");
+    }
+
+    const aiText = await GoogleGeminiService.quickresponse(licenseCode);
+
+    // Normalize to string (service may return string or object)
+    const text =
+      typeof aiText === "string" ? aiText : aiText == null ? "" : String(aiText);
+
+    res.status(200).type("text").send(text);
+  } catch (error) {
+    console.error("getQuickResponse error:", error);
+    const status = error && error.status ? error.status : 500;
+    const msg = error && error.message ? error.message : "Internal server error";
+    res.status(status).type("text").send(msg);
+  }
+};
+
 module.exports = {
   getMedicineDemandPrediction,
   getAllMedicineDemandPredictions,
@@ -615,4 +641,6 @@ module.exports = {
   getAIPoweredMedicineDemandPrediction,
   getAIPoweredAnomalies,
   getOpenAIStatus,
+
+  getQuickResponse
 };
