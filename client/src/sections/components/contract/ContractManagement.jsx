@@ -404,7 +404,7 @@ const ContractManagement = () => {
 
       {/* Filters */}
       <Card sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
-        <CardContent sx={{ p: 3 }}>
+        <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
             <FilterIcon sx={{ color: 'primary.main', fontSize: 24 }} />
             <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
@@ -419,7 +419,7 @@ const ContractManagement = () => {
                 value={filters.contract_code}
                 onChange={(e) => handleFilterChange('contract_code', e.target.value)}
                 variant="outlined"
-                size="medium"
+                size="small"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -430,7 +430,7 @@ const ContractManagement = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 150 }}>
+              <FormControl fullWidth size="small" sx={{ maxWidth: 150 }}>
                 <InputLabel>{trans.common.contractType}</InputLabel>
                 <Select
                   value={filters.contract_type}
@@ -468,7 +468,7 @@ const ContractManagement = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 150 }}>
+              <FormControl fullWidth size="small" sx={{ maxWidth: 150 }}>
                 <InputLabel>{trans.common.partnerType}</InputLabel>
                 <Select
                   value={filters.partner_type}
@@ -502,7 +502,7 @@ const ContractManagement = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={4}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 150 }}>
+              <FormControl fullWidth size="small" sx={{ maxWidth: 150 }}>
                 <InputLabel>{trans.common.status}</InputLabel>
                 <Select
                   value={filters.status}
@@ -536,23 +536,12 @@ const ContractManagement = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <Button
-                variant="contained"
-                onClick={applyFilters}
-                fullWidth
-                sx={{ height: '56px' }}
-                startIcon={<SearchIcon />}
-              >
+              <Button variant="contained" onClick={applyFilters} fullWidth size="small" startIcon={<SearchIcon />}>
                 {trans.common.search || 'Search'}
               </Button>
             </Grid>
             <Grid item xs={12} sm={6} md={1}>
-              <Button
-                variant="outlined"
-                onClick={clearFilters}
-                fullWidth
-                sx={{ height: '56px' }}
-              >
+              <Button variant="outlined" size="small" onClick={clearFilters} fullWidth>
                 {trans.common.clear || 'Clear'}
               </Button>
             </Grid>

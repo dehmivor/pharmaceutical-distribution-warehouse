@@ -29,4 +29,5 @@ module.exports = {
   logLocationChangeRoute: require('./logLocationChangeRoute'),
   reportRoutes: require('./reportRoute'),
   aiTrendsRoutes: require('./aiTrendsRoute'),
+  searchRoutes: require('./searchRoute'),
 };

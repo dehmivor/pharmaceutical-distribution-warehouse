@@ -410,8 +410,8 @@ function CheckInspections() {
             {trans.checkInspections.notes}: {orderData.notes || '-'}
           </Typography>
           <Typography variant="body2" sx={{ mt: 1, fontSize: '0.875rem' }}>
-            {trans.checkInspections.createdAt}: {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString('vi-VN') : '-'} |{' '}
-            {trans.checkInspections.updatedAt}: {orderData.updatedAt ? new Date(orderData.updatedAt).toLocaleString('vi-VN') : '-'}
+            {trans.checkOrders.createdAt}: {orderData.createdAt ? new Date(orderData.createdAt).toLocaleString('vi-VN') : '-'} |{' '}
+            {trans.checkOrders.updatedAt}: {orderData.updatedAt ? new Date(orderData.updatedAt).toLocaleString('vi-VN') : '-'}
           </Typography>
         </Alert>
       )}

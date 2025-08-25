@@ -356,6 +356,7 @@ const SupplierManagement = () => {
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
+                size="small"
                 label={trans.common.supplierName}
                 value={filters.name || ''}
                 onChange={(e) => handleFilterChange('name', e.target.value)}
@@ -369,7 +370,7 @@ const SupplierManagement = () => {
               />
             </Grid>
             <Grid item xs={12} md={4}>
-              <FormControl fullWidth>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.common.status}</InputLabel>
                 <Select
                   value={filters.status || ''}

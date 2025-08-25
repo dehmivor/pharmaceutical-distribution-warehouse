@@ -251,6 +251,14 @@ const getAvailableQuantityForImport = async (importOrderId) => {
 };
 
 const getInspectionByImportOrderId = async (importOrderId) => {
+  // Kiểm tra import order có tồn tại không
+  const importOrder = await ImportOrder.findById(importOrderId);
+  if (!importOrder) {
+    const error = new Error('Import order not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
   const inspections = await ImportInspection.find({ import_order_id: importOrderId })
     .populate('import_order_id')
     .populate('created_by', 'name email')
@@ -260,13 +268,8 @@ const getInspectionByImportOrderId = async (importOrderId) => {
     })
     .sort({ createdAt: -1 });
 
-  if (!inspections || inspections.length === 0) {
-    const error = new Error('No inspections found for this import order');
-    error.statusCode = 404;
-    throw error;
-  }
-
-  return inspections;
+  // Trả về mảng rỗng nếu không có inspections thay vì throw error
+  return inspections || [];
 };
 
 module.exports = {

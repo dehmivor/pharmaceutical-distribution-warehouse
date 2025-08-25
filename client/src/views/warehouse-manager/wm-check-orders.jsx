@@ -364,6 +364,20 @@ const CheckOrders = () => {
           <MenuItem
             onClick={async () => {
               try {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const checkDate = new Date(menuOrder?.inventory_check_date);
+                checkDate.setHours(0, 0, 0, 0);
+
+                if (today < checkDate) {
+                  const formattedDate = checkDate.toLocaleDateString('vi-VN');
+                  enqueueSnackbar(`Chưa đến ngày kiểm kê (${formattedDate}).`, {
+                    variant: 'warning'
+                  });
+                  handleMenuClose();
+                  return;
+                }
                 const checkRes = await axiosInstance.get(`/api/inventory-check-orders?status=processing&limit=1`, {
                   headers: getAuthHeaders()
                 });
