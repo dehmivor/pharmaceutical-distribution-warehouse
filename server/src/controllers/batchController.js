@@ -151,6 +151,28 @@ const batchController = {
       });
     }
   },
+
+  checkBatchCode: async (req, res) => {
+    try {
+      const batchCode = (req.query.batchCode || req.body?.batchCode || '').trim();
+
+      if (!batchCode) {
+        return res.status(400).json({ success: false, message: 'batchCode is required' });
+      }
+
+      const unique = await batchService.isBatchCodeUnique(batchCode);
+
+      return res.status(200).json({ success: true, unique });
+    } catch (error) {
+      console.error('checkBatchCode error:', error);
+      const status = error?.status || 500;
+      return res.status(status).json({
+        success: false,
+        message: error?.message || 'Internal server error',
+      });
+    }
+  }
+
 };
 
 module.exports = batchController;

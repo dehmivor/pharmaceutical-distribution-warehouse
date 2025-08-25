@@ -19,6 +19,7 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { useTheme } from '@mui/material/styles';
 import { constant } from 'lodash-es';
 import useTrans from '@/hooks/useTrans';
+import { useSnackbar } from 'notistack';
 
 const getAuthHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
@@ -31,6 +32,7 @@ const getAuthHeaders = () => {
 function ImportOrderDetail() {
   const theme = useTheme();
   const trans = useTrans();
+  const { enqueueSnackbar } = useSnackbar();
   const { orderId } = useParams();
   const [order, setOrder] = useState(null);
   const [inspections, setInspections] = useState([]);
@@ -65,7 +67,7 @@ function ImportOrderDetail() {
   const [confirmFinishInspection, setConfirmFinishInspection] = useState(false);
   const [batchOptions, setBatchOptions] = useState([]);
 
-  const today = new Date().toISOString().split('T')[0];
+const today = new Date().toLocaleDateString('en-CA');
 
   const [assignLoading, setAssignLoading] = useState(false);
   const [downloadReceiptLoading, setdownloadReceiptLoading] = useState(false);
@@ -113,7 +115,7 @@ function ImportOrderDetail() {
             enableAccordion('other');
         }
       } catch (err) {
-        setError(err.message);
+        enqueueSnackbar(err.message, { variant: 'error' });
       } finally {
         setLoading(false);
       }
@@ -268,39 +270,75 @@ function ImportOrderDetail() {
   const closeBatchDialog = () => setBatchDialogOpen(false);
 
   // Create new batch
-  const handleCreateBatch = () => {
-    if (!newMedicineId || !newBatchCode || !newProdDate || !newExpiryDate) {
-      setBatchError('All fields are required');
+  const handleCreateBatch = async () => {
+  if (!newMedicineId || !newBatchCode || !newProdDate || !newExpiryDate) {
+    setBatchError('All fields are required');
+    return;
+  }
+
+  // check uniqueness with server-side API
+  try {
+    const resp = await axios.get(
+      `/api/batch/check-batch-code?batchCode=${encodeURIComponent(newBatchCode)}`,
+      { headers: getAuthHeaders() }
+    );
+
+    if (!resp?.data?.success) {
+      // API returned unexpected response shape
+      const msg = resp?.data?.message || 'Lỗi khi kiểm tra mã lô';
+      setBatchError(msg);
+      enqueueSnackbar(msg, { variant: 'error' });
       return;
     }
 
-    // Lookup the medicine object so we can grab name & license
-    const medDoc = uniqueInspections.find((i) => i.medicine_id._id === newMedicineId)?.medicine_id;
+    if (!resp.data.unique) {
+      // not unique -> show error and stop
+      const msg = 'Lỗi tạo lô: mã lô đã tồn tại';
+      setBatchError(msg);
+      enqueueSnackbar(msg, { variant: 'error' });
+      return;
+    }
+  } catch (err) {
+    const msg =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      err.message ||
+      'Lỗi khi kiểm tra mã lô';
+    setBatchError(msg);
+    enqueueSnackbar(msg, { variant: 'error' });
+    return;
+  }
 
-    // stash locally
-    setNewBatches((list) => [
-      ...list,
-      {
-        medicine_id: newMedicineId,
-        medicine_name: medDoc?.medicine_name || '—',
-        license_code: medDoc?.license_code || '—',
-        batch_code: newBatchCode,
-        production_date: newProdDate,
-        expiry_date: newExpiryDate
-      }
-    ]);
-    // add a temp option so users can pick it immediately
-    setBatchOptions((opts) => [
-      ...opts,
-      {
-        id: newBatchCode,
-        label: `${newBatchCode} – ${medDoc?.medicine_name || ''} (${medDoc?.license_code || ''})`,
-        max: 0
-      }
-    ]);
+  // If we reach here, the batch code is unique — proceed to add
+  const medDoc = uniqueInspections.find((i) => String(i.medicine_id._id) === String(newMedicineId))?.medicine_id;
 
-    closeBatchDialog();
-  };
+  setNewBatches((list) => [
+    ...list,
+    {
+      medicine_id: newMedicineId,
+      medicine_name: medDoc?.medicine_name || '—',
+      license_code: medDoc?.license_code || '—',
+      batch_code: newBatchCode,
+      production_date: newProdDate,
+      expiry_date: newExpiryDate,
+    },
+  ]);
+
+  // add a temp option so users can pick it immediately
+  setBatchOptions((opts) => [
+    ...opts,
+    {
+      id: newBatchCode,
+      label: `${newBatchCode} – ${medDoc?.medicine_name || ''} (${medDoc?.license_code || ''})`,
+      max: 0,
+    },
+  ]);
+
+  // clear any previous errors and close dialog
+  setBatchError('');
+  closeBatchDialog();
+};
+
 
   const uniqueInspections = inspections
     .filter((i) => i.medicine_id && i.medicine_id._id)
@@ -504,7 +542,7 @@ function ImportOrderDetail() {
       };
     } catch (err) {
       console.error('Error printing label', err);
-      setError(trans.assignedInboundOrderDetail.errorPrintingLabel);
+      enqueueSnackbar(trans.assignedInboundOrderDetail.errorPrintingLabel, { variant: 'error' });
     }
   };
 
@@ -553,9 +591,34 @@ function ImportOrderDetail() {
       setdownloadReceiptLoading(false)
     } catch (err) {
       console.error("Error downloading receipt:", err);
-      setError(trans.assignedInboundOrderDetail.errorAssigningOrder);
+      enqueueSnackbar(trans.assignedInboundOrderDetail.errorAssigningOrder, { variant: 'error' });
     }
   };
+
+  // helper functions (place these somewhere in the component file, above the JSX)
+  const pad = (n) => String(n).padStart(2, '0');
+  const formatIsoDate = (date) =>
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+  /**
+   * Add years to an ISO date string 'YYYY-MM-DD' and return 'YYYY-MM-DD'.
+   * If input is falsy, returns undefined.
+   */
+  const addYearsToIsoDate = (isoDateStr, years) => {
+    if (!isoDateStr) return undefined;
+    const d = new Date(isoDateStr);
+    // avoid timezone shifting by using UTC components
+    const year = d.getFullYear() + Number(years);
+    const month = d.getMonth();
+    const day = d.getDate();
+    // create new Date with same month/day but new year
+    const newD = new Date(year, month, day);
+    // handle cases like Feb 29 -> Mar 01 etc (Date will normalize)
+    return formatIsoDate(newD);
+  };
+
+  // inside your component render body, compute minExpiryDate:
+  const minExpiryDate = addYearsToIsoDate(newProdDate, 1);
 
 
   const handleSelfAssign = async () => {
@@ -569,7 +632,7 @@ function ImportOrderDetail() {
       );
     } catch (err) {
       console.error('Error assign self:', err);
-      setError(trans.assignedInboundOrderDetail.errorAssigningOrder);
+      enqueueSnackbar(trans.assignedInboundOrderDetail.errorAssigningOrder, { variant: 'error' });
     }
   };
 
@@ -591,7 +654,7 @@ function ImportOrderDetail() {
       setAssignLoading(false);
     } catch (err) {
       console.error('Error updating status:', err);
-      setError(trans.assignedInboundOrderDetail.errorUpdatingStatus);
+      enqueueSnackbar(trans.assignedInboundOrderDetail.errorUpdatingStatus, { variant: 'error' });
     }
   };
 
@@ -610,7 +673,7 @@ function ImportOrderDetail() {
       setInspectionLoading(false);
     } catch (err) {
       console.error('Error updating status:', err);
-      setError(trans.assignedInboundOrderDetail.errorUpdatingStatus);
+      enqueueSnackbar(trans.assignedInboundOrderDetail.errorUpdatingStatus, { variant: 'error' });
     }
   };
 
@@ -691,7 +754,8 @@ function ImportOrderDetail() {
       setPackageLoading(false);
     } catch (err) {
       console.error(err);
-      setError(trans.assignedInboundOrderDetail.errorCreatingBatches);
+      enqueueSnackbar(trans.assignedInboundOrderDetail.errorCreatingBatches, { variant: 'error' });
+      setPackageLoading(false);
     } finally {
       setSaving(false);
     }
@@ -729,7 +793,7 @@ function ImportOrderDetail() {
         }));
 
         if (billDetails.length === 0) {
-          setError(trans.assignedInboundOrderDetail.noOrderDetailsForBill);
+          enqueueSnackbar(trans.assignedInboundOrderDetail.noOrderDetailsForBill, { variant: 'error' });
           return;
         }
 
@@ -749,17 +813,17 @@ function ImportOrderDetail() {
           if (createBillRes.data.success) {
             console.log('Bill mới đã được tạo:', createBillRes.data.data);
           } else {
-            setError(trans.assignedInboundOrderDetail.errorCreatingBill + ': ' + createBillRes.data.message);
+            enqueueSnackbar(trans.assignedInboundOrderDetail.errorCreatingBill + ': ' + createBillRes.data.message, { variant: 'error' });
           }
         } catch (billErr) {
           console.error('Lỗi khi gọi API tạo bill:', billErr);
-          setError(trans.assignedInboundOrderDetail.errorCreatingBill);
+          enqueueSnackbar(trans.assignedInboundOrderDetail.errorCreatingBill, { variant: 'error' });
         }
       }
       setFinalizeLoading(false);
     } catch (err) {
       console.error('Lỗi khi cập nhật trạng thái đơn:', err);
-      setError(trans.assignedInboundOrderDetail.errorUpdatingStatus);
+      enqueueSnackbar(trans.assignedInboundOrderDetail.errorUpdatingStatus, { variant: 'error' });
     }
   };
 
@@ -769,12 +833,7 @@ function ImportOrderDetail() {
         <CircularProgress />
       </Box>
     );
-  if (error)
-    return (
-      <Alert severity="error" sx={{ m: 4 }}>
-        {error}
-      </Alert>
-    );
+
   if (!order)
     return (
       <Alert severity="info" sx={{ m: 4 }}>
@@ -842,7 +901,7 @@ function ImportOrderDetail() {
                   onClick={handleDownloadReceipt}
                   size="large"
                   loading={downloadReceiptLoading}
-                  style={{'marginLeft' : '5px'}}
+                  style={{ 'marginLeft': '5px' }}
                 >
                   {trans.assignedInboundOrderDetail.printReceipt}
                 </Button>
@@ -1097,29 +1156,22 @@ function ImportOrderDetail() {
                 onChange={(e) => {
                   const prod = e.target.value;
                   setNewProdDate(prod);
-
-                  // If the current expiry is before the new production, bump it forward
                   if (newExpiryDate && newExpiryDate < prod) {
                     setNewExpiryDate(prod);
                   }
                 }}
-                slotProps={{
-                  input: { max: today },
-                  inputLabel: { shrink: true }
-                }}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ max: today }}
               />
 
               <TextField
                 label={trans.assignedInboundOrderDetail.expiryDate}
                 type="date"
-                slotProps={{
-                  input: { min: newProdDate || undefined },
-                  inputLabel: { shrink: true }
-                }}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: minExpiryDate  || undefined }}
                 value={newExpiryDate}
                 onChange={(e) => setNewExpiryDate(e.target.value)}
               />
-              {batchError && <Alert severity="error">{batchError}</Alert>}
             </Stack>
           </DialogContent>
           <DialogActions>
