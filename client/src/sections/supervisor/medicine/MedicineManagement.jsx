@@ -262,7 +262,7 @@ const MedicineManagement = () => {
                 value={filters.license_code}
                 onChange={(e) => handleFilterChange('license_code', e.target.value)}
                 variant="outlined"
-                size="medium"
+                size="small"
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -273,7 +273,7 @@ const MedicineManagement = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 300 }}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.medicineManagement.filters.category}</InputLabel>
                 <Select
                   value={filters.category}
@@ -294,7 +294,7 @@ const MedicineManagement = () => {
                     </Tooltip>
                   )}
                   sx={{
-                    width: 300
+                    width: 160
                   }}
                 >
                   <MenuItem value="">{trans.medicineManagement.filters.all}</MenuItem>
@@ -307,7 +307,7 @@ const MedicineManagement = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 300 }}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.medicineManagement.filters.status}</InputLabel>
                 <Select
                   value={filters.status}
@@ -320,7 +320,7 @@ const MedicineManagement = () => {
                     return selected;
                   }}
                   sx={{
-                    width: 300
+                    width: 160
                   }}
                 >
                   <MenuItem value="">{trans.medicineManagement.filters.all}</MenuItem>
@@ -329,8 +329,10 @@ const MedicineManagement = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={12} md={3} sx={{ display: 'flex', justifyContent: 'flex-end', ml: 'auto' }}>
+            <Grid item xs={12} sm={12} md={3} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
               <Button
+                size="small"
+                fullWidth
                 variant="contained"
                 startIcon={<AddIcon />}
                 onClick={() => setOpenAddDialog(true)}
@@ -339,8 +341,6 @@ const MedicineManagement = () => {
                   '&:hover': {
                     bgcolor: 'success.dark'
                   },
-                  px: 3,
-                  py: 1.2,
                   borderRadius: 2,
                   textTransform: 'none',
                   fontWeight: 600

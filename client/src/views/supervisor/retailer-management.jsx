@@ -353,7 +353,7 @@ const RetailerManagement = () => {
               />
             </Grid>
             <Grid item xs={12} md={4}>
-              <FormControl fullWidth>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.common.status}</InputLabel>
                 <Select
                   value={filters.status || ''}
@@ -371,7 +371,7 @@ const RetailerManagement = () => {
               </FormControl>
             </Grid>
             <Grid item xs={12} md={4}>
-              <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchRetailers} disabled={loading} fullWidth>
+              <Button variant="outlined" size="small" startIcon={<RefreshIcon />} onClick={fetchRetailers} disabled={loading} fullWidth>
                 Làm mới
               </Button>
             </Grid>
