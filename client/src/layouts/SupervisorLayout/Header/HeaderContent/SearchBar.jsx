@@ -36,7 +36,7 @@ export default function SearchBar() {
   const theme = useTheme();
   const downSM = useMediaQuery(theme.breakpoints.down('sm'));
   const { user } = useAuth();
-  const { role } = useRole();
+  const { userRole: role } = useRole();
 
   const buttonStyle = { borderRadius: 2, p: 1 };
   const [anchorEl, setAnchorEl] = useState(null);

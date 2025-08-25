@@ -1,5 +1,4 @@
 const searchService = require('../services/searchService');
-const { authenticateToken } = require('../middlewares/authenticate');
 
 /**
  * GET /api/search/global

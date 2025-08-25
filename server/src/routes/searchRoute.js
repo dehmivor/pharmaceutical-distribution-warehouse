@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../middlewares/authenticate');
+const authenticate = require('../middlewares/authenticate');
 const {
   globalSearch,
   warehouseSearch,
@@ -11,7 +11,7 @@ const {
 } = require('../controllers/searchController');
 
 // Tất cả routes đều cần authentication
-router.use(authenticateToken);
+router.use(authenticate);
 
 // Global search - chỉ supervisor
 router.get('/global', globalSearch);

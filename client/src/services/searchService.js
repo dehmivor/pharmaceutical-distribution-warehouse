@@ -10,7 +10,7 @@ class SearchService {
   // Thêm interceptor để tự động gửi token
   setupInterceptors() {
     this.api.interceptors.request.use((config) => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth-token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
