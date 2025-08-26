@@ -10,13 +10,43 @@ export const RoleProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const initializeUserData = async () => {
       try {
+        // ✅ Sửa: Không gọi API riêng, chỉ lấy từ localStorage
+        // AuthContext đã gọi API và lưu user data rồi
+        const storedUser = localStorage.getItem('user');
         const token = localStorage.getItem('auth-token');
-        if (!token) {
+
+        if (!token || !storedUser) {
           setIsLoading(false);
           return;
         }
+
+        try {
+          const userData = JSON.parse(storedUser);
+          console.log('RoleContext - User data from localStorage:', userData);
+          setUser(userData);
+          setUserRole(userData.role || '');
+        } catch (parseError) {
+          console.error('Failed to parse stored user data:', parseError);
+          // Nếu parse lỗi, gọi API để lấy data mới
+          await fetchUserDataFromAPI();
+        }
+      } catch (error) {
+        console.error('Failed to initialize user data:', error);
+        setUser(null);
+        setUserRole('');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Fallback: gọi API nếu cần thiết
+    const fetchUserDataFromAPI = async () => {
+      try {
+        const token = localStorage.getItem('auth-token');
+        if (!token) return;
+
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
         const response = await fetch(`${backendUrl}/api/auth/me`, {
           headers: {
@@ -28,27 +58,23 @@ export const RoleProvider = ({ children }) => {
 
         if (response.ok) {
           const result = await response.json();
-          console.log('RoleContext - API response:', result);
-          console.log('RoleContext - User data:', result.data);
+          console.log('RoleContext - API fallback response:', result);
           setUser(result.data);
-          setUserRole(result.data.role);
+          setUserRole(result.data.role || '');
           localStorage.setItem('user', JSON.stringify(result.data));
-        } else {
+        } else if (response.status === 401) {
+          // Chỉ xóa token khi thực sự unauthorized
           localStorage.removeItem('auth-token');
           localStorage.removeItem('user');
           setUser(null);
           setUserRole('');
         }
       } catch (error) {
-        console.error('Failed to fetch user data:', error);
-        setUser(null);
-        setUserRole('');
-      } finally {
-        setIsLoading(false);
+        console.error('API fallback failed:', error);
       }
     };
 
-    fetchUserData();
+    initializeUserData();
   }, []);
 
   const updateUserRole = (newUser) => {

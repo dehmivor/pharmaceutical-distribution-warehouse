@@ -139,7 +139,7 @@ const updateCheckOrderStatus = async (checkOrderId, status, io) => {
           sender_id: null,
           title: 'Kho đang thực hiện kiểm kê toàn kho',
           message: `Đơn kiểm kê #${checkOrderId.slice(20)} đã bắt đầu lúc ${new Date().toLocaleString()}`,
-          type: 'system_alert',
+          type: 'inventory',
           priority: 'high',
           status: 'unread',
           metadata: {

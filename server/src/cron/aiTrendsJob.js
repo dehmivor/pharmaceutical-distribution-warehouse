@@ -11,7 +11,7 @@ function startAITrendsJob() {
 
   // Chạy AI predictions hàng tuần vào 2h sáng thứ 2
   cron.schedule(
-    '0 2 * * 1',
+    '0 2 * * *',
     async () => {
       console.log('AI Trends Cron: Running weekly AI predictions at 2 AM Monday');
 

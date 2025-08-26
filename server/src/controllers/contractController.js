@@ -1,7 +1,12 @@
 const contractService = require('../services/contractService');
 const { validationResult } = require('express-validator');
 const asyncHandler = require('express-async-handler');
-const { CONTRACT_STATUSES, PARTNER_TYPES, ANNEX_STATUSES, CONTRACT_TYPES } = require('../utils/constants');
+const {
+  CONTRACT_STATUSES,
+  PARTNER_TYPES,
+  ANNEX_STATUSES,
+  CONTRACT_TYPES,
+} = require('../utils/constants');
 
 const getAllContracts = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
@@ -9,7 +14,16 @@ const getAllContracts = asyncHandler(async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { page = 1, limit = 10, created_by, partner_id, partner_type, contract_type, status, contract_code } = req.query;
+  const {
+    page = 1,
+    limit = 10,
+    created_by,
+    partner_id,
+    partner_type,
+    contract_type,
+    status,
+    contract_code,
+  } = req.query;
 
   const filters = {
     page: parseInt(page),
@@ -23,7 +37,7 @@ const getAllContracts = asyncHandler(async (req, res) => {
   };
 
   const contracts = await contractService.getAllContracts(filters);
-  
+
   // Thêm filter options vào response
   const filterOptions = {
     status: Object.values(CONTRACT_STATUSES),
@@ -53,10 +67,10 @@ const getContractById = asyncHandler(async (req, res) => {
     currentState = await contractService.getCurrentContractState(id);
   }
 
-  res.status(200).json({ 
-    success: true, 
+  res.status(200).json({
+    success: true,
     data: contract,
-    currentState 
+    currentState,
   });
 });
 
@@ -75,9 +89,9 @@ const createContract = asyncHandler(async (req, res) => {
   if (contractData.annexes && contractData.annexes.length > 0) {
     const validation = await contractService.validateExistingContractWithAnnexes(contractData);
     if (!validation.isValid) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Contract validation failed: ${validation.errors.join(', ')}` 
+      return res.status(400).json({
+        success: false,
+        message: `Contract validation failed: ${validation.errors.join(', ')}`,
       });
     }
   }
@@ -94,10 +108,17 @@ const deleteContract = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'Contract not found' });
   }
   if (contract.created_by._id.toString() !== req.user.userId) {
-    return res.status(403).json({ success: false, message: 'You do not have permission to delete this contract' });
+    return res
+      .status(403)
+      .json({ success: false, message: 'You do not have permission to delete this contract' });
   }
-  if (contract.status !== CONTRACT_STATUSES.DRAFT && contract.status !== CONTRACT_STATUSES.CANCELLED) {
-    return res.status(400).json({ success: false, message: 'Only draft and cancelled contracts can be deleted' });
+  if (
+    contract.status !== CONTRACT_STATUSES.DRAFT &&
+    contract.status !== CONTRACT_STATUSES.CANCELLED
+  ) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'Only draft and cancelled contracts can be deleted' });
   }
 
   const result = await contractService.deleteContract(id);
@@ -116,27 +137,32 @@ const updateContract = asyncHandler(async (req, res) => {
       message: errors.array()[0].msg,
     });
   }
-  
+
   const { id } = req.params;
 
   const contract = await contractService.getContractById(id);
-  
+
   if (!contract) {
     return res.status(404).json({ success: false, message: 'Contract not found' });
   }
 
-  
   if (contract.created_by._id.toString() !== req.user.userId) {
-    return res.status(403).json({ success: false, message: 'You do not have permission to update this contract' });
+    return res
+      .status(403)
+      .json({ success: false, message: 'You do not have permission to update this contract' });
   }
-  
-  
-  if (contract.status !== CONTRACT_STATUSES.DRAFT && contract.status !== CONTRACT_STATUSES.REJECTED) {
-    return res.status(400).json({ success: false, message: 'Only draft and rejected contracts can be updated' });
+
+  if (
+    contract.status !== CONTRACT_STATUSES.DRAFT &&
+    contract.status !== CONTRACT_STATUSES.REJECTED
+  ) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'Only draft and rejected contracts can be updated' });
   }
 
   const updatedContract = await contractService.updateContract(id, req.body);
-  
+
   res.status(200).json({ success: true, data: updatedContract });
 });
 
@@ -152,6 +178,33 @@ const updateContractStatus = asyncHandler(async (req, res) => {
   const { status } = req.body;
 
   const updatedContract = await contractService.updateContractStatus(id, status, req.user);
+
+  const creatorId = updatedContract.created_by?._id || updatedContract.created_by || null;
+  const contractCode = updatedContract.contract_code || updatedContract._id || id;
+
+  const newNotification = await notificationService.createNotification(
+    {
+      recipient_id: creatorId,
+      sender_id: req.user?.userId || null,
+      title: 'Hợp đồng đã được lưu',
+      message: `Hợp đồng mã #${contractCode.toString().slice(20)} đã duyệt lúc ${new Date().toLocaleString()}`,
+      type: 'system_alert',
+      priority: 'high',
+      status: 'unread',
+      metadata: {
+        contractId: contractCode,
+        statusChangedTo: status,
+      },
+    },
+    io,
+  );
+
+  if (newNotification && io) {
+    console.log('Emitting newNotification to system room');
+    io.to('system').emit('newNotification', newNotification);
+  } else {
+    console.log('Cannot emit: io =', io);
+  }
 
   return res.status(200).json({ success: true, data: updatedContract });
 });
@@ -171,18 +224,18 @@ const createAnnex = asyncHandler(async (req, res) => {
   // Validate ngày ký phụ lục trước khi tạo
   const dateValidation = await contractService.validateAnnexSignedDate(id, annexData);
   if (!dateValidation.isValid) {
-    return res.status(400).json({ 
-      success: false, 
-      message: `Invalid signed date: ${dateValidation.errors.join(', ')}` 
+    return res.status(400).json({
+      success: false,
+      message: `Invalid signed date: ${dateValidation.errors.join(', ')}`,
     });
   }
 
   // Validate medicine changes trước khi tạo
   const medicineValidation = await contractService.validateNewAnnex(id, annexData);
   if (!medicineValidation.isValid) {
-    return res.status(400).json({ 
-      success: false, 
-      message: `Invalid annex: ${medicineValidation.errors.join(', ')}` 
+    return res.status(400).json({
+      success: false,
+      message: `Invalid annex: ${medicineValidation.errors.join(', ')}`,
     });
   }
 
@@ -202,18 +255,18 @@ const updateAnnex = asyncHandler(async (req, res) => {
   // Kiểm tra có thể chỉnh sửa phụ lục không
   const canEdit = await contractService.canEditAnnex(id, annex_code);
   if (!canEdit.canEdit) {
-    return res.status(400).json({ 
-      success: false, 
-      message: canEdit.message 
+    return res.status(400).json({
+      success: false,
+      message: canEdit.message,
     });
   }
 
   // Validate medicine changes trước khi cập nhật
   const medicineValidation = await contractService.validateNewAnnex(id, annexData);
   if (!medicineValidation.isValid) {
-    return res.status(400).json({ 
-      success: false, 
-      message: `Invalid annex: ${medicineValidation.errors.join(', ')}` 
+    return res.status(400).json({
+      success: false,
+      message: `Invalid annex: ${medicineValidation.errors.join(', ')}`,
     });
   }
 
@@ -240,9 +293,9 @@ const deleteAnnex = asyncHandler(async (req, res) => {
   // Kiểm tra quyền xóa phụ lục
   const canDelete = await contractService.canDeleteAnnex(id, annex_code, req.user);
   if (!canDelete.canDelete) {
-    return res.status(400).json({ 
-      success: false, 
-      message: canDelete.message 
+    return res.status(400).json({
+      success: false,
+      message: canDelete.message,
     });
   }
 
@@ -253,15 +306,15 @@ const deleteAnnex = asyncHandler(async (req, res) => {
 // UC6: Lấy lịch sử thay đổi hợp đồng
 const getContractHistory = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  
+
   const history = await contractService.getContractHistory(id);
   if (!history) {
     return res.status(404).json({ success: false, message: 'Contract not found' });
   }
 
-  res.status(200).json({ 
-    success: true, 
-    data: history 
+  res.status(200).json({
+    success: true,
+    data: history,
   });
 });
 
@@ -270,14 +323,14 @@ const getActiveContractMedicines = asyncHandler(async (req, res) => {
 
   try {
     const medicines = await contractService.getActiveContractMedicines(id);
-    res.status(200).json({ 
-      success: true, 
-      data: medicines 
+    res.status(200).json({
+      success: true,
+      data: medicines,
     });
   } catch (error) {
-    res.status(400).json({ 
-      success: false, 
-      message: error.message 
+    res.status(400).json({
+      success: false,
+      message: error.message,
     });
   }
 });

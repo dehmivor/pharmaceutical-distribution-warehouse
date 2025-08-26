@@ -23,7 +23,13 @@ import {
   MenuItem,
   Button
 } from '@mui/material';
-import { Visibility as VisibilityIcon, Edit as EditIcon, FilterList as FilterIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import {
+  Visibility as VisibilityIcon,
+  Edit as EditIcon,
+  FilterList as FilterIcon,
+  Refresh as RefreshIcon,
+  Filter
+} from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { useRole } from '@/contexts/RoleContext';
 import axios from 'axios';
@@ -200,13 +206,14 @@ const PackageManagement = () => {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-            <FormControl sx={{ minWidth: 200 }}>
+            <FormControl size="small">
               <InputLabel>{trans.common.medicine}</InputLabel>
               <Select
                 value={filterMedicineId}
                 label={trans.common.medicine}
                 onChange={(e) => setFilterMedicineId(e.target.value)}
                 size="small"
+                sx={{ width: 200 }}
               >
                 <MenuItem value="">{trans.common.all}</MenuItem>
                 {medicines.map((medicine) => (
@@ -217,7 +224,7 @@ const PackageManagement = () => {
               </Select>
             </FormControl>
 
-            <FormControl sx={{ minWidth: 200 }}>
+            <FormControl size="small" sx={{ width: 200 }}>
               <InputLabel>{trans.common.area}</InputLabel>
               <Select value={filterAreaId} label={trans.common.area} onChange={(e) => setFilterAreaId(e.target.value)} size="small">
                 <MenuItem value="">{trans.common.all}</MenuItem>
@@ -229,11 +236,11 @@ const PackageManagement = () => {
               </Select>
             </FormControl>
 
-            <Button variant="contained" onClick={handleFilterChange} sx={{ minWidth: 100 }}>
+            <Button size="small" variant="contained" onClick={handleFilterChange} startIcon={<Filter />}>
               {trans.common.filter}
             </Button>
 
-            <Button variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />}>
+            <Button size="small" variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />}>
               {trans.common.refresh}
             </Button>
           </Box>
@@ -319,9 +326,7 @@ const PackageManagement = () => {
         onRowsPerPageChange={handleChangeRowsPerPage}
         rowsPerPageOptions={[5, 10, 25, 50]}
         labelRowsPerPage={trans?.common?.rowsPerPage || 'Rows per page:'}
-        labelDisplayedRows={({ from, to, count }) =>
-          `${from}-${to} of ${count !== -1 ? count : `more than ${to}`}`
-        }
+        labelDisplayedRows={({ from, to, count }) => `${from}-${to} of ${count !== -1 ? count : `more than ${to}`}`}
       />
 
       {/* Detail Dialog */}

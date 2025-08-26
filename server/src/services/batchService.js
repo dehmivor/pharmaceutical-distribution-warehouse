@@ -1,5 +1,9 @@
 const Batch = require('../models/Batch');
 
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 const getValidBatches = async (medicineId) => {
   if (!medicineId) throw new Error('medicineId is required');
 
@@ -46,7 +50,40 @@ const getBatchById = async (batchId) => {
 }
 
 
+const isBatchCodeUnique = async(batchCode, opts = {}) => {
+  if (!batchCode || typeof batchCode !== 'string') {
+    const err = new Error('batchCode is required and must be a string');
+    err.status = 400;
+    throw err;
+  }
+
+  const code = batchCode.trim();
+  if (code.length === 0) {
+    const err = new Error('batchCode cannot be empty after trimming');
+    err.status = 400;
+    throw err;
+  }
+
+  const query = {
+    batch_code: { $regex: `^${escapeRegex(code)}$`, $options: 'i' }, // exact match, case-insensitive
+  };
+
+  if (opts.excludeId) {
+    query._id = { $ne: opts.excludeId };
+  }
+
+  const existing = await Batch.findOne(query).select('_id').lean().exec();
+  return !existing; // true = unique, false = already exists
+}
+
+module.exports = {
+  isBatchCodeUnique,
+};
+
+
+
 module.exports = {
   getValidBatches,
   getBatchById,
+  isBatchCodeUnique
 };

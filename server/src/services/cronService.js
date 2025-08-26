@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const mongoose = require('mongoose');
-const { User, Batch, Package, Supplier, Contract, Bill } = require('../models');
+const { User, Batch, Package, Supplier, Contract, Bill, Notification } = require('../models');
+const { deleteNotification } = require('./notificationService');
 
 // Lấy batch hết hạn dưới 6 tháng kể từ refDate
 const getBatchesExpiredUnder6Months = async (refDate) => {
@@ -605,6 +606,114 @@ const getMedicinesByStockLevel = async () => {
   }
 };
 
+async function deleteNotificationsOlderThanDays(days, io = null) {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+
+  // Lấy các notification cũ hơn cutoffDate
+  const oldNotifications = await Notification.find({ created_at: { $lt: cutoffDate } });
+
+  if (oldNotifications && io) {
+    console.log('Emitting newNotification to system room');
+    io.to('system_alert').emit('newNotification', oldNotifications);
+    io.to('reminder').emit('newNotification', oldNotifications);
+    io.to('export').emit('newNotification', oldNotifications);
+    io.to('import').emit('newNotification', oldNotifications);
+    io.to('inventory').emit('newNotification', oldNotifications);
+  } else {
+    console.log('Cannot emit: io =', io);
+  }
+
+  // Xóa từng notification và emit realtime nếu có io
+  let deletedCount = 0;
+  for (const noti of oldNotifications) {
+    await deleteNotification(noti._id, io);
+    deletedCount++;
+  }
+  return deletedCount;
+}
+
+async function notifySupervisorsAboutAlerts(io) {
+  // 1. Lấy danh sách batch dưới mức tồn kho
+  const medicinesBelowThreshold = await getMedicinesBelowStockThreshold();
+
+  // Tạo notification cho mỗi loại batch thuốc thiếu kho
+  if (medicinesBelowThreshold.length > 0) {
+    const newNotification = await notificationService.createNotificationForAllSupervisors(
+      {
+        title: 'Thuốc tồn kho thấp',
+        message: `Có ${medicinesBelowThreshold.length} loại thuốc có tồn kho dưới mức tối thiểu.`,
+        type: 'reminder',
+        priority: 'high',
+        action_url: '/data&reports/data-tracking/alerts',
+        metadata: {
+          alertType: 'low_stock',
+        },
+      },
+      io,
+    );
+
+    if (newNotification && io) {
+      console.log('Emitting newNotification to system room');
+      io.to('reminder').emit('newNotification', newNotification);
+    } else {
+      console.log('Cannot emit: io =', io);
+    }
+  }
+
+  // 2. Lấy lô hết hạn gần
+  const expiredBatches = await getBatchesExpiredUnder6Months(new Date());
+  if (expiredBatches.length > 0) {
+    const newNotification = await notificationService.createNotificationForAllSupervisors(
+      {
+        title: 'Lô thuốc sắp hết hạn',
+        message: `Có ${expiredBatches.length} lô thuốc sắp hết hạn trong vòng 6 tháng.`,
+        type: 'reminder',
+        priority: 'high',
+        action_url: '/data&reports/data-tracking/alerts',
+        metadata: {
+          alertType: 'batch_expiry',
+        },
+      },
+      io,
+    );
+
+    if (newNotification && io) {
+      console.log('Emitting newNotification to system room');
+      io.to('system').emit('newNotification', newNotification);
+    } else {
+      console.log('Cannot emit: io =', io);
+    }
+  }
+
+  // 3. Lấy hóa đơn đến hạn thanh toán
+  const billsDue = await getBillsDueDate();
+  const totalDueBills =
+    billsDue.overdueBills.length + billsDue.urgentBills.length + billsDue.warningBills.length;
+  if (totalDueBills > 0) {
+    const newNotification = await notificationService.createNotificationForAllSupervisors(
+      {
+        title: 'Hóa đơn đến hạn thanh toán',
+        message: `Có ${totalDueBills} hóa đơn sắp đến hạn hoặc quá hạn thanh toán.`,
+        type: 'reminder',
+        priority: 'high',
+        action_url: '/data&reports/data-tracking/alerts',
+        metadata: {
+          alertType: 'bill_due',
+        },
+      },
+      io,
+    );
+
+    if (newNotification && io) {
+      console.log('Emitting newNotification to system room');
+      io.to('system').emit('newNotification', newNotification);
+    } else {
+      console.log('Cannot emit: io =', io);
+    }
+  }
+}
+
 module.exports = {
   getBatchesExpiredUnder6Months,
   getBatchesExpiringAtIntervals,
@@ -623,4 +732,6 @@ module.exports = {
   getMedicinesBelowStockThreshold,
   getMedicinesByStockLevel,
   getBillsDueDate,
+  deleteNotificationsOlderThanDays,
+  notifySupervisorsAboutAlerts,
 };

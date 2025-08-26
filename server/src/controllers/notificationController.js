@@ -18,6 +18,13 @@ const createNotification = async (req, res) => {
         notificationData,
         io,
       );
+
+      if (notification && io) {
+        console.log('Emitting newNotification to system room');
+        io.to('system').emit('notification', notification);
+      } else {
+        console.log('Cannot emit: io =', io);
+      }
       res.status(201).json({
         success: true,
         message: `Đã tạo ${notification.length} thông báo cho warehouse managers`,
@@ -26,6 +33,13 @@ const createNotification = async (req, res) => {
     } else {
       // Tạo notification bình thường - THÊM io parameter
       notification = await notificationService.createNotification(notificationData, io);
+
+      if (notification && io) {
+        console.log('Emitting newNotification to system room');
+        io.to('system').emit('newNotification', notification);
+      } else {
+        console.log('Cannot emit: io =', io);
+      }
       res.status(201).json({
         success: true,
         data: notification,
