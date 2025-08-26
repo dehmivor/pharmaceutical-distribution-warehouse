@@ -378,6 +378,8 @@ const CheckOrders = () => {
                   handleMenuClose();
                   return;
                 }
+
+                // Kiểm tra xem có đợt kiểm kê nào đang xử lý không
                 const checkRes = await axiosInstance.get(`/api/inventory-check-orders?status=processing&limit=1`, {
                   headers: getAuthHeaders()
                 });
@@ -392,11 +394,44 @@ const CheckOrders = () => {
                   return;
                 }
 
-                router.push(`/wm-inventory/create-inspections/${menuOrder?._id}`);
+                // Kiểm tra và cập nhật trạng thái nếu cần
+                if (menuOrder?.status?.toLowerCase() !== 'processing' && menuOrder?.status?.toLowerCase() === 'pending') {
+                  const updateRes = await axiosInstance.patch(
+                    `/api/inventory/check-order/${menuOrder?._id}`,
+                    { status: 'processing' },
+                    { headers: getAuthHeaders() }
+                  );
+
+                  if (!updateRes.data?.success || !updateRes.data.updated) {
+                    enqueueSnackbar(updateRes.data?.message || 'Không thể cập nhật trạng thái đơn kiểm kê.', { variant: 'error' });
+                    handleMenuClose();
+                    return;
+                  }
+                }
+
+                // Gọi trực tiếp API để tạo phiếu kiểm kê
+                const createRes = await axiosInstance.post(
+                  `/api/inventory/check-order/${menuOrder?._id}`,
+                  {},
+                  { headers: getAuthHeaders() }
+                );
+
+                if (createRes.data?.success) {
+                  enqueueSnackbar(createRes.data?.message || 'Đã tạo phiếu kiểm kê cho tất cả vị trí.', {
+                    variant: 'success'
+                  });
+                  // Có thể thêm logic refresh data hoặc chuyển hướng nếu cần
+                  window.location.reload();
+                } else {
+                  enqueueSnackbar(createRes.data?.message || 'Không thể tạo phiếu kiểm kê.', {
+                    variant: 'error'
+                  });
+                }
+
                 handleMenuClose();
               } catch (error) {
-                console.error('Lỗi khi kiểm tra trạng thái:', error);
-                enqueueSnackbar('Lỗi khi kiểm tra trạng thái phiếu kiểm kê. Vui lòng thử lại.', { variant: 'error' });
+                console.error('Lỗi khi tạo phiếu kiểm kê:', error);
+                enqueueSnackbar('Lỗi khi tạo phiếu kiểm kê. Vui lòng thử lại.', { variant: 'error' });
                 handleMenuClose();
               }
             }}

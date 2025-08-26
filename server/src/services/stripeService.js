@@ -150,7 +150,15 @@ async function createOrUpdatePaymentIntentForBill({ billId, amount, currency = '
 
   if (currentAmountPaid >= totalAmount) throw new Error(`Bill ${billId} is already fully paid.`);
 
-  const remainingAmount = totalAmount - currentAmountPaid;
+  const remainingAmount = Math.max(0, totalAmount - currentAmountPaid);
+  if (remainingAmount <= 0) {
+    throw new Error(`Bill ${billId} is already fully paid.`);
+  }
+
+  const amountToCharge = Math.min(amount, remainingAmount);
+  if (!amountToCharge || amountToCharge <= 0) {
+    throw new Error('Invalid amount to charge');
+  }
   if (amount > remainingAmount)
     throw new Error(`Amount ${amount} exceeds remaining balance ${remainingAmount}`);
   if (!validateMinimumPayment(amount))
@@ -192,20 +200,17 @@ async function handleSingleBillPayment(billId, amountPaidFromStripe) {
     unit: 'VND',
   });
 
-  // FIX: Logic thanh toán chính xác
   let newAmountPaid;
   let paymentType;
 
-  if (amountPaidFromStripe >= totalAmount) {
-    // Thanh toán toàn phần hoặc vượt quá
+  if (amountPaidFromStripe >= remainingAmount) {
+    // Thanh toán hết phần còn lại
     newAmountPaid = totalAmount;
     paymentType = 'FULL_PAYMENT';
-    console.log(`Full payment detected: ${amountPaidFromStripe} >= ${totalAmount}`);
   } else {
     // Thanh toán một phần
     newAmountPaid = currentAmountPaid + amountPaidFromStripe;
     paymentType = 'PARTIAL_PAYMENT';
-    console.log(`Partial payment detected: ${amountPaidFromStripe} < ${totalAmount}`);
   }
 
   // Đảm bảo không vượt quá tổng tiền

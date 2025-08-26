@@ -421,7 +421,7 @@ const updateOrderStatus = async (req, res) => {
                 message: `Đơn nhập kho #${id.slice(20)} đã đến nơi.`,
                 type: 'import',
                 priority: 'high',
-                action_url: `/wh-import-orders/${id}`,
+                action_url: `/wh-create-inspections/with-import-ord/${id}`,
                 metadata: {
                   order_id: id,
                   order_status: status,
