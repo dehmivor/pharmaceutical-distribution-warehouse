@@ -2,8 +2,8 @@
  * Utility để xử lý JWT token
  */
 
-// Khóa lưu trữ token trong localStorage
-const TOKEN_KEY = 'token';
+// ✅ Sửa: Thống nhất key token thành 'auth-token'
+const TOKEN_KEY = 'auth-token';
 const USER_KEY = 'user';
 
 /**

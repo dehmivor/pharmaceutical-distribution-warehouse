@@ -88,7 +88,7 @@ export default function ManageExportOrders() {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const currentPage = p !== null ? p : page;
       const currentLimit = rpp !== null ? rpp : rowsPerPage;
-      
+
       // Only apply filters if they are explicitly passed (from Search button)
       const currentDate = date !== null ? date : null;
       const currentStatus = status !== null ? status : null;
@@ -97,7 +97,7 @@ export default function ManageExportOrders() {
       const qp = new URLSearchParams();
       qp.append('page', (currentPage + 1).toString());
       qp.append('limit', currentLimit.toString());
-      
+
       // Always exclude draft status by default
       if (currentStatus && currentStatus !== (trans?.common?.allStatus || 'All Status')) {
         qp.append('status', currentStatus);
@@ -106,7 +106,7 @@ export default function ManageExportOrders() {
         const allStatusesExceptDraft = ['approved', 'returned', 'rejected', 'completed', 'cancelled'];
         allStatusesExceptDraft.forEach((s) => qp.append('status', s));
       }
-      
+
       // Only add date filter if it's provided
       if (currentDate) qp.append('createdAt', currentDate);
 
@@ -114,11 +114,11 @@ export default function ManageExportOrders() {
       const resp = await axios.get(url, { headers: getAuthHeaders() });
 
       if (!resp.data.success) {
-        throw new Error(resp.data.error || (trans?.common?.failedToLoadOrder || 'Failed to load order'));
+        throw new Error(resp.data.error || trans?.common?.failedToLoadOrder || 'Failed to load order');
       }
 
       let data = resp.data.data || [];
-      
+
       // Only apply type filtering if type filter is explicitly provided
       if (currentType === 'internal') {
         data = data.filter((o) => !o.contract_id);
@@ -215,7 +215,14 @@ export default function ManageExportOrders() {
             InputLabelProps={{ shrink: true }}
             size="small"
           />
-          <TextField select label={trans?.common?.status || 'Status'} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} size="small">
+          <TextField
+            size="small"
+            sx={{ width: 160 }}
+            select
+            label={trans?.common?.status || 'Status'}
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
             <MenuItem value={trans?.common?.allStatus || 'All Status'}>{trans?.common?.allStatus || 'All Status'}</MenuItem>
             {['approved', 'rejected', 'cancelled'].map((s) => (
               <MenuItem key={s} value={s}>
@@ -223,11 +230,11 @@ export default function ManageExportOrders() {
               </MenuItem>
             ))}
           </TextField>
-          <TextField 
-            select 
-            label={trans?.common?.type || 'Type'} 
-            value={filterType} 
-            onChange={(e) => setFilterType(e.target.value)} 
+          <TextField
+            select
+            label={trans?.common?.type || 'Type'}
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
             size="small"
           >
             <MenuItem value="all">{trans?.common?.allTypes || 'All Types'}</MenuItem>
@@ -271,18 +278,9 @@ export default function ManageExportOrders() {
                   <TableCell>{new Date(o.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     {o.contract_id ? (
-                      <Chip 
-                        label={trans?.common?.regular || 'Regular'} 
-                        color="primary" 
-                        size="small" 
-                        variant="outlined" 
-                      />
+                      <Chip label={trans?.common?.regular || 'Regular'} color="primary" size="small" variant="outlined" />
                     ) : (
-                      <Chip 
-                        label={trans?.common?.internal || 'Internal'} 
-                        color="warning" 
-                        size="small" 
-                      />
+                      <Chip label={trans?.common?.internal || 'Internal'} color="warning" size="small" />
                     )}
                   </TableCell>
                   <TableCell>{o.contract_id?.contract_code || '—'}</TableCell>

@@ -206,7 +206,7 @@ const PackageManagement = () => {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-            <FormControl size="small" fullWidth>
+            <FormControl size="small">
               <InputLabel>{trans.common.medicine}</InputLabel>
               <Select
                 value={filterMedicineId}
@@ -224,7 +224,7 @@ const PackageManagement = () => {
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ width: 200 }} fullWidth>
+            <FormControl size="small" sx={{ width: 200 }}>
               <InputLabel>{trans.common.area}</InputLabel>
               <Select value={filterAreaId} label={trans.common.area} onChange={(e) => setFilterAreaId(e.target.value)} size="small">
                 <MenuItem value="">{trans.common.all}</MenuItem>
@@ -236,11 +236,11 @@ const PackageManagement = () => {
               </Select>
             </FormControl>
 
-            <Button size="small" fullWidth variant="contained" onClick={handleFilterChange} startIcon={<Filter />}>
+            <Button size="small" variant="contained" onClick={handleFilterChange} startIcon={<Filter />}>
               {trans.common.filter}
             </Button>
 
-            <Button size="small" fullWidth variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />}>
+            <Button size="small" variant="outlined" onClick={handleRefresh} startIcon={<RefreshIcon />}>
               {trans.common.refresh}
             </Button>
           </Box>
