@@ -540,8 +540,8 @@ const InventoryCheckManagement = () => {
           <CancelIcon />
           {trans.common.confirmCancelOrder}
         </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
-          <DialogContentText>Bạn có chắc chắn muốn hủy phiếu kiểm kê này không?</DialogContentText>
+        <DialogContent sx={{ pt: 5 }}>
+          <DialogContentText sx={{ mt: 5 }}>Bạn có chắc chắn muốn hủy phiếu kiểm kê này không?</DialogContentText>
           {orderToCancel && (
             <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
