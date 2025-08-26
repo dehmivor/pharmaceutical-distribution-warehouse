@@ -33,7 +33,6 @@ import {
 } from '@mui/material';
 import {
   Add as AddIcon,
-
   Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as VisibilityIcon,
@@ -78,7 +77,7 @@ function ExportOrderPage() {
   const [stockCheckResults, setStockCheckResults] = useState([]);
   const [isCheckingStock, setIsCheckingStock] = useState(false);
   const [stockValidationError, setStockValidationError] = useState(null);
-  
+
   // Thêm state cho info snackbar
   const [infoMessage, setInfoMessage] = useState(null);
 
@@ -356,8 +355,6 @@ function ExportOrderPage() {
     setFormData((prev) => ({ ...prev, details: prev.details.filter((_, i) => i !== index) }));
   };
 
-
-
   const handleViewDetails = (order) => {
     setSelectedOrder(order);
     setOpenDetails(true);
@@ -506,9 +503,13 @@ function ExportOrderPage() {
   const filteredOrders = orders.filter((order) => {
     // Ẩn những đơn hàng không có contract_id
     if (!order.contract_id) return false;
-    
+
     if (appliedFilters.status && order.status !== appliedFilters.status) return false;
-    if (appliedFilters.contract_code && !order.contract_id?.contract_code?.toLowerCase().includes(appliedFilters.contract_code.toLowerCase())) return false;
+    if (
+      appliedFilters.contract_code &&
+      !order.contract_id?.contract_code?.toLowerCase().includes(appliedFilters.contract_code.toLowerCase())
+    )
+      return false;
     if (appliedFilters.contract_type && order.contract_id?.contract_type !== appliedFilters.contract_type) return false;
     if (appliedFilters.created_by && order.created_by?.email !== appliedFilters.created_by) return false;
     return true;
@@ -564,7 +565,7 @@ function ExportOrderPage() {
     }
 
     // Validate: phải có ít nhất 1 thuốc được chọn
-    const validDetails = formData.details.filter(detail => detail.medicine_id && detail.expected_quantity > 0 && detail.unit_price > 0);
+    const validDetails = formData.details.filter((detail) => detail.medicine_id && detail.expected_quantity > 0 && detail.unit_price > 0);
     if (validDetails.length === 0) {
       setError('Vui lòng chọn ít nhất 1 loại thuốc với số lượng và đơn giá hợp lệ');
       setFormLoading(false);
@@ -725,17 +726,10 @@ function ExportOrderPage() {
                 placeholder={trans.common.contractCodePlaceholder}
                 value={filters.contract_code || ''}
                 onChange={(e) => handleFilterChange('contract_code', e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <Box sx={{ mr: 1, color: 'text.secondary' }}>
-                      🔍
-                    </Box>
-                  ),
-                }}
               />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 180 }}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.common.contractType}</InputLabel>
                 <Select
                   value={filters.contract_type}
@@ -758,8 +752,7 @@ function ExportOrderPage() {
                     </span>
                   )}
                   sx={{
-                    width: '100%',
-                    maxWidth: 180
+                    width: 180
                   }}
                 >
                   <MenuItem value="">{trans.common.allContractTypes}</MenuItem>
@@ -769,7 +762,7 @@ function ExportOrderPage() {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 180 }}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.common.status}</InputLabel>
                 <Select
                   value={filters.status}
@@ -788,8 +781,7 @@ function ExportOrderPage() {
                     </span>
                   )}
                   sx={{
-                    width: '100%',
-                    maxWidth: 180
+                    width: 180
                   }}
                 >
                   <MenuItem value="">{trans.common.allStatuses}</MenuItem>
@@ -803,7 +795,7 @@ function ExportOrderPage() {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="medium" sx={{ maxWidth: 250 }}>
+              <FormControl fullWidth size="small">
                 <InputLabel>{trans.common.createdBy}</InputLabel>
                 <Select
                   value={filters.created_by}
@@ -822,8 +814,7 @@ function ExportOrderPage() {
                     </span>
                   )}
                   sx={{
-                    width: '100%',
-                    maxWidth: 250
+                    width: 250
                   }}
                 >
                   <MenuItem value="">{trans.common.allUsers}</MenuItem>
@@ -843,23 +834,12 @@ function ExportOrderPage() {
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
-              <Button
-                variant="contained"
-                onClick={applyFilters}
-                fullWidth
-                sx={{ height: '56px' }}
-                startIcon={<SearchIcon />}
-              >
+              <Button variant="contained" onClick={applyFilters} fullWidth size="small" startIcon={<SearchIcon />}>
                 {trans.common.search || 'Search'}
               </Button>
             </Grid>
             <Grid item xs={12} sm={6} md={1}>
-              <Button
-                variant="outlined"
-                onClick={clearFilters}
-                fullWidth
-                sx={{ height: '56px' }}
-              >
+              <Button variant="outlined" onClick={clearFilters} fullWidth size="small">
                 {trans.common.clear || 'Clear'}
               </Button>
             </Grid>
@@ -923,35 +903,20 @@ function ExportOrderPage() {
                   <TableCell align="center">
                     <Box display="flex" gap={1} justifyContent="center">
                       {/* View Details Button */}
-                      <IconButton
-                        size="small"
-                        color="info"
-                        title={trans.common.viewDetails}
-                        onClick={() => handleViewDetails(order)}
-                      >
+                      <IconButton size="small" color="info" title={trans.common.viewDetails} onClick={() => handleViewDetails(order)}>
                         <VisibilityIcon />
                       </IconButton>
-                      
+
                       {/* Edit Button - chỉ hiển thị cho draft và rejected orders */}
                       {(order.status === 'draft' || order.status === 'rejected') && (
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          title={trans.common.edit}
-                          onClick={() => handleEditOrder(order)}
-                        >
+                        <IconButton size="small" color="primary" title={trans.common.edit} onClick={() => handleEditOrder(order)}>
                           <EditIcon />
                         </IconButton>
                       )}
-                      
+
                       {/* Delete Button - chỉ hiển thị cho draft và cancelled orders */}
                       {(order.status === 'draft' || order.status === 'cancelled') && (
-                        <IconButton
-                          size="small"
-                          color="error"
-                          title={trans.common.delete}
-                          onClick={() => handleDeleteOrder(order)}
-                        >
+                        <IconButton size="small" color="error" title={trans.common.delete} onClick={() => handleDeleteOrder(order)}>
                           <DeleteIcon />
                         </IconButton>
                       )}
@@ -994,136 +959,136 @@ function ExportOrderPage() {
         </DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2, position: 'relative', minHeight: 400 }}>
-                         {/* Row: Contract select + Order Details title */}
-             <Grid container alignItems="center" spacing={2} sx={{ mb: 2 }}>
-               <Grid item xs={12} md={6}>
-                 <FormControl fullWidth>
-                   <InputLabel>{trans.common.contractType}</InputLabel>
-                   <Select
-                     name="contract_type"
-                     value={formData.contract_type}
-                     onChange={handleFormChange}
-                     label={trans.common.contractType}
-                     required
-                     disabled={!!selectedOrder}
-                     renderValue={(selected) => (
-                       <span
-                         style={{
-                           display: 'block',
-                           overflow: 'hidden',
-                           textOverflow: 'ellipsis',
-                           whiteSpace: 'nowrap'
-                         }}
-                       >
-                         {selected === 'economic'
-                           ? trans.common.economicContract
-                           : selected === 'principal'
-                             ? trans.common.principalContract
-                             : trans.common.selectContractType}
-                       </span>
-                     )}
-                     sx={{
-                       width: '100%',
-                       minWidth: 200
-                     }}
-                   >
-                     <MenuItem value="">{trans.common.selectContractType}</MenuItem>
-                     <MenuItem value="economic">{trans.common.economicContract}</MenuItem>
-                     <MenuItem value="principal">{trans.common.principalContract}</MenuItem>
-                   </Select>
-                 </FormControl>
-               </Grid>
-               <Grid item xs={12} md={6}>
-                 <FormControl fullWidth>
-                   <InputLabel>{trans.common.contract}</InputLabel>
-                   <Select
-                     name="contract_id"
-                     value={formData.contract_id}
-                     onChange={handleFormChange}
-                     label={trans.common.contract}
-                     required
-                     disabled={!formData.contract_type || !!selectedOrder}
-                     renderValue={(selected) => {
-                       if (!selected) return trans.common.selectContract;
-                       const selectedContract = contracts.find(c => c._id === selected);
-                       const displayText = selectedContract 
-                         ? `${selectedContract.contract_code} - ${selectedContract.partner_id?.name || 'N/A'}`
-                         : trans.common.selectContract;
-                       return (
-                         <span
-                           style={{
-                             display: 'block',
-                             overflow: 'hidden',
-                             textOverflow: 'ellipsis',
-                             whiteSpace: 'nowrap'
-                           }}
-                         >
-                           {displayText}
-                         </span>
-                       );
-                     }}
-                     sx={{
-                       width: '100%',
-                       minWidth: 250
-                     }}
-                   >
-                     <MenuItem value="">{trans.common.selectContract}</MenuItem>
-                     {contracts
-                       .filter((contract) => {
-                         if (!formData.contract_type) return true;
-                         return contract.contract_type === formData.contract_type;
-                       })
-                       .map((contract) => (
-                         <MenuItem key={contract._id} value={contract._id}>
-                           {contract.contract_code} - {contract.partner_id?.name}
-                         </MenuItem>
-                       ))}
-                   </Select>
-                 </FormControl>
-               </Grid>
-             </Grid>
+            {/* Row: Contract select + Order Details title */}
+            <Grid container alignItems="center" spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>{trans.common.contractType}</InputLabel>
+                  <Select
+                    name="contract_type"
+                    value={formData.contract_type}
+                    onChange={handleFormChange}
+                    label={trans.common.contractType}
+                    required
+                    disabled={!!selectedOrder}
+                    renderValue={(selected) => (
+                      <span
+                        style={{
+                          display: 'block',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {selected === 'economic'
+                          ? trans.common.economicContract
+                          : selected === 'principal'
+                            ? trans.common.principalContract
+                            : trans.common.selectContractType}
+                      </span>
+                    )}
+                    sx={{
+                      width: '100%',
+                      minWidth: 200
+                    }}
+                  >
+                    <MenuItem value="">{trans.common.selectContractType}</MenuItem>
+                    <MenuItem value="economic">{trans.common.economicContract}</MenuItem>
+                    <MenuItem value="principal">{trans.common.principalContract}</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>{trans.common.contract}</InputLabel>
+                  <Select
+                    name="contract_id"
+                    value={formData.contract_id}
+                    onChange={handleFormChange}
+                    label={trans.common.contract}
+                    required
+                    disabled={!formData.contract_type || !!selectedOrder}
+                    renderValue={(selected) => {
+                      if (!selected) return trans.common.selectContract;
+                      const selectedContract = contracts.find((c) => c._id === selected);
+                      const displayText = selectedContract
+                        ? `${selectedContract.contract_code} - ${selectedContract.partner_id?.name || 'N/A'}`
+                        : trans.common.selectContract;
+                      return (
+                        <span
+                          style={{
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {displayText}
+                        </span>
+                      );
+                    }}
+                    sx={{
+                      width: '100%',
+                      minWidth: 250
+                    }}
+                  >
+                    <MenuItem value="">{trans.common.selectContract}</MenuItem>
+                    {contracts
+                      .filter((contract) => {
+                        if (!formData.contract_type) return true;
+                        return contract.contract_type === formData.contract_type;
+                      })
+                      .map((contract) => (
+                        <MenuItem key={contract._id} value={contract._id}>
+                          {contract.contract_code} - {contract.partner_id?.name}
+                        </MenuItem>
+                      ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
 
-             {/* Order Details Title Row */}
-             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-               <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                 {trans.common.orderDetails}
-                 {selectedOrder ? (
-                   <Typography variant="caption" sx={{ display: 'block', color: 'warning.main', fontWeight: 400 }}>
-                     ({trans.common.editMedicinesOnlyNote})
-                   </Typography>
-                 ) : (
-                   formData.contract_type === 'principal' && (
-                     <Typography variant="caption" sx={{ display: 'block', color: 'primary.main', fontWeight: 400 }}>
-                       ({trans.common.quantityEditableNote})
-                     </Typography>
-                   )
-                 )}
-               </Typography>
+            {/* Order Details Title Row */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                {trans.common.orderDetails}
+                {selectedOrder ? (
+                  <Typography variant="caption" sx={{ display: 'block', color: 'warning.main', fontWeight: 400 }}>
+                    ({trans.common.editMedicinesOnlyNote})
+                  </Typography>
+                ) : (
+                  formData.contract_type === 'principal' && (
+                    <Typography variant="caption" sx={{ display: 'block', color: 'primary.main', fontWeight: 400 }}>
+                      ({trans.common.quantityEditableNote})
+                    </Typography>
+                  )
+                )}
+              </Typography>
 
-               {/* Add Medicine Button - Only show for Principal contracts */}
-               {formData.contract_type !== 'economic' && (
-                 <Button
-                   onClick={addDetail}
-                   variant="outlined"
-                   size="medium"
-                   disabled={
-                     !formData.contract_type ||
-                     !formData.contract_id ||
-                     !contractMedicines.length ||
-                     (formData.contract_type === 'principal' &&
-                       contractMedicines.length > 0 &&
-                       formData.details.filter(d => d.medicine_id && d.expected_quantity > 0).length >= contractMedicines.length)
-                   }
-                   sx={{ minWidth: 140, fontWeight: 600 }}
-                 >
-                   {selectedOrder
-                     ? 'Add Medicine'
-                     : formData.contract_type === 'principal'
-                       ? 'Add Medicine (Quantity Only)'
-                       : 'Add Medicine'}
-                 </Button>
-               )}
-             </Box>
+              {/* Add Medicine Button - Only show for Principal contracts */}
+              {formData.contract_type !== 'economic' && (
+                <Button
+                  onClick={addDetail}
+                  variant="outlined"
+                  size="medium"
+                  disabled={
+                    !formData.contract_type ||
+                    !formData.contract_id ||
+                    !contractMedicines.length ||
+                    (formData.contract_type === 'principal' &&
+                      contractMedicines.length > 0 &&
+                      formData.details.filter((d) => d.medicine_id && d.expected_quantity > 0).length >= contractMedicines.length)
+                  }
+                  sx={{ minWidth: 140, fontWeight: 600 }}
+                >
+                  {selectedOrder
+                    ? 'Add Medicine'
+                    : formData.contract_type === 'principal'
+                      ? 'Add Medicine (Quantity Only)'
+                      : 'Add Medicine'}
+                </Button>
+              )}
+            </Box>
             {/* Medicines List */}
             <Grid container spacing={2}>
               {/* Show info message when no medicines or invalid selection */}
@@ -1144,9 +1109,9 @@ function ExportOrderPage() {
                   </Alert>
                 </Grid>
               )}
-              
-                             {/* Show all details, including empty ones for adding new medicines */}
-               {formData.details.map((detail, index) => (
+
+              {/* Show all details, including empty ones for adding new medicines */}
+              {formData.details.map((detail, index) => (
                 <Grid item xs={12} key={index}>
                   <Paper sx={{ p: 2, mb: 1, borderRadius: 2, boxShadow: 1 }}>
                     <Grid container spacing={2} alignItems="center" justifyContent="center" wrap="nowrap">
@@ -1161,8 +1126,8 @@ function ExportOrderPage() {
                             disabled={formData.contract_type === 'economic'}
                             renderValue={(selected) => {
                               if (!selected) return trans.common.selectMedicine || 'Select Medicine';
-                              const selectedMedicine = contractMedicines.find(med => med.medicine_id._id === selected);
-                              const displayText = selectedMedicine 
+                              const selectedMedicine = contractMedicines.find((med) => med.medicine_id._id === selected);
+                              const displayText = selectedMedicine
                                 ? `${selectedMedicine.medicine_id.medicine_name} - ${selectedMedicine.medicine_id.license_code}`
                                 : trans.common.selectMedicine || 'Select Medicine';
                               return (
@@ -1178,10 +1143,10 @@ function ExportOrderPage() {
                                 </span>
                               );
                             }}
-                            sx={{ 
+                            sx={{
                               width: '100%',
-                              minWidth: 200, 
-                              maxWidth: 240 
+                              minWidth: 200,
+                              maxWidth: 240
                             }}
                           >
                             {contractMedicines
@@ -1235,73 +1200,73 @@ function ExportOrderPage() {
                           sx={{ minWidth: 120, maxWidth: 140 }}
                         />
                       </Grid>
-                                             <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
-                         <TextField
-                           fullWidth
-                           label={trans.common.unitPrice}
-                           type="text"
-                           value={detail.unit_price ? detail.unit_price.toLocaleString() : ''}
-                           InputProps={{
-                             readOnly: true,
-                             sx: {
-                               backgroundColor: '#f5f5f5',
-                               cursor: 'not-allowed',
-                               '& .MuiInputBase-input': {
-                                 cursor: 'not-allowed',
-                                 color: '#666',
-                                 WebkitTextFillColor: '#666'
-                               }
-                             }
-                           }}
-                           required
-                           disabled={true}
-                           helperText={(() => {
-                             if (formData.contract_type === 'economic') {
-                               return trans.common.fromContractEconomicCannotEdit;
-                             } else {
-                               return trans.common.fromContractCannotEdit;
-                             }
-                           })()}
-                           sx={{ 
-                             minWidth: 120, 
-                             maxWidth: 140,
-                             '& .MuiInputBase-root': {
-                               backgroundColor: '#f5f5f5'
-                             },
-                             '& .MuiInputBase-input.Mui-disabled': {
-                               backgroundColor: '#f5f5f5',
-                               color: '#666',
-                               WebkitTextFillColor: '#666'
-                             }
-                           }}
-                         />
-                       </Grid>
-                                             <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
-                         <TextField
-                           fullWidth
-                           label={trans.common.total}
-                           value={(() => {
-                             const quantity = detail.expected_quantity || 0;
-                             const price = detail.unit_price || 0;
-                             const total = quantity * price;
-                             
-                             // Nếu chưa chọn thuốc hoặc chưa có giá trị hợp lệ
-                             if (!detail.medicine_id || quantity <= 0 || price <= 0) {
-                               return 'Chưa có dữ liệu';
-                             }
-                             
-                             return total.toLocaleString();
-                           })()}
-                           InputProps={{ readOnly: true }}
-                           sx={{ 
-                             minWidth: 120, 
-                             maxWidth: 140,
-                             '& .MuiInputBase-input': {
-                               color: (!detail.medicine_id || detail.expected_quantity <= 0 || detail.unit_price <= 0) ? '#999' : '#000'
-                             }
-                           }}
-                         />
-                       </Grid>
+                      <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
+                        <TextField
+                          fullWidth
+                          label={trans.common.unitPrice}
+                          type="text"
+                          value={detail.unit_price ? detail.unit_price.toLocaleString() : ''}
+                          InputProps={{
+                            readOnly: true,
+                            sx: {
+                              backgroundColor: '#f5f5f5',
+                              cursor: 'not-allowed',
+                              '& .MuiInputBase-input': {
+                                cursor: 'not-allowed',
+                                color: '#666',
+                                WebkitTextFillColor: '#666'
+                              }
+                            }
+                          }}
+                          required
+                          disabled={true}
+                          helperText={(() => {
+                            if (formData.contract_type === 'economic') {
+                              return trans.common.fromContractEconomicCannotEdit;
+                            } else {
+                              return trans.common.fromContractCannotEdit;
+                            }
+                          })()}
+                          sx={{
+                            minWidth: 120,
+                            maxWidth: 140,
+                            '& .MuiInputBase-root': {
+                              backgroundColor: '#f5f5f5'
+                            },
+                            '& .MuiInputBase-input.Mui-disabled': {
+                              backgroundColor: '#f5f5f5',
+                              color: '#666',
+                              WebkitTextFillColor: '#666'
+                            }
+                          }}
+                        />
+                      </Grid>
+                      <Grid item sx={{ flex: '1 1 0', minWidth: 120, maxWidth: 160 }}>
+                        <TextField
+                          fullWidth
+                          label={trans.common.total}
+                          value={(() => {
+                            const quantity = detail.expected_quantity || 0;
+                            const price = detail.unit_price || 0;
+                            const total = quantity * price;
+
+                            // Nếu chưa chọn thuốc hoặc chưa có giá trị hợp lệ
+                            if (!detail.medicine_id || quantity <= 0 || price <= 0) {
+                              return 'Chưa có dữ liệu';
+                            }
+
+                            return total.toLocaleString();
+                          })()}
+                          InputProps={{ readOnly: true }}
+                          sx={{
+                            minWidth: 120,
+                            maxWidth: 140,
+                            '& .MuiInputBase-input': {
+                              color: !detail.medicine_id || detail.expected_quantity <= 0 || detail.unit_price <= 0 ? '#999' : '#000'
+                            }
+                          }}
+                        />
+                      </Grid>
                       <Grid item sx={{ flex: '0 0 56px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                         <IconButton color="error" onClick={() => removeDetail(index)} disabled={formData.details.length === 1}>
                           <DeleteIcon />
@@ -1312,10 +1277,9 @@ function ExportOrderPage() {
                 </Grid>
               ))}
             </Grid>
-            
 
             {/* Stock Availability Information */}
-            {formData.details.filter(detail => detail.medicine_id && detail.expected_quantity > 0).length > 0 && (
+            {formData.details.filter((detail) => detail.medicine_id && detail.expected_quantity > 0).length > 0 && (
               <Box sx={{ mt: 3 }}>
                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
                   {trans.common.stockInformation}
@@ -1399,8 +1363,6 @@ function ExportOrderPage() {
                               <Typography variant="caption">Thiếu: {result.expected_quantity - result.available_quantity}</Typography>
                             </Alert>
                           )}
-
-
                         </Paper>
                       </Grid>
                     ))}
@@ -1432,7 +1394,6 @@ function ExportOrderPage() {
                         color="error"
                         variant="outlined"
                       />
-
                     </Box>
                   </Box>
                 )}
@@ -1444,14 +1405,14 @@ function ExportOrderPage() {
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 {(() => {
                   const totalAmount = formData.details
-                    .filter(detail => detail.medicine_id && detail.expected_quantity > 0)
+                    .filter((detail) => detail.medicine_id && detail.expected_quantity > 0)
                     .reduce((total, detail) => total + detail.expected_quantity * detail.unit_price, 0);
-                  
+
                   // Nếu không có thuốc nào được chọn
                   if (totalAmount === 0) {
                     return `${trans.common.totalAmount || 'Tổng Tiền'}: 0 VND`;
                   }
-                  
+
                   // Nếu có thuốc được chọn
                   return `${trans.common.totalAmount || 'Tổng Tiền'}: ${totalAmount.toLocaleString()} VND`;
                 })()}
@@ -1469,22 +1430,26 @@ function ExportOrderPage() {
             }}
             variant="contained"
             disabled={
-              formLoading || 
-              isCheckingStock || 
-              !formData.contract_type || 
+              formLoading ||
+              isCheckingStock ||
+              !formData.contract_type ||
               !formData.contract_id ||
-              formData.details.filter(detail => detail.medicine_id && detail.expected_quantity > 0).length === 0 ||
+              formData.details.filter((detail) => detail.medicine_id && detail.expected_quantity > 0).length === 0 ||
               (stockCheckResults.length > 0 && !stockCheckResults.every((r) => r.is_available))
             }
             sx={{
               minWidth: 120,
-              bgcolor: (stockCheckResults.length > 0 && !stockCheckResults.every((r) => r.is_available)) || 
-                        formData.details.filter(detail => detail.medicine_id && detail.expected_quantity > 0).length === 0
-                        ? 'error.main' : 'primary.main',
+              bgcolor:
+                (stockCheckResults.length > 0 && !stockCheckResults.every((r) => r.is_available)) ||
+                formData.details.filter((detail) => detail.medicine_id && detail.expected_quantity > 0).length === 0
+                  ? 'error.main'
+                  : 'primary.main',
               '&:hover': {
-                bgcolor: (stockCheckResults.length > 0 && !stockCheckResults.every((r) => r.is_available)) || 
-                          formData.details.filter(detail => detail.medicine_id && detail.expected_quantity > 0).length === 0
-                          ? 'error.dark' : 'primary.dark'
+                bgcolor:
+                  (stockCheckResults.length > 0 && !stockCheckResults.every((r) => r.is_available)) ||
+                  formData.details.filter((detail) => detail.medicine_id && detail.expected_quantity > 0).length === 0
+                    ? 'error.dark'
+                    : 'primary.dark'
               }
             }}
           >
@@ -1494,7 +1459,7 @@ function ExportOrderPage() {
                 ? trans.common.checkingStockButton
                 : !formData.contract_type || !formData.contract_id
                   ? 'Vui lòng chọn hợp đồng'
-                  : formData.details.filter(detail => detail.medicine_id && detail.expected_quantity > 0).length === 0
+                  : formData.details.filter((detail) => detail.medicine_id && detail.expected_quantity > 0).length === 0
                     ? 'Vui lòng chọn thuốc'
                     : stockCheckResults.length > 0 && !stockCheckResults.every((r) => r.is_available)
                       ? trans.common.insufficientStockButton
@@ -1503,26 +1468,26 @@ function ExportOrderPage() {
         </DialogActions>
       </Dialog>
       {/* Error Snackbar */}
-      <Snackbar 
-        open={!!error} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
         onClose={() => setError(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        sx={{ 
-          '& .MuiAlert-root': { 
+        sx={{
+          '& .MuiAlert-root': {
             minWidth: 300,
             boxShadow: 3
           }
         }}
       >
-        <Alert 
-          severity="error" 
+        <Alert
+          severity="error"
           onClose={() => setError(null)}
           variant="filled"
-          sx={{ 
+          sx={{
             width: '100%',
-            '& .MuiAlert-message': { 
-              fontWeight: 500 
+            '& .MuiAlert-message': {
+              fontWeight: 500
             }
           }}
         >
@@ -1531,26 +1496,26 @@ function ExportOrderPage() {
       </Snackbar>
 
       {/* Success Snackbar */}
-      <Snackbar 
-        open={!!success} 
-        autoHideDuration={4000} 
+      <Snackbar
+        open={!!success}
+        autoHideDuration={4000}
         onClose={() => setSuccess(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        sx={{ 
-          '& .MuiAlert-root': { 
+        sx={{
+          '& .MuiAlert-root': {
             minWidth: 300,
             boxShadow: 3
           }
         }}
       >
-        <Alert 
-          severity="success" 
+        <Alert
+          severity="success"
           onClose={() => setSuccess(null)}
           variant="filled"
-          sx={{ 
+          sx={{
             width: '100%',
-            '& .MuiAlert-message': { 
-              fontWeight: 500 
+            '& .MuiAlert-message': {
+              fontWeight: 500
             }
           }}
         >
@@ -1559,34 +1524,32 @@ function ExportOrderPage() {
       </Snackbar>
 
       {/* Info Snackbar */}
-      <Snackbar 
-        open={!!infoMessage} 
-        autoHideDuration={5000} 
+      <Snackbar
+        open={!!infoMessage}
+        autoHideDuration={5000}
         onClose={() => setInfoMessage(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        sx={{ 
-          '& .MuiAlert-root': { 
+        sx={{
+          '& .MuiAlert-root': {
             minWidth: 300,
             boxShadow: 3
           }
         }}
       >
-        <Alert 
-          severity="info" 
+        <Alert
+          severity="info"
           onClose={() => setInfoMessage(null)}
           variant="filled"
-          sx={{ 
+          sx={{
             width: '100%',
-            '& .MuiAlert-message': { 
-              fontWeight: 500 
+            '& .MuiAlert-message': {
+              fontWeight: 500
             }
           }}
         >
           {infoMessage}
         </Alert>
       </Snackbar>
-
-
 
       {/* Details Dialog */}
       <Dialog open={openDetails} onClose={handleCloseDetails} maxWidth="lg" fullWidth>
@@ -1681,8 +1644,8 @@ function ExportOrderPage() {
                 disabled
                 renderValue={(selected) => {
                   if (!selected) return trans.common.selectContract;
-                  const selectedContract = contracts.find(c => c._id === selected);
-                  const displayText = selectedContract 
+                  const selectedContract = contracts.find((c) => c._id === selected);
+                  const displayText = selectedContract
                     ? `${selectedContract.contract_code} - ${selectedContract.partner_id?.name || 'N/A'}`
                     : trans.common.selectContract;
                   return (
@@ -1729,8 +1692,8 @@ function ExportOrderPage() {
                         required
                         renderValue={(selected) => {
                           if (!selected) return trans.common.selectMedicine || 'Select Medicine';
-                          const selectedMedicine = contractMedicines.find(med => med.medicine_id._id === selected);
-                          const displayText = selectedMedicine 
+                          const selectedMedicine = contractMedicines.find((med) => med.medicine_id._id === selected);
+                          const displayText = selectedMedicine
                             ? `${selectedMedicine.medicine_id.medicine_name} - ${selectedMedicine.medicine_id.license_code}`
                             : trans.common.selectMedicine || 'Select Medicine';
                           return (
@@ -1797,77 +1760,77 @@ function ExportOrderPage() {
                       }}
                     />
                   </Grid>
-                                                        <Grid item xs={12} sm={3}>
-                     <TextField
-                       label={trans.common.unitPrice}
-                       type="text"
-                       value={detail.unit_price ? detail.unit_price.toLocaleString() : ''}
-                       fullWidth
-                       required
-                       disabled={true}
-                       helperText={
-                         formData.contract_type === 'economic'
-                           ? trans.common.economicContractAutoFilled
-                           : trans.common.fromContractCannotEdit
-                       }
-                       InputProps={{
-                         readOnly: true,
-                         sx: {
-                           backgroundColor: '#f5f5f5',
-                           cursor: 'not-allowed',
-                           '& .MuiInputBase-input': {
-                             cursor: 'not-allowed',
-                             color: '#666',
-                             WebkitTextFillColor: '#666'
-                           }
-                         }
-                       }}
-                       sx={{
-                         '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
-                         '& .MuiInputBase-root': {
-                           backgroundColor: '#f5f5f5'
-                         },
-                         '& .MuiInputBase-input.Mui-disabled': {
-                           backgroundColor: '#f5f5f5',
-                           color: '#666',
-                           WebkitTextFillColor: '#666'
-                         }
-                       }}
-                     />
-                   </Grid>
-                                       <Grid item xs={12} sm={2}>
-                      <TextField
-                        label={trans.common.total}
-                        value={(() => {
-                          const quantity = detail.expected_quantity || 0;
-                          const price = detail.unit_price || 0;
-                          const total = quantity * price;
-                          
-                          // Nếu chưa có giá trị hợp lệ
-                          if (quantity <= 0 || price <= 0) {
-                            return 'Chưa có dữ liệu';
-                          }
-                          
-                          return total.toLocaleString();
-                        })()}
-                        InputProps={{ readOnly: true }}
-                        fullWidth
-                        sx={{
-                          '& .MuiInputBase-input.Mui-disabled': {
-                            backgroundColor: '#f5f5f5',
-                            color: '#666'
-                          },
+                  <Grid item xs={12} sm={3}>
+                    <TextField
+                      label={trans.common.unitPrice}
+                      type="text"
+                      value={detail.unit_price ? detail.unit_price.toLocaleString() : ''}
+                      fullWidth
+                      required
+                      disabled={true}
+                      helperText={
+                        formData.contract_type === 'economic'
+                          ? trans.common.economicContractAutoFilled
+                          : trans.common.fromContractCannotEdit
+                      }
+                      InputProps={{
+                        readOnly: true,
+                        sx: {
+                          backgroundColor: '#f5f5f5',
+                          cursor: 'not-allowed',
                           '& .MuiInputBase-input': {
-                            color: (detail.expected_quantity <= 0 || detail.unit_price <= 0) ? '#999' : '#000'
+                            cursor: 'not-allowed',
+                            color: '#666',
+                            WebkitTextFillColor: '#666'
                           }
-                        }}
-                      />
-                    </Grid>
-                   <Grid item xs={12} sm={1}>
-                     <Button color="error" onClick={() => removeDetail(index)} disabled={formData.details.length === 1} sx={{ mt: 1 }}>
-                       X
-                     </Button>
-                   </Grid>
+                        }
+                      }}
+                      sx={{
+                        '& .MuiFormHelperText-root': { fontSize: '0.75rem' },
+                        '& .MuiInputBase-root': {
+                          backgroundColor: '#f5f5f5'
+                        },
+                        '& .MuiInputBase-input.Mui-disabled': {
+                          backgroundColor: '#f5f5f5',
+                          color: '#666',
+                          WebkitTextFillColor: '#666'
+                        }
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={2}>
+                    <TextField
+                      label={trans.common.total}
+                      value={(() => {
+                        const quantity = detail.expected_quantity || 0;
+                        const price = detail.unit_price || 0;
+                        const total = quantity * price;
+
+                        // Nếu chưa có giá trị hợp lệ
+                        if (quantity <= 0 || price <= 0) {
+                          return 'Chưa có dữ liệu';
+                        }
+
+                        return total.toLocaleString();
+                      })()}
+                      InputProps={{ readOnly: true }}
+                      fullWidth
+                      sx={{
+                        '& .MuiInputBase-input.Mui-disabled': {
+                          backgroundColor: '#f5f5f5',
+                          color: '#666'
+                        },
+                        '& .MuiInputBase-input': {
+                          color: detail.expected_quantity <= 0 || detail.unit_price <= 0 ? '#999' : '#000'
+                        }
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={1}>
+                    <Button color="error" onClick={() => removeDetail(index)} disabled={formData.details.length === 1} sx={{ mt: 1 }}>
+                      X
+                    </Button>
+                  </Grid>
                 </Grid>
               </Box>
             ))}
@@ -1893,11 +1856,18 @@ function ExportOrderPage() {
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                        <TableCell><strong>Thuốc</strong></TableCell>
-                        <TableCell align="right"><strong>Yêu cầu</strong></TableCell>
-                        <TableCell align="right"><strong>Có sẵn</strong></TableCell>
-                        <TableCell align="center"><strong>Trạng thái</strong></TableCell>
-
+                        <TableCell>
+                          <strong>Thuốc</strong>
+                        </TableCell>
+                        <TableCell align="right">
+                          <strong>Yêu cầu</strong>
+                        </TableCell>
+                        <TableCell align="right">
+                          <strong>Có sẵn</strong>
+                        </TableCell>
+                        <TableCell align="center">
+                          <strong>Trạng thái</strong>
+                        </TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -1920,7 +1890,6 @@ function ExportOrderPage() {
                               size="small"
                             />
                           </TableCell>
-
                         </TableRow>
                       ))}
                     </TableBody>
@@ -1935,7 +1904,9 @@ function ExportOrderPage() {
                   <Button
                     variant="outlined"
                     size="small"
-                    onClick={() => checkStockAvailability(formData.details.filter(detail => detail.medicine_id && detail.expected_quantity > 0))}
+                    onClick={() =>
+                      checkStockAvailability(formData.details.filter((detail) => detail.medicine_id && detail.expected_quantity > 0))
+                    }
                     disabled={isCheckingStock}
                     startIcon={<SearchIcon />}
                   >
@@ -1953,9 +1924,9 @@ function ExportOrderPage() {
                 type="submit"
                 variant="contained"
                 disabled={
-                  formLoading || 
-                  isCheckingStock || 
-                  formData.details.filter(detail => detail.medicine_id && detail.expected_quantity > 0).length === 0 ||
+                  formLoading ||
+                  isCheckingStock ||
+                  formData.details.filter((detail) => detail.medicine_id && detail.expected_quantity > 0).length === 0 ||
                   (stockCheckResults.length > 0 && !stockCheckResults.every((r) => r.is_available))
                 }
               >
@@ -1963,76 +1934,76 @@ function ExportOrderPage() {
                   ? 'Saving...'
                   : isCheckingStock
                     ? 'Checking Stock...'
-                    : formData.details.filter(detail => detail.medicine_id && detail.expected_quantity > 0).length === 0
+                    : formData.details.filter((detail) => detail.medicine_id && detail.expected_quantity > 0).length === 0
                       ? 'Vui lòng chọn thuốc'
                       : stockCheckResults.length > 0 && !stockCheckResults.every((r) => r.is_available)
                         ? 'Insufficient Stock'
                         : 'Update'}
               </Button>
-                         </DialogActions>
-           </Box>
-         </DialogContent>
-       </Dialog>
+            </DialogActions>
+          </Box>
+        </DialogContent>
+      </Dialog>
 
-       {/* Delete Confirmation Dialog */}
-       <Dialog 
-         open={openDeleteDialog} 
-         onClose={cancelDelete}
-         maxWidth="xs"
-         fullWidth
-         PaperProps={{
-           sx: {
-             borderRadius: 2,
-             boxShadow: 3
-           }
-         }}
-       >
-         <DialogTitle sx={{ 
-           textAlign: 'center', 
-           fontWeight: 600, 
-           color: 'error.main',
-           pb: 1
-         }}>
-           🗑️ Xác nhận xóa
-         </DialogTitle>
-         <DialogContent sx={{ textAlign: 'center', pt: 2 }}>
-           <Typography variant="body1" sx={{ mb: 2 }}>
-             Bạn có chắc chắn muốn xóa export order này?
-           </Typography>
-           <Typography variant="body2" color="error.main" sx={{ fontWeight: 500 }}>
-             ⚠️ Hành động này không thể hoàn tác!
-           </Typography>
-         </DialogContent>
-         <DialogActions sx={{ 
-           justifyContent: 'center', 
-           gap: 2, 
-           pb: 3, 
-           px: 3 
-         }}>
-           <Button 
-             onClick={cancelDelete} 
-             variant="outlined" 
-             sx={{ minWidth: 100 }}
-           >
-             Hủy
-           </Button>
-           <Button 
-             onClick={confirmDelete} 
-             variant="contained" 
-             color="error"
-             sx={{ 
-               minWidth: 100,
-               '&:hover': {
-                 bgcolor: 'error.dark'
-               }
-             }}
-           >
-             Xóa
-           </Button>
-         </DialogActions>
-       </Dialog>
-     </Box>
-   );
- }
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={openDeleteDialog}
+        onClose={cancelDelete}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: 3
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            textAlign: 'center',
+            fontWeight: 600,
+            color: 'error.main',
+            pb: 1
+          }}
+        >
+          🗑️ Xác nhận xóa
+        </DialogTitle>
+        <DialogContent sx={{ textAlign: 'center', pt: 2 }}>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            Bạn có chắc chắn muốn xóa export order này?
+          </Typography>
+          <Typography variant="body2" color="error.main" sx={{ fontWeight: 500 }}>
+            ⚠️ Hành động này không thể hoàn tác!
+          </Typography>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            justifyContent: 'center',
+            gap: 2,
+            pb: 3,
+            px: 3
+          }}
+        >
+          <Button onClick={cancelDelete} variant="outlined" sx={{ minWidth: 100 }}>
+            Hủy
+          </Button>
+          <Button
+            onClick={confirmDelete}
+            variant="contained"
+            color="error"
+            sx={{
+              minWidth: 100,
+              '&:hover': {
+                bgcolor: 'error.dark'
+              }
+            }}
+          >
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
 
 export default ExportOrderPage;
