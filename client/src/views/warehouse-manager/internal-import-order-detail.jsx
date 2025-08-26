@@ -924,8 +924,6 @@ const InternalImportOrderDetail = ({ orderId }) => {
                   <TableRow>
                     <TableCell>{trans.internalImportOrderDetail.medicine}</TableCell>
                     <TableCell>{trans.internalImportOrderDetail.actualQuantity}</TableCell>
-                    <TableCell>{trans.internalImportOrderDetail.rejectedQuantity}</TableCell>
-                    <TableCell>{trans.internalImportOrderDetail.actions}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -937,12 +935,6 @@ const InternalImportOrderDetail = ({ orderId }) => {
                         </Typography>
                       </TableCell>
                       <TableCell>{insp.actual_quantity}</TableCell>
-                      <TableCell>{insp.rejected_quantity}</TableCell>
-                      <TableCell>
-                        <IconButton color="error" size="small" onClick={() => handleDeleteInspection(insp._id)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

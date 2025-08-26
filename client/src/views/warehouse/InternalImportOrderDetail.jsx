@@ -83,6 +83,8 @@ function InternalImportOrderDetailWH() {
     level: ''
   });
   const [locError, setLocError] = useState(null);
+  const [detailsLocked, setDetailsLocked] = useState(false);
+  const [locationValidated, setLocationValidated] = useState(false);
 
   const [relatedModalOpen, setRelatedModalOpen] = useState(false);
   const [relatedBatchLocs, setRelatedBatchLocs] = useState([]);
@@ -177,6 +179,20 @@ function InternalImportOrderDetailWH() {
   };
   const closePutAwayModal = () => setPutAwayModalOpen(false);
 
+  // Ensure the area of a looked-up location exists in the dropdown options
+  const ensureAreaInOptions = (areaObjOrId) => {
+    try {
+      const areaId = areaObjOrId && typeof areaObjOrId === 'object' ? areaObjOrId._id : areaObjOrId;
+      if (!areaId) return;
+      const exists = Array.isArray(areas) && areas.some((a) => String(a._id) === String(areaId));
+      if (!exists) {
+        if (areaObjOrId && typeof areaObjOrId === 'object') {
+          setAreas((prev) => [...prev, { _id: String(areaObjOrId._id), name: areaObjOrId.name || '—' }]);
+        }
+      }
+    } catch (_) {}
+  };
+
   // Auto‑fill by location_id
   const handleLookupLocation = async () => {
     try {
@@ -191,6 +207,50 @@ function InternalImportOrderDetailWH() {
         row: loc.row,
         level: loc.column
       });
+      ensureAreaInOptions(loc.area_id);
+      setDetailsLocked(true);
+      setLocationValidated(true);
+    } catch (err) {
+      setLocError(err.response?.data?.message || err.message);
+    }
+  };
+
+  // Auto-fill by location details
+  const handleLookupByDetails = async () => {
+    try {
+      const { area_id, bay, row, level } = locForm;
+      if (!area_id || !bay || !row || !level) {
+        setLocError('Please fill in all location details (Area, Bay, Row, Column)');
+        return;
+      }
+
+      // Backend does not have /api/locations/search. Fetch all available and filter on client.
+      const resp = await axios.get(`${API_BASE_URL}/api/locations`, { headers: getAuthHeaders() });
+      const list = Array.isArray(resp.data?.data) ? resp.data.data : resp.data; // compatible with old/new shapes
+      const match = (list || []).find((l) => {
+        const areaIdValue = l?.area_id && typeof l.area_id === 'object' && l.area_id !== null ? l.area_id._id : l.area_id;
+        return (
+          String(areaIdValue) === String(area_id) &&
+          String(l?.bay) === String(bay) &&
+          String(l?.row) === String(row) &&
+          String(l?.column) === String(level)
+        );
+      });
+
+      if (match) {
+        const loc = match;
+        setLocForm({
+          location_id: loc._id,
+          area_id: loc.area_id._id,
+          bay: loc.bay,
+          row: loc.row,
+          level: loc.column
+        });
+        setLocError(null);
+        ensureAreaInOptions(loc.area_id);
+      } else {
+        setLocError('Location not found with the provided details');
+      }
     } catch (err) {
       setLocError(err.response?.data?.message || err.message);
     }
@@ -205,13 +265,42 @@ function InternalImportOrderDetailWH() {
 
   const handleSubmitPutAway = async () => {
     try {
-      const { location_id } = locForm;
+      const { location_id, area_id, bay, row, level } = locForm;
       const ware_house_id = userId;
       const import_order_id = order._id;
 
+      let finalLocationId = location_id;
+
+      // Nếu không có location_id nhưng có đầy đủ thông tin area, bay, row, level
+      if (!location_id && area_id && bay && row && level) {
+        // Tìm location dựa trên thông tin đã nhập (client-side filtering)
+        const resp = await axios.get(`${API_BASE_URL}/api/locations`, { headers: getAuthHeaders() });
+        const list = Array.isArray(resp.data?.data) ? resp.data.data : resp.data;
+        const match = (list || []).find((l) => {
+          const areaIdValue = l?.area_id && typeof l.area_id === 'object' && l.area_id !== null ? l.area_id._id : l.area_id;
+          return (
+            String(areaIdValue) === String(area_id) &&
+            String(l?.bay) === String(bay) &&
+            String(l?.row) === String(row) &&
+            String(l?.column) === String(level)
+          );
+        });
+        if (match) {
+          finalLocationId = match._id;
+        } else {
+          setLocError('Location not found with the provided details. Please check your input or use Location ID instead.');
+          return;
+        }
+      }
+
+      if (!finalLocationId) {
+        setLocError('Please provide either Location ID or complete location details (Area, Bay, Row, Column)');
+        return;
+      }
+
       await axios.patch(
         `${API_BASE_URL}/api/packages/${currentPkg._id}/location`,
-        { location_id, ware_house_id, import_order_id },
+        { location_id: finalLocationId, ware_house_id, import_order_id },
         { headers: getAuthHeaders() }
       );
       await fetchPutAway();
@@ -462,31 +551,53 @@ function InternalImportOrderDetailWH() {
         </Accordion>
 
         {/* Put-Away Dialog */}
-        <Dialog open={putAwayModalOpen} onClose={closePutAwayModal}>
+        <Dialog open={putAwayModalOpen} onClose={closePutAwayModal} maxWidth="xs" fullWidth={false}>
           <DialogTitle>{trans.common.assignPutAwayLocation}</DialogTitle>
           <DialogContent>
-            <Stack spacing={2} sx={{ pt: 1, minWidth: 300 }}>
+            <Stack spacing={1} sx={{ pt: 1, minWidth: 200 }}>
+              {/* Method 1: Direct Location ID */}
+              <Typography variant="subtitle2" color="primary" fontWeight="bold">
+                Method 1: Enter Location ID
+              </Typography>
               <Stack direction="row" spacing={1} alignItems="center">
                 <TextField
                   label={trans.common.locationId}
                   fullWidth
+                  size="small"
                   autoFocus
                   value={locForm.location_id}
-                  onChange={(e) => setLocForm({ ...locForm, location_id: e.target.value })}
+                  onChange={(e) => setLocForm({ 
+                    ...locForm, 
+                    location_id: e.target.value,
+                    area_id: '',
+                    bay: '',
+                    row: '',
+                    level: ''
+                  })}
+                  onFocus={() => setLocationValidated(false)}
                   onKeyDown={onLocationKeyDown}
                   inputProps={{ maxLength: 24 }}
+                  placeholder="Enter location ID directly"
                 />
-                <Button onClick={handleLookupLocation} variant="outlined">
+                <Button onClick={handleLookupLocation} variant="outlined" size="small">
                   {trans.common.autoFill}
                 </Button>
               </Stack>
 
-              <FormControl fullWidth>
+              <Divider>
+                <Typography variant="body2" color="text.secondary">OR</Typography>
+              </Divider>
+
+              {/* Method 2: Individual Fields */}
+              <Typography variant="subtitle2" color="primary" fontWeight="bold">
+                Method 2: Enter Location Details
+              </Typography>
+              <FormControl fullWidth disabled={detailsLocked} size="small">
                 <InputLabel>{trans.common.area}</InputLabel>
                 <Select
                   value={locForm.area_id || ''}
                   label={trans.common.area}
-                  onChange={(e) => setLocForm({ ...locForm, area_id: e.target.value })}
+                  onChange={(e) => { setLocForm({ ...locForm, area_id: e.target.value, location_id: '' }); setDetailsLocked(false); setLocationValidated(false); }}
                 >
                   {Array.isArray(areas) &&
                     areas.map((a) => (
@@ -496,15 +607,46 @@ function InternalImportOrderDetailWH() {
                     ))}
                 </Select>
               </FormControl>
-              <TextField label={trans.common.bay} value={locForm.bay} onChange={(e) => setLocForm({ ...locForm, bay: e.target.value })} fullWidth />
-              <TextField label={trans.common.row} value={locForm.row} onChange={(e) => setLocForm({ ...locForm, row: e.target.value })} fullWidth />
-              <TextField label={trans.common.column} value={locForm.level} onChange={(e) => setLocForm({ ...locForm, level: e.target.value })} fullWidth />
+              <TextField 
+                label={trans.common.bay} 
+                value={locForm.bay} 
+                onChange={(e) => { setLocForm({ ...locForm, bay: e.target.value, location_id: '' }); setDetailsLocked(false); setLocationValidated(false); }} 
+                fullWidth 
+                size="small"
+                placeholder="e.g., Kệ A"
+                disabled={detailsLocked}
+              />
+              <TextField 
+                label={trans.common.row} 
+                value={locForm.row} 
+                onChange={(e) => { setLocForm({ ...locForm, row: e.target.value, location_id: '' }); setDetailsLocked(false); setLocationValidated(false); }} 
+                fullWidth 
+                size="small"
+                placeholder="e.g., 1"
+                disabled={detailsLocked}
+              />
+              <TextField 
+                label={trans.common.column} 
+                value={locForm.level} 
+                onChange={(e) => { setLocForm({ ...locForm, level: e.target.value, location_id: '' }); setDetailsLocked(false); setLocationValidated(false); }} 
+                fullWidth 
+                size="small"
+                placeholder="e.g., 1"
+                disabled={detailsLocked}
+              />
+              
               {locError && <Alert severity="error">{locError}</Alert>}
+              
+              <Alert severity="info">
+                <Typography variant="body2">
+                  <strong>Note:</strong> You can use either method. If you enter location details and press Submit, the system will automatically resolve the Location ID or report that the location does not exist.
+                </Typography>
+              </Alert>
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button onClick={closePutAwayModal}>{trans.common.cancel}</Button>
-            <Button onClick={handleSubmitPutAway} variant="contained">
+            <Button onClick={closePutAwayModal} size="small">{trans.common.cancel}</Button>
+            <Button onClick={handleSubmitPutAway} variant="contained" size="small" disabled={!!locForm.location_id && !locationValidated}>
               {trans.submit}
             </Button>
           </DialogActions>
