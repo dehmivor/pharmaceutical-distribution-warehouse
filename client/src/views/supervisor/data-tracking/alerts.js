@@ -215,7 +215,7 @@ const Alerts = () => {
 
       if (response && io) {
         console.log('Emitting newNotification to system room');
-        io.to('system').emit('newNotification', response);
+        io.to('system').emit('response', response);
       } else {
         console.log('Cannot emit: io =', io);
       }
