@@ -366,7 +366,7 @@ function ExportOrderPage() {
   const handleEditOrder = (order) => {
     setFormData({
       contract_type: order.contract_id?.contract_type || '',
-      contract_id: order.contract_id._id || order.contract_id,
+      contract_id: (order.contract_id && (order.contract_id._id || order.contract_id)) || '',
       details: order.details.map((d) => ({
         medicine_id: typeof d.medicine_id === 'object' ? d.medicine_id._id : d.medicine_id,
         expected_quantity: d.expected_quantity,
@@ -390,7 +390,7 @@ function ExportOrderPage() {
 
     // Fetch contract medicines trước khi check stock
     if (order.contract_id?._id || order.contract_id) {
-      fetchContractMedicines(order.contract_id._id || order.contract_id).then(() => {
+      fetchContractMedicines(order.contract_id?._id || order.contract_id).then(() => {
         // Check stock sau khi có contract medicines
         checkStockAvailability(details);
       });
@@ -543,7 +543,10 @@ function ExportOrderPage() {
     // Kiểm tra nếu là economic contract và đang tạo mới (không phải update)
     if (formData.contract_type === 'economic' && !selectedOrder) {
       // Kiểm tra xem đã có export order nào với contract này chưa
-      const existingOrder = orders.find((order) => order.contract_id._id === formData.contract_id && order.status !== 'cancelled');
+      const existingOrder = orders.find((order) => {
+        const orderContractId = order?.contract_id && (order.contract_id._id || order.contract_id);
+        return orderContractId === formData.contract_id && order.status !== 'cancelled';
+      });
 
       if (existingOrder) {
         setError(
