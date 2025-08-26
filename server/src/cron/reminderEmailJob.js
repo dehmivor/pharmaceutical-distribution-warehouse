@@ -225,6 +225,15 @@ cron.schedule('0 0 * * *', async () => {
   }
 });
 
+cron.schedule('0 13 * * *', async () => {
+  console.log('Running daily alert notification job for supervisors');
+  try {
+    await cronService.notifySupervisorsAboutAlerts(null); // Nếu có io thì truyền io
+  } catch (error) {
+    console.error('Error in scheduled notifySupervisorsAboutAlerts:', error);
+  }
+});
+
 module.exports = {
   startReminderEmailJob,
   runRemindersNow,
@@ -232,4 +241,5 @@ module.exports = {
   processBillReminders,
   processStockReminders,
   processExpiryReminders,
+  processAllReminders,
 };

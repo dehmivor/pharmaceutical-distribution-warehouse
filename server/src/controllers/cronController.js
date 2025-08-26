@@ -119,9 +119,28 @@ const deleteOldNotifications = async (req, res) => {
   }
 };
 
+const notifySupervisors = async (req, res) => {
+  const io = req.app.locals.io;
+  try {
+    await cronService.notifySupervisorsAboutAlerts(io);
+    return res.status(200).json({
+      success: true,
+      message: 'Notifications for supervisors about alerts sent successfully',
+    });
+  } catch (error) {
+    console.error('Failed to notify supervisors:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error sending notifications to supervisors',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   checkExpiredMedicines,
   checkMedicinesBelowStock,
   checkBillsDueDate,
   deleteOldNotifications,
+  notifySupervisors,
 };
