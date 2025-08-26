@@ -229,7 +229,7 @@ const completeExportOrder = async (req, res) => {
       const io = req.app.locals.io;
 
       try {
-        await notificationService.createNotificationForAllSupervisors(
+        const newNotification = await notificationService.createNotificationForAllSupervisors(
           {
             title: 'Đơn hàng xuất kho hoàn thành',
             message: `Đơn hàng xuất kho #${id.slice(-6)} đã được warehouse manager hoàn thành thành công.`,
@@ -247,6 +247,13 @@ const completeExportOrder = async (req, res) => {
           },
           io,
         );
+
+        if (newNotification && io) {
+          console.log('Emitting newNotification to system room');
+          io.to('system').emit('newNotification', newNotification);
+        } else {
+          console.log('Cannot emit: io =', io);
+        }
 
         console.log(`Đã tạo notification cho supervisor về đơn hàng xuất kho #${id} hoàn thành`);
       } catch (notificationError) {
@@ -681,28 +688,26 @@ const exportedTotalsLast6MonthsTop5 = async (req, res) => {
   }
 };
 
-
 const docx = async (req, res) => {
-  const { id } = req.params
+  const { id } = req.params;
   try {
     const buffer = await exportOrderService.createTranscriptionDocBuffer(id);
 
     res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     );
     res.setHeader(
-      "Content-Disposition",
-      'attachment; filename="phieu_nhap_kho_transcription.docx"'
+      'Content-Disposition',
+      'attachment; filename="phieu_nhap_kho_transcription.docx"',
     );
 
     res.send(buffer);
   } catch (err) {
-    console.error("Error in downloadTranscriptionDocx:", err);
-    res.status(500).send("Internal server error");
+    console.error('Error in downloadTranscriptionDocx:', err);
+    res.status(500).send('Internal server error');
   }
 };
-
 
 module.exports = {
   getAllExportOrders,
@@ -723,5 +728,5 @@ module.exports = {
   assignWarehouseManager,
   createInternalExportOrder,
   exportedTotalsLast6MonthsTop5,
-  docx
-}
+  docx,
+};

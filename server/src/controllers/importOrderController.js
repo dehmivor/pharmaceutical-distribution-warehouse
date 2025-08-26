@@ -379,7 +379,7 @@ const updateOrderStatus = async (req, res) => {
 
         // Tạo notification nếu có title và message
         if (notificationTitle && notificationMessage) {
-          await notificationService.createNotification(
+          const newNotification = await notificationService.createNotification(
             {
               recipient_id: updatedOrder.created_by, // ID của representative đã tạo đơn hàng
               title: notificationTitle,
@@ -401,6 +401,13 @@ const updateOrderStatus = async (req, res) => {
             io,
           );
 
+          if (newNotification && io) {
+            console.log('Emitting newNotification to system room');
+            io.to('system').emit('newNotification', newNotification);
+          } else {
+            console.log('Cannot emit: io =', io);
+          }
+
           console.log(
             `✅ Đã tạo notification cho representative ${updatedOrder.created_by} về việc thay đổi status đơn hàng #${id} sang ${status}`,
           );
@@ -408,7 +415,7 @@ const updateOrderStatus = async (req, res) => {
 
         if (status === 'delivered') {
           try {
-            await notificationService.createNotificationForAllWarehouse(
+            const newNotification = await notificationService.createNotificationForAllWarehouse(
               {
                 title: 'Hãy bắt đầu kiểm nhập',
                 message: `Đơn nhập kho #${id.slice(20)} đã đến nơi.`,
@@ -427,6 +434,13 @@ const updateOrderStatus = async (req, res) => {
               },
               io,
             );
+
+            if (newNotification && io) {
+              console.log('Emitting newNotification to system room');
+              io.to('system').emit('newNotification', newNotification);
+            } else {
+              console.log('Cannot emit: io =', io);
+            }
           } catch (warehouseNotificationError) {
             // Log lỗi notification nhưng không ảnh hưởng đến việc update status
             console.error(
@@ -438,7 +452,7 @@ const updateOrderStatus = async (req, res) => {
         // Tạo notification cho warehouse users khi status chuyển sang 'arranged'
         if (status === 'arranged') {
           try {
-            await notificationService.createNotificationForAllWarehouse(
+            const newNotification = await notificationService.createNotificationForAllWarehouse(
               {
                 title: 'Đơn hàng sẵn sàng để cất hàng',
                 message: `Đơn nhập kho #${id.slice(20)} đã được tạo lô.`,
@@ -457,6 +471,13 @@ const updateOrderStatus = async (req, res) => {
               },
               io,
             );
+
+            if (newNotification && io) {
+              console.log('Emitting newNotification to system room');
+              io.to('system').emit('newNotification', newNotification);
+            } else {
+              console.log('Cannot emit: io =', io);
+            }
 
             console.log(
               `✅ Đã tạo notification cho warehouse users về việc đơn hàng #${id} sẵn sàng để cất hàng`,
@@ -593,25 +614,24 @@ const assignWarehouseManager = async (req, res) => {
   }
 };
 
-
 const docx = async (req, res) => {
-  const { id } = req.params
+  const { id } = req.params;
   try {
     const buffer = await importOrderService.createTranscriptionDocBuffer(id);
 
     res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     );
     res.setHeader(
-      "Content-Disposition",
-      'attachment; filename="phieu_nhap_kho_transcription.docx"'
+      'Content-Disposition',
+      'attachment; filename="phieu_nhap_kho_transcription.docx"',
     );
 
     res.send(buffer);
   } catch (err) {
-    console.error("Error in downloadTranscriptionDocx:", err);
-    res.status(500).send("Internal server error");
+    console.error('Error in downloadTranscriptionDocx:', err);
+    res.status(500).send('Internal server error');
   }
 };
 
