@@ -185,7 +185,7 @@ class LocationService {
             {
               title: '1 Vị trí mới được mở',
               message: `${populatedLocation.area_id.name} - Bay ${populatedLocation.bay}, Row ${populatedLocation.row}, Col ${populatedLocation.column}`,
-              type: 'inventory',
+              type: 'system_alert',
               priority: 'medium',
               action_url: '/wh-location',
               metadata: {

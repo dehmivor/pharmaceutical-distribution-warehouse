@@ -213,6 +213,13 @@ const Alerts = () => {
 
       const response = await axios.post(`${backendUrl}/api/notifications`, notificationData);
 
+      if (response && io) {
+        console.log('Emitting newNotification to system room');
+        io.to('system').emit('response', response);
+      } else {
+        console.log('Cannot emit: io =', io);
+      }
+
       if (response.data.success) {
         console.log('Thông báo đã được tạo thành công');
         // Show success message

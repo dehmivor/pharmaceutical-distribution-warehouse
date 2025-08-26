@@ -21,7 +21,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['import', 'export', 'inventory', 'debt_reminder', 'system_alert'],
+      enum: ['import', 'export', 'inventory', 'reminder', 'system_alert'],
       required: true,
     },
     priority: {

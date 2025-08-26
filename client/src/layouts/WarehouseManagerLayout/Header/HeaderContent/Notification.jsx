@@ -206,7 +206,7 @@ export default function Notification() {
       Import: 'import',
       Export: 'export',
       Inventory: 'inventory',
-      'Debt Reminder': 'debt_reminder',
+      Reminder: 'reminder',
       'System Alert': 'system_alert'
     };
 

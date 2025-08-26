@@ -495,11 +495,6 @@ export default function Report() {
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
-              <Button size="small" variant="outlined" startIcon={<UploadIcon />} onClick={() => setUploadDialog(true)} fullWidth>
-                {trans.common.uploadFile}
-              </Button>
-            </Grid>
-            <Grid item xs={12} md={2}>
               <Button size="small" variant="outlined" startIcon={<RefreshIcon />} onClick={handleReset} disabled={loading} fullWidth>
                 {trans.common.reset}
               </Button>

@@ -215,6 +215,25 @@ function stopReminderEmailJob() {
   console.log('📧 Reminder Email Cron Job: Stopped');
 }
 
+cron.schedule('0 0 * * *', async () => {
+  console.log('Running daily job to delete old notifications');
+  try {
+    const count = await cronService.deleteNotificationsOlderThanDays(30);
+    console.log(`Deleted ${count} old notifications`);
+  } catch (error) {
+    console.error('Error when running delete old notifications job:', error);
+  }
+});
+
+cron.schedule('0 13 * * *', async () => {
+  console.log('Running daily alert notification job for supervisors');
+  try {
+    await cronService.notifySupervisorsAboutAlerts(null); // Nếu có io thì truyền io
+  } catch (error) {
+    console.error('Error in scheduled notifySupervisorsAboutAlerts:', error);
+  }
+});
+
 module.exports = {
   startReminderEmailJob,
   runRemindersNow,
@@ -222,4 +241,5 @@ module.exports = {
   processBillReminders,
   processStockReminders,
   processExpiryReminders,
+  processAllReminders,
 };
