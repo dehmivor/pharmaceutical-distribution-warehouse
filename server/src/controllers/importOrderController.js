@@ -419,7 +419,7 @@ const updateOrderStatus = async (req, res) => {
               {
                 title: 'Hãy bắt đầu kiểm nhập',
                 message: `Đơn nhập kho #${id.slice(20)} đã đến nơi.`,
-                type: 'inventory',
+                type: 'import',
                 priority: 'high',
                 action_url: `/wh-import-orders/${id}`,
                 metadata: {
@@ -456,7 +456,7 @@ const updateOrderStatus = async (req, res) => {
               {
                 title: 'Đơn hàng sẵn sàng để cất hàng',
                 message: `Đơn nhập kho #${id.slice(20)} đã được tạo lô.`,
-                type: 'inventory',
+                type: 'import',
                 priority: 'high',
                 action_url: `/wh-import-orders/${id}`,
                 metadata: {

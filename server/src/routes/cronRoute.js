@@ -21,4 +21,6 @@ router.post('/test-reminder-emails', async (req, res) => {
   }
 });
 
+router.post('/delete-old-notifications', cronController.deleteOldNotifications);
+
 module.exports = router;

@@ -102,8 +102,26 @@ const checkBillsDueDate = async (req, res) => {
   }
 };
 
+const deleteOldNotifications = async (req, res) => {
+  try {
+    const deletedCount = await cronService.deleteNotificationsOlderThanDays(30);
+    return res.status(200).json({
+      success: true,
+      message: `Đã xóa ${deletedCount} notification cũ hơn 30 ngày`,
+    });
+  } catch (error) {
+    console.error('Lỗi xóa notification cũ:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi xóa notification cũ',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   checkExpiredMedicines,
   checkMedicinesBelowStock,
   checkBillsDueDate,
+  deleteOldNotifications,
 };

@@ -215,6 +215,16 @@ function stopReminderEmailJob() {
   console.log('📧 Reminder Email Cron Job: Stopped');
 }
 
+cron.schedule('0 0 * * *', async () => {
+  console.log('Running daily job to delete old notifications');
+  try {
+    const count = await cronService.deleteNotificationsOlderThanDays(30);
+    console.log(`Deleted ${count} old notifications`);
+  } catch (error) {
+    console.error('Error when running delete old notifications job:', error);
+  }
+});
+
 module.exports = {
   startReminderEmailJob,
   runRemindersNow,

@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const mongoose = require('mongoose');
-const { User, Batch, Package, Supplier, Contract, Bill } = require('../models');
+const { User, Batch, Package, Supplier, Contract, Bill, Notification } = require('../models');
+const { deleteNotification } = require('./notificationService');
 
 // Lấy batch hết hạn dưới 6 tháng kể từ refDate
 const getBatchesExpiredUnder6Months = async (refDate) => {
@@ -605,6 +606,22 @@ const getMedicinesByStockLevel = async () => {
   }
 };
 
+async function deleteNotificationsOlderThanDays(days, io = null) {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+
+  // Lấy các notification cũ hơn cutoffDate
+  const oldNotifications = await Notification.find({ created_at: { $lt: cutoffDate } });
+
+  // Xóa từng notification và emit realtime nếu có io
+  let deletedCount = 0;
+  for (const noti of oldNotifications) {
+    await deleteNotification(noti._id, io);
+    deletedCount++;
+  }
+  return deletedCount;
+}
+
 module.exports = {
   getBatchesExpiredUnder6Months,
   getBatchesExpiringAtIntervals,
@@ -623,4 +640,5 @@ module.exports = {
   getMedicinesBelowStockThreshold,
   getMedicinesByStockLevel,
   getBillsDueDate,
+  deleteNotificationsOlderThanDays,
 };
