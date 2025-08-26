@@ -31,10 +31,11 @@ import useTrans from '@/hooks/useTrans';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  // ✅ Sửa: Thống nhất key token thành 'auth-token'
+  const token = localStorage.getItem('auth-token');
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`
+    ...(token && { Authorization: `Bearer ${token}` })
   };
 };
 
