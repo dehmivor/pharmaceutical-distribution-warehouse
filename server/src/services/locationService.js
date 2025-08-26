@@ -181,7 +181,7 @@ class LocationService {
       // Tạo notification cho tất cả warehouse users
       if (io) {
         try {
-          await notificationService.createNotificationForAllWarehouse(
+          const newNotification = await notificationService.createNotificationForAllWarehouse(
             {
               title: '1 Vị trí mới được mở',
               message: `${populatedLocation.area_id.name} - Bay ${populatedLocation.bay}, Row ${populatedLocation.row}, Col ${populatedLocation.column}`,
@@ -198,6 +198,13 @@ class LocationService {
             },
             io,
           );
+
+          if (newNotification && io) {
+            console.log('Emitting newNotification to system room');
+            io.to('system').emit('newNotification', newNotification);
+          } else {
+            console.log('Cannot emit: io =', io);
+          }
 
           console.log(
             `✅ Đã tạo notification cho warehouse users về vị trí mới: ${populatedLocation.area_id.name} - Bay ${populatedLocation.bay}, Row ${populatedLocation.row}, Col ${populatedLocation.column}`,
