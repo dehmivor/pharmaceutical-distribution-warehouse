@@ -2408,7 +2408,8 @@ export default {
   // Manage Export Orders
   manageExportOrders: {
     title: 'Export Orders Management',
-    createInternalExportOrder: 'Create Internal Export Order',
+    description: 'Manage and inspect export orders, track their status, and perform inspections.',
+    createInternalExportOrder: 'Create Disposal Order',
     exportDate: 'Export Date',
     status: 'Status',
     type: 'Type',
