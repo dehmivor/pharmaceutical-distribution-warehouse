@@ -100,7 +100,7 @@ function ReceiptStatistics({ inspections = [], setInspections }) {
 
     return {
       id: inspection._id,
-      productCode: inspection.medicine_id._id,
+      productCode: inspection.medicine_id.license_code || 'N/A',
       productName: inspection.medicine_id.medicine_name,
       expectedUnit,
       actualUnit: expectedUnit,
@@ -171,8 +171,8 @@ function ReceiptStatistics({ inspections = [], setInspections }) {
             <Table size="small" stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell>Mã SP</TableCell>
-                  <TableCell>Tên sản phẩm</TableCell>
+                  <TableCell>Mã thuốc</TableCell>
+                  <TableCell>Tên thuốc</TableCell>
                   <TableCell>Đơn vị</TableCell>
                   <TableCell>Dự kiến</TableCell>
                   <TableCell>Thực nhận</TableCell>
@@ -198,6 +198,8 @@ function ReceiptStatistics({ inspections = [], setInspections }) {
                         case 'received':
                           return 'success';
                         case 'partial':
+                          return 'warning';
+                        case 'waiting':
                           return 'warning';
                         case 'shortage':
                           return 'error';
