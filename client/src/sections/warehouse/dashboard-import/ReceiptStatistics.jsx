@@ -177,10 +177,8 @@ function ReceiptStatistics({ inspections = [], setInspections }) {
                   <TableCell>Dự kiến</TableCell>
                   <TableCell>Thực nhận</TableCell>
                   <TableCell>Từ chối</TableCell>
-                  <TableCell>Tỷ lệ nhận</TableCell>
                   <TableCell>Đơn giá</TableCell>
                   <TableCell>Thành tiền</TableCell>
-                  <TableCell>Trạng thái</TableCell>
                   <TableCell>Hành động</TableCell>
                 </TableRow>
               </TableHead>
@@ -248,39 +246,12 @@ function ReceiptStatistics({ inspections = [], setInspections }) {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 120 }}>
-                            <Typography variant="body2" sx={{ mr: 1, minWidth: 35 }}>
-                              {item.receivedPercentage}%
-                            </Typography>
-                            <LinearProgress
-                              variant="determinate"
-                              value={Math.min(item.receivedPercentage, 100)}
-                              sx={{
-                                flexGrow: 1,
-                                height: 6,
-                                borderRadius: 3,
-                                '& .MuiLinearProgress-bar': {
-                                  backgroundColor:
-                                    item.receivedPercentage >= 100
-                                      ? 'success.main'
-                                      : item.receivedPercentage >= 50
-                                        ? 'warning.main'
-                                        : 'error.main'
-                                }
-                              }}
-                            />
-                          </Box>
-                        </TableCell>
-                        <TableCell>
                           <Typography variant="body2">{item.unitPrice.toLocaleString()} ₫</Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" fontWeight="medium">
                             {item.totalAmount.toLocaleString()} ₫
                           </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={getStatusText(item.status)} color={getStatusColor(item.status)} size="small" variant="outlined" />
                         </TableCell>
                         <TableCell>
                           <IconButton
