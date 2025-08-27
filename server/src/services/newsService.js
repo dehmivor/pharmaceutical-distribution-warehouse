@@ -25,7 +25,10 @@ class NewsService {
         if (index < 5) {
           // Lấy 5 tin mới nhất
           const title = $(element).find('h3, h4, .title, .news-title, .post-title').text().trim();
-          const description = $(element).find('.summary, .description, .excerpt, .post-excerpt').text().trim();
+          const description = $(element)
+            .find('.summary, .description, .excerpt, .post-excerpt')
+            .text()
+            .trim();
           const dateText = $(element).find('.date, .time, .post-date').text().trim();
           const link = $(element).find('a').attr('href');
           const image = $(element).find('img').attr('src');
@@ -41,9 +44,18 @@ class NewsService {
               region: 'Toàn quốc',
               date: this.parseVietnameseDate(dateText) || new Date(),
               category: 'Chính sách y tế',
-              conclusion: 'Cập nhật chính sách y tế mới có thể ảnh hưởng đến quy trình nhập khẩu và phân phối thuốc.',
-              url: link ? (link.startsWith('http') ? link : `https://moh.gov.vn${link}`) : 'https://moh.gov.vn/tin-tuc',
-              image: image ? (image.startsWith('http') ? image : `https://moh.gov.vn${image}`) : null,
+              conclusion:
+                'Cập nhật chính sách y tế mới có thể ảnh hưởng đến quy trình nhập khẩu và phân phối thuốc.',
+              url: link
+                ? link.startsWith('http')
+                  ? link
+                  : `https://moh.gov.vn${link}`
+                : 'https://moh.gov.vn/tin-tuc',
+              image: image
+                ? image.startsWith('http')
+                  ? image
+                  : `https://moh.gov.vn${image}`
+                : null,
             });
           }
         }
@@ -84,7 +96,10 @@ class NewsService {
         if (index < 3) {
           // Lấy 3 tin mới nhất
           const title = $(element).find('h3, h4, .title, .news-title, .post-title').text().trim();
-          const description = $(element).find('.summary, .description, .excerpt, .post-excerpt').text().trim();
+          const description = $(element)
+            .find('.summary, .description, .excerpt, .post-excerpt')
+            .text()
+            .trim();
           const dateText = $(element).find('.date, .time, .post-date').text().trim();
           const link = $(element).find('a').attr('href');
           const image = $(element).find('img').attr('src');
@@ -99,9 +114,18 @@ class NewsService {
               region: 'Toàn quốc',
               date: this.parseVietnameseDate(dateText) || new Date(),
               category: 'Quản lý dược phẩm',
-              conclusion: 'Cập nhật quy định dược phẩm mới có thể ảnh hưởng đến danh mục thuốc được phép lưu hành.',
-              url: link ? (link.startsWith('http') ? link : `https://dav.gov.vn${link}`) : 'https://dav.gov.vn/tin-tuc',
-              image: image ? (image.startsWith('http') ? image : `https://dav.gov.vn${image}`) : null,
+              conclusion:
+                'Cập nhật quy định dược phẩm mới có thể ảnh hưởng đến danh mục thuốc được phép lưu hành.',
+              url: link
+                ? link.startsWith('http')
+                  ? link
+                  : `https://dav.gov.vn${link}`
+                : 'https://dav.gov.vn/tin-tuc',
+              image: image
+                ? image.startsWith('http')
+                  ? image
+                  : `https://dav.gov.vn${image}`
+                : null,
             });
           }
         }
@@ -144,7 +168,8 @@ class NewsService {
             region: 'Hà Nội',
             date: new Date(item.pubDate),
             category: 'Cập nhật bệnh viện',
-            conclusion: 'Cập nhật quy trình điều trị mới có thể ảnh hưởng đến nhu cầu một số loại thuốc.',
+            conclusion:
+              'Cập nhật quy trình điều trị mới có thể ảnh hưởng đến nhu cầu một số loại thuốc.',
             url: item.link || 'https://bachmai.gov.vn/tin-tuc',
             image: item.enclosure?.url || null,
           });
@@ -160,13 +185,15 @@ class NewsService {
           news.push({
             type: 'pediatric_news',
             title: item.title,
-            description: item.contentSnippet || item.content || 'Cập nhật từ Bệnh viện Nhi Trung ương',
+            description:
+              item.contentSnippet || item.content || 'Cập nhật từ Bệnh viện Nhi Trung ương',
             affectedCategory: 'Thuốc kháng sinh nhi khoa',
             source: 'Bệnh viện Nhi Trung ương',
             region: 'Hà Nội',
             date: new Date(item.pubDate),
             category: 'Nhi khoa',
-            conclusion: 'Cập nhật phác đồ điều trị mới có thể ảnh hưởng đến nhu cầu thuốc nhi khoa.',
+            conclusion:
+              'Cập nhật phác đồ điều trị mới có thể ảnh hưởng đến nhu cầu thuốc nhi khoa.',
             url: item.link || 'https://nhitrunguong.org.vn/tin-tuc',
             image: item.enclosure?.url || null,
           });
@@ -212,7 +239,10 @@ class NewsService {
           if (index < 2) {
             // Lấy 2 tin mới nhất
             const title = $(element).find('h3, h4, .title, .news-title, .post-title').text().trim();
-            const description = $(element).find('.summary, .description, .excerpt, .post-excerpt').text().trim();
+            const description = $(element)
+              .find('.summary, .description, .excerpt, .post-excerpt')
+              .text()
+              .trim();
             const dateText = $(element).find('.date, .time, .post-date').text().trim();
             const link = $(element).find('a').attr('href');
             const image = $(element).find('img').attr('src');
@@ -226,9 +256,18 @@ class NewsService {
                 region: 'Toàn quốc',
                 date: this.parseVietnameseDate(dateText) || new Date(),
                 category: 'Phát triển ngành dược',
-                conclusion: 'Cập nhật từ hiệp hội có thể ảnh hưởng đến xu hướng thị trường dược phẩm.',
-                url: link ? (link.startsWith('http') ? link : `https://vnpca.org.vn${link}`) : 'https://vnpca.org.vn/tin-tuc',
-                image: image ? (image.startsWith('http') ? image : `https://vnpca.org.vn${image}`) : null,
+                conclusion:
+                  'Cập nhật từ hiệp hội có thể ảnh hưởng đến xu hướng thị trường dược phẩm.',
+                url: link
+                  ? link.startsWith('http')
+                    ? link
+                    : `https://vnpca.org.vn${link}`
+                  : 'https://vnpca.org.vn/tin-tuc',
+                image: image
+                  ? image.startsWith('http')
+                    ? image
+                    : `https://vnpca.org.vn${image}`
+                  : null,
               });
             }
           }
@@ -273,32 +312,52 @@ class NewsService {
 
         const $ = cheerio.load(response.data);
 
-        $('.news-item, .tin-tuc-item, .article-item, .post-item, .entry, .story-item').each((index, element) => {
-          if (index < 3) {
-            // Lấy 3 tin mới nhất
-            const title = $(element).find('h3, h4, .title, .news-title, .post-title, .story-title').text().trim();
-            const description = $(element).find('.summary, .description, .excerpt, .post-excerpt, .story-excerpt').text().trim();
-            const dateText = $(element).find('.date, .time, .post-date, .story-date').text().trim();
-            const link = $(element).find('a').attr('href');
-            const image = $(element).find('img').attr('src');
+        $('.news-item, .tin-tuc-item, .article-item, .post-item, .entry, .story-item').each(
+          (index, element) => {
+            if (index < 3) {
+              // Lấy 3 tin mới nhất
+              const title = $(element)
+                .find('h3, h4, .title, .news-title, .post-title, .story-title')
+                .text()
+                .trim();
+              const description = $(element)
+                .find('.summary, .description, .excerpt, .post-excerpt, .story-excerpt')
+                .text()
+                .trim();
+              const dateText = $(element)
+                .find('.date, .time, .post-date, .story-date')
+                .text()
+                .trim();
+              const link = $(element).find('a').attr('href');
+              const image = $(element).find('img').attr('src');
 
-            if (title && description) {
-              news.push({
-                type: 'health_media',
-                title: title,
-                description: description,
-                affectedCategory: 'Thuốc tim mạch',
-                source: 'Sức khỏe & Đời sống',
-                region: 'Toàn quốc',
-                date: this.parseVietnameseDate(dateText) || new Date(),
-                category: 'Tin tức y tế',
-                conclusion: 'Tin tức y tế mới có thể ảnh hưởng đến xu hướng sử dụng thuốc của người dân.',
-                url: link ? (link.startsWith('http') ? link : `https://suckhoedoisong.vn${link}`) : 'https://suckhoedoisong.vn/tin-tuc',
-                image: image ? (image.startsWith('http') ? image : `https://suckhoedoisong.vn${image}`) : null,
-              });
+              if (title && description) {
+                news.push({
+                  type: 'health_media',
+                  title: title,
+                  description: description,
+                  affectedCategory: 'Thuốc tim mạch',
+                  source: 'Sức khỏe & Đời sống',
+                  region: 'Toàn quốc',
+                  date: this.parseVietnameseDate(dateText) || new Date(),
+                  category: 'Tin tức y tế',
+                  conclusion:
+                    'Tin tức y tế mới có thể ảnh hưởng đến xu hướng sử dụng thuốc của người dân.',
+                  url: link
+                    ? link.startsWith('http')
+                      ? link
+                      : `https://suckhoedoisong.vn${link}`
+                    : 'https://suckhoedoisong.vn/tin-tuc',
+                  image: image
+                    ? image.startsWith('http')
+                      ? image
+                      : `https://suckhoedoisong.vn${image}`
+                    : null,
+                });
+              }
             }
-          }
-        });
+          },
+        );
       } catch (error) {
         console.warn('News: Failed to fetch Sức khỏe & Đời sống news:', error.message);
       }
@@ -408,7 +467,7 @@ class NewsService {
         category: 'Cập nhật bệnh viện',
         conclusion:
           'Quy trình mới giúp tăng cường an toàn trong sử dụng thuốc, có thể ảnh hưởng đến nhu cầu một số loại thuốc. Dự kiến tăng 15% nhu cầu thuốc kháng sinh.',
-        url: 'https://bachmai.gov.vn/tin-tuc',
+        url: 'https://bachmai.gov.vn/',
         image: null,
       },
     ];
@@ -431,7 +490,7 @@ class NewsService {
         category: 'Quản lý dược phẩm',
         conclusion:
           'Cơ hội mở rộng danh mục thuốc kinh doanh, đặc biệt là các thuốc thiết yếu mới được bổ sung. Dự kiến tăng 8% doanh thu cho các nhà phân phối.',
-        url: 'https://dav.gov.vn/tin-tuc',
+        url: 'https://dav.gov.vn/tin-tuc-su-kien.html',
         image: null,
       },
       {
@@ -446,7 +505,7 @@ class NewsService {
         category: 'Quản lý dược phẩm',
         conclusion:
           'Quy trình đăng ký đơn giản hơn sẽ thúc đẩy việc nhập khẩu thuốc mới vào thị trường Việt Nam. Dự kiến tăng 25% số lượng thuốc nhập khẩu mới.',
-        url: 'https://dav.gov.vn/tin-tuc',
+        url: 'https://dav.gov.vn/tin-tuc-su-kien.html',
         image: null,
       },
     ];
@@ -491,7 +550,7 @@ class NewsService {
         category: 'Phát triển ngành dược',
         conclusion:
           'Thị trường dược phẩm Việt Nam đang phát triển tích cực, tạo cơ hội tốt cho các nhà phân phối mở rộng kinh doanh. Dự kiến tăng trưởng 18% trong năm tới.',
-        url: 'https://vnpca.org.vn/tin-tuc',
+        url: 'https://vnpca.org.vn/category/tin-tuc/',
         image: null,
       },
       {
@@ -505,7 +564,7 @@ class NewsService {
         category: 'Xuất khẩu',
         conclusion:
           'Cơ hội mở rộng thị trường xuất khẩu, cần chuẩn bị năng lực sản xuất và đáp ứng tiêu chuẩn quốc tế. Dự kiến tăng 30% kim ngạch xuất khẩu.',
-        url: 'https://vnpca.org.vn/tin-tuc',
+        url: 'https://vnpca.org.vn/category/tin-tuc/',
         image: null,
       },
     ];

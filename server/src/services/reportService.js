@@ -6,6 +6,7 @@ const Medicine = require('../models/Medicine');
 const User = require('../models/User');
 const Package = require('../models/Package');
 const mongoose = require('mongoose');
+const ExcelJS = require('exceljs');
 
 class ReportService {
   // Helper function to get medicine information by license code
@@ -1021,7 +1022,22 @@ class ReportService {
         ...supplierFilter,
       };
 
-      // Find all import orders with populated references (no pagination at order level)
+      // Validate pagination parameters
+      const validatedPage = Math.max(1, parseInt(page) || 1);
+      const validatedLimit = Math.min(100, Math.max(1, parseInt(limit) || 10));
+      const skip = (validatedPage - 1) * validatedLimit;
+
+      console.log('=== PAGINATION DEBUG ===');
+      console.log('Original page:', page, '-> Validated:', validatedPage);
+      console.log('Original limit:', limit, '-> Validated:', validatedLimit);
+      console.log('Calculated skip:', skip);
+      console.log('Applied filters:', combinedFilter);
+
+      // Get total count of import orders for pagination
+      const totalOrderCount = await ImportOrder.countDocuments(combinedFilter);
+      console.log('Total orders in database:', totalOrderCount);
+
+      // Apply pagination at database level for better performance
       const allImportOrders = await ImportOrder.find(combinedFilter)
         .populate({
           path: 'contract_id',
@@ -1048,18 +1064,15 @@ class ReportService {
           path: 'details.medicine_id',
           select: 'medicine_name license_code unit_of_measure category status',
         })
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(validatedLimit)
+        .lean();
 
-      // Get total count for pagination - Count total medicine items across all orders
-      const totalMedicineCount = await ImportOrder.aggregate([
-        { $match: combinedFilter },
-        { $unwind: '$details' },
-        { $count: 'total' },
-      ]);
+      console.log('Records returned from database:', allImportOrders.length);
+      console.log('Expected range:', skip + 1, 'to', skip + allImportOrders.length);
 
-      const totalCount = totalMedicineCount.length > 0 ? totalMedicineCount[0].total : 0;
-
-      // Process all import orders data first
+      // Process paginated import orders data
       const allProcessedOrders = await Promise.all(
         allImportOrders.map(async (order) => {
           const contractCode = order.contract_id?.contract_code || 'N/A';
@@ -1141,59 +1154,37 @@ class ReportService {
         }),
       );
 
-      // Apply pagination to medicine items across all orders
-      const allMedicineItems = [];
+      // Calculate pagination info
+      const totalPages = Math.ceil(totalOrderCount / validatedLimit);
+      const startIndex = skip + 1;
+      const endIndex = Math.min(skip + allProcessedOrders.length, totalOrderCount);
+      const hasNextPage = validatedPage < totalPages;
+      const hasPrevPage = validatedPage > 1;
 
-      // Flatten all medicine items from all orders
-      allProcessedOrders.forEach((order) => {
-        order.medicineDetails.forEach((medicine) => {
-          allMedicineItems.push({
-            ...medicine,
-            orderId: order.id,
-            orderCode: order.orderCode,
-            contractCode: order.contractCode,
-            supplierName: order.supplierName,
-            status: order.status,
-          });
-        });
-      });
-
-      // Apply pagination to medicine items
-      const skip = (page - 1) * limit;
-      const paginatedMedicineItems = allMedicineItems.slice(skip, skip + limit);
-
-      console.log(`📊 Pagination Debug: page=${page}, limit=${limit}, skip=${skip}`);
-      console.log(`📊 Total medicine items: ${allMedicineItems.length}`);
-      console.log(`📊 Paginated items: ${paginatedMedicineItems.length}`);
-      console.log(`📊 Items range: ${skip + 1} to ${skip + paginatedMedicineItems.length}`);
-
-      // Group paginated medicine items back to orders for display
-      const orderMap = new Map();
-      paginatedMedicineItems.forEach((medicine) => {
-        if (!orderMap.has(medicine.orderId)) {
-          orderMap.set(medicine.orderId, {
-            id: medicine.orderId,
-            orderCode: medicine.orderCode,
-            contractCode: medicine.contractCode,
-            supplierName: medicine.supplierName,
-            status: medicine.status,
-            medicineDetails: [],
-          });
-        }
-        orderMap.get(medicine.orderId).medicineDetails.push(medicine);
-      });
-
-      const processedOrders = Array.from(orderMap.values());
+      console.log('=== PAGINATION RESULT ===');
+      console.log('Total pages:', totalPages);
+      console.log('Current page:', validatedPage);
+      console.log('Start index:', startIndex);
+      console.log('End index:', endIndex);
+      console.log('Has next page:', hasNextPage);
+      console.log('Has prev page:', hasPrevPage);
+      console.log('Final processed orders:', allProcessedOrders.length);
 
       return {
         success: true,
         data: {
-          importOrders: processedOrders,
+          importOrders: allProcessedOrders,
           pagination: {
-            total: totalCount,
-            page,
-            limit,
-            totalPages: Math.ceil(totalCount / limit),
+            total: totalOrderCount,
+            page: validatedPage,
+            limit: validatedLimit,
+            totalPages,
+            hasNextPage,
+            hasPrevPage,
+            startIndex,
+            endIndex,
+            currentPageSize: allProcessedOrders.length,
+            itemsPerPage: validatedLimit,
           },
         },
       };
@@ -1206,190 +1197,170 @@ class ReportService {
     }
   }
 
-  // Export import orders report to Excel
   static async exportImportOrdersReport(filters = {}) {
     try {
       const { startDate, endDate, period = 'monthly', status, supplierId } = filters;
 
       const dateFilter = {};
       if (startDate && endDate) {
-        dateFilter.createdAt = {
-          $gte: new Date(startDate),
-          $lte: new Date(endDate),
-        };
+        dateFilter.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
       }
-
       const statusFilter = status && status !== 'all' ? { status } : {};
       const supplierFilter =
         supplierId && supplierId !== 'All Supplier' ? { 'contract_id.partner_id': supplierId } : {};
+      const combinedFilter = { ...dateFilter, ...statusFilter, ...supplierFilter };
 
-      const combinedFilter = {
-        ...dateFilter,
-        ...statusFilter,
-        ...supplierFilter,
-      };
-
-      // Find all import orders for export (no pagination)
       const importOrders = await ImportOrder.find(combinedFilter)
         .populate({
           path: 'contract_id',
           select: 'contract_code partner_id partner_type status',
-          populate: {
-            path: 'partner_id',
-            select: 'name',
-            refPath: 'partner_type',
-          },
+          populate: { path: 'partner_id', select: 'name', refPath: 'partner_type' },
         })
-        .populate({
-          path: 'warehouse_manager_id',
-          select: 'full_name',
-        })
-        .populate({
-          path: 'created_by',
-          select: 'full_name',
-        })
-        .populate({
-          path: 'approval_by',
-          select: 'full_name',
-        })
+        .populate({ path: 'warehouse_manager_id', select: 'full_name' })
+        .populate({ path: 'created_by', select: 'full_name' })
+        .populate({ path: 'approval_by', select: 'full_name' })
         .populate({
           path: 'details.medicine_id',
           select: 'medicine_name license_code unit_of_measure category status',
         })
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
 
-      // Process export data - Format BÁO CÁO NHẬP KHO - PDWA
-      const exportData = [];
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('NHẬP');
 
-      // Thêm tiêu đề chính với styling
-      exportData.push(['BÁO CÁO NHẬP KHO - PDWA']);
-      exportData.push([]); // Dòng trống
-      exportData.push(['TỔNG HỢP NHẬP XUẤT TỒN']);
-      exportData.push(['KHO: TẤT CẢ CÁC KHO']);
-      exportData.push([`TỪ NGÀY: ${startDate} ĐẾN NGÀY: ${endDate}`]);
-      exportData.push([]); // Dòng trống
+      // Header - tên công ty (A1:F1)
+      ws.mergeCells('A1:F1');
+      const companyName = ws.getCell('A1');
+      companyName.value = 'CÔNG TY CỔ PHẦN';
+      companyName.font = { size: 14, bold: true };
+      companyName.alignment = { vertical: 'middle', horizontal: 'left' };
 
-      // Thêm header bảng với styling
-      exportData.push([
-        'STT',
-        'MÃ VẬT TƯ',
-        'TÊN VẬT TƯ',
-        'ĐVT',
-        'SỐ LƯỢNG',
-        'SẴN CÓ',
-        'NHẬP',
-        'SỐ LÔ',
-        'MÃ ĐƠN HÀNG',
-        'MÃ HĐ',
-        'NHÀ CUNG CẤP',
-        'TRẠNG THÁI',
-      ]);
+      // Mẫu số, căn phải (G1:L1)
+      ws.mergeCells('G1:L1');
+      const sampleCell = ws.getCell('G1');
+      sampleCell.value =
+        'Mẫu số: 01 - VT\n(Ban hành theo Thông tư số 133/2016/TT-BTC\nNgày 26/08/2016 của Bộ Tài chính)';
+      sampleCell.font = { size: 10, italic: true };
+      sampleCell.alignment = { vertical: 'middle', horizontal: 'right' };
 
-      // Xử lý dữ liệu từng thuốc
+      // Tiêu đề phiếu (A2:L2)
+      ws.mergeCells('A2:G2');
+      const title = ws.getCell('A2');
+      title.value = 'BÁO CÁO NHẬP KHO';
+      title.font = { size: 18, bold: true };
+      title.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // Ngày lập phiếu (A3:L3)
+      ws.mergeCells('A3:G3');
+      const dateCell = ws.getCell('A3');
+      const d = new Date();
+      dateCell.value = `Ngày ${d.getDate()} tháng ${d.getMonth() + 1} năm ${d.getFullYear()}`;
+      dateCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      ws.addRow([]);
+      ws.columns = [
+        { header: 'STT', key: 'stt', width: 6 },
+        { header: 'Tên, nhãn hiệu, quy cách, phẩm chất', key: 'medicineName', width: 40 },
+        { header: 'Mã số', key: 'medicineCode', width: 15 },
+        { header: 'Đơn vị tính', key: 'unitOfMeasure', width: 15 },
+        { header: 'Số lượng', key: 'importQuantity', width: 15 },
+        { header: 'Đơn giá', key: 'unitPrice', width: 15 },
+        { header: 'Thành tiền', key: 'totalPrice', width: 18 },
+      ];
+
+      // Style header
+      const headerRow = ws.addRow(ws.columns.map((c) => c.header));
+      headerRow.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1976D2' } };
+        cell.font = { color: { argb: 'FFFFFF' }, bold: true, size: 12 };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' },
+        };
+      });
+
+      // Chuẩn bị dữ liệu chi tiết giả định (phải lấy thực tế từ importOrders)
       let stt = 1;
-      const medicineMap = new Map(); // Để gom nhóm thuốc
-
       for (const order of importOrders) {
-        // Query packages cho order này để lấy batchCode và availableQuantity
-        const packages = await Package.find({ import_order_id: order._id }).populate({
-          path: 'batch_id',
-          select: 'batch_code medicine_id',
-        });
-
         for (const detail of order.details) {
-          const medicineKey = detail.medicine_id._id.toString();
-
-          if (!medicineMap.has(medicineKey)) {
-            // Tìm package tương ứng để lấy batchCode và availableQuantity
-            const relatedPackage = packages.find(
-              (pkg) => pkg.batch_id?.medicine_id?.toString() === medicineKey,
-            );
-
-            // Lấy tên nhà cung cấp từ contract
-            let supplierName = 'Chưa có thông tin';
-            if (order.contract_id?.partner_id?.name) {
-              supplierName = order.contract_id.partner_id.name;
-            } else if (
-              order.contract_id?.partner_type === 'Supplier' &&
-              order.contract_id?.partner_id
-            ) {
-              // Nếu là supplier contract, lấy tên từ partner_id
-              supplierName = order.contract_id.partner_id.name || 'Chưa có thông tin';
-            }
-
-            medicineMap.set(medicineKey, {
-              medicineCode: detail.medicine_id.license_code || 'N/A',
-              medicineName: detail.medicine_id.medicine_name || 'Unknown Medicine',
-              unitOfMeasure: detail.medicine_id.unit_of_measure || 'N/A',
-              importQuantity: 0,
-              availableQuantity: relatedPackage ? relatedPackage.quantity : 0,
-              batchCode: relatedPackage?.batch_id?.batch_code || 'N/A',
-              orderCode: order.orderCode || `IMP_${order._id.toString().slice(-8)}`,
-              contractCode: order.contract_id?.contract_code || 'N/A',
-              supplierName: supplierName,
-              status: order.status,
-            });
-          }
-
-          const medicine = medicineMap.get(medicineKey);
-          medicine.importQuantity += detail.quantity;
+          const unitPrice = detail.unit_price || 0; // giả định có trường này
+          const totalPrice = unitPrice * detail.quantity;
+          ws.addRow({
+            stt: stt++,
+            medicineName: detail.medicine_id?.medicine_name || '',
+            medicineCode: detail.medicine_id?.license_code || '',
+            unitOfMeasure: detail.medicine_id?.unit_of_measure || '',
+            importQuantity: detail.quantity,
+            unitPrice,
+            totalPrice,
+            expectedQuantity: detail.expected_quantity || 0,
+            actualQuantity: detail.actual_quantity || 0,
+          });
         }
       }
 
-      // Thêm dữ liệu từng thuốc
-      for (const [medicineId, medicine] of medicineMap) {
-        // Tính tồn cuối kỳ
-        medicine.closingStock =
-          medicine.openingStock + medicine.importQuantity - medicine.exportQuantity;
-
-        exportData.push([
-          stt++,
-          medicine.medicineCode,
-          medicine.medicineName,
-          medicine.unitOfMeasure,
-          medicine.importQuantity,
-          medicine.availableQuantity,
-          medicine.importQuantity,
-          medicine.batchCode,
-          medicine.orderCode,
-          medicine.contractCode,
-          medicine.supplierName,
-          medicine.status,
-        ]);
-      }
-
-      // Thêm dòng tổng cộng - Chỉ các trường cần thiết
-      const totalImportQuantity = Array.from(medicineMap.values()).reduce(
-        (sum, m) => sum + m.importQuantity,
-        0,
-      );
-
-      exportData.push([]); // Dòng trống
-      exportData.push([
-        'TỔNG CỘNG:',
+      // Dòng tổng cộng
+      const totalRow = ws.addRow([
+        'Cộng',
         '',
         '',
         '',
-        totalImportQuantity,
+        { formula: `SUM(E${headerRow.number + 1}:E${ws.lastRow.number})` },
         '',
-        totalImportQuantity,
-        '',
-        '',
-        '',
-        '',
-        '',
+        { formula: `SUM(G${headerRow.number + 1}:G${ws.lastRow.number})` },
+        { formula: `SUM(H${headerRow.number + 1}:H${ws.lastRow.number})` },
+        { formula: `SUM(I${headerRow.number + 1}:I${ws.lastRow.number})` },
       ]);
+      totalRow.font = { bold: true };
+      totalRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9EAD3' } };
+
+      // Các dòng ký tên ở footer
+      ws.addRow([]);
+      const signRow1 = ws.addRow([
+        'Người lập biểu',
+        '',
+        'Người giao hàng',
+        '',
+        'Thủ kho',
+        '',
+        'Kế toán trưởng',
+      ]);
+      signRow1.eachCell((cell, colNumber) => {
+        if ([1, 3, 5, 7].includes(colNumber)) {
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.font = { bold: true };
+        }
+      });
+      const signRow2 = ws.addRow([
+        '(Ký, họ tên)',
+        '',
+        '(Ký, họ tên)',
+        '',
+        '(Ký, họ tên)',
+        '',
+        '(Ký, họ tên)',
+      ]);
+      signRow2.eachCell((cell, colNumber) => {
+        if ([1, 3, 5, 7].includes(colNumber)) {
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          cell.font = { italic: true };
+        }
+      });
+
+      const buffer = await wb.xlsx.writeBuffer();
 
       return {
         success: true,
-        data: exportData,
+        data: buffer,
+        filename: `phieu_nhap_kho_${new Date().toISOString().slice(0, 10)}.xlsx`,
       };
     } catch (error) {
-      console.error('Error exporting import orders report:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
+      console.error('Error creating phiếu nhập kho:', error);
+      return { success: false, error: error.message };
     }
   }
 
