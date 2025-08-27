@@ -800,7 +800,7 @@ async function createTranscriptionDocBuffer(exportOrderId) {
   const sigTable = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     borders: { top: { style: BorderStyle.NONE, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, color: "FFFFFF" }, left: { style: BorderStyle.NONE, color: "FFFFFF" }, right: { style: BorderStyle.NONE, color: "FFFFFF" }, insideH: { style: BorderStyle.NONE, color: "FFFFFF" }, insideV: { style: BorderStyle.NONE, color: "FFFFFF" } },
-    rows: [new TableRow({ children: [sigCell("Người lập phiếu"), sigCell("Thủ kho"), sigCell("Người nhận hàng"), sigCell("Thủ trưởng") ] })],
+    rows: [new TableRow({ children: [sigCell("Người lập phiếu"), sigCell("Thủ kho"), sigCell("Bộ phận có nhu cầu nhập"), sigCell("Phó giám đốc") ] })],
   });
 
   // metadata
