@@ -302,8 +302,8 @@ async function handleMultiBillPayment(billIds, totalAmountPaid) {
         continue;
       }
 
-      // FIX: Validate amount trước khi apply
-      const validatedAmount = await validatePaymentAmount(billId, amountToApply, amountToApply);
+      // FIX: Sử dụng amountToApply trực tiếp thay vì gọi function không tồn tại
+      const validatedAmount = amountToApply;
       const newAmountPaid = currentAmountPaid + validatedAmount;
       const newStatus =
         newAmountPaid >= totalAmount ? BILL_STATUSES.COMPLETED : BILL_STATUSES.PARTIAL;

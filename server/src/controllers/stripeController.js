@@ -69,10 +69,11 @@ const createPaymentIntentController = async (req, res) => {
 
 const createMultiPayment = async (req, res) => {
   try {
-    const { billIds, successUrl, cancelUrl, paymentType } = req.body;
+    const { billIds, amount, successUrl, cancelUrl, paymentType } = req.body;
 
     console.log('createMultiPayment request:', {
       billIds,
+      amount,
       successUrl,
       cancelUrl,
       paymentType,
@@ -84,12 +85,19 @@ const createMultiPayment = async (req, res) => {
       return res.status(400).json({ error: 'Missing or invalid billIds' });
     }
 
+    if (!amount || amount <= 0) {
+      console.error('Invalid amount:', amount);
+      return res.status(400).json({ error: 'Amount must be greater than zero' });
+    }
+
     if (!paymentType || (paymentType !== 'import' && paymentType !== 'export')) {
       console.error('Invalid paymentType:', paymentType);
       return res.status(400).json({ error: 'Invalid paymentType' });
     }
 
-    console.log(`Creating multi-payment for ${billIds.length} bills, type: ${paymentType}`);
+    console.log(
+      `Creating multi-payment for ${billIds.length} bills, amount: ${amount}, type: ${paymentType}`,
+    );
 
     const bills = await Bill.find({
       _id: { $in: billIds },
@@ -114,13 +122,8 @@ const createMultiPayment = async (req, res) => {
       });
     }
 
-    const amount = await getBillsTotalAmount(billIds);
-    console.log(`Total amount for multi-payment: ${amount}`);
-
-    if (amount <= 0) {
-      console.error('Total amount is zero or negative:', amount);
-      return res.status(400).json({ error: 'Total amount must be greater than zero' });
-    }
+    // FIX: Sử dụng amount từ request body thay vì tự động tính tổng tiền
+    console.log(`Using amount from request: ${amount} VND`);
 
     let url;
     if (paymentType === 'import') {
