@@ -900,9 +900,6 @@ function Trends() {
         <TabPanel value={tabValue} index={1}>
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h5" fontWeight="bold" color="primary.main">
-                Market Intelligence & AI Analysis
-              </Typography>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <Chip
                   label={openaiStatus?.available ? 'AI Available' : 'AI Not Available'}
