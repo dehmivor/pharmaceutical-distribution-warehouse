@@ -155,14 +155,12 @@ export default function ImportReport() {
 
       if (response.data.success) {
         setReportData(response.data.data);
-        // Tính tổng số rows (mỗi order có thể có nhiều medicine)
-        const totalRows = response.data.data.importOrders?.reduce((sum, order) => sum + (order.medicineDetails?.length || 0), 0) || 0;
+        // Lấy tổng số dòng từ pagination total nếu có, fallback tính sub-items
+        const totalRows =
+          response.data.data.pagination?.total ||
+          response.data.data.importOrders?.reduce((sum, order) => sum + (order.medicineDetails?.length || 0), 0) ||
+          0;
         setTotalCount(totalRows);
-        console.log('Import report data set:', response.data.data);
-        console.log('Import orders count:', response.data.data.importOrders?.length || 0);
-        console.log('Pagination info:', response.data.data.pagination);
-      } else {
-        setError(trans.reports.failedToLoad);
       }
     } catch (error) {
       console.error('Error fetching import report data:', error);
