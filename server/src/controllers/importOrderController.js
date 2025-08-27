@@ -7,6 +7,7 @@ const { io } = require('../server');
 const createImportOrder = async (req, res) => {
   try {
     const { orderData, orderDetails } = req.body;
+    const io = req.app.locals.io;
 
     // Add created_by from authenticated user if available
     if (req.user && req.user.userId) {
@@ -25,6 +26,30 @@ const createImportOrder = async (req, res) => {
       orderDetails,
       userContext,
     );
+
+    const newNotification = await notificationService.createNotificationForAllRepresentativeManager(
+      {
+        title: 'Đơn nhập mới đang chờ bạn duyệt',
+        message: `Đơn nhập #${newOrder._id} vừa được tạo và đang chờ duyệt.`,
+        type: 'import',
+        priority: 'high',
+        action_url: '/rm-import-orders-approval',
+        metadata: {
+          order_id: newOrder._id,
+          order_status: newOrder.status,
+          order_type: 'import',
+        },
+        sender_id: userContext?.id,
+      },
+      io,
+    );
+
+    if (newNotification && io) {
+      console.log('Emitting newNotification to system room');
+      io.to('system').emit('newNotification', newNotification);
+    } else {
+      console.log('Cannot emit: io =', io);
+    }
 
     res.status(201).json({
       success: true,

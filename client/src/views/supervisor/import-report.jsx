@@ -109,7 +109,7 @@ export default function ImportReport() {
 
   // Pagination state
   const [page, setPage] = useState(0); // 0-based for TablePagination
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(7);
   const [totalCount, setTotalCount] = useState(0);
 
   const [filters, setFilters] = useState({
@@ -155,7 +155,9 @@ export default function ImportReport() {
 
       if (response.data.success) {
         setReportData(response.data.data);
-        setTotalCount(response.data.data.pagination?.total || response.data.data.importOrders?.length || 0);
+        // Tính tổng số rows (mỗi order có thể có nhiều medicine)
+        const totalRows = response.data.data.importOrders?.reduce((sum, order) => sum + (order.medicineDetails?.length || 0), 0) || 0;
+        setTotalCount(totalRows);
         console.log('Import report data set:', response.data.data);
         console.log('Import orders count:', response.data.data.importOrders?.length || 0);
         console.log('Pagination info:', response.data.data.pagination);
@@ -323,7 +325,7 @@ export default function ImportReport() {
 
   // Pagination changes
   useEffect(() => {
-    if (page > 0 || rowsPerPage !== 5) {
+    if (page > 0 || rowsPerPage !== 7) {
       // Avoid duplicate initial load
       fetchReportData();
     }
@@ -557,41 +559,39 @@ export default function ImportReport() {
                 <Table stickyHeader>
                   <TableHead sx={{ bgcolor: 'grey.50' }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderCode || 'Order Code'}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.contractCode || 'Contract Code'}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.supplierName || 'Supplier Name'}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.warehouseManager || 'Warehouse Manager'}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.status || 'Status'}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderType || 'Order Type'}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                        {trans.reports.totalValue || 'Total Value'}
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.createdBy || 'Created By'}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.approvedBy || 'Approved By'}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.createdAt || 'Created At'}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.updatedAt || 'Updated At'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.medicineCode || 'Mã thuốc'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.medicineName || 'Tên thuốc'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.unitOfMeasure || 'Đơn vị'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.quantity || 'Số lượng'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.availableQuantity || 'Sẵn có'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.importQuantity || 'Nhập'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.batchCode || 'Số lô'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderCode || 'Mã đơn hàng'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.contractCode || 'Mã HĐ'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.supplierName || 'Nhà cung cấp'}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.status || 'Trạng thái'}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {reportData.importOrders?.map((order) => (
-                      <TableRow key={order.id} hover>
-                        <TableCell>{order.orderCode}</TableCell>
-                        <TableCell>{order.contractCode}</TableCell>
-                        <TableCell>{order.supplierName}</TableCell>
-                        <TableCell>{order.warehouseManager}</TableCell>
-                        <TableCell>
-                          <Chip label={order.status} size="small" color={getStatusColor(order.status)} />
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={order.orderType} size="small" color={getTypeColor(order.orderType)} />
-                        </TableCell>
-                        <TableCell align="right">{formatCurrency(order.totalValue)}</TableCell>
-                        <TableCell>{order.createdBy}</TableCell>
-                        <TableCell>{order.approvedBy || 'N/A'}</TableCell>
-                        <TableCell>{formatDate(order.createdAt)}</TableCell>
-                        <TableCell>{formatDate(order.updatedAt)}</TableCell>
-                      </TableRow>
-                    ))}
+                    {reportData.importOrders?.map((order) =>
+                      order.medicineDetails?.map((medicine, index) => (
+                        <TableRow key={`${order.id}-${index}`} hover>
+                          <TableCell>{medicine.medicineCode}</TableCell>
+                          <TableCell>{medicine.medicineName}</TableCell>
+                          <TableCell>{medicine.unitOfMeasure}</TableCell>
+                          <TableCell>{medicine.quantity}</TableCell>
+                          <TableCell>{medicine.availableQuantity || 0}</TableCell>
+                          <TableCell>{medicine.quantity}</TableCell>
+                          <TableCell>{medicine.batchCode}</TableCell>
+                          <TableCell>{order.orderCode}</TableCell>
+                          <TableCell>{order.contractCode}</TableCell>
+                          <TableCell>{order.supplierName}</TableCell>
+                          <TableCell>
+                            <Chip label={order.status} size="small" color={getStatusColor(order.status)} />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </TableContainer>

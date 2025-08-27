@@ -337,10 +337,35 @@ const getExportOrderDetail = async (req, res) => {
 const createExportOrder = async (req, res) => {
   try {
     const userId = req.user && req.user.userId;
+    const io = req.app.locals.io;
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
     const newOrder = await exportOrderService.createExportOrder(req.body, userId);
+
+    const newNotification = await notificationService.createNotificationForAllRepresentativeManager(
+      {
+        title: 'Đơn nhập mới đang chờ bạn duyệt',
+        message: `Đơn nhập #${newOrder._id} vừa được tạo và đang chờ duyệt.`,
+        type: 'export',
+        priority: 'high',
+        action_url: '/rm-export-orders-approval',
+        metadata: {
+          order_id: newOrder._id,
+          order_status: newOrder.status,
+          order_type: 'import',
+        },
+        sender_id: userContext?.id,
+      },
+      io,
+    );
+
+    if (newNotification && io) {
+      console.log('Emitting newNotification to system room');
+      io.to('system').emit('newNotification', newNotification);
+    } else {
+      console.log('Cannot emit: io =', io);
+    }
     res.status(201).json({ success: true, data: newOrder });
   } catch (error) {
     res.status(400).json({
