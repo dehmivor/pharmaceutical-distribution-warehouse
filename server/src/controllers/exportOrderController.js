@@ -334,6 +334,7 @@ const getExportOrderDetail = async (req, res) => {
 const createExportOrder = async (req, res) => {
   try {
     const userId = req.user && req.user.userId;
+    const io = req.app.locals.io;
     if (!userId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }

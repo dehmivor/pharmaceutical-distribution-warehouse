@@ -726,7 +726,119 @@ const exportImportOrdersReport = async (req, res) => {
 
     // Create Excel workbook using xlsx package
     const workbook = xlsx.utils.book_new();
-    const worksheet = xlsx.utils.json_to_sheet(result.data);
+
+    // Convert array of arrays to worksheet
+    const worksheet = xlsx.utils.aoa_to_sheet(result.data);
+
+    // Define column widths for better formatting
+    const columnWidths = {
+      A: 8, // STT
+      B: 15, // MÃ VẬT TƯ
+      C: 30, // TÊN VẬT TƯ
+      D: 10, // ĐVT
+      E: 12, // SỐ LƯỢNG
+      F: 12, // SẴN CÓ
+      G: 12, // NHẬP
+      H: 15, // SỐ LÔ
+      I: 20, // MÃ ĐƠN HÀNG
+      J: 15, // MÃ HĐ
+      K: 25, // NHÀ CUNG CẤP
+      L: 15, // TRẠNG THÁI
+    };
+
+    // Apply column widths
+    worksheet['!cols'] = Object.keys(columnWidths).map((key) => ({
+      wch: columnWidths[key],
+    }));
+
+    // Apply styling to specific cells
+    // Main title styling
+    if (worksheet['A1']) {
+      worksheet['A1'].s = {
+        font: { bold: true, size: 16, color: { rgb: '1F4E79' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { fgColor: { rgb: 'E3F2FD' } },
+      };
+    }
+
+    // Subtitle styling
+    if (worksheet['A3']) {
+      worksheet['A3'].s = {
+        font: { bold: true, size: 14, color: { rgb: '2E7D32' } },
+        alignment: { horizontal: 'center', vertical: 'center' },
+        fill: { fgColor: { rgb: 'E8F5E8' } },
+      };
+    }
+
+    // Header row styling
+    const headerRow = 7; // Row index for headers
+    for (let col = 0; col < 12; col++) {
+      const cellRef = xlsx.utils.encode_cell({ r: headerRow, c: col });
+      if (worksheet[cellRef]) {
+        worksheet[cellRef].s = {
+          font: { bold: true, size: 12, color: { rgb: 'FFFFFF' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          fill: { fgColor: { rgb: '1976D2' } },
+          border: {
+            top: { style: 'thin', color: { rgb: 'FFFFFF' } },
+            bottom: { style: 'thin', color: { rgb: 'FFFFFF' } },
+            left: { style: 'thin', color: { rgb: 'FFFFFF' } },
+            right: { style: 'thin', color: { rgb: 'FFFFFF' } },
+          },
+        };
+      }
+    }
+
+    // Data rows styling (alternating colors)
+    const dataStartRow = 8;
+    const dataEndRow = result.data.length - 2; // Exclude total row
+
+    for (let row = dataStartRow; row <= dataEndRow; row++) {
+      const bgColor = row % 2 === 0 ? 'F8F9FA' : 'FFFFFF';
+      for (let col = 0; col < 12; col++) {
+        const cellRef = xlsx.utils.encode_cell({ r: row, c: col });
+        if (worksheet[cellRef]) {
+          worksheet[cellRef].s = {
+            font: { size: 11 },
+            alignment: { horizontal: 'center', vertical: 'center' },
+            fill: { fgColor: { rgb: bgColor } },
+            border: {
+              top: { style: 'thin', color: { rgb: 'E0E0E0' } },
+              bottom: { style: 'thin', color: { rgb: 'E0E0E0' } },
+              left: { style: 'thin', color: { rgb: 'E0E0E0' } },
+              right: { style: 'thin', color: { rgb: 'E0E0E0' } },
+            },
+          };
+        }
+      }
+    }
+
+    // Total row styling
+    const totalRow = result.data.length - 1;
+    for (let col = 0; col < 12; col++) {
+      const cellRef = xlsx.utils.encode_cell({ r: totalRow, c: col });
+      if (worksheet[cellRef]) {
+        worksheet[cellRef].s = {
+          font: { bold: true, size: 12, color: { rgb: 'FFFFFF' } },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          fill: { fgColor: { rgb: '388E3C' } },
+          border: {
+            top: { style: 'thin', color: { rgb: 'FFFFFF' } },
+            bottom: { style: 'thin', color: { rgb: 'FFFFFF' } },
+            left: { style: 'thin', color: { rgb: 'FFFFFF' } },
+            right: { style: 'thin', color: { rgb: 'FFFFFF' } },
+          },
+        };
+      }
+    }
+
+    // Merge cells for main title
+    worksheet['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } }, // Main title
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 11 } }, // Subtitle
+      { s: { r: 3, c: 0 }, e: { r: 3, c: 11 } }, // Warehouse info
+      { s: { r: 4, c: 0 }, e: { r: 4, c: 11 } }, // Date range
+    ];
 
     // Add worksheet to workbook
     xlsx.utils.book_append_sheet(workbook, worksheet, 'Import Orders Report');

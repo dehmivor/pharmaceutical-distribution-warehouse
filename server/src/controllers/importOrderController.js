@@ -7,6 +7,7 @@ const { io } = require('../server');
 const createImportOrder = async (req, res) => {
   try {
     const { orderData, orderDetails } = req.body;
+    const io = req.app.locals.io;
 
     // Add created_by from authenticated user if available
     if (req.user && req.user.userId) {
