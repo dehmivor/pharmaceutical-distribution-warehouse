@@ -627,11 +627,6 @@ function EnhancedReceiptForm({ checkedItems, onReceiptCreate }) {
         </CardContent>
       </Card>
 
-      {/* Thống kê */}
-      {!loadingInspections && (
-        <ReceiptStatistics statistics={statistics} items={receiptItems} inspections={inspections} setInspections={setInspections} />
-      )}
-
       {loadingInspections && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
           <CircularProgress size={24} />
