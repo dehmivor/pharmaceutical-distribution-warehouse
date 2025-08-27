@@ -279,15 +279,16 @@ function ManageBills() {
       return { isValid: false, error: 'Số tiền thanh toán phải lớn hơn 0' };
     }
 
-    const remainingAmount = calcRemainingAmount(bill);
-    if (amount > remainingAmount) {
-      return {
-        isValid: false,
-        error: `Số tiền thanh toán (${amount.toLocaleString()} VNĐ) không được vượt quá số tiền còn lại cần trả (${remainingAmount.toLocaleString()} VNĐ)`
-      };
+    if (amount < 12500) {
+      return { isValid: false, error: 'Stripe yêu cầu số tiền thanh toán tối thiểu là 12,500VND' };
     }
 
-    return { isValid: true, error: null };
+    const remainingAmount = calcRemainingAmount(bill);
+    if (amount > remainingAmount) {
+      return { isValid: false, error: `Số tiền thanh toán không được vượt quá số tiền còn lại: ${remainingAmount.toLocaleString()} VND` };
+    }
+
+    return { isValid: true };
   };
 
   const formatDate = (dateString) => {
@@ -323,7 +324,7 @@ function ManageBills() {
   const handleOpenDetail = (data) => {
     setDetailData(data);
     const totalAmount = calcAmount(data.details);
-    setPartialAmount(totalAmount); // Set số thực, không phải chuỗi
+    setPartialAmount(calcRemainingAmount(data));
     setOpenDetail(true);
   };
 
@@ -345,6 +346,10 @@ function ManageBills() {
 
     // FIX: Sử dụng validation function mới
     const validation = validatePaymentAmount(amount, bill);
+    if (amount < 12500) {
+      enqueueSnackbar('Stripe yêu cầu số tiền thanh toán tối thiểu là 12,500VND', { variant: 'warning' });
+      return;
+    }
     if (!validation.isValid) {
       enqueueSnackbar(validation.error, { variant: 'error' });
       return;
@@ -426,6 +431,11 @@ function ManageBills() {
     if (bill.status === 'cancelled') {
       enqueueSnackbar('Hóa đơn này đã bị hủy, không thể thanh toán.', { variant: 'error' });
       return;
+    }
+    const amount = Math.round(calcAmount(bill.details));
+    if (amount < 12500) {
+      enqueueSnackbar('Stripe yêu cầu số tiền thanh toán tối thiểu là 12,500VND', { variant: 'warning' });
+      return; // Dừng ngay, không gọi API
     }
 
     setLoadingPaymentId(bill._id);
@@ -881,7 +891,15 @@ function ManageBills() {
                   <TableCell>
                     <Chip
                       label={
-                        bill.status === 'cancelled' ? 'Thanh toán thất bại' : bill.status === 'completed' ? 'Đã thanh toán' : bill.status
+                        bill.status === 'cancelled'
+                          ? 'Thanh toán thất bại'
+                          : bill.status === 'completed'
+                            ? 'Đã thanh toán'
+                            : bill.status === 'pending'
+                              ? 'Đang chờ'
+                              : bill.status === 'partial'
+                                ? 'Thanh toán một phần'
+                                : bill.status
                       }
                       color={getStatusColor(bill.status)}
                       title={
@@ -889,7 +907,11 @@ function ManageBills() {
                           ? 'Hóa đơn này đã bị hủy do thanh toán thất bại'
                           : bill.status === 'completed'
                             ? 'Hóa đơn này đã được thanh toán hoàn tất'
-                            : ''
+                            : bill.status === 'pending'
+                              ? 'Hóa đơn này đang chờ thanh toán'
+                              : bill.status === 'partial'
+                                ? 'Hóa đơn này đã được thanh toán một phần'
+                                : ''
                       }
                     />
                   </TableCell>
