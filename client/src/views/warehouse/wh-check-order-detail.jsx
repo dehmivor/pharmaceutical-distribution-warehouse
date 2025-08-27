@@ -71,6 +71,8 @@ export default function CheckOrderDetail() {
   const [unexpected, setUnexpected] = useState([]);
   const [scannedIds, setScannedIds] = useState([]);
 
+  const [checkItemsLoading, setCheckItemsLoading] = useState(false);
+
   const fetchOrder = async () => {
     setLoadingOrder(true);
     setError(null);
@@ -148,14 +150,14 @@ export default function CheckOrderDetail() {
   const changelocationStatus = async (locationStatus) => {
     await axios
       .patch(`/api/inventory-check-inspections/${selectedInspection._id}/status`, { status: locationStatus }, { headers: getAuthHeaders() })
-      .then(() => {})
+      .then(() => { })
       .catch(() => setSnackbar({ open: true, message: trans.failedToUpdateStatus, severity: 'error' }));
   };
 
   const addSelfToChangeBy = async (val) => {
     await axios
       .patch(`/api/inventory-check-inspections/${val}/checker`, { checkBy: userId }, { headers: getAuthHeaders() })
-      .then(() => {})
+      .then(() => { })
       .catch(() => setSnackbar({ open: true, message: trans.failedToAssignSelf, severity: 'error' }));
   };
 
@@ -182,6 +184,7 @@ export default function CheckOrderDetail() {
   // Fetch the inspection's own check_list items
   const fetchCheckItems = async (inspectionId) => {
     try {
+      setCheckItemsLoading(true)
       const { data } = await axios.get(`/api/inventory-check-inspections/${inspectionId}/check-items`, { headers: getAuthHeaders() });
       if (!data.success) throw new Error(data.error || trans.failedToLoadCheckItems);
 
@@ -193,6 +196,7 @@ export default function CheckOrderDetail() {
         init[item.package_id._id] = item.expected_quantity;
       });
       setQuantities(init);
+      setCheckItemsLoading(false)
     } catch (err) {
       setSnackbar({ open: true, message: err.message, severity: 'error' });
     }
@@ -291,16 +295,26 @@ export default function CheckOrderDetail() {
   };
 
   const handleMissing = (item) => {
+    const pkgId = item.package_id._id;
+
+    // determine whether we're switching *to* under_expected (true) or back to valid (false)
+    const currently = packages.find((p) => p.package_id._id === pkgId);
+    const willUnder = currently?.type !== 'under_expected';
+
+    // update packages' type
     setPackages((pkgs) =>
-      pkgs.map((p) => {
-        if (p.package_id._id === item.package_id._id) {
-          // toggle between under_expected and valid
-          const newType = p.type === 'under_expected' ? 'valid' : 'under_expected';
-          return { ...p, type: newType };
-        }
-        return p;
-      })
+      pkgs.map((p) =>
+        p.package_id._id === pkgId ? { ...p, type: willUnder ? 'under_expected' : 'valid' } : p
+      )
     );
+
+    // update the actual quantity shown in the input field:
+    // - set to 0 when marking missing (under_expected)
+    // - restore to expected_quantity when toggling back to valid
+    setQuantities((q) => ({
+      ...q,
+      [pkgId]: willUnder ? 0 : item.package_id?.expected_quantity ?? item.expected_quantity ?? 0
+    }));
   };
 
   return (
@@ -433,7 +447,7 @@ export default function CheckOrderDetail() {
       </Container>
 
       {/* Proceed Dialog */}
-      <Dialog open={dialogOpen} onClose={() => {}} disableEscapeKeyDown>
+      <Dialog open={dialogOpen} onClose={() => { }} disableEscapeKeyDown>
         <DialogTitle>
           {trans.inspection} {step === 'verify' ? trans.locationVerification : trans.packages}
         </DialogTitle>
@@ -471,63 +485,68 @@ export default function CheckOrderDetail() {
               <Typography variant="subtitle2" gutterBottom>
                 {trans.expectedPackages}
               </Typography>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>{trans.id}</TableCell>
-                    <TableCell>{trans.medicine}</TableCell>
-                    <TableCell>{trans.batch}</TableCell>
-                    <TableCell>{trans.expected}</TableCell>
-                    <TableCell>{trans.actual}</TableCell>
-                    <TableCell>{trans.action}</TableCell>
-                    <TableCell>{trans.status}</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {packages.map((item) => {
-                    const pkgId = item.package_id._id;
-                    const isScanned = scannedIds.includes(pkgId);
-                    let chip;
-                    if (!isScanned) {
-                      chip = <Chip label={trans.unscanned} size="small" color="warning" />;
-                    } else if (quantities[pkgId] === item.expected_quantity) {
-                      chip = <Chip label={trans.normal} size="small" color="success" />;
-                    } else {
-                      chip = <Chip label={trans.abnormal} size="small" color="error" />;
-                    }
-                    return (
-                      <TableRow key={pkgId} sx={isScanned ? { bgcolor: 'action.selected' } : {}}>
-                        <TableCell>{pkgId?.slice(-4)}</TableCell>
-                        <TableCell>
-                          {`${item?.package_id?.batch_id?.medicine_id?.medicine_name} - ${item?.package_id?.batch_id?.medicine_id?.license_code}`}
-                        </TableCell>
-                        <TableCell>{item?.package_id?.batch_id?.batch_code}</TableCell>
-                        <TableCell>{item?.expected_quantity}</TableCell>
-                        <TableCell>
-                          <TextField
-                            type="number"
-                            value={quantities[pkgId]}
-                            onChange={(e) => handleQtyChange(pkgId, e.target.value)}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {item?.type === 'under_expected' ? (
-                            <Button variant="outlined" size="small" onClick={() => handleMissing(item)}>
-                              {trans.undo}
-                            </Button>
-                          ) : (
-                            <Button variant="contained" size="small" color="error" onClick={() => handleMissing(item)}>
-                              {trans.missing}
-                            </Button>
-                          )}
-                        </TableCell>
-                        <TableCell>{chip}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              {checkItemsLoading ? (
+                <CircularProgress />
+              ) :
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>{trans.id}</TableCell>
+                      <TableCell>{trans.medicine}</TableCell>
+                      <TableCell>{trans.batch}</TableCell>
+                      <TableCell>{trans.expected}</TableCell>
+                      <TableCell>{trans.actual}</TableCell>
+                      <TableCell>{trans.action}</TableCell>
+                      <TableCell>{trans.status}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {packages.map((item) => {
+                      const pkgId = item.package_id._id;
+                      const isScanned = scannedIds.includes(pkgId);
+                      let chip;
+                      if (!isScanned) {
+                        chip = <Chip label={trans.unscanned} size="small" color="warning" />;
+                      } else if (quantities[pkgId] === item.expected_quantity) {
+                        chip = <Chip label={trans.normal} size="small" color="success" />;
+                      } else {
+                        chip = <Chip label={trans.abnormal} size="small" color="error" />;
+                      }
+                      return (
+                        <TableRow key={pkgId} sx={isScanned ? { bgcolor: 'action.selected' } : {}}>
+                          <TableCell>{pkgId?.slice(-4)}</TableCell>
+                          <TableCell>
+                            {`${item?.package_id?.batch_id?.medicine_id?.medicine_name} - ${item?.package_id?.batch_id?.medicine_id?.license_code}`}
+                          </TableCell>
+                          <TableCell>{item?.package_id?.batch_id?.batch_code}</TableCell>
+                          <TableCell>{item?.expected_quantity}</TableCell>
+                          <TableCell>
+                            <TextField
+                              type="number"
+                              value={quantities[pkgId]}
+                              onChange={(e) => handleQtyChange(pkgId, e.target.value)}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {item?.type === 'under_expected' ? (
+                              <Button variant="outlined" size="small" onClick={() => handleMissing(item)}>
+                                {trans.undo}
+                              </Button>
+                            ) : (
+                              <Button variant="contained" size="small" color="error" onClick={() => handleMissing(item)}>
+                                {trans.missing}
+                              </Button>
+                            )}
+                          </TableCell>
+                          <TableCell>{chip}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              }
+
 
               {/* Unexpected packages */}
               <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>
