@@ -373,21 +373,6 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                         <strong>{trans.aiTrends.conclusion}</strong> {alert.conclusion}
                       </Typography>
 
-                      {/* Link bài báo */}
-                      {alert.url && (
-                        <Box sx={{ mb: 1.5 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<OpenInNewIcon />}
-                            sx={{ textTransform: 'none' }}
-                            onClick={() => safeOpenLink(alert.url, alert.source, 'news article')}
-                          >
-                            {trans.aiTrends.viewDetailedNews} {alert.source}
-                          </Button>
-                        </Box>
-                      )}
-
                       <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap">
                         <Chip
                           label={
@@ -449,21 +434,6 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontStyle: 'italic' }}>
                         <strong>{trans.aiTrends.conclusion}</strong> {update.conclusion}
                       </Typography>
-
-                      {/* Link bài báo */}
-                      {update.url && (
-                        <Box sx={{ mb: 1.5 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<OpenInNewIcon />}
-                            sx={{ textTransform: 'none' }}
-                            onClick={() => safeOpenLink(update.url, update.source, 'drug update')}
-                          >
-                            {trans.aiTrends.viewDetailedNews} {update.source}
-                          </Button>
-                        </Box>
-                      )}
 
                       <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap">
                         <Chip
@@ -527,21 +497,6 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                         <strong>{trans.aiTrends.conclusion}</strong> {trend.conclusion}
                       </Typography>
 
-                      {/* Link bài báo */}
-                      {trend.url && (
-                        <Box sx={{ mb: 1.5 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<OpenInNewIcon />}
-                            sx={{ textTransform: 'none' }}
-                            onClick={() => safeOpenLink(trend.url, trend.source, 'market trend')}
-                          >
-                            {trans.aiTrends.viewDetailedNews} {trend.source}
-                          </Button>
-                        </Box>
-                      )}
-
                       <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap">
                         <Chip label={trend.region} size="small" color="success" />
                         <Chip
@@ -597,21 +552,6 @@ const MarketTrendsSection = ({ marketTrends, loading }) => {
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontStyle: 'italic' }}>
                         <strong>{trans.aiTrends.conclusion}</strong> {news.conclusion}
                       </Typography>
-
-                      {/* Link bài báo */}
-                      {news.url && (
-                        <Box sx={{ mb: 1.5 }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<OpenInNewIcon />}
-                            sx={{ textTransform: 'none' }}
-                            onClick={() => safeOpenLink(news.url, news.source, 'pharma news')}
-                          >
-                            {trans.aiTrends.viewDetailedNews} {news.source}
-                          </Button>
-                        </Box>
-                      )}
 
                       <Stack direction="row" spacing={1} sx={{ mb: 1 }} flexWrap="wrap">
                         <Chip
@@ -852,9 +792,6 @@ function Trends() {
         <TabPanel value={tabValue} index={0}>
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h5" fontWeight="bold" color="primary.main">
-                Demand Predictions & AI Analysis
-              </Typography>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <Chip
                   label={openaiStatus?.available ? 'AI Available' : 'AI Not Available'}
@@ -951,36 +888,6 @@ function Trends() {
                             </Typography>
                           </Box>
                         )}
-
-                        <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => {
-                              openSnackbar({
-                                open: true,
-                                message: '🔄 Refreshing prediction data...',
-                                alert: { color: 'info', variant: 'filled' }
-                              });
-                              window.location.reload();
-                            }}
-                          >
-                            Refresh
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => {
-                              openSnackbar({
-                                open: true,
-                                message: `📊 Medicine: ${prediction.medicineName || 'Unknown'}, Confidence: ${(prediction.confidence * 100).toFixed(1)}%, Trend: ${prediction.trend}`,
-                                alert: { color: 'info', variant: 'filled' }
-                              });
-                            }}
-                          >
-                            Details
-                          </Button>
-                        </Box>
                       </CardContent>
                     </Card>
                   </Grid>
@@ -1021,117 +928,41 @@ function Trends() {
               </Box>
             </Box>
 
-            {/* AI Market Trends Analysis */}
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom color="primary">
-                  🤖 AI Market Trends Analysis
-                </Typography>
-                {aiMarketTrendsLoading ? (
-                  <Box sx={{ textAlign: 'center', py: 2 }}>
-                    <CircularProgress size={24} />
-                    <Typography variant="body2" sx={{ mt: 1 }}>
-                      AI is analyzing market trends...
+            {/* <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" gutterBottom color="primary">
+                AI Market Trends Analysis
+              </Typography>
+              {aiMarketTrendsLoading ? (
+                <Box sx={{ textAlign: 'center', py: 2 }}>
+                  <CircularProgress size={24} />
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    AI is analyzing market trends...
+                  </Typography>
+                </Box>
+              ) : aiMarketTrends ? (
+                <Box>
+                  <Box sx={{ mb: 2, p: 2, bgcolor: 'primary.50', borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                      {typeof aiMarketTrends.analysis === 'string'
+                        ? aiMarketTrends.analysis
+                        : JSON.stringify(aiMarketTrends.analysis, null, 2)}
                     </Typography>
                   </Box>
-                ) : aiMarketTrends ? (
-                  <Box>
-                    <Box sx={{ mb: 2, p: 2, bgcolor: 'primary.50', borderRadius: 1 }}>
-                      <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-                        {typeof aiMarketTrends.analysis === 'string'
-                          ? aiMarketTrends.analysis
-                          : JSON.stringify(aiMarketTrends.analysis, null, 2)}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <Chip label={`Source: ${aiMarketTrends.source || 'OpenAI'}`} size="small" />
-                      <Chip label={`Confidence: ${aiMarketTrends.confidence || 'High'}`} size="small" />
-                      <Chip label={`Updated: ${new Date(aiMarketTrends.timestamp).toLocaleString()}`} size="small" />
-                    </Box>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Chip label={`Source: ${aiMarketTrends.source || 'OpenAI'}`} size="small" />
+                    <Chip label={`Confidence: ${aiMarketTrends.confidence || 'High'}`} size="small" />
+                    <Chip label={`Updated: ${new Date(aiMarketTrends.timestamp).toLocaleString()}`} size="small" />
                   </Box>
-                ) : (
-                  <Typography color="text.secondary">Click "Refresh AI Analysis" to get AI-powered market insights</Typography>
-                )}
-              </CardContent>
-            </Card>
+                </Box>
+              ) : (
+                <Typography color="text.secondary">Click "Refresh AI Analysis" to get AI-powered market insights</Typography>
+              )}
+            </Box> */}
 
             {/* Traditional Market Trends */}
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  📊 Traditional Market Analysis
-                </Typography>
-                <MarketTrendsSection marketTrends={marketTrends} loading={marketLoading} />
-              </CardContent>
-            </Card>
-
-            {/* AI Import Recommendations */}
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom color="primary">
-                  💊 AI Import Recommendations
-                </Typography>
-                {aiRecommendationsLoading ? (
-                  <Box sx={{ textAlign: 'center', py: 2 }}>
-                    <CircularProgress size={24} />
-                    <Typography variant="body2" sx={{ mt: 1 }}>
-                      AI is generating recommendations...
-                    </Typography>
-                  </Box>
-                ) : aiRecommendations ? (
-                  <Box>
-                    <Box sx={{ mb: 2, p: 2, bgcolor: 'success.50', borderRadius: 1 }}>
-                      <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-                        {typeof aiRecommendations.recommendations === 'string'
-                          ? aiRecommendations.recommendations
-                          : JSON.stringify(aiRecommendations.recommendations, null, 2)}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <Chip label={`Source: ${aiRecommendations.source || 'OpenAI'}`} size="small" />
-                      <Chip label={`Confidence: ${aiRecommendations.confidence || 'High'}`} size="small" />
-                      <Chip label={`Updated: ${new Date(aiRecommendations.timestamp).toLocaleString()}`} size="small" />
-                    </Box>
-                  </Box>
-                ) : (
-                  <Typography color="text.secondary">AI recommendations will appear here after analysis</Typography>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* AI Anomalies Analysis */}
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom color="primary">
-                  ⚠️ AI Anomalies Analysis
-                </Typography>
-                {aiAnomaliesLoading ? (
-                  <Box sx={{ textAlign: 'center', py: 2 }}>
-                    <CircularProgress size={24} />
-                    <Typography variant="body2" sx={{ mt: 1 }}>
-                      AI is detecting anomalies...
-                    </Typography>
-                  </Box>
-                ) : aiAnomalies ? (
-                  <Box>
-                    <Box sx={{ mb: 2, p: 2, bgcolor: 'warning.50', borderRadius: 1 }}>
-                      <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-                        {typeof aiAnomalies.aiAnalysis === 'string'
-                          ? aiAnomalies.aiAnalysis
-                          : JSON.stringify(aiAnomalies.aiAnalysis, null, 2)}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                      <Chip label={`Source: ${aiAnomalies.source || 'OpenAI'}`} size="small" />
-                      <Chip label={`Confidence: ${aiAnomalies.confidence || 'High'}`} size="small" />
-                      <Chip label={`Updated: ${new Date(aiAnomalies.timestamp).toLocaleString()}`} size="small" />
-                    </Box>
-                  </Box>
-                ) : (
-                  <Typography color="text.secondary">AI anomalies analysis will appear here after detection</Typography>
-                )}
-              </CardContent>
-            </Card>
+            <Box sx={{ mb: 3 }}>
+              <MarketTrendsSection marketTrends={marketTrends} loading={marketLoading} />
+            </Box>
           </Box>
         </TabPanel>
       </Card>

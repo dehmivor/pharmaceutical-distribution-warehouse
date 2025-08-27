@@ -222,7 +222,45 @@ const createNotificationForAllSupervisors = async (data, io = null) => {
     throw error;
   }
 };
+const createNotificationForAllRepresentativeManager = async (data, io = null) => {
+  try {
+    // Tìm tất cả supervisors
+    const supervisors = await User.find({
+      role: USER_ROLES.REPRESENTATIVEMANAGER,
+      status: 'active',
+    }).select('_id');
 
+    if (supervisors.length === 0) {
+      console.log('Không có REPRESENTATIVE_MANAGER nào');
+      return [];
+    }
+
+    const notifications = [];
+
+    // Tạo notification cho từng supervisor
+    for (const supervisor of supervisors) {
+      const notificationData = {
+        ...data,
+        recipient_id: supervisor._id,
+        sender_id: data.sender_id || null,
+      };
+
+      const newNoti = await Notification.create(notificationData);
+      notifications.push(newNoti);
+
+      // Emit realtime notification
+      if (io) {
+        io.to(supervisor._id.toString()).emit('newNotification', newNoti);
+      }
+    }
+
+    console.log(`Đã tạo ${notifications.length} thông báo cho RP`);
+    return notifications;
+  } catch (error) {
+    console.error('Lỗi khi tạo thông báo cho supervisors:', error);
+    throw error;
+  }
+};
 module.exports = {
   createNotification,
   deleteNotification,
@@ -232,4 +270,5 @@ module.exports = {
   createNotificationForAllWarehouseManagers,
   createNotificationForAllWarehouse,
   createNotificationForAllSupervisors,
+  createNotificationForAllRepresentativeManager,
 };

@@ -61,12 +61,12 @@ axiosInstance.interceptors.request.use(
 
 const getStatusColor = (status) =>
   ({
+    // Ensure unique colors per export status
     draft: 'default',
-    approved: 'success',
-    delivered: 'info',
-    checked: 'warning',
-    arranged: 'primary',
+    approved: 'primary',
+    rejected: 'warning',
     completed: 'success',
+    returned: 'secondary',
     cancelled: 'error'
   })[status] || 'default';
 

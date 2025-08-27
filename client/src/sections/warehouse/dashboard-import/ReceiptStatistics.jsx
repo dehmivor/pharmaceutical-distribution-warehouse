@@ -88,10 +88,10 @@ function ReceiptStatistics({ inspections = [], setInspections }) {
     const convertedActualQty = convertUnit(actualQty, expectedUnit, expectedUnit);
     const totalInspectedQty = convertedActualQty + convertUnit(rejectedQty, expectedUnit, expectedUnit);
 
-    let status = 'pending';
+   let status = 'pending';
     if (totalInspectedQty === 0) status = 'pending';
-    else if (totalInspectedQty >= expectedQty) status = 'received';
-    else if (actualQty > 0 && totalInspectedQty < expectedQty) status = 'partial';
+    else if (actualQty - rejectedQty == expectedQty) status = 'received';
+    else if (actualQty - rejectedQty >= expectedQty && actualQty > 0 && totalInspectedQty < expectedQty) status = 'partial';
     else if (actualQty === 0 && rejectedQty > 0) status = 'shortage';
 
     const returnedQty = Math.max(0, expectedQty - totalInspectedQty);
@@ -152,92 +152,13 @@ function ReceiptStatistics({ inspections = [], setInspections }) {
   return (
     <Box>
       {/* Thống kê tổng quan */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={4}>
-          <Card variant="outlined">
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" color="primary.main">
-                {recalculatedStats.totalReceived.toLocaleString()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Tổng đã nhận
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+      
 
-        <Grid item xs={12} sm={4}>
-          <Card variant="outlined">
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" color="error.main">
-                {recalculatedStats.totalRejected.toLocaleString()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Tổng từ chối
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        
 
-        <Grid item xs={12} sm={4}>
-          <Card variant="outlined">
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Typography variant="h4" color="success.main">
-                {overallReceivedPercentage}%
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Tỷ lệ hoàn thành
-              </Typography>
-              <Chip label={overallStatus.text} color={overallStatus.status} size="small" sx={{ mt: 1 }} />
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+        
 
-      {/* Biểu đồ tiến độ */}
-      <Card variant="outlined" sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Tiến Độ Kiểm Nhập
-          </Typography>
-          <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2">
-                Đã kiểm: {recalculatedStats.totalReceived.toLocaleString()}/{recalculatedStats.totalExpected.toLocaleString()} đơn vị
-              </Typography>
-              <Typography variant="body2" fontWeight="medium">
-                {overallReceivedPercentage}%
-              </Typography>
-            </Box>
-            <LinearProgress
-              variant="determinate"
-              value={overallReceivedPercentage}
-              sx={{
-                height: 12,
-                borderRadius: 6,
-                backgroundColor: 'grey.200',
-                '& .MuiLinearProgress-bar': {
-                  borderRadius: 6,
-                  backgroundColor:
-                    overallReceivedPercentage >= 100 ? 'success.main' : overallReceivedPercentage >= 80 ? 'warning.main' : 'primary.main'
-                }
-              }}
-            />
-          </Box>
-
-          {recalculatedStats.totalShortage > 0 && (
-            <Box sx={{ mt: 2, p: 2, bgcolor: 'error.50', borderRadius: 1 }}>
-              <Typography variant="body2" color="error.main" fontWeight="medium">
-                ⚠️ Tổng thiếu hụt: {recalculatedStats.totalShortage.toLocaleString()} đơn vị (
-                {Math.round((recalculatedStats.totalShortage / recalculatedStats.totalExpected) * 100)}%)
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Tổng số lượng còn thiếu so với dự kiến.
-              </Typography>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
+      
 
       {/* Chi tiết từng mặt hàng đã kiểm */}
       <Card variant="outlined">
@@ -256,10 +177,8 @@ function ReceiptStatistics({ inspections = [], setInspections }) {
                   <TableCell>Dự kiến</TableCell>
                   <TableCell>Thực nhận</TableCell>
                   <TableCell>Từ chối</TableCell>
-                  <TableCell>Tỷ lệ nhận</TableCell>
                   <TableCell>Đơn giá</TableCell>
                   <TableCell>Thành tiền</TableCell>
-                  <TableCell>Trạng thái</TableCell>
                   <TableCell>Hành động</TableCell>
                 </TableRow>
               </TableHead>
@@ -327,39 +246,12 @@ function ReceiptStatistics({ inspections = [], setInspections }) {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 120 }}>
-                            <Typography variant="body2" sx={{ mr: 1, minWidth: 35 }}>
-                              {item.receivedPercentage}%
-                            </Typography>
-                            <LinearProgress
-                              variant="determinate"
-                              value={Math.min(item.receivedPercentage, 100)}
-                              sx={{
-                                flexGrow: 1,
-                                height: 6,
-                                borderRadius: 3,
-                                '& .MuiLinearProgress-bar': {
-                                  backgroundColor:
-                                    item.receivedPercentage >= 100
-                                      ? 'success.main'
-                                      : item.receivedPercentage >= 50
-                                        ? 'warning.main'
-                                        : 'error.main'
-                                }
-                              }}
-                            />
-                          </Box>
-                        </TableCell>
-                        <TableCell>
                           <Typography variant="body2">{item.unitPrice.toLocaleString()} ₫</Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" fontWeight="medium">
                             {item.totalAmount.toLocaleString()} ₫
                           </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={getStatusText(item.status)} color={getStatusColor(item.status)} size="small" variant="outlined" />
                         </TableCell>
                         <TableCell>
                           <IconButton

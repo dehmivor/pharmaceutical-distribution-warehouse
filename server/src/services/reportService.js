@@ -4,6 +4,7 @@ const ExportOrder = require('../models/ExportOrder');
 const Contract = require('../models/Contract');
 const Medicine = require('../models/Medicine');
 const User = require('../models/User');
+const Package = require('../models/Package');
 const mongoose = require('mongoose');
 
 class ReportService {
@@ -999,7 +1000,7 @@ class ReportService {
         status,
         supplierId,
         page = 1,
-        limit = 10,
+        limit,
       } = filters;
 
       const dateFilter = {};
@@ -1020,16 +1021,15 @@ class ReportService {
         ...supplierFilter,
       };
 
-      const skip = (page - 1) * limit;
-
-      // Find import orders with populated references
-      const importOrders = await ImportOrder.find(combinedFilter)
+      // Find all import orders with populated references (no pagination at order level)
+      const allImportOrders = await ImportOrder.find(combinedFilter)
         .populate({
           path: 'contract_id',
-          select: 'contract_code partner_id status',
+          select: 'contract_code partner_id partner_type status',
           populate: {
             path: 'partner_id',
             select: 'name',
+            refPath: 'partner_type',
           },
         })
         .populate({
@@ -1048,55 +1048,142 @@ class ReportService {
           path: 'details.medicine_id',
           select: 'medicine_name license_code unit_of_measure category status',
         })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
+        .sort({ createdAt: -1 });
 
-      // Get total count for pagination
-      const totalCount = await ImportOrder.countDocuments(combinedFilter);
+      // Get total count for pagination - Count total medicine items across all orders
+      const totalMedicineCount = await ImportOrder.aggregate([
+        { $match: combinedFilter },
+        { $unwind: '$details' },
+        { $count: 'total' },
+      ]);
 
-      // Process import orders data
-      const processedOrders = importOrders.map((order) => {
-        const contractCode = order.contract_id?.contract_code || 'N/A';
-        const contractStatus = order.contract_id?.status || 'N/A';
-        const supplierName = order.contract_id?.partner_id?.name || 'N/A';
-        const warehouseManager = order.warehouse_manager_id?.full_name || 'N/A';
-        const createdBy = order.created_by?.full_name || 'N/A';
-        const approvedBy = order.approval_by?.full_name || 'N/A';
+      const totalCount = totalMedicineCount.length > 0 ? totalMedicineCount[0].total : 0;
 
-        // Calculate total value from medicine details
-        const totalValue = order.details.reduce((sum, detail) => {
-          const unitPrice = 1000; // Placeholder value since unit_price is not available
-          return sum + detail.quantity * unitPrice;
-        }, 0);
+      // Process all import orders data first
+      const allProcessedOrders = await Promise.all(
+        allImportOrders.map(async (order) => {
+          const contractCode = order.contract_id?.contract_code || 'N/A';
+          const contractStatus = order.contract_id?.status || 'N/A';
 
-        return {
-          id: order._id.toString(),
-          orderCode: `IMP_${order._id.toString().slice(-8)}`,
-          contractCode,
-          contractStatus,
-          supplierName,
-          warehouseManager,
-          status: order.status,
-          orderType: order.order_type || 'IMPORT',
-          totalValue: Math.round(totalValue / 1000), // Convert to thousands for VND display
-          createdBy,
-          approvedBy,
-          createdAt: order.createdAt,
-          updatedAt: order.updatedAt,
-          // Medicine details for detailed view
-          medicineDetails: order.details.map((detail) => ({
-            medicineName: detail.medicine_id?.medicine_name || 'Unknown Medicine',
-            medicineCode: detail.medicine_id?.license_code || 'N/A',
-            quantity: detail.quantity,
-            unitPrice: 1000, // Placeholder value since unit_price is not available
-            totalPrice: detail.quantity * 1000,
-            category: detail.medicine_id?.category || 'N/A',
-            unitOfMeasure: detail.medicine_id?.unit_of_measure || 'N/A',
-            status: detail.medicine_id?.status || 'N/A',
-          })),
-        };
+          // Lấy tên nhà cung cấp từ contract
+          let supplierName = 'Chưa có thông tin';
+          if (order.contract_id?.partner_id?.name) {
+            supplierName = order.contract_id.partner_id.name;
+          } else if (
+            order.contract_id?.partner_type === 'Supplier' &&
+            order.contract_id?.partner_id
+          ) {
+            // Nếu là supplier contract, lấy tên từ partner_id
+            supplierName = order.contract_id.partner_id.name || 'Chưa có thông tin';
+          }
+          const warehouseManager = order.warehouse_manager_id?.full_name || 'N/A';
+          const createdBy = order.created_by?.full_name || 'N/A';
+          const approvedBy = order.approval_by?.full_name || 'N/A';
+
+          // Calculate total value from medicine details
+          const totalValue = order.details.reduce((sum, detail) => {
+            const unitPrice = 1000; // Placeholder value since unit_price is not available
+            return sum + detail.quantity * unitPrice;
+          }, 0);
+
+          // Query packages for this import order
+          const packages = await Package.find({ import_order_id: order._id }).populate({
+            path: 'batch_id',
+            select: 'batch_code medicine_id',
+          });
+
+          return {
+            id: order._id.toString(),
+            orderCode: `IMP_${order._id.toString().slice(-8)}`,
+            contractCode,
+            contractStatus,
+            supplierName,
+            warehouseManager,
+            status: order.status,
+            orderType: order.order_type || 'IMPORT',
+            totalValue: Math.round(totalValue / 1000), // Convert to thousands for VND display
+            createdBy,
+            approvedBy,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt,
+            // Medicine details for detailed view
+            medicineDetails: order.details.map((detail) => {
+              // Lấy số lô từ package
+              const batchCode =
+                packages.find(
+                  (pkg) =>
+                    pkg.batch_id?.medicine_id?.toString() === detail.medicine_id._id.toString(),
+                )?.batch_id?.batch_code || 'N/A';
+
+              // Tính số lượng sẵn có
+              const availableQuantity = packages
+                .filter(
+                  (pkg) =>
+                    pkg.batch_id?.medicine_id?.toString() === detail.medicine_id._id.toString(),
+                )
+                .reduce((sum, pkg) => sum + (pkg.quantity || 0), 0);
+
+              return {
+                medicineName: detail.medicine_id?.medicine_name || 'Unknown Medicine',
+                medicineCode: detail.medicine_id?.license_code || 'N/A',
+                quantity: detail.quantity,
+                unitPrice: 1000, // Placeholder value since unit_price is not available
+                totalPrice: detail.quantity * 1000,
+                category: detail.medicine_id?.category || 'N/A',
+                unitOfMeasure: detail.medicine_id?.unit_of_measure || 'N/A',
+                status: detail.medicine_id?.status || 'N/A',
+                // Thêm thông tin mới
+                batchCode,
+                availableQuantity,
+              };
+            }),
+          };
+        }),
+      );
+
+      // Apply pagination to medicine items across all orders
+      const allMedicineItems = [];
+
+      // Flatten all medicine items from all orders
+      allProcessedOrders.forEach((order) => {
+        order.medicineDetails.forEach((medicine) => {
+          allMedicineItems.push({
+            ...medicine,
+            orderId: order.id,
+            orderCode: order.orderCode,
+            contractCode: order.contractCode,
+            supplierName: order.supplierName,
+            status: order.status,
+          });
+        });
       });
+
+      // Apply pagination to medicine items
+      const skip = (page - 1) * limit;
+      const paginatedMedicineItems = allMedicineItems.slice(skip, skip + limit);
+
+      console.log(`📊 Pagination Debug: page=${page}, limit=${limit}, skip=${skip}`);
+      console.log(`📊 Total medicine items: ${allMedicineItems.length}`);
+      console.log(`📊 Paginated items: ${paginatedMedicineItems.length}`);
+      console.log(`📊 Items range: ${skip + 1} to ${skip + paginatedMedicineItems.length}`);
+
+      // Group paginated medicine items back to orders for display
+      const orderMap = new Map();
+      paginatedMedicineItems.forEach((medicine) => {
+        if (!orderMap.has(medicine.orderId)) {
+          orderMap.set(medicine.orderId, {
+            id: medicine.orderId,
+            orderCode: medicine.orderCode,
+            contractCode: medicine.contractCode,
+            supplierName: medicine.supplierName,
+            status: medicine.status,
+            medicineDetails: [],
+          });
+        }
+        orderMap.get(medicine.orderId).medicineDetails.push(medicine);
+      });
+
+      const processedOrders = Array.from(orderMap.values());
 
       return {
         success: true,
@@ -1146,10 +1233,11 @@ class ReportService {
       const importOrders = await ImportOrder.find(combinedFilter)
         .populate({
           path: 'contract_id',
-          select: 'contract_code partner_id status',
+          select: 'contract_code partner_id partner_type status',
           populate: {
             path: 'partner_id',
             select: 'name',
+            refPath: 'partner_type',
           },
         })
         .populate({
@@ -1170,34 +1258,127 @@ class ReportService {
         })
         .sort({ createdAt: -1 });
 
-      // Process export data
-      const exportData = importOrders.map((order) => {
-        const contractCode = order.contract_id?.contract_code || 'N/A';
-        const supplierName = order.contract_id?.partner_id?.name || 'N/A';
-        const warehouseManager = order.warehouse_manager_id?.full_name || 'N/A';
-        const createdBy = order.created_by?.full_name || 'N/A';
-        const approvedBy = order.approval_by?.full_name || 'N/A';
+      // Process export data - Format BÁO CÁO NHẬP KHO - PDWA
+      const exportData = [];
 
-        // Calculate total value
-        const totalValue = order.details.reduce((sum, detail) => {
-          const unitPrice = 1000; // Placeholder value
-          return sum + detail.quantity * unitPrice;
-        }, 0);
+      // Thêm tiêu đề chính với styling
+      exportData.push(['BÁO CÁO NHẬP KHO - PDWA']);
+      exportData.push([]); // Dòng trống
+      exportData.push(['TỔNG HỢP NHẬP XUẤT TỒN']);
+      exportData.push(['KHO: TẤT CẢ CÁC KHO']);
+      exportData.push([`TỪ NGÀY: ${startDate} ĐẾN NGÀY: ${endDate}`]);
+      exportData.push([]); // Dòng trống
 
-        return {
-          'Order Code': `IMP_${order._id.toString().slice(-8)}`,
-          'Contract Code': contractCode,
-          'Supplier Name': supplierName,
-          'Warehouse Manager': warehouseManager,
-          Status: order.status,
-          'Order Type': order.order_type || 'IMPORT',
-          'Total Value (VND)': totalValue,
-          'Created By': createdBy,
-          'Approved By': approvedBy || 'N/A',
-          'Created At': order.createdAt.toISOString().split('T')[0],
-          'Updated At': order.updatedAt.toISOString().split('T')[0],
-        };
-      });
+      // Thêm header bảng với styling
+      exportData.push([
+        'STT',
+        'MÃ VẬT TƯ',
+        'TÊN VẬT TƯ',
+        'ĐVT',
+        'SỐ LƯỢNG',
+        'SẴN CÓ',
+        'NHẬP',
+        'SỐ LÔ',
+        'MÃ ĐƠN HÀNG',
+        'MÃ HĐ',
+        'NHÀ CUNG CẤP',
+        'TRẠNG THÁI',
+      ]);
+
+      // Xử lý dữ liệu từng thuốc
+      let stt = 1;
+      const medicineMap = new Map(); // Để gom nhóm thuốc
+
+      for (const order of importOrders) {
+        // Query packages cho order này để lấy batchCode và availableQuantity
+        const packages = await Package.find({ import_order_id: order._id }).populate({
+          path: 'batch_id',
+          select: 'batch_code medicine_id',
+        });
+
+        for (const detail of order.details) {
+          const medicineKey = detail.medicine_id._id.toString();
+
+          if (!medicineMap.has(medicineKey)) {
+            // Tìm package tương ứng để lấy batchCode và availableQuantity
+            const relatedPackage = packages.find(
+              (pkg) => pkg.batch_id?.medicine_id?.toString() === medicineKey,
+            );
+
+            // Lấy tên nhà cung cấp từ contract
+            let supplierName = 'Chưa có thông tin';
+            if (order.contract_id?.partner_id?.name) {
+              supplierName = order.contract_id.partner_id.name;
+            } else if (
+              order.contract_id?.partner_type === 'Supplier' &&
+              order.contract_id?.partner_id
+            ) {
+              // Nếu là supplier contract, lấy tên từ partner_id
+              supplierName = order.contract_id.partner_id.name || 'Chưa có thông tin';
+            }
+
+            medicineMap.set(medicineKey, {
+              medicineCode: detail.medicine_id.license_code || 'N/A',
+              medicineName: detail.medicine_id.medicine_name || 'Unknown Medicine',
+              unitOfMeasure: detail.medicine_id.unit_of_measure || 'N/A',
+              importQuantity: 0,
+              availableQuantity: relatedPackage ? relatedPackage.quantity : 0,
+              batchCode: relatedPackage?.batch_id?.batch_code || 'N/A',
+              orderCode: order.orderCode || `IMP_${order._id.toString().slice(-8)}`,
+              contractCode: order.contract_id?.contract_code || 'N/A',
+              supplierName: supplierName,
+              status: order.status,
+            });
+          }
+
+          const medicine = medicineMap.get(medicineKey);
+          medicine.importQuantity += detail.quantity;
+        }
+      }
+
+      // Thêm dữ liệu từng thuốc
+      for (const [medicineId, medicine] of medicineMap) {
+        // Tính tồn cuối kỳ
+        medicine.closingStock =
+          medicine.openingStock + medicine.importQuantity - medicine.exportQuantity;
+
+        exportData.push([
+          stt++,
+          medicine.medicineCode,
+          medicine.medicineName,
+          medicine.unitOfMeasure,
+          medicine.importQuantity,
+          medicine.availableQuantity,
+          medicine.importQuantity,
+          medicine.batchCode,
+          medicine.orderCode,
+          medicine.contractCode,
+          medicine.supplierName,
+          medicine.status,
+        ]);
+      }
+
+      // Thêm dòng tổng cộng - Chỉ các trường cần thiết
+      const totalImportQuantity = Array.from(medicineMap.values()).reduce(
+        (sum, m) => sum + m.importQuantity,
+        0,
+      );
+
+      exportData.push([]); // Dòng trống
+      exportData.push([
+        'TỔNG CỘNG:',
+        '',
+        '',
+        '',
+        totalImportQuantity,
+        '',
+        totalImportQuantity,
+        '',
+        '',
+        '',
+        '',
+        '',
+      ]);
 
       return {
         success: true,

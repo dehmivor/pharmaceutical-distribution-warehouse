@@ -102,7 +102,7 @@ app.use(
 app.use(
   '/api/users',
   authenticate,
-  authorize([USER_ROLES.WAREHOUSEMANAGER, USER_ROLES.SUPERVISOR, USER_ROLES.REPRESENTATIVEMANAGER]),
+  authorize(['representative_manager', 'warehouse_manager', 'supervisor']),
   route.userRoutes,
 );
 

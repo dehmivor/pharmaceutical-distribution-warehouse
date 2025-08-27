@@ -190,12 +190,14 @@ async function handleSingleBillPayment(billId, amountPaidFromStripe) {
 
   const totalAmount = await getBillTotalAmount(billId);
   const currentAmountPaid = bill.amountPaid || 0;
+  const remainingAmount = Math.max(0, totalAmount - currentAmountPaid);
 
   console.log('Payment calculation details:', {
     billId,
     totalAmount,
     currentAmountPaid,
     amountPaidFromStripe,
+    remainingAmount,
     calculation: `Current: ${currentAmountPaid} + New: ${amountPaidFromStripe} = ${currentAmountPaid + amountPaidFromStripe}`,
     unit: 'VND',
   });
