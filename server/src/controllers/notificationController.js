@@ -14,7 +14,7 @@ const createNotification = async (req, res) => {
     const io = req.app.locals.io;
     // Nếu yêu cầu gửi cho tất cả warehouse managers
     if (target_warehouse_managers === true) {
-      notification = await notificationService.createNotificationForAllWarehouseManagers(
+      notification = await notificationService.createNotificationForAllRepresentative(
         notificationData,
         io,
       );
