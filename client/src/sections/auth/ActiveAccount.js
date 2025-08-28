@@ -39,14 +39,13 @@ export default function ActiveAccount({ inputSx }) {
 
   // Custom validation schemas
   const newPasswordSchema = {
-    required: 'Mật khẩu mới là bắt buộc',
-    minLength: {
-      value: 6,
-      message: 'Mật khẩu phải có ít nhất 6 ký tự'
-    },
-    pattern: {
-      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-      message: 'Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số'
+    required: 'Mật khẩu là bắt buộc',
+    minLength: { value: 8, message: 'Mật khẩu phải có ít nhất 8 ký tự' },
+    validate: {
+      noSpaces: (value) => !/\s/.test(value) || 'Mật khẩu không được chứa khoảng trắng',
+      hasUpperCase: (value) => /[A-Z]/.test(value) || 'Mật khẩu phải có ít nhất một chữ hoa',
+      hasNumber: (value) => /[0-9]/.test(value) || 'Mật khẩu phải có ít nhất một số',
+      hasSpecialChar: (value) => /[!@#$%^&*(),.?":{}|<>]/.test(value) || 'Mật khẩu phải có ít nhất một ký tự đặc biệt'
     }
   };
 
