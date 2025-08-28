@@ -355,7 +355,7 @@ const createExportOrder = async (req, res) => {
           order_status: newOrder.status,
           order_type: 'import',
         },
-        sender_id: userContext?.id,
+        sender_id: userId,
       },
       io,
     );

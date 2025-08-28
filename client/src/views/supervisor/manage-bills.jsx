@@ -36,12 +36,6 @@ import { enqueueSnackbar } from 'notistack';
 
 // Initialize Stripe with your publishable key
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-const formatNumber = (num) => {
-  if (!num && num !== 0) return '0';
-  // Làm tròn và định dạng thêm dấu phẩy thousands separator
-  return Math.round(num).toLocaleString('vi-VN');
-};
-
 const getAuthHeaders = () => {
   const token = localStorage.getItem('auth-token');
   return {
@@ -49,11 +43,47 @@ const getAuthHeaders = () => {
     ...(token && { Authorization: `Bearer ${token}` })
   };
 };
-
-// Parse formatted number back to number
 const parseFormattedNumber = (str) => {
   if (!str) return 0;
-  return parseFloat(str.toString().replace(/[,\s]/g, ''));
+  // Loại bỏ dấu phẩy thousands separator và khoảng trắng
+  // Giữ nguyên dấu chấm thập phân nếu có
+  const cleanStr = str.toString().replace(/[,\s]/g, '');
+
+  // Kiểm tra nếu là định dạng Việt Nam (dùng dấu chấm cho thousands separator)
+  // Ví dụ: "800.000" -> 800000, "800.000,5" -> 800000.5
+  const parts = cleanStr.split(',');
+  if (parts.length <= 2) {
+    // Nếu có dấu phẩy thì đó là phần thập phân
+    if (parts.length === 2) {
+      const integerPart = parts[0].replace(/\./g, ''); // Loại bỏ dấu chấm thousands
+      const decimalPart = parts[1];
+      return parseFloat(`${integerPart}.${decimalPart}`);
+    } else {
+      // Không có dấu phẩy, kiểm tra xem dấu chấm là thousands hay decimal
+      // Nếu có nhiều hơn 3 chữ số sau dấu chấm cuối -> thousands separator
+      const dotParts = cleanStr.split('.');
+      if (dotParts.length > 1) {
+        const lastPart = dotParts[dotParts.length - 1];
+        if (lastPart.length === 3 && dotParts.length > 1) {
+          // Có thể là thousands separator (ví dụ: 800.000)
+          return parseInt(cleanStr.replace(/\./g, ''));
+        } else {
+          // Có thể là decimal (ví dụ: 800.5)
+          return parseFloat(cleanStr);
+        }
+      }
+      return parseFloat(cleanStr);
+    }
+  }
+
+  return parseFloat(cleanStr.replace(/\./g, ''));
+};
+
+// Cải thiện hàm formatNumber để nhất quán
+const formatNumber = (num) => {
+  if (!num && num !== 0) return '0';
+  // Làm tròn và định dạng với dấu chấm thousands separator (định dạng VN)
+  return Math.round(num).toLocaleString('vi-VN');
 };
 
 function StripePartialPayment({ clientSecret, onSuccess, onCancel }) {
@@ -517,19 +547,35 @@ function ManageBills() {
   const handleMultiPaymentAmountChange = (billId, value) => {
     const bill = bills.find((b) => b._id === billId);
     const maxAmount = calcRemainingAmount(bill);
-    const numericValue = parseFormattedNumber(value);
 
-    // FIX: Sử dụng validation function mới
+    // Chỉ cho phép số, dấu chấm và dấu phẩy
+    const cleanValue = value.replace(/[^0-9.,]/g, '');
+    const numericValue = parseFormattedNumber(cleanValue);
+
+    console.log('Multi-payment input debug:', {
+      billId,
+      rawInput: value,
+      cleanValue,
+      parsedValue: numericValue,
+      maxAmount,
+      unit: 'VND'
+    });
+
+    // Validation
     const validation = validatePaymentAmount(numericValue, bill);
-    if (!validation.isValid) {
+    if (!validation.isValid && numericValue > 0) {
       enqueueSnackbar(validation.error, { variant: 'error' });
       return;
     }
 
-    setMultiPaymentAmounts((prev) => ({
-      ...prev,
-      [billId]: value
-    }));
+    if (numericValue <= maxAmount && numericValue >= 0) {
+      setMultiPaymentAmounts((prev) => ({
+        ...prev,
+        [billId]: formatNumber(numericValue) // Lưu dạng formatted
+      }));
+    } else if (numericValue > maxAmount) {
+      enqueueSnackbar(`Số tiền không được vượt quá ${formatNumber(maxAmount)} VND`, { variant: 'warning' });
+    }
   };
 
   const handleConfirmMultiPayment = async () => {
@@ -726,15 +772,23 @@ function ManageBills() {
 
   // Calculate total amount for multi-payment
   const calculateMultiPaymentTotal = () => {
-    const total = Object.values(multiPaymentAmounts).reduce((sum, amount) => {
+    const total = Object.entries(multiPaymentAmounts).reduce((sum, [billId, amount]) => {
       const numericAmount = parseFormattedNumber(amount) || 0;
+
+      console.log('Multi-payment total calculation detail:', {
+        billId,
+        formattedAmount: amount,
+        parsedAmount: numericAmount,
+        runningSum: sum + numericAmount
+      });
+
       return sum + numericAmount;
     }, 0);
 
-    console.log('Multi-payment total calculation:', {
+    console.log('Multi-payment total final:', {
       amounts: multiPaymentAmounts,
-      parsedAmounts: Object.values(multiPaymentAmounts).map((amount) => parseFormattedNumber(amount) || 0),
       total,
+      formattedTotal: formatNumber(total),
       unit: 'VND'
     });
 
@@ -1176,14 +1230,16 @@ function ManageBills() {
                       label="Số tiền thanh toán (VNĐ)"
                       value={multiPaymentAmounts[billId] || ''}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9,\s]/g, '');
+                        // FIX: Chỉ cho phép số và dấu phẩy, không cho phép khoảng trắng
+                        const value = e.target.value.replace(/[^0-9,]/g, '');
                         const numericValue = parseFormattedNumber(value);
-                        if (numericValue <= maxAmount) {
+                        console.log('Input value:', e.target.value, 'Parsed:', numericValue);
+                        if (numericValue <= maxAmount && numericValue > 0) {
                           handleMultiPaymentAmountChange(billId, formatNumber(numericValue));
                         }
                       }}
                       fullWidth
-                      helperText={`Số tiền: ${formatNumber(parseFormattedNumber(multiPaymentAmounts[billId] || '0'))} VNĐ / Số tiền còn lại: ${formatNumber(maxAmount)} VNĐ`}
+                      helperText={`Số tiền: ${multiPaymentAmounts[billId] || '0'} VNĐ / Số tiền còn lại: ${formatNumber(maxAmount)} VNĐ`}
                     />
                   </Box>
                 );

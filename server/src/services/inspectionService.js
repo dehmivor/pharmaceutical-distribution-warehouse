@@ -264,7 +264,7 @@ const getInspectionByImportOrderId = async (importOrderId) => {
     .populate('created_by', 'name email')
     .populate({
       path: 'medicine_id',
-      select: '_id unit_of_measure medicine_name',
+      select: '_id unit_of_measure medicine_name license_code',
     })
     .sort({ createdAt: -1 });
 
