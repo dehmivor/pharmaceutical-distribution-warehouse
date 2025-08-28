@@ -45,7 +45,7 @@ export default function ActiveAccount({ inputSx }) {
       message: 'Mật khẩu phải có ít nhất 6 ký tự'
     },
     pattern: {
-      value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
       message: 'Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số'
     }
   };
@@ -84,7 +84,7 @@ export default function ActiveAccount({ inputSx }) {
 
         // Redirect sau 2 giây
         setTimeout(() => {
-          const redirectUrl = result.data.redirectUrl || '/dashboard';
+          const redirectUrl = result.data.redirectUrl || '/auth/login';
           router.push(redirectUrl);
         }, 2000);
       } else {
