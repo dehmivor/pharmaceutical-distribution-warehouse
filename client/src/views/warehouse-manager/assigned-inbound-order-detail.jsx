@@ -93,7 +93,7 @@ function ImportOrderDetail() {
   const [confirmFinishInspection, setConfirmFinishInspection] = useState(false);
   const [batchOptions, setBatchOptions] = useState([]);
 
-const today = new Date().toLocaleDateString('en-CA');
+  const today = new Date().toLocaleDateString('en-CA');
 
   const [assignLoading, setAssignLoading] = useState(false);
   const [downloadReceiptLoading, setdownloadReceiptLoading] = useState(false);
@@ -649,20 +649,19 @@ const today = new Date().toLocaleDateString('en-CA');
    * If input is falsy, returns undefined.
    */
   const addYearsToIsoDate = (isoDateStr, years) => {
-    if (!isoDateStr) return undefined;
-    const d = new Date(isoDateStr);
-    // avoid timezone shifting by using UTC components
-    const year = d.getFullYear() + Number(years);
-    const month = d.getMonth();
-    const day = d.getDate();
-    // create new Date with same month/day but new year
-    const newD = new Date(year, month, day);
-    // handle cases like Feb 29 -> Mar 01 etc (Date will normalize)
-    return formatIsoDate(newD);
-  };
+  if (!isoDateStr) return undefined;
+  const d = new Date(isoDateStr);
+  const year = d.getUTCFullYear() + Number(years);
+  const month = d.getUTCMonth();
+  const day = d.getUTCDate();
+  // construct using UTC and then add one day (in ms)
+  const newUtc = Date.UTC(year, month, day) + 24 * 60 * 60 * 1000;
+  const newD = new Date(newUtc);
+  return formatIsoDate(newD);
+};
 
   // inside your component render body, compute minExpiryDate:
-  const minExpiryDate = addYearsToIsoDate(newProdDate, 1);
+  const minExpiryDate = addYearsToIsoDate(today, 1);
 
 
   const handleSelfAssign = async () => {
@@ -1022,7 +1021,7 @@ const today = new Date().toLocaleDateString('en-CA');
 
               <Button
                 variant="contained"
-                disabled={inspectionsDone}
+                disabled={inspectionsDone || inspections?.length == 0}
                 onClick={onFinishClickInspection}
                 color={confirmFinishInspection ? 'warning' : 'primary'}
                 loading={inspectionLoading}

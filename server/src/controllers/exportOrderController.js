@@ -163,10 +163,13 @@ const completeExportOrder = async (req, res) => {
       });
     }
     // Kiểm tra quyền người dùng
-    if (user.role !== 'warehouse_manager') {
+    const isInternal = !exportOrder.contract_id; // Đơn nội bộ không có contract_id
+    const isWarehouseManager = user.role === 'warehouse_manager';
+    const isSupervisorAllowed = user.role === 'supervisor' && isInternal;
+    if (!isWarehouseManager && !isSupervisorAllowed) {
       return res
         .status(403)
-        .json({ success: false, message: 'Chỉ quản lý kho mới có thể hoàn thành đơn xuất kho' });
+        .json({ success: false, message: 'Bạn không có quyền hoàn thành đơn xuất kho này' });
     }
     // Bắt đầu transaction để đảm bảo tính nguyên tử
     const session = await mongoose.startSession();
@@ -232,7 +235,7 @@ const completeExportOrder = async (req, res) => {
         const newNotification = await notificationService.createNotificationForAllSupervisors(
           {
             title: 'Đơn hàng xuất kho hoàn thành',
-            message: `Đơn hàng xuất kho #${id.slice(-6)} đã được warehouse manager hoàn thành thành công.`,
+            message: `Đơn hàng xuất kho #${id.slice(-6)} đã được hoàn thành thành công.`,
             type: 'export',
             priority: 'medium',
             sender_id: user._id,
@@ -352,7 +355,7 @@ const createExportOrder = async (req, res) => {
           order_status: newOrder.status,
           order_type: 'import',
         },
-        sender_id: userContext?.id,
+        sender_id: userId,
       },
       io,
     );
@@ -575,6 +578,7 @@ const approveExportOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
+    const io = req.app.locals.io;
 
     // Kiểm tra quyền - chỉ representative_manager mới được approve
     if (req.user.role !== 'representative_manager') {
@@ -585,6 +589,36 @@ const approveExportOrder = async (req, res, next) => {
     }
 
     const approvedOrder = await exportOrderService.approveExportOrder(id, userId);
+
+    // Notify representative (creator) about approval
+    try {
+      if (approvedOrder && approvedOrder.created_by) {
+        const newNotification = await notificationService.createNotification(
+          {
+            recipient_id: approvedOrder.created_by,
+            title: 'Đơn xuất kho được phê duyệt',
+            message: `Đơn xuất kho #${id.slice(-6)} đã được phê duyệt.`,
+            type: 'export',
+            priority: 'medium',
+            action_url: `/rp-export-orders`,
+            metadata: {
+              order_id: id,
+              order_status: 'approved',
+              order_type: 'export',
+              status_change_date: new Date(),
+              changed_by: userId,
+            },
+          },
+          io,
+        );
+
+        if (newNotification && io) {
+          io.to('system').emit('newNotification', newNotification);
+        }
+      }
+    } catch (notifyErr) {
+      console.error('Lỗi khi tạo notification cho RP (approve export):', notifyErr);
+    }
 
     res.status(200).json({
       success: true,
@@ -601,6 +635,7 @@ const rejectExportOrder = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user._id;
+    const io = req.app.locals.io;
 
     // Kiểm tra quyền - chỉ representative_manager mới được reject
     if (req.user.role !== 'representative_manager') {
@@ -611,6 +646,36 @@ const rejectExportOrder = async (req, res, next) => {
     }
 
     const rejectedOrder = await exportOrderService.rejectExportOrder(id, userId);
+
+    // Notify representative (creator) about rejection
+    try {
+      if (rejectedOrder && rejectedOrder.created_by) {
+        const newNotification = await notificationService.createNotification(
+          {
+            recipient_id: rejectedOrder.created_by,
+            title: 'Đơn xuất kho bị từ chối',
+            message: `Đơn xuất kho #${id.slice(-6)} đã bị từ chối.`,
+            type: 'export',
+            priority: 'medium',
+            action_url: `/rp-export-orders`,
+            metadata: {
+              order_id: id,
+              order_status: 'rejected',
+              order_type: 'export',
+              status_change_date: new Date(),
+              changed_by: userId,
+            },
+          },
+          io,
+        );
+
+        if (newNotification && io) {
+          io.to('system').emit('newNotification', newNotification);
+        }
+      }
+    } catch (notifyErr) {
+      console.error('Lỗi khi tạo notification cho RP (reject export):', notifyErr);
+    }
 
     res.status(200).json({
       success: true,
