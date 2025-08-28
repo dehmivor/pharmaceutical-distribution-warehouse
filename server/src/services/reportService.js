@@ -408,28 +408,23 @@ class ReportService {
 
             return {
               id: bill._id.toString(),
-              billCode:
-                bill.voucher_code || bill.bill_code || `BILL-${bill._id.toString().slice(-6)}`,
-              voucherCode: bill.voucher_code || bill.bill_code || 'N/A',
+              billCode: bill.voucher_code || `BILL-${bill._id.toString().slice(-6)}`, // chỉ dùng voucher_code
+              voucherCode: bill.voucher_code || 'N/A',
               contractCode,
               partnerType: partnerTypeVal,
               partnerName,
-              orderCode,
               orderType,
               billType: bill.type || 'N/A',
               status: bill.status?.toLowerCase() || 'unknown',
               totalValue: billValue,
               amountPaid: parseFloat(bill.amountPaid) || 0,
               remainingAmount: Math.max(0, billValue - (parseFloat(bill.amountPaid) || 0)),
-              paymentDate: bill.payment_date || bill.paymentDate || null,
-              dueDate: bill.due_date || bill.dueDate || null,
               createdAt: bill.createdAt,
               updatedAt: bill.updatedAt,
               details: validDetails,
-              // Medicine details fields
               medicineCount,
               totalQuantity,
-              averageUnitPrice: Math.round(averageUnitPrice * 100) / 100, // Round to 2 decimal places
+              averageUnitPrice: Math.round(averageUnitPrice * 100) / 100,
               medicineDetails: validDetails,
             };
           } catch (billError) {
