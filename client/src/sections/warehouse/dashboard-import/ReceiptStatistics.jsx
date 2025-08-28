@@ -90,8 +90,8 @@ function ReceiptStatistics({ inspections = [], setInspections }) {
 
     let status = 'pending';
     if (totalInspectedQty === 0) status = 'pending';
-    else if (totalInspectedQty >= expectedQty) status = 'received';
-    else if (actualQty > 0 && totalInspectedQty < expectedQty) status = 'partial';
+    else if (actualQty - rejectedQty == expectedQty) status = 'received';
+    else if (actualQty - rejectedQty >= expectedQty && actualQty > 0 && totalInspectedQty < expectedQty) status = 'partial';
     else if (actualQty === 0 && rejectedQty > 0) status = 'shortage';
 
     const returnedQty = Math.max(0, expectedQty - totalInspectedQty);
