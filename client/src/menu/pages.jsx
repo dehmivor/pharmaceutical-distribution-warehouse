@@ -28,15 +28,9 @@ const pages = {
         },
         {
           id: 'report-imports',
-          title: 'Imports',
+          title: 'Imports & Exports',
           type: 'item',
           url: '/data&reports/reports/imports'
-        },
-        {
-          id: 'report-exports',
-          title: 'Exports',
-          type: 'item',
-          url: '/data&reports/reports/exports'
         }
       ]
     },

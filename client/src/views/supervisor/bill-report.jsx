@@ -177,78 +177,45 @@ export default function Report() {
       if (filters.partnerType) params.append('partnerType', filters.partnerType);
       params.append('reportType', filters.reportType);
 
-      console.log('Exporting with params:', params.toString());
-      console.log('API URL:', `${API_BASE_URL}/api/reports/export?${params.toString()}`);
-      console.log('Auth headers:', getAuthHeaders());
-
       const response = await axios.get(`${API_BASE_URL}/api/reports/export?${params.toString()}`, {
         headers: getAuthHeaders(),
         responseType: 'blob',
-        timeout: 30000 // 30 second timeout
+        timeout: 30000
       });
 
-      console.log('Export response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        dataType: typeof response.data,
-        dataSize: response.data?.size,
-        isBlob: response.data instanceof Blob
-      });
-
-      // Validate response
-      if (!response.data || response.data.size === 0) {
-        throw new Error('Empty response received from server');
+      // Check nếu server trả JSON lỗi thay vì Excel
+      const isJson = response.headers['content-type']?.includes('application/json');
+      if (isJson) {
+        const text = await response.data.text();
+        const errorJson = JSON.parse(text);
+        throw new Error(errorJson.error || 'Server returned JSON instead of Excel');
       }
 
-      // Check if response is actually a blob
-      if (!(response.data instanceof Blob)) {
-        throw new Error('Invalid response format - expected blob');
+      // Lấy filename từ header nếu có
+      const disposition = response.headers['content-disposition'];
+      const timestamp = new Date().toISOString().split('T')[0];
+      let filename = `report_${filters.reportType}_${timestamp}.xlsx`;
+      if (disposition && disposition.includes('filename=')) {
+        filename = decodeURIComponent(disposition.split('filename=')[1].replace(/['"]/g, '').trim());
       }
 
-      // Create download link
+      // Tạo link tải
       const url = window.URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = url;
-
-      // Generate filename
-      const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `report_${filters.reportType}_${timestamp}.xlsx`;
       link.setAttribute('download', filename);
-
-      console.log('Creating download link:', { url, filename });
-
-      // Add link to DOM, click it, and remove it
       document.body.appendChild(link);
       link.click();
 
-      // Clean up
       setTimeout(() => {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
       }, 100);
-
-      console.log('Export completed successfully');
     } catch (error) {
-      console.error('Error exporting to Excel:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response,
-        request: error.request,
-        config: error.config
-      });
-
-      // Handle different types of errors
+      console.error('❌ Error exporting to Excel:', error);
       let errorMessage = trans.reports.failedToExport;
 
       if (error.response) {
-        // Server responded with error
-        console.error('Server error response:', {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          data: error.response.data
-        });
-
         if (error.response.status === 404) {
           errorMessage = 'No data available for export with current filters';
         } else if (error.response.status === 500) {
@@ -256,13 +223,7 @@ export default function Report() {
         } else if (error.response.data && error.response.data.error) {
           errorMessage = error.response.data.error;
         }
-      } else if (error.request) {
-        // Network error
-        console.error('Network error:', error.request);
-        errorMessage = 'Network error - please check your connection';
       } else if (error.message) {
-        // Other error
-        console.error('Other error:', error.message);
         errorMessage = error.message;
       }
 
@@ -522,7 +483,6 @@ export default function Report() {
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.billCode}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.contractCode}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.partnerType}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderCode}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderType}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.status}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }} align="right">
@@ -545,7 +505,6 @@ export default function Report() {
                         <TableCell>
                           <Chip label={bill.partnerType} size="small" color={bill.partnerType === 'Supplier' ? 'primary' : 'secondary'} />
                         </TableCell>
-                        <TableCell>{bill.orderCode}</TableCell>
                         <TableCell>
                           <Chip label={bill.orderType} size="small" color={getTypeColor(bill.orderType)} />
                         </TableCell>

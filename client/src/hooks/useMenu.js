@@ -171,12 +171,6 @@ export default function useMenu() {
                 title: trans.menu.imports || 'Imports',
                 type: 'item',
                 url: '/data&reports/reports/imports'
-              },
-              {
-                id: 'report-exports',
-                title: trans.menu.exports || 'Exports',
-                type: 'item',
-                url: '/data&reports/reports/exports'
               }
             ]
           },
