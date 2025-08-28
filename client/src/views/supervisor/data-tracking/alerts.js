@@ -226,11 +226,9 @@ const Alerts = () => {
         enqueueSnackbar(`Đã gửi thông báo hủy thuốc lô: ${batch.batch_code}`, { variant: 'success' });
       } else {
         console.error('Lỗi khi tạo thông báo:', response.data.error);
-        enqueueSnackbar('Có lỗi khi tạo thông báo. Vui lòng thử lại.', { variant: 'error' });
       }
     } catch (error) {
       console.error('Lỗi khi tạo thông báo:', error);
-      enqueueSnackbar('Có lỗi khi tạo thông báo. Vui lòng thử lại.', { variant: 'error' });
     }
   };
 
