@@ -409,28 +409,23 @@ class ReportService {
 
             return {
               id: bill._id.toString(),
-              billCode:
-                bill.voucher_code || bill.bill_code || `BILL-${bill._id.toString().slice(-6)}`,
-              voucherCode: bill.voucher_code || bill.bill_code || 'N/A',
+              billCode: bill.voucher_code || `BILL-${bill._id.toString().slice(-6)}`, // chỉ dùng voucher_code
+              voucherCode: bill.voucher_code || 'N/A',
               contractCode,
               partnerType: partnerTypeVal,
               partnerName,
-              orderCode,
               orderType,
               billType: bill.type || 'N/A',
               status: bill.status?.toLowerCase() || 'unknown',
               totalValue: billValue,
               amountPaid: parseFloat(bill.amountPaid) || 0,
               remainingAmount: Math.max(0, billValue - (parseFloat(bill.amountPaid) || 0)),
-              paymentDate: bill.payment_date || bill.paymentDate || null,
-              dueDate: bill.due_date || bill.dueDate || null,
               createdAt: bill.createdAt,
               updatedAt: bill.updatedAt,
               details: validDetails,
-              // Medicine details fields
               medicineCount,
               totalQuantity,
-              averageUnitPrice: Math.round(averageUnitPrice * 100) / 100, // Round to 2 decimal places
+              averageUnitPrice: Math.round(averageUnitPrice * 100) / 100,
               medicineDetails: validDetails,
             };
           } catch (billError) {
@@ -992,6 +987,92 @@ class ReportService {
     }
   }
 
+  static async calculateReportData(imports, exports, openingStock) {
+    const result = [];
+    const summary = {
+      openingQty: 0,
+      openingMoney: 0,
+      importQty: 0,
+      importMoney: 0,
+      exportQty: 0,
+      exportMoney: 0,
+      closingQty: 0,
+      closingMoney: 0,
+    };
+
+    let idx = 1;
+
+    const allMedicineIds = new Set();
+
+    // gom tất cả medicine_id từ import/export
+    imports.forEach((imp) => {
+      imp.details.forEach((d) => allMedicineIds.add(d.medicine_id.toString()));
+    });
+    exports.forEach((exp) => {
+      exp.details.forEach((d) => allMedicineIds.add(d.medicine_id.toString()));
+    });
+
+    allMedicineIds.forEach((medId) => {
+      const openingQty = openingStock[medId]?.quantity || 0;
+      const openingMoney =
+        openingStock[medId]?.quantity * (openingStock[medId]?.unit_price || 0) || 0;
+
+      let importQty = 0,
+        importMoney = 0;
+      let exportQty = 0,
+        exportMoney = 0;
+
+      // Tính nhập
+      imports.forEach((imp) => {
+        imp.details.forEach((d) => {
+          if (d.medicine_id.toString() === medId) {
+            importQty += d.quantity;
+            importMoney += d.quantity * (d.unit_price || 0);
+          }
+        });
+      });
+
+      // Tính xuất
+      exports.forEach((exp) => {
+        exp.details.forEach((d) => {
+          if (d.medicine_id.toString() === medId) {
+            const q =
+              d.actual_item?.reduce((sum, ai) => sum + ai.quantity, 0) || d.expected_quantity || 0;
+            exportQty += q;
+            exportMoney += q * (d.unit_price || 0);
+          }
+        });
+      });
+
+      const closingQty = openingQty + importQty - exportQty;
+      const closingMoney = openingMoney + importMoney - exportMoney;
+
+      result.push({
+        stt: idx++,
+        medicine_id: medId,
+        openingQty,
+        openingMoney,
+        importQty,
+        importMoney,
+        exportQty,
+        exportMoney,
+        closingQty,
+        closingMoney,
+      });
+
+      summary.openingQty += openingQty;
+      summary.openingMoney += openingMoney;
+      summary.importQty += importQty;
+      summary.importMoney += importMoney;
+      summary.exportQty += exportQty;
+      summary.exportMoney += exportMoney;
+      summary.closingQty += closingQty;
+      summary.closingMoney += closingMoney;
+    });
+
+    return { result, summary };
+  }
+
   // Get import orders report
   static async getImportOrdersReport(filters = {}) {
     try {
@@ -1199,268 +1280,345 @@ class ReportService {
   }
 
   static async exportImportOrdersReport(filters = {}) {
-    try {
-      const { startDate, endDate, period = 'monthly', status, supplierId } = filters;
+    const { startDate, endDate, supplierId } = filters;
 
-      const dateFilter = {};
-      if (startDate && endDate) {
-        dateFilter.createdAt = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Tổng hợp Nhập Xuất Tồn');
+
+    // --- Font mặc định ---
+    ws.properties.defaultRowHeight = 22;
+    ws.eachRow((row) => {
+      row.font = { name: 'Times New Roman', size: 11 };
+    });
+
+    // --- Header thông tin ---
+    ws.mergeCells('A1', 'L1');
+    ws.getCell('A1').value = 'ĐƠN VỊ:...........................................';
+    ws.getCell('A1').font = { name: 'Times New Roman', size: 11 };
+
+    ws.mergeCells('A2', 'L2');
+    ws.getCell('A2').value = 'Địa chỉ:...........................................';
+    ws.getCell('A2').font = { name: 'Times New Roman', size: 11 };
+
+    // --- Tiêu đề chính (Heading 1) ---
+    ws.mergeCells('A4', 'L4');
+    ws.getCell('A4').value = 'TỔNG HỢP NHẬP XUẤT TỒN';
+    ws.getCell('A4').alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getCell('A4').font = {
+      name: 'Times New Roman',
+      size: 16,
+      bold: true,
+      color: { argb: '1F4E78' },
+    };
+
+    ws.mergeCells('A5', 'L5');
+    ws.getCell('A5').value = 'KHO: TẤT CẢ CÁC KHO';
+    ws.getCell('A5').alignment = { horizontal: 'left' };
+
+    ws.mergeCells('A6', 'L6');
+    ws.getCell('A6').value = `TỪ NGÀY: ${startDate || '...'}   ĐẾN NGÀY: ${endDate || '...'}`;
+    ws.getCell('A6').alignment = { horizontal: 'left' };
+
+    // --- Header bảng ---
+    ws.addRow([]);
+    ws.addRow([
+      'STT',
+      'MÃ THUỐC',
+      'TÊN THUỐC',
+      'ĐVT',
+      'TỒN ĐẦU KỲ SL',
+      'TỒN ĐẦU KỲ TIỀN',
+      'NHẬP TRONG KỲ SL',
+      'NHẬP TRONG KỲ TIỀN',
+      'XUẤT TRONG KỲ SL',
+      'XUẤT TRONG KỲ TIỀN',
+      'TỒN CUỐI KỲ SL',
+      'TỒN CUỐI KỲ TIỀN',
+    ]);
+
+    const headerRow = ws.getRow(ws.lastRow.number);
+    headerRow.font = { name: 'Times New Roman', bold: true, size: 12, color: { argb: 'FFFFFF' } };
+    headerRow.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    headerRow.eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '4472C4' } }; // xanh navy
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+      };
+    });
+
+    // --- Query + xử lý dữ liệu ---
+    const pkgQuery = {};
+    const impQuery = { status: 'delivered' };
+    const expQuery = { status: 'completed' };
+
+    if (startDate && endDate) {
+      const dateFilter = { $gte: new Date(startDate), $lte: new Date(endDate) };
+      impQuery.delivery_date = dateFilter;
+      expQuery.completed_date = dateFilter;
+    }
+    if (supplierId) {
+      impQuery['contract_id.partner_id'] = supplierId;
+      expQuery['contract_id.partner_id'] = supplierId;
+    }
+
+    const packages = await Package.find(pkgQuery).populate({
+      path: 'batch_id',
+      populate: { path: 'medicine_id', select: 'license_code medicine_name unit_of_measure' },
+    });
+
+    const imports = await ImportOrder.find(impQuery).populate('details.medicine_id');
+    const exports = await ExportOrder.find(expQuery).populate('details.medicine_id');
+
+    const inventoryMap = new Map();
+
+    // Tồn kho cuối kỳ
+    for (const pkg of packages) {
+      const key = `${pkg.batch_id.medicine_id._id}`;
+      if (!inventoryMap.has(key)) {
+        inventoryMap.set(key, {
+          medicine: pkg.batch_id.medicine_id,
+          opening: 0,
+          imports: 0,
+          exports: 0,
+          closing: 0,
+        });
       }
-      const statusFilter = status && status !== 'all' ? { status } : {};
-      const supplierFilter =
-        supplierId && supplierId !== 'All Supplier' ? { 'contract_id.partner_id': supplierId } : {};
-      const combinedFilter = { ...dateFilter, ...statusFilter, ...supplierFilter };
+      inventoryMap.get(key).closing += pkg.quantity;
+    }
 
-      const importOrders = await ImportOrder.find(combinedFilter)
-        .populate({
-          path: 'contract_id',
-          select: 'contract_code partner_id partner_type status',
-          populate: { path: 'partner_id', select: 'name', refPath: 'partner_type' },
-        })
-        .populate({ path: 'warehouse_manager_id', select: 'full_name' })
-        .populate({ path: 'created_by', select: 'full_name' })
-        .populate({ path: 'approval_by', select: 'full_name' })
-        .populate({
-          path: 'details.medicine_id',
-          select: 'medicine_name license_code unit_of_measure category status',
-        })
-        .sort({ createdAt: -1 })
-        .lean();
+    // Nhập
+    for (const imp of imports) {
+      for (const d of imp.details) {
+        const key = `${d.medicine_id._id}`;
+        if (!inventoryMap.has(key)) {
+          inventoryMap.set(key, {
+            medicine: d.medicine_id,
+            opening: 0,
+            imports: 0,
+            exports: 0,
+            closing: 0,
+          });
+        }
+        inventoryMap.get(key).imports += d.quantity;
+      }
+    }
 
-      const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet('NHẬP');
+    // Xuất
+    for (const exp of exports) {
+      for (const d of exp.details) {
+        const key = `${d.medicine_id._id}`;
+        if (!inventoryMap.has(key)) {
+          inventoryMap.set(key, {
+            medicine: d.medicine_id,
+            opening: 0,
+            imports: 0,
+            exports: 0,
+            closing: 0,
+          });
+        }
+        inventoryMap.get(key).exports += d.quantity;
+      }
+    }
 
-      // Header - tên công ty (A1:F1)
-      ws.mergeCells('A1:F1');
-      const companyName = ws.getCell('A1');
-      companyName.value = 'CÔNG TY CỔ PHẦN';
-      companyName.font = { size: 14, bold: true };
-      companyName.alignment = { vertical: 'middle', horizontal: 'left' };
+    // Tồn đầu kỳ
+    for (const entry of inventoryMap.values()) {
+      entry.opening = entry.closing + entry.exports - entry.imports;
+    }
 
-      // Mẫu số, căn phải (G1:L1)
-      ws.mergeCells('G1:L1');
-      const sampleCell = ws.getCell('G1');
-      sampleCell.value =
-        'Mẫu số: 01 - VT\n(Ban hành theo Thông tư số 133/2016/TT-BTC\nNgày 26/08/2016 của Bộ Tài chính)';
-      sampleCell.font = { size: 10, italic: true };
-      sampleCell.alignment = { vertical: 'middle', horizontal: 'right' };
+    // --- Đổ dữ liệu ---
+    let stt = 1;
+    let totalOpening = 0,
+      totalImports = 0,
+      totalExports = 0,
+      totalClosing = 0;
 
-      // Tiêu đề phiếu (A2:L2)
-      ws.mergeCells('A2:G2');
-      const title = ws.getCell('A2');
-      title.value = 'BÁO CÁO NHẬP KHO';
-      title.font = { size: 18, bold: true };
-      title.alignment = { vertical: 'middle', horizontal: 'center' };
+    for (const entry of inventoryMap.values()) {
+      const row = ws.addRow([
+        stt++,
+        entry.medicine.license_code,
+        entry.medicine.medicine_name,
+        entry.medicine.unit_of_measure,
+        entry.opening,
+        '',
+        entry.imports,
+        '',
+        entry.exports,
+        '',
+        entry.closing,
+        '',
+      ]);
 
-      // Ngày lập phiếu (A3:L3)
-      ws.mergeCells('A3:G3');
-      const dateCell = ws.getCell('A3');
-      const d = new Date();
-      dateCell.value = `Ngày ${d.getDate()} tháng ${d.getMonth() + 1} năm ${d.getFullYear()}`;
-      dateCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      row.font = { name: 'Times New Roman', size: 11 };
+      row.getCell(1).alignment = { horizontal: 'center' };
+      row.getCell(2).alignment = { horizontal: 'left' };
+      row.getCell(3).alignment = { horizontal: 'left' };
+      row.getCell(4).alignment = { horizontal: 'center' };
+      row.eachCell((cell, colNumber) => {
+        if ([5, 6, 7, 8, 9, 10, 11, 12].includes(colNumber)) {
+          cell.alignment = { horizontal: 'right' };
+        }
+        if (cell.value !== null && cell.value !== '') {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' },
+          };
+        }
+      });
 
-      ws.addRow([]);
-      ws.columns = [
-        { header: 'STT', key: 'stt', width: 6 },
-        { header: 'Tên, nhãn hiệu, quy cách, phẩm chất', key: 'medicineName', width: 40 },
-        { header: 'Mã số', key: 'medicineCode', width: 15 },
-        { header: 'Đơn vị tính', key: 'unitOfMeasure', width: 15 },
-        { header: 'Số lượng', key: 'importQuantity', width: 15 },
-        { header: 'Đơn giá', key: 'unitPrice', width: 15 },
-        { header: 'Thành tiền', key: 'totalPrice', width: 18 },
-      ];
+      totalOpening += entry.opening;
+      totalImports += entry.imports;
+      totalExports += entry.exports;
+      totalClosing += entry.closing;
+    }
 
-      // Style header
-      const headerRow = ws.addRow(ws.columns.map((c) => c.header));
-      headerRow.eachCell((cell) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1976D2' } };
-        cell.font = { color: { argb: 'FFFFFF' }, bold: true, size: 12 };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    // --- Hàng tổng cộng ---
+    const totalRow = ws.addRow([
+      'TỔNG CỘNG',
+      '',
+      '',
+      '',
+      totalOpening,
+      '',
+      totalImports,
+      '',
+      totalExports,
+      '',
+      totalClosing,
+      '',
+    ]);
+    totalRow.font = { name: 'Times New Roman', size: 12, bold: true };
+    totalRow.eachCell((cell) => {
+      if (cell.value !== null && cell.value !== '') {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2CC' } }; // vàng nhạt
         cell.border = {
           top: { style: 'thin' },
           left: { style: 'thin' },
           bottom: { style: 'thin' },
           right: { style: 'thin' },
         };
-      });
-
-      // Chuẩn bị dữ liệu chi tiết giả định (phải lấy thực tế từ importOrders)
-      let stt = 1;
-      for (const order of importOrders) {
-        for (const detail of order.details) {
-          const unitPrice = detail.unit_price || 0; // giả định có trường này
-          const totalPrice = unitPrice * detail.quantity;
-          ws.addRow({
-            stt: stt++,
-            medicineName: detail.medicine_id?.medicine_name || '',
-            medicineCode: detail.medicine_id?.license_code || '',
-            unitOfMeasure: detail.medicine_id?.unit_of_measure || '',
-            importQuantity: detail.quantity,
-            unitPrice,
-            totalPrice,
-            expectedQuantity: detail.expected_quantity || 0,
-            actualQuantity: detail.actual_quantity || 0,
-          });
-        }
       }
+    });
 
-      // Dòng tổng cộng
-      const totalRow = ws.addRow([
-        'Cộng',
-        '',
-        '',
-        '',
-        { formula: `SUM(E${headerRow.number + 1}:E${ws.lastRow.number})` },
-        '',
-        { formula: `SUM(G${headerRow.number + 1}:G${ws.lastRow.number})` },
-        { formula: `SUM(H${headerRow.number + 1}:H${ws.lastRow.number})` },
-        { formula: `SUM(I${headerRow.number + 1}:I${ws.lastRow.number})` },
-      ]);
-      totalRow.font = { bold: true };
-      totalRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9EAD3' } };
+    // --- Footer ---
+    ws.addRow([]);
+    ws.addRow([]);
+    ws.mergeCells(`I${ws.lastRow.number}:L${ws.lastRow.number}`);
+    ws.getCell(`I${ws.lastRow.number}`).value = `Ngày ..... tháng ..... năm ..........`;
+    ws.getCell(`I${ws.lastRow.number}`).alignment = { horizontal: 'center' };
+    ws.getCell(`I${ws.lastRow.number}`).font = { italic: true, size: 11 };
 
-      // Các dòng ký tên ở footer
-      ws.addRow([]);
-      const signRow1 = ws.addRow([
-        'Người lập biểu',
-        '',
-        'Người giao hàng',
-        '',
-        'Thủ kho',
-        '',
-        'Kế toán trưởng',
-      ]);
-      signRow1.eachCell((cell, colNumber) => {
-        if ([1, 3, 5, 7].includes(colNumber)) {
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.font = { bold: true };
-        }
-      });
-      const signRow2 = ws.addRow([
-        '(Ký, họ tên)',
-        '',
-        '(Ký, họ tên)',
-        '',
-        '(Ký, họ tên)',
-        '',
-        '(Ký, họ tên)',
-      ]);
-      signRow2.eachCell((cell, colNumber) => {
-        if ([1, 3, 5, 7].includes(colNumber)) {
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-          cell.font = { italic: true };
-        }
-      });
+    ws.addRow([
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      'NGƯỜI LẬP BIỂU (Ký, họ tên)',
+      '',
+      'KẾ TOÁN TRƯỞNG (Ký, họ tên)',
+      '',
+    ]);
 
-      const buffer = await wb.xlsx.writeBuffer();
-
-      return {
-        success: true,
-        data: buffer,
-        filename: `phieu_nhap_kho_${new Date().toISOString().slice(0, 10)}.xlsx`,
-      };
-    } catch (error) {
-      console.error('Error creating phiếu nhập kho:', error);
-      return { success: false, error: error.message };
-    }
+    const buffer = await workbook.xlsx.writeBuffer();
+    return {
+      success: true,
+      filename: 'bao_cao_nhap_xuat_ton.xlsx',
+      data: buffer,
+    };
   }
 
-  // Get import report summary
-  static async getImportReportSummary(filters = {}) {
-    try {
-      const { startDate, endDate, period = 'monthly' } = filters;
+  static async calculateReportData(imports, exports, openingStock) {
+    const result = [];
+    const summary = {
+      openingQty: 0,
+      openingMoney: 0,
+      importQty: 0,
+      importMoney: 0,
+      exportQty: 0,
+      exportMoney: 0,
+      closingQty: 0,
+      closingMoney: 0,
+    };
 
-      const dateFilter = {};
-      if (startDate && endDate) {
-        dateFilter.createdAt = {
-          $gte: new Date(startDate),
-          $lte: new Date(endDate),
-        };
-      }
+    let idx = 1;
 
-      // Get summary statistics
-      const totalOrders = await ImportOrder.countDocuments(dateFilter);
-      const completedOrders = await ImportOrder.countDocuments({
-        ...dateFilter,
-        status: 'completed',
+    const allMedicineIds = new Set();
+
+    // gom tất cả medicine_id từ import/export
+    imports.forEach((imp) => {
+      imp.details.forEach((d) => allMedicineIds.add(d.medicine_id.toString()));
+    });
+    exports.forEach((exp) => {
+      exp.details.forEach((d) => allMedicineIds.add(d.medicine_id.toString()));
+    });
+
+    allMedicineIds.forEach((medId) => {
+      const openingQty = openingStock[medId]?.quantity || 0;
+      const openingMoney =
+        openingStock[medId]?.quantity * (openingStock[medId]?.unit_price || 0) || 0;
+
+      let importQty = 0,
+        importMoney = 0;
+      let exportQty = 0,
+        exportMoney = 0;
+
+      // Tính nhập
+      imports.forEach((imp) => {
+        imp.details.forEach((d) => {
+          if (d.medicine_id.toString() === medId) {
+            importQty += d.quantity;
+            importMoney += d.quantity * (d.unit_price || 0);
+          }
+        });
       });
-      const pendingOrders = await ImportOrder.countDocuments({ ...dateFilter, status: 'pending' });
-      const cancelledOrders = await ImportOrder.countDocuments({
-        ...dateFilter,
-        status: 'cancelled',
+
+      // Tính xuất
+      exports.forEach((exp) => {
+        exp.details.forEach((d) => {
+          if (d.medicine_id.toString() === medId) {
+            const q =
+              d.actual_item?.reduce((sum, ai) => sum + ai.quantity, 0) || d.expected_quantity || 0;
+            exportQty += q;
+            exportMoney += q * (d.unit_price || 0);
+          }
+        });
       });
 
-      // Get total value
-      const ordersWithValue = await ImportOrder.find(dateFilter).populate('details.medicine_id');
-      const totalValue = ordersWithValue.reduce((sum, order) => {
-        const orderValue = order.details.reduce((detailSum, detail) => {
-          const unitPrice = 1000; // Placeholder value
-          return detailSum + detail.quantity * unitPrice;
-        }, 0);
-        return sum + orderValue;
-      }, 0);
+      const closingQty = openingQty + importQty - exportQty;
+      const closingMoney = openingMoney + importMoney - exportMoney;
 
-      return {
-        success: true,
-        data: {
-          totalOrders,
-          completedOrders,
-          pendingOrders,
-          cancelledOrders,
-          totalValue: Math.round(totalValue / 1000), // Convert to thousands
-          completionRate: totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0,
-        },
-      };
-    } catch (error) {
-      console.error('Error getting import report summary:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
+      result.push({
+        stt: idx++,
+        medicine_id: medId,
+        openingQty,
+        openingMoney,
+        importQty,
+        importMoney,
+        exportQty,
+        exportMoney,
+        closingQty,
+        closingMoney,
+      });
 
-  // Get import report dashboard data
-  static async getImportReportDashboard(filters = {}) {
-    try {
-      const { startDate, endDate, period = 'monthly' } = filters;
+      summary.openingQty += openingQty;
+      summary.openingMoney += openingMoney;
+      summary.importQty += importQty;
+      summary.importMoney += importMoney;
+      summary.exportQty += exportQty;
+      summary.exportMoney += exportMoney;
+      summary.closingQty += closingQty;
+      summary.closingMoney += closingMoney;
+    });
 
-      const dateFilter = {};
-      if (startDate && endDate) {
-        dateFilter.createdAt = {
-          $gte: new Date(startDate),
-          $lte: new Date(endDate),
-        };
-      }
-
-      // Get both report data and summary
-      const [reportResult, summaryResult] = await Promise.all([
-        this.getImportOrdersReport({ ...filters, page: 1, limit: 10 }),
-        this.getImportReportSummary(filters),
-      ]);
-
-      if (reportResult.success && summaryResult.success) {
-        return {
-          success: true,
-          data: {
-            recentOrders: reportResult.data.importOrders,
-            summary: summaryResult.data,
-            filters,
-          },
-        };
-      } else {
-        return {
-          success: false,
-          error: 'Failed to retrieve dashboard data',
-        };
-      }
-    } catch (error) {
-      console.error('Error getting import report dashboard:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
+    return { result, summary };
   }
 
   // ===== EXPORT ORDERS REPORT FUNCTIONS =====

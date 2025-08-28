@@ -462,8 +462,10 @@ function ManageBills() {
       enqueueSnackbar('Hóa đơn này đã bị hủy, không thể thanh toán.', { variant: 'error' });
       return;
     }
-    const amount = Math.round(calcAmount(bill.details));
-    if (amount < 12500) {
+    const totalAmount = calcAmount(bill.details);
+    const amountPaid = bill.amountPaid || 0;
+    const remaining = Math.max(0, totalAmount - amountPaid);
+    if (remaining < 12500) {
       enqueueSnackbar('Stripe yêu cầu số tiền thanh toán tối thiểu là 12,500VND', { variant: 'warning' });
       return; // Dừng ngay, không gọi API
     }
@@ -471,7 +473,6 @@ function ManageBills() {
     setLoadingPaymentId(bill._id);
     try {
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const amount = Math.round(calcAmount(bill.details));
       const successUrl = window.location.origin + '/success';
       const cancelUrl = window.location.origin + '/not-found';
 
@@ -479,7 +480,7 @@ function ManageBills() {
         `${backendUrl}/api/stripe/payments/${bill._id}`,
         {
           billId: bill._id,
-          amount,
+          amount: remaining,
           paymentType: bill.type.toLowerCase(),
           successUrl,
           cancelUrl
@@ -1228,6 +1229,7 @@ function ManageBills() {
                     <Typography mb={1} variant="subtitle1">{`Mã hóa đơn: ${bill.voucher_code || bill._id}`}</Typography>
                     <TextField
                       label="Số tiền thanh toán (VNĐ)"
+                      disabled
                       value={multiPaymentAmounts[billId] || ''}
                       onChange={(e) => {
                         // FIX: Chỉ cho phép số và dấu phẩy, không cho phép khoảng trắng

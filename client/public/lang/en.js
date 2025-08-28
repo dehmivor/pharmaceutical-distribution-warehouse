@@ -180,7 +180,7 @@ export default {
     dashboard: 'Dashboard',
     reports: 'Reports',
     bills: 'Bills',
-    imports: 'Imports',
+    imports: 'Imports & Exports',
     exports: 'Exports',
     dataTracking: 'Data Tracking',
     trends: 'Trends',
@@ -371,8 +371,8 @@ export default {
     // ✅ Thêm key cho export report
     exportReportTitle: 'Export Orders Report',
     exportReportDescription: 'Comprehensive report of all export orders in the system',
-    importReportTitle: 'Import Orders Report',
-    importReportDescription: 'Comprehensive report of all import orders with warehouse information',
+    importReportTitle: 'Import Export Medicine Report',
+    importReportDescription: 'Comprehensive report of all import and export medicine with warehouse information',
 
     // ✅ Thêm key cho status
     allStatus: 'All Status',
@@ -2790,7 +2790,7 @@ export default {
     contract: 'Contract',
     supplier: 'Supplier',
     arrived: 'Arrived',
-    printReceipt : 'Print receipt',
+    printReceipt: 'Print receipt',
     items: 'Items',
     inspection: 'Inspection',
     packages: 'Packages',

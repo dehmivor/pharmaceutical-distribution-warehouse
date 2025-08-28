@@ -156,10 +156,6 @@ const getMedicineAnalysisReport = async (req, res) => {
 // Export report to Excel
 const exportReportToExcel = async (req, res) => {
   try {
-    console.log('🚀 Export function started');
-    console.log('📊 Request headers:', req.headers);
-    console.log('📊 Request query:', req.query);
-
     const {
       startDate,
       endDate,
@@ -167,363 +163,211 @@ const exportReportToExcel = async (req, res) => {
       status,
       type,
       partnerType,
-      reportType = 'comprehensive', // comprehensive, period, partner, medicine
+      reportType = 'comprehensive',
     } = req.query;
 
-    console.log('📊 Export request:', {
-      startDate,
-      endDate,
-      period,
-      status,
-      type,
-      partnerType,
-      reportType,
-    });
-
     let reportData;
-    let reportTitle = 'Report';
+    let reportTitle = 'BÁO CÁO';
 
-    try {
-      console.log('🔍 Starting report generation...');
-
-      switch (reportType) {
-        case 'comprehensive':
-          console.log('🔍 Generating comprehensive report...');
-          const filters = { startDate, endDate, period, status, type, partnerType };
-          const comprehensiveReport = await ReportService.getComprehensiveReport(filters);
-
-          console.log('🔍 Comprehensive report result:', {
-            success: comprehensiveReport.success,
-            dataLength: comprehensiveReport.data?.bills?.length || 0,
-            error: comprehensiveReport.error,
-          });
-
-          if (!comprehensiveReport.success) {
-            console.error('❌ Comprehensive report failed:', comprehensiveReport.error);
-            return res.status(400).json({
-              success: false,
-              error: 'Failed to generate comprehensive report',
-              details: comprehensiveReport.error,
-            });
-          }
-
-          reportData = comprehensiveReport.data.bills || [];
-          reportTitle = 'Comprehensive Bill Report';
-          break;
-
-        case 'period':
-          console.log('🔍 Generating period report...');
-          const periodReport = await ReportService.getReportByPeriod(period, startDate, endDate);
-
-          if (!periodReport.success) {
-            console.error('❌ Period report failed:', periodReport.error);
-            return res.status(400).json({
-              success: false,
-              error: 'Failed to generate period report',
-              details: periodReport.error,
-            });
-          }
-
-          reportData = periodReport.data || [];
-          reportTitle = `${period.charAt(0).toUpperCase() + period.slice(1)} Report`;
-          break;
-
-        case 'partner':
-          console.log('🔍 Generating partner report...');
-          const partnerReport = await ReportService.getPartnerAnalysisReport(startDate, endDate);
-
-          if (!partnerReport.success) {
-            console.error('❌ Partner report failed:', partnerReport.error);
-            return res.status(400).json({
-              success: false,
-              error: 'Failed to generate partner report',
-              details: partnerReport.error,
-            });
-          }
-
-          reportData = partnerReport.data || [];
-          reportTitle = 'Partner Analysis Report';
-          break;
-
-        case 'medicine':
-          console.log('🔍 Generating medicine report...');
-          const medicineReport = await ReportService.getMedicineAnalysisReport(startDate, endDate);
-
-          if (!medicineReport.success) {
-            console.error('❌ Medicine report failed:', medicineReport.error);
-            return res.status(400).json({
-              success: false,
-              error: 'Failed to generate medicine report',
-              details: medicineReport.error,
-            });
-          }
-
-          reportData = medicineReport.data || [];
-          reportTitle = 'Medicine Analysis Report';
-          break;
-
-        default:
+    switch (reportType) {
+      case 'comprehensive':
+        const filters = { startDate, endDate, period, status, type, partnerType };
+        const comprehensiveReport = await ReportService.getComprehensiveReport(filters);
+        if (!comprehensiveReport.success) {
           return res.status(400).json({
             success: false,
-            error: 'Invalid report type',
-            validTypes: ['comprehensive', 'period', 'partner', 'medicine'],
+            error: 'Failed to generate comprehensive report',
+            details: comprehensiveReport.error,
           });
-      }
-
-      console.log('🔍 Report data retrieved:', {
-        reportType,
-        reportTitle,
-        dataLength: reportData?.length || 0,
-        dataType: typeof reportData,
-        isArray: Array.isArray(reportData),
-      });
-
-      // Validate report data
-      if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
-        console.warn('⚠️ No data available for export');
-        return res.status(404).json({
-          success: false,
-          error: 'No data available for export',
-          message: 'Please check your filters and try again',
-        });
-      }
-
-      console.log('🔍 Starting data cleaning...');
-
-      // Clean and prepare data for Excel export
-      const cleanData = reportData
-        .map((item, index) => {
-          try {
-            if (!item || typeof item !== 'object') {
-              console.warn(`⚠️ Invalid item at index ${index}:`, item);
-              return null;
-            }
-
-            const cleanItem = {};
-
-            // Process each field safely
-            Object.keys(item).forEach((key) => {
-              let value = item[key];
-
-              // Skip error fields and internal fields
-              if (key === 'error' || key === 'originalData' || key === '_id' || key === '__v') {
-                return; // Skip this field
-              }
-
-              // Handle different data types
-              if (value === null || value === undefined) {
-                value = '';
-              } else if (typeof value === 'object') {
-                // Handle nested objects and arrays
-                if (Array.isArray(value)) {
-                  if (value.length === 0) {
-                    value = 'No items';
-                  } else {
-                    value = `${value.length} items`;
-                  }
-                } else {
-                  // For objects, convert to string representation
-                  try {
-                    value = JSON.stringify(value);
-                  } catch (stringifyError) {
-                    value = 'N/A';
-                  }
-                }
-              } else if (typeof value === 'number') {
-                // Ensure numbers are valid
-                value = isNaN(value) ? 0 : value;
-              } else if (typeof value === 'string') {
-                // Clean strings and remove error indicators
-                value = value.toString().trim();
-                if (value.toLowerCase().includes('error')) {
-                  value = 'N/A';
-                }
-              } else if (value instanceof Date) {
-                // Format dates
-                value = value.toISOString().split('T')[0];
-              }
-
-              cleanItem[key] = value;
-            });
-
-            return cleanItem;
-          } catch (itemError) {
-            console.warn(`⚠️ Error cleaning item ${index}:`, itemError);
-            // Return a minimal clean item instead of error-ridden one
-            return {
-              id: item.id || `Item ${index}`,
-              billCode: item.billCode || 'N/A',
-              voucherCode: item.voucherCode || 'N/A',
-              contractCode: item.contractCode || 'N/A',
-              partnerType: item.partnerType || 'N/A',
-              partnerName: item.partnerName || 'N/A',
-              orderCode: item.orderCode || 'N/A',
-              orderType: item.orderType || 'N/A',
-              billType: item.billType || 'N/A',
-              status: item.status || 'N/A',
-              totalValue: item.totalValue || 0,
-              amountPaid: item.amountPaid || 0,
-              remainingAmount: item.remainingAmount || 0,
-              paymentDate: item.paymentDate || '',
-              dueDate: item.dueDate || '',
-              createdAt: item.createdAt || '',
-              updatedAt: item.updatedAt || '',
-              medicineCount: item.medicineCount || 0,
-              totalQuantity: item.totalQuantity || 0,
-              averageUnitPrice: item.averageUnitPrice || 0,
-              details: item.details ? `${item.details.length} items` : 'No items',
-            };
-          }
-        })
-        .filter((item) => item !== null); // Remove any null items
-
-      console.log('🔍 Data cleaning completed:', {
-        originalLength: reportData.length,
-        cleanLength: cleanData.length,
-      });
-
-      // Final validation - ensure we have clean data
-      if (cleanData.length === 0) {
-        console.warn('⚠️ No clean data available after processing');
-        return res.status(404).json({
-          success: false,
-          error: 'No clean data available for export',
-          message: 'All data contained errors and was filtered out',
-        });
-      }
-
-      console.log('🔍 Starting Excel generation...');
-
-      // Create workbook and worksheet with clean data
-      try {
-        const workbook = xlsx.utils.book_new();
-
-        // Ensure we have valid data for Excel
-        if (!cleanData || cleanData.length === 0) {
-          throw new Error('No valid data to export');
         }
+        reportData = comprehensiveReport.data.bills || [];
+        reportTitle = 'TỔNG HỢP BÁO CÁO HÓA ĐƠN';
+        break;
 
-        // Convert data to Excel format - ensure all values are strings or numbers
-        const excelData = cleanData.map((item) => {
-          const cleanItem = {};
-          Object.keys(item).forEach((key) => {
-            let value = item[key];
-
-            // Convert null/undefined to empty string
-            if (value === null || value === undefined) {
-              value = '';
-            }
-
-            // Convert objects to strings
-            if (typeof value === 'object' && !Array.isArray(value)) {
-              try {
-                value = JSON.stringify(value);
-              } catch (stringifyError) {
-                value = 'N/A';
-              }
-            }
-
-            // Convert arrays to string representation
-            if (Array.isArray(value)) {
-              value = value.length > 0 ? `${value.length} items` : 'No items';
-            }
-
-            // Ensure numbers are valid
-            if (typeof value === 'number' && isNaN(value)) {
-              value = 0;
-            }
-
-            // Convert all values to strings for Excel compatibility
-            cleanItem[key] = String(value);
+      case 'period':
+        const periodReport = await ReportService.getReportByPeriod(period, startDate, endDate);
+        if (!periodReport.success) {
+          return res.status(400).json({
+            success: false,
+            error: 'Failed to generate period report',
+            details: periodReport.error,
           });
-          return cleanItem;
-        });
-
-        console.log('🔍 Excel data prepared:', {
-          rows: excelData.length,
-          columns: excelData.length > 0 ? Object.keys(excelData[0]).length : 0,
-          sampleRow: excelData.length > 0 ? excelData[0] : null,
-        });
-
-        const worksheet = xlsx.utils.json_to_sheet(excelData);
-
-        // Auto-size columns
-        const columnWidths = {};
-        excelData.forEach((row) => {
-          Object.keys(row).forEach((key) => {
-            const value = String(row[key] || '');
-            const currentWidth = columnWidths[key] || 0;
-            columnWidths[key] = Math.max(currentWidth, value.length, key.length);
-          });
-        });
-
-        worksheet['!cols'] = Object.keys(columnWidths).map((key) => ({
-          wch: Math.min(Math.max(columnWidths[key], 10), 50), // Min 10, Max 50
-        }));
-
-        // Add worksheet to workbook
-        xlsx.utils.book_append_sheet(workbook, worksheet, reportTitle);
-
-        // Generate filename with date range
-        let filename = `report_${reportType}`;
-        if (startDate && endDate) {
-          try {
-            const startDateStr = new Date(startDate).toISOString().split('T')[0];
-            const endDateStr = new Date(endDate).toISOString().split('T')[0];
-            filename = `report_${reportType}_${startDateStr}_to_${endDateStr}`;
-          } catch (dateError) {
-            console.warn('⚠️ Error formatting filename dates:', dateError);
-            filename = `report_${reportType}_${new Date().toISOString().split('T')[0]}`;
-          }
-        } else {
-          const timestamp = new Date().toISOString().split('T')[0];
-          filename = `report_${reportType}_${timestamp}`;
         }
-        filename += '.xlsx';
+        reportData = periodReport.data || [];
+        reportTitle = `${period.toUpperCase()} REPORT`;
+        break;
 
-        console.log('📊 Generating Excel file:', filename);
+      case 'partner':
+        const partnerReport = await ReportService.getPartnerAnalysisReport(startDate, endDate);
+        if (!partnerReport.success) {
+          return res.status(400).json({
+            success: false,
+            error: 'Failed to generate partner report',
+            details: partnerReport.error,
+          });
+        }
+        reportData = partnerReport.data || [];
+        reportTitle = 'BÁO CÁO PHÂN TÍCH ĐỐI TÁC';
+        break;
 
-        // Set response headers
-        res.setHeader(
-          'Content-Type',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        );
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      case 'medicine':
+        const medicineReport = await ReportService.getMedicineAnalysisReport(startDate, endDate);
+        if (!medicineReport.success) {
+          return res.status(400).json({
+            success: false,
+            error: 'Failed to generate medicine report',
+            details: medicineReport.error,
+          });
+        }
+        reportData = medicineReport.data || [];
+        reportTitle = 'BÁO CÁO PHÂN TÍCH THUỐC';
+        break;
 
-        // Write to buffer
-        const buffer = xlsx.write(workbook, {
-          type: 'buffer',
-          bookType: 'xlsx',
-          compression: true,
-        });
-
-        // Set content length
-        res.setHeader('Content-Length', buffer.length);
-
-        console.log(
-          `✅ Successfully exported ${reportType} report with ${cleanData.length} records, file size: ${buffer.length} bytes`,
-        );
-
-        // Send buffer
-        res.send(buffer);
-      } catch (excelError) {
-        console.error('❌ Error creating Excel file:', excelError);
-        return res.status(500).json({
+      default:
+        return res.status(400).json({
           success: false,
-          error: 'Failed to create Excel file',
-          details: excelError.message,
+          error: 'Invalid report type',
+          validTypes: ['comprehensive', 'period', 'partner', 'medicine'],
         });
-      }
-    } catch (serviceError) {
-      console.error('❌ Service error during export:', serviceError);
-      return res.status(500).json({
+    }
+
+    if (!reportData || !Array.isArray(reportData) || reportData.length === 0) {
+      return res.status(404).json({
         success: false,
-        error: 'Service error during export',
-        details: serviceError.message,
+        error: 'No data available for export',
       });
     }
+
+    const cleanData = reportData.map((item, idx) => {
+      const cleanItem = { STT: idx + 1 };
+      Object.keys(item).forEach((key) => {
+        let value = item[key];
+        if (value === null || value === undefined) value = '';
+        else if (value instanceof Date) value = value.toISOString().split('T')[0];
+        else if (typeof value === 'object') {
+          value = Array.isArray(value) ? `${value.length} items` : JSON.stringify(value);
+        }
+        cleanItem[key] = value;
+      });
+      return cleanItem;
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Báo cáo');
+
+    // ==== CẤU HÌNH CỘT ====
+    const columns = Object.keys(cleanData[0]).map((key) => ({
+      header: key.toUpperCase(),
+      key,
+      width: 10, // ✨ thu nhỏ cột
+    }));
+    worksheet.columns = columns;
+
+    // Lấy chữ cái cột cuối cùng để merge tiêu đề
+    const lastColIndex = worksheet.columns.length;
+    const lastColLetter = worksheet.getColumn(lastColIndex).letter;
+
+    // ==== TIÊU ĐỀ ====
+    worksheet.mergeCells(`A1:${lastColLetter}1`);
+    worksheet.getCell('A1').value = 'ĐƠN VỊ: ...................................................';
+    worksheet.getCell('A1').alignment = { vertical: 'middle', horizontal: 'left' };
+
+    worksheet.mergeCells(`A2:${lastColLetter}2`);
+    worksheet.getCell('A2').value = 'Địa chỉ: ...................................................';
+    worksheet.getCell('A2').alignment = { vertical: 'middle', horizontal: 'left' };
+
+    worksheet.mergeCells(`A4:${lastColLetter}4`);
+    worksheet.getCell('A4').value = reportTitle;
+    worksheet.getCell('A4').alignment = { vertical: 'middle', horizontal: 'center' };
+    worksheet.getCell('A4').font = { bold: true, size: 14 };
+
+    worksheet.mergeCells(`A5:${lastColLetter}5`);
+    worksheet.getCell('A5').value = `KHO: TẤT CẢ CÁC KHO`;
+    worksheet.getCell('A5').alignment = { horizontal: 'left' };
+
+    worksheet.mergeCells(`A6:${lastColLetter}6`);
+    worksheet.getCell('A6').value =
+      `BÁO CÁO TỪ NGÀY: ${startDate || '...'}   ĐẾN NGÀY: ${endDate || '...'}`;
+    worksheet.getCell('A6').alignment = { horizontal: 'left' };
+
+    worksheet.addRow([]);
+    worksheet.addRow([]);
+
+    // ==== HEADER CỘT ====
+    const headerRow = worksheet.getRow(9);
+    headerRow.values = columns.map((c) => c.header);
+
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FF000000' } }; // đậm đen
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD966' } }; // nền vàng
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+      };
+    });
+
+    // ==== DATA ROWS ====
+    cleanData.forEach((row) => worksheet.addRow(row));
+
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 9) {
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' },
+          };
+          if (typeof cell.value === 'number') {
+            cell.numFmt = '#,##0.00';
+            cell.alignment = { horizontal: 'right' };
+          }
+        });
+      }
+    });
+
+    worksheet.views = [{ state: 'frozen', ySplit: 9 }];
+
+    // ==== CHỮ KÝ ====
+    const lastRow = worksheet.lastRow.number + 3;
+    worksheet.mergeCells(`F${lastRow}:${lastColLetter}${lastRow}`);
+    worksheet.getCell(`F${lastRow}`).value = `Ngày ..... tháng ..... năm ..........`;
+    worksheet.getCell(`F${lastRow}`).alignment = { horizontal: 'center' };
+
+    worksheet.mergeCells(`B${lastRow + 1}:C${lastRow + 1}`);
+    worksheet.getCell(`B${lastRow + 1}`).value = 'NGƯỜI LẬP BIỂU';
+    worksheet.getCell(`B${lastRow + 1}`).alignment = { horizontal: 'center' };
+
+    worksheet.mergeCells(`F${lastRow + 1}:${lastColLetter}${lastRow + 1}`);
+    worksheet.getCell(`F${lastRow + 1}`).value = 'KẾ TOÁN TRƯỞNG';
+    worksheet.getCell(`F${lastRow + 1}`).alignment = { horizontal: 'center' };
+
+    worksheet.mergeCells(`B${lastRow + 2}:C${lastRow + 2}`);
+    worksheet.getCell(`B${lastRow + 2}`).value = '(Họ và tên)';
+    worksheet.getCell(`B${lastRow + 2}`).alignment = { horizontal: 'center', italic: true };
+
+    worksheet.mergeCells(`F${lastRow + 2}:${lastColLetter}${lastRow + 2}`);
+    worksheet.getCell(`F${lastRow + 2}`).value = '(Họ và tên)';
+    worksheet.getCell(`F${lastRow + 2}`).alignment = { horizontal: 'center', italic: true };
+
+    // ==== TRẢ FILE ====
+    const filename = `Báo cáo_${reportType}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
   } catch (error) {
-    console.error('❌ General error during export:', error);
+    console.error('❌ Error exporting report:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to export report to Excel',
@@ -723,29 +567,26 @@ const getImportOrdersReport = async (req, res) => {
 // Export import orders report to Excel
 const exportImportOrdersReport = async (req, res) => {
   try {
-    const filters = {
-      startDate: req.query.startDate,
-      endDate: req.query.endDate,
-      period: req.query.period,
-      status: req.query.status,
-      supplierId: req.query.supplierId,
-    };
+    const { startDate, endDate, period, status, supplierId, reportType } = req.query;
 
-    const result = await ReportService.exportImportOrdersReport(filters);
+    const result = await ReportService.exportImportOrdersReport({
+      startDate,
+      endDate,
+      period,
+      status,
+      supplierId,
+      reportType,
+    });
 
-    if (!result.success) {
-      return res.status(400).json({ success: false, error: result.error });
-    }
-
+    res.setHeader('Content-Disposition', `attachment; filename=${result.filename}`);
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-    res.setHeader('Content-Disposition', `attachment; filename=${result.filename}`);
     res.send(result.data);
-  } catch (err) {
-    console.error('Error exporting import orders report:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+  } catch (error) {
+    console.error('Error exporting import orders report:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
   }
 };
 

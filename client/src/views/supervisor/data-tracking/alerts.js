@@ -195,7 +195,7 @@ const Alerts = () => {
   const handleCreateDestroyTicket = async (batch) => {
     try {
       const notificationData = {
-        target_warehouse_managers: true, // Special flag to target all warehouse managers
+        target_warehouse_managers: true,
         sender_id: null,
         title: 'Yêu cầu hủy thuốc',
         message: `Thuốc ${batch.medicine_id?.medicine_name || 'N/A'} (Batch: ${batch.batch_code}) cần được hủy do hết hạn`,
@@ -213,16 +213,8 @@ const Alerts = () => {
 
       const response = await axios.post(`${backendUrl}/api/notifications`, notificationData);
 
-      if (response && io) {
-        console.log('Emitting newNotification to system room');
-        io.to('system').emit('response', response);
-      } else {
-        console.log('Cannot emit: io =', io);
-      }
-
       if (response.data.success) {
         console.log('Thông báo đã được tạo thành công');
-        // Show success message
         enqueueSnackbar(`Đã gửi thông báo hủy thuốc lô: ${batch.batch_code}`, { variant: 'success' });
       } else {
         console.error('Lỗi khi tạo thông báo:', response.data.error);
@@ -230,7 +222,7 @@ const Alerts = () => {
       }
     } catch (error) {
       console.error('Lỗi khi tạo thông báo:', error);
-      enqueueSnackbar('Có lỗi khi tạo thông báo. Vui lòng thử lại.', { variant: 'error' });
+      enqueueSnackbar('Có lỗi khi gửi thông báo. Vui lòng thử lại.', { variant: 'error' });
     }
   };
 
@@ -261,7 +253,7 @@ const Alerts = () => {
       if (response.data.success) {
         console.log('Thông báo đã được tạo thành công');
         // Show success message
-        enqueueSnackbar(`Đã gửi thông báo nhập kho cho warehouse managers: ${medicine.medicineName}`, { variant: 'success' });
+        enqueueSnackbar(`Đã gửi thông báo nhập kho cho representative: ${medicine.medicineName}`, { variant: 'success' });
       } else {
         console.error('Lỗi khi tạo thông báo:', response.data.error);
         enqueueSnackbar('Có lỗi khi tạo thông báo. Vui lòng thử lại.', { variant: 'error' });
@@ -454,11 +446,6 @@ const Alerts = () => {
                         <Typography variant="caption" display="block">
                           <strong>Expiry:</strong> {new Date(batch.expiryDate).toLocaleDateString()}
                         </Typography>
-                        {batch.packages?.slice(0, 2).map((pkg, pkgIdx) => (
-                          <Typography key={pkgIdx} variant="caption" display="block" color="text.secondary">
-                            📦 {pkg.location} ({pkg.area}) - {pkg.quantity}
-                          </Typography>
-                        ))}
                       </Box>
                     ))}
                     {medicine.batches?.length > 2 && (
@@ -506,9 +493,6 @@ const Alerts = () => {
                 <TableCell align="center">
                   <Button variant="contained" color="primary" size="small" onClick={() => handleCreateImportOrder(medicine)} sx={{ mr: 1 }}>
                     Gửi thông báo nhập kho
-                  </Button>
-                  <Button variant="outlined" color="secondary" size="small" onClick={() => window.open(`/sp-import-orders`, '_blank')}>
-                    Go to Import
                   </Button>
                 </TableCell>
               </TableRow>
