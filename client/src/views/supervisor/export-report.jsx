@@ -132,7 +132,14 @@ export default function ExportReport() {
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.period) params.append('period', filters.period);
       if (filters.status && filters.status !== 'all') params.append('status', filters.status);
-      if (filters.retailerId) params.append('retailerId', filters.retailerId);
+      // Fix: Use partnerType instead of retailerId for the API
+      if (filters.retailerId && filters.retailerId !== 'All Retailer') {
+        // Find the retailer to get its partner type
+        const selectedRetailer = retailers.find(r => r._id === filters.retailerId);
+        if (selectedRetailer && selectedRetailer.partner_type) {
+          params.append('partnerType', selectedRetailer.partner_type);
+        }
+      }
 
       // Add pagination parameters
       params.append('page', (page + 1).toString()); // Convert to 1-based for API
@@ -153,6 +160,11 @@ export default function ExportReport() {
         console.log('Export report data set:', response.data.data);
         console.log('Export orders count:', response.data.data.exportOrders?.length || 0);
         console.log('Pagination info:', response.data.data.pagination);
+        
+        // Debug: Log first order to see structure
+        if (response.data.data.exportOrders && response.data.data.exportOrders.length > 0) {
+          console.log('First order structure:', response.data.data.exportOrders[0]);
+        }
       } else {
         setError(trans.reports.failedToLoad);
       }
@@ -211,7 +223,14 @@ export default function ExportReport() {
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.period) params.append('period', filters.period);
       if (filters.status && filters.status !== 'all') params.append('status', filters.status);
-      if (filters.retailerId) params.append('retailerId', filters.retailerId);
+      // Fix: Use partnerType instead of retailerId for the API
+      if (filters.retailerId && filters.retailerId !== 'All Retailer') {
+        // Find the retailer to get its partner type
+        const selectedRetailer = retailers.find(r => r._id === filters.retailerId);
+        if (selectedRetailer && selectedRetailer.partner_type) {
+          params.append('partnerType', selectedRetailer.partner_type);
+        }
+      }
       params.append('reportType', 'export-orders');
 
       console.log('Exporting export orders with params:', params.toString());
@@ -525,37 +544,60 @@ export default function ExportReport() {
                 <Table stickyHeader>
                   <TableHead sx={{ bgcolor: 'grey.50' }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderCode}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.contractCode}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.status}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderType}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                        {trans.reports.totalValue}
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.createdBy}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.approvedBy}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.createdAt}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.updatedAt}</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Mã thuốc</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Tên thuốc</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Đơn vị</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Số lượng</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Sẵn có</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Đã xuất</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Số lô</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Order Code</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Contract Code</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Nhà bán lẻ</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {reportData.exportOrders?.map((order) => (
-                      <TableRow key={order.id} hover>
-                        <TableCell>{order.orderCode}</TableCell>
-                        <TableCell>{order.contractCode}</TableCell>
-                        <TableCell>
-                          <Chip label={order.status} size="small" color={getStatusColor(order.status)} />
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={order.orderType} size="small" color={getTypeColor(order.orderType)} />
-                        </TableCell>
-                        <TableCell align="right">{formatCurrency(order.totalValue)}</TableCell>
-                        <TableCell>{order.createdBy}</TableCell>
-                        <TableCell>{order.approvedBy || 'N/A'}</TableCell>
-                        <TableCell>{formatDate(order.createdAt)}</TableCell>
-                        <TableCell>{formatDate(order.updatedAt)}</TableCell>
-                      </TableRow>
-                    ))}
+                    {reportData.exportOrders?.map((order) => {
+                      // Check if medicineDetails exists and has data
+                      if (!order.medicineDetails || order.medicineDetails.length === 0) {
+                        // If no medicine details, show order info with empty medicine fields
+                        return (
+                          <TableRow key={order.id} hover>
+                            <TableCell>N/A</TableCell>
+                            <TableCell>N/A</TableCell>
+                            <TableCell>N/A</TableCell>
+                           
+                            <TableCell>N/A</TableCell>
+                            <TableCell>{order.orderCode}</TableCell>
+                            <TableCell>{order.contractCode}</TableCell>
+                            <TableCell>{order.partnerName}</TableCell>
+                            <TableCell>
+                              <Chip label={order.status} size="small" color={getStatusColor(order.status)} />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+                      
+                      // Map through medicine details for each order
+                      return order.medicineDetails.map((medicine, index) => (
+                        <TableRow key={`${order.id}-${index}`} hover>
+                          <TableCell>{medicine.medicineCode}</TableCell>
+                          <TableCell>{medicine.medicineName}</TableCell>
+                          <TableCell>{medicine.unit}</TableCell>
+                          <TableCell>{medicine.quantity}</TableCell>
+                          <TableCell>{medicine.available}</TableCell>
+                          <TableCell>{medicine.exported}</TableCell>
+                          <TableCell>{medicine.batchNumber}</TableCell>
+                          <TableCell>{order.orderCode}</TableCell>
+                          <TableCell>{order.contractCode}</TableCell>
+                          <TableCell>{order.partnerName}</TableCell>
+                          <TableCell>
+                            <Chip label={order.status} size="small" color={getStatusColor(order.status)} />
+                          </TableCell>
+                        </TableRow>
+                      ));
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>

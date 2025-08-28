@@ -5,6 +5,7 @@ const Contract = require('../models/Contract');
 const Medicine = require('../models/Medicine');
 const User = require('../models/User');
 const Package = require('../models/Package');
+const Batch = require('../models/Batch');
 const mongoose = require('mongoose');
 const ExcelJS = require('exceljs');
 
@@ -1654,9 +1655,41 @@ class ReportService {
           path: 'warehouse_manager_id',
           select: 'username email full_name',
         })
+        .populate({
+          path: 'details.medicine_id',
+          select: 'license_code medicine_name unit_of_measure _id',
+        })
         .sort({ createdAt: -1 });
 
+      console.log('Export orders after populate:', exportOrders.length);
+      if (exportOrders.length > 0) {
+        console.log('First order after populate:', {
+          id: exportOrders[0]._id,
+          contract_id: exportOrders[0].contract_id,
+          details: exportOrders[0].details?.length || 0,
+          firstDetail: exportOrders[0].details?.[0],
+          firstDetailMedicineId: exportOrders[0].details?.[0]?.medicine_id
+        });
+      }
+
       console.log('Found export orders:', exportOrders.length);
+      
+      // Debug: Log first order structure
+      if (exportOrders.length > 0) {
+        console.log('First order structure:', JSON.stringify(exportOrders[0], null, 2));
+        console.log('First order details:', exportOrders[0].details);
+        if (exportOrders[0].details && exportOrders[0].details.length > 0) {
+          console.log('First detail structure:', JSON.stringify(exportOrders[0].details[0], null, 2));
+          console.log('First detail medicine_id:', exportOrders[0].details[0].medicine_id);
+          
+          // Debug: Check if medicine_id is populated
+          if (exportOrders[0].details[0].medicine_id) {
+            console.log('Medicine is populated:', exportOrders[0].details[0].medicine_id);
+          } else {
+            console.log('Medicine is NOT populated!');
+          }
+        }
+      }
 
       // Filter by date range if provided
       if (startDate && endDate) {
@@ -1701,13 +1734,93 @@ class ReportService {
       );
 
       // Process export orders
-      const processedOrders = paginatedOrders.map((order) => {
+      const processedOrders = await Promise.all(paginatedOrders.map(async (order) => {
         // Calculate total value from details (convert to thousands VND)
         const totalValue =
           order.details.reduce(
-            (sum, detail) => sum + (detail.quantity || 0) * (detail.unit_price || 0),
+            (sum, detail) => sum + (detail.expected_quantity || 0) * (detail.unit_price || 0),
             0,
           ) / 1000; // Convert to thousands VND
+
+        // Get available quantity from Package collection for each medicine
+        const medicineDetails = await Promise.all((order.details || []).map(async (detail) => {
+          console.log('Processing detail:', detail);
+          console.log('Medicine ID:', detail.medicine_id);
+          
+          // Query Package to get available quantity for this medicine
+          let availableQuantity = 0;
+          let batchNumber = 'N/A';
+          
+          try {
+            if (detail.medicine_id?._id) {
+              // Lấy tất cả batch có medicine_id này
+              const batches = await Batch.find({
+                medicine_id: detail.medicine_id._id
+              }).select('_id batch_code');
+              
+              console.log(`Found ${batches.length} batches for medicine ${detail.medicine_id.medicine_name}`);
+              
+              if (batches.length > 0) {
+                // Query packages theo batch_id
+                const batchIds = batches.map(batch => batch._id);
+                const packages = await Package.find({
+                  batch_id: { $in: batchIds }
+                }).populate({
+                  path: 'batch_id',
+                  select: 'batch_code medicine_id'
+                });
+                
+                console.log(`Found ${packages.length} packages for medicine ${detail.medicine_id.medicine_name}`);
+                
+                // Tính tổng số lượng sẵn có
+                availableQuantity = packages.reduce((sum, pkg) => sum + (pkg.quantity || 0), 0);
+                
+                // Lấy số lô từ batch đầu tiên
+                if (batches.length > 0) {
+                  batchNumber = batches[0].batch_code;
+                }
+              }
+              
+              console.log(`Medicine ${detail.medicine_id.medicine_name}: total available: ${availableQuantity}, batch: ${batchNumber}`);
+            } else {
+              console.log('Medicine ID is not populated or missing _id');
+            }
+          } catch (error) {
+            console.warn('Error getting package info for medicine:', detail.medicine_id?._id, error);
+          }
+          
+          return {
+            medicineCode: detail.medicine_id?.license_code || 'N/A',
+            medicineName: detail.medicine_id?.medicine_name || 'N/A',
+            unit: detail.medicine_id?.unit_of_measure || 'N/A',
+            quantity: detail.expected_quantity || 0,
+            available: availableQuantity,
+            exported: (() => {
+              // Tính số lượng đã xuất thực tế
+              if (detail.actual_item && detail.actual_item.length > 0) {
+                return detail.actual_item.reduce((sum, item) => sum + (item.quantity || 0), 0);
+              }
+              // Nếu không có actual_item, có thể order chưa được thực hiện
+              return 0;
+            })(),
+            batchNumber: batchNumber,
+            unitPrice: Math.round((detail.unit_price || 0) / 1000), // Convert to thousands
+            totalPrice: Math.round(((detail.expected_quantity || 0) * (detail.unit_price || 0)) / 1000), // Convert to thousands
+          };
+        }));
+
+        // Get partner name by manually populating partner_id
+        let partnerName = 'N/A';
+        try {
+          if (order.contract_id?.partner_id && order.contract_id?.partner_type) {
+            const PartnerModel = mongoose.model(order.contract_id.partner_type);
+            const partner = await PartnerModel.findById(order.contract_id.partner_id).select('name');
+            partnerName = partner?.name || 'N/A';
+          }
+        } catch (error) {
+          console.warn('Error getting partner name:', error);
+          partnerName = 'N/A';
+        }
 
         return {
           id: order._id.toString(),
@@ -1730,7 +1843,7 @@ class ReportService {
             order.warehouse_manager_id?.full_name || order.warehouse_manager_id?.username || 'N/A',
           medicineCount: order.details?.length || 0,
           totalQuantity:
-            order.details?.reduce((sum, detail) => sum + (detail.quantity || 0), 0) || 0,
+            order.details?.reduce((sum, detail) => sum + (detail.expected_quantity || 0), 0) || 0,
           averageUnitPrice:
             order.details?.length > 0
               ? Math.round(
@@ -1739,18 +1852,29 @@ class ReportService {
                     1000,
                 )
               : 0,
+          // Add detailed medicine information for the new table structure
+          medicineDetails: medicineDetails,
+          // Add partner information - manually populated
+          partnerName: partnerName,
           details:
             order.details?.map((detail) => ({
-              medicineCode: detail.medicine_id?.medicine_code || 'N/A',
-              medicineName: detail.medicine_id?.name || detail.medicine_id?.medicine_name || 'N/A',
-              quantity: detail.quantity || 0,
+              medicineCode: detail.medicine_id?.license_code || 'N/A',
+              medicineName: detail.medicine_id?.medicine_name || 'N/A',
+              quantity: detail.expected_quantity || 0,
               unitPrice: Math.round((detail.unit_price || 0) / 1000), // Convert to thousands
-              totalPrice: Math.round(((detail.quantity || 0) * (detail.unit_price || 0)) / 1000), // Convert to thousands
+              totalPrice: Math.round(((detail.expected_quantity || 0) * (detail.unit_price || 0)) / 1000), // Convert to thousands
             })) || [],
         };
-      });
+      }));
 
       console.log('Processed export orders:', processedOrders.length);
+      
+      // Debug: Log first processed order
+      if (processedOrders.length > 0) {
+        console.log('First processed order:', JSON.stringify(processedOrders[0], null, 2));
+        console.log('First order medicine details:', processedOrders[0].medicineDetails);
+        console.log('First order partner name:', processedOrders[0].partnerName);
+      }
 
       return {
         success: true,
