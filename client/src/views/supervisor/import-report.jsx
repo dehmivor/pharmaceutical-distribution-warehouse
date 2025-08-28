@@ -497,7 +497,6 @@ export default function ImportReport() {
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.medicineName || 'Tên thuốc'}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.unitOfMeasure || 'Đơn vị'}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.quantity || 'Số lượng'}</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.availableQuantity || 'Sẵn có'}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.importQuantity || 'Nhập'}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.batchCode || 'Số lô'}</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>{trans.reports.orderCode || 'Mã đơn hàng'}</TableCell>
@@ -514,7 +513,6 @@ export default function ImportReport() {
                           <TableCell>{medicine.medicineName}</TableCell>
                           <TableCell>{medicine.unitOfMeasure}</TableCell>
                           <TableCell>{medicine.quantity}</TableCell>
-                          <TableCell>{medicine.availableQuantity || 0}</TableCell>
                           <TableCell>{medicine.quantity}</TableCell>
                           <TableCell>{medicine.batchCode}</TableCell>
                           <TableCell>{order.orderCode}</TableCell>

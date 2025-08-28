@@ -181,7 +181,7 @@ export default {
     dashboard: 'Bảng điều khiển',
     reports: 'Báo cáo',
     bills: 'Hóa đơn',
-    imports: 'Nhập',
+    imports: 'Xuất Nhập Tồn',
     exports: 'Xuất',
     dataTracking: 'Theo dõi Dữ liệu',
     trends: 'Xu hướng',

@@ -180,7 +180,7 @@ export default {
     dashboard: 'Dashboard',
     reports: 'Reports',
     bills: 'Bills',
-    imports: 'Imports',
+    imports: 'Imports & Exports',
     exports: 'Exports',
     dataTracking: 'Data Tracking',
     trends: 'Trends',
