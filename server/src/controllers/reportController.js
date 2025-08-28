@@ -723,29 +723,26 @@ const getImportOrdersReport = async (req, res) => {
 // Export import orders report to Excel
 const exportImportOrdersReport = async (req, res) => {
   try {
-    const filters = {
-      startDate: req.query.startDate,
-      endDate: req.query.endDate,
-      period: req.query.period,
-      status: req.query.status,
-      supplierId: req.query.supplierId,
-    };
+    const { startDate, endDate, period, status, supplierId, reportType } = req.query;
 
-    const result = await ReportService.exportImportOrdersReport(filters);
+    const result = await ReportService.exportImportOrdersReport({
+      startDate,
+      endDate,
+      period,
+      status,
+      supplierId,
+      reportType,
+    });
 
-    if (!result.success) {
-      return res.status(400).json({ success: false, error: result.error });
-    }
-
+    res.setHeader('Content-Disposition', `attachment; filename=${result.filename}`);
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-    res.setHeader('Content-Disposition', `attachment; filename=${result.filename}`);
     res.send(result.data);
-  } catch (err) {
-    console.error('Error exporting import orders report:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+  } catch (error) {
+    console.error('Error exporting import orders report:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
   }
 };
 

@@ -377,8 +377,8 @@ export default {
     // ✅ Thêm key cho export report
     exportReportTitle: 'Báo cáo Đơn hàng Xuất',
     exportReportDescription: 'Tổng hợp báo cáo các đơn hàng xuất trong hệ thống',
-    importReportTitle: 'Báo cáo Đơn hàng Nhập',
-    importReportDescription: 'Tổng hợp báo cáo các đơn hàng nhập với thông tin kho hàng',
+    importReportTitle: 'Báo cáo Xuất Nhập Tồn',
+    importReportDescription: 'Tổng hợp báo cáo các xuất nhập tồn thuốc với thông tin kho hàng',
 
     // ✅ Thêm key cho status
     draft: 'Nháp',
@@ -2827,7 +2827,7 @@ export default {
     contract: 'Hợp đồng',
     supplier: 'Nhà cung cấp',
     arrived: 'Đã đến',
-    printReceipt : 'Print receipt',
+    printReceipt: 'Print receipt',
     items: 'Mặt hàng',
     inspection: 'Kiểm nhập',
     packages: 'Gói hàng',
