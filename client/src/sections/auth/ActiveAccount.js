@@ -84,7 +84,7 @@ export default function ActiveAccount({ inputSx }) {
 
         // Redirect sau 2 giây
         setTimeout(() => {
-          const redirectUrl = result.data.redirectUrl || '/auth/login';
+          const redirectUrl = '/auth/login';
           router.push(redirectUrl);
         }, 2000);
       } else {
