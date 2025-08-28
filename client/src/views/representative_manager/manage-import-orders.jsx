@@ -125,16 +125,36 @@ const RepresentativeManagerImportOrders = () => {
         const allOrders = response.data.data || [];
         console.log('All import orders:', allOrders);
 
+        // Ensure total_amount exists; compute from details if missing
+        const ordersWithTotals = allOrders.map((order) => {
+          const computedTotal = (order.details || []).reduce((sum, detail) => {
+            const quantity = Number(detail?.quantity) || 0;
+            const unitPrice = Number(detail?.unit_price) || 0;
+            return sum + quantity * unitPrice;
+          }, 0);
+          return {
+            ...order,
+            total_amount:
+              order.total_amount !== undefined && order.total_amount !== null
+                ? Number(order.total_amount)
+                : computedTotal
+          };
+        });
+
         // Store original data for filtering
-        setAllOrdersData(allOrders);
+        setAllOrdersData(ordersWithTotals);
 
         // Apply current filters to the new data
-        applyFiltersToData(allOrders);
+        applyFiltersToData(ordersWithTotals);
 
         // Generate filter options from data
-        const statusOptions = [...new Set(allOrders.map((order) => order.status))];
-        const contractTypeOptions = [...new Set(allOrders.map((order) => order.contract_id?.contract_type).filter(Boolean))];
-        const createdByOptions = [...new Set(allOrders.map((order) => order.created_by?.email).filter(Boolean))];
+        const statusOptions = [...new Set(ordersWithTotals.map((order) => order.status))];
+        const contractTypeOptions = [
+          ...new Set(ordersWithTotals.map((order) => order.contract_id?.contract_type).filter(Boolean))
+        ];
+        const createdByOptions = [
+          ...new Set(ordersWithTotals.map((order) => order.created_by?.email).filter(Boolean))
+        ];
 
         setFilterOptions({
           status: statusOptions,
